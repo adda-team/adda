@@ -1,0 +1,34 @@
+# This is sample batch file to run ADDA using PBS
+# it was designed for Dutch national compute cluster LISA
+# (http://www.sara.nl/userinfo/lisa/description/index.html)
+# Auth: Maxim Yurkin
+#
+# job name (default is name of pbs script file)
+#PBS -N ADDA
+#
+# request nodes, ppn - processor per node
+#PBS -l nodes=2:ppn=2
+#
+# max. wall clock time
+#PBS -l walltime=0:05:00
+#
+# Request that regular output and terminal output go to the same file
+#PBS -j oe
+#
+# shell to be used for this script
+#PBS -S /bin/sh
+#
+###
+
+# cd to the work directory
+cd $PBS_O_WORKDIR
+# echo number of processors assigned
+n=`wc -l < $PBS_NODEFILE`
+echo job running on $n processors
+# echo names of the nodes
+echo nodes:
+cat $PBS_NODEFILE
+# add the GNU environment for MPICH, using Infiniband:
+module load gnu-mpich-ib
+# run the program
+mpiexec ./adda

@@ -1,0 +1,10 @@
+theta	min	0
+	max	3.14159265359
+	JMAX	8
+	epsilon	1e-9
+	K	8
+phi	min	0
+	max	6.28318530718
+	JMAX	6
+	epsilon	1e-9
+	K	8

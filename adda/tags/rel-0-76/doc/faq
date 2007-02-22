@@ -1,0 +1,22 @@
+                        Frequently Asked Questions
+                            about Amsterdam DDA
+
+                        last revised: 5 October 2006
+
+Q: I have found a bug in ADDA. What should I do?
+A: 1) Make sure you are using the latest version of ADDA (check the ADDA 
+   homepage). If you have modified the code yourself, try the original release. 
+   2) Look at the list of known bugs at the ADDA homepage, maybe your bug is
+   already known. 
+   3) Try to understand how exactly the bug occurs, write down the sequence of
+   actions that lead to it.  
+   4) Please try to localize the bug, i.e. try to remove as much command line
+   parameters as possible without removing the bug. Also try to use defautl 
+   versions of input files, that you have modified.
+   5) Send the results of (3) and (4) to the authors, together with all input
+   files and Makefiles that you have used for compilation. Please also include
+   a brief description of your operation system and hardware. We will try to
+   fix the bug as soon as possible.
+
+This list is far from being complete. Please send your questions to 
+adda@science.uva.nl

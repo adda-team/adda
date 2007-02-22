@@ -1,0 +1,30 @@
+The C-sources (.c), Fortran-sources (.f), and headers (.h) 
+
+CD2main.c		cmplx.c/h
+CalculateE.c		const.h
+calculator.c		time.h
+crosssec.c/h		types.h
+GenerateB.c
+make_particle.c
+read_cluster.c/h
+comm.c/h		cfft99D.f
+debug.c/h
+fft.c
+MatVec_nim.c
+matvec.c
+memory.c
+Romberg.c/h
+
+=====================================
+To compile sequential version type
+make seq
+for MPI version type
+make mpi
+
+=====================================
+The input-files (read when executing)
+1) avg_params.dat
+2) Romb5.dat
+specify the parameters for orientation averaging and Csca calculation;
+(1) is self-documented
+(2) is rather outdated

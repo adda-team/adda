@@ -1,0 +1,54 @@
+# Makefile for MPI version of ADDA package
+# Highest aggressive optimization is used
+# AUTH: Maxim Yurkin
+
+MFILES += make_mpi
+CC      = mpicc
+CF      = mpif77
+# Compiler dependent options
+ifeq ($(COMPILER),gnu)
+endif
+ifeq ($(COMPILER),intel9.0)
+# this is relevant when using MPICH, not compiled with icc
+  export MPICH_CC=icc
+  export MPICH_LINKER=icc
+# this may help to eliminate some problems with Intel MPICH, but this library 
+# may be not present in some installations
+  LDLIBS += -lifcore
+endif  
+ifeq ($(COMPILER),intel8.1)
+# this may help to eliminate some problems with Intel MPICH, but this library 
+# may be not present in some installations
+  LDLIBS += -lifcore
+endif  
+ifeq ($(COMPILER),other)
+endif  
+
+# Finalize option flags
+CFLAGS += -DMPI
+
+#==========================================================
+# main part
+
+.DELETE_ON_ERROR:
+
+
+$(PROG): $(COBJECTS) $(FOBJECTS) 
+	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
+
+# Everything is recompiled (but not dependencies) when any of makefiles is changed)
+$(COBJECTS): %.o: %.c %.d $(MFILES)
+	$(CC) -c $(CFLAGS) $<
+
+$(FOBJECTS): %.o: %.f $(MFILES)
+	$(CF) -c $(FFLAGS) $<
+
+# Dependencies are only generated for C sources;
+# we assume that each Fortran file is completely independent
+
+$(CDEPEND): %.d: %.c
+	$(CC) $(DEPFLAG) $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+include $(CDEPEND)

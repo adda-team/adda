@@ -1,0 +1,26 @@
+# Makefile for MPI version of ADDA package
+# Highest optimization is used
+# AUTH: Maxim Yurkin
+
+OPT     = -O3 
+CFLAGS += -DMPI $(OPT)
+FFLAGS += $(OPT)
+LFLAGS  = $(OPT) -w
+CC	= mpicc
+CF	= mpif77
+
+$(PROG): $(COBJECTS) $(FOBJECTS) 
+	$(CC) $(LFLAGS) -o $@ $(COBJECTS) $(FOBJECTS) $(LDLIBS)
+
+.c.o:
+	$(CC) -c $(CFLAGS) $<
+
+.f.o:
+	$(CF) -c $(FFLAGS) $<
+
+%.d: %.c
+	$(SHELL) -ec '$(CC) -M $(CFLAGS) $< \
+		| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+		[ -s $@ ] || rm -f $@'
+
+include $(CSOURCE:.c=.d)

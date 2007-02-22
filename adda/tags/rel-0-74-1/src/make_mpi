@@ -1,0 +1,54 @@
+# Makefile for MPI version of ADDA package
+# Highest optimization is used
+# AUTH: Maxim Yurkin
+
+MFILES += make_mpi
+# Compiler dependent options
+CC    = mpicc
+CF    = mpif77
+FOPT  = $(COPT)
+ifeq ($(COMPILER),gnu)
+  COPT  = -O3
+endif
+ifeq ($(COMPILER),intel)
+  COPT  = -fast
+# Fortran objects produced with -ipo do not link nicely
+# to C objects
+  FOPT  = -O3 -xP -static
+  CWARN = -wd266,1572
+endif  
+ifeq ($(COMPILER),other)
+  CC    = other
+  CF    = other
+endif  
+
+# Finalize option flags
+CFLAGS += $(COPT) $(CWARN) -DMPI
+FFLAGS += $(FOPT) $(FWARN)
+LFLAGS += $(COPT)
+
+#==========================================================
+# main part
+
+.DELETE_ON_ERROR:
+
+
+$(PROG): $(COBJECTS) $(FOBJECTS) 
+	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDFLAGS) $(LDLIBS)
+
+# Everything is recompiled (but not dependencies) when Makefile is changed)
+$(COBJECTS): %.o: %.c %.d $(MFILES)
+	$(CC) -c $(CFLAGS) $<
+
+$(FOBJECTS): %.o: %.f $(MFILES)
+	$(CF) -c $(FFLAGS) $<
+
+# Dependencies are only generated for C sources;
+# we assume that each Fortran file is completely independent
+
+$(CDEPEND): %.d: %.c
+	$(CC) $(DEPFLAG) $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+include $(CDEPEND)

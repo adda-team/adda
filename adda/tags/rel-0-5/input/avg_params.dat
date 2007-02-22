@@ -1,0 +1,47 @@
+# This file should be manually modified by user. 
+# Program does not assume any symmetries of the particle 
+# while doing orientation averaging.
+# Therefore, possible symmetries should be considered by user and this can lead to
+# decrease of integration limits 
+
+alpha:
+# calculation for alpha is cheap but only precalculated, therefore
+# JMAX should be rather large
+# K is actually how many interpolation points used
+# eps is really not used
+min=0
+# default max=360
+max=360
+JMAX=5
+K=5
+eps=0
+
+beta:
+min=0
+# default max=180
+# xy - symmetry plane max=90
+max=180
+JMAX=4
+K=4
+eps=0
+
+gamma:
+min=0
+# default max=360
+# axysymmmetrical max=0
+max=360
+JMAX=4
+K=4 
+eps=0
+
+# K is maximum number of interpolation points (except for alpha),
+# interpolation starts with KMIN (defined in Romberg.h).
+
+# !!! for alpha and gamma (but not for beta!) it is assumed that max and min values 
+# are completely equivalent. Only one of them is calculated.
+
+# Nmax = 2^(JMAX-1) + 1
+# for gamma and alpha Nmax is effectively less by 1 
+# total calls for single orientation <= Nmax_beta * Nmax_gamma
+
+# axysymmetrical <=> particle with z - axis of symmetry

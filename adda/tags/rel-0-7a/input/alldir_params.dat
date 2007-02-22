@@ -1,0 +1,41 @@
+# Description of the coverage of the whole solid angle for integration 
+#
+# This file should be manually modified by user. 
+# Program does not assume any symmetries of the particle.
+# Therefore, possible symmetries should be considered by user and this can lead to
+# decrease of integration limits 
+
+theta:
+min=0
+# default max=180
+# xy - symmetry plane max=90
+max=180
+JMAX=6
+K=6
+eps=0
+equiv=false
+
+phi:
+min=0
+# default max=360
+# axysymmmetrical max=0; JMAX=1;
+max=360
+JMAX=6
+K=6 
+eps=0
+equiv=true
+
+# all values are precalculated; so high 'eps' does not decrease computational time,
+# but may decrease accuracy
+
+# K is maximum number of interpolation points
+# interpolation starts with KMIN (defined in Romberg.h).
+
+# equiv means whether it is assumed that max and min values 
+# are completely equivalent. If true only one of them is calculated.
+
+# Nmax = 2^(JMAX-1) + 1
+# for those with equiv=true Nmax is effectively less by 1 
+# total calls of calc_field <= Nmax_theta * Nmax_phi
+
+# axysymmetrical <=> particle with z - axis of symmetry

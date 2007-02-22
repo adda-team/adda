@@ -1,0 +1,27 @@
+#!/bin/sh
+# This is sample batch file to run ADDA using SGE
+# it was designed for DAS-2 cluster
+# (http://www.cs.vu.nl/das2/)
+# Auth: Maxim Yurkin
+#
+# Choose shell
+#$ -S /bin/sh
+# Work from the current working directory
+#$ -cwd
+# Name of the job
+#$ -N ADDA
+# Set requested execution time
+#$ -l h_rt=0:15:00
+# Set parallel environment and number of nodes 
+#   (number of processors is twice that number)
+#$ -pe mpi 4
+# Merge stderr with stdout
+#$ -j yes
+# Export all environmental variables to the job
+# -V
+
+PROG=adda
+ARGS=""
+
+/usr/local/mpich/mpich-gm-gcc/bin/mpirun \
+    -np `expr $NSLOTS \* 2` -machinefile $TMPDIR/machines $PROG $ARGS

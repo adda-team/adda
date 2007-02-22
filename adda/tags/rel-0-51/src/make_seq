@@ -1,0 +1,13 @@
+LDLIBS	= -lm
+CC	= gcc
+CF	= f77
+
+scatter: $(COBJECTS) $(FOBJECTS) 
+	$(CF) -g -w -o $@ $(COBJECTS) $(FOBJECTS) $(LDFLAGS) $(LDLIBS)
+
+.c.o:
+	$(CC) -g -c -w $(CFLAGS) $<
+
+.f.o:
+	$(CF) -g -c -w $<
+

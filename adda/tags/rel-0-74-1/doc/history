@@ -1,0 +1,45 @@
+[!] Important
+[+] New
+[-] Fixed error
+[*] Changes
+
+----------------------------------
+Ver. 0.73 - 02.03.06
+
+! first stable release that has a manual and other documentation
+
+----------------------------------
+Ver. 0.74 - 29.03.06
+
++ Slightly increased the speed for scattered field calculation.
++ User manual improved.
+* 'buggy' beam type removed (obsolete).
+* '-nosym' and '-sym_enf' options combined to '-sym {no|enf}'.
+- In documentation there was option  '-pol ldr avg' while actually it was
+  '-pol ldr avgpol'. It is averaging over incident polarizations 
+  (not directions). Documentation corrected.
++ Internal fields are now automatically collected into one file, when running 
+  in parallel mode ('IntField-X' and 'IntField-Y')
+- Saving of geometry in parallel mode could produce incomplete results (parts
+  of some processors could be lost). Fixed.
++ MPI-specific command line options are enabled. Before they could cause 
+  segmentation fault.
+* Geometry filename given to the command line option '-save_geom' is now 
+  specified relative to the output directory (i.e. if no path is given, it is 
+  saved into this directory).
++ Some warnings are now duplicated in the log.
++ In parallel mode each processor (except root) produces a separate logfile, if 
+  any errors or warnings were detected (on this specific processor). These files 
+  are named 'logerr.n' where n - is a number of processor.
+* Minor changes to output format to stdout.
++ Added source files 'param.c/h'.
++ Overall robustness of the code is improved (added many consistency checks).
++ Help system added (new command line option -h).
+- Fixed small bug in file locking (it could fail unexpectedly under certain 
+  circumstances).
+
+----------------------------------
+Ver. 0.75 - 
+
++ Makefiles are more robust now. Option of using Intel compiler added
+  (not tested in MPI mode)

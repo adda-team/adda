@@ -1,0 +1,22 @@
+OPT     = -O3
+CFLAGS += $(OPT)
+FFLAGS += -O
+LFLAGS  = $(OPT)
+CC	= gcc
+CF	= g77
+
+$(PROG): $(COBJECTS) $(FOBJECTS) 
+	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDFLAGS) $(LDLIBS)
+
+.c.o:
+	$(CC) -c $(CFLAGS) $<
+
+.f.o:
+	$(CF) -c $(FFLAGS) $<
+
+%.d: %.c
+	$(SHELL) -ec '$(CC) -M $(CFLAGS) $< \
+		| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+		[ -s $@ ] || rm -f $@'
+
+include $(CSOURCE:.c=.d)

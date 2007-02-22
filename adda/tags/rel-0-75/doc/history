@@ -1,0 +1,91 @@
+[!] Important
+[+] New
+[-] Fixed error
+[*] Changes
+
+----------------------------------
+Ver. 0.73 - 02.03.06
+
+! first stable release that has a manual and other documentation
+
+----------------------------------
+Ver. 0.74 - 29.03.06
+
++ Slightly increased the speed for scattered field calculation.
++ User manual improved.
+* 'buggy' beam type removed (obsolete).
+* '-nosym' and '-sym_enf' options combined to '-sym {no|enf}'.
+- In documentation there was option  '-pol ldr avg' while actually it was
+  '-pol ldr avgpol'. It is averaging over incident polarizations 
+  (not directions). Documentation corrected.
++ Internal fields are now automatically collected into one file, when running 
+  in parallel mode ('IntField-X' and 'IntField-Y')
+- Saving of geometry in parallel mode could produce incomplete results (parts
+  of some processors could be lost). Fixed.
++ MPI-specific command line options are enabled. Before they could cause 
+  segmentation fault.
+* Geometry filename given to the command line option '-save_geom' is now 
+  specified relative to the output directory (i.e. if no path is given, it is 
+  saved into this directory).
++ Some warnings are now duplicated in the log.
++ In parallel mode each processor (except root) produces a separate logfile, if 
+  any errors or warnings were detected (on this specific processor). These files 
+  are named 'logerr.n' where n - is a number of processor.
+* Minor changes to output format to stdout.
++ Added source files 'param.c/h'.
++ Overall robustness of the code is improved (added many consistency checks).
++ Help system added (new command line option -h).
+- Fixed small bug in file locking (it could fail unexpectedly under certain 
+  circumstances).
+
+----------------------------------
+Ver. 0.74.2 - 05.04.06
+
++ Makefiles are more robust now. Option of using Intel compiler added.
++ Release option added to Makefiles (turns on/of all warnings automatically).
+- A number of minor inaccuracies in the code fixed.
++ Section describing FFTW 3 installation added to the manual.
+
+----------------------------------
+Ver. 0.75 - 24.05.06
+
+- Small bug in logging of command line fixed.
+- Function 'system' (more precisely everything that calls 'fork') could fail 
+  unexpectedly under certain MPI implementations. All system calls removed.
++ Added source file 'os.h'.
++ Checking of errors in stdout has been added.
++ Possible size of FFT-grid (and non-weird number of processors) has been 
+  extended to full range of FFTW. One possible divisor of either 11 or 13 
+  has been added.
++ Increased robustness of makefiles with Intel compilers 8.1 and 9.0 in 
+  conjunction with MPICH.
+* Sample file 'batch' renamed to 'test.pbs' in 'sample/'.
++ Added sample script for SGE 'sample/test.sge'.
++ Different descriptions of Gaussian beam are now fully operational. Help, 
+  references added. Evaluation of extinction crosssection is modified to be 
+  compliant with Gaussian beams.
+- Origin is now always in the center of the computational box (before it was 
+  not so when jagged>1).
+- When x_0=E_inc was used, more iterations than necessary to reach epsilon were 
+  performed. Fixed.
+* Progress reported in the first iteration after checkpoint loading was 
+  incorrect in certain cases. To fix it required loss of checkpoint 
+  compatibility (!!!) with earlier versions.  Some additional information is 
+  shown after checkpoint loading.
+- Sometimes in parallel mode program could die of some error before producing an
+  error message. Fixed.
+* Copyright statement changed in code description and output. Now it is with
+  University of Amsterdam.    
++ Precision increased to 10 in ouput of several variables into log.
+- Calculation of Csca or g caused both polarizations to be calculated even for
+  particles that are symmetric for 90 degree rotation over the z-axis. That is
+  not necessary - fixed.
++ Integration module significantly improved. It automatically uses trapezoid
+  rule for periodic function. Error estimates now seem to be reliable.
+* Format of parameters for integration module changed because of improvement.
+  It affects parameter files alldir_params.dat, avg_params.dat, 
+  scat_params.dat, making them incompatible with previous versions.
+- Integration logs for Csca and g.x-g.z were saved in the same file for both
+  incident polarizations. Now suffix "-X" or "-Y" is added to file names.
++ www page of ADDA is now available at 
+  http://www.science.uva.nl/research/scs/Software/adda/

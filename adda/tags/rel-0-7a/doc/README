@@ -1,0 +1,40 @@
+Amsterdam DDA code
+
+=====================================
+The C-sources (.c), Fortran-sources (.f), and headers (.h) 
+
+ADDAmain.c		cmplx.h
+CalculateE.c		const.h
+calculator.c		types.h
+crosssec.c/h		
+GenerateB.c
+make_particle.c
+comm.c/h		cfft99D.f
+debug.c/h
+fft.c
+matvec.c
+memory.c/h
+Romberg.c/h
+iterative.c
+
+=====================================
+To compile sequential version type
+make seq
+for MPI version type
+make mpi
+
+executable - adda
+
+=====================================
+The input-files (read when executing)
+1) avg_params.dat - orientation averaging
+2) alldir_params.dat - Csca and asym calculations
+3) scat_params.dat - calculation of scattering in many directions
+
+4) -read filename
+this command line option specifies dipole file to read
+format:
+#comments (several lines starting with '#')
+Nmat=n             -  number of materials, if present - material index must be specified in following lines
+x y z [ind]        -  integers; x,y,z - coordinates in scale of dipole size (>=0); ind - material index (>=1)
+...many lines

@@ -1,0 +1,36 @@
+Amsterdam DDA code
+
+=====================================
+The C-sources (.c), Fortran-sources (.f), and headers (.h) 
+
+ADDAmain.c		cmplx.h
+CalculateE.c		const.h
+calculator.c		types.h
+crosssec.c/h		
+GenerateB.c
+make_particle.c
+comm.c/h		cfft99D.f
+debug.c/h
+fft.c
+matvec.c
+memory.c/h
+Romberg.c/h
+iterative.c
+timing.c/.h
+linalg.c/.h
+
+=====================================
+To compile sequential version type
+make seq
+for MPI version type
+make mpi
+
+executable - adda
+
+=====================================
+The input-files (read when executing)
+1) avg_params.dat
+2) Romb5.dat
+specify the parameters for orientation averaging and Csca calculation;
+(1) is self-documented
+(2) is rather outdated

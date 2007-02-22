@@ -1,0 +1,14 @@
+CFLAGS2	= -DMPI
+LDLIBS	= -lm 
+CC	= mpicc
+CF	= mpif77 
+
+scatter: $(COBJECTS) $(FOBJECTS) 
+	$(CF) -g -w -o $@ $(COBJECTS) $(FOBJECTS) $(LDLIBS)
+
+.c.o:
+	$(CC) -g -c -w $(CFLAGS) $(CFLAGS2) $<
+
+.f.o:
+	$(CF) -g -c -w $<
+
