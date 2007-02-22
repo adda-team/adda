@@ -1,0 +1,162 @@
+[!] Important
+[+] New
+[-] Fixed error
+[*] Changes
+
+----------------------------------
+Ver. 0.73 - 02.03.06
+
+! first stable release that has a manual and other documentation
+
+----------------------------------
+Ver. 0.74 - 29.03.06
+
++ Slightly increased the speed for scattered field calculation.
++ User manual improved.
+* 'buggy' beam type removed (obsolete).
+* '-nosym' and '-sym_enf' options combined to '-sym {no|enf}'.
+- In documentation there was option  '-pol ldr avg' while actually it was
+  '-pol ldr avgpol'. It is averaging over incident polarizations
+  (not directions). Documentation corrected.
++ Internal fields are now automatically collected into one file, when running
+  in parallel mode ('IntField-X' and 'IntField-Y')
+- Saving of geometry in parallel mode could produce incomplete results (parts
+  of some processors could be lost). Fixed.
++ MPI-specific command line options are enabled. Before they could cause
+  segmentation fault.
+* Geometry filename given to the command line option '-save_geom' is now
+  specified relative to the output directory (i.e. if no path is given, it is
+  saved into this directory).
++ Some warnings are now duplicated in the log.
++ In parallel mode each processor (except root) produces a separate logfile, if
+  any errors or warnings were detected (on this specific processor). These files
+  are named 'logerr.n' where n - is a number of processor.
+* Minor changes to output format to stdout.
++ Added source files 'param.c/h'.
++ Overall robustness of the code is improved (added many consistency checks).
++ Help system added (new command line option -h).
+- Fixed small bug in file locking (it could fail unexpectedly under certain
+  circumstances).
+
+----------------------------------
+Ver. 0.74.2 - 05.04.06
+
++ Makefiles are more robust now. Option of using Intel compiler added.
++ Release option added to Makefiles (turns on/of all warnings automatically).
+- A number of minor inaccuracies in the code fixed.
++ Section describing FFTW 3 installation added to the manual.
+
+----------------------------------
+Ver. 0.75 - 24.05.06
+
+- Small bug in logging of command line fixed.
+- Function 'system' (more precisely everything that calls 'fork') could fail
+  unexpectedly under certain MPI implementations. All system calls removed.
++ Added source file 'os.h'.
++ Checking of errors in stdout has been added.
++ Possible size of FFT-grid (and non-weird number of processors) has been
+  extended to full range of FFTW. One possible divisor of either 11 or 13
+  has been added.
++ Increased robustness of makefiles with Intel compilers 8.1 and 9.0 in
+  conjunction with MPICH.
+* Sample file 'batch' renamed to 'test.pbs' in 'sample/'.
++ Added sample script for SGE 'sample/test.sge'.
++ Different descriptions of Gaussian beam are now fully operational. Help,
+  references added. Evaluation of extinction crosssection is modified to be
+  compliant with Gaussian beams.
+- Origin is now always in the center of the computational box (before it was
+  not so when jagged>1).
+- When x_0=E_inc was used, more iterations than necessary to reach epsilon were
+  performed. Fixed.
+* Progress reported in the first iteration after checkpoint loading was
+  incorrect in certain cases. To fix it required loss of checkpoint
+  compatibility (!!!) with earlier versions.  Some additional information is
+  shown after checkpoint loading.
+- Sometimes in parallel mode program could die of some error before producing an
+  error message. Fixed.
+* Copyright statement changed in code description and output. Now it is with
+  University of Amsterdam.
++ Precision increased to 10 in ouput of several variables into log.
+- Calculation of Csca or g caused both polarizations to be calculated even for
+  particles that are symmetric for 90 degree rotation over the z-axis. That is
+  not necessary - fixed.
++ Integration module significantly improved. It automatically uses trapezoid
+  rule for periodic function. Error estimates now seem to be reliable.
+* Format of parameters for integration module changed because of improvement.
+  It affects parameter files alldir_params.dat, avg_params.dat,
+  scat_params.dat, making them incompatible with previous versions.
+- Integration logs for Csca and g.x-g.z were saved in the same file for both
+  incident polarizations. Now suffix "-X" or "-Y" is added to file names.
++ www page of ADDA is now available at
+  http://www.science.uva.nl/research/scs/Software/adda/
+
+----------------------------------
+Ver. 0.76 - 14.10.06
+
++ Makefiles modified to include new compiler 'compaq'. New variables added to
+  set path for FFTW3 header and library.
+* Default dpl is now calculated based on the maximum absolute value among given
+  refractive indices, not the first one. dpl=10*sqrt(max(|m|))
+- Removed requirement of full set of refractive indices to be given for multi-
+  domain scatterers, if '-prognose' option is used. Produces information
+  message when relevant.
++ Added information about distribution of occupied dipoles among different
+  domains to the log file for multi-domain particles.
+* GPL license changed to version 2 - file 'copyleft' replaced.
++ New option '-V' added to show version, compiler used, and copyright
+  information. A head with information and copyright is no more shown at every
+  run (redundant).
++ All memory allocation routines are now called by similar-typed macros - much
+  more cleaner. Robustness of memory handling improved.
++ Timing is now produced also when '-prognose' option is used. Communication
+  times are shown only in parallel mode. Redundant calls to calculate
+  communication timing in sequential mode removed.
+* All timing in parallel mode is now done through MPI_Wtime, which measures
+  wall time. No more timer overflows in parallel runs. New header 'timing.h' for
+  this task.
++ Function attributes moved from 'const.h' to new header 'function.h'. Just for
+  convenience.
+- Communication timing now measures exactly communication times (synchronization
+  before some communications is added for that).
+- Memory requirement in the manual slightly corrected. The values produced by
+  the program itself were correct.
++ New option '-granul <vol_frac> <diam> [<dom_number>]' to granulate one of the
+  domains. When this option is used '_gran' is added to shapename. Currently it
+  may easily fail for volume fraction larger than 30-40%. Separate timing is
+  produced for granule generator.
+  Two files added - 'mt19937ar.c/h' - for a random generator (Mersenne Twister).
+  The header file slightly modified from the original.
+- Bug in checkpointer fixed. Was not portable to systems where size_t!=int.
++ Added check if file system does not support file locking; error output of file
+  locking and file removal is now more informative (errno string is shown).
+- Orientation averaging did not work in parallel (reported by Antti Penttila).
+  Fixed.
+- Symmetries were not switched off by non-symmetric Gaussian beams. Fixed.
+  Improved hadling of symmetries.
++ Computation of scattering of a tightly focused Gaussian beam was compared to
+  multiple multipole method (data by Roman Schuh and Thomas Wriedt). Perfect
+  aggreement. Results of the comparison are added to the manual.
++ Added chapter to the manual to facilitate adding a new predefined shape.
++ New file 'doc/faq' added for frequently asked questions.
++ New option '-store_beam' to save incident electric fields to a file.
++ Starting from this release ADDA executable for WIN32 is available. It is
+  compiled with MinGW, and distributed with FFTW3 dll. Thanks to Alexander
+  Shvalov for information on MinGW.
+- ADDA crashed when one of the given refractive indices was equal to one. Check
+  for this was added, now error message is produced in this case.
++ Added support for anisotropic refractive index (option '-anisotr'). Currently
+  it is limited to refractive index tensors that are diagonal in the particle
+  reference frame. Thanks to Michiel Min for fruitful discussions.
+
+----------------------------------
+Ver. 0.77 - ??.??.07
+
+- Calculation of radiation forces gave segmentation fault. The bug was
+  introduced in version 0.76. Fixed.
++ Improved handling of large integers throughout the program. 'size_t' type is
+  used wherever possible, so it should work for any problem that would fit into
+  memory. Checks of integer overflow where necessary to avoid craches.
++ Improved handling of input parameters to check for possible very large
+  numbers, etc. Overall robustness improved.
++ Added checks to indicate incompatibility of orientation averaging and
+  checkpoints with some other features.
