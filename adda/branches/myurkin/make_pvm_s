@@ -1,0 +1,26 @@
+CSOURCE = CD2main.c  calculator.c make_particle.c CalculateE.c \
+          GenerateB.c \
+          CGNR.c MatVec_nim.c memory.c field.c comm.c matvec.c \
+          fft.c crosssec.c Romberg.c
+FSOURCE = cfft99S.f
+
+COBJECTS= $(CSOURCE:.c=.o) 
+FOBJECTS= $(FSOURCE:.f=.o)
+
+# PVM-PowerXplorer settings
+CFLAGS	= -I$(PVM_ROOT)/include -DPowerPVM -DPVM
+LDFLAGS	= -L$(PVM_ROOT)/lib/$(PVM_ARCH)
+LDLIBS	= -lpvm3 -lm
+CC	= px ancc.px
+CF	= px f77.px 
+
+
+scatter: $(COBJECTS) $(FOBJECTS) 
+	$(CF) -g -w -o $@ $(COBJECTS) $(FOBJECTS) $(LDFLAGS) $(LDLIBS)
+
+.c.o:
+	$(CC) -g -c -w $(CFLAGS) -DSINGLE $<
+
+.f.o:
+	$(CF) -g -c -w $<
+

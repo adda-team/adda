@@ -1,0 +1,41 @@
+The C-sources (.c), Fortran-sources (.f), and headers (.h) 
+
+CD2main.c		cmplx.h
+CalculateE.c		const.h
+calculator.c		time.h
+crosssec.c/h		types.h
+field.c
+GenerateB.c
+make_particle.c
+read_cluster.c/h
+
+CGNR.c			cfft99S.f
+comm.c/h		cfft99D.f
+debug.c/h
+fft.c
+MatVec_nim.c
+matvec.c
+memory.c
+Romberg.c/h
+
+make up the parallel CG-FFT DDA program. The different makefiles
+1) Makefile
+2) make_mpi_s
+3) make_mpi_d
+4) make_pvm_s
+5) make_seq_s
+6) make_seq_d
+and their functions are described in Makefile. The input-files
+1) Romb4.dat
+2) Romb5.dat
+3) Romb6.dat
+4) Romb7.dat
+5) Romb8.dat
+specify the accuracy to which the Romberg-routine should integrate. 
+Min and max are the lower and upper boundary of the integration-interval
+respectively, JMAX is the number of times the integration interval must 
+be refined, K is the number of values to be used in the extrapolation,
+and epsilon finally is the convergence criterium. For a detailed 
+for a detailed description of this integration-procedure see 
+"Application of the discrete dipole approximation to radiation pressure
+calculatinos on dust-aggregates: An exploration".
