@@ -847,15 +847,17 @@ void InitShape(void)
   else if (shape==SH_COATED) {
     coat_ratio=sh_pars[0];
     TestRange(coat_ratio,"innner/outer diameter ratio",0,1);
-    SPRINTZ(sh_form_str,"coated sphere; diameter(d):%%.10g, inner diameter d_in/d=%.10g",coat_ratio);
+    SPRINTZ(sh_form_str,"coated sphere; diameter(d):%%.10g, inner diameter d_in/d=%.10g",
+            coat_ratio);
     if (sh_Npars==4) {
       coat_x=sh_pars[1];
       coat_y=sh_pars[2];
       coat_z=sh_pars[3];
-      if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>(1-coat_ratio)*(1-coat_ratio))
+      if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
         PrintErrorHelp("Inner sphere is not fully inside the outer");
       SPRINTZ(sh_form_str+strlen(sh_form_str),
-              "\n       position of inner sphere center r/d= {%.10g,%.10g,%.10g}",coat_x,coat_y,coat_z);
+              "\n       position of inner sphere center r/d= {%.10g,%.10g,%.10g}",
+              coat_x,coat_y,coat_z);
     }
     else coat_x=coat_y=coat_z=0; /* initialize default values */
     coat_r2=0.25*coat_ratio*coat_ratio;
