@@ -24,7 +24,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>     /* for time and clock (used for random seed) */
-#include <limits.h>   
+#include <limits.h>
 #include "vars.h"
 #include "const.h"
 #include "cmplx.h"
@@ -142,14 +142,14 @@ static int SkipComments(FILE *file)
   /* skips comments (#...), all lines, starting from current position in a file
      returns number of lines skipped */
 {
-  int lines=0;
+  int lines=0,ch;
   char buf[BUF_LINE];
 
-  while (fgetc(file)=='#') {
-    do fgets(buf,BUF_LINE,file); while (strstr(buf,"\n")==NULL);
+  while ((ch=fgetc(file))=='#') {
+    do fgets(buf,BUF_LINE,file); while (strstr(buf,"\n")==NULL && !feof(file));
     lines++;
   }
-  fseek(file,-1,SEEK_CUR);
+  if (ch!=EOF) ungetc(ch,file);
 
   return lines;
 }
@@ -180,7 +180,7 @@ static void InitDipFile(const char *fname, int *maxX, int *maxY, int *maxZ, int 
   *maxX=*maxY=*maxZ=0;
      /* reading is performed in lines */
   while(fgets(buf,BUF_LINE,input)!=NULL) {
-    if (strstr(buf,"\n")==NULL) LogError(EC_ERROR,ONE_POS,
+    if (strstr(buf,"\n")==NULL && !feof(input)) LogError(EC_ERROR,ONE_POS,
       "Buffer overflow while scanning lines in file '%s' (size of line %d > %d)",
       fname,line,BUF_LINE-1);
     if (ext) cond=(sscanf(buf,geom_format_ext,&x,&y,&z,&mat)!=4);

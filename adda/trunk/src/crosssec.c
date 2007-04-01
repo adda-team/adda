@@ -104,7 +104,7 @@ static int ReadLine(FILE *file,const char *fname,  /* opened file and filename *
   while (!feof(file)) {
     fgets(buf,buf_size,file);
     if (*buf!='#') {  /* if uncommented */
-      if (strstr(buf,"\n")==NULL)  LogError(EC_ERROR,ONE_POS,
+      if (strstr(buf,"\n")==NULL  && !feof(file))  LogError(EC_ERROR,ONE_POS,
             "Buffer overflow while reading '%s' (size of uncommented line > %d)",
             fname,buf_size-1);
       else return 0;   /* complete line is read */
@@ -124,7 +124,7 @@ static void ReadLineStart(FILE *file,const char *fname,  /* opened file and file
   while (!feof(file)) {
     fgets(buf,buf_size,file);
     if (strstr(buf,start)==buf) { /* if correct beginning */
-      if (strstr(buf,"\n")==NULL) LogError(EC_ERROR,ONE_POS,
+      if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(EC_ERROR,ONE_POS,
             "Buffer overflow while reading '%s' (size of essential line > %d)",
             fname,buf_size-1);
       else return;  /* line found and fits into buffer */
@@ -296,7 +296,7 @@ static int ScanAngleSet(FILE *file,const char *fname, /* opened file and filenam
     ReadLineStart(file,fname,buf,buf_size,"values=");
     for (i=0;i<a->N;i++) {
       fgets(buf,buf_size,file);
-      if (strstr(buf,"\n")==NULL) LogError(EC_ERROR,ONE_POS,
+      if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(EC_ERROR,ONE_POS,
         "Buffer overflow while scanning lines in file '%s' (line size > %d)",fname,buf_size-1);
       if (sscanf(buf,"%lf\n",a->val+i)!=1) LogError(EC_ERROR,ONE_POS,
         "Failed scanning values from line '%s' in file '%s'",buf,fname);
@@ -415,7 +415,7 @@ void ReadScatGridParms(const char *fname)
     ReadLineStart(input,fname,buf,BUF_LINE,"pairs=");
     for (i=0;i<angles.N;i++) {
       fgets(buf,BUF_LINE,input);
-      if (strstr(buf,"\n")==NULL) LogError(EC_ERROR,ONE_POS,
+      if (strstr(buf,"\n")==NULL && !feof(input)) LogError(EC_ERROR,ONE_POS,
         "Buffer overflow while scanning lines in file '%s' (line size > %d)",fname,BUF_LINE-1);
       if (sscanf(buf,"%lf %lf\n",angles.theta.val+i,angles.phi.val+i)!=2)
         LogError(EC_ERROR,ONE_POS,"Failed scanning values from line '%s' in file '%s'",buf,fname);
