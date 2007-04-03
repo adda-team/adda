@@ -149,14 +149,17 @@ Ver. 0.76 - 14.10.06
   reference frame. Thanks to Michiel Min for fruitful discussions.
 
 ----------------------------------
-Ver. 0.77 - ??.??.07
+Ver. 0.77a - 04.04.07
 
 - Calculation of radiation forces gave segmentation fault. The bug was
   introduced in version 0.76. Fixed.
 + Improved handling of large integers throughout the program. 'size_t' type is
   used wherever possible, so it should work for any problem that would fit into
-  memory. Checks of integer overflow where necessary to avoid craches.
+  memory. Checks of integer overflow where necessary to avoid crashes.
 + Improved handling of input parameters to check for possible very large
   numbers, etc. Overall robustness improved.
 + Added checks to indicate incompatibility of orientation averaging and
   checkpoints with some other features.
+- Consistency check for coated sphere was inaccurate. Fixed.
+- Lack of EOL in the end of the input files could cause crash, as well
+  as EOL conversion in geometry files. Fixed.
