@@ -31,7 +31,7 @@ COMPILER = gnu
 #COMPILER = other
 
 # If uncommented, all warning are suppressed
-#RELEASE = on
+RELEASE = on
 
 # Specify path to headers and libraries of FFTW3. Some systems
 # do not need them at all, some specify special global variables
@@ -39,10 +39,8 @@ COMPILER = gnu
 # (last 2 lines).
 #FFTW3_INC_PATH = $(FFTW_INC)
 #FFTW3_LIB_PATH = $(FFTW_LIB)
-#FFTW3_INC_PATH = $(HOME)/include
-#FFTW3_LIB_PATH = $(HOME)/lib
-FFTW3_INC_PATH = ./../lib
-FFTW3_LIB_PATH = ./../lib
+FFTW3_INC_PATH = $(HOME)/include
+FFTW3_LIB_PATH = $(HOME)/lib
 
 #==========================================================
 # Unconditional variables
@@ -93,7 +91,7 @@ ifeq ($(COMPILER),gnu)
 # You can add option '-march=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
-  COPT  = -O3 -ffast-math -funroll-loops -ggdb
+  COPT  = -O3 -ffast-math -funroll-loops
   FOPT  = -O
   ifndef RELEASE
     CWARN = -pedantic -Wall -W -Winline -Wpointer-arith -Wcast-qual \
