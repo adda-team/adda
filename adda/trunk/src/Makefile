@@ -3,7 +3,13 @@
 # sequential and parallel (mpi) version respectively
 # AUTH: Maxim Yurkin
 
-#==========================================================
+#===============================================================================
+# !!! Start of control section. Flags and options here are designed to be
+# modified by user to choose particular options for compilation. However, the
+# default set of options may work out-of-box on some systems. If compiling with
+# MPI support please also look at control section in file 'make_mpi'.
+#===============================================================================
+
 # Optional flags; can be modified by user
 # information can be found in corresponding headers
 
@@ -36,14 +42,23 @@ RELEASE = on
 # Specify path to headers and libraries of FFTW3. Some systems
 # do not need them at all, some specify special global variables
 # (first 2 lines), on some - FFTW3 is installed under user account
-# (last 2 lines).
-#FFTW3_INC_PATH = $(FFTW_INC)
-#FFTW3_LIB_PATH = $(FFTW_LIB)
-FFTW3_INC_PATH = $(HOME)/include
-FFTW3_LIB_PATH = $(HOME)/lib
+# (next 2 lines). Under Windows it may be required to specify manually
+# relative or absolute paths (last 2 lines).
+#FFTW3_INC_PATH = "$(FFTW_INC)"
+#FFTW3_LIB_PATH = "$(FFTW_LIB)"
+#FFTW3_INC_PATH = "$(HOME)/include"
+#FFTW3_LIB_PATH = "$(HOME)/lib"
+#FFTW3_INC_PATH = "./../lib"
+#FFTW3_LIB_PATH = "./../lib"
 
-#==========================================================
+#===============================================================================
+# !!! End of control section. Everything below is not designed to be modified by
+# user. However, advanced users may wish to modify some compilers  flags below,
+# especially when using 'other' compiler.
+
 # Unconditional variables
+#===============================================================================
+
 
 CSOURCE  = ADDAmain.c  calculator.c make_particle.c CalculateE.c \
            GenerateB.c debug.c timing.c linalg.c \
@@ -64,9 +79,9 @@ MFILES   = Makefile
 # Fortran sources generate a lot of warnings
 FWARN    = -w
 
-#==========================================================
-# Conditional variables, that depend on the
-# values of optional flags; 'CC' is defined in subfiles
+#===============================================================================
+# Conditional variables that depend on the values of optional flags
+#===============================================================================
 
 # adds link to fftw3 library and modifies paths when above is commented
 ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
@@ -88,7 +103,7 @@ endif
 # compiler warnings and optimization flags
 FOPT    = $(COPT)
 ifeq ($(COMPILER),gnu)
-# You can add option '-march=...' to COPT and FOPT in this section
+  # You can add option '-march=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
   COPT  = -O3 -ffast-math -funroll-loops
@@ -96,7 +111,8 @@ ifeq ($(COMPILER),gnu)
   ifndef RELEASE
     CWARN = -pedantic -Wall -W -Winline -Wpointer-arith -Wcast-qual \
             -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
-            -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter
+            -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter \
+            -Wno-long-long
   endif
 endif
 ifeq ($(COMPILER),intel9.0)
@@ -118,7 +134,7 @@ ifeq ($(COMPILER),intel8.1)
   endif
 endif
 ifeq ($(COMPILER),compaq)
-# You can add option '-arch host' to COPT and FOPT in this section
+  # You can add option '-arch host' to COPT and FOPT in this section
   CC    = cc
   CF    = f77
   COPT  = -fast
@@ -133,8 +149,9 @@ CFLAGS += $(COPT) $(CWARN)
 FFLAGS += $(FOPT) $(FWARN)
 LFLAGS += $(COPT) $(LWARN)
 
-#==========================================================
-# main target part
+#===============================================================================
+# Main action part
+#===============================================================================
 
 .EXPORT_ALL_VARIABLES:
 .PHONY: seq mpi clean

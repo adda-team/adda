@@ -2,10 +2,13 @@
 # All options are defined in Makefile
 # AUTH: Maxim Yurkin
 
+# !!! This file do not have any options designed to be changed by ADDA user
+
 MFILES += make_seq
 
-#==========================================================
-# main part
+#===============================================================================
+# Main action part
+#===============================================================================
 
 .DELETE_ON_ERROR:
 

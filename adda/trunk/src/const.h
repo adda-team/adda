@@ -10,7 +10,7 @@
 #define __const_h
 
 /* version number (string) */
-#define ADDA_VERSION "0.77a"
+#define ADDA_VERSION "0.77b"
 
 /* basic constants */
 #define FALSE        0
