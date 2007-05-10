@@ -10,7 +10,7 @@
 # MPI support please also look at control section in file 'make_mpi'.
 #===============================================================================
 
-# Optional flags; can be modified by user
+# --Optional flags-- Uncomment those that you find appropriate;
 # information can be found in corresponding headers
 
 # for faster recompiling turn on in debug.h
@@ -25,20 +25,32 @@
 # for faster recompiling turn on in io.h
 #CFLAGS += -DNOT_USE_LOCK
 
-# Choose compiler;
-# other should be implemented below and in sub-makefiles;
-# gcc tested for version 3.2.3 and higher;
-# higher versions of intel compilers should work with intel9.0;
-# compaq is tested on Compaq C V6.5-303 (dtk)
+# --Compilers-- Choose (uncomment) one of the lines below
+
+# tested for gcc 3.2.3 and higher;
 COMPILER = gnu
-#COMPILER = intel9.0
+
+# uses -fast option, which is general, but includes static linking, which may
+# cause problems in some cases
+#COMPILER = intel9.x
+
+# the same as intel9.x but do not use static linking; it may also not use all
+# possible optimizations, depending on a particular processor
+#COMPILER = intel9.x_ns
+
+# this is almost the same as intel9.x with few changes for old version, obsolete
 #COMPILER = intel8.1
+
+# tested on Compaq C V6.5-303 (dtk)
 #COMPILER = compaq
+
+# All options should be implemented below and in sub-makefiles
 #COMPILER = other
 
-# If uncommented, all warning are suppressed
+# --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
 
+# --FFTW3 paths--
 # Specify path to headers and libraries of FFTW3. Some systems
 # do not need them at all, some specify special global variables
 # (first 2 lines), on some - FFTW3 is installed under user account
@@ -115,11 +127,21 @@ ifeq ($(COMPILER),gnu)
             -Wno-long-long
   endif
 endif
-ifeq ($(COMPILER),intel9.0)
+ifeq ($(COMPILER),intel9.x)
   CC    = icc
   CF    = ifort
   COPT  = -fast -fp-model fast
   FOPT  = -fast
+  ifndef RELEASE
+    CWARN = -Wall -Wno-uninitialized -Wno-comment \
+            -wd279,810,869,981,1418,1419,1572
+  endif
+endif
+ifeq ($(COMPILER),intel9.x_ns)
+  CC    = icc
+  CF    = ifort
+  COPT  = -fp-model fast -O3 -ipo -no-prec-div -xP
+  FOPT  = -O3 -ipo -no-prec-div -xP
   ifndef RELEASE
     CWARN = -Wall -Wno-uninitialized -Wno-comment \
             -wd279,810,869,981,1418,1419,1572

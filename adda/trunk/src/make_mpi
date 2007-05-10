@@ -15,14 +15,16 @@ MPICC = mpicc
 # Compiler dependent options
 ifeq ($(COMPILER),gnu)
 endif
-ifeq ($(COMPILER),intel9.0)
-  # this may help to eliminate some problems with Intel MPICH, but this library 
-  # may be not present in some installations
+ifeq ($(COMPILER),intel9.x)
+  # this may help to eliminate some problems with static linking using 
+  # Intel MPICH, but this library may be not present in some installations
   LDLIBS += -lifcore
 endif  
+ifeq ($(COMPILER),intel9.x_ns)
+endif  
 ifeq ($(COMPILER),intel8.1)
-  # this may help to eliminate some problems with Intel MPICH, but this library 
-  # may be not present in some installations
+  # this may help to eliminate some problems with static linking using
+  # Intel MPICH, but this library may be not present in some installations
   LDLIBS += -lifcore
 endif  
 # This are options for a particular Alpha system
