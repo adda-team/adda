@@ -39,8 +39,8 @@ extern double *muel_alpha;
 /* defined and initialized in crosssec.c */
 extern const Parms_1D phi_sg;
 /* defined and initialized in param.c */
-extern const int store_int_field,store_beam,store_scat_grid,calc_Cext,calc_Cabs,calc_Csca,
-                 calc_vec,calc_asym,calc_mat_force,store_force,phi_int_type;
+extern const int store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
+                 calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,phi_int_type;
 /* defined and initialized in timing.c */
 extern TIME_TYPE Timing_EFieldPlane,Timing_comm_EField,
                  Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan;
@@ -622,12 +622,14 @@ static void CalcIntegralScatQuantities(const char which)
 /*============================================================*/
 
 static void StoreFields(const char which,doublecomplex *field,const char *fname_preffix,
-                        const char *tmpl,const char *name)
-    /* Write any fields on each dipole to file (internal fields, incident beam, etc...
-       all processors should write the 'field' to temporary file.
+                        const char *tmpl,const char *field_name,const char *fullname)
+    /* Write any fields on each dipole to file (internal fields, incident beam, polarization,
+       etc...).  All processors should write the 'field' to temporary file.
        These files are named by template 'tmpl' and afterwards are concannetated into the file,
-       which name is build by adding a small suffix to 'fname_preffix'
-       If CE_PARPER is employed then naturally saves only once; use '-sym no' if needed */
+       which name is build by adding a small suffix to 'fname_preffix'.
+       If CE_PARPER is employed then naturally saves only once; use '-sym no' if needed.
+       'field_name' is used to build column labels (i.e. there is difference in the first row
+       between different fields). 'fullname' is for standard output. */
 {
   FILE *file; /* file to store the fields */
   size_t i,j;
@@ -651,7 +653,8 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
 #ifdef PARALLEL
   if (ringid==0) {  /* this condition can be different from being ROOT */
 #endif
-    fprintf(file,"x y z |E|^2 Ex.r Ex.i Ey.r Ey.i Ez.r Ez.i\n");
+    fprintf(file,"x y z |%s|^2 %sx.r %sx.i %sy.r %sy.i %sz.r %sz.i\n",field_name,field_name,
+            field_name,field_name,field_name,field_name,field_name);
 #ifdef PARALLEL
   }     /* end of if */
 #endif
@@ -669,7 +672,7 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
   Synchronize();
   if (ringid==ROOT) CatNFiles(directory,tmpl,fname_sh);
 #endif
-  PRINTZ("%s saved to file\n",name);
+  PRINTZ("%s saved to file\n",fullname);
   Timing_FileIO += GET_TIME() - tstart;
 }
 
@@ -704,7 +707,7 @@ static void StoreIntFields(const char which)
     }
   }
   /* save fields to file */
-  StoreFields(which,xvec,F_INTFLD,F_INTFLD_TMP,"Internal fields");
+  StoreFields(which,xvec,F_INTFLD,F_INTFLD_TMP,"E","Internal fields");
 }
 
 /*============================================================*/
@@ -719,7 +722,7 @@ int CalculateE(const char which,const int type)
   /* calculate the incident field Einc; vector b=Einc*cc_sqrt */
   D("Generating B");
   GenerateB (which, Einc);
-  if (store_beam) StoreFields(which,Einc,F_BEAM,F_BEAM_TMP,"Incident beam");
+  if (store_beam) StoreFields(which,Einc,F_BEAM,F_BEAM_TMP,"Einc","Incident beam");
   /* calculate solution vector x */
   D("Iterative solver started");
   exit_status=IterativeSolver(IterMethod);
@@ -738,7 +741,8 @@ int CalculateE(const char which,const int type)
      (crosssections, asymmetry parameter, electric forces) */
   if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force)
     CalcIntegralScatQuantities(which);
-  /* saves internal fields to text file */
+  /* saves internal fields and/or dipole polarizations to text file */
   if (store_int_field) StoreIntFields(which);
+  if (store_dip_pol) StoreFields(which,pvec,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
   return 0;
 }

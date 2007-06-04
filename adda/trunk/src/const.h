@@ -10,7 +10,7 @@
 #define __const_h
 
 /* version number (string) */
-#define ADDA_VERSION "0.77b"
+#define ADDA_VERSION "0.77"
 
 /* basic constants */
 #define FALSE        0
@@ -183,12 +183,13 @@
 /* numbers less than this value (compared to unity) are considered to be zero */
 #define ROUND_ERR 1E-15
 
-/* output and input file and dir names (can only be changed in compile time) */
+/* output and input file and dir names (can only be changed at compile time) */
 #define F_EXPCOUNT      "ExpCount"
 #define F_EXPCOUNT_LCK  F_EXPCOUNT ".lck"
 #define F_CS            "CrossSec"
 #define F_FRP           "VisFrp"
 #define F_INTFLD        "IntField"
+#define F_DIPPOL        "DipPol"
 #define F_BEAM          "IncBeam"
     /* suffixes */
 #define F_XSUF          "-X"
@@ -214,6 +215,7 @@
     /* temporary files; used in printf with ringid as argument */
 #define F_BEAM_TMP      "b%d.tmp"
 #define F_INTFLD_TMP    "f%d.tmp"
+#define F_DIPPOL_TMP    "p%d.tmp"
 #define F_GEOM_TMP      "g%d.tmp"
     /* checkpoint files */
 #define F_CHP_LOG       "chp.log"
