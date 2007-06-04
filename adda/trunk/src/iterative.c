@@ -46,9 +46,9 @@
 #define MAXCOUNT_BICG_CS  50000
 #define MAXCOUNT_QMR_CS   50000
 /* zero value for checks */
-#define EPS_BICGSTAB      1E-30
-#define EPS_BICG_CS       1E-30
-#define EPS_QMR_CS        1E-30
+#define EPS_BICGSTAB      1E-8
+#define EPS_BICG_CS       1E-8
+#define EPS_QMR_CS        1E-8
 #define EPS_QMR_CS_1      1E-40   /* problem can only occur if overflow of exponent number */
 
 /* SEMI-GLOBAL VARIABLES */
@@ -349,8 +349,8 @@ static void CGNR(const int mc)
 static void BiCGStab(const int mc)
    /* Bi-Conjugate Gradient Stabilized */
 {
-  double inprodRplus1;		/* inner product of rk+1 */
-  double denumOmega;
+  double inprodRplus1;   /* inner product of rk+1 */
+  double denumOmega,dtmp;
   doublecomplex beta,ro_new,ro_old,omega,alpha,temp1,temp2;
   doublecomplex *v,*s,*rtilda;
   TIME_TYPE tstart;
@@ -384,14 +384,18 @@ static void BiCGStab(const int mc)
     tstart = GET_TIME();
     /* ro_k-1=r_k-1.r~ ; check for ro_k-1!=0 */
     nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
-    if (sqrt(cAbs2(ro_new))<EPS_BICGSTAB)
-      LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: zero ro_new (%.2g%+.2g).",ro_new[RE],ro_new[IM]);
-
+    dtmp=sqrt(cAbs2(ro_new))/inprodR;
+    if (dtmp<EPS_BICGSTAB)
+      LogError(EC_ERROR,ONE_POS,"BiCGStab fails: (r~.r)/(r.r) is too small (%.2g).",dtmp);
     if (count==1) nCopy(pvec,rvec); /* p_1=r_0 */
     else {
       /* beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1) */
       cMult(ro_new,alpha,temp1);
       cMult(ro_old,omega,temp2);
+        /* check that omega_k-1!=0 */
+      dtmp=sqrt(cAbs2(temp2)/cAbs2(temp1));
+      if (dtmp<EPS_BICGSTAB)
+        LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small (%.2g).",dtmp);
       cDiv(temp1,temp2,beta);
       /* p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1 */
       cMult(beta,omega,temp1);
@@ -416,11 +420,9 @@ static void BiCGStab(const int mc)
     else {
       /* t=Avecbuffer=A.s */
       MatVec(s,Avecbuffer,&denumOmega,FALSE);
-      /* omega_k=s.t/|t|^2 ; check that omega_k!=0 */
+      /* omega_k=s.t/|t|^2 */
       nDotProd(s,Avecbuffer,temp1,&Timing_OneIterComm);
       cMultReal(1/denumOmega,temp1,omega);
-      if (sqrt(cAbs2(omega))<EPS_BICGSTAB)
-        LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: zero omega (%.2g%+.2g).",omega[RE],omega[IM]);
       /* x_k=x_k-1+alpha_k*p_k+omega_k*s */
       nIncrem011_cmplx(xvec,pvec,s,alpha,omega);
       /* r_k=s-omega_k*t and |r_k|^2 */
@@ -445,6 +447,7 @@ static void BiCG_CS(const int mc)
   double inprodRplus1;  /* inner product of rk+1 */
   doublecomplex alpha, mu;
   doublecomplex beta,ro_new,ro_old,temp;
+  double dtmp,abs_ro_new;
   TIME_TYPE tstart;
   chp_data scalars[1];
 
@@ -465,9 +468,10 @@ static void BiCG_CS(const int mc)
     tstart=GET_TIME();
     /* ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0 */
     nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
-    if (sqrt(cAbs2(ro_new))<EPS_BICG_CS) LogError(EC_ERROR,ONE_POS,
-        "BiCG_CS fails: zero ro_new (%.2g%+.2gi).",ro_new[RE],ro_new[IM]);
-
+    abs_ro_new=sqrt(cAbs2(ro_new));
+    dtmp=abs_ro_new/inprodR;
+    if (dtmp<EPS_BICG_CS)
+      LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is too small (%.2g).",dtmp);
     if (count==1) nCopy(pvec,rvec); /* p_1=r_0 */
     else {
       /* beta_k-1=ro_k-1/ro_k-2 */
@@ -479,8 +483,9 @@ static void BiCG_CS(const int mc)
     MatVec(pvec,Avecbuffer,NULL,FALSE);
     /* mu_k=p_k.q_k; check for mu_k!=0 */
     nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
-    if (sqrt(cAbs2(mu))<EPS_BICG_CS) LogError(EC_ERROR,ONE_POS,
-        "BiCG_CS fails: zero ro_new (%.2g%+.2gi).",ro_new[RE],ro_new[IM]);
+    dtmp=sqrt(cAbs2(mu))/abs_ro_new;
+    if (dtmp<EPS_BICG_CS)
+      LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (pT.A.p)/(rT.r) is too small (%.2g).",dtmp);
     /* alpha_k=ro_k/mu_k */
     cDiv(ro_new,mu,alpha);
     /* x_k=x_k-1+alpha_k*p_k */
@@ -565,8 +570,9 @@ static void QMR_CS(const int mc)
     Timing_OneIterComm=0;  /* initialize time */
     tstart=GET_TIME();
     /* check for zero beta */
-    if (sqrt(cAbs2(beta))<EPS_QMR_CS)
-      LogError(EC_ERROR,ONE_POS,"QMR_CS fails: zero beta (%.2g%+.2g).",beta[RE],beta[IM]);
+    dtmp1=cAbs2(beta)/inprodR;
+    if (dtmp1<EPS_QMR_CS)
+      LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(r.r) is too small (%.2g).",dtmp1);
     /* A.v_k; alpha_k=v_k(*).(A.v_k) */
     MatVec(v,Avecbuffer,NULL,FALSE);
     nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
