@@ -99,7 +99,7 @@ double Romberg1D(/* Performs integration of data */
     }
   }
   /* integration */
-  if (param.min==param.max) {
+  if (param.Grid_size==1) {  /* if only one point */
     memcpy(res,data,size*sizeof(double));
     abs_err=0;
     abs_res=0;  /* that is not to do unnecessary calculations */
@@ -287,7 +287,7 @@ static double InnerRomberg(const int fixed,double *res)
   double int_err; /* absolute error of previous layer integration */
   double err;
 
-  if (input[PHI].min==input[PHI].max) {
+  if (input[PHI].Grid_size==1) {  /* if only one point */
     int_err=(*func)(fixed,0,res);
     N_eval++;
     return int_err;
@@ -388,7 +388,7 @@ static double OuterRomberg(double *res)
   double int_err; /* absolute error of previous layer integration */
   double err;
 
-  if (input[THETA].min==input[THETA].max) {
+  if (input[THETA].Grid_size==1) {  /* if only one point */
     N_eval=0;
     int_err=InnerRomberg(0,res);
     fprintf(file,"single\t\t%d integrand-values were used.\n",N_eval);

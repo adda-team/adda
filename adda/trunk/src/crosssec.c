@@ -240,8 +240,9 @@ static void ScanIntegrParms(
     if (a->max>180) LogError(EC_ERROR,ONE_POS,
       "Wrong max (%g) in file %s (must be <=180 for this angle)",a->max,fname);
     b->min=cos(Deg2Rad(a->max));
-    if (fabs(b->min)<ROUND_ERR) b->min=0; /* just for convenience */
     b->max=cos(Deg2Rad(a->min));
+    if (fabs(b->min)<ROUND_ERR) b->min=0; /* just for convenience of display in log file */
+    if (fabs(b->max)<ROUND_ERR) b->max=0; 
     if (b->Grid_size==1) a->val[0]=a->min;
     else {
       unit = (b->max - b->min)/(b->Grid_size-1);
@@ -524,7 +525,8 @@ double ExtCross(const double *incPol)
     sum*=FOUR_PI/(WaveNum*WaveNum);
   }
   else { /* more general formula; normalization is done assuming the unity amplitude of the
-            electric field in the focal point of the beam */
+            electric field in the focal point of the beam;
+            Currently does not comply with ScatRelation=SO */
     sum=0;
     for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i);  /* sum{Im(P.E_inc*)} */
     MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
