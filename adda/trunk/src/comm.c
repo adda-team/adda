@@ -569,7 +569,8 @@ void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
      timing is incremented by the total time used */
 {
 #ifdef PARALLEL
-  int i,j,unit,index;
+  int i,unit,index;
+  size_t j;
   MPI_Status status;
   TIME_TYPE tstart;
 
