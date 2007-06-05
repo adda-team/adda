@@ -18,9 +18,13 @@
    Currently file locking functions are only in param.c */
 
 /*#define NOT_USE_LOCK     /* uncomment to disable file locking */
+/*#define ONLY_LOCKFILE    /* uncomment to use only lock file, without file locking over NFS */
 
 #ifndef NOT_USE_LOCK
 # define USE_LOCK
+# ifndef ONLY_LOCKFILE
+#  define LOCK_FOR_NFS  /* currently this works only for POSIX */.
+# endif
 #endif
 
 void LogError(int ErrCode,int who,const char *fname,int line,const char *fmt,...) ATT_PRINTF(5,6);

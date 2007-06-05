@@ -31,10 +31,12 @@
 # elif defined(POSIX)
 #  include <unistd.h>
 #  include <fcntl.h>
-#  include <errno.h>    /* for error handling of fcntl call */
+#  ifdef LOCK_FOR_NFS
+#   include <errno.h>    /* for error handling of fcntl call */
+#  endif
 #  define FILEHANDLE int
 # else
-#  error Unknown operation system. File locking is not supported.
+#  error Unknown operation system. Creation of lock files is not supported.
 # endif
 # define LOCK_WAIT 1              /* in seconds */
 # define MAX_LOCK_WAIT_CYCLES 60
@@ -1079,8 +1081,9 @@ static FILEHANDLE CreateLockFile(const char *fname)
       LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
   }
 # elif defined(POSIX)
+#  ifdef LOCK_FOR_NFS
   struct flock lock;
-
+#  endif
   /* open file exclusively */
   i=0;
   while ((fd=open(fname,O_WRONLY | O_CREAT | O_EXCL,0666))==-1) {
@@ -1088,25 +1091,29 @@ static FILEHANDLE CreateLockFile(const char *fname)
     if (i++ == MAX_LOCK_WAIT_CYCLES)
       LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
   }
-  /* specify lock - file is additionally locked to work robustly over NFS */
+#  ifdef LOCK_FOR_NFS
+  /* specify lock */
   lock.l_type=F_WRLCK;
   lock.l_whence=SEEK_SET;
   lock.l_start=0;
   lock.l_len=0;
-  /* obtain lock; fcntl waits but it can be interrupted by a system signal */
+  /* obtain lock*/
   i=0;
-  while (fcntl(fd,F_SETLKW,&lock)==-1) {
-    if (errno!=EINTR) {
-      if (errno==EOPNOTSUPP) {
-        LogError(EC_INFO,ONE_POS,"File system seems not to support file locks");
-        break;
-      }
-      else LogError(EC_ERROR,ONE_POS,"Obtaining file lock failed (%s)",strerror(errno));
+  while (fcntl(fd,F_SETLK,&lock)==-1) {
+    /* if locked by another process wait and try again */
+    if (errno==EACCES || errno==EAGAIN) {
+      sleep(LOCK_WAIT);
+      if (i++ == MAX_LOCK_WAIT_CYCLES)
+        LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
     }
-    sleep(LOCK_WAIT);
-    if (i++ == MAX_LOCK_WAIT_CYCLES)
-      LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
+    else { /* otherwise produce a message and continue */
+      if (errno==EOPNOTSUPP || errno==ENOLCK) LogError(EC_WARN,ONE_POS,
+        "Advanced file locking is not supported by the filesystem");
+      else LogError(EC_WARN,ONE_POS,"Unknown problem with file locking ('%s').",strerror(errno));
+      break;
+    }
   }
+#  endif
 # endif
   /* return file handle */
   return fd;

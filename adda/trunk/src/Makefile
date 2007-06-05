@@ -24,6 +24,7 @@
 
 # for faster recompiling turn on in io.h
 #CFLAGS += -DNOT_USE_LOCK
+#CFLAGS += -DONLY_LOCKFILE
 
 # --Compilers-- Choose (uncomment) one of the lines below
 
