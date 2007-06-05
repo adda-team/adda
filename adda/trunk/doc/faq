@@ -30,7 +30,7 @@ A: 1) Make sure you are using the latest version of ADDA (check the ADDA
    files, at least 'log'.
 
 Q: Can I use ADDA to calculate scattering by a particle near the infinite
-   plane surface?
+   dielectric plane surface?
 A: Basically, no. ADDA can not rigorously solve such light scattering problem.
    Such a rigorous solution requires a significant modification of the code,
    therefore it will not be implemented in the near future. However, you may
