@@ -149,7 +149,7 @@ Ver. 0.76 - 14.10.06
   reference frame. Thanks to Michiel Min for fruitful discussions.
 
 ----------------------------------
-Ver. 0.77a - 04.04.07
+Ver. 0.77 - (05.06.07)
 
 - Calculation of radiation forces gave segmentation fault. The bug was
   introduced in version 0.76. Fixed.
@@ -163,3 +163,23 @@ Ver. 0.77a - 04.04.07
 - Consistency check for coated sphere was inaccurate. Fixed.
 - Lack of EOL in the end of the input files could cause crash, as well
   as EOL conversion in geometry files. Fixed.
++ Makefiles improved (overall clarity + more flexibility for MPI compiling),
+  included option for intel compilers without use of static linking.
++ Command line option '-store_dip_pol' was added to save dipole polarizations
+  to file.
+- Computer name was not properly shown when running MPI version on Windows.
+  Fixed.
++ Improved the code that detects breakdowns of iterative solvers. Now it should
+  be much more sensitive. Thanks to Sorin Pulbere for reporting a test problem.
+- A minor bug in Romberg integration for angles that are sampled uniformly
+  in their cos values, if both min and max values are exactly equal to 90
+  degrees. Reported by Antti Penttila. Fixed.
++ Locking of files made more flexible. Added compile option to independently
+  turn off the advanced file locking.
+- Minor change in comm.c to remove a warning.
++ Manual was significantly improved: "DDA formulation" section was rewritten to
+  be self-contained, sections "Near-field" and "Comparison with other DDA codes"
+  were added. Sections on compiling and running the code were extended to
+  discuss in detail multi-core PCs. Sections "Applicability of DDA" and "System
+  requirements" were extended to include recent benchmarking results and
+  discussion. Thanks to Vitezslav Karasek and Liviu Clime for their feedback.
