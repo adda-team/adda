@@ -1,4 +1,4 @@
-                                   ADDA 0.77a
+                                   ADDA 0.77
                                   ***********
                                 "Amsterdam DDA"
 
