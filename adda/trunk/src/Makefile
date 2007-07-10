@@ -84,7 +84,10 @@ FSOURCE  =
 COBJECTS = $(CSOURCE:.c=.o)
 CDEPEND  = $(CSOURCE:.c=.d)
 FOBJECTS = $(FSOURCE:.f=.o)
-PROG     = adda
+PROGSEQ  = adda
+PROGMPI  = adda_mpi
+LASTSEQ  = .lastseq
+LASTMPI  = .lastmpi
 SHELL    = /bin/sh
 LDLIBS   = -lm
 DEPFLAG  = -M
@@ -180,12 +183,12 @@ LFLAGS += $(COPT) $(LWARN)
 .PHONY: seq mpi clean
 
 seq:
+	rm -f $(LASTMPI)
 	$(MAKE) -f make_seq
 
 mpi:
+	rm -f $(LASTSEQ)
 	$(MAKE) -f make_mpi
 
 clean:
-	rm -f *.o
-	rm -f *.d
-	rm -f $(PROG)
+	rm -f *.o *.d $(PROGSEQ) $(PROGMPI) $(LASTSEQ) $(LASTMPI)

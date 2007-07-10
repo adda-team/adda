@@ -57,7 +57,7 @@ endif
 
 # Finalize flags
 CFLAGS += -DMPI
-MFILES += make_mpi
+MFILES += make_mpi $(LASTMPI)
 
 #===============================================================================
 # Main action part
@@ -66,7 +66,7 @@ MFILES += make_mpi
 .DELETE_ON_ERROR:
 
 
-$(PROG): $(COBJECTS) $(FOBJECTS) 
+$(PROGMPI): $(COBJECTS) $(FOBJECTS) 
 	$(MPICC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
 # Everything is recompiled (but not dependencies) when any of makefiles is changed)
@@ -76,10 +76,12 @@ $(COBJECTS): %.o: %.c %.d $(MFILES)
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
 
+$(LASTMPI):
+	echo "void" > $(LASTMPI)
 # Dependencies are only generated for C sources;
 # we assume that each Fortran file is completely independent
 
-$(CDEPEND): %.d: %.c
+$(CDEPEND): %.d: %.c $(MFILES)
 	$(MPICC) $(DEPFLAG) $(CFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$

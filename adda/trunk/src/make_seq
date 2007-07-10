@@ -4,7 +4,7 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
-MFILES += make_seq
+MFILES += make_seq $(LASTSEQ)
 
 #===============================================================================
 # Main action part
@@ -13,7 +13,7 @@ MFILES += make_seq
 .DELETE_ON_ERROR:
 
 
-$(PROG): $(COBJECTS) $(FOBJECTS) 
+$(PROGSEQ): $(COBJECTS) $(FOBJECTS) 
 	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
 # Everything is recompiled (but not dependencies) when any of makefiles is changed)
@@ -23,10 +23,13 @@ $(COBJECTS): %.o: %.c %.d $(MFILES)
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
 
+$(LASTSEQ):
+	echo "void" > $(LASTSEQ)
+
 # Dependencies are only generated for C sources;
 # we assume that each Fortran file is completely independent
 
-$(CDEPEND): %.d: %.c
+$(CDEPEND): %.d: %.c $(MFILES)
 	$(CC) $(DEPFLAG) $(CFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$

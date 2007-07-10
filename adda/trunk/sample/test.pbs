@@ -31,4 +31,4 @@ cat $PBS_NODEFILE
 # add the GNU environment for MPICH, using Infiniband:
 module load gnu-mpich-ib
 # run the program
-mpiexec ./adda
+mpiexec ./adda_mpi

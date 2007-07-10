@@ -20,7 +20,7 @@
 # Export all environmental variables to the job
 # -V
 
-PROG=adda
+PROG=adda_mpi
 ARGS=""
 
 /usr/local/mpich/mpich-gm-gcc/bin/mpirun \
