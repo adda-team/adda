@@ -1023,9 +1023,16 @@ PARSE_FUNC(V)
 # define COMPILER_UNKNOWN
 # define COMPILER "unknown"
 #endif
-    /* print version and compiler information */
-    printf("'Amsterdam DDA' v." ADDA_VERSION "\n"\
-           "Built with " COMPILER " C compiler");
+    /* print version, type and compiler information */
+    printf("'Amsterdam DDA' v." ADDA_VERSION "\n");
+#ifdef MPI
+   /* Version of MPI standard is specified, requires MPI 1.2 */
+    printf("Parallel version conforming to MPI standard %d.%d\n",
+           MPI_VERSION,MPI_SUBVERSION);
+#else
+    printf("Sequential version\n");
+#endif
+    printf("Built with " COMPILER " C compiler");
 #ifndef COMPILER_UNKNOWN
     printf(", version %s",ccver_str);
 #endif
@@ -1047,7 +1054,7 @@ PARSE_FUNC(V)
   Stop(0);
 #undef COMPILER
 #undef CCVERSION
-#undef COMPILER_UNKNOWN  
+#undef COMPILER_UNKNOWN
 }
 PARSE_FUNC(vec)
 {
@@ -1361,7 +1368,7 @@ void DirectoryLog(const int argc,char **argv)
   FILEHANDLE lockid;
 #ifdef PARALLEL
   char *ptmp2;
-#endif  
+#endif
 #ifdef WINDOWS  /* for obtaining computer name */
   TCHAR cname[MAX_COMPUTERNAME_LENGTH+1];
   DWORD cname_size=MAX_COMPUTERNAME_LENGTH+1;
@@ -1588,4 +1595,3 @@ void PrintInfo(void)
       fprintf(logfile,"    directory = '%s'\n",chp_dir);
   }
 }
-
