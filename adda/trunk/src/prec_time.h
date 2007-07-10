@@ -29,7 +29,7 @@
 # include <stdio.h>    /* needed for definition of NULL */
 # define SYSTEM_TIME struct timeval
 #else
-# error Unknown operation system. File locking is not supported.
+# error *** Unknown operation system. Precise timing is not supported. ***
 #endif
 
 void InitTime(SYSTEM_TIME *t);

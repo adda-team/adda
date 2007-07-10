@@ -25,7 +25,7 @@
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0])))    /* length of any array (converted to int) */
 
 /* parallel definitions */
-#if defined(MPI)
+#ifdef MPI
 #define PARALLEL
 #endif
 
