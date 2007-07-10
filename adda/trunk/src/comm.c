@@ -21,6 +21,7 @@
 #include "memory.h"
 #include "timing.h"
 #include "function.h"
+#include "parbas.h"
 
 /* for getch in Stop */
 #ifdef RUN_BCB
@@ -28,7 +29,6 @@
 #endif
 
 #ifdef MPI
- #include <mpi.h>
  MPI_Datatype mpi_dcomplex;
 #endif
 
@@ -133,7 +133,7 @@ void InitComm(int *argc_p,char ***argv_p)
   /* initialize communications in the beginning of the program */
 {
 #ifdef MPI
-  int dcmplx_blocklength[2]={1,1};
+  int dcmplx_blocklength[2]={1,1},ver,subver;
   MPI_Aint dcmplx_displs[2] = {0,1};
   MPI_Datatype dcmplx_type[2];
 
@@ -157,6 +157,11 @@ void InitComm(int *argc_p,char ***argv_p)
   dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;
   MPI_Type_struct(2,dcmplx_blocklength,dcmplx_displs,dcmplx_type,&mpi_dcomplex);
   MPI_Type_commit(&mpi_dcomplex);
+  /* check MPI version at runtime */
+  MPI_Get_version(&ver,&subver);
+  if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<MPI_SUBVER_REQ)))
+    LogError(EC_ERROR,ONE_POS,"MPI version (%d.%d) is too old. Version %d.%d or newer is required",
+             ver,subver,MPI_VER_REQ,MPI_SUBVER_REQ);
   /* if MPI crashes, it happens here */
   Synchronize();
 #elif !defined(PARALLEL)

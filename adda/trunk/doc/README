@@ -16,7 +16,7 @@
 
                            email: adda@science.uva.nl
 
-                          last revised: 4 April 2007
+                          last revised: 10 July 2007
 
                 Copyright (C) 2006-2007 University of Amsterdam
         This software package is covered by the GNU General Public License.
@@ -133,8 +133,8 @@ src/
   Makefile, make_seq, make_mpi - makefiles
   ADDAmain.c, CalculateE.c, calculator.c, cmplx.h, const.h, crosssec.c/h,
   comm.c/h, debug.c/h, fft.c, function.h, GenerateB.c, io.c/h, iterative.c,
-  make_particle.c, matvec.c, memory.c/h, os.h, param.c/h, prec_time.c/h,
-  Romberg.c/h, timing.c/h, types.h, vars.c/h
+  make_particle.c, matvec.c, memory.c/h, os.h, param.c/h, parbas.h,
+  prec_time.c/h, Romberg.c/h, timing.c/h, types.h, vars.c/h
             - source and header files of ADDA
   cfft99D.f - source file for Temperton FFT
   mt19937ar.c/h - source and header files for Mersenne Twister random generator.

@@ -23,6 +23,7 @@
 #include "param.h"
 #include "cmplx.h"
 #include "function.h"
+#include "parbas.h"
 
 /* definitions for file locking */
 #ifdef USE_LOCK
@@ -36,7 +37,7 @@
 #  endif
 #  define FILEHANDLE int
 # else
-#  error Unknown operation system. Creation of lock files is not supported.
+#  error *** Unknown operation system. Creation of lock files is not supported. ***
 # endif
 # define LOCK_WAIT 1              /* in seconds */
 # define MAX_LOCK_WAIT_CYCLES 60

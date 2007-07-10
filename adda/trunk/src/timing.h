@@ -8,10 +8,9 @@
 #ifndef __timing_h
 #define __timing_h
 
-#include "const.h"  /* for MPI */
+#include "parbas.h"
 
 #ifdef MPI
-#include <mpi.h>
 #define TIME_TYPE double
 #define GET_TIME MPI_Wtime
 #else
