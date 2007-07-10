@@ -1,4 +1,4 @@
-                                   ADDA 0.77
+                                   ADDA 0.78a
                                   ***********
                                 "Amsterdam DDA"
 
@@ -16,7 +16,7 @@
 
                           email: adda@science.uva.nl
 
-                          last revised: 4 Apil 2007
+                          last revised: 10 July 2007
 
                    Copyright (C) 2006-2007 University of Amsterdam
         This software package is covered by the GNU General Public License.
@@ -41,12 +41,15 @@
          ##               ##               ##             ##
 
 
-                            WINDOWS 32 EXECUTABLE
-                            *********************
+                            WINDOWS 32 EXECUTABLES
+                            **********************
 
-  This Win32 package contains an executable of ADDA (adda.exe) and DLL for FFTW
-3.1.1 (libfftw3-3.dll). ADDA was compiled with MinGW 5.0.3 (gcc 3.4.2), using
-the default Makefile. Please download the main ADDA package from
-http://www.science.uva.nl/research/scs/Software/adda/ to complement this one.
-All the information, including manual and sample input files, can be found in
-the main package.
+This Win32 package contains executables of ADDA for sequential and parallel
+execution (adda.exe and adda_mpi.exe) and DLL for FFTW 3.1.1 (libfftw3-3.dll).
+ADDA was compiled with MinGW 5.0.3 (gcc 3.4.2), using the default Makefile.
+Parallel version was compiled linking to MPICH2 1.0.5p2, and requires it to be
+installed on the system. However, it may also work with other MPI
+implementations (try it at your own risk). Please download the main ADDA package
+from http://www.science.uva.nl/research/scs/Software/adda/ to complement this
+one. All the information, including manual and sample input files, can be found
+in the main package.
