@@ -351,7 +351,8 @@ static struct opt_struct options[]={
   {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}",
      "Either sets an orientation of the particle by three Euler angles 'alpha',\n"\
      "'beta','gamma' or specifies that orientation averaging should be performed .\n"\
-     "<filename> sets a file with parameters for orientation averaging.\n"\
+     "<filename> sets a file with parameters for orientation averaging. Here\n"\
+     "zyz-notation (or y-convention) is used for the Euler angles.\n"\
      "Default orientation: 0 0 0\n"\
      "Default <filename>: " FD_AVG_PARMS,UNDEF,NULL},
   {PAR(phi_integr),"<arg>",

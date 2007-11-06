@@ -3,7 +3,8 @@
 # This file should be manually modified by user. 
 # Program does not assume any symmetries of the particle.
 # Therefore, possible symmetries should be considered by user and this can lead
-# to decrease of integration limits 
+# to decrease of integration limits. 
+# Here zyz-notation (or y-convention) is used for the Euler angles.
 
 alpha:
 # calculation for alpha is cheap but only precalculated, therefore

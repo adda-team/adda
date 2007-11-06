@@ -59,7 +59,11 @@ INLINE int AlldirIndex(const int theta,const int phi)
 /*=====================================================================*/
 
 void InitRotation (void)
-   /* initialize matrices used for reference frame transformation */
+   /* initialize matrices used for reference frame transformation
+      based on Mishchenko,M.I. "Calculation of the amplitude matrix
+      for a nonspherical particle in a fixed orientation",
+      Applied Optics 39(6):1026-1031. This is so-called zyz-notation
+      or y-convention. */
 {
   double ca,sa,cb,sb,cg,sg;
   double beta_matr[3][3];
@@ -242,7 +246,7 @@ static void ScanIntegrParms(
     b->min=cos(Deg2Rad(a->max));
     b->max=cos(Deg2Rad(a->min));
     if (fabs(b->min)<ROUND_ERR) b->min=0; /* just for convenience of display in log file */
-    if (fabs(b->max)<ROUND_ERR) b->max=0; 
+    if (fabs(b->max)<ROUND_ERR) b->max=0;
     if (b->Grid_size==1) a->val[0]=a->min;
     else {
       unit = (b->max - b->min)/(b->Grid_size-1);
@@ -1024,4 +1028,3 @@ void Frp_mat(double Fsca_tot[3],double *Fsca,
   Free_general(rdipT);
   Free_general(pT);
 }
-
