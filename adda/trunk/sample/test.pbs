@@ -1,13 +1,16 @@
 # This is sample batch file to run ADDA using PBS
 # it was designed for Dutch national compute cluster LISA
-# (http://www.sara.nl/userinfo/lisa/description/index.html)
+# based on the sample script located at
+# https://subtrac.sara.nl/userdoc/wiki/lisa/usage/batch/jobmpich4
 # Auth: Maxim Yurkin
-#
+
+# ----- start of PBS parameters
+
 # job name (default is name of pbs script file)
 #PBS -N ADDA
 #
 # request nodes, ppn - processor per node
-#PBS -l nodes=2:ppn=2
+#PBS -l nodes=4:ppn=2:infiniband:cores2
 #
 # max. wall clock time
 #PBS -l walltime=0:05:00
@@ -18,17 +21,36 @@
 # shell to be used for this script
 #PBS -S /bin/sh
 #
-###
+# export all my environment variables to the job
+#PBS -V
+
+# ---- end of PBS parameters
+
+# add the GNU environment for MPICH, using Infiniband:
+module load gnu-mpich-openib
+
+# ---- start of MVAPICH related code:
+
+# test if ~/.mpd.conf exists, create it if not:
+if [ ! -e ~/.mpd.conf ]
+  then
+        echo MPD_SECRETWORD=$USER$RANDOM$PPID$$ > ~/.mpd.conf
+        chmod 600 ~/.mpd.conf
+fi
+# determine the number of processes to start:
+nprocs=`wc -l < $PBS_NODEFILE`
+# determine the number of nodes:
+nnodes=`sort -u $PBS_NODEFILE | wc -l`
+# start the mpd daemons:
+mpdboot -n $nnodes -f $PBS_NODEFILE
+
+# ---- End of MVAPICH related code
 
 # cd to the work directory
 cd $PBS_O_WORKDIR
-# echo number of processors assigned
-n=`wc -l < $PBS_NODEFILE`
-echo job running on $n processors
-# echo names of the nodes
-echo nodes:
+# show information about used cores
+echo "Job executes on $nnodes nodes ($nprocs cores)"
+echo "cores:"
 cat $PBS_NODEFILE
-# add the GNU environment for MPICH, using Infiniband:
-module load gnu-mpich-ib
-# run the program
-mpiexec ./adda_mpi
+# execute ADDA
+mpiexec -n $nprocs ./adda_mpi
