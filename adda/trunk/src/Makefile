@@ -77,7 +77,7 @@ CSOURCE  = ADDAmain.c  calculator.c make_particle.c CalculateE.c \
            GenerateB.c debug.c timing.c linalg.c \
            iterative.c memory.c comm.c matvec.c param.c \
            fft.c crosssec.c Romberg.c io.c prec_time.c vars.c \
-           mt19937ar.c
+           mt19937ar.c sinint.c
 # One file is added below
 FSOURCE  =
 
