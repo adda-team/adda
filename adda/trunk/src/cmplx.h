@@ -23,6 +23,14 @@
 /*============================================================*/
 /* operations on complex numbers */
 
+INLINE void cEqual(const doublecomplex a,doublecomplex b)
+     /* performs b=a */
+{
+  memcpy(b,a,sizeof(doublecomplex));
+}
+
+/*============================================================*/
+
 INLINE double cAbs2(const doublecomplex a)
      /* square of absolute value of complex number; |a|^2 */
 {

@@ -170,7 +170,7 @@ void TransposeYZ(const int direction)
         for (y=0;y<y0;y++) {
           t4=t3+y;
           for (z=0;z<z0;z++) {
-            memcpy(t4+=Y,w3+z,sizeof(doublecomplex));
+            cEqual(w3[z],*(t4+=Y));
           }
           w3+=Z;
         }
@@ -214,7 +214,7 @@ static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
       for (y=0;y<y0;y++) {
         t4=t3+y;
         for (z=0;z<z0;z++) {
-          memcpy(t4+=Y,w3+z,sizeof(doublecomplex));
+          cEqual(w3[z],*(t4+=Y));
         }
         w3+=Z;
       }
@@ -550,7 +550,7 @@ static void CalcInterTerm(int i,int j,int k,int mu,int nu,doublecomplex result)
     kr3=kr2*kr;
     rn=rr/gridspace;      /* normalized r */
     /* only one refractive index can be used for FFT-compatible algorithm !!! */
-    memcpy(m,ref_index[0],sizeof(doublecomplex));
+    cEqual(ref_index[0],m);
     cSquare(m,m2);
     if (!inter_avg) {
       qa=DotProd(qvec,prop);
@@ -977,7 +977,7 @@ void InitDmatrix(void)
       for(j=jstart;j<boxY;j++) for(k=kstart;k<boxZ;k++) {
         indexfrom=IndexGarbledD(x,j,k,lengthN);
         indexto=IndexSliceD2matrix(j,k);
-        memcpy(slice[indexto],D2matrix[indexfrom],sizeof(doublecomplex));
+        cEqual(D2matrix[indexfrom],slice[indexto]);
       }
 
       if (reduced_FFT) {
@@ -986,14 +986,14 @@ void InitDmatrix(void)
           indexfrom=IndexSliceD2matrix(j,k);
           indexto=IndexSliceD2matrix(-j,k);
           if (Dcomp==1 || Dcomp==4) cInvSign2(slice[indexfrom],slice[indexto]);
-          else memcpy(slice[indexto],slice[indexfrom],sizeof(doublecomplex));
+          else cEqual(slice[indexfrom],slice[indexto]);
         }
         for(j=1-boxY;j<boxY;j++) for(k=1;k<boxZ;k++) {
           /* mirror along z */
           indexfrom=IndexSliceD2matrix(j,k);
           indexto=IndexSliceD2matrix(j,-k);
           if (Dcomp==2 || Dcomp==4) cInvSign2(slice[indexfrom],slice[indexto]);
-          else memcpy(slice[indexto],slice[indexfrom],sizeof(doublecomplex));
+          else cEqual(slice[indexfrom],slice[indexto]);
         }
       }
 #ifdef PRECISE_TIMING

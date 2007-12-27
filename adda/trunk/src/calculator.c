@@ -127,7 +127,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
             }
          }
       }
-      memcpy(cm,coup_con[j],sizeof(doublecomplex));
+      cEqual(coup_con[j],cm);
       for (i=0;i<imax;i++) {
         /* RR correction */
         t1[RE]=0.0;
@@ -155,8 +155,8 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
     }
   }
   else {
-    memcpy(coup_con[1],coup_con[0],sizeof(doublecomplex));
-    memcpy(coup_con[2],coup_con[0],sizeof(doublecomplex));
+    cEqual(coup_con[0],coup_con[1]);
+    cEqual(coup_con[0],coup_con[2]);
     if (!orient_avg) {
       PRINTBOTHZ(logfile,"CoupleConstant:%.10g%+.10gi\n",
                  coup_con[0][RE],coup_con[0][IM]);

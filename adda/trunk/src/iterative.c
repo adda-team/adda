@@ -429,7 +429,7 @@ static void BiCGStab(const int mc)
       cInvSign2(omega,temp1);
       nLinComb1_cmplx(rvec,Avecbuffer,s,temp1,&inprodRplus1,&Timing_OneIterComm);
       /* initialize ro_old -> ro_k-2 for next iteration */
-      memcpy(ro_old,ro_new,sizeof(doublecomplex));
+      cEqual(ro_new,ro_old);
       /* take time stamp here, not to measure time of incomplete iteration
          (interrupted at the check above */
       Timing_OneIter=GET_TIME()-tstart;
@@ -494,7 +494,7 @@ static void BiCG_CS(const int mc)
     cInvSign2(alpha,temp);
     nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRplus1,&Timing_OneIterComm);
     /* initialize ro_old -> ro_k-2 for next iteration */
-    memcpy(ro_old,ro_new,sizeof(doublecomplex));
+    cEqual(ro_new,ro_old);
 
     Timing_OneIter=GET_TIME()-tstart;
     /* check progress */
@@ -616,7 +616,7 @@ static void QMR_CS(const int mc)
     c_old=c_new;
     c_new=dtmp1/zetaabs;
     /* s_k+1=omega_k+1*beta_k+1/zeta_k */
-    memcpy(s_old,s_new,sizeof(doublecomplex));
+    cEqual(s_new,s_old);
     cInv(zeta,temp4);   /* temp4=1/zeta */
     cMult(beta,temp4,temp1);
     cMultReal(omega_new,temp1,s_new);

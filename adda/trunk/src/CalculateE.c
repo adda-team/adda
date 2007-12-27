@@ -150,10 +150,10 @@ void MuellerMatrix(void)
       si=sin(alph);
       for (i=0;i<nTheta;i++) {
         /* read amplitude matrix from memory */
-        memcpy(s10,&ampl_alphaX[index],sizeof(doublecomplex));
-        memcpy(s30,&ampl_alphaX[index+1],sizeof(doublecomplex));
-        memcpy(s40,&ampl_alphaY[index],sizeof(doublecomplex));
-        memcpy(s20,&ampl_alphaY[index+1],sizeof(doublecomplex));
+        cEqual(ampl_alphaX[index],s10);
+        cEqual(ampl_alphaX[index+1],s30);
+        cEqual(ampl_alphaY[index],s40);
+        cEqual(ampl_alphaY[index+1],s20);
         /* transform it, multiplying by rotation matrix (-alpha) */
         cLinComb(s20,s30,co,si,s2);         /* s2 =  co*s20 + si*s30  */
         cLinComb(s20,s30,-si,co,s3);        /* s3 = -si*s20 + co*s30  */
@@ -275,10 +275,10 @@ void MuellerMatrix(void)
           co=cos(ph);
           si=sin(ph);
           /* read amplitude matrix from memory */
-          memcpy(s10,EgridY+index,sizeof(doublecomplex));
-          memcpy(s30,EgridY+index+1,sizeof(doublecomplex));
-          memcpy(s40,EgridX+index,sizeof(doublecomplex));
-          memcpy(s20,EgridX+index+1,sizeof(doublecomplex));
+          cEqual(EgridY[index],s10);
+          cEqual(EgridY[index+1],s30);
+          cEqual(EgridX[index],s40);
+          cEqual(EgridX[index+1],s20);
           /* transform it, multiplying by rotation matrix from per-par to X-Y */
           cLinComb(s20,s30,co,si,s2);         /* s2 =  co*s20 + si*s30  */
           cLinComb(s20,s30,si,-co,s3);        /* s3 =  si*s20 - co*s30  */

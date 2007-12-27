@@ -154,7 +154,7 @@ void GenerateB (const char which, /* x - or y polarized incident light   */
         cMultReal(x*s,Q,t7);       /* t7=x*s*Q */
         if (beamtype==B_DAVIS3) {
           /* t1=1+s^2(-4Q^2*x^2-iQ^3*ro^4)=1-t4(4x2_s+t5) */
-          memcpy(t1,t5,sizeof(doublecomplex));
+          cEqual(t5,t1);
           t1[RE]+=4*x2_s;
           cMultSelf(t1,t4);
           cMultReal(-1,t1,t1);

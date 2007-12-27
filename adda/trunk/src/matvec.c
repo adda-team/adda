@@ -187,7 +187,7 @@ void MatVec  (doublecomplex *argvec,    /* the argument vector */
       i=IndexSliceYZ(y,z);
       j=IndexGarbledX(x,y,z);
       for (Xcomp=0;Xcomp<3;Xcomp++)
-        memcpy(slices[i+Xcomp*gridYZ],Xmatrix[j+Xcomp*local_Nsmall],sizeof(doublecomplex));
+        cEqual(Xmatrix[j+Xcomp*local_Nsmall],slices[i+Xcomp*gridYZ]);
     }
 #ifdef PRECISE_TIMING
     GetTime(tvp+5);
@@ -213,7 +213,7 @@ void MatVec  (doublecomplex *argvec,    /* the argument vector */
     for(z=0;z<gridZ;z++) for(y=0;y<gridY;y++) {
       i=IndexSliceZY(y,z);
       for (Xcomp=0;Xcomp<3;Xcomp++)
-        memcpy(xv[Xcomp],slices_tr[i+Xcomp*gridYZ],sizeof(doublecomplex));
+        cEqual(slices_tr[i+Xcomp*gridYZ],xv[Xcomp]);
 
       j=IndexDmatrix_mv(x-local_x0,y,z,transposed);
       memcpy(fmat,Dmatrix[j],6*sizeof(doublecomplex));
@@ -230,7 +230,7 @@ void MatVec  (doublecomplex *argvec,    /* the argument vector */
       }
       cSymMatrVec(fmat,xv,yv);    /* yv=fmat*xv */
       for (Xcomp=0;Xcomp<3;Xcomp++)
-        memcpy(slices_tr[i+Xcomp*gridYZ],yv[Xcomp],sizeof(doublecomplex));
+        cEqual(yv[Xcomp],slices_tr[i+Xcomp*gridYZ]);
     }
 #ifdef PRECISE_TIMING
     GetTime(tvp+9);
@@ -257,7 +257,7 @@ void MatVec  (doublecomplex *argvec,    /* the argument vector */
       i=IndexSliceYZ(y,z);
       j=IndexGarbledX(x,y,z);
       for (Xcomp=0;Xcomp<3;Xcomp++)
-        memcpy(Xmatrix[j+Xcomp*local_Nsmall],slices[i+Xcomp*gridYZ],sizeof(doublecomplex));
+        cEqual(slices[i+Xcomp*gridYZ],Xmatrix[j+Xcomp*local_Nsmall]);
     }
 #ifdef PRECISE_TIMING
     GetTime(tvp+13);
