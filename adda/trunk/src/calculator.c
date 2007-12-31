@@ -29,7 +29,7 @@
 extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 /* defined and initialized in param.c */
-extern const int PolRelation,avg_inc_pol;
+extern const int avg_inc_pol;
 extern const char alldir_parms[],scat_grid_parms[];
 /* defined and initialized in timing.c */
 extern TIME_TYPE Timing_Init;
@@ -110,22 +110,22 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
     coup_con[j][IM] *= temp;
 
     if (PolRelation!=POL_CM) {
-      if (PolRelation!=POL_RR) {
-          /* set prop_i^2 */
-          for (i=0;i<3;i++) {
-            if (pol_avg && PolRelation==POL_SO) prop2[i]=ONE_THIRD;
-            else prop2[i]=prop[i]*prop[i];
+      if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
+        /* set prop_i^2 */
+        for (i=0;i<3;i++) {
+          if (pol_avg && PolRelation==POL_SO) prop2[i]=ONE_THIRD;
+          else prop2[i]=prop[i]*prop[i];
+        }
+        /* determine S coefficient for LDR */
+        if (PolRelation==POL_LDR) {
+          if (avg_inc_pol) S=0.5*(1-DotProd(prop2,prop2));
+          else {
+            if (which=='X') incPol=incPolX;
+            else if (which=='Y') incPol=incPolY;
+            S=prop2[0]*incPol[0]*incPol[0]+prop2[1]*incPol[1]*incPol[1]
+             +prop2[2]*incPol[2]*incPol[2];
           }
-          /* determine S coefficient for LDR */
-          if (PolRelation==POL_LDR) {
-            if (avg_inc_pol) S=0.5*(1-DotProd(prop2,prop2));
-            else {
-              if (which=='X') incPol=incPolX;
-              else if (which=='Y') incPol=incPolY;
-              S=prop2[0]*incPol[0]*incPol[0]+prop2[1]*incPol[1]*incPol[1]
-               +prop2[2]*incPol[2]*incPol[2];
-            }
-         }
+        }
       }
       cEqual(coup_con[j],cm);
       for (i=0;i<imax;i++) {
@@ -133,7 +133,9 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
         t1[RE]=0.0;
         t1[IM]=2*kd*kd*kd/3;                       /* t1=2/3*i*kd^3         */
         /* plus more advanced corrections */
-        if (PolRelation!=POL_RR) {
+        if (PolRelation==POL_FCD)  /* t1+=((4/3)kd^2+(2/3pi)*log((pi-kd)/(pi+kd))*kd^3) */
+          t1[RE]+=2*ONE_THIRD*kd*kd*(2*kd+INV_PI*log((PI-kd)/(PI+kd)));
+        else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
           if (PolRelation!=POL_LDR) S=prop2[i];
           t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd*kd;   /* t1+=(b1+(b2+b3*S)*m^2)*kd^2  */
           t1[IM]+=(b2+b3*S)*m2[IM]*kd*kd;

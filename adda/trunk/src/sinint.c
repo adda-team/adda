@@ -18,7 +18,7 @@
 
 /*============================================================*/
 
-void cisi(double x,double *ci,double *si)
+void cisi(const double x,double *ci,double *si)
   /* Computes the cosine and sine integrals Ci(x) and Si(x). Ci(0) is returned
      as a large negative number and no error message is generated. For x<0
      routine returns Ci(-x), while actually Si(-x)=-Si(x), Ci(-x)=Ci(x)-i*pi. */

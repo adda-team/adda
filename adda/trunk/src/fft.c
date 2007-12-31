@@ -71,6 +71,11 @@ static int weird_nprocs;               /* whether weird number of processors is 
                const int *jump,const int *nn,const int *lot,const int *isign);
 #endif
 
+/* EXTERNAL FUNCTIONS */
+
+/* sinint.c */
+void cisi(double x,double *ci,double *si);
+
 /*============================================================*/
 
 INLINE size_t IndexDmatrix(const size_t x,size_t y,size_t z)
@@ -497,13 +502,14 @@ static void CalcInterTerm(int i,int j,int k,int mu,int nu,doublecomplex result)
     /* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
         (in units of d), and component indices mu,nu */
 {
-  double rr, rtemp[3], qvec[3], q2[3], invr, invr3, qavec[3], av[3];
-  double rr2, kr, kr2, kr3, kd2, q4, rn;
-  double temp, qmunu, qa, qamunu, invrn, invrn2, invrn3, invrn4, dmunu;
-  doublecomplex expval, br, br1, m, m2, Gf1, Gm0, Gm1, Gc1, Gc2;
-  int ind0, ind1, ind2, ind2m, ind3, ind4, indmunu;
-  int sigV[3], ic, sig, ivec[3], ord[3], invord[3];
-  double t3q, t3a, t4q, t4a, t5tr, t5aa, t6tr, t6aa;
+  double rr,rtemp[3],qvec[3],q2[3],invr,invr3,qavec[3],av[3];
+  double rr2,kr,kr2,kr3,kd2,q4,rn;
+  double temp,qmunu,qa,qamunu,invrn,invrn2,invrn3,invrn4,dmunu;
+  double kfr,ci,si,ci1,si1,ci2,si2,brd,cov,siv,g0,g2;
+  doublecomplex expval,br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
+  int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu;
+  int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+  double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
 /*  int pr; */
   const int inter_avg=TRUE;
 
@@ -520,15 +526,22 @@ static void CalcInterTerm(int i,int j,int k,int mu,int nu,doublecomplex result)
   rtemp[0]=i*gridspace;
   rtemp[1]=j*gridspace;
   rtemp[2]=k*gridspace;
-  /* calculate some basic constants */
+  /*====== calculate some basic constants ======*/
   rr2 = DotProd(rtemp,rtemp);
   rr = sqrt(rr2);
+  rn=rr/gridspace;      /* normalized r */
   invr = 1/rr;
   invr3 = invr*invr*invr;
   MultScal(invr,rtemp,qvec);
   kr = WaveNum * rr;
   kr2 = kr*kr;
+  kfr=PI*rn;            /* k_F*r, for FCD */
   qmunu=qvec[mu]*qvec[nu];
+  /* cov=cos(kr); siv=sin(kr); expval=Exp(ikr)/r^3 */
+  imExp(kr,expval);
+  cov=expval[RE];
+  siv=expval[IM];
+  cMultReal(invr3,expval,expval);
   /*====== calculate Gp ========*/
   /* br=delta[mu,nu]*(-1+ikr+kr^2)-qmunu*(-3+3ikr+kr^2) */
   br[RE]=(3-kr2)*qmunu;
@@ -537,18 +550,50 @@ static void CalcInterTerm(int i,int j,int k,int mu,int nu,doublecomplex result)
     br[RE]+=kr2-1;
     br[IM]+=kr;
   }
-  /* expval=Exp(ikr)/rr^3 */
-  imExp(kr,expval);
-  cMultReal(invr3,expval,expval);
-  /* result=Gp */
+  /* result=Gp=expval*br */
   cMult(br,expval,result);
+  /*====== FCD (static and full) ========*/
+  /* !!! speed of FCD can be improved by using faster version of sici routine, using predefined
+     tables, etc (e.g. as is done in gsl library). But currently this do not seem to be significant
+     portion of the total simulation time  */
+
+  if (IntRelation==G_FCD_ST) {
+    /* FCD is Based on
+       Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D
+       Green's tensor associated with infinite homogeneous space and surfaces", Comp. Phys. Comm.
+       144:111-120 (2002), and
+       Piller N.B. "Increasing the performance of the coupled-dipole approximation: A spectral
+       approach", IEEE Trans.Ant.Propag. 46(8):1126-1137.
+       differing by a factor of 4*pi*k^2 */
+
+    /* result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi) */
+    cisi(kfr,&ci,&si);
+    brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*cos(kfr)-4*sin(kfr));
+    cMultReal(brd,result,result);
+  }
+  else if (IntRelation==G_FCD) {
+    /* ci,si1,2=ci,si+-=Ci,Si((k_F+-k)r) */
+    cisi(kfr+kr,&ci1,&si1);
+    cisi(kfr-kr,&ci2,&si2);
+    /* ci=ci1-ci2; si=pi-si1-si2 */
+    ci=ci1-ci2;
+    si=PI-si1-si2;
+    g0=INV_PI*(siv*ci+cov*si);
+    g2=INV_PI*(kr*(cov*ci-siv*si)+2*ONE_THIRD*(kfr*cos(kfr)-4*sin(kfr)))-g0;
+    temp=g0*kr2;
+    /* brd=(delta[mu,nu]*(-g0*kr^2-g2)+qmunu*(g0*kr^2+3g2))/r^3 */
+    brd=qmunu*(temp+3*g2);
+    if (mu==nu) brd-=temp+g2;
+    brd*=invr3;
+    /* result=Gp+brd */
+    result[RE]+=brd;
+  }
   /*======= second order corrections ========*/
-  if (IntRelation==G_SO) {
+  else if (IntRelation==G_SO) {
     /* this should never happen !!! */
     if (anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in CalcInterTerm");
     kd2=kd*kd;
     kr3=kr2*kr;
-    rn=rr/gridspace;      /* normalized r */
     /* only one refractive index can be used for FFT-compatible algorithm !!! */
     cEqual(ref_index[0],m);
     cSquare(m,m2);

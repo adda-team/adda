@@ -77,7 +77,6 @@ int store_force;     /* Write radiation pressure per dipole to file */
 int phi_int_type;    /* type of phi integration (each bit determines
                           whether to calculate with different multipliers) */
 /* used in calculator.c */
-int PolRelation;                 /* type of polarization relation */
 int avg_inc_pol;                 /* whether to average CC over incident polarization */
 char alldir_parms[MAX_FNAME];    /* name of file with alldir parameters */
 char scat_grid_parms[MAX_FNAME]; /* name of file with parameters of scattering grid */
@@ -310,9 +309,10 @@ static struct opt_struct options[]={
      "without preceding dash). For some options (e.g. '-beam' or '-shape') specific\n"\
      "help on a particular suboption <subopt> may be shown.\n"\
      "Example: shape coated",UNDEF,NULL},
-  {PAR(int),"{poi|so}",
+  {PAR(int),"{poi|so|fcd|fcd_st}",
      "Sets prescription to calculate interaction term. 'so' is under development\n"\
-     "and incompatible with '-anisotr'.\n"\
+     "and incompatible with '-anisotr'. 'fcd' and 'fcd_st' employ full and quasistatic version\n"\
+     "of filtered Green's tensor.\n"\
      "Default: poi",1,NULL},
   {PAR(iter),"{cgnr|bicg|bicgstab|qmr}",
      "Sets the iterative solver.\n"\
@@ -363,7 +363,7 @@ static struct opt_struct options[]={
      "respectively.\n"\
      "Examples: 1 (one integration with no multipliers),\n"\
      "          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-  {PAR(pol),"{cm|rrc|ldr [avgpol]|cldr|so}",
+  {PAR(pol),"{cm|rrc|ldr [avgpol]|cldr|so|fcd}",
      "Type of polarization prescription. An optional flag 'avg' can be added for LDR\n"\
      "- it specifies that LDR polarizability should be averaged over incident\n"\
      "polarizations. 'so' is under development. 'cldr' and 'so' are incompatible\n"\
@@ -775,6 +775,8 @@ PARSE_FUNC(int)
 {
   if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
   else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
+  else if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
+  else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
   else NotSupported("Interaction term prescription",argv[1]);
 }
 PARSE_FUNC(iter)
@@ -864,6 +866,7 @@ PARSE_FUNC(pol)
   else if (strcmp(argv[1],"ldr")==0) PolRelation=POL_LDR;
   else if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
   else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
+  else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
   else NotSupported("Polarization relation",argv[1]);
   if (Narg==2) {
     if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=TRUE;
@@ -1550,6 +1553,8 @@ void PrintInfo(void)
       fprintf(logfile,"Polarization relation: 'Corrected Lattice Dispersion Relation'\n");
     else if (PolRelation==POL_SO)
       fprintf(logfile,"Polarization relation: 'Second Order'\n");
+    else if (PolRelation==POL_FCD)
+      fprintf(logfile,"Polarization relation: 'Filtered Coupled Dipoles'\n");
     /* log Scattering Quantities formulae */
     if (ScatRelation==SQ_DRAINE)
       fprintf(logfile,"Scattering quantities formulae: 'by Draine'\n");
@@ -1560,6 +1565,10 @@ void PrintInfo(void)
       fprintf(logfile,"Interaction term prescription: 'as Point dipoles'\n");
     else if (IntRelation==G_SO)
       fprintf(logfile,"Interaction term prescription: 'Second Order'\n");
+    else if (IntRelation==G_FCD)
+      fprintf(logfile,"Interaction term prescription: 'Filtered Green's tensor'\n");
+    else if (IntRelation==G_FCD_ST)
+      fprintf(logfile,"Interaction term prescription: 'Filtered Green's tensor (quasistatic)'\n");
     /* log FFT method */
 #ifdef FFTW3
     fprintf(logfile,"FFT algorithm: FFTW3\n");

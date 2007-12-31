@@ -42,6 +42,7 @@
 #define PI_OVER_TWO         1.5707963267948966192313216916398
 #define PI_OVER_FOUR        0.78539816339744830961566084581988
 #define PI_OVER_SIX         0.52359877559829887307710723054658
+#define INV_PI              0.31830988618379067153776752674503
 #define TWO_OVER_PI         0.63661977236758134307553505349006
 #define THREE_OVER_FOUR_PI  0.23873241463784300365332564505877
 #define SIX_OVER_PI         1.9098593171027440292266051604702
@@ -107,6 +108,7 @@
 #define POL_LDR      2     /* Lattice Dispersion Relation */
 #define POL_CLDR     3     /* Corrected Lattice Dispersion Relation */
 #define POL_SO       4     /* Second Order formulation */
+#define POL_FCD      5     /* Filtered Coupled Dipoles */ 
 
 /* how to calculate scattering quantities */
 #define SQ_DRAINE    0     /* classical, as Draine */
@@ -115,6 +117,8 @@
 /* how to calculate interaction term */
 #define G_POINT_DIP  0     /* as point dipoles */
 #define G_SO         1     /* Second Order formulation */
+#define G_FCD        2     /* Filtered Green's tensor (Filtered Coupled Dipoles) */
+#define G_FCD_ST     3     /* Quasistatis version of FCD */
 
 /* ldr constants */
 #define LDR_B1       1.8915316

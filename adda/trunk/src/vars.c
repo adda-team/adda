@@ -27,6 +27,7 @@ unsigned short *position; /* position of the dipoles; in the very end of make_pa
                              z-components are adjusted to be relative to the local_z0 */
 double memory;            /* total memory usage in bytes */
 int IntRelation;          /* type of formula for interaction term */
+int PolRelation;          /* type of formula for self-term (polarization relation) */
 int beamtype;             /* type of incident beam */
 
 /* symmetries */

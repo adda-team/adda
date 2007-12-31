@@ -25,6 +25,7 @@ extern double *DipoleCoord;
 extern unsigned short *position;
 extern double memory;
 extern int IntRelation;
+extern int PolRelation;
 extern int beamtype;
 
 /* symmetries */
