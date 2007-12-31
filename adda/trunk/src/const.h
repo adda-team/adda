@@ -107,8 +107,8 @@
 #define POL_RR       1     /* Radiative Reaction correction */
 #define POL_LDR      2     /* Lattice Dispersion Relation */
 #define POL_CLDR     3     /* Corrected Lattice Dispersion Relation */
-#define POL_SO       4     /* Second Order formulation */
-#define POL_FCD      5     /* Filtered Coupled Dipoles */ 
+#define POL_FCD      4     /* Filtered Coupled Dipoles */
+#define POL_SO       5     /* Second Order formulation */
 
 /* how to calculate scattering quantities */
 #define SQ_DRAINE    0     /* classical, as Draine */
@@ -116,9 +116,9 @@
 
 /* how to calculate interaction term */
 #define G_POINT_DIP  0     /* as point dipoles */
-#define G_SO         1     /* Second Order formulation */
-#define G_FCD        2     /* Filtered Green's tensor (Filtered Coupled Dipoles) */
-#define G_FCD_ST     3     /* Quasistatis version of FCD */
+#define G_FCD        1     /* Filtered Green's tensor (Filtered Coupled Dipoles) */
+#define G_FCD_ST     2     /* Quasistatis version of FCD */
+#define G_SO         3     /* Second Order formulation */
 
 /* ldr constants */
 #define LDR_B1       1.8915316
