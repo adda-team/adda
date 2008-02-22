@@ -3,7 +3,7 @@
  * DESCR: Initialization, parsing and handling of input parameters.
  *        Also printout general information. Contains file locking routines.
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -1041,7 +1041,7 @@ PARSE_FUNC(V)
     printf(", version %s",ccver_str);
 #endif
     /* print copyright information; split in two to eliminate warning of a long string */
-    printf("\n\nCopyright (C) 2006 University of Amsterdam\n"\
+    printf("\n\nCopyright (C) 2006-2008 University of Amsterdam\n"\
            "This program is free software; you can redistribute it and/or modify\n"\
            "it under the terms of the GNU General Public License as published by\n"\
            "the Free Software Foundation; either version 2 of the License, or\n"\
