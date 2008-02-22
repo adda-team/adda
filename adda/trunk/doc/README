@@ -1,4 +1,4 @@
-                                   ADDA 0.77
+                                   ADDA 0.78
                                    *********
                                 "Amsterdam DDA"
 
@@ -16,9 +16,9 @@
 
                            email: adda@science.uva.nl
 
-                          last revised: 31 December 2007
+                          last revised: 22 February 2007
 
-                Copyright (C) 2006-2007 University of Amsterdam
+                Copyright (C) 2006-2008 University of Amsterdam
         This software package is covered by the GNU General Public License.
 
 
@@ -76,6 +76,7 @@ format. It contains instructions for:
 * specifying what scattering quantities should be calculated;
 * understanding the computational aspects and timing of the code;
 * understanding the command line options and formats of input and output files.
+* modifying the source code for added functionality
 
 
                                 2. AVAILABILITY
@@ -114,9 +115,11 @@ doc/ - documentation
   copyleft - GNU General Public License
   history - complete history of ADDA development
   faq - frequently asked questions
-  manual.doc - Source of User Manual in MS Word format
-  manual.pdf - User Manual for ADDA in PDF format
+  manual.doc - source of User Manual in MS Word format
+  manual.pdf - user Manual for ADDA in PDF format
   README - this file
+  todo.xls - source of the todo list in MS Excel format
+  todo.pdf - todo list in PDF format
 input/ - default input files
   tables/ - 10 auxiliary files with tables of integrals
   alldir_params.dat - parameters for integral scattering quantities
