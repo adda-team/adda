@@ -1182,6 +1182,9 @@ void MakeParticle(void)
     if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
     else dpl=lambda*boxX/sizeX;
   }
+  /* Check consistency for FCD */
+  if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
+    LogError(EC_ERROR,ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
   gridspace=lambda/dpl;
   /* initialize equivalent size parameter and cross section */
   kd = TWO_PI/dpl;
