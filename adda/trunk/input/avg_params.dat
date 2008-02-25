@@ -44,6 +44,7 @@ eps=1e-3
 equiv=true
 periodic=true
 
+# all angles are specified in degrees
 # Jmin,Jmax are minimum and maximum numbers of refinement stages
 # Nmax = 2^Jmax + 1
 # for those with equiv=true Nmax is effectively less by 1 
