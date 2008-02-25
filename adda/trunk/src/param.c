@@ -342,15 +342,16 @@ static struct opt_struct options[]={
      "Do not use 'dpl correction', which ensures (if used) that the volume of\n"\
      "the dipole representation of the particle is exactly correct.",0,NULL},
   {PAR(ntheta),"<arg>",
-     "Sets the number of intervals into which range of scattering angles [0,180]\n"\
-     "is equally divided, integer. This is used for scattering angles in yz-plane.\n"\
-     "If particle is not symmetric and orientation averaging is not used, the range\n"\
-     "is extended to 360 degrees (with the same length of elementary interval).\n"\
+     "Sets the number of intervals, into which the range of scattering angles [0,180]\n"\
+     "(degrees) is equally divided, integer. This is used for scattering angles in\n"\
+     "yz-plane. If particle is not symmetric and orientation averaging is not used,\n"\
+     "the range is extended to 360 degrees (with the same length of elementary interval,\n"\
+     "i.e. number of intervals is doubled).\n"\
      "Default: from 90 to 720 depending on the size of the computational grid.",1,NULL},
   {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}",
      "Either sets an orientation of the particle by three Euler angles 'alpha',\n"\
-     "'beta','gamma' or specifies that orientation averaging should be performed .\n"\
-     "<filename> sets a file with parameters for orientation averaging. Here\n"\
+     "'beta','gamma' (in degrees) or specifies that orientation averaging should be\n"\
+     "performed. <filename> sets a file with parameters for orientation averaging. Here\n"\
      "zyz-notation (or y-convention) is used for the Euler angles.\n"\
      "Default orientation: 0 0 0\n"\
      "Default <filename>: " FD_AVG_PARMS,UNDEF,NULL},
@@ -736,14 +737,18 @@ PARSE_FUNC(h)
     if (Narg>=1) {
       for(i=0;i<LENGTH(options);i++) if (strcmp(argv[1],options[i].name)==0) {
         if (Narg==2) {
-          j=-1;
-          while (options[i].sub[++j].name!=NULL) if (strcmp(argv[2],options[i].sub[j].name)==0) {
-            printf("  -%s %s %s\n%s\n",options[i].name,options[i].sub[j].name,
-                   options[i].sub[j].usage,options[i].sub[j].help);
-            found=TRUE;
-            break;
+          if (options[i].sub==NULL)
+            printf("No specific help is available for suboptions of this option\n\n");
+          else {
+            j=-1;
+            while (options[i].sub[++j].name!=NULL) if (strcmp(argv[2],options[i].sub[j].name)==0) {
+              printf("  -%s %s %s\n%s\n",options[i].name,options[i].sub[j].name,
+                     options[i].sub[j].usage,options[i].sub[j].help);
+              found=TRUE;
+              break;
+            }
+            if (!found) printf("Unknown suboption '%s'\n\n",argv[2]);
           }
-          if (!found) printf("No help is available for suboption '%s'\n",argv[2]);
         }
         if (!found) {
           printf("  -%s %s\n%s\n",options[i].name,options[i].usage,options[i].help);
@@ -758,7 +763,7 @@ PARSE_FUNC(h)
         found=TRUE;
         break;
       }
-      if (!found) printf("Unknown option '%s'\n",argv[1]);
+      if (!found) printf("Unknown option '%s'\n\n",argv[1]);
     }
     if (!found) {
       printf("Usage: '%s %s'\n"\
