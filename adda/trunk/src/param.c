@@ -225,6 +225,7 @@ PARSE_FUNC(maxiter);
 PARSE_FUNC(no_reduced_fft);
 PARSE_FUNC(no_vol_cor);
 PARSE_FUNC(ntheta);
+PARSE_FUNC(opt);
 PARSE_FUNC(orient);
 PARSE_FUNC(phi_integr);
 PARSE_FUNC(pol);
@@ -348,6 +349,9 @@ static struct opt_struct options[]={
      "the range is extended to 360 degrees (with the same length of elementary interval,\n"\
      "i.e. number of intervals is doubled).\n"\
      "Default: from 90 to 720 depending on the size of the computational grid.",1,NULL},
+  {PAR(opt),"{speed|mem}",
+     "Sets whether the ADDA should optimize itself for maximum speed or for minimum memory usage.\n"\
+     "Default: speed",1,NULL},
   {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}",
      "Either sets an orientation of the particle by three Euler angles 'alpha',\n"\
      "'beta','gamma' (in degrees) or specifies that orientation averaging should be\n"\
@@ -837,6 +841,12 @@ PARSE_FUNC(ntheta)
   TestPositive_i(nTheta,"number of theta intervals");
   nTheta++;
 }
+PARSE_FUNC(opt)
+{
+  if (strcmp(argv[1],"speed")==0) save_memory=FALSE;
+  else if (strcmp(argv[1],"mem")==0) save_memory=TRUE;
+  else NotSupported("Optimization method",argv[1]);
+}
 PARSE_FUNC(orient)
 {
   if (Narg==0) NargError(Narg,"at least 1");
@@ -1224,6 +1234,7 @@ void InitVariables(void)
   sh_granul=FALSE;
   symX=symY=symZ=symR=TRUE;
   anisotropy=FALSE;
+  save_memory=FALSE;
   memory=0;
   Ncomp=1;
 }
@@ -1591,6 +1602,9 @@ void PrintInfo(void)
     /* log Symmetry options */
     if (symmetry_enforced) fprintf(logfile,"Symmetry is enforced by user (warning!)\n");
     else if (NoSymmetry) fprintf(logfile,"No symmetries are used\n");
+    /* log optimization method */
+    if (save_memory) fprintf(logfile,"Optimization is done for minimum memory usage\n");
+    else fprintf(logfile,"Optimization is done for maximum speed\n");
     /* log Checkpoint options */
     if (load_chpoint) fprintf(logfile,"Simulation is continued from a checkpoint\n");
     if (chp_type!=CHP_NONE) {

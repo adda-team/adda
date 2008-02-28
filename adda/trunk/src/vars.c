@@ -49,6 +49,7 @@ int NoSymmetry;   /* do not use particle symmetries (unless enforced) */
 int beam_asym;    /* whether the beam center is shifted relative to the origin */
 int sh_granul;    /* whether to fill one domain with granules */
 int anisotropy;   /* whether the scattering medium is anisotropic */
+int save_memory;  /* whether to sacrifice some speed for memory */
 
 /* 3D vectors (in particle reference frame) */
 double prop[3];                /* incident direction (in particle reference frame) */
