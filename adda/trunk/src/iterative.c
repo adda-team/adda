@@ -24,7 +24,7 @@
  *           non-symmetric (e.g. -int so), however they do it much slowly than usually.
  *           It is recommended then to use BiCGStab
  *
- * Copyright (C) 2006 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -295,7 +295,7 @@ static void AfterIterFinished(void)
 static void CGNR(const int mc)
    /* Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm */
 {
-  double inprodRplus1;		 /* inner product of rk+1 */
+  double inprodRplus1;     /* inner product of rk+1 */
   double alpha, denumeratorAlpha;
   double beta,ro_new,ro_old=0;   /* initialization to remove compiler warning */
   TIME_TYPE tstart;
@@ -384,7 +384,7 @@ static void BiCGStab(const int mc)
     tstart = GET_TIME();
     /* ro_k-1=r_k-1.r~ ; check for ro_k-1!=0 */
     nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
-    dtmp=sqrt(cAbs2(ro_new))/inprodR;
+    dtmp=cAbs(ro_new)/inprodR;
     if (dtmp<EPS_BICGSTAB)
       LogError(EC_ERROR,ONE_POS,"BiCGStab fails: (r~.r)/(r.r) is too small (%.2g).",dtmp);
     if (count==1) nCopy(pvec,rvec); /* p_1=r_0 */
@@ -393,7 +393,7 @@ static void BiCGStab(const int mc)
       cMult(ro_new,alpha,temp1);
       cMult(ro_old,omega,temp2);
         /* check that omega_k-1!=0 */
-      dtmp=sqrt(cAbs2(temp2)/cAbs2(temp1));
+      dtmp=cAbs(temp2)/cAbs(temp1);
       if (dtmp<EPS_BICGSTAB)
         LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small (%.2g).",dtmp);
       cDiv(temp1,temp2,beta);
@@ -468,7 +468,7 @@ static void BiCG_CS(const int mc)
     tstart=GET_TIME();
     /* ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0 */
     nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
-    abs_ro_new=sqrt(cAbs2(ro_new));
+    abs_ro_new=cAbs(ro_new);
     dtmp=abs_ro_new/inprodR;
     if (dtmp<EPS_BICG_CS)
       LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is too small (%.2g).",dtmp);
@@ -483,7 +483,7 @@ static void BiCG_CS(const int mc)
     MatVec(pvec,Avecbuffer,NULL,FALSE);
     /* mu_k=p_k.q_k; check for mu_k!=0 */
     nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
-    dtmp=sqrt(cAbs2(mu))/abs_ro_new;
+    dtmp=cAbs(mu)/abs_ro_new;
     if (dtmp<EPS_BICG_CS)
       LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (pT.A.p)/(rT.r) is too small (%.2g).",dtmp);
     /* alpha_k=ro_k/mu_k */
@@ -508,7 +508,7 @@ static void BiCG_CS(const int mc)
 static void QMR_CS(const int mc)
   /* Quasi Minimum Residual for Complex Symmetric systems */
 {
-  double inprodRplus1;		/* inner product of rk+1 */
+  double inprodRplus1;    /* inner product of rk+1 */
   double c_old,c_new,omega_old,omega_new,zetaabs,dtmp1,dtmp2;
   doublecomplex alpha,beta,theta,eta,zeta,zetatilda,tau,tautilda;
   doublecomplex s_new,s_old,temp1,temp2,temp3,temp4;
@@ -554,7 +554,7 @@ static void QMR_CS(const int mc)
       /* beta_1=sqrt(v~_1(*).v~_1); omega_1=||v~_1||/|beta_1|; (v~_1=r_0) */
     nDotProdSelf_conj(rvec,temp1,&Timing_InitIter_comm);
     cSqrt(temp1,beta);
-    omega_new=sqrt(inprodR/cAbs2(beta));    /* inprodR=nNorm2(r_0) */
+    omega_new=sqrt(inprodR)/cAbs(beta);    /* inprodR=nNorm2(r_0) */
       /* v_1=v~_1/beta_1 */
     cInv(beta,temp1);
     nMult_cmplx(v,rvec,temp1);
@@ -601,7 +601,7 @@ static void QMR_CS(const int mc)
     omega_old=omega_new;
     nDotProdSelf_conj_Norm2(vtilda,temp1,&dtmp1,&Timing_OneIterComm);  /* dtmp1=||v~||^2 */
     cSqrt(temp1,beta);
-    omega_new=sqrt(dtmp1/cAbs2(beta));
+    omega_new=sqrt(dtmp1)/cAbs(beta);
     /* |zeta_k|=sqrt(|zeta~_k|^2+omega_k+1^2*|beta_k+1|^2) */
     dtmp2=cAbs2(zetatilda);     /* dtmp2=|zeta~_k|^2 */
     zetaabs=sqrt(dtmp2+dtmp1);

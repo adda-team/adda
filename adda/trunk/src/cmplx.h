@@ -7,8 +7,10 @@
  *        work in combination with 'doublecomplex *' or more nested lists. That seems
  *        to be a principal limitation of C standard (some compilers may work, some produce
  *        warnings)
+ *        A few changes for reliability and stability were made according to the ideas of section 5.5
+ *        of the Numerical Recipes, 3rd ed.
  *
- * Copyright (C) 2006 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #ifndef __cmplx_h
@@ -35,6 +37,28 @@ INLINE double cAbs2(const doublecomplex a)
      /* square of absolute value of complex number; |a|^2 */
 {
   return (a[RE]*a[RE] + a[IM]*a[IM]);
+}
+
+/*============================================================*/
+
+INLINE double cAbs(const doublecomplex a)
+     /* absolute value of complex number |a|, specially designed to avoid overflow */
+{
+  double u,v,w;
+  u=fabs(a[RE]);
+  v=fabs(a[IM]);
+
+  if (u==0 && v==0) return 0;
+  else {
+   if (u>=v) {
+      w=v/u;
+      return (u*sqrt(1+w*w));
+    }
+    else {
+      w=u/v;
+      return (v*sqrt(1+w*w));
+    }
+  }
 }
 
 /*============================================================*/
@@ -171,53 +195,115 @@ INLINE void cInvSign2(const doublecomplex a,doublecomplex b)
 /*============================================================*/
 
 INLINE void cInv(const doublecomplex a,doublecomplex b)
-     /* complex inversion; b=1/a */
+     /* complex inversion; b=1/a; designed to avoid under and overflows  */
 {
   double tmp;
 
-  tmp=1/(a[RE]*a[RE] + a[IM]*a[IM]);
-  b[RE]= a[RE] * tmp;
-  b[IM]= - a[IM] * tmp;
+  if (fabs(a[RE])>=fabs(a[IM])) {
+    tmp=a[IM]/a[RE];
+    b[RE]=1/(a[RE]+a[IM]*tmp);
+    b[IM]=-b[RE]*tmp;
+  }
+  else {
+    tmp=a[RE]/a[IM];
+    b[IM]=-1/(a[RE]*tmp+a[IM]);
+    b[RE]=-b[IM]*tmp;
+  }
+}
+
+/*============================================================*/
+
+INLINE double cInvIm(const doublecomplex a)
+     /* returns Im of inverse of a; designed to avoid under and overflows */
+{
+  double tmp;
+
+  if (fabs(a[RE])>=fabs(a[IM])) {
+    tmp=a[IM]/a[RE];
+    return (-tmp/(a[RE]+a[IM]*tmp));
+  }
+  else {
+    tmp=a[RE]/a[IM];
+    return (-1/(a[RE]*tmp+a[IM]));
+  }
 }
 
 /*============================================================*/
 
 INLINE void cDiv(const doublecomplex a,const doublecomplex b,doublecomplex c)
-     /* complex division; c=a/b */
-     /* !!! c should be different from a and b !!! */
+     /* complex division; c=a/b; designed to avoid under and overflows  */
+     /* !!! c should be different from a !!! */
 {
-  double tmp;
+  double u,v;
 
-  tmp=1/(b[RE]*b[RE] + b[IM]*b[IM]);
-  c[RE]=(a[RE]*b[RE] + a[IM]*b[IM])*tmp;
-  c[IM]=(a[IM]*b[RE] - a[RE]*b[IM])*tmp;
+  if (fabs(b[RE])>=fabs(b[IM])) {
+    u=b[IM]/b[RE];
+    v=1/(b[RE]+b[IM]*u);
+    c[RE]=(a[RE]+a[IM]*u)*v;
+    c[IM]=(a[IM]-a[RE]*u)*v;
+  }
+  else {
+    u=b[RE]/b[IM];
+    v=1/(a[RE]*u+a[IM]);
+    c[RE]=(a[RE]*u+a[IM])*v;
+    c[IM]=(a[IM]*u-a[RE])*v;
+  }
 }
 
 /*============================================================*/
 
 INLINE void cDivSelf(doublecomplex a,const doublecomplex b)
-     /* complex division; a/=b */
+     /* complex division; a/=b; designed to avoid under and overflows  */
 {
-  double tmp, tmp2;
+  double u,v,w;
 
-  tmp=1/(b[RE]*b[RE] + b[IM]*b[IM]);
-  tmp2=a[RE];
-  a[RE]=(a[RE]*b[RE] + a[IM]*b[IM])*tmp;
-  a[IM]=(a[IM]*b[RE] - tmp2*b[IM])*tmp;
+  w=a[RE];
+  if (fabs(b[RE])>=fabs(b[IM])) {
+    u=b[IM]/b[RE];
+    v=1/(b[RE]+b[IM]*u);
+    a[RE]=(w+a[IM]*u)*v;
+    a[IM]=(a[IM]-w*u)*v;
+  }
+  else {
+    u=b[RE]/b[IM];
+    v=1/(a[RE]*u+a[IM]);
+    a[RE]=(w*u+a[IM])*v;
+    a[IM]=(a[IM]*u-w)*v;
+  }
 }
 
 /*============================================================*/
 
 INLINE void cSqrt(const doublecomplex a,doublecomplex b)
-     /* complex square root; b=sqrt(a)
+     /* complex square root; b=sqrt(a); designed to avoid under and overflows
         branch cut discontinuity is (-inf,0) - b[RE]>=0 */
 {
-  double tmp;
+  double u,v,w,r;
 
-  tmp=sqrt(a[RE]*a[RE]+a[IM]*a[IM]);
-  b[RE]=sqrt(0.5*(tmp+a[RE]));
-  b[IM]=sqrt(0.5*(tmp-a[RE]));
-  if (a[IM]<0) b[RE]=-b[RE];
+  u=fabs(a[RE]);
+  v=fabs(a[IM]);
+  if (u==0 && v==0) b[RE]=b[IM]=0;
+  else {
+   /* first determine w */
+   if (u>=v) {
+      r=v/u;
+      w=sqrt(u)*sqrt((1+sqrt(1+r*r))/2);
+    }
+    else {
+      r=u/v;
+      w=sqrt(v)*sqrt((r+sqrt(1+r*r))/2);
+    }
+    /* compute the result */
+    if (a[RE]>=0) {
+      b[RE]=w;
+      b[IM]=a[IM]/(2*w);
+    }
+    else {
+      b[RE]=v/(2*w);
+      if (a[IM]>=0) b[IM]=w;
+      else b[IM]=-w;
+    }  
+  }
 }
 
 /*============================================================*/
@@ -235,7 +321,7 @@ INLINE void imExp(const double arg,doublecomplex c)
 INLINE void cExp(const doublecomplex arg,doublecomplex c)
      /* complex exponent of complex argument c=Exp(arg)
         Optimization is performed by compiler
-        !!! c should be different from arg b !!! */
+        !!! c should be different from arg !!! */
 {
   c[RE]=c[IM]=exp(arg[RE]);
   c[RE]*=cos(arg[IM]);
