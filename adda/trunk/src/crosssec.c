@@ -6,7 +6,7 @@
  *
  *        Previous versions by Martijn Frijlink
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -30,6 +30,7 @@
 /* defined and initialized in calculator.c */
 extern double *E2_alldir,*E2_alldir_buffer;
 extern const doublecomplex cc[][3];
+extern doublecomplex *expsX,*expsY,*expsZ;
 /* defined and initialized in GenerateB.c */
 extern double beam_center_0[3];
 /* defined and initialized in param.c */
@@ -460,9 +461,9 @@ void CalcField (doublecomplex *ebuff,  /* where to write calculated scattering a
   /*  Near-optimal routine to compute the scattered fields at one specific
       angle (more exactly - scattering amplitude) */
 {
-  double kr,kkk;
+  double kkk;
   doublecomplex a,m2,dpr;
-  doublecomplex sum[3],tbuff[3];
+  doublecomplex sum[3],tbuff[3],tmp;
   int i;
   size_t j,jjj;
   double temp, na;
@@ -484,14 +485,25 @@ void CalcField (doublecomplex *ebuff,  /* where to write calculated scattering a
     }
   }
   for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
-
+  /* prepare values of exponents, along each of the coordinates */
+  expsX[0][RE]=expsY[0][RE]=expsZ[0][RE]=1;
+  expsX[0][IM]=expsY[0][IM]=expsZ[0][IM]=0;
+  imExp(-kd*n[0],tmp);
+  for (i=1;i<boxX;i++) cMult(tmp,expsX[i-1],expsX[i]);
+  imExp(-kd*n[1],tmp);
+  for (i=1;i<boxY;i++) cMult(tmp,expsY[i-1],expsY[i]);
+  imExp(-kd*n[2],tmp);
+  for (i=1;i<local_Nz_unif;i++) cMult(tmp,expsZ[i-1],expsZ[i]);
+/*  for (i=1;i<boxX;i++) imExp(-kd*n[0]*i,expsX[i]);
+  for (i=0;i<boxY;i++) imExp(-kd*n[1]*i,expsY[i]);
+  for (i=0;i<local_Nz_unif;i++) imExp(-kd*n[2]*i,expsZ[i]); */
+  /* main cycle over all local real dipoles */
   for (j=0;j<local_nvoid_Ndip;++j) {
     jjj=3*j;
-    /* kr=k*r.n */
-    kr=WaveNum*DotProd(DipoleCoord+jjj,n);
-    /* a=exp(-ikr.n) */
-    imExp(-kr,a);
-                          /* multiply by a correction coefficient */
+    /* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */
+    cMult(expsY[position[jjj+1]],expsZ[position[jjj+2]],tmp);
+    cMult(tmp,expsX[position[jjj]],a);
+    /* multiply by a correction coefficient, if needed */
     if (ScatRelation==SQ_SO) cMultSelf(a,mult_mat[material[j]]);
     /* sum(P*exp(-ik*r.n)) */
     for(i=0;i<3;i++) {
@@ -499,18 +511,16 @@ void CalcField (doublecomplex *ebuff,  /* where to write calculated scattering a
       sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];
     }
   } /* end for j */
-  /* ebuff=(I-nxn).sum=sum-n*(n.sum) */
+  /* tbuff=(I-nxn).sum=sum-n*(n.sum) */
   crDotProd(sum,n,dpr);
   cScalMultRVec(n,dpr,tbuff);
-  cvSubtr(sum,tbuff,ebuff);
-
-  /* multiply it by (-i*k^3) */
+  cvSubtr(sum,tbuff,tbuff);
+  /* ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif */
+  imExp(-WaveNum*DotProd(box_origin_unif,n),a); /* a=exp(-ikr0.n) */
   kkk=WaveNum*WaveNum*WaveNum;
-  for(i=0;i<3;i++) {
-    temp=ebuff[i][RE];
-    ebuff[i][RE]=ebuff[i][IM]*kkk;
-    ebuff[i][IM]=-temp*kkk;
-  }
+  tmp[RE]=a[IM]*kkk;               /* tmp=(-i*k^3)*exp(-ikr0.n) */
+  tmp[IM]=-a[RE]*kkk;
+  cvMultScal_cmplx(tmp,tbuff,ebuff);
 }
 
 /*=====================================================================*/
@@ -550,19 +560,19 @@ double AbsCross(void)
   double sum, dummy, temp1,temp2;
   doublecomplex m2;
   double *m; /* not doublecomplex=double[2] to allow assignment to it */
-  double cc_inv_im[MAX_NMAT][3];   /* -Im(1/cc)=Im(cc)/|cc|^2 */
+  double cc_inv_im[MAX_NMAT][3];   /* Im(1/cc)=-Im(cc)/|cc|^2 */
   double mult_mat[MAX_NMAT];
 
   if (ScatRelation==SQ_DRAINE) {
     /* calculate constant and cc_inv_im */
     dummy = 2*WaveNum*WaveNum*WaveNum/3;
-    for (i=0;i<Nmat;i++) for (j=0;j<3;j++) cc_inv_im[i][j]=cc[i][j][IM]/cAbs2(cc[i][j]);
+    for (i=0;i<Nmat;i++) for (j=0;j<3;j++) cc_inv_im[i][j]=cInvIm(cc[i][j]);
     /* main cycle */
     for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
       mat=material[dip];
       index=3*dip;
       /* Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3) */
-      for(i=0;i<3;i++) sum+=(cc_inv_im[mat][i] - dummy)*cAbs2(pvec[index+i]);
+      for(i=0;i<3;i++) sum-=(cc_inv_im[mat][i]+dummy)*cAbs2(pvec[index+i]);
     }
   }
   else if (ScatRelation==SQ_SO) {

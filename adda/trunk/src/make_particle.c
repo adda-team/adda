@@ -1,6 +1,6 @@
 /* FILE: make_particlce.c
  * AUTH: Alfons Hoekstra
- * DESCR: This module initializes the dipole set, either using predefined shapes 
+ * DESCR: This module initializes the dipole set, either using predefined shapes
  *        or reading from a file. Includes granule generator.
  *
  *        rewriten,
@@ -17,7 +17,7 @@
  *
  *        Currently is developed by Maxim Yurkin
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -200,7 +200,7 @@ static void InitDipFile(const char *fname, int *maxX, int *maxY, int *maxZ, int 
       if (mat>*Nm) LogError(EC_ERROR,ONE_POS,
         "Given material number - %s - line %d: mat=%d is greater than provided Nmat (%d)",
         fname,line,mat,*Nm);
-    }    
+    }
     /* update maximums */
     if (x>*maxX) *maxX=x;
     if (y>*maxY) *maxY=y;
@@ -1064,6 +1064,7 @@ void MakeParticle(void)
   double a_eq,tmp1,tmp2,tmp3;
   double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2;
   double cX,cY,cZ,jcX,jcY,jcZ;  /* centers for DipoleCoord and jagged */
+  int local_z0_unif; /* should be global or semi-global */
   int xj,yj,zj;
   int mat;
   unsigned short us_tmp;
@@ -1242,7 +1243,11 @@ void MakeParticle(void)
     us_tmp=(unsigned short)local_z0;
     for (dip=2;dip<3*local_nvoid_Ndip;dip+=3) position[dip]-=us_tmp;
   }
+  local_Nz_unif=position[3*local_nvoid_Ndip-1]+1;
+  local_z0_unif=local_z0; /* should be changed afterwards */
+  box_origin_unif[0]=-gridspace*cX;
+  box_origin_unif[1]=-gridspace*cY;
+  box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
 
   Timing_Particle += GET_TIME() - tstart;
 }
-

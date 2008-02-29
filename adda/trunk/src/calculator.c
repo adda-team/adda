@@ -5,7 +5,7 @@
  *
  *        Previous versions were by Alfons Hoekstra
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -52,6 +52,7 @@ int **tab_index;      /* matrix for indexation of table arrays */
 double *E2_alldir;  /* square of E, calculated for alldir */
 double *E2_alldir_buffer; /* buffer to accumulate E2_alldir */
 doublecomplex cc[MAX_NMAT][3];         /* couple constants */
+doublecomplex *expsX,*expsY,*expsZ;   /* arrays of exponents along 3 axes (for calc_field) */
 /* used in iterative.c */
 doublecomplex *rvec,*vec1,*vec2,*vec3,*Avecbuffer;  /* vectors for iterative solvers */
 
@@ -408,6 +409,9 @@ static void AllocateEverything(void)
     }
     memory+=3*tmp;
   }
+  MALLOC_VECTOR(expsX,complex,boxX,ALL);
+  MALLOC_VECTOR(expsY,complex,boxY,ALL);
+  MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
   if (yzplane) {
     tmp=2*(double)nTheta;
     if (!prognose) {
@@ -522,6 +526,9 @@ static void FreeEverything(void)
     Free_cVector(vec2);
     Free_cVector(vec3);
   }
+  Free_cVector(expsX);
+  Free_cVector(expsY);
+  Free_cVector(expsZ);
   if (yzplane) {
     Free_cVector(EplaneX);
     Free_cVector(EplaneY);

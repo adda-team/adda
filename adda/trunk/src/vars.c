@@ -6,7 +6,7 @@
  *           and not listed here. They are defined in one file and referenced with
  *           'extern' in another one.
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdio.h>    /* for FILE and size_t */
@@ -55,6 +55,10 @@ int save_memory;  /* whether to sacrifice some speed for memory */
 double prop[3];                /* incident direction (in particle reference frame) */
 double incPolX[3],incPolY[3];  /* incident polariztions (in particle RF) */
 double beam_center[3];         /* coordinates of the beam center */
+double box_origin_unif[3];     /* coordinates of the center of the first dipole in the local
+                                  computational box (after uniform distribution of non-void dipoles
+                                  among all processors) */
+
 /* file info */
 char directory[MAX_DIRNAME];   /* directory to save data in */
 FILE *logfile;                 /* file where all the information about the run is saved */
@@ -97,6 +101,9 @@ int nprocs;                     /* total number of processes */
 int ringid;                     /* id of current process */
 int local_z0,local_z1;          /* starting and ending z for current processor*/
 size_t local_Nz;                /* number of z layers (based on the division of smallZ) */
+int local_Nz_unif;              /* number of z layers (distance between max and min values),
+                                   belonging to this processor, after all non_void dipoles are
+                                   uniformly distributed between all processors */
 int local_z1_coer;              /* ending z, coerced to be not greater than boxZ */
 size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor and
                                       number of x layers (based on the division of smallX) */

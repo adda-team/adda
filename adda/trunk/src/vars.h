@@ -6,7 +6,7 @@
  *           and not listed here. They are defined in one file and referenced with
  *           'extern' in another one.
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #ifndef __vars_h
@@ -36,7 +36,7 @@ extern int prognose,yzplane,all_dir,scat_grid,phi_integr,sh_granul,
            reduced_FFT,orient_avg,load_chpoint,NoSymmetry,beam_asym,anisotropy,
            save_memory;
 /* 3D vectors */
-extern double prop[3],incPolX[3],incPolY[3],beam_center[3];
+extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
 /* file info */
 extern char directory[];
@@ -71,7 +71,7 @@ extern size_t gridYZ;
 extern size_t smallY,smallZ;
 extern size_t local_Nsmall;
 extern int nprocs,ringid;
-extern int local_z0,local_z1,local_z1_coer;
+extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
 extern size_t local_Nz,local_x0,local_x1,local_Nx;
 extern size_t local_Ndip,local_nvoid_Ndip,nlocalRows;
 extern double nvoid_Ndip;

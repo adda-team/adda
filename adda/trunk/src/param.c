@@ -350,7 +350,7 @@ static struct opt_struct options[]={
      "i.e. number of intervals is doubled).\n"\
      "Default: from 90 to 720 depending on the size of the computational grid.",1,NULL},
   {PAR(opt),"{speed|mem}",
-     "Sets whether the ADDA should optimize itself for maximum speed or for minimum memory usage.\n"\
+     "Sets whether ADDA should optimize itself for maximum speed or for minimum memory usage.\n"\
      "Default: speed",1,NULL},
   {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}",
      "Either sets an orientation of the particle by three Euler angles 'alpha',\n"\
