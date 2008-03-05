@@ -318,6 +318,38 @@ INLINE void imExp(const double arg,doublecomplex c)
 
 /*============================================================*/
 
+INLINE void imExp_arr(const double arg,const int size,doublecomplex *c)
+     /* construct an array of exponent of imaginary argument c=Exp(i*k*arg)
+        where k=0,1,...,size-1. Uses stable recurrence from Numerical Recipes.
+        Optimization of the initial simultaneous calculation of sin and cos is performed
+        by compiler; It is assumed that size is at least 1 */
+{
+  int k;
+  double a,b;
+
+  c[0][RE]=1;
+  c[0][IM]=0;
+  if (size>1) {
+    /* set a=2*sin^2(arg/2), b=sin(arg) */
+    a=sin(arg/2);
+    b=cos(arg/2);
+    b*=2*a;
+    a*=2*a;
+    /* this a bit faster than in the main cycle */
+    c[1][RE]=1-a;
+    c[1][IM]=b;
+    /* main cycle */
+    for (k=2;k<size;k++) {
+      /* potentially compiler may open brackets to accelerate calculation but lose significant
+         digits. We hope it doesn't happen, but even if it does, it should not be a big problem */
+      c[k][RE]=c[k-1][RE]-(a*c[k-1][RE]+b*c[k-1][IM]);
+      c[k][IM]=c[k-1][IM]-(a*c[k-1][IM]-b*c[k-1][RE]);
+    }
+  }
+}
+
+/*============================================================*/
+
 INLINE void cExp(const doublecomplex arg,doublecomplex c)
      /* complex exponent of complex argument c=Exp(arg)
         Optimization is performed by compiler

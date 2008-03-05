@@ -459,12 +459,17 @@ void ReadScatGridParms(const char *fname)
 void CalcField (doublecomplex *ebuff,  /* where to write calculated scattering amplitude */
                 const double *n)       /* scattering direction */
   /*  Near-optimal routine to compute the scattered fields at one specific
-      angle (more exactly - scattering amplitude) */
+      angle (more exactly - scattering amplitude);
+      Specific optimization are possible when e.g. n[0]=0 for scattering in yz-plane, however in
+      this case it is very unprobable that the routine will become a bottleneck. The latter happens
+      mostly for cases, when  grid of scattering angles is used with only small fraction of n,
+      allowing simplifications. */
 {
   double kkk;
   doublecomplex a,m2,dpr;
   doublecomplex sum[3],tbuff[3],tmp;
   int i;
+  unsigned short ix,iy1,iy2,iz1,iz2;
   size_t j,jjj;
   double temp, na;
   doublecomplex mult_mat[MAX_NMAT];
@@ -486,31 +491,49 @@ void CalcField (doublecomplex *ebuff,  /* where to write calculated scattering a
   }
   for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
   /* prepare values of exponents, along each of the coordinates */
-  expsX[0][RE]=expsY[0][RE]=expsZ[0][RE]=1;
-  expsX[0][IM]=expsY[0][IM]=expsZ[0][IM]=0;
-  imExp(-kd*n[0],tmp);
-  for (i=1;i<boxX;i++) cMult(tmp,expsX[i-1],expsX[i]);
-  imExp(-kd*n[1],tmp);
-  for (i=1;i<boxY;i++) cMult(tmp,expsY[i-1],expsY[i]);
-  imExp(-kd*n[2],tmp);
-  for (i=1;i<local_Nz_unif;i++) cMult(tmp,expsZ[i-1],expsZ[i]);
-/*  for (i=1;i<boxX;i++) imExp(-kd*n[0]*i,expsX[i]);
-  for (i=0;i<boxY;i++) imExp(-kd*n[1]*i,expsY[i]);
-  for (i=0;i<local_Nz_unif;i++) imExp(-kd*n[2]*i,expsZ[i]); */
-  /* main cycle over all local real dipoles */
-  for (j=0;j<local_nvoid_Ndip;++j) {
-    jjj=3*j;
-    /* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */
-    cMult(expsY[position[jjj+1]],expsZ[position[jjj+2]],tmp);
-    cMult(tmp,expsX[position[jjj]],a);
-    /* multiply by a correction coefficient, if needed */
-    if (ScatRelation==SQ_SO) cMultSelf(a,mult_mat[material[j]]);
-    /* sum(P*exp(-ik*r.n)) */
-    for(i=0;i<3;i++) {
-      sum[i][RE]+=pvec[jjj+i][RE]*a[RE]-pvec[jjj+i][IM]*a[IM];
-      sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];
-    }
+  imExp_arr(-kd*n[0],boxX,expsX);
+  imExp_arr(-kd*n[1],boxY,expsY);
+  imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
+  /* not to double the code in the source we use two temporary defines,
+     since the following if cases differ only by one line of code;
+     (taking 'if' inside the cycle will affect performance) */
+  /* this piece of code tries to use that usually only x position changes from dipole to dipole,
+     saving a complex multiplication seems to be beneficial, even considering bookkeeping overhead;
+     it may not be as good for very porous particles though, but for them this part of code is
+     anyway fast relative to the FFT on a large grid; Further optimization is possible using some
+     kind of plans, i.e. by preliminary analysing the position of the real dipoles on the grid. */
+#define PART1\
+  iy1=iz1=UNDEF;\
+  for (j=0;j<local_nvoid_Ndip;++j) {\
+    jjj=3*j;\
+    /* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */\
+    ix=position[jjj];\
+    iy2=position[jjj+1];\
+    iz2=position[jjj+2];\
+    if (iy2!=iy1 || iz2!=iz1) { /* the second part is very unprobable, but needed for robustness */\
+      iy1=iy2;\
+      iz1=iz2;\
+      cMult(expsY[iy2],expsZ[iz2],tmp);\
+    }\
+    cMult(tmp,expsX[ix],a);
+#define PART2\
+    /* sum(P*exp(-ik*r.n)) */\
+    for(i=0;i<3;i++) {\
+      sum[i][RE]+=pvec[jjj+i][RE]*a[RE]-pvec[jjj+i][IM]*a[IM];\
+      sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];\
+    }\
   } /* end for j */
+  if (ScatRelation==SQ_SO) {
+    PART1
+    cMultSelf(a,mult_mat[material[j]]);
+    PART2
+  }
+  else {
+    PART1
+    PART2
+  }
+#undef PART1
+#undef PART2
   /* tbuff=(I-nxn).sum=sum-n*(n.sum) */
   crDotProd(sum,n,dpr);
   cScalMultRVec(n,dpr,tbuff);
