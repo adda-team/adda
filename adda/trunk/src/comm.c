@@ -7,7 +7,7 @@
  *
  *        Previous versions were by Martijn Frijlink
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -471,7 +471,7 @@ void ParSetup(void)
   local_x1=gridX;
 #endif
   if (local_z1_coer<=local_z0) {
-    LogError(EC_INFO,ONE_POS,"No real dipoles are assigned");
+    LogError(EC_INFO,ALL_POS,"No real dipoles are assigned");
     local_z1_coer=local_z0;
   }
   local_Nz=local_z1-local_z0;
