@@ -44,7 +44,7 @@ extern const int shape,sh_Npars;
 extern const double sh_pars[];
 extern const int symmetry_enforced;
 extern const double lambda;
-extern double sizeX,dpl;
+extern double sizeX,dpl,a_eq;
 extern const int jagged;
 extern const char aggregate_file[];
 extern char shapename[];
@@ -70,7 +70,7 @@ double mat_count[MAX_NMAT+1];    /* number of dipoles in each domain */
 static const char geom_format[] = "%d %d %d\n";         /* format of the geom file */
 static const char geom_format_ext[] = "%d %d %d %d\n";  /* extended format of the geom file */
 static double volume_ratio; /* ratio of scatterer volume to enclosing cube;
-                               used for dpl correction */
+                               used for dpl correction and initialization by a_eq */
 static double Ndip;         /* total number of dipoles (in a circumscribing cube) */
 static double dpl_def;      /* default value of dpl */
 /* shape parameters */
@@ -789,17 +789,30 @@ void InitShape(void)
     * Check whether enough refractive indices are specified
     */
 {
-  int n_boxX, n_boxYi, n_boxZi, temp;   /* new values for dimensions */
+  int n_boxX,n_boxY,n_boxZ,temp;   /* new values for dimensions */
   double h_d,b_d,c_d,h2,b2,c2;
-  double n_boxY,n_boxZ,tmp;
+  double tmp,yx_ratio,zx_ratio;
   TIME_TYPE tstart;
   int Nmat_need,i;
   int dpl_def_used;   /* if default dpl is used for grid initialization */
+  int box_det_sh;     /* if boxX is determined by shape itself */
 
   tstart=GET_TIME();
+
   /* for some shapes volume_ratio is initialized below;
-     if not, volume correction is not used */
-  volume_ratio=UNDEF;
+     if not, volume correction is not used; and also autoinitialization of the grid from dpl and
+     a_eq is not possible */
+/*  volume_ratio=UNDEF; */
+
+  /* trivial now, but may be more cases in the future */
+  box_det_sh=(shape==SH_READ);
+  /* check for redundancy of input data */
+  if (dpl!=UNDEF && (sizeX!=UNDEF || a_eq!=UNDEF)) {
+    if (boxX!=UNDEF) PrintError("Extra information is given by setting '-dpl, '-grid', and "\
+                                 "either'-size' or '-eq_rad'");
+    if (box_det_sh) PrintError("Extra information is given by setting both '-dpl' and either "\
+      "'-size' or '-eq_rad' while shape '%s' sets the size of the grid.",shapename);
+  }
   /* calculate default dpl - 10*sqrt(max(|m|));
      for anisotropic each component is considered separately */
   dpl_def=0;
@@ -809,39 +822,14 @@ void InitShape(void)
   }
   dpl_def=10*sqrt(dpl_def);
   dpl_def_used=FALSE;
-  /* if box is not defined by command line or read from file;
-        if size is defined, dpl is initialized to default, and grid is calculated
-                (dpl is slightly corrected aferwards)
-        else grid is initialized to default
-     then (in make_particle() ) the dpl is determined from size (if it is defined)
-         or set by default (after it size is determined */
-  if (boxX==UNDEF) {
-    if (shape!=SH_READ) {
-      if (sizeX!=UNDEF) {
-        if (dpl==UNDEF) {
-          dpl=dpl_def;  /* default value of dpl */
-          dpl_def_used=TRUE;
-        }
-        boxX=FitBox((int)ceil(sizeX*dpl/lambda));
-        dpl=UNDEF;     /* dpl is given correct value in make_particle() */
-      }
-      else boxX=DEF_GRID; /* default value for boxX */
-    }
-  }
-  else {
-    temp=boxX;
-    if ((boxX=FitBox(boxX))!=temp)
-      LogError(EC_WARN,ONE_POS,"boxX has been adjusted from %i to %i",temp,boxX);
-  }
-  n_boxX=boxX;
-
   /* initialization of global option index for error messages */
   opt=opt_sh;
   /* shape initialization */
   if (shape==SH_BOX) {
     STRCPYZ(sh_form_str,"cube; size of edge:%.10g");
     if (boxY!=UNDEF && boxY!=boxX) symR=FALSE;
-    n_boxY=n_boxZ=boxX;
+    volume_ratio=1;
+    yx_ratio=zx_ratio=1;
     Nmat_need=1;
   }
   else if (shape==SH_COATED) {
@@ -865,7 +853,7 @@ void InitShape(void)
     if (coat_x!=0) symX=symR=FALSE;
     if (coat_y!=0) symY=symR=FALSE;
     if (coat_z!=0) symZ=FALSE;
-    n_boxY=n_boxZ=boxX;
+    yx_ratio=zx_ratio=1;
     Nmat_need=2;
   }
   else if(shape==SH_CYLINDER) {
@@ -873,8 +861,8 @@ void InitShape(void)
     TestPositive(diskratio,"height to diameter ratio");
     SPRINTZ(sh_form_str,"cylinder; diameter(d):%%.10g, height h/d=%.10g",diskratio);
     volume_ratio=PI_OVER_FOUR*diskratio;
-    n_boxY=boxX;
-    n_boxZ=diskratio*boxX;
+    yx_ratio=1;
+    zx_ratio=diskratio;
     Nmat_need=1;
   }
   else if (shape==SH_ELLIPSOID) {
@@ -886,14 +874,16 @@ void InitShape(void)
             ellipsY,ellipsZ);
     if (ellipsY!=1) symR=FALSE;
     volume_ratio=PI_OVER_SIX*ellipsY*ellipsZ;
-    n_boxY=ellipsY*boxX;
-    n_boxZ=ellipsZ*boxX;
+    yx_ratio=ellipsY;
+    zx_ratio=ellipsZ;
     Nmat_need=1;
   }
   else if (shape==SH_LINE) {
     STRCPYZ(sh_form_str,"line; legth:%g");
     symY=symZ=symR=FALSE;
     n_boxY=n_boxZ=jagged;
+    yx_ratio=zx_ratio=UNDEF;
+    volume_ratio=UNDEF;
     Nmat_need=1;
   }
   else if(shape==SH_RBC) {
@@ -918,23 +908,22 @@ void InitShape(void)
     R=-(P+0.25)/4;
     Q=((P+0.25)/b2)-(b2/4);
     S=-(2*P+c2)/h2;
-
-    n_boxY=boxX;
-    n_boxZ=h_d*boxX;
+    yx_ratio=1;
+    zx_ratio=h_d;
     volume_ratio=UNDEF;
     Nmat_need=1;
   }
   else if (shape==SH_READ) {
     SPRINTZ(sh_form_str,"specified by file %s; size along X:%%.10g",aggregate_file);
     symX=symY=symZ=symR=FALSE; /* input file is assumed assymetric */
-    InitDipFile(aggregate_file,&n_boxX,&n_boxYi,&n_boxZi,&Nmat_need);
-    n_boxY=n_boxYi;
-    n_boxZ=n_boxZi;
+    InitDipFile(aggregate_file,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
+    yx_ratio=zx_ratio=UNDEF;
+    volume_ratio=UNDEF;
   }
   else if (shape==SH_SPHERE) {
     STRCPYZ(sh_form_str,"sphere; diameter:%.10g");
     volume_ratio=PI_OVER_SIX;
-    n_boxY=n_boxZ=boxX;
+    yx_ratio=zx_ratio=1;
     Nmat_need=1;
   }
   else if (shape==SH_SPHEREBOX) {
@@ -943,8 +932,9 @@ void InitShape(void)
     SPRINTZ(sh_form_str,
       "sphere in cube; size of cube edge(a):%%.10g, diameter of sphere d/a=%.10g",coat_ratio);
     coat_r2=0.25*coat_ratio*coat_ratio;
-    if (boxY!=UNDEF || boxY!=boxX) symR=FALSE;
-    n_boxY=n_boxZ=boxX;
+    if (boxY!=UNDEF && boxY!=boxX) symR=FALSE;
+    yx_ratio=zx_ratio=1;
+    volume_ratio=1;
     Nmat_need=2;
   }
   /* TO ADD NEW SHAPE
@@ -963,14 +953,17 @@ void InitShape(void)
      4) initialize the following:
      sh_form_str - descriptive string, should contain %g - it would be replaced by box size along
                    x-axis afterwards (in param.c).
-     n_boxY, n_boxZ - grid sizes along y and z-axes (here they are double) calculated from
-                      size along x-axis. It is done from particle aspect ratios in _particle_
-                      reference frame. They are transformed to integer grid sizes afterwards.
+     Either yx_ratio (preferably) or n_boxY. The former is a ratio of grid size along y (n_boxY) to
+              grid size along x axes (boxX). Initialize n_boxY directly only if it doesnot depend on
+              boxX, like in shape LINE above, since boxY is not initialized at this moment. If
+              yx_ratio is not initialized, set it explicitely to UNDEF.
+     Analogously either zx_ratio (preferably) or n_boxZ.
      Nmat_need - number of different domains in this shape (void is not included)
-     volume_ratio - (optional) ratio of particle volume to (boxX)^3.
-                     Initialize it if it can be calculated analytically.
-     all other auxiliary variables that are used in shape generation (below), variables should
-            be defined in the beginning of this file. */
+     volume_ratio - ratio of particle volume to (boxX)^3. Initialize it if it can be calculated
+                    analytically or set to UNDEF otherwise. This parameter is crucial if one wants
+                    to initialize computational grid from '-eq_rad' and '-dpl'.
+     all other auxiliary variables, which are used in shape generation (below), should be
+       defined in the beginning of this file. */
 
 /*  else if(shape==SH_SDISK_ROT) {
     symX=symY=symZ=FALSE;
@@ -987,21 +980,19 @@ void InitShape(void)
   /* initialize domain granulation */
   if (sh_granul) {
     symX=symY=symZ=symR=FALSE;  /* no symmetry with granules */
-    if (gr_mat+1>Nmat_need) LogError(EC_ERROR,ONE_POS,
-      "Specified domain number to be granulated (%d) is larger than total number of domains (%d) "\
-      "for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
+    if (gr_mat+1>Nmat_need) PrintError("Specified domain number to be granulated (%d) is larger "\
+      "than total number of domains (%d) for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
     else Nmat_need++;
     strcat(shapename,"_gran");
   }
   /* check if enough refr. indices or extra */
   if (Nmat<Nmat_need) {
     if (prognose) {
-      if (dpl_def_used) LogError(EC_INFO,ONE_POS,"Given number of refractive indices (%d) is less"\
-        " than number of domains (%d). Since computational grid is initialized based on the"\
-        " default dpl, it may change depending on the actual refractive indices.",Nmat,Nmat_need);
+      if (dpl_def_used) PrintError("Given number of refractive indices (%d) is less "\
+        "than number of domains (%d). Since computational grid is initialized based on the "\
+        "default dpl, it may change depending on the actual refractive indices.",Nmat,Nmat_need);
     }
-    else LogError(EC_ERROR,ONE_POS,
-                  "Only %d refractive indices are given. %d are required",Nmat,Nmat_need);
+    else PrintError("Only %d refractive indices are given. %d are required",Nmat,Nmat_need);
   }
   else if (Nmat>Nmat_need) LogError(EC_INFO,ONE_POS,
     "More refractive indices are given (%d) than actually used (%d)",Nmat,Nmat_need);
@@ -1014,15 +1005,49 @@ void InitShape(void)
   if (symmetry_enforced) symX=symY=symZ=symR=TRUE;
   else if (NoSymmetry) symX=symY=symZ=symR=FALSE;
 
-  if (boxX==UNDEF) boxX=FitBox(n_boxX);
-  else if (n_boxX>boxX) LogError(EC_ERROR,ONE_POS,
-                        "Particle (boxX=%d) does not fit into specified boxX=%d", n_boxX, boxX);
-
-  n_boxYi=(int)ceil(n_boxY);
-  n_boxZi=(int)ceil(n_boxZ);
+  /* use analytic connection between sizeX and a_eq if available */
+  if (a_eq!=UNDEF && volume_ratio!=UNDEF)
+    sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio,ONE_THIRD)*a_eq;
+  /* Initializitation of boxX;
+     if boxX is not defined by command line, it is either set by shape itself or
+       if sizeX is set boxX is initialized to default
+       else dpl is initialized to default (if undefined) and boxX is calculated from sizeX and dpl
+     else adjust boxX if needed */
+  if (boxX==UNDEF) {
+    if (box_det_sh) boxX=FitBox(n_boxX);
+    else {
+      if (sizeX==UNDEF) {
+        /* if a_eq is set, but sizeX was not initialized before - error */
+        if (a_eq!=UNDEF) PrintError("Grid size can not be automatically determined from "\
+          "equivalent radius and dpl for shape '%s', because its volume is not know "\
+          "analytically. Either use '-size' instead of '-eq_rad' or specify grid size manually "\
+          "by '-grid'.",shapename);
+        boxX=DEF_GRID; /* default value for boxX */
+      }
+      else {
+        if (dpl==UNDEF) {
+          dpl=dpl_def;  /* default value of dpl */
+          dpl_def_used=TRUE;
+        }
+        boxX=FitBox((int)ceil(sizeX*dpl/lambda));
+        dpl=UNDEF;     /* dpl is given correct value in make_particle() */
+      }
+    }
+  }
+  else {
+    temp=boxX;
+    if ((boxX=FitBox(boxX))!=temp)
+      LogError(EC_WARN,ONE_POS,"boxX has been adjusted from %i to %i",temp,boxX);
+    if (box_det_sh && n_boxX>boxX)
+      PrintError("Particle (boxX=%d) does not fit into specified boxX=%d",n_boxX,boxX);
+  }
+  /* if shape is determined by ratios, calculate proposed grid sizes along y and z axes */
+  if (yx_ratio!=UNDEF) n_boxY=(int)ceil(yx_ratio*boxX);
+  if (zx_ratio!=UNDEF) n_boxZ=(int)ceil(zx_ratio*boxX);
+  /* set boxY and boxZ */
   if (boxY==UNDEF) { /* assumed that boxY and boxZ are either both defined or both not defined */
-    boxY=FitBox(n_boxYi);
-    boxZ=FitBox(n_boxZi);
+    boxY=FitBox(n_boxY);
+    boxZ=FitBox(n_boxZ);
   }
   else {
     temp=boxY;
@@ -1032,15 +1057,15 @@ void InitShape(void)
     if ((boxZ=FitBox(boxZ))!=temp)
       LogError(EC_WARN,ONE_POS,"boxZ has been adjusted from %i to %i",temp,boxZ);
     /* this error is not duplicated in the logfile since it does not yet exist */
-    if (n_boxYi>boxY || n_boxZi>boxZ) LogError(EC_ERROR,ONE_POS,
-      "Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
-      n_boxYi,n_boxZi,boxY,boxZ);
+    if (n_boxY>boxY || n_boxZ>boxZ)
+      PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
+                 n_boxY,n_boxZ,boxY,boxZ);
   }
   /* initialize number of dipoles */
   Ndip=boxX*((double)boxY)*boxZ;
   /* initialize maxiter; not very realistic */
   if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
-  /* initialize nTheta */
+  /* some old, not really logical heuristics for Ntheta, but better than constant value */
   if (nTheta==UNDEF) {
     if (Ndip<1000) nTheta=91;
     else if (Ndip<10000) nTheta=181;
@@ -1061,7 +1086,7 @@ void MakeParticle(void)
 {
   int i, j, k;
   size_t index,dip,nlocalRows_tmp;
-  double a_eq,tmp1,tmp2,tmp3;
+  double tmp1,tmp2,tmp3;
   double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2;
   double cX,cY,cZ,jcX,jcY,jcZ;  /* centers for DipoleCoord and jagged */
   int local_z0_unif; /* should be global or semi-global */
@@ -1171,14 +1196,13 @@ void MakeParticle(void)
   /* initialize dpl and gridspace */
   volcor_used=(volcor && (volume_ratio!=UNDEF));
   if (sizeX==UNDEF) {
-    if (dpl==UNDEF) dpl=dpl_def; /* default value of dpl */
+    if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI,ONE_THIRD)/a_eq;
+    else if (dpl==UNDEF) dpl=dpl_def; /* default value of dpl */
     /* sizeX is determined to give correct volume */
     if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/dpl;
     else sizeX=lambda*boxX/dpl;
   }
   else {
-    if (dpl!=UNDEF)
-      LogError(EC_ERROR,ONE_POS,"Extra information (all of dpl,grid,size) are given");
     /* dpl is determined to give correct volume */
     if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
     else dpl=lambda*boxX/sizeX;
@@ -1189,6 +1213,8 @@ void MakeParticle(void)
   gridspace=lambda/dpl;
   /* initialize equivalent size parameter and cross section */
   kd = TWO_PI/dpl;
+  /* from this moment on a_eq and all derived quantities are based on the real a_eq, which can
+     in several cases be slightly different from the one given by '-eq_rad' option */
   a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip,ONE_THIRD)*gridspace;
   ka_eq = WaveNum*a_eq;
   inv_G = 1/(PI*a_eq*a_eq);

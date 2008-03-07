@@ -109,6 +109,7 @@ opt_index opt_sh;                /* option index of shape option used */
 double gr_vf;                    /* granules volume fraction */
 double gr_d;                     /* granules diameter */
 int gr_mat;                      /* domain number to granulate */
+double a_eq;                     /* volume-equivalent radius of the particle */
 
 /* LOCAL VARIABLES */
 
@@ -213,6 +214,7 @@ PARSE_FUNC(Csca);
 PARSE_FUNC(dir);
 PARSE_FUNC(dpl);
 PARSE_FUNC(eps);
+PARSE_FUNC(eq_rad);
 PARSE_FUNC(granul);
 PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
@@ -289,6 +291,11 @@ static struct opt_struct options[]={
      "relative norm of the residual 'epsilon' to reach. <arg> is an exponent\n"\
      "of base 10 (float), i.e. epsilon=10^(-<arg>).\n"\
      "Default: 5 (epsilon=1E-5)",1,NULL},
+  {PAR(eq_rad),"<arg>",
+     "Sets volume-equivalent radius of the particle in um, float. If default wavelength is used,\n"\
+     "this option specifies the volume-equivalent size parameter. Can not be used together\n"\
+     "with '-size'.\n"\
+     "Default: determined by the value of '-size' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
   {PAR(granul),"<vol_frac> <diam> [<dom_number>]",
      "Specifies that one particle domain should be randomly filled with spherical granules\n"\
      "with specified diameter <diam> and volume fraction <vol_frac>. Domain number to fill\n"\
@@ -302,7 +309,7 @@ static struct opt_struct options[]={
      "If '-jagged' option is used the grid dimension is effectively multiplied\n"\
      "by the specified number.\n"\
      "Default: 16 (if  size is not specified) or defined by\n"\
-     "         '-size', '-lambda', and '-dpl'.",UNDEF,NULL},
+     "         '-size' or '-eq_rad', '-lambda', and '-dpl'.",UNDEF,NULL},
   {PAR(h),"[<opt> [<subopt>]]",
      "Shows help. If used without arguments, ADDA shows a list of all available\n"\
      "command line options. If first argument is specified, help on specific command\n"\
@@ -340,8 +347,10 @@ static struct opt_struct options[]={
      "Do not use symmetry of the interaction matrix to reduce the storage space\n"\
      "for the Fourier-transformed matrix.",0,NULL},
   {PAR(no_vol_cor),"",
-     "Do not use 'dpl correction', which ensures (if used) that the volume of\n"\
-     "the dipole representation of the particle is exactly correct.",0,NULL},
+     "Do not use 'dpl (volume) correction'. If this option is given, ADDA will try to match size\n"\
+     "of the dipole grid along x-axis to that of the particle, either given by '-size' or\n"\
+     "calculated analytically from '-eq_rad'. Otherwise (by default) ADDA will try to match the\n"\
+     "volumes, using either '-eq_rad' or the value calculated analytically from '-size'.",0,NULL},
   {PAR(ntheta),"<arg>",
      "Sets the number of intervals, into which the range of scattering angles [0,180]\n"\
      "(degrees) is equally divided, integer. This is used for scattering angles in\n"\
@@ -398,8 +407,10 @@ static struct opt_struct options[]={
      "All the parameters of predefined shapes are floats.\n"\
      "Default: sphere",UNDEF,shape_opt},
   {PAR(size),"<arg>",
-     "Sets the size of the computational grid along the x-axis in um, float.\n"\
-     "Default: determined by the values of '-grid', '-dpl', and '-lambda'.",1,NULL},
+     "Sets the size of the computational grid along the x-axis in um, float. If default \n"\
+     "wavelength is used, this option specifies the 'size parameter' of the computational grid.\n"\
+     "Can not be used together with '-eq_rad'.\n"\
+     "Default: determined by the value of '-eq_rad' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
   {PAR(store_beam),"","Save incident beam to a file",0,NULL},
   {PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
   {PAR(store_force),"","Calculate the radiation force on each dipole. Requires '-Cpr_mat'",0,NULL},
@@ -702,6 +713,11 @@ PARSE_FUNC(eps)
   ScanfDoubleError(argv[1],&tmp);
   TestPositive(tmp,"eps exponent");
   eps=pow(10,-tmp);
+}
+PARSE_FUNC(eq_rad)
+{
+  ScanfDoubleError(argv[1],&a_eq);
+  TestPositive(a_eq,"dpl");
 }
 PARSE_FUNC(granul)
 {
@@ -1188,6 +1204,7 @@ void InitVariables(void)
 
   boxX=boxY=boxZ=UNDEF;
   sizeX=UNDEF;
+  a_eq=UNDEF;
   dpl=UNDEF;
   strcpy(run_name,"run");
   nTheta=UNDEF;
@@ -1332,6 +1349,7 @@ void VariablesInterconnect(void)
     /* this limitation should be removed in the future */
     if (orient_avg) PrintError("Currently checkpoint is incompatible with '-orient avg'");
   }
+  if (sizeX!=UNDEF && a_eq!=UNDEF) PrintError("'-size' and '-eq_rad' can not be used together");
   /* scale boxes by jagged; should be completely robust to overflows */
 #define JAGGED_BOX(a) if (a!=UNDEF) { if ((BOX_MAX/(size_t)jagged)<(size_t)a) \
        LogError(EC_ERROR,ONE_POS,"Derived grid size (" #a ") is too large (>%d)",BOX_MAX); \
@@ -1527,7 +1545,8 @@ void PrintInfo(void)
       fprintf(logfile,"  per domain: 1. %.0f\n",mat_count[0]);
       for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %.0f\n",i+1,mat_count[i]);
     }
-    fprintf(logfile,"Volume-equivalent size parameter: %.10g\n",ka_eq);
+    fprintf(logfile,
+      "Volume-equivalent size parameter (for a specific dipole configuration): %.10g\n",ka_eq);
     /* log incident beam and polarization polarization */
     fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
     fprintf(logfile,"Incident propagation vector: (%g,%g,%g)\n",
