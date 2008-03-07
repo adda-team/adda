@@ -2,7 +2,7 @@
  * AUTH: Maxim Yurkin
  * DESCR: io routines
  *
- * Copyright (C) 2006 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -43,26 +43,30 @@ void LogError(const int code,const int who,const char *fname,
     * We use sprintf a couple of times, because we want each node to
     * generate an atomic message, not a couple of messages after
     * each other, since other nodes may then interfere with our output
-    * INFO is printed to stdout
-    * ERROR and WARN - to stdout and logfile
+    * INFO is printed to stdout and without showing the position in the source file
+    * ERROR and WARN - to stderr and logfile
     */
 {
   va_list args;
   char line[MAX_MESSAGE];
-  char id_str[MAX_LINE];
 
   if (who==ALL || ringid==ROOT) {  /* controls whether output should be produced */
     /* first build output string */
     va_start(args,fmt);
-    id_str[0]=0;
-#ifdef PARALLEL
-    if (who==ALL) sprintf(id_str," - ringID=%d",ringid);
-#endif
     if (code==EC_ERROR) strcpy(line,"ERROR:");
     else if (code==EC_WARN) strcpy(line,"WARNING:");
     else if (code==EC_INFO) strcpy(line,"INFO:");
     else sprintf(line,"Error code=%d:",code);
-    sprintf(line+strlen(line)," (%s:%d%s) ",fname,lineN,id_str);
+#ifdef PARALLEL
+    if (code!=EC_INFO) { /* for EC_INFO position in source code is not saved */
+      sprintf(line+strlen(line)," (%s:%d) ",fname,lineN);
+      /* rewrites last 2 chars */
+      if (who==ALL) sprintf(line+strlen(line)-2," - ringID=%d) ",ringid);
+    }
+    else if (who==ALL) sprintf(line+strlen(line)," (ringID=%d) ",ringid);
+#else
+    if (code!=EC_INFO) sprintf(line+strlen(line)," (%s:%d) ",fname,lineN);
+#endif
     vsprintf(line+strlen(line),fmt,args);
     strcat(line,"\n");
     va_end(args);
