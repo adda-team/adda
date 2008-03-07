@@ -5,7 +5,7 @@
  *
  *        Previous versions by "vesseur"
  *
- * Copyright (C) 2006 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdio.h>
@@ -36,7 +36,8 @@ void DebugPrintf(const char *fname,const int line,const char *fmt, ... )
 /*=======================================================*/
 
 void FieldPrint (doublecomplex *x)
-  /* print current field at certain dipole -- not used; left for deep debug */
+  /* print current field at certain dipole -- not used; left for deep debug
+     NOT ROBUST, since DipoleCoord is not always available */
 {
   extern FILE *logfile;
   extern double *DipoleCoord;

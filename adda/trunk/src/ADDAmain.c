@@ -5,7 +5,7 @@
  *        Previous versions were developed by Alfons Hoekstra.
  *        Sequential version, Michel Grimminck Jan 1995
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdio.h>
@@ -46,6 +46,7 @@ int main(int argc,char **argv)
   VariablesInterconnect();    /* also initializes beam */
   /* initialize symmetries and box's; get number of dipoles; set some variables */
   InitShape();
+  /* !!! before errorrs should be printed in simple format, after in more advanced one !!! */
   /* Create directory and start logfile (print command line) */
   DirectoryLog(argc,argv);
   /* initialize FFT grid and its subdivision over processors */

@@ -3,14 +3,14 @@
  * DESCR: All the constants used by ADDA code
  *        also defines some useful macros
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #ifndef __const_h
 #define __const_h
 
 /* version number (string) */
-#define ADDA_VERSION "0.78a"
+#define ADDA_VERSION "0.78"
 
 /* basic constants */
 #define FALSE        0
