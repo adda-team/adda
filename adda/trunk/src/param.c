@@ -160,7 +160,9 @@ static const struct subopt_struct beam_opt[]={
   {NULL,NULL,NULL,0,0}
 };
 static const struct subopt_struct shape_opt[]={
-  {"box","","Homogenous cube (edges along the axes)",0,SH_BOX},
+  {"box","[<y/x> <z/x>]",
+     "Homogenous cube (if no arguments are given) or a rectangular parallelepiped\n"\
+     "with edges x,y,z.",UNDEF,SH_BOX},
   {"coated","<d_in/d> [<x/d> <y/d> <z/d>]",
      "Sphere with a spherical inclusion; outer sphere has a diameter d (first domain).\n"\
      "The included sphere has a diameter d_in (optional position of the center: x,y,z).",
@@ -308,7 +310,7 @@ static struct opt_struct options[]={
      "is not relevant when particle geometry is read from a file ('-shape read').\n"\
      "If '-jagged' option is used the grid dimension is effectively multiplied\n"\
      "by the specified number.\n"\
-     "Default: 16 (if  size is not specified) or defined by\n"\
+     "Default: 16 (if neither '-size' nor '-eq_rad' are specified) or defined by\n"\
      "         '-size' or '-eq_rad', '-lambda', and '-dpl'.",UNDEF,NULL},
   {PAR(h),"[<opt> [<subopt>]]",
      "Shows help. If used without arguments, ADDA shows a list of all available\n"\
@@ -960,6 +962,9 @@ PARSE_FUNC(shape)
     if (shape==SH_COATED) {
       if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
     }
+    else if (shape==SH_BOX) {
+      if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2");
+    }
     /* parse; consistency of shape arguments is checked in InitShape() */
     if (shape==SH_READ) {
       TestStrLength(argv[2],MAX_FNAME);
@@ -1546,7 +1551,7 @@ void PrintInfo(void)
       for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %.0f\n",i+1,mat_count[i]);
     }
     fprintf(logfile,
-      "Volume-equivalent size parameter (for a specific dipole configuration): %.10g\n",ka_eq);
+      "Volume-equivalent size parameter: %.10g\n",ka_eq);
     /* log incident beam and polarization polarization */
     fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
     fprintf(logfile,"Incident propagation vector: (%g,%g,%g)\n",

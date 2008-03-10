@@ -88,13 +88,13 @@
 /* shape types */
 #define SH_SPHERE     0        /* sphere */
 #define SH_BOX        1        /* box (may be rectangular) */
-#define SH_PRISMA     2        /* prisma (triangular) */
+#define SH_PRISMA     2        /* prisma (triangular) -- not operational */
 #define SH_LINE       3        /* line with width of one dipole */
 #define SH_COATED     4        /* coated sphere */
 #define SH_SPHEREBOX  5        /* sphere in a box */
 #define SH_RBC        6        /* Red Blood Cell */
 #define SH_ELLIPSOID  7        /* general ellipsoid */
-#define SH_SDISK_ROT  8        /* disc cut of a sphere */
+#define SH_SDISK_ROT  8        /* disc cut of a sphere -- not operational */
 #define SH_CYLINDER   9        /* cylinder */
 #define SH_READ       10       /* read from file */
 /* TO ADD NEW SHAPE

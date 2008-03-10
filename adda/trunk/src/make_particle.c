@@ -75,7 +75,7 @@ static double Ndip;         /* total number of dipoles (in a circumscribing cube
 static double dpl_def;      /* default value of dpl */
 /* shape parameters */
 static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
-static double diskratio,ellipsY,ellipsZ;
+static double diskratio,aspectY,aspectZ;
 static double P,Q,R,S;         /* for RBC */
 /* TO ADD NEW SHAPE
    add all internal variables (aspect ratios, etc.) here.
@@ -826,10 +826,23 @@ void InitShape(void)
   opt=opt_sh;
   /* shape initialization */
   if (shape==SH_BOX) {
-    STRCPYZ(sh_form_str,"cube; size of edge:%.10g");
-    if (boxY!=UNDEF && boxY!=boxX) symR=FALSE;
-    volume_ratio=1;
-    yx_ratio=zx_ratio=1;
+    if (sh_Npars==0) {
+      STRCPYZ(sh_form_str,"cube; size of edge along x-axis:%.10g");
+      aspectY=aspectZ=1;
+    }
+    else {    /* 2 parameters are given */
+      aspectY=sh_pars[0];
+      TestPositive(aspectY,"aspect ratio y/x");
+      aspectZ=sh_pars[1];
+      TestPositive(aspectZ,"aspect ratio z/x");
+      SPRINTZ(sh_form_str,
+        "rectangular parallelepiped; size along x-axis:%%.10g, aspect ratios y/x=%.10g, z/x=%.10g",
+        aspectY,aspectZ);
+    }
+    if (aspectY!=1) symR=FALSE;
+    volume_ratio=aspectY*aspectZ;
+    yx_ratio=aspectY;
+    zx_ratio=aspectZ;
     Nmat_need=1;
   }
   else if (shape==SH_COATED) {
@@ -866,16 +879,16 @@ void InitShape(void)
     Nmat_need=1;
   }
   else if (shape==SH_ELLIPSOID) {
-    ellipsY=sh_pars[0];
-    TestPositive(ellipsY,"aspect ratio y/x");
-    ellipsZ=sh_pars[1];
-    TestPositive(ellipsZ,"aspect ratio z/x");
-    SPRINTZ(sh_form_str,"ellipsoid; size along X:%%.10g, aspect ratios y/x=%.10g, z/x=%.10g",
-            ellipsY,ellipsZ);
-    if (ellipsY!=1) symR=FALSE;
-    volume_ratio=PI_OVER_SIX*ellipsY*ellipsZ;
-    yx_ratio=ellipsY;
-    zx_ratio=ellipsZ;
+    aspectY=sh_pars[0];
+    TestPositive(aspectY,"aspect ratio y/x");
+    aspectZ=sh_pars[1];
+    TestPositive(aspectZ,"aspect ratio z/x");
+    SPRINTZ(sh_form_str,"ellipsoid; size along x-axis:%%.10g, aspect ratios y/x=%.10g, z/x=%.10g",
+            aspectY,aspectZ);
+    if (aspectY!=1) symR=FALSE;
+    volume_ratio=PI_OVER_SIX*aspectY*aspectZ;
+    yx_ratio=aspectY;
+    zx_ratio=aspectZ;
     Nmat_need=1;
   }
   else if (shape==SH_LINE) {
@@ -914,7 +927,7 @@ void InitShape(void)
     Nmat_need=1;
   }
   else if (shape==SH_READ) {
-    SPRINTZ(sh_form_str,"specified by file %s; size along X:%%.10g",aggregate_file);
+    SPRINTZ(sh_form_str,"specified by file %s; size along x-axis:%%.10g",aggregate_file);
     symX=symY=symZ=symR=FALSE; /* input file is assumed assymetric */
     InitDipFile(aggregate_file,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
     yx_ratio=zx_ratio=UNDEF;
@@ -932,7 +945,6 @@ void InitShape(void)
     SPRINTZ(sh_form_str,
       "sphere in cube; size of cube edge(a):%%.10g, diameter of sphere d/a=%.10g",coat_ratio);
     coat_r2=0.25*coat_ratio*coat_ratio;
-    if (boxY!=UNDEF && boxY!=boxX) symR=FALSE;
     yx_ratio=zx_ratio=1;
     volume_ratio=1;
     Nmat_need=2;
@@ -953,10 +965,10 @@ void InitShape(void)
      4) initialize the following:
      sh_form_str - descriptive string, should contain %g - it would be replaced by box size along
                    x-axis afterwards (in param.c).
-     Either yx_ratio (preferably) or n_boxY. The former is a ratio of grid size along y (n_boxY) to
-              grid size along x axes (boxX). Initialize n_boxY directly only if it doesnot depend on
-              boxX, like in shape LINE above, since boxY is not initialized at this moment. If
-              yx_ratio is not initialized, set it explicitely to UNDEF.
+     Either yx_ratio (preferably) or n_boxY. The former is a ratio of particle sizes along y and x
+              axes. Initialize n_boxY directly only if it is not proportional to boxX, like in
+              shape LINE above, since boxX is not initialized at this moment. If yx_ratio is not
+              initialized, set it explicitely to UNDEF.
      Analogously either zx_ratio (preferably) or n_boxZ.
      Nmat_need - number of different domains in this shape (void is not included)
      volume_ratio - ratio of particle volume to (boxX)^3. Initialize it if it can be calculated
@@ -964,18 +976,6 @@ void InitShape(void)
                     to initialize computational grid from '-eq_rad' and '-dpl'.
      all other auxiliary variables, which are used in shape generation (below), should be
        defined in the beginning of this file. */
-
-/*  else if(shape==SH_SDISK_ROT) {
-    symX=symY=symZ=FALSE;
-    symR=FALSE;
-    volume_ratio=boxX*boxX*boxX;
-  }
-  else if (shape==SH_PRISMA) {
-    symX=TRUE;
-    symY=symZ=FALSE;
-    symR=FALSE;
-    volume_ratio=.5*boxX*boxY*boxZ;
-  }  */
 
   /* initialize domain granulation */
   if (sh_granul) {
@@ -1123,7 +1123,9 @@ void MakeParticle(void)
 
         mat=Nmat;  /* corresponds to void */
 
-        if (shape==SH_BOX) mat=0;
+        if (shape==SH_BOX) {
+          if ((fabs(yr) <= aspectY/2) && (fabs(zr) <= aspectZ/2)) mat=0;
+        }
         else if (shape==SH_COATED) {
           xcoat=xr-coat_x;
           ycoat=yr-coat_y;
@@ -1135,22 +1137,22 @@ void MakeParticle(void)
           if((fabs(zr) <= diskratio/2) && (xr*xr + yr*yr <= 0.25)) mat = 0;
         }
         else if (shape==SH_ELLIPSOID) {
-          if (xr*xr + yr*yr/(ellipsY*ellipsY) + zr*zr/(ellipsZ*ellipsZ) <= 0.25) mat = 0;
+          if (xr*xr + yr*yr/(aspectY*aspectY) + zr*zr/(aspectZ*aspectZ) <= 0.25) mat = 0;
         }
         else if (shape==SH_LINE) {
           if (yr>=0 && yr<=jagged/2.0 && zr>=0 && zr<=jagged/2.0) mat=0;
+        }
+        else if (shape==SH_RBC) {
+          r2=xr*xr+yr*yr;
+          z2=zr*zr;
+          if (r2*r2+2*S*r2*z2+z2*z2+P*r2+Q*z2+R <= 0) mat=0;
         }
         else if (shape==SH_SPHERE) {
           if (xr*xr+yr*yr+zr*zr <= 0.25) mat=0;
         }
         else if (shape==SH_SPHEREBOX) {
           if (xr*xr+yr*yr+zr*zr <= coat_r2) mat=1;
-          else mat=0;
-        }
-        else if (shape==SH_RBC) {
-          r2=xr*xr+yr*yr;
-          z2=zr*zr;
-          if (r2*r2+2*S*r2*z2+z2*z2+P*r2+Q*z2+R <= 0) mat=0;
+          else if ((fabs(yr) <= 0.5) && (fabs(zr) <= 0.5)) mat=0;
         }
         /* TO ADD NEW SHAPE
            add an option here (in the end of 'else if' sequence). Identifier ('SH_...') should be
@@ -1158,21 +1160,6 @@ void MakeParticle(void)
            specified by {xr,yz,zr} - coordinates divided by grid size along X (xr from -0.5 to 0.5,
            others - depending on aspect ratios). C array indexing used: mat=0 - first domain, etc.
            If point corresponds to void, do not set 'mat'. */
-
-/*        else if  (shape==SH_SDISK_ROT) {
-          xr= (i+centreX)/(boxX);
-          yr= (j+centreY)/(boxY);
-          zr= (k+centreZ)/(boxZ);
-          CY=cos(PI/180*betaY);  SY=sin(PI/180*betaY);
-          CZ=cos(PI/180*betaZ);  SZ=sin(PI/180*betaZ);
-          xr_=xr*CY*CZ-yr*SZ-zr*SY*CZ;
-          yr_=xr*CY*SZ+yr*CZ-zr*SY*SZ;
-          zr_=xr*SY+zr*CY;
-          cthick=(aspect_r)/2.0;
-          radius=(xr_*xr_+yr_*yr_+zr_*zr_)/0.25;
-          if (radius <1.0000001 && xr_<cthick && xr_>-cthick) mat=0;
-        }
-        else if (shape==SH_PRISMA && y*boxZ>=-z*boxY) mat=0;*/
 
         position_tmp[3*index]=(unsigned short)i;
         position_tmp[3*index+1]=(unsigned short)j;
