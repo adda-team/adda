@@ -125,7 +125,7 @@ ifeq ($(COMPILER),gnu)
   COPT  = -O3 -ffast-math -funroll-loops
   FOPT  = -O
   ifndef RELEASE
-    CWARN = -pedantic -Wall -W -Winline -Wpointer-arith -Wcast-qual \
+    CWARN = -Wall -W -Winline -Wpointer-arith -Wcast-qual \
             -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
             -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter \
             -Wno-long-long
