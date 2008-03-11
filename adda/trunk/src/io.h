@@ -27,6 +27,8 @@
 # endif
 #endif
 
+void WrapLines(char *str);
+char *WrapLinesCopy(const char *str);
 void LogError(int ErrCode,int who,const char *fname,int line,const char *fmt,...) ATT_PRINTF(5,6);
 void PrintError(const char *fmt, ... ) ATT_PRINTF(1,2) ATT_NORETURN;
 void LogPending(void);

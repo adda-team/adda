@@ -141,45 +141,38 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> [<args2>]...]]";
        (UNDEF = not checked automatically, identifier (number)  */
 static const struct subopt_struct beam_opt[]={
   {"plane","","Infinite plane wave",0,B_PLANE},
-  {"lminus","<width> [<x> <y> <z>]",
-     "Simplest approximation of the Gaussian beam. The beam width is obligatory\n"\
-     "and x, y, z coordinates of the center of the beam are optional parameters (all in um).\n"\
-     "By default beam center coincides with the center of the computational box.",
+  {"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width "\
+     "is obligatory and x, y, z coordinates of the center of the beam are optional parameters "\
+     "(all in um). By default beam center coincides with the center of the computational box.",
      UNDEF,B_LMINUS},
-  {"davis3","<width> [<x> <y> <z>]",
-     "3rd order approximation of the Gaussian beam (by Davis). The beam width is obligatory\n"\
-     "and x, y, z coordinates of the center of the beam are optional parameters (all in um).\n"\
-     "By default beam center coincides with the center of the computational box.",
-     UNDEF,B_DAVIS3},
-  {"barton5","<width> [<x> <y> <z>]",
-     "5th order approximation of the Gaussian beam (by Barton). The beam width is obligatory\n"\
-     "and x, y, z coordinates of the center of the beam are optional parameters (all in um).\n"\
-     "By default beam center coincides with the center of the computational box.\n"\
-     "This option is recommended for the description of the Gaussian beam.",
+  {"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The "\
+     "beam width is obligatory and x, y, z coordinates of the center of the beam are optional "\
+     "parameters (all in um). By default beam center coincides with the center of the "\
+     "computational box.",UNDEF,B_DAVIS3},
+  {"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). "\
+     "The beam width is obligatory and x, y, z coordinates of the center of the beam are "\
+     "optional parameters (all in um). By default beam center coincides with the center of the "\
+     "computational box. This option is recommended for the description of the Gaussian beam.",
      UNDEF,B_BARTON5},
   {NULL,NULL,NULL,0,0}
 };
 static const struct subopt_struct shape_opt[]={
-  {"box","[<y/x> <z/x>]",
-     "Homogenous cube (if no arguments are given) or a rectangular parallelepiped\n"\
-     "with edges x,y,z.",UNDEF,SH_BOX},
-  {"coated","<d_in/d> [<x/d> <y/d> <z/d>]",
-     "Sphere with a spherical inclusion; outer sphere has a diameter d (first domain).\n"\
-     "The included sphere has a diameter d_in (optional position of the center: x,y,z).",
-     UNDEF,SH_COATED},
-  {"cylinder","<h/d>",
-     "Homogenous cylinder with height (length) h and diameter d (its axis of symmetry\n"\
-     "coincides with the z-axis).",1,SH_CYLINDER},
+  {"box","[<y/x> <z/x>]","Homogenous cube (if no arguments are given) or a rectangular "\
+     "parallelepiped with edges x,y,z.",UNDEF,SH_BOX},
+  {"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has a "\
+     "diameter d (first domain). The included sphere has a diameter d_in (optional position of "\
+     "the center: x,y,z).",UNDEF,SH_COATED},
+  {"cylinder","<h/d>","Homogenous cylinder with height (length) h and diameter d (its axis of "\
+     "symmetry coincides with the z-axis).",1,SH_CYLINDER},
   {"ellipsoid","<y/x> <z/x>","Homogenous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
   {"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
-  {"rbc","<h/d> <b/d> <c/d>",
-     "Red Blood Cell, an axisymmetric (over z-axis) biconcave homogenous particle,\n"\
-     "which is characterized by diameter d, maximum and minimum width h, b, and\n"\
+  {"rbc","<h/d> <b/d> <c/d>","Red Blood Cell, an axisymmetric (over z-axis) biconcave homogenous "\
+     "particle, which is characterized by diameter d, maximum and minimum width h, b, and "\
      "diameter at the position of the maximum width c.",3,SH_RBC},
   {"read","<filename>","Read a particle geometry from file <filename>",1,SH_READ},
   {"sphere","","Homogenous sphere",0,SH_SPHERE},
-  {"spherebox","<d_sph/Dx>",
-     "Sphere (diameter d_sph) in a cube (size Dx, first domain)",1,SH_SPHEREBOX},
+  {"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",
+     1,SH_SPHEREBOX},
 /* TO ADD NEW SHAPE
    add a row here, before null-terminating element. It contains:
    shape name (used in command line), usage string (what command line parameters can be used
@@ -254,164 +247,132 @@ PARSE_FUNC(yz);
       each row contains: PAR(option name),usage string, help string, number of arguments
       (UNDEF = not checked automatically),pointer to suboption (if exist) */
 static struct opt_struct options[]={
-  {PAR(alldir_inp),"<filename>",
-     "Specifies a file with parameters of the grid of scattering angles\n"\
-     "for calculating integral scattering quantities.\n"\
+  {PAR(alldir_inp),"<filename>","Specifies a file with parameters of the grid of scattering "\
+     "angles for calculating integral scattering quantities.\n"\
      "Default: " FD_ALLDIR_PARMS,1,NULL},
-  {PAR(anisotr),"",
-     "Specifies that refractive index is anisotropic (its tensor is limited to be diagonal\n"\
-     "in particle reference frame). '-m' then accepts 6 arguments per each domain.\n"\
-     "Can not be used with CLDR polarizability and all SO formulations.",0,NULL},
+  {PAR(anisotr),"","Specifies that refractive index is anisotropic (its tensor is limited to be "\
+     "diagonal in particle reference frame). '-m' then accepts 6 arguments per each domain. Can "\
+     "not be used with CLDR polarizability and all SO formulations.",0,NULL},
   {PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
-  {PAR(beam),"<type> [<arg1>...]",
-     "Sets a type of the incident beam. Four other float arguments must be specified\n"\
-     "for all beam types except 'plane'. These are the width and x, y, z coordinates\n"\
-     "of the center of the beam respectively (all in um).\n"\
+  {PAR(beam),"<type> [<arg1>...]","Sets a type of the incident beam. Four other float arguments "\
+     "must be specified for all beam types except 'plane'. These are the width and x, y, z "\
+     "coordinates of the center of the beam respectively (all in um).\n"\
      "Default: plane",UNDEF,beam_opt},
-  {PAR(chp_dir),"<dirname>",
-     "Sets directory for the checkpoint (both for saving and loading).\n"\
+  {PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"\
      "Default: " FD_CHP_DIR,1,NULL},
   {PAR(chp_load),"","Restart a simulation from a checkpoint",0,NULL},
   {PAR(chp_type),"{normal|regular|always}",
      "Sets type of the checkpoint. All types, except 'always', require '-chpoint'.\n"\
      "Default: normal",1,NULL},
-  {PAR(chpoint),"<time>",
-     "Specifies the time for checkpoints in format '#d#h#m#s'. All fields are optional,\n"\
-     "numbers are integers, 's' can be omitted, the format is not case sensitive.\n"\
+  {PAR(chpoint),"<time>","Specifies the time for checkpoints in format '#d#h#m#s'. All fields are "\
+     "optional, numbers are integers, 's' can be omitted, the format is not case sensitive.\n"\
      "Examples: 12h30M, 1D10s, 3600",1,NULL},
   {PAR(Cpr_mat),"","Calculate the total radiation force",0,NULL},
   {PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
-  {PAR(dir),"<dirname>",
-     "Sets directory for output files.\n"\
+  {PAR(dir),"<dirname>","Sets directory for output files.\n"\
      "Default: constructed automatically",1,NULL},
-  {PAR(dpl),"<arg>",
-     "Sets parameter 'dipoles per lambda', float.\n"\
-     "Default: 10|m|, where 'm' is the maximum (by absolute value) refractive index\n"\
-     "         specified by the '-m' option.",1,NULL},
-  {PAR(eps),"<arg>",
-     "Specifies the stopping criterion for the iterative solver by setting the\n"\
-     "relative norm of the residual 'epsilon' to reach. <arg> is an exponent\n"\
-     "of base 10 (float), i.e. epsilon=10^(-<arg>).\n"\
+  {PAR(dpl),"<arg>","Sets parameter 'dipoles per lambda', float.\n"\
+     "Default: 10|m|, where |m| is the maximum of all given refractive indices.",1,NULL},
+  {PAR(eps),"<arg>","Specifies the stopping criterion for the iterative solver by setting the "\
+     "relative norm of the residual 'epsilon' to reach. <arg> is an exponent of base 10 (float), "\
+     "i.e. epsilon=10^(-<arg>).\n"\
      "Default: 5 (epsilon=1E-5)",1,NULL},
-  {PAR(eq_rad),"<arg>",
-     "Sets volume-equivalent radius of the particle in um, float. If default wavelength is used,\n"\
-     "this option specifies the volume-equivalent size parameter. Can not be used together\n"\
-     "with '-size'.\n"\
+  {PAR(eq_rad),"<arg>","Sets volume-equivalent radius of the particle in um, float. If default "\
+     "wavelength is used, this option specifies the volume-equivalent size parameter. Can not be "\
+     "used together with '-size'.\n"\
      "Default: determined by the value of '-size' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
-  {PAR(granul),"<vol_frac> <diam> [<dom_number>]",
-     "Specifies that one particle domain should be randomly filled with spherical granules\n"\
-     "with specified diameter <diam> and volume fraction <vol_frac>. Domain number to fill\n"\
-     "is given by the last optional argument. Algorithm may fail for volume fractions > 30-50%.\n"\
+  {PAR(granul),"<vol_frac> <diam> [<dom_number>]","Specifies that one particle domain should be "\
+     "randomly filled with spherical granules with specified diameter <diam> and volume fraction "\
+     "<vol_frac>. Domain number to fill is given by the last optional argument. Algorithm may "\
+     "fail for volume fractions > 30-50%.\n"\
      "Default <dom_number>: 1",UNDEF,NULL},
-  {PAR(grid),"<nx> [<ny> <nz>]",
-     "Sets dimensions of the computation grid. Arguments should be even integers.\n"\
-     "In most cases <ny> and <nz> can be omitted (they are automatically determined\n"\
-     "by <nx> based on the proportions of the scatterer). This command line option\n"\
-     "is not relevant when particle geometry is read from a file ('-shape read').\n"\
-     "If '-jagged' option is used the grid dimension is effectively multiplied\n"\
-     "by the specified number.\n"\
+  {PAR(grid),"<nx> [<ny> <nz>]","Sets dimensions of the computation grid. Arguments should be "\
+     "even integers. In most cases <ny> and <nz> can be omitted (they are automatically "\
+     "determined by <nx> based on the proportions of the scatterer). This command line option is "\
+     "not relevant when particle geometry is read from a file ('-shape read'). If '-jagged' "\
+     "option is used the grid dimension is effectively multiplied by the specified number.\n"\
      "Default: 16 (if neither '-size' nor '-eq_rad' are specified) or defined by\n"\
      "         '-size' or '-eq_rad', '-lambda', and '-dpl'.",UNDEF,NULL},
-  {PAR(h),"[<opt> [<subopt>]]",
-     "Shows help. If used without arguments, ADDA shows a list of all available\n"\
-     "command line options. If first argument is specified, help on specific command\n"\
-     "line option <opt> is shown (only the name of the option should be given\n"\
-     "without preceding dash). For some options (e.g. '-beam' or '-shape') specific\n"\
-     "help on a particular suboption <subopt> may be shown.\n"\
+  {PAR(h),"[<opt> [<subopt>]]","Shows help. If used without arguments, ADDA shows a list of all "\
+     "available command line options. If first argument is specified, help on specific command "\
+     "line option <opt> is shown (only the name of the option should be given without preceding "\
+     "dash). For some options (e.g. '-beam' or '-shape') specific help on a particular suboption "\
+     "<subopt> may be shown.\n"\
      "Example: shape coated",UNDEF,NULL},
-  {PAR(int),"{poi|fcd|fcd_st|so}",
-     "Sets prescription to calculate interaction term. 'so' is under development\n"\
-     "and incompatible with '-anisotr'. 'fcd' requires dpl to be larger than 2.\n"\
+  {PAR(int),"{poi|fcd|fcd_st|so}","Sets prescription to calculate interaction term. 'so' is under "\
+     "development and incompatible with '-anisotr'. 'fcd' requires dpl to be larger than 2.\n"\
      "Default: poi",1,NULL},
-  {PAR(iter),"{cgnr|bicg|bicgstab|qmr}",
-     "Sets the iterative solver.\n"\
+  {PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"\
      "Default: qmr",1,NULL},
-  {PAR(jagged),"<arg>",
-     "Sets a size of a big dipole in units of small dipoles, integer. It is used\n"\
-     "to improve the discretization of the particle without changing the shape.\n"\
+  {PAR(jagged),"<arg>","Sets a size of a big dipole in units of small dipoles, integer. It is "\
+     "used to improve the discretization of the particle without changing the shape.\n"\
      "Default: 1",1,NULL},
-  {PAR(lambda),"<arg>",
-     "Sets incident wavelength in um, float.\n"\
+  {PAR(lambda),"<arg>","Sets incident wavelength in um, float.\n"\
      "Default: 2*pi",1,NULL},
   {PAR(m),"{<m1Re> <m1Im> [...]|<m1xxRe> <m1xxIm> <m1yyRe> <m1yyIm> <m1zzRe> <m1zzIm> [...]}",
-     "Sets refractive indices, float. Each pair of arguments specifies real and\n"\
-     "imaginary part of the refractive index of one of the domains. If '-anisotr' is\n"\
-     "specified, three refractive indices correspond to one domain (diagonal elements of\n"
-     "refractive index tensor in particle reference frame). Maximum number of different\n"\
-     "refractive indices is defined at compilation time by the parameter MAX_NMAT.\n"\
-     "None of the refractive indices can be equal to 1+0i.\n"\
-     "in file const.h (by default, 15).\n"\
+     "Sets refractive indices, float. Each pair of arguments specifies real and imaginary part of "\
+     "the refractive index of one of the domains. If '-anisotr' is specified, three refractive "\
+     "indices correspond to one domain (diagonal elements of refractive index tensor in particle "\
+     "reference frame). Maximum number of different refractive indices is defined at compilation "\
+     "time by the parameter MAX_NMAT in file const.h (by default, 15). None of the refractive "\
+     "indices can be equal to 1+0i.\n"\
      "Default: 1.5 0",UNDEF,NULL},
-  {PAR(maxiter),"<arg>",
-     "Sets the maximum number of iterations of the iterative solver, integer.\n"\
+  {PAR(maxiter),"<arg>","Sets the maximum number of iterations of the iterative solver, integer.\n"\
      "Default: very large, not realistic value",1,NULL},
-  {PAR(no_reduced_fft),"",
-     "Do not use symmetry of the interaction matrix to reduce the storage space\n"\
-     "for the Fourier-transformed matrix.",0,NULL},
-  {PAR(no_vol_cor),"",
-     "Do not use 'dpl (volume) correction'. If this option is given, ADDA will try to match size\n"\
-     "of the dipole grid along x-axis to that of the particle, either given by '-size' or\n"\
-     "calculated analytically from '-eq_rad'. Otherwise (by default) ADDA will try to match the\n"\
-     "volumes, using either '-eq_rad' or the value calculated analytically from '-size'.",0,NULL},
-  {PAR(ntheta),"<arg>",
-     "Sets the number of intervals, into which the range of scattering angles [0,180]\n"\
-     "(degrees) is equally divided, integer. This is used for scattering angles in\n"\
-     "yz-plane. If particle is not symmetric and orientation averaging is not used,\n"\
-     "the range is extended to 360 degrees (with the same length of elementary interval,\n"\
-     "i.e. number of intervals is doubled).\n"\
+  {PAR(no_reduced_fft),"","Do not use symmetry of the interaction matrix to reduce the storage "\
+     "space for the Fourier-transformed matrix.",0,NULL},
+  {PAR(no_vol_cor),"","Do not use 'dpl (volume) correction'. If this option is given, ADDA will "\
+     "try to match size of the dipole grid along x-axis to that of the particle, either given by "\
+     "'-size' or calculated analytically from '-eq_rad'. Otherwise (by default) ADDA will try to "\
+     "match the volumes, using either '-eq_rad' or the value calculated analytically from '-size'.",
+     0,NULL},
+  {PAR(ntheta),"<arg>","Sets the number of intervals, into which the range of scattering angles "\
+     "[0,180] (degrees) is equally divided, integer. This is used for scattering angles in "\
+     "yz-plane. If particle is not symmetric and orientation averaging is not used, the range is "\
+     "extended to 360 degrees (with the same length of elementary interval, i.e. number of "\
+     "intervals is doubled).\n"\
      "Default: from 90 to 720 depending on the size of the computational grid.",1,NULL},
   {PAR(opt),"{speed|mem}",
      "Sets whether ADDA should optimize itself for maximum speed or for minimum memory usage.\n"\
      "Default: speed",1,NULL},
-  {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}",
-     "Either sets an orientation of the particle by three Euler angles 'alpha',\n"\
-     "'beta','gamma' (in degrees) or specifies that orientation averaging should be\n"\
-     "performed. <filename> sets a file with parameters for orientation averaging. Here\n"\
-     "zyz-notation (or y-convention) is used for the Euler angles.\n"\
+  {PAR(orient),"{<alpha> <beta> <gamma>|avg [<filename>]}","Either sets an orientation of the "\
+     "particle by three Euler angles 'alpha','beta','gamma' (in degrees) or specifies that "\
+     "orientation averaging should be performed. <filename> sets a file with parameters for "\
+     "orientation averaging. Here zyz-notation (or y-convention) is used for the Euler angles.\n"\
      "Default orientation: 0 0 0\n"\
      "Default <filename>: " FD_AVG_PARMS,UNDEF,NULL},
-  {PAR(phi_integr),"<arg>",
-     "Turns on and specifies the type of Mueller matrix integration over azimuthal\n"\
-     "angle 'phi'. <arg> is an integer from 1 to 31, each bit of which, from lowest\n"\
-     "to highest, indicates whether the integration should be performed with\n"\
-     "multipliers 1, cos(2*phi), sin(2*phi), cos(4*phi), and sin(4*phi)\n"\
-     "respectively.\n"\
+  {PAR(phi_integr),"<arg>","Turns on and specifies the type of Mueller matrix integration over "\
+     "azimuthal angle 'phi'. <arg> is an integer from 1 to 31, each bit of which, from lowest to "\
+     "highest, indicates whether the integration should be performed with multipliers 1, "\
+     "cos(2*phi), sin(2*phi), cos(4*phi), and sin(4*phi) respectively.\n"\
      "Examples: 1 (one integration with no multipliers),\n"\
      "          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-  {PAR(pol),"{cm|rrc|ldr [avgpol]|cldr|so|fcd}",
-     "Type of polarization prescription. An optional flag 'avg' can be added for LDR\n"\
-     "- it specifies that LDR polarizability should be averaged over incident\n"\
-     "polarizations. 'so' is under development. 'cldr' and 'so' are incompatible\n"\
+  {PAR(pol),"{cm|rrc|ldr [avgpol]|cldr|so|fcd}","Type of polarization prescription. An optional "\
+     "flag 'avg' can be added for LDR - it specifies that LDR polarizability should be averaged "\
+     "over incident polarizations. 'so' is under development. 'cldr' and 'so' are incompatible "\
      "with '-anisotr'. 'fcd' requires dpl to be larger than 2.\n"\
      "Default: ldr (without averaging).",UNDEF,NULL},
-  {PAR(prognose),"",
-     "Do not actually perform simulation (not even memory allocation) but only\n"\
+  {PAR(prognose),"","Do not actually perform simulation (not even memory allocation) but only "\
      "estimate the required RAM. Implies '-test'.",0,NULL},
-  {PAR(prop),"<x> <y> <z>",
-     "Sets propagation direction of incident radiation, float. Normalization\n"\
-     "(to the unity vector) is performed automatically.\n"\
+  {PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. "\
+     "Normalization (to the unity vector) is performed automatically.\n"\
      "Default: 0 0 1",3,NULL},
-  {PAR(save_geom),"[<filename>]",
-     "Saves dipole configuration to a file <filename> (a path relative to the\n"\
-     "output directory). Can be used with '-prognose'.\n"\
+  {PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "\
+     "relative to the output directory). Can be used with '-prognose'.\n"\
      "Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is added\n"\
      "                      if '-granul' option is used).",UNDEF,NULL},
-  {PAR(scat),"{dr|so}",
-     "Sets prescription to calculate scattering quantities.\n"\
-     "'so' is under development and incompatible with '-anisotr'.\n"\
+  {PAR(scat),"{dr|so}","Sets prescription to calculate scattering quantities. 'so' is under "\
+     "development and incompatible with '-anisotr'.\n"\
      "Default: dr",1,NULL},
-  {PAR(scat_grid_inp),"<filename>",
-     "Specifies a file with parameters of the grid of scattering angles for\n"\
-     "calculating Mueller matrix (possibly integrated over 'phi').\n"\
+  {PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "\
+     "angles for calculating Mueller matrix (possibly integrated over 'phi').\n"\
      "Default: " FD_SCAT_PARMS,1,NULL},
-  {PAR(shape),"<type> [<arg1>...]",
-     "Sets shape of the particle, either predefined or 'read' from file.\n"\
-     "All the parameters of predefined shapes are floats.\n"\
+  {PAR(shape),"<type> [<arg1>...]","Sets shape of the particle, either predefined or 'read' from "\
+     "file. All the parameters of predefined shapes are floats.\n"\
      "Default: sphere",UNDEF,shape_opt},
-  {PAR(size),"<arg>",
-     "Sets the size of the computational grid along the x-axis in um, float. If default \n"\
-     "wavelength is used, this option specifies the 'size parameter' of the computational grid.\n"\
-     "Can not be used together with '-eq_rad'.\n"\
+  {PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If "\
+     "default wavelength is used, this option specifies the 'size parameter' of the computational "\
+     "grid. Can not be used together with '-eq_rad'.\n"\
      "Default: determined by the value of '-eq_rad' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
   {PAR(store_beam),"","Save incident beam to a file",0,NULL},
   {PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
@@ -419,17 +380,15 @@ static struct opt_struct options[]={
   {PAR(store_int_field),"","Save internal fields to a file",0,NULL},
   {PAR(store_scat_grid),"",
      "Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
-  {PAR(sym),"{no|enf}",
-     "Do not take into account ('no') or enforce ('enf') all particle symmetries",1,NULL},
+  {PAR(sym),"{no|enf}","Do not take into account ('no') or enforce ('enf') all particle symmetries",
+     1,NULL},
   {PAR(test),"","Begin name of the output directory with 'test' instead of 'run'",0,NULL},
-  {PAR(V),"",
-     "Show ADDA version, compiler used to build this executable,\n"\
-     "and copyright information",0,NULL},
+  {PAR(V),"","Show ADDA version, compiler used to build this executable, and copyright information",
+     0,NULL},
   {PAR(vec),"","Calculate the not-normalized asymmetry vector",0,NULL},
-  {PAR(yz),"",
-     "Calculate the Mueller matrix in yz-plane even if it is calculated for a\n"\
-     "scattering grid. If the latter option is not enabled, scattering in yz-plane\n"\
-     "is always calculated.",0,NULL}
+  {PAR(yz),"","Calculate the Mueller matrix in yz-plane even if it is calculated for a scattering "\
+     "grid. If the latter option is not enabled, scattering in yz-plane is always calculated.",
+     0,NULL}
 };
       /* auxiliary functions */
 /*============================================================*/
@@ -450,7 +409,49 @@ static const char *OptionName(void)
 
 void PrintErrorHelp(const char *fmt, ... )
    /* print anything to stderr (on root processor), then help on the arguments used, and stop;
-      assumes that all processors call it */
+      assumes that all processors call it; has line wrapping */
+{
+  va_list args;
+  const char *optname,*use;
+  char *pos;
+  char line[MAX_MESSAGE];
+
+  if (ringid==ROOT) {
+    /* produce error message */
+    va_start(args,fmt);
+    strcpy(line,"ERROR: ");
+    pos=line+strlen(line);
+    pos+=vsprintf(pos,fmt,args);
+    strcpy(pos,"\n");
+    pos+=strlen(pos);
+    va_end(args);
+    /* add help message */
+    if (opt.l1==UNDEF)     /* no option is found */
+      pos+=sprintf(pos,"Usage: %s %s\n"\
+                       "Type '%s -h' for help\n",exename,exeusage,exename);
+    else {  /* at least option is found */
+      if (opt.l2==UNDEF) use=options[opt.l1].usage;
+      else use=options[opt.l1].sub[opt.l2].usage;
+      optname=OptionName();
+      pos+=sprintf(pos,"Usage: -%s %s\n"\
+                       "Type '%s -h %s' for details\n",optname,use,exename,optname);
+    }
+    WrapLines(line);
+    fprintf(stderr,"%s",line);
+    fflush(stderr);
+  }
+  /* wait for root to generate an error message */
+  Synchronize();
+  Stop(1);
+}
+
+/*============================================================*/
+
+void PrintErrorHelpSafe(const char *fmt, ... )
+   /* print anything to stderr (on root processor), then help on the arguments used, and stop;
+      assumes that all processors call it
+      same as PrintErrorHelp but uses no internal buffers to be safe for any input parameters,
+      which may come from a command line, at a cost of lacking line wrapping */
 {
   va_list args;
   const char *optname,*use;
@@ -521,7 +522,7 @@ static void NotSupported(const char *type,const char *given)
      /* print error message that "type 'given' is not supported"
         type should start with a capital letter */
 {
-  PrintErrorHelp("%s '%s' is not supported",type,given);
+  PrintErrorHelpSafe("%s '%s' is not supported",type,given);
 }
 
 /*============================================================*/
@@ -531,8 +532,8 @@ INLINE void TestStrLength(const char *str,const unsigned int size)
        'opt' is command line option that checks its argument */
 {
   if (strlen(str)>=size)
-    PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed).\n"\
-                   "If you really need it you may increase MAX_DIRNAME in const.h and recompile",
+    PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "\
+                   "need it you may increase MAX_DIRNAME in const.h and recompile",
                    OptionName(),size-1);
 }
 
@@ -542,7 +543,7 @@ INLINE void ScanfDoubleError(const char *str,double *res)
     /* scanf an option argument and checks for errors */
 {
   if (sscanf(str,"%lf",res)!=1)
-    PrintErrorHelp("Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
+    PrintErrorHelpSafe("Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
 }
 
 /*============================================================*/
@@ -553,11 +554,11 @@ INLINE void ScanfIntError(const char *str,int *res)
   double tmp;
 
   if (sscanf(str,"%lf",&tmp)!=1)
-    PrintErrorHelp("Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
-  if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelp(
+    PrintErrorHelpSafe("Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
+  if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelpSafe(
     "Argumenent value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
   if (sscanf(str,"%d",res)!=1)
-    PrintErrorHelp("Error reading argument (%s) of the option '-%s'",str,OptionName());
+    PrintErrorHelpSafe("Error reading argument (%s) of the option '-%s'",str,OptionName());
 }
 
 /*============================================================*/
@@ -595,7 +596,7 @@ static int ScanTime(const char *str)
 
   for (i=0;i<TIME_N_TYPES;i++) c[i]=0;
   n=sscanf(str,"%d%c%d%c%d%c%d%c",t,c,t+1,c+1,t+2,c+2,t+3,c+3);
-  if (n<1) PrintErrorHelp("Wrong time format '%s'",str);
+  if (n<1) PrintErrorHelpSafe("Wrong time format '%s'",str);
   tim=0;
   i=0;
   while (n>0) {
@@ -765,7 +766,7 @@ PARSE_FUNC(h)
             j=-1;
             while (options[i].sub[++j].name!=NULL) if (strcmp(argv[2],options[i].sub[j].name)==0) {
               printf("  -%s %s %s\n%s\n",options[i].name,options[i].sub[j].name,
-                     options[i].sub[j].usage,options[i].sub[j].help);
+                     options[i].sub[j].usage,WrapLinesCopy(options[i].sub[j].help));
               found=TRUE;
               break;
             }
@@ -773,7 +774,7 @@ PARSE_FUNC(h)
           }
         }
         if (!found) {
-          printf("  -%s %s\n%s\n",options[i].name,options[i].usage,options[i].help);
+          printf("  -%s %s\n%s\n",options[i].name,options[i].usage,WrapLinesCopy(options[i].help));
           if (options[i].sub!=NULL) {
             printf("Available suboptions:\n");
             j=-1;
@@ -830,13 +831,13 @@ PARSE_FUNC(m)
   if (Narg%2!=0 || Narg==0) NargError(Narg,"even");
   Nmat=Nmat_given=Narg/2;
   if (Nmat>MAX_NMAT)
-    PrintErrorHelp("Too many materials (%d), maximum %d are supported.\n"\
-                   "You may increase parameter MAX_NMAT in const.h and recompile",Nmat,MAX_NMAT);
+    PrintErrorHelp("Too many materials (%d), maximum %d are supported. You may increase parameter "\
+                   "MAX_NMAT in const.h and recompile.",Nmat,MAX_NMAT);
   for (i=0;i<Nmat;i++) {
     ScanfDoubleError(argv[2*i+1],&ref_index[i][RE]);
     ScanfDoubleError(argv[2*i+2],&ref_index[i][IM]);
     if (ref_index[i][RE]==1 && ref_index[i][IM]==0)
-      PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported.\n"\
+      PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "\
                      "Consider using, for instance, 1.0001 instead.",i+1);
   }
 }
@@ -902,7 +903,7 @@ PARSE_FUNC(pol)
   else NotSupported("Polarization relation",argv[1]);
   if (Narg==2) {
     if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=TRUE;
-    else PrintErrorHelp("Unknown argument '%s' to '-pol %s' option",argv[2],argv[1]);
+    else PrintErrorHelpSafe("Unknown argument '%s' to '-pol %s' option",argv[2],argv[1]);
   }
 }
 PARSE_FUNC(prognose)
@@ -1016,6 +1017,16 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
+  char copyright[]="\n\nCopyright (C) 2006-2008 University of Amsterdam\n"\
+    "This program is free software; you can redistribute it and/or modify it under the terms of "\
+    "the GNU General Public License as published by the Free Software Foundation; either "\
+    "version 2 of the License, or (at your option) any later version.\n\n"\
+    "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; "\
+    "without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. "\
+    "See the GNU General Public License for more details.\n\n"\
+    "You should have received a copy of the GNU General Public License along with this program; "\
+    "if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, "\
+    "MA 02111-1307, USA.\n";
   char ccver_str[MAX_LINE];
 #if defined(__DECC)
   char cctype;
@@ -1076,19 +1087,9 @@ PARSE_FUNC(V)
 #ifndef COMPILER_UNKNOWN
     printf(", version %s",ccver_str);
 #endif
-    /* print copyright information; split in two to eliminate warning of a long string */
-    printf("\n\nCopyright (C) 2006-2008 University of Amsterdam\n"\
-           "This program is free software; you can redistribute it and/or modify\n"\
-           "it under the terms of the GNU General Public License as published by\n"\
-           "the Free Software Foundation; either version 2 of the License, or\n"\
-           "(at your option) any later version.\n\n");
-    printf("This program is distributed in the hope that it will be useful,\n"\
-           "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"\
-           "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"\
-           "GNU General Public License for more details.\n\n"\
-           "You should have received a copy of the GNU General Public License\n"\
-           "along with this program; if not, write to the Free Software\n"\
-           "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA\n");
+    /* print copyright information */
+    WrapLines(copyright);
+    printf("%s",copyright);
   }
   /* exit */
   Stop(0);
@@ -1266,10 +1267,13 @@ void InitVariables(void)
 void ParseParameters(const int argc,char **argv)
   /* parses input parameters */
 {
-  int i,j,Narg;
+  int i,j,Narg,tmp;
   int found;
   char *p1,*p2;
 
+  /* try to determine terminal width */
+  if ((p1=getenv("COLUMNS"))!=NULL && sscanf(p1,"%d",&tmp)==1 && tmp>=MIN_TERM_WIDTH)
+    term_width=tmp;
   /* get name of executable; remove all path overhead */
   if ((p1=strrchr(argv[0],'\\'))==NULL) p1=argv[0];
   if ((p2=strrchr(argv[0],'/'))==NULL) p2=argv[0];
@@ -1278,7 +1282,7 @@ void ParseParameters(const int argc,char **argv)
   opt.l1=UNDEF;
   /* check first argument */
   if (argc>1 && !IsOption(argv[1]))
-    PrintErrorHelp("Illegal format of first argument '%s'",argv[1]);
+    PrintErrorHelpSafe("Illegal format of first argument '%s'",argv[1]);
   /* read command line */
   for (i=1;i<argc;i++) {
     /* get number of arguments */
@@ -1295,14 +1299,14 @@ void ParseParameters(const int argc,char **argv)
       TestNarg(Narg);
       /* parse this parameter */
       (*options[j].func)(Narg,argv+i);
-      /* check duplicate options */
+      /* check duplicate options; it is safe since at this point argv[i] is known to be normal */
       if (options[j].used) PrintError("Option '-%s' is used more than once",argv[i]);
       else options[j].used=TRUE;
       /* stop search */
       found=TRUE;
       break;
     }
-    if(!found) PrintErrorHelp("Unknown option '-%s'",argv[i]);
+    if(!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
     argv[i]--; /* shift back */
     i+=Narg;
   }  /* end of reading command line arguments */

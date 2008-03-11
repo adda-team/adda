@@ -62,6 +62,7 @@ double box_origin_unif[3];     /* coordinates of the center of the first dipole 
 /* file info */
 char directory[MAX_DIRNAME];   /* directory to save data in */
 FILE *logfile;                 /* file where all the information about the run is saved */
+int term_width;                /* width of the terminal to which ADDA produces output */
 
 /* refractive index */
 int Nmat;                           /* number of different domains (for each either scalar or

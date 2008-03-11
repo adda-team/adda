@@ -41,6 +41,7 @@ extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 /* file info */
 extern char directory[];
 extern FILE *logfile;
+extern int term_width; 
 
 /* refractive index */
 extern int Nmat,Ncomp;

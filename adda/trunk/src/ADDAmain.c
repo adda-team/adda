@@ -33,8 +33,9 @@ void PrintInfo(void);
 
 int main(int argc,char **argv)
 {
-  /* initialize error handling */
+  /* initialize error handling and line wrapping */
   logfile=NULL;
+  term_width=DEF_TERM_WIDTH;
   /* start global time */
   StartTime();
   /* initialize communications */

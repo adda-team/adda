@@ -340,20 +340,18 @@ void CheckNprocs(void)
   while (y%3==0) y/=3;
   while (y%5==0) y/=5;
 #ifdef FFT_TEMPERTON
-  if (y!=1) PrintError("Specified number of processors (%d) is weird\n"\
-      "   (has prime divisors larger than 5). That is incompatible with Temperton FFT.\n"\
-      "   Revise the number of processors (recommended) or recompile with FFTW 3 support.",
-      nprocs);
+  if (y!=1) PrintError("Specified number of processors (%d) is weird (has prime divisors larger "\
+      "than 5). That is incompatible with Temperton FFT. Revise the number of processors "\
+      "(recommended) or recompile with FFTW 3 support.",nprocs);
 #elif defined(FFTW3)
   while (y%7==0) y/=7;
   /* one multiplier of either 11 or 13 is allowed */
   if (y%11==0) y/=11;
   else if (y%13==0) y/=13;
   if (y!=1) {
-    LogError(EC_WARN,ONE_POS,
-            "Specified number of processors (%d) is weird (has prime divisors larger than 13\n"\
-            "   or more than one divisor of either 11 or 13). FFTW3 will work less efficiently.\n"\
-            "   It is strongly recommended to revise the number of processors.",nprocs);
+    LogError(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime divisors "\
+      "larger than 13 or more than one divisor of either 11 or 13). FFTW3 will work less "\
+      "efficiently. It is strongly recommended to revise the number of processors.",nprocs);
     weird_nprocs=TRUE;
   }
 #endif
@@ -373,7 +371,7 @@ int fftFit(int x,int divis)
       if (divis%2!=0) divis*=2;
       return (divis*((x+divis-1)/divis));
   }
-  else while(TRUE) {
+  else while (TRUE) {
     y=x;
     while (y%2==0) y/=2;
     while (y%3==0) y/=3;

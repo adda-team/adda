@@ -21,6 +21,7 @@
 #include "comm.h"
 #include "const.h"
 #include "vars.h"
+#include "memory.h"
 
 /* SEMI-GLOBAL VARIABLES */
 
@@ -29,8 +30,71 @@ extern char logname[];
 
 /* LOCAL VARIABLES */
 
-static char warn_buf[MAX_MESSAGE]=""; /* error buffer for warning message generated before
+static char warn_buf[MAX_MESSAGE2]=""; /* error buffer for warning message generated before
                                          logfile is opened */
+/*============================================================*/
+
+void WrapLines(char *str)
+   /* wraps long lines in a string without breaking words; it replaces a number of spaces in string
+      by '\n' characters; line width is determined by variable term_width */
+{
+  char *left,*right,*mid,*end;
+  int divided;
+
+  end=str+strlen(str);
+  left=str;
+  while (left<end) {
+    /* left and right define beginning and end of current working line */
+    right=strchr(left,'\n');
+    if (right==NULL) right=end;
+    while ((right-left)>term_width) {
+      divided=FALSE;
+      mid=left+term_width;
+      /* search backward for space */
+      while (mid>=left) {
+        if(mid[0]==' ') {
+          mid[0]='\n';
+          left=mid+1;
+          divided=TRUE;
+          break;
+        }
+        mid--;
+      }
+      /* if backward search failed (too long word), search forward for space */
+      if (!divided) {
+        mid=left+term_width+1;
+        while (mid<right) {
+          if(mid[0]==' ') {
+            mid[0]='\n';
+            left=mid+1;
+            divided=TRUE;
+            break;
+          }
+          mid++;
+        }
+        /* if no spaces are found at all, leave long line and proceed further */
+        if (!divided) break;
+      }
+    }
+    if (right==end) left=end;
+    else left=right+1;
+  }
+}
+
+/*============================================================*/
+
+char *WrapLinesCopy(const char *str)
+   /* same as WrapLines, but creates a copy of the string, leaving the original intact
+      it is designed to be run once during the program (or not many), since this memory is not
+      freed afterwards */
+{
+  char *dup;
+
+  dup=charVector(strlen(str)+1,ONE_POS,"string duplicate");
+  strcpy(dup,str);
+  WrapLines(dup);
+  return dup;
+}
 
 /*============================================================*/
 
@@ -48,37 +112,42 @@ void LogError(const int code,const int who,const char *fname,
     */
 {
   va_list args;
-  char line[MAX_MESSAGE];
+  char line[MAX_MESSAGE2];
+  char *pos;
 
   if (who==ALL || ringid==ROOT) {  /* controls whether output should be produced */
     /* first build output string */
     va_start(args,fmt);
-    if (code==EC_ERROR) strcpy(line,"ERROR:");
-    else if (code==EC_WARN) strcpy(line,"WARNING:");
-    else if (code==EC_INFO) strcpy(line,"INFO:");
-    else sprintf(line,"Error code=%d:",code);
+    if (code==EC_ERROR) strcpy(line,"ERROR: ");
+    else if (code==EC_WARN) strcpy(line,"WARNING: ");
+    else if (code==EC_INFO) strcpy(line,"INFO: ");
+    else sprintf(line,"Error code=%d: ",code);
+    pos=line+strlen(line);
 #ifdef PARALLEL
     if (code!=EC_INFO) { /* for EC_INFO position in source code is not saved */
-      sprintf(line+strlen(line)," (%s:%d) ",fname,lineN);
+      pos+=sprintf(pos,"(%s:%d) ",fname,lineN);
       /* rewrites last 2 chars */
-      if (who==ALL) sprintf(line+strlen(line)-2," - ringID=%d) ",ringid);
+      if (who==ALL) {
+        pos-=2;
+        pos+=sprintf(pos," - ringID=%d) ",ringid);
+      }
     }
-    else if (who==ALL) sprintf(line+strlen(line)," (ringID=%d) ",ringid);
+    else if (who==ALL) pos+=sprintf(pos,"(ringID=%d) ",ringid);
 #else
-    if (code!=EC_INFO) sprintf(line+strlen(line)," (%s:%d) ",fname,lineN);
+    if (code!=EC_INFO) pos+=sprintf(pos,"(%s:%d) ",fname,lineN);
 #endif
-    vsprintf(line+strlen(line),fmt,args);
-    strcat(line,"\n");
+    pos+=vsprintf(pos,fmt,args);
+    strcpy(pos,"\n");
     va_end(args);
     /* print line */
     if (code==EC_INFO) {
+      /* put message to stdout, wrapping lines */
+      WrapLines(line);
       printf("%s",line);
       fflush(stdout);
     }
     else if (code==EC_ERROR || code==EC_WARN) {
-      fprintf(stderr,"%s",line);
-      fflush(stderr);
-      /* duplicate error message in logfile */
+      /* first put error message in logfile */
       if (logname[0]!=0) {  /* otherwise can't produce output at all */
         if (ringid==ROOT) {
           /* logfile is initialized to NULL in the beginning of the program. Hence if logfile!=NULL
@@ -99,6 +168,10 @@ void LogError(const int code,const int who,const char *fname,
         }
       }    /* save line to buffer to save into logfile afterwards */
       else if (code==EC_WARN) strcpy(warn_buf,line);
+      /* duplicate message to stderr, wrapping lines */
+      WrapLines(line);
+      fprintf(stderr,"%s",line);
+      fflush(stderr);
     }
   }
   if (code==EC_ERROR) {
@@ -113,18 +186,21 @@ void PrintError(const char *fmt, ... )
    /* print anything to stderr (on root processor) and stop;
       much simpler than LogError (do not print location of the error,
       and does not duplicate errors to files;
-      assumes that all processors call it;
-      no internal buffer is used to be compatible with input of any length
-      (can be argv[i] in message) */
+      assumes that all processors call it; */
 {
   va_list args;
+  char line[MAX_MESSAGE];
+  char *pos;
 
   if (ringid==ROOT) {
     va_start(args,fmt);
-    fprintf(stderr,"ERROR: ");
-    vfprintf(stderr,fmt,args);
-    fprintf(stderr,"\n");
+    strcpy(line,"ERROR: ");
+    pos=line+strlen(line);
+    pos+=vsprintf(pos,fmt,args);
+    strcpy(pos,"\n");
     va_end(args);
+    WrapLines(line);
+    fprintf(stderr,"%s",line);
     fflush(stderr);
   }
   /* wait for root to generate an error message */

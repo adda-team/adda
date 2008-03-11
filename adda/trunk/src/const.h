@@ -82,8 +82,14 @@
 #define MAX_FNAME   (MAX_DIRNAME + MAX_FNAME_SH)
   /* maximum length of temporary filename (including directory name) */
 #define MAX_TMP_FNAME   (MAX_DIRNAME + MAX_TMP_FNAME_SH)
-  /* maximum message that may include 2 filenames */
-#define MAX_MESSAGE (2*MAX_FNAME + MAX_PARAGRAPH)
+  /* maximum message that may include a filename (for PrintError) */
+#define MAX_MESSAGE (MAX_FNAME + MAX_PARAGRAPH)
+  /* maximum message that may include 2 filenames (for LogError) */
+#define MAX_MESSAGE2 (2*MAX_FNAME + MAX_PARAGRAPH)
+
+/* widths of terminal used for output */
+#define DEF_TERM_WIDTH 80   /* default */
+#define MIN_TERM_WIDTH 20   /* no lesser value is accepted by ADDA from environmental variables */
 
 /* shape types */
 #define SH_SPHERE     0        /* sphere */

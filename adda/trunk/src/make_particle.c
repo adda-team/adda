@@ -809,9 +809,9 @@ void InitShape(void)
   /* check for redundancy of input data */
   if (dpl!=UNDEF && (sizeX!=UNDEF || a_eq!=UNDEF)) {
     if (boxX!=UNDEF) PrintError("Extra information is given by setting '-dpl, '-grid', and "\
-                                 "either'-size' or '-eq_rad'");
+                                 "either '-size' or '-eq_rad'");
     if (box_det_sh) PrintError("Extra information is given by setting both '-dpl' and either "\
-      "'-size' or '-eq_rad' while shape '%s' sets the size of the grid.",shapename);
+      "'-size' or '-eq_rad', while shape '%s' sets the size of the grid",shapename);
   }
   /* calculate default dpl - 10*sqrt(max(|m|));
      for anisotropic each component is considered separately */
