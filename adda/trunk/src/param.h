@@ -29,6 +29,14 @@ INLINE void TestPositive(const double val,const char *name)
 
 /*============================================================*/
 
+INLINE void TestNonNegative(const double val,const char *name)
+    /* check if val is positive, otherwise produces error message */
+{
+  if (val<0) PrintErrorHelp("Illegal %s (%g), must be nonnegative",name,val);
+}
+
+/*============================================================*/
+
 INLINE void TestPositive_i(const int val,const char *name)
     /* check if val (int) is positive, otherwise produces error message */
 {
@@ -36,12 +44,41 @@ INLINE void TestPositive_i(const int val,const char *name)
 }
 
 /*============================================================*/
+/* In following 4 functions, one of two letters means either Including or Notincluding (left and
+   right point of the interval respectively) */
 
-INLINE void TestRange(const double val,const char *name,const double min,const double max)
+INLINE void TestRangeII(const double val,const char *name,const double min,const double max)
     /* check if val is in interval [min,max], otherwise produces error message */
 {
   if (val<min || val>max) PrintErrorHelp("Illegal %s (%g), must belong to the interval [%g,%g]",
                                          name,val,min,max);
+}
+
+/*============================================================*/
+
+INLINE void TestRangeNI(const double val,const char *name,const double min,const double max)
+    /* check if val is in interval (min,max], otherwise produces error message */
+{
+  if (val<=min || val>max) PrintErrorHelp("Illegal %s (%g), must belong to the interval (%g,%g]",
+                                          name,val,min,max);
+}
+
+/*============================================================*/
+
+INLINE void TestRangeIN(const double val,const char *name,const double min,const double max)
+    /* check if val is in interval [min,max), otherwise produces error message */
+{
+  if (val<min || val>=max) PrintErrorHelp("Illegal %s (%g), must belong to the interval [%g,%g)",
+                                          name,val,min,max);
+}
+
+/*============================================================*/
+
+INLINE void TestRangeNN(const double val,const char *name,const double min,const double max)
+    /* check if val is in interval (min,max), otherwise produces error message */
+{
+  if (val<=min || val>=max) PrintErrorHelp("Illegal %s (%g), must belong to the interval (%g,%g)",
+                                           name,val,min,max);
 }
 
 /*============================================================*/
