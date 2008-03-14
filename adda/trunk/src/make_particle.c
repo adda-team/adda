@@ -1076,7 +1076,7 @@ void InitShape(void)
     sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio,ONE_THIRD)*a_eq;
   /* Initializitation of boxX;
      if boxX is not defined by command line, it is either set by shape itself or
-       if sizeX is set boxX is initialized to default
+       if sizeX is set, boxX is initialized to default
        else dpl is initialized to default (if undefined) and boxX is calculated from sizeX and dpl
      else adjust boxX if needed */
   if (boxX==UNDEF) {
@@ -1085,18 +1085,24 @@ void InitShape(void)
       if (sizeX==UNDEF) {
         /* if a_eq is set, but sizeX was not initialized before - error */
         if (a_eq!=UNDEF) PrintError("Grid size can not be automatically determined from "\
-          "equivalent radius and dpl for shape '%s', because its volume is not know "\
+          "equivalent radius and dpl for shape '%s', because its volume is not known "\
           "analytically. Either use '-size' instead of '-eq_rad' or specify grid size manually "\
           "by '-grid'.",shapename);
-        boxX=DEF_GRID; /* default value for boxX */
+        /* default value for boxX; FitBox is redundant but safer for future changes */
+        boxX=FitBox(DEF_GRID);
       }
       else {
         if (dpl==UNDEF) {
-          dpl=dpl_def;  /* default value of dpl */
+          /* use default dpl, but make sure that it does not produce too small grid
+             (e.g. for nanoparticles) */
+          temp=(int)ceil(sizeX*dpl_def/lambda);
+          boxX=FitBox(MAX(temp,MIN_AUTO_GRID));
           dpl_def_used=TRUE;
         }
-        boxX=FitBox((int)ceil(sizeX*dpl/lambda));
-        dpl=UNDEF;     /* dpl is given correct value in make_particle() */
+        else { /* if dpl is given in the command line; then believe it */
+          boxX=FitBox((int)ceil(sizeX*dpl/lambda));
+          dpl=UNDEF;  /* dpl is given correct value in make_particle() */
+        }
       }
     }
   }

@@ -191,7 +191,8 @@
 #define CHP_EXIT    -2        /* exit after saving checkpoint */
 
 /* default values; other are specified in InitVariables (param.c) */
-#define DEF_GRID   (16*jagged)
+#define DEF_GRID       (16*jagged)
+#define MIN_AUTO_GRID  16   /* minimum grid, when set from default dpl */
 
 /* numbers less than this value (compared to unity) are considered to be zero */
 #define ROUND_ERR 1E-15
