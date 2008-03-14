@@ -1,13 +1,13 @@
 /* FILE: iterative.c
  * AUTH: Maxim Yurkin
  * DESCR: Few iterative techniques to solve DDA equations
- *        Currently CGNR,BiCGStab,BiCG-CS,QMR-CS implemented
+ *        Currently CGNR,BiCGStab,BiCG-CS,QMR-CS are implemented
  *
  *        CGNR and BiCGStab are based on "Templates for the Solution of Linear Systems:
  *          Building Blocks for Iterative Methods"
  *          http://www.netlib.org/templates/Templates.html
  *
- *        BiCG-CS and QMR-CS are based on: Freund,R.W. "Conjugate gradient-type methods for linear
+ *        BiCG-CS and QMR-CS are based on: Freund R.W. "Conjugate gradient-type methods for linear
  *          systems with complex symmetric coefficient matrices",
  *          SIAM Journal of Scientific Statistics and Computation, 13(1):425-448, 1992.
  *
