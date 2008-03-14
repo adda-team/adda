@@ -8,12 +8,14 @@
  *        -----------------------------------------------------------
  *        included ellipsoidal particle for work with Victor Babenko
  *        september 2002
- *        --------------------------------------------------------
+ *        -----------------------------------------------------------
  *        included many more new particles:
  *        leucocyte, stick, rotatable oblate spheroid, lymphocyte,
  *        rotatable RBC, etc etc etc
  *        December 2003 - February 2004, by Konstantin Semyanov
  *          (not used now)
+ *        -----------------------------------------------------------
+ *        Shapes 'capsule' and 'egg' are implemented by Daniel Hahn and Richard Joseph.
  *
  *        Currently is developed by Maxim Yurkin
  *
@@ -75,10 +77,13 @@ static double Ndip;         /* total number of dipoles (in a circumscribing cube
 static double dpl_def;      /* default value of dpl */
 /* shape parameters */
 static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
-static double diskratio,aspectY,aspectZ;
+static double ad2,egnu,egeps,egz0;  /* for egg */
+static double hdratio,invsqY,invsqZ,haspY,haspZ;
 static double P,Q,R,S;         /* for RBC */
 /* TO ADD NEW SHAPE
-   add all internal variables (aspect ratios, etc.) here.
+   Add here all internal variables (aspect ratios, etc.), which you initialize in InitShape()
+   and use in MakeParticle() afterwards. If you need local, intermediate variables, put them into
+   the beginning of the corresponding function.
    Add descriptive comments, use 'static'. */
 
 /* temporary arrays before their real counterparts are allocated */
@@ -791,19 +796,18 @@ void InitShape(void)
 {
   int n_boxX,n_boxY,n_boxZ,temp;   /* new values for dimensions */
   double h_d,b_d,c_d,h2,b2,c2;
-  double tmp,yx_ratio,zx_ratio;
+  double yx_ratio,zx_ratio,tmp1,tmp2,tmp3;
+  double diskratio,aspectY,aspectZ;
+  double ad,ct,ct2;      /* cos(theta0) and its square */
   TIME_TYPE tstart;
   int Nmat_need,i;
   int dpl_def_used;   /* if default dpl is used for grid initialization */
   int box_det_sh;     /* if boxX is determined by shape itself */
+  /* TO ADD NEW SHAPE
+     Add here all intermediate variables, which are used only inside this function. You may as well
+     use 'tmp1'-'tmp3' variables defined above. */
 
   tstart=GET_TIME();
-
-  /* for some shapes volume_ratio is initialized below;
-     if not, volume correction is not used; and also autoinitialization of the grid from dpl and
-     a_eq is not possible */
-/*  volume_ratio=UNDEF; */
-
   /* trivial now, but may be more cases in the future */
   box_det_sh=(shape==SH_READ);
   /* check for redundancy of input data */
@@ -815,12 +819,12 @@ void InitShape(void)
   }
   /* calculate default dpl - 10*sqrt(max(|m|));
      for anisotropic each component is considered separately */
-  dpl_def=0;
+  tmp2=0;
   for (i=0;i<Ncomp*Nmat;i++) {
-    tmp=cAbs2(ref_index[i]);
-    if (dpl_def<tmp) dpl_def=tmp;
+    tmp1=cAbs2(ref_index[i]);
+    if (tmp2<tmp1) tmp2=tmp1;
   }
-  dpl_def=10*sqrt(dpl_def);
+  dpl_def=10*sqrt(tmp2);
   dpl_def_used=FALSE;
   /* initialization of global option index for error messages */
   opt=opt_sh;
@@ -840,14 +844,27 @@ void InitShape(void)
         aspectY,aspectZ);
     }
     if (aspectY!=1) symR=FALSE;
+    /* set half-aspect raios */
+    haspY=aspectY/2;
+    haspZ=aspectZ/2;
     volume_ratio=aspectY*aspectZ;
     yx_ratio=aspectY;
     zx_ratio=aspectZ;
     Nmat_need=1;
   }
+  else if(shape==SH_CAPSULE) {
+    diskratio=sh_pars[0];
+    TestNonNegative(diskratio,"height to diameter ratio");
+    SPRINTZ(sh_form_str,"capsule; diameter(d):%%.10g, cylinder height h/d=%.10g",diskratio);
+    hdratio=diskratio/2;
+    volume_ratio = PI_OVER_FOUR*diskratio + PI_OVER_SIX;
+    yx_ratio=1;
+    zx_ratio=diskratio+1;
+    Nmat_need=1;
+  }
   else if (shape==SH_COATED) {
     coat_ratio=sh_pars[0];
-    TestRange(coat_ratio,"innner/outer diameter ratio",0,1);
+    TestRangeII(coat_ratio,"innner/outer diameter ratio",0,1);
     SPRINTZ(sh_form_str,"coated sphere; diameter(d):%%.10g, inner diameter d_in/d=%.10g",
             coat_ratio);
     if (sh_Npars==4) {
@@ -873,10 +890,48 @@ void InitShape(void)
     diskratio=sh_pars[0];
     TestPositive(diskratio,"height to diameter ratio");
     SPRINTZ(sh_form_str,"cylinder; diameter(d):%%.10g, height h/d=%.10g",diskratio);
+    hdratio=diskratio/2;
     volume_ratio=PI_OVER_FOUR*diskratio;
     yx_ratio=1;
     zx_ratio=diskratio;
     Nmat_need=1;
+  }
+  else if (shape==SH_EGG) {
+    /* determined by equation: (a/r)^2=1+nu*cos(theta)-(1-eps)cos^2(theta)
+       or equivalently: a^2=r^2+nu*r*z-(1-eps)z^2. Parameters must be 0<eps<=1, 0<=nu<eps.
+       This shape is proposed in: Hahn D.V., Limsui D., Joseph R.I., Baldwin K.C., Boggs N.T.,
+       Carr A.K., Carter C.C., Han T.S., and Thomas M.E. "Shape characteristics of biological
+       spores", paper 6954-31 to be presented at "SPIE Defence + Security", March 2008 */
+    egeps=sh_pars[0];
+    TestRangeNI(egeps,"egg parameter epsilon",0,1);
+    egnu=sh_pars[1];
+    TestRangeIN(egnu,"egg parameter nu",0,egeps);
+    /* egg shape is symmetric about z-axis (xz and yz planes, but generally NOT xy plane) */
+    if (egnu!=0) symZ=FALSE;
+    /* cos(theta0): ct=-nu/[eps+sqrt(eps^2-nu^2)]; this expression for root of the quadratic
+       equation is used for numerical stability (i.e. when nu=0); at this theta0 the diameter
+       (maximum width perpendicular to z-axis) d=Dx is located */
+    ct=-egnu/(egeps+sqrt(egeps*egeps-egnu*egnu));
+    ct2=ct*ct;
+    /* Determine ad=(a/d) and its square */
+    ad2=(1+egnu*ct-(1-egeps)*ct2)/(4*(1-ct2));
+    ad=sqrt(ad2);
+    tmp1=1/sqrt(egeps+egnu);
+    tmp2=1/sqrt(egeps-egnu);
+    tmp3=2*(1-egeps);
+    /* Center of the computational box (z coordinate): z0=(a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)]/2;
+       but more numerically stable expression is used (for nu->0). Although it may overflow faster
+       for nu->eps, volume_ratio (below) will overflow even faster. It is used to shift coordinates
+       from the computational reference frame (centered at z0) to the natural one */
+    egz0=-ad*egnu*(tmp1*tmp1*tmp2*tmp2)/(tmp1+tmp2);
+    /* (V/d^3)=(4*pi/3)*(a/d)^3*{[2(1-eps)-nu]/sqrt(eps+nu)+[2(1-eps)+nu]/sqrt(eps-nu)}/
+              /[nu^2+4(1-eps)] */
+    volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)/(egnu*egnu+2*tmp3);
+    SPRINTZ(sh_form_str,"egg; diameter(d):%%.10g, epsilon=%.10g, nu=%.10g, a/d=%.10g",
+            egeps,egnu,ad);
+    Nmat_need=1;
+    yx_ratio=1;
+    zx_ratio=ad*(tmp1+tmp2); /* (a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)] */
   }
   else if (shape==SH_ELLIPSOID) {
     aspectY=sh_pars[0];
@@ -886,13 +941,16 @@ void InitShape(void)
     SPRINTZ(sh_form_str,"ellipsoid; size along x-axis:%%.10g, aspect ratios y/x=%.10g, z/x=%.10g",
             aspectY,aspectZ);
     if (aspectY!=1) symR=FALSE;
+    /* set inverse squares of ascpect ratios */
+    invsqY=1/(aspectY*aspectY);
+    invsqZ=1/(aspectZ*aspectZ);
     volume_ratio=PI_OVER_SIX*aspectY*aspectZ;
     yx_ratio=aspectY;
     zx_ratio=aspectZ;
     Nmat_need=1;
   }
   else if (shape==SH_LINE) {
-    STRCPYZ(sh_form_str,"line; legth:%g");
+    STRCPYZ(sh_form_str,"line; length:%g");
     symY=symZ=symR=FALSE;
     n_boxY=n_boxZ=jagged;
     yx_ratio=zx_ratio=UNDEF;
@@ -902,14 +960,16 @@ void InitShape(void)
   else if(shape==SH_RBC) {
     /* three-parameter shape; developed by K.A.Semyanov,P.A.Tarasov,P.A.Avrorov
        based on work by P.W.Kuchel and E.D.Fackerell, "Parametric-equation representation
-       of biconcave erythrocytes," Bulletin of Mathematical Biology 61, 209-220 (1999). */
+       of biconcave erythrocytes," Bulletin of Mathematical Biology 61, 209-220 (1999).
+       ro^4+2S*ro^2*z^2+z^4+P*ro^2+Q*z^2+R=0, ro^2=x^2+y^2, P,Q,R,S are determined by d,h,b,c given
+       in the command line */
     h_d=sh_pars[0];
     TestPositive(h_d,"ratio of maximum width to diameter");
     b_d=sh_pars[1];
-    TestPositive(b_d,"ratio of minimum width to diameter");
-    if (h_d <= b_d) PrintErrorHelp("given RBC is not biconcave; maximum width is in the center");
+    TestNonNegative(b_d,"ratio of minimum width to diameter");
+    if (h_d<=b_d) PrintErrorHelp("given RBC is not biconcave; maximum width is in the center");
     c_d=sh_pars[2];
-    TestRange(c_d,"relative diameter of maximum width",0,1);
+    TestRangeII(c_d,"relative diameter of maximum width",0,1);
     SPRINTZ(sh_form_str,
       "red blood cell; diameter(d):%%.10g, maximum and minimum width h/d=%.10g, b/d=%.10g\n"\
       "       diameter of maximum width c/d=%.10g",h_d,b_d,c_d);
@@ -917,9 +977,13 @@ void InitShape(void)
     h2=h_d*h_d;
     b2=b_d*b_d;
     c2=c_d*c_d;
-    P=(b2*((c2*c2/(h2-b2))-h2)-1)/4;
-    R=-(P+0.25)/4;
-    Q=((P+0.25)/b2)-(b2/4);
+    /* P={(b/d)^2*[c^4/(h^2-b^2)-h^2]-d^2}/4; Q=(d/b)^2*(P+d^2/4)-b^2/4; R=-d^2*(P+d^2/4)/4;
+       S=-(2P+c^2)/h^2;  here P,Q,R,S are made dimensionless dividing by respective powers of d
+       Calculation is performed so that Q is well defined even for b=0 */
+    tmp1=((c2*c2/(h2-b2))-h2)/4;
+    P=b2*tmp1-0.25;
+    Q=tmp1-(b2/4);
+    R=-b2*tmp1/4;
     S=-(2*P+c2)/h2;
     yx_ratio=1;
     zx_ratio=h_d;
@@ -941,7 +1005,7 @@ void InitShape(void)
   }
   else if (shape==SH_SPHEREBOX) {
     coat_ratio=sh_pars[0];
-    TestRange(coat_ratio,"sphere diameter/cube edge ratio",0,1);
+    TestRangeII(coat_ratio,"sphere diameter/cube edge ratio",0,1);
     SPRINTZ(sh_form_str,
       "sphere in cube; size of cube edge(a):%%.10g, diameter of sphere d/a=%.10g",coat_ratio);
     coat_r2=0.25*coat_ratio*coat_ratio;
@@ -974,8 +1038,10 @@ void InitShape(void)
      volume_ratio - ratio of particle volume to (boxX)^3. Initialize it if it can be calculated
                     analytically or set to UNDEF otherwise. This parameter is crucial if one wants
                     to initialize computational grid from '-eq_rad' and '-dpl'.
-     all other auxiliary variables, which are used in shape generation (below), should be
-       defined in the beginning of this file. */
+     all other auxiliary variables, which are used in shape generation (MakeParticle(), see below),
+       should be defined in the beginning of this file. If you need temporary local variables
+       (which are used only in this part of the code), either use 'tmp1'-'tmp3' or define your
+       own (with more informative names) in the beginning of this function. */
 
   /* initialize domain granulation */
   if (sh_granul) {
@@ -1087,13 +1153,16 @@ void MakeParticle(void)
   int i, j, k;
   size_t index,dip,nlocalRows_tmp;
   double tmp1,tmp2,tmp3;
-  double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2;
+  double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2,zshift;
   double cX,cY,cZ,jcX,jcY,jcZ;  /* centers for DipoleCoord and jagged */
   int local_z0_unif; /* should be global or semi-global */
   int xj,yj,zj;
   int mat;
   unsigned short us_tmp;
   TIME_TYPE tstart,tgran;
+  /* TO ADD NEW SHAPE
+     Add here all intermediate variables, which are used only inside this function. You may as well
+     use 'tmp1'-'tmp3' variables defined above. */
 
   tstart=GET_TIME();
 
@@ -1124,42 +1193,59 @@ void MakeParticle(void)
         mat=Nmat;  /* corresponds to void */
 
         if (shape==SH_BOX) {
-          if ((fabs(yr) <= aspectY/2) && (fabs(zr) <= aspectZ/2)) mat=0;
+          if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
+        }
+        else if (shape==SH_CAPSULE) {
+          r2=xr*xr+yr*yr;
+          if (r2<=0.25) {
+            tmp1=fabs(zr)-hdratio;
+            if (tmp1<=0 || tmp1*tmp1+r2<=0.25) mat=0;
+          }
         }
         else if (shape==SH_COATED) {
-          xcoat=xr-coat_x;
-          ycoat=yr-coat_y;
-          zcoat=zr-coat_z;
-          if (xcoat*xcoat+ycoat*ycoat+zcoat*zcoat <= coat_r2) mat=1;
-          else if (xr*xr+yr*yr+zr*zr <= 0.25) mat=0;
+          if (xr*xr+yr*yr+zr*zr<=0.25) { /* first test to skip some dipoles immediately) */
+            xcoat=xr-coat_x;
+            ycoat=yr-coat_y;
+            zcoat=zr-coat_z;
+            if (xcoat*xcoat+ycoat*ycoat+zcoat*zcoat<=coat_r2) mat=1;
+            else mat=0;
+          }
         }
         else if (shape==SH_CYLINDER) {
-          if((fabs(zr) <= diskratio/2) && (xr*xr + yr*yr <= 0.25)) mat = 0;
+          if(xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
+        }
+        else if (shape==SH_EGG) {
+          r2=xr*xr+yr*yr;
+          zshift=zr+egz0;
+          z2=zshift*zshift;
+          if (r2+egeps*z2+egnu*zshift*sqrt(r2+z2)<=ad2) mat=0;
         }
         else if (shape==SH_ELLIPSOID) {
-          if (xr*xr + yr*yr/(aspectY*aspectY) + zr*zr/(aspectZ*aspectZ) <= 0.25) mat = 0;
+          if (xr*xr+yr*yr*invsqY+zr*zr*invsqZ<=0.25) mat=0;
         }
         else if (shape==SH_LINE) {
-          if (yr>=0 && yr<=jagged/2.0 && zr>=0 && zr<=jagged/2.0) mat=0;
+          if (yj==0 && zj==0) mat=0;
         }
         else if (shape==SH_RBC) {
           r2=xr*xr+yr*yr;
           z2=zr*zr;
-          if (r2*r2+2*S*r2*z2+z2*z2+P*r2+Q*z2+R <= 0) mat=0;
+          if (r2*r2+2*S*r2*z2+z2*z2+P*r2+Q*z2+R<=0) mat=0;
         }
         else if (shape==SH_SPHERE) {
-          if (xr*xr+yr*yr+zr*zr <= 0.25) mat=0;
+          if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;
         }
         else if (shape==SH_SPHEREBOX) {
-          if (xr*xr+yr*yr+zr*zr <= coat_r2) mat=1;
-          else if ((fabs(yr) <= 0.5) && (fabs(zr) <= 0.5)) mat=0;
+          if (xr*xr+yr*yr+zr*zr<=coat_r2) mat=1;
+          else if (fabs(yr)<=0.5 && fabs(zr)<=0.5) mat=0;
         }
         /* TO ADD NEW SHAPE
            add an option here (in the end of 'else if' sequence). Identifier ('SH_...') should be
            defined in const.h. This option should set 'mat' - index of domain for a point,
            specified by {xr,yz,zr} - coordinates divided by grid size along X (xr from -0.5 to 0.5,
            others - depending on aspect ratios). C array indexing used: mat=0 - first domain, etc.
-           If point corresponds to void, do not set 'mat'. */
+           If point corresponds to void, do not set 'mat'. If you need temporary local variables
+           (which are used only in this part of the code), either use 'tmp1'-'tmp3' or define your
+           own (with more informative names) in the beginning of this function.*/
 
         position_tmp[3*index]=(unsigned short)i;
         position_tmp[3*index+1]=(unsigned short)j;

@@ -159,16 +159,22 @@ static const struct subopt_struct beam_opt[]={
 static const struct subopt_struct shape_opt[]={
   {"box","[<y/x> <z/x>]","Homogenous cube (if no arguments are given) or a rectangular "\
      "parallelepiped with edges x,y,z.",UNDEF,SH_BOX},
+  {"capsule","<h/d>","Homogenous capsule (cylinder with half-spherical end caps) with cylinder "\
+     "height h and diameter d (its axis of symmetry coincides with the z-axis).",1,SH_CAPSULE},
   {"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has a "\
      "diameter d (first domain). The included sphere has a diameter d_in (optional position of "\
      "the center: x,y,z).",UNDEF,SH_COATED},
   {"cylinder","<h/d>","Homogenous cylinder with height (length) h and diameter d (its axis of "\
      "symmetry coincides with the z-axis).",1,SH_CYLINDER},
+  {"egg","<eps> <nu>","Axisymmetric egg shape given by a^2=r^2+nu*r*z-(1-eps)z^2, where 'a' "\
+    "is scaling factor. Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
   {"ellipsoid","<y/x> <z/x>","Homogenous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
   {"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
   {"rbc","<h/d> <b/d> <c/d>","Red Blood Cell, an axisymmetric (over z-axis) biconcave homogenous "\
      "particle, which is characterized by diameter d, maximum and minimum width h, b, and "\
-     "diameter at the position of the maximum width c.",3,SH_RBC},
+     "diameter at the position of the maximum width c. The surface is described by "\
+     "ro^4+2S*ro^2*z^2+z^4+P*ro^2+Q*z^2+R=0, ro^2=x^2+y^2, P,Q,R,S are determined by the "\
+     "described parameters.",3,SH_RBC},
   {"read","<filename>","Read a particle geometry from file <filename>",1,SH_READ},
   {"sphere","","Homogenous sphere",0,SH_SPHERE},
   {"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",
@@ -726,7 +732,7 @@ PARSE_FUNC(granul)
 {
   if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
   ScanfDoubleError(argv[1],&gr_vf);
-  TestRange(gr_vf,"volume fraction",0,PI_OVER_SIX);
+  TestRangeII(gr_vf,"volume fraction",0,PI_OVER_SIX);
   ScanfDoubleError(argv[2],&gr_d);
   TestPositive(gr_d,"diameter");
   if (Narg==3) {

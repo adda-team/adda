@@ -103,6 +103,8 @@
 #define SH_SDISK_ROT  8        /* disc cut of a sphere -- not operational */
 #define SH_CYLINDER   9        /* cylinder */
 #define SH_READ       10       /* read from file */
+#define SH_EGG        11       /* egg */
+#define SH_CAPSULE    12       /* capsule */
 /* TO ADD NEW SHAPE
    add a define starting with 'SH_' here; the number should be different from
    any others in this list. Add a descriptive comment. */
