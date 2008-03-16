@@ -71,10 +71,14 @@ double mat_count[MAX_NMAT+1];    /* number of dipoles in each domain */
 
 static const char geom_format[] = "%d %d %d\n";         /* format of the geom file */
 static const char geom_format_ext[] = "%d %d %d %d\n";  /* extended format of the geom file */
-static double volume_ratio; /* ratio of scatterer volume to enclosing cube;
-                               used for dpl correction and initialization by a_eq */
-static double Ndip;         /* total number of dipoles (in a circumscribing cube) */
-static double dpl_def;      /* default value of dpl */
+static double volume_ratio;    /* ratio of scatterer volume to enclosing cube;
+                                  used for dpl correction and initialization by a_eq */
+static double Ndip;            /* total number of dipoles (in a circumscribing cube) */
+static double dpl_def;         /* default value of dpl */
+static int minX,minY,minZ;     /* minimum values of dipole positions in dipole file */
+static FILE *dipfile;          /* handle of dipole file */
+static int df_ext;             /* whether extended format of dipole file is used */
+static char linebuf[BUF_LINE]; /* buffer for reading lines from dipole file */
 /* shape parameters */
 static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps,egz0;  /* for egg */
@@ -148,10 +152,9 @@ static int SkipComments(FILE *file)
      returns number of lines skipped */
 {
   int lines=0,ch;
-  char buf[BUF_LINE];
 
   while ((ch=fgetc(file))=='#') {
-    do fgets(buf,BUF_LINE,file); while (strstr(buf,"\n")==NULL && !feof(file));
+    do fgets(linebuf,BUF_LINE,file); while (strchr(linebuf,'\n')==NULL && !feof(file));
     lines++;
   }
   if (ch!=EOF) ungetc(ch,file);
@@ -161,97 +164,120 @@ static int SkipComments(FILE *file)
 
 /*===========================================================*/
 
-static void InitDipFile(const char *fname, int *maxX, int *maxY, int *maxZ, int *Nm)
-   /* read dipole file first to determine box sizes and Nmat;
-      input is not checked for very large numbers (integer overflows) to increase speed */
+void SkipNLines(FILE *file,int n)
+  /* skips n lines from the file starting from current position in a file */
 {
-  FILE *input;
-  int x, y, z, ext=FALSE, cond, mat, line=0;
-  char buf[BUF_LINE];
+  while (n>0) {
+    do fgets(linebuf,BUF_LINE,file); while (strchr(linebuf,'\n')==NULL && !feof(file));
+    n--;
+  }
+}
 
-  input=FOpenErr(fname,"r",ALL_POS);
+/*===========================================================*/
 
-  line=SkipComments(input)+1;
-  /* read Nmat if present */
-  if (fscanf(input,"Nmat=%d\n",Nm)!=1) *Nm=1;
-  else {
-    ext=TRUE;
+static void InitDipFile(const char *fname,int * bX,int *bY,int *bZ,int *Nm)
+   /* read dipole file first to determine box sizes and Nmat;
+      input is not checked for very large numbers (integer overflows) to increase speed
+      this funstion opens file for reading, the file is closed in ReadDipFile */
+{
+  int x,y,z,mat,line,scanned,mustbe,skiplines;
+  int maxX,maxY,maxZ;
+
+  dipfile=FOpenErr(fname,"r",ALL_POS);
+
+  line=SkipComments(dipfile);
+  /* scanf and analyze Nmat; if there is space between comments and Nmat, it will fail later */
+  scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
+  if (scanned==EOF) LogError(EC_ERROR,ONE_POS,"No dipole positions are found in %s",fname);
+  else if (scanned==0) { /* no "Nmat=..." */
+    df_ext=FALSE;
+    *Nm=1;
+    mustbe=3;
+  }
+  else {  /* "Nmat=..." present */
+    df_ext=TRUE;
     if (*Nm<=0) LogError(EC_ERROR,ONE_POS,"Nmat is nonpositive, as given in %s",fname);
     if (*Nm==1) LogError(EC_INFO,ONE_POS,
                          "Nmat is given in dipole file - %s, but is trivial (=1)",fname);
+    mustbe=4;
     line++;
   }
   /* scan main part of the file */
-  *maxX=*maxY=*maxZ=0;
+  skiplines=line;
+  maxX=maxY=maxZ=INT_MIN;
+  minX=minY=minZ=INT_MAX;
      /* reading is performed in lines */
-  while(fgets(buf,BUF_LINE,input)!=NULL) {
-    if (strstr(buf,"\n")==NULL && !feof(input)) LogError(EC_ERROR,ONE_POS,
+  while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+    line++;
+    if (strchr(linebuf,'\n')==NULL && !feof(dipfile)) LogError(EC_ERROR,ONE_POS,
       "Buffer overflow while scanning lines in file '%s' (size of line %d > %d)",
       fname,line,BUF_LINE-1);
-    if (ext) cond=(sscanf(buf,geom_format_ext,&x,&y,&z,&mat)!=4);
-    else cond=(sscanf(buf,geom_format,&x,&y,&z)!=3);
-    if (cond)
-      LogError(EC_ERROR,ONE_POS,"Could not scan from dipole file - %s - line %d",fname,line);
-    /* check for errors in values */
-    if (x<0)
-      LogError(EC_ERROR,ONE_POS,"Negative coordinate - %s - line %d: x=%d",fname,line,x);
-    if (y<0)
-      LogError(EC_ERROR,ONE_POS,"Negative coordinate - %s - line %d: y=%d",fname,line,y);
-    if (z<0)
-      LogError(EC_ERROR,ONE_POS,"Negative coordinate - %s - line %d: z=%d",fname,line,z);
-    if (ext) {
-      if (mat<=0) LogError(EC_ERROR,ONE_POS,
-                           "Nonpositive material number - %s - line %d: mat=%d",fname,line,mat);
-      if (mat>*Nm) LogError(EC_ERROR,ONE_POS,
-        "Given material number - %s - line %d: mat=%d is greater than provided Nmat (%d)",
-        fname,line,mat,*Nm);
+    /* scan numbers in a line */
+    if (df_ext) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
+    else scanned=sscanf(linebuf,geom_format,&x,&y,&z);
+    if (scanned!=EOF) { /* if sscanf returns EOF, that is a blank line -> just skip */
+      if (scanned!=mustbe)  /* this in most cases indicates wrong format */
+        LogError(EC_ERROR,ONE_POS,"Could not scan from dipole file - %s - line %d",fname,line);
+      if (df_ext) {
+        /* check for errors in values */
+        if (mat<=0) LogError(EC_ERROR,ONE_POS,
+                             "Nonpositive material number - %s - line %d: mat=%d",fname,line,mat);
+        if (mat>*Nm) LogError(EC_ERROR,ONE_POS,
+          "Given material number - %s - line %d: mat=%d is greater than provided Nmat (%d)",
+          fname,line,mat,*Nm);
+      }
+      /* update maximums and minimums */
+      if (x>maxX) maxX=x;
+      if (x<minX) minX=x;
+      if (y>maxY) maxY=y;
+      if (y<minY) minY=y;
+      if (z>maxZ) maxZ=z;
+      if (z<minZ) minZ=z;
     }
-    /* update maximums */
-    if (x>*maxX) *maxX=x;
-    if (y>*maxY) *maxY=y;
-    if (z>*maxZ) *maxZ=z;
-    line++;
   }
-  *maxX=jagged*(*maxX+1);
-  *maxY=jagged*(*maxY+1);
-  *maxZ=jagged*(*maxZ+1);
-  FCloseErr(input,fname,ALL_POS);
+  /* set grid (box) sizes */
+  *bX=jagged*(maxX-minX+1);
+  *bY=jagged*(maxY-minY+1);
+  *bZ=jagged*(maxZ-minZ+1);
+  /* not optimal way, but works more robusty when non-system EOL is used in data file */
+  fseek(dipfile,0,SEEK_SET);
+  SkipNLines(dipfile,skiplines);
 }
 
 /*===========================================================*/
 
 static void ReadDipFile(const char *fname)
    /* read dipole file;
-       no consistency checks are made since they are made in InitDipFile */
+      no consistency checks are made since they are made in InitDipFile
+      the file is opened in InitDipFile; this funstion only closes the file */
 {
-  FILE *input;
-  int x, y, z, x0, y0, z0, mat, ext=FALSE;
+  int x,y,z,x0,y0,z0,mat,scanned;
   int index;
-  char buf[BUF_LINE];
   size_t boxXY,boxX_l;
 
   /* to remove possible overflows */
   boxX_l=(size_t)boxX;
   boxXY=boxX_l*boxY;
 
-  input=FOpenErr(fname,"r",ALL_POS);
-
-  SkipComments(input);
-  /* skip Nmat if present */
-  if (fscanf(input,"Nmat=%d\n",&mat)==1) ext=TRUE;
-  else mat=1;
-
-  while(fgets(buf,BUF_LINE,input)!=NULL) {
-    if (ext) sscanf(buf,geom_format_ext,&x0,&y0,&z0,&mat);
-    else sscanf(buf,geom_format,&x0,&y0,&z0);
-
-    for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
-      for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
-        index=(z-local_z0)*boxXY+y*boxX_l+x;
-        material_tmp[index]=(unsigned char)(mat-1);
+  mat=1;
+  while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+    /* scan numbers in a line */
+    if (df_ext) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
+    else scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
+    if (scanned!=EOF) { /* if sscanf returns EOF, that is a blank line -> just skip */
+      /* shift dipole position to be nonnegative */
+      x0-=minX;
+      y0-=minY;
+      z0-=minZ;
+      /* initialize box jagged*jagged*jagged instead of one dipole */
+      for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
+        for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
+          index=(z-local_z0)*boxXY+y*boxX_l+x;
+          material_tmp[index]=(unsigned char)(mat-1);
+      }
     }
   }
-  FCloseErr(input,fname,ALL_POS);
+  FCloseErr(dipfile,fname,ALL_POS);
 }
 
 /*==========================================================*/
