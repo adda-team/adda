@@ -48,6 +48,8 @@ Parms_1D parms[2];      /* parameters for integration over theta,phi or beta,gam
 angle_set beta_int,gamma_int,theta_int,phi_int; /* sets of angles */
 /* used in param.c */
 char avg_string[MAX_PARAGRAPH]; /* string for output of function that reads averaging parameters */
+/* used in Romberg.c */
+int full_al_range;    /* whether full range of alpha angle is used */
 
 /*=====================================================================*/
 
@@ -327,6 +329,7 @@ void ReadAvgParms(const char *fname)
   /*scan file */
   ReadLineStart(input,fname,buf,BUF_LINE,"alpha:");
   ScanIntegrParms(input,fname,&alpha_int,&parms_alpha,FALSE,buf,temp,BUF_LINE);
+  full_al_range=fabs(alpha_int.max-alpha_int.min-FULL_ANGLE)<FULL_ANGLE*ROUND_ERR;
   ReadLineStart(input,fname,buf,BUF_LINE,"beta:");
   ScanIntegrParms(input,fname,&beta_int,&parms[THETA],TRUE,buf,temp,BUF_LINE);
   ReadLineStart(input,fname,buf,BUF_LINE,"gamma:");

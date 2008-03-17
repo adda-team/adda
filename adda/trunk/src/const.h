@@ -50,6 +50,7 @@
 #define PI_OVER_180         0.017453292519943295769236907684886
 #define INV_PI_180          57.295779513082320876798154814105
 #define EULER               0.57721566490153286060651209008241
+#define FULL_ANGLE          360.0
 
 /* determines the maximum number representable by size_t */
 #ifndef SIZE_MAX

@@ -26,7 +26,7 @@
  *
  *        Different implementation of Romberg integration was first coded by Martin Frijlink
  *
- * Copyright (C) 2006-2007 University of Amsterdam
+ * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <stdlib.h>
@@ -38,6 +38,11 @@
 #include "Romberg.h"
 #include "memory.h"
 #include "io.h"
+
+/* SEMI-GLOBAL VARIABLES */
+
+/* defined and initialized in crossec.c */
+extern int full_al_range;
 
 /* LOCAL VARIABLES */
 
@@ -277,17 +282,18 @@ static double InnerTrapzd(const int fixed,double *res,const int n)
 
 /*============================================================*/
 
-static double InnerRomberg(const int fixed,double *res)
+static double InnerRomberg(const int fixed,double *res,const int onepoint)
   /* Integrate (average) func for fixed theta=fixed; returns estimate of the absolute error
      (for the first element); if function is periodic then only the first column of the table
-     is used  - i.e. trapezoid rule */
+     is used  - i.e. trapezoid rule; if onepoint is TRUE only one point is used for evaluation,
+     this is used e.g. for theta==0, when all phi points are equivalent */
 {
   int m,m0,comp;
   double abs_res,abs_err; /* norms of result and error */
   double int_err; /* absolute error of previous layer integration */
   double err;
 
-  if (input[PHI].Grid_size==1) {  /* if only one point */
+  if (input[PHI].Grid_size==1 ||  onepoint) {  /* if only one point (really or assumed) */
     int_err=(*func)(fixed,0,res);
     N_eval++;
     return int_err;
@@ -340,11 +346,12 @@ static double OuterInitT(double *res)
   double err;
 
   /* calculate first point */
-  err=InnerRomberg(0,res);
+  err=InnerRomberg(0,res,input[THETA].min==-1 && full_al_range);
 
   if (!input[THETA].equival) {
     /* calculate last point */
-    err=0.5*(err+InnerRomberg(input[THETA].Grid_size-1,dummy_out));
+    err=0.5*(err
+       +InnerRomberg(input[THETA].Grid_size-1,dummy_out,input[THETA].max==1 && full_al_range));
     for (comp=0;comp<dim;++comp)
       res[comp] = 0.5*(dummy_out[comp]+res[comp]);
   }
@@ -367,7 +374,7 @@ static double OuterTrapzd(double *res,const int n)
   err=0;
   /* accumulate sum */
   for (j=step>>1;j<input[THETA].Grid_size;j+=step) {
-    err+=InnerRomberg(j,dummy_out);
+    err+=InnerRomberg(j,dummy_out,FALSE);
     for (comp=0;comp<dim;++comp) res[comp]+=dummy_out[comp];
   }
   /* scale it */
@@ -390,7 +397,7 @@ static double OuterRomberg(double *res)
 
   if (input[THETA].Grid_size==1) {  /* if only one point */
     N_eval=0;
-    int_err=InnerRomberg(0,res);
+    int_err=InnerRomberg(0,res,FALSE);
     fprintf(file,"single\t\t%d integrand-values were used.\n",N_eval);
     N_tot_eval+=N_eval;
     return ((res[0]==0) ? 0 : (int_err/fabs(res[0])));
