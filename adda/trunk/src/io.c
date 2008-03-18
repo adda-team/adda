@@ -26,7 +26,7 @@
 /* SEMI-GLOBAL VARIABLES */
 
 /* defined and initialized in param.c */
-extern char logname[];
+extern const char logname[];
 
 /* LOCAL VARIABLES */
 

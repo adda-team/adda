@@ -42,7 +42,7 @@
 /* SEMI-GLOBAL VARIABLES */
 
 /* defined and initialized in crossec.c */
-extern int full_al_range;
+extern const int full_al_range;
 
 /* LOCAL VARIABLES */
 

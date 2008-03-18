@@ -32,7 +32,7 @@ extern double *E2_alldir,*E2_alldir_buffer;
 extern const doublecomplex cc[][3];
 extern doublecomplex *expsX,*expsY,*expsZ;
 /* defined and initialized in GenerateB.c */
-extern double beam_center_0[3];
+extern const double beam_center_0[3];
 /* defined and initialized in param.c */
 extern const double prop_0[3],incPolX_0[3],incPolY_0[3];
 extern const int ScatRelation;
