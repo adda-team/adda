@@ -74,8 +74,8 @@
 #define MAX_WORD          10   /* maximum length of a short word */
 #define MAX_LINE          50   /* maximum length of a line */
   /* size of buffer for reading lines (longer lines are handled robustly) */
-#define BUF_LINE       100
-#define MAX_PARAGRAPH  500   /* maximum length of a paragraph (few lines) */
+#define BUF_LINE       150
+#define MAX_PARAGRAPH  600   /* maximum length of a paragraph (few lines) */
 /* derived sizes */
   /* maximum string to create directory */
 #define MAX_DIRSYS  (MAX_DIRNAME + MAX_SYSTEM_CALL)
@@ -244,6 +244,11 @@
 
 /* number of components of D */
 #define NDCOMP 6
+
+/* shape formats; numbers should be nonnegative */
+#define SF_TEXT       0  /* ADDA text format for one-domain particles */
+#define SF_TEXT_EXT   1  /* ADDA text format for multi-domain particles */
+#define SF_DDSCAT     2  /* DDSCAT 6.1 format (FRMFIL), produced by calltarget */  
 
 /**************   Global Defines and Data structures (all for LogError) *****************/
 

@@ -60,7 +60,7 @@ extern const int volcor_used;
 extern const char sh_form_str[];
 extern const int gr_N;
 extern const double gr_vf_real;
-extern double mat_count[];
+extern const double mat_count[];
 
 /* used in CalculateE.c */
 int store_int_field; /* save full internal fields to text file */
@@ -110,6 +110,7 @@ double gr_vf;                    /* granules volume fraction */
 double gr_d;                     /* granules diameter */
 int gr_mat;                      /* domain number to granulate */
 double a_eq;                     /* volume-equivalent radius of the particle */
+int sg_format;                   /* format for saving geometry files */
 
 /* LOCAL VARIABLES */
 
@@ -237,6 +238,7 @@ PARSE_FUNC(prop);
 PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
 PARSE_FUNC(scat_grid_inp);
+PARSE_FUNC(sg_format);
 PARSE_FUNC(shape);
 PARSE_FUNC(size);
 PARSE_FUNC(store_beam);
@@ -373,6 +375,11 @@ static struct opt_struct options[]={
   {PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "\
      "angles for calculating Mueller matrix (possibly integrated over 'phi').\n"\
      "Default: " FD_SCAT_PARMS,1,NULL},
+  {PAR(sg_format),"{text|text_ext|ddscat}","Specifies format for saving geometry files. First two "\
+     "are ADDA default formats for single- and multi-domain particles respectively. 'text' is "\
+     "automatically changed to 'text_ext' for multi-domain particles. DDSCAT format corresponds to "\
+     "its shape option FRMFIL and output of 'calltarget' utility (version 6.1).\n"\
+     "Default: text",1,NULL},
   {PAR(shape),"<type> [<arg1>...]","Sets shape of the particle, either predefined or 'read' from "\
      "file. All the parameters of predefined shapes are floats.\n"\
      "Default: sphere",UNDEF,shape_opt},
@@ -951,6 +958,13 @@ PARSE_FUNC(scat_grid_inp)
   TestStrLength(argv[1],MAX_FNAME);
   strcpy(scat_grid_parms,argv[1]);
 }
+PARSE_FUNC(sg_format)
+{
+  if (strcmp(argv[1],"text")==0) sg_format=SF_TEXT;
+  else if (strcmp(argv[1],"text_ext")==0) sg_format=SF_TEXT_EXT;
+  else if (strcmp(argv[1],"ddscat")==0) sg_format=SF_DDSCAT;
+  else NotSupported("Geometry format",argv[1]);
+}
 PARSE_FUNC(shape)
 {
   int i,j,found;
@@ -1264,6 +1278,7 @@ void InitVariables(void)
   symX=symY=symZ=symR=TRUE;
   anisotropy=FALSE;
   save_memory=FALSE;
+  sg_format=SF_TEXT;
   memory=0;
   Ncomp=1;
 }
