@@ -1030,7 +1030,7 @@ PARSE_FUNC(sym)
 {
   if (strcmp(argv[1],"auto")==0) sym_type=SYM_AUTO;
   else if (strcmp(argv[1],"no")==0) sym_type=SYM_NO;
-  else if (strcmp(argv[1],"enf")==0) sym_type=SYM_NO;
+  else if (strcmp(argv[1],"enf")==0) sym_type=SYM_ENF;
   else NotSupported("Symmetry option",argv[1]);
 }
 PARSE_FUNC(test)
