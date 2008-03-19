@@ -45,7 +45,6 @@ int phi_integr;   /* integrate over the phi angle */
 int reduced_FFT;  /* reduced number of storage for FFT, when matrix is symmetric */
 int orient_avg;   /* whether to use orientation averaging*/
 int load_chpoint; /* whether to load checkpoint */
-int NoSymmetry;   /* do not use particle symmetries (unless enforced) */
 int beam_asym;    /* whether the beam center is shifted relative to the origin */
 int sh_granul;    /* whether to fill one domain with granules */
 int anisotropy;   /* whether the scattering medium is anisotropic */

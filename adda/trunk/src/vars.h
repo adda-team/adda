@@ -32,9 +32,8 @@ extern int beamtype;
 extern int symX,symY,symZ,symR;
 
 /* flags (TRUE or FALSE) */
-extern int prognose,yzplane,all_dir,scat_grid,phi_integr,sh_granul,
-           reduced_FFT,orient_avg,load_chpoint,NoSymmetry,beam_asym,anisotropy,
-           save_memory;
+extern int prognose,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
+           load_chpoint,beam_asym,anisotropy,save_memory;
 /* 3D vectors */
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 

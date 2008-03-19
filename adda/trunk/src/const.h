@@ -180,6 +180,11 @@
 #define PHI_COS4     8     /* integrate with cos(4*phi) */
 #define PHI_SIN4     16    /* integrate with sin(4*phi) */
 
+/* ways to treat particle symmetries */
+#define SYM_AUTO     0     /* automatic */
+#define SYM_NO       1     /* do not take into account */
+#define SYM_ENF      2     /* enforce */
+
 /* types of checkpoint (to save) */
 #define CHP_NONE     0  /* do not save checkpoint */
 #define CHP_NORMAL   1  /* save checkpoint if not finished in time and exit */

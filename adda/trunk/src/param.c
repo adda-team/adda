@@ -95,7 +95,7 @@ double eps;                      /* relative error to reach */
 int shape;                       /* particle shape definition */
 int sh_Npars;                    /* number of shape parameters */
 double sh_pars[MAX_N_SH_PARMS];  /* storage for shape parameters */
-int symmetry_enforced;           /* enforce use of all symmetries; suppresses NoSymmetry */
+int sym_type;                    /* how to treat particle symmetries */
 double sizeX;                    /* size of particle along x-axis */
 double dpl;                      /* number of dipoles per lambda (wavelength) */
 double lambda;                   /* incident wavelength (in vacuum) */
@@ -393,8 +393,9 @@ static struct opt_struct options[]={
   {PAR(store_int_field),"","Save internal fields to a file",0,NULL},
   {PAR(store_scat_grid),"",
      "Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
-  {PAR(sym),"{no|enf}","Do not take into account ('no') or enforce ('enf') all particle symmetries",
-     1,NULL},
+  {PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take "\
+     "them into account ('no'), or enforce them ('enf').\n"\
+     "Default: auto",1,NULL},
   {PAR(test),"","Begin name of the output directory with 'test' instead of 'run'",0,NULL},
   {PAR(V),"","Show ADDA version, compiler used to build this executable, and copyright information",
      0,NULL},
@@ -1027,8 +1028,9 @@ PARSE_FUNC(store_scat_grid)
 }
 PARSE_FUNC(sym)
 {
-  if (strcmp(argv[1],"no")==0) NoSymmetry=TRUE;
-  else if (strcmp(argv[1],"enf")==0) symmetry_enforced=TRUE;
+  if (strcmp(argv[1],"auto")==0) sym_type=SYM_AUTO;
+  else if (strcmp(argv[1],"no")==0) sym_type=SYM_NO;
+  else if (strcmp(argv[1],"enf")==0) sym_type=SYM_NO;
   else NotSupported("Symmetry option",argv[1]);
 }
 PARSE_FUNC(test)
@@ -1243,8 +1245,7 @@ void InitVariables(void)
   ScatRelation=SQ_DRAINE;
   IntRelation=G_POINT_DIP;
   IterMethod=IT_QMR_CS;
-  NoSymmetry=FALSE;
-  symmetry_enforced=FALSE;
+  sym_type=SYM_AUTO;
   prognose=FALSE;
   maxiter=UNDEF;
   jagged=1;
@@ -1411,7 +1412,7 @@ void VariablesInterconnect(void)
   /* initialize averaging over orientation */
   if (orient_avg) {
     ReadAvgParms(avg_parms);
-    NoSymmetry=TRUE;
+    if (sym_type==SYM_AUTO) sym_type=SYM_NO;
     avg_inc_pol=TRUE;
   }
   else {
@@ -1420,7 +1421,7 @@ void VariablesInterconnect(void)
     /* if not default incidence, break the symmetry completely. This can be improved to
        account for some special cases, however, then symmetry of Gaussian beam should be
        treated more thoroughly than now. */
-    if (prop[2]!=1) NoSymmetry=TRUE;
+    if (prop[2]!=1 && sym_type==SYM_AUTO) sym_type=SYM_NO;
   }
 }
 
@@ -1648,9 +1649,9 @@ void PrintInfo(void)
       fprintf(logfile,"Iterative Method: Bi-CG (complex symmetric)\n");
     else if (IterMethod==IT_QMR_CS)
       fprintf(logfile,"Iterative Method: QMR (complex symmetric)\n");
-    /* log Symmetry options */
-    if (symmetry_enforced) fprintf(logfile,"Symmetry is enforced by user (warning!)\n");
-    else if (NoSymmetry) fprintf(logfile,"No symmetries are used\n");
+    /* log Symmetry options; do not print anything in case of SYM_AUTO */
+    if (sym_type==SYM_NO) fprintf(logfile,"No symmetries are used\n");
+    else if (sym_type==SYM_ENF) fprintf(logfile,"Symmetry is enforced by user (warning!)\n");
     /* log optimization method */
     if (save_memory) fprintf(logfile,"Optimization is done for minimum memory usage\n");
     else fprintf(logfile,"Optimization is done for maximum speed\n");

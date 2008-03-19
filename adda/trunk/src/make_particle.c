@@ -44,7 +44,7 @@
 /* defined and initialized in param.c */
 extern const int shape,sh_Npars;
 extern const double sh_pars[];
-extern const int symmetry_enforced;
+extern const int sym_type;
 extern const double lambda;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
@@ -1180,8 +1180,8 @@ void InitShape(void)
   if (anisotropy) for (i=0;i<Nmat;i++) symR=symR && ref_index[3*i][RE]==ref_index[3*i+1][RE]
                                                  && ref_index[3*i][IM]==ref_index[3*i+1][IM];
 
-  if (symmetry_enforced) symX=symY=symZ=symR=TRUE;
-  else if (NoSymmetry) symX=symY=symZ=symR=FALSE;
+  if (sym_type==SYM_NO) symX=symY=symZ=symR=FALSE;
+  else if (sym_type==SYM_ENF) symX=symY=symZ=symR=TRUE;
 
   /* use analytic connection between sizeX and a_eq if available */
   if (a_eq!=UNDEF && volume_ratio!=UNDEF)
