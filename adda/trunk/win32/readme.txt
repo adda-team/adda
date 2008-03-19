@@ -1,4 +1,4 @@
-                                   ADDA 0.78a
+                                   ADDA 0.78
                                   ***********
                                 "Amsterdam DDA"
 
@@ -11,12 +11,12 @@
 
              (2) Institute of Chemical Kinetics and Combustion,
                Siberian Branch of the Russian Academy of Sciences,
-                  Institutskaya 3, Novosibirsk 630090 Russia,
+                  Institutskaya 3, Novosibirsk, 630090, Russia,
                     tel: +7-383-333-3240, fax: +7-383-334-2350
 
                           email: adda@science.uva.nl
 
-                          last revised: 5 February 2008
+                          last revised: 19 March 2008
 
                    Copyright (C) 2006-2008 University of Amsterdam
         This software package is covered by the GNU General Public License.
