@@ -1,5 +1,3 @@
-                                   ADDA 0.78
-                                  ***********
                                 "Amsterdam DDA"
 
                     Maxim A. Yurkin(1,2) and Alfons G. Hoekstra(1)
@@ -16,7 +14,7 @@
 
                           email: adda@science.uva.nl
 
-                          last revised: 19 March 2008
+                          last revised: 8 April 2008
 
                    Copyright (C) 2006-2008 University of Amsterdam
         This software package is covered by the GNU General Public License.
