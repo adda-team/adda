@@ -244,7 +244,7 @@ INLINE void cDiv(const doublecomplex a,const doublecomplex b,doublecomplex c)
   }
   else {
     u=b[RE]/b[IM];
-    v=1/(a[RE]*u+a[IM]);
+    v=1/(b[RE]*u+b[IM]);
     c[RE]=(a[RE]*u+a[IM])*v;
     c[IM]=(a[IM]*u-a[RE])*v;
   }
@@ -266,7 +266,7 @@ INLINE void cDivSelf(doublecomplex a,const doublecomplex b)
   }
   else {
     u=b[RE]/b[IM];
-    v=1/(a[RE]*u+a[IM]);
+    v=1/(b[RE]*u+b[IM]);
     a[RE]=(w*u+a[IM])*v;
     a[IM]=(a[IM]*u-w)*v;
   }
