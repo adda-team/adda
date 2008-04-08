@@ -141,12 +141,13 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
           t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd*kd;   /* t1+=(b1+(b2+b3*S)*m^2)*kd^2  */
           t1[IM]+=(b2+b3*S)*m2[IM]*kd*kd;
         }
+        /* CC[i]=cm/(1-(cm/V)*t1) */
         cMultReal(1.0/V,t1,t1);
         cMultSelf(t1,cm);
         t1[RE]=1-t1[RE];
         t1[IM]=-t1[IM];
         /* 'i+j' is not robust. It assumes that only one counter is used */
-        cDiv(cm,t1,coup_con[i+j]);        /* CC[i]=cm/(1-(cm/V)*t1) */
+        cDiv(cm,t1,coup_con[i+j]);
       }
     }
   }
