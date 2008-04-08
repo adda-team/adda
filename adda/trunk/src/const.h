@@ -10,7 +10,7 @@
 #define __const_h
 
 /* version number (string) */
-#define ADDA_VERSION "0.78"
+#define ADDA_VERSION "0.78.1"
 
 /* basic constants */
 #define FALSE        0
@@ -253,7 +253,7 @@
 /* shape formats; numbers should be nonnegative */
 #define SF_TEXT       0  /* ADDA text format for one-domain particles */
 #define SF_TEXT_EXT   1  /* ADDA text format for multi-domain particles */
-#define SF_DDSCAT     2  /* DDSCAT 6.1 format (FRMFIL), produced by calltarget */  
+#define SF_DDSCAT     2  /* DDSCAT 6.1 format (FRMFIL), produced by calltarget */
 
 /**************   Global Defines and Data structures (all for LogError) *****************/
 

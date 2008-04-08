@@ -259,3 +259,11 @@ Ver. 0.78 - (19.03.08)
 + New argument 'auto' was added to '-sym' command line option to correspond to
   the general rule that one of the possible arguments is the default one. No
   functionality is changed for other arguments.
+
+----------------------------------
+Ver. 0.78.1 - 08.04.08
+
+- Critical bug in cDiv and cDivSelf functions in source file cmplx.h was fixed
+  (introduced in version 0.78). This bug made BiCGSTAB and BiCG iterative
+  solvers to fail. However, even when other two iterative solvers were used,
+  erroneous results were calculated for certain values of refractive index.
