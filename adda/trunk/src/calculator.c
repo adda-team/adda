@@ -135,7 +135,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
         t1[IM]=2*kd*kd*kd/3;                       /* t1=2/3*i*kd^3         */
         /* plus more advanced corrections */
         if (PolRelation==POL_FCD)  /* t1+=((4/3)kd^2+(2/3pi)*log((pi-kd)/(pi+kd))*kd^3) */
-          t1[RE]+=2*ONE_THIRD*kd*kd*(2*kd+INV_PI*log((PI-kd)/(PI+kd)));
+          t1[RE]+=2*ONE_THIRD*kd*kd*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
         else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
           if (PolRelation!=POL_LDR) S=prop2[i];
           t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd*kd;   /* t1+=(b1+(b2+b3*S)*m^2)*kd^2  */
