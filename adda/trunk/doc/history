@@ -267,3 +267,10 @@ Ver. 0.78.1 - 08.04.08
   (introduced in version 0.78). This bug made BiCGSTAB and BiCG iterative
   solvers to fail. However, even when other two iterative solvers were used,
   erroneous results were calculated for certain values of refractive index.
+
+----------------------------------
+Ver. 0.78.2 - 11.04.08
+
+- An implementation of a new FCD polarization prescription (-pol fcd) was
+  somewhat faulty. Correction terms of orders (kd)^2 and ln(...)(kd)^3 were
+  interchanged. Fixed.
