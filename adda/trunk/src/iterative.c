@@ -39,6 +39,7 @@
 #include "io.h"
 #include "timing.h"
 #include "function.h"
+#include "debug.h"
 
 /* maximum allowed iterations without residual decrease */
 #define MAXCOUNT_CGNR     10
@@ -46,10 +47,12 @@
 #define MAXCOUNT_BICG_CS  50000
 #define MAXCOUNT_QMR_CS   50000
 /* zero value for checks */
-#define EPS_BICGSTAB      1E-8
-#define EPS_BICG_CS       1E-8
-#define EPS_QMR_CS        1E-8
-#define EPS_QMR_CS_1      1E-40   /* problem can only occur if overflow of exponent number */
+#define EPS_BICGSTAB1     1E-16   /* for (r~.r)/(r.r) */
+#define EPS_BICGSTAB2     1E-10   /* for 1/|beta_k| */
+#define EPS_BICG_CS1      1E-10   /* for (rT.r)/(r.r) */
+#define EPS_BICG_CS2      1E-10   /* for (pT.A.p)/(rT.r) */
+#define EPS_QMR_CS1       1E-10   /* for (vT.v)/(r.r) */
+#define EPS_QMR_CS2       1E-40   /* for overflow of exponent number */
 
 /* SEMI-GLOBAL VARIABLES */
 
@@ -385,7 +388,8 @@ static void BiCGStab(const int mc)
     /* ro_k-1=r_k-1.r~ ; check for ro_k-1!=0 */
     nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
     dtmp=cAbs(ro_new)/inprodR;
-    if (dtmp<EPS_BICGSTAB)
+    D2z("(r~.r)/(r.r)=%.2g",dtmp);
+    if (dtmp<EPS_BICGSTAB1)
       LogError(EC_ERROR,ONE_POS,"BiCGStab fails: (r~.r)/(r.r) is too small (%.2g).",dtmp);
     if (count==1) nCopy(pvec,rvec); /* p_1=r_0 */
     else {
@@ -394,7 +398,8 @@ static void BiCGStab(const int mc)
       cMult(ro_old,omega,temp2);
         /* check that omega_k-1!=0 */
       dtmp=cAbs(temp2)/cAbs(temp1);
-      if (dtmp<EPS_BICGSTAB)
+      D2z("1/|beta_k|=%.2g",dtmp);
+      if (dtmp<EPS_BICGSTAB2)
         LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small (%.2g).",dtmp);
       cDiv(temp1,temp2,beta);
       /* p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1 */
@@ -470,7 +475,8 @@ static void BiCG_CS(const int mc)
     nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
     abs_ro_new=cAbs(ro_new);
     dtmp=abs_ro_new/inprodR;
-    if (dtmp<EPS_BICG_CS)
+    D2z("(rT.r)/(r.r)=%.2g",dtmp);
+    if (dtmp<EPS_BICG_CS1)
       LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is too small (%.2g).",dtmp);
     if (count==1) nCopy(pvec,rvec); /* p_1=r_0 */
     else {
@@ -484,7 +490,8 @@ static void BiCG_CS(const int mc)
     /* mu_k=p_k.q_k; check for mu_k!=0 */
     nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
     dtmp=cAbs(mu)/abs_ro_new;
-    if (dtmp<EPS_BICG_CS)
+    D2z("(pT.A.p)/(rT.r)=%.2g",dtmp);
+    if (dtmp<EPS_BICG_CS2)
       LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (pT.A.p)/(rT.r) is too small (%.2g).",dtmp);
     /* alpha_k=ro_k/mu_k */
     cDiv(ro_new,mu,alpha);
@@ -571,7 +578,8 @@ static void QMR_CS(const int mc)
     tstart=GET_TIME();
     /* check for zero beta */
     dtmp1=cAbs2(beta)/inprodR;
-    if (dtmp1<EPS_QMR_CS)
+    D2z("(vT.v)/(r.r)=%.2g",dtmp1);
+    if (dtmp1<EPS_QMR_CS1)
       LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(r.r) is too small (%.2g).",dtmp1);
     /* A.v_k; alpha_k=v_k(*).(A.v_k) */
     MatVec(v,Avecbuffer,NULL,FALSE);
@@ -607,7 +615,7 @@ static void QMR_CS(const int mc)
     zetaabs=sqrt(dtmp2+dtmp1);
     dtmp1=sqrt(dtmp2);          /* dtmp1=|zeta~_k| */
     /* if (|zeta~_k|==0) zeta_k=|zeta_k|; else zeta=|zeta_k|*zeta~_k/|zeta~_k| */
-    if (dtmp1<EPS_QMR_CS_1) {
+    if (dtmp1<EPS_QMR_CS2) {
       zeta[RE]=zetaabs;
       zeta[IM]=0.0;
     }

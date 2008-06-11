@@ -22,15 +22,13 @@
 
 # define D(p)        DebugPrintf(__FILE__, __LINE__, p)
 # define D2(p,a)     DebugPrintf(__FILE__, __LINE__, p,a)
-# define D3(p,a,b)   DebugPrintf(__FILE__, __LINE__, p,a,b)
-# define D4(p,a,b,c) DebugPrintf(__FILE__, __LINE__, p,a,b,c)
+# define D2z(p,a)    if (ringid==ROOT) DebugPrintf(__FILE__, __LINE__, p,a)
 void DebugPrintf(const char *fname,int line,const char *fmt, ...) ATT_PRINTF(3,4);
 void FieldPrint(doublecomplex *x) ATT_UNUSED;
 #else
 # define D(p)
 # define D2(p,a)
-# define D3(p,a,b)
-# define D4(p,a,b,c)
+# define D2z(p,a)
 #endif
 
 #endif /*__debug_h*/
