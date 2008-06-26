@@ -393,11 +393,13 @@ static void fftInitBeforeD(const int lengthZ)
     /* initialize fft before initialization of Dmatrix */
 {
 #ifdef FFTW3
-  planYf_Dm=fftw_plan_many_dft(1,(int *)&gridY,gridZ,slice_tr,NULL,1,gridY,
+  int grXint=gridX,grYint=gridY,grZint=gridZ;  /* this is needed to provide 'int *' to grids */
+
+  planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,
                                slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
-  planZf_Dm=fftw_plan_many_dft(1,(int *)&gridZ,gridY,slice,NULL,1,gridZ,
+  planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,
                                slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
-  planXf_Dm=fftw_plan_many_dft(1,(int *)&gridX,lengthZ*D2sizeY,D2matrix,NULL,1,gridX,
+  planXf_Dm=fftw_plan_many_dft(1,&grXint,lengthZ*D2sizeY,D2matrix,NULL,1,gridX,
                                D2matrix,NULL,1,gridX,FFT_FORWARD,PLAN_FFTW_DM);
 #elif defined(FFT_TEMPERTON)
   int size,nn;
@@ -426,6 +428,7 @@ static void fftInitAfterD(void)
 #ifdef FFTW3
   int lot;
   fftw_iodim dims,howmany_dims[2];
+  int grYint=gridY;  /* this is needed to provide 'int *' to gridY */
 # ifdef PRECISE_TIMING
   SYSTEM_TIME tvp[13];
 # endif
@@ -435,12 +438,12 @@ static void fftInitAfterD(void)
   GetTime(tvp);
 # endif
   lot=3*gridZ;
-  planYf=fftw_plan_many_dft(1,(int *)&gridY,lot,slices_tr,NULL,1,gridY,
+  planYf=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,
                             slices_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW);
 # ifdef PRECISE_TIMING
   GetTime(tvp+1);
 # endif
-  planYb=fftw_plan_many_dft(1,(int *)&gridY,lot,slices_tr,NULL,1,gridY,
+  planYb=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,
                             slices_tr,NULL,1,gridY,FFT_BACKWARD,PLAN_FFTW);
 # ifdef PRECISE_TIMING
   GetTime(tvp+2);

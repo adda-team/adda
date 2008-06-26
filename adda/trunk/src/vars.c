@@ -93,7 +93,9 @@ time_t chp_time;           /* time of checkpoint (in sec) */
 char chp_dir[MAX_DIRNAME]; /* directory name to save/load checkpoint */
 
 /* auxillary grids and their partition over processors */
-size_t gridX,gridY,gridZ;       /* sizes of the 'matrix' X, size_t - to remove type conversions */
+size_t gridX,gridY,gridZ;       /* sizes of the 'matrix' X, size_t - to remove type conversions
+                                   we assume that 'int' is enough for it, but this declaration is to
+                                   avoid typecasting in calculations */
 size_t gridYZ;                  /* gridY*gridZ */
 size_t smallY,smallZ;           /* the size of the reduced matrix X */
 size_t local_Nsmall;            /* number of  points of expanded grid per one processor */
