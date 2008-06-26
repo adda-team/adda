@@ -1470,13 +1470,15 @@ void DirectoryLog(const int argc,char **argv)
     if (ptmp!=NULL) *ptmp='_';
     sprintf(directory,"%s%03i_%s_g%i%s",run_name,Nexp,shapename,boxX,sbuffer);
 #ifdef PARALLEL
-    /* add PBS or SGE job id to the directory name if available */
-    if ((ptmp=getenv("PBS_JOBID"))!=NULL) {
-      /* jobid is truncated at first "." */
+    /* add PBS, SGE or SLURM job id to the directory name if available */
+    if ((ptmp=getenv("PBS_JOBID"))==NULL)
+      if ((ptmp=getenv("JOB_ID"))==NULL)
+        ptmp=getenv("SLURM_JOBID");
+    if (ptmp!=NULL) {
+      /* jobid is truncated at first ".", probably can happen only for PBS */
       if ((ptmp2=strchr(ptmp,'.'))!=NULL) *ptmp2=0;
+      sprintf(directory+strlen(directory),"id%s",ptmp);
     }
-    else ptmp=getenv("JOB_ID");
-    if (ptmp!=NULL) sprintf(directory+strlen(directory),"id%s",ptmp);
 #endif
   }
   /* make new directory and print info */
