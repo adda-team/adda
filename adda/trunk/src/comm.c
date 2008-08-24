@@ -477,8 +477,10 @@ void ParSetup(void)
   local_Nz=local_z1-local_z0;
   local_Nx=local_x1-local_x0;
   local_Ndip=MultOverflow(boxX*(size_t)boxY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
-  printf("%i :  %i %i %i %u %u \n",
-         ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
+  printf("%i :  %i %i %i %lu %lu \n",
+         ringid,local_z0,local_z1_coer,local_z1,(unsigned long)local_Ndip,(unsigned long)local_Nx);
+         // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+         // argument is not yet supported by all target compiler environmets
 }
 
 /*===========================================*/

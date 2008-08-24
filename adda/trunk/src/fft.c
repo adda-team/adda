@@ -917,7 +917,10 @@ void InitDmatrix(void)
   mem+=12*smallY*((double)(local_Nz*local_Nx))*sizeof(double);
 #endif
   /* printout some information */
-  FPRINTZ(logfile,"The FFT grid is: %ux%ux%u\n",gridX,gridY,gridZ);
+  FPRINTZ(logfile,"The FFT grid is: %lux%lux%lu\n",(unsigned long)gridX,(unsigned long)gridY,
+                  (unsigned long)gridZ);
+      // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+      // argument is not yet supported by all target compiler environmets
 #ifdef PARALLEL
   PRINTBOTHZ(logfile,"Memory usage for MatVec matrices (per processor): %.1f Mb\n",mem/MBYTE);
 #else

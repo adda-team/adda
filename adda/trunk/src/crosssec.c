@@ -167,11 +167,34 @@ INLINE void ScanInt(FILE *file,const char *fname,  /* arguments of the ReadLineS
   ReadLineStart(file,fname,buf,buf_size,start);
   if (sscanf(buf+strlen(start),"%lf",&tmp)!=1) LogError(EC_ERROR,ONE_POS,
             "Error reading value after '%s' in file '%s'",start,fname);
-  if (tmp <INT_MIN || tmp>INT_MAX) LogError(EC_ERROR,ONE_POS,
+  if (tmp<INT_MIN || tmp>INT_MAX) LogError(EC_ERROR,ONE_POS,
             "Value after '%s' in file '%s' is out of integer bounds",start,fname);
   if (sscanf(buf+strlen(start),"%d",res)!=1) LogError(EC_ERROR,ONE_POS,
             "Error reading value after '%s' in file '%s'",start,fname);
 
+}
+
+/*=====================================================================*/
+
+INLINE void ScanSizet(FILE *file,const char *fname,  /* arguments of the ReadLineStart function */
+                      char *buf,const int buf_size,const char *start,     /* ... */
+                      size_t *res)  /* result */
+  // scans integer value from a line starting with exactly 'start'
+  // conversion from (unsigned long) is needed (to remove warnings) because %z printf
+  // argument is not yet supported by all target compiler environmets
+
+{
+  double tmp;
+  unsigned long res_tmp;
+
+  ReadLineStart(file,fname,buf,buf_size,start);
+  if (sscanf(buf+strlen(start),"%lf",&tmp)!=1) LogError(EC_ERROR,ONE_POS,
+            "Error reading value after '%s' in file '%s'",start,fname);
+  if (tmp<0 || tmp>SIZE_MAX) LogError(EC_ERROR,ONE_POS,
+            "Value after '%s' in file '%s' is out of size_t bounds",start,fname);
+  if (sscanf(buf+strlen(start),"%lu",&res_tmp)!=1) LogError(EC_ERROR,ONE_POS,
+            "Error reading value after '%s' in file '%s'",start,fname);
+  *res=(size_t)res_tmp;
 }
 
 /*=====================================================================*/
@@ -277,13 +300,9 @@ static int ScanAngleSet(FILE *file,const char *fname, /* opened file and filenam
 {
   size_t i;
   double unit;
-  int value;
 
   ScanString(file,fname,buf,buf_size,"type=",temp);
-  ScanInt(file,fname,buf,buf_size,"N=",&value);
-  if (value<=0) LogError(EC_ERROR,ONE_POS,
-                       "Number of angles in file '%s' (after 'N=') must be positive",fname);
-  else a->N=value;
+  ScanSizet(file,fname,buf,buf_size,"N=",&(a->N));
   /* initialize angle array */
   MALLOC_VECTOR(a->val,double,a->N,ALL);
   memory += a->N*sizeof(double);
@@ -338,12 +357,14 @@ void ReadAvgParms(const char *fname)
   FCloseErr(input,fname,ALL_POS);
   /* print info to string */
   SPRINTZ(avg_string,
-    "alpha: from %g to %g in %u steps\n"\
-    "beta: from %g to %g in (up to) %u steps (equally spaced in cosine values)\n"\
-    "gamma: from %g to %g in (up to) %u steps\n"\
+    "alpha: from %g to %g in %lu steps\n"\
+    "beta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"\
+    "gamma: from %g to %g in (up to) %lu steps\n"\
     "see file 'log_orient_avg' for details\n",
-    alpha_int.min,alpha_int.max,alpha_int.N,beta_int.min,beta_int.max,beta_int.N,
-    gamma_int.min,gamma_int.max,gamma_int.N);
+    alpha_int.min,alpha_int.max,(unsigned long)alpha_int.N,beta_int.min,beta_int.max,
+    (unsigned long)beta_int.N,gamma_int.min,gamma_int.max,(unsigned long)gamma_int.N);
+      // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+      // argument is not yet supported by all target compiler environmets
 
   D("ReadAvgParms finished");
 }
@@ -370,10 +391,13 @@ void ReadAlldirParms(const char *fname)
   /* print info */
   FPRINTZ(logfile,
     "\nScattered field is calculated for all directions (for integrated scattering quantities)\n"\
-    "theta: from %g to %g in (up to) %u steps (equally spaced in cosine values)\n"\
-    "phi: from %g to %g in (up to) %u steps\n"\
+    "theta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"\
+    "phi: from %g to %g in (up to) %lu steps\n"\
     "see files 'log_int_***' for details\n\n",
-    theta_int.min,theta_int.max,theta_int.N,phi_int.min,phi_int.max,phi_int.N);
+    theta_int.min,theta_int.max,(unsigned long)theta_int.N,phi_int.min,phi_int.max,
+    (unsigned long)phi_int.N);
+      // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+      // argument is not yet supported by all target compiler environmets
 
   D("ReadAlldirParms finished");
 }
@@ -385,7 +409,7 @@ void ReadScatGridParms(const char *fname)
 {
   FILE *input;
   char buf[BUF_LINE],temp[BUF_LINE];
-  int theta_type,phi_type,value;
+  int theta_type,phi_type;
   size_t i;
 
   /* open file */
@@ -411,10 +435,7 @@ void ReadScatGridParms(const char *fname)
     if (phi_integr)
       LogError(EC_ERROR,ONE_POS,"Integration over phi can't be done with 'global_type=pairs'");
     angles.type = SG_PAIRS;
-    ScanInt(input,fname,buf,BUF_LINE,"N=",&value);
-    if (value<=0) LogError(EC_ERROR,ONE_POS,
-                         "Number of angle pairs in file '%s' (after 'N=') must be positive",fname);
-    else angles.N=value;
+    ScanSizet(input,fname,buf,BUF_LINE,"N=",&(angles.N));
     angles.theta.N=angles.phi.N=angles.N;
     /* malloc angle arrays */
     MALLOC_VECTOR(angles.theta.val,double,angles.N,ALL);
@@ -433,25 +454,27 @@ void ReadScatGridParms(const char *fname)
   else LogError(EC_ERROR,ONE_POS,"Unknown global_type '%s' in file '%s'",temp,fname);
   /* close file */
   FCloseErr(input,fname,ALL_POS);
-  /* print info */
+  // print info
+  // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+  // argument is not yet supported by all target compiler environmets
   if (ringid==ROOT) {
     fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
     if (angles.type==SG_GRID) {
       if (theta_type==SG_RANGE)
-        fprintf(logfile,"theta: from %g to %g in %u steps\n",
-                angles.theta.min,angles.theta.max,angles.theta.N);
+        fprintf(logfile,"theta: from %g to %g in %lu steps\n",
+                angles.theta.min,angles.theta.max,(unsigned long)angles.theta.N);
       else if (theta_type==SG_VALUES)
-        fprintf(logfile,"theta: %u given values\n",angles.theta.N);
+        fprintf(logfile,"theta: %lu given values\n",(unsigned long)angles.theta.N);
       if (phi_type==SG_RANGE) {
-        fprintf(logfile,"phi: from %g to %g in %u steps\n",
-                angles.phi.min,angles.phi.max,angles.phi.N);
+        fprintf(logfile,"phi: from %g to %g in %lu steps\n",
+                angles.phi.min,angles.phi.max,(unsigned long)angles.phi.N);
         if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
       }
       else if (phi_type==SG_VALUES)
-        fprintf(logfile,"phi: %u given values\n",angles.phi.N);
+        fprintf(logfile,"phi: %lu given values\n",(unsigned long)angles.phi.N);
     }
     else if (angles.type==SG_PAIRS)
-      fprintf(logfile,"Total %u given (theta,phi) pairs\n",angles.N);
+      fprintf(logfile,"Total %lu given (theta,phi) pairs\n",(unsigned long)angles.N);
     fprintf(logfile,"\n");
   }
   D("ReadScatGridParms finished");
@@ -733,7 +756,8 @@ void CalcScatGrid(const char which)
 
       point++;
       if (((10*point)%angles.N)<10) {
-        PRINTZ(" %u%%",100*point/angles.N);
+        // the value is always from 0 to 100, so conversion to int is absolutely safe
+        PRINTZ(" %d%%",(int)(100*point/angles.N));
         FFLUSHZ(stdout);
       }
     }

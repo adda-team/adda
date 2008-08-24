@@ -72,7 +72,9 @@ double mat_count[MAX_NMAT+1];    /* number of dipoles in each domain */
 
 static const char geom_format[]="%d %d %d\n";              /* format of the geom file */
 static const char geom_format_ext[]="%d %d %d %d\n";       /* extended format of the geom file */
-static const char ddscat_format[]="%d %d %d %d %d %d %d\n";/* ddscat shape format (FRMFIL) */
+// C99 allows use of %zu for size_t variables, but this is not supported by MinGW due to dependence
+// on Microsoft libraries
+static const char ddscat_format[]="%ld %d %d %d %d %d %d\n";/* ddscat shape format (FRMFIL) */
 static double volume_ratio;    /* ratio of scatterer volume to enclosing cube;
                                   used for dpl correction and initialization by a_eq */
 static double Ndip;            /* total number of dipoles (in a circumscribing cube) */
@@ -151,7 +153,9 @@ static void SaveGeometry(void)
   else if (sg_format==SF_DDSCAT) for(i=0;i<local_nvoid_Ndip;i++) {
     j=3*i;
     mat=material[i]+1;
-    fprintf(geom,ddscat_format,i+1,position[j],position[j+1],position[j+2],mat,mat,mat);
+    fprintf(geom,ddscat_format,(long)(i+1),position[j],position[j+1],position[j+2],mat,mat,mat);
+    // conversion to long is needed (to remove warnings) because %z printf
+    // argument is not yet supported by all target compiler environmets
   }
   FCloseErr(geom,fname,ALL_POS);
 #ifdef PARALLEL
@@ -228,7 +232,8 @@ static void InitDipFile(const char *fname,int * bX,int *bY,int *bZ,int *Nm)
       this funstion opens file for reading, the file is closed in ReadDipFile */
 {
   int x,y,z,mat,line,scanned,mustbe,skiplines,anis_warned;
-  int t1,t2,t3; /* dumb variables */
+  long tl;   /* dumb variable */
+  int t2,t3; /* dumb variables */
   int maxX,maxY,maxZ,maxN;
   char formtext[MAX_LINE];
 
@@ -240,7 +245,7 @@ static void InitDipFile(const char *fname,int * bX,int *bY,int *bZ,int *Nm)
   if (line<=DDSCAT_HL) {
     SkipNLines(dipfile,DDSCAT_HL-line);
     if (FgetsError(dipfile,fname,&line,POSIT)!=NULL
-        && sscanf(linebuf,ddscat_format,&t1,&x,&y,&z,&mat,&t2,&t3)==7) {
+        && sscanf(linebuf,ddscat_format,&tl,&x,&y,&z,&mat,&t2,&t3)==7) {
       read_format=SF_DDSCAT;
       strcpy(formtext,"DDSCAT format (FRMFIL)");
       mustbe=7;
@@ -284,13 +289,13 @@ static void InitDipFile(const char *fname,int * bX,int *bY,int *bZ,int *Nm)
     else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
         /* for ddscat format, only first material is used, other two are ignored */
     else if (read_format==SF_DDSCAT) {
-      scanned=sscanf(linebuf,ddscat_format,&t1,&x,&y,&z,&mat,&t2,&t3);
-      if (!anis_warned && (t2!=t1 || t3!=t1)) {
+      scanned=sscanf(linebuf,ddscat_format,&tl,&x,&y,&z,&mat,&t2,&t3);
+      if (!anis_warned && (t2!=mat || t3!=mat)) {
         LogError(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on line %d). "\
           "ADDA ignores this anisotropy, using only the identifier of x-component of refractive "\
           "index as domain number",fname,line);
         anis_warned=TRUE;
-      }  
+      }
     }
     /* if sscanf returns EOF, that is a blank line -> just skip */
     if (scanned!=EOF) {
@@ -334,7 +339,8 @@ static void ReadDipFile(const char *fname)
       the file is opened in InitDipFile; this funstion only closes the file */
 {
   int x,y,z,x0,y0,z0,mat,scanned;
-  int t1,t2,t3; /* dumb variables */
+  long tl;   /* dumb variable */
+  int t2,t3; /* dumb variables */
   int index;
   size_t boxXY,boxX_l;
 
@@ -348,7 +354,7 @@ static void ReadDipFile(const char *fname)
     if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
     else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
     else if (read_format==SF_DDSCAT)
-      scanned=sscanf(linebuf,ddscat_format,&t1,&x0,&y0,&z0,&mat,&t2,&t3);
+      scanned=sscanf(linebuf,ddscat_format,&tl,&x0,&y0,&z0,&mat,&t2,&t3);
     /* if sscanf returns EOF, that is a blank line -> just skip */
     if (scanned!=EOF) {
       /* shift dipole position to be nonnegative */
@@ -851,14 +857,16 @@ static double PlaceGranules(void)
         MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
         LogError(EC_ERROR,ONE_POS,
           "The granule generator failed to reach required volume fraction (%g) of granules. "\
-          "%u granules were successfully placed up to a volume fraction of %g",
+          "%zu granules were successfully placed up to a volume fraction of %g",
           gr_vf,n,nd/mat_count[gr_mat]);
       }
     }
   }
-  PRINTZ("Granule generator: total random placements= %u (efficiency 1 = %g)\n"\
-         "                   possible granules= %u (efficiency 2 = %g)\n",
-         count,count_gr/(double)count,count_gr,gr_N/(double)count_gr);
+  PRINTZ("Granule generator: total random placements= %lu (efficiency 1 = %g)\n"\
+         "                   possible granules= %lu (efficiency 2 = %g)\n",
+         (unsigned long)count,count_gr/(double)count,(unsigned long)count_gr,gr_N/(double)count_gr);
+         // conversions to (unsigned long) are needed (to remove warnings) because %z printf
+         // argument is not yet supported by all target compiler environmets
   MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
   /* free everything */
   if (ringid==ROOT) {

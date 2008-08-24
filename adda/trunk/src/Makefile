@@ -122,13 +122,12 @@ ifeq ($(COMPILER),gnu)
   # You can add option '-march=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
-  COPT  = -O3 -ffast-math -funroll-loops
+  COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
   ifndef RELEASE
-    CWARN = -Wall -W -Winline -Wpointer-arith -Wcast-qual \
+    CWARN = -pedantic -Wall -W -Winline -Wpointer-arith -Wcast-qual \
             -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
-            -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter \
-            -Wno-long-long
+            -Wno-unknown-pragmas -Wno-unused-parameter -Wno-comment
   endif
 endif
 ifeq ($(COMPILER),intel9.x)
