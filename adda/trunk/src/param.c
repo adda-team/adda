@@ -111,6 +111,7 @@ double gr_d;                     /* granules diameter */
 int gr_mat;                      /* domain number to granulate */
 double a_eq;                     /* volume-equivalent radius of the particle */
 int sg_format;                   /* format for saving geometry files */
+int store_grans;                 /* whether to save granule positions to file */
 
 /* LOCAL VARIABLES */
 
@@ -244,6 +245,7 @@ PARSE_FUNC(size);
 PARSE_FUNC(store_beam);
 PARSE_FUNC(store_dip_pol);
 PARSE_FUNC(store_force);
+PARSE_FUNC(store_grans);
 PARSE_FUNC(store_int_field);
 PARSE_FUNC(store_scat_grid);
 PARSE_FUNC(sym);
@@ -390,6 +392,7 @@ static struct opt_struct options[]={
   {PAR(store_beam),"","Save incident beam to a file",0,NULL},
   {PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
   {PAR(store_force),"","Calculate the radiation force on each dipole. Requires '-Cpr_mat'",0,NULL},
+  {PAR(store_grans),"","Save granule coordinates (placed by '-granul' option) to a file",0,NULL},
   {PAR(store_int_field),"","Save internal fields to a file",0,NULL},
   {PAR(store_scat_grid),"",
      "Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
@@ -1018,6 +1021,10 @@ PARSE_FUNC(store_force)
 {
   store_force = TRUE;
 }
+PARSE_FUNC(store_grans)
+{
+  store_grans=TRUE;
+}
 PARSE_FUNC(store_int_field)
 {
   store_int_field=TRUE;
@@ -1274,6 +1281,7 @@ void InitVariables(void)
   calc_asym=FALSE;
   calc_mat_force=FALSE;
   store_force=FALSE;
+  store_grans=FALSE;
   load_chpoint=FALSE;
   sh_granul=FALSE;
   symX=symY=symZ=symR=TRUE;

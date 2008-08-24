@@ -211,6 +211,7 @@
 #define F_INTFLD        "IntField"
 #define F_DIPPOL        "DipPol"
 #define F_BEAM          "IncBeam"
+#define F_GRANS         "granules"
     /* suffixes */
 #define F_XSUF          "-X"
 #define F_YSUF          "-Y"
