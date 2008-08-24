@@ -1,7 +1,7 @@
                         Frequently Asked Questions
                             about Amsterdam DDA
 
-                        last revised: 3 June 2007
+                        last revised: 5 July 2008
 
 Q: I have found a bug in ADDA. What should I do?
 A: 1) Make sure you are using the latest version of ADDA (check the ADDA
@@ -14,6 +14,7 @@ A: 1) Make sure you are using the latest version of ADDA (check the ADDA
    parameters as possible without removing the bug. Also try to use defautl
    versions of input files, that you have modified.
    5) Send the results of (3) and (4) to the authors, together with all input
+
    files and Makefiles that you have used for compilation. Do not forget to
    include all the relevant output files,  at least 'log'. Please also include
    a brief description of your operation system and hardware. We will try to
@@ -69,6 +70,15 @@ A: The simplest is to specify your particle by a shape file. However, if your
    appendix of the manual on how to do it. Afterwards, please send modified
    source files to the authors so they would be incorporated in the next
    release for the benefit of the community.
+
+Q: How is the Mueller matrix, produced by ADDA, defined and/or normalized?
+A: It is defined as in Bohren & Huffman "Absorption and scattering of Light by
+   Small Particles" (1983), and it is not normalized. Some other codes may
+   compute Stokes scattering matrix, which is normalized so that 1,1-element
+   is equal to 1 after averaging over the whole solid angle. This matrix
+   should be multiplied by (pi*Csca/(lambda^2)) to get Mueller matrix. Csca is
+   the scattering cross section for unpolarized light, equal to average of
+   scattering cross sections for any two perpendicular incident polarizations.
 
 This list is far from being complete. Please send your questions to
 adda@science.uva.nl
