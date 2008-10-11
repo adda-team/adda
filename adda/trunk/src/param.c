@@ -1098,6 +1098,10 @@ PARSE_FUNC(V)
 #elif defined(__GNUC__)
 # define COMPILER "GNU"
     sprintf(ccver_str,"%d.%d.%d",__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__);
+    /* IBM */
+#elif defined(__xlc__)
+# define COMPILER "IBM"
+    strncpy(ccver_str,__xlc__,MAX_LINE-1);
     /* unknown compiler */
 #else
 # define COMPILER_UNKNOWN

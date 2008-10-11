@@ -26,27 +26,19 @@
 #CFLAGS += -DNOT_USE_LOCK
 #CFLAGS += -DONLY_LOCKFILE
 
-# --Compilers-- Choose (uncomment) one of the lines below
-
-# tested for gcc 3.2.3 and higher;
+# --Compilers-- Choose one of the following
+# gnu - tested for gcc 3.2.3 - 3.4.6
+# intel - tested on icc 9.0 and 9.1
+# compaq - tested on Compaq C V6.5-303 (dtk)
+# ibm - tested on xlc 8.0
+# other -
 COMPILER = gnu
 
-# uses -fast option, which is general, but includes static linking, which may
-# cause problems in some cases
-#COMPILER = intel9.x
-
-# the same as intel9.x but do not use static linking; it may also not use all
-# possible optimizations, depending on a particular processor
-#COMPILER = intel9.x_ns
-
-# this is almost the same as intel9.x with few changes for old version, obsolete
-#COMPILER = intel8.1
-
-# tested on Compaq C V6.5-303 (dtk)
-#COMPILER = compaq
-
-# All options should be implemented below and in sub-makefiles
-#COMPILER = other
+# Compilation mode (bits): 32 or 64
+# Although all options in this Makefile are adjusted automatically, different
+# modes may require different configurations (environments) of the system,
+# especially if MPI mode is used.
+BITS = 32
 
 # --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
@@ -91,6 +83,7 @@ LASTMPI  = .lastmpi
 SHELL    = /bin/sh
 LDLIBS   = -lm
 DEPFLAG  = -M
+DFFLAG   = -MF
 MFILES   = Makefile
 # Fortran sources generate a lot of warnings
 FWARN    = -w
@@ -111,63 +104,56 @@ ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
 else
   FSOURCE += cfft99D.f
 endif
-# if 'release' turn off warningns
-ifdef RELEASE
-  CWARN = -w
-  LWARN = -w
-endif
-# compiler warnings and optimization flags
+# compiler warnings and optimization flags;
+# when release, warning are turned off below
 FOPT    = $(COPT)
 ifeq ($(COMPILER),gnu)
-  # You can add option '-march=...' to COPT and FOPT in this section
+  # You can add option '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
-  COPT  = -std=c99 -O3 -ffast-math -funroll-loops
+  COPT  = -m$(BITS) -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
-  ifndef RELEASE
-    CWARN = -pedantic -Wall -W -Winline -Wpointer-arith -Wcast-qual \
-            -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
-            -Wno-unknown-pragmas -Wno-unused-parameter -Wno-comment
-  endif
+  CWARN = -Wall -W -Wpointer-arith -Wcast-qual \
+          -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
+          -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter
 endif
-ifeq ($(COMPILER),intel9.x)
-  CC    = icc
-  CF    = ifort
-  COPT  = -fast -fp-model fast
-  FOPT  = -fast
-  ifndef RELEASE
-    CWARN = -Wall -Wno-uninitialized -Wno-comment \
-            -wd279,810,869,981,1418,1419,1572
-  endif
-endif
-ifeq ($(COMPILER),intel9.x_ns)
+ifeq ($(COMPILER),intel)
   CC    = icc
   CF    = ifort
   COPT  = -fp-model fast -O3 -ipo -no-prec-div -xP
   FOPT  = -O3 -ipo -no-prec-div -xP
-  ifndef RELEASE
-    CWARN = -Wall -Wno-uninitialized -Wno-comment \
+  CWARN = -Wall -Wno-uninitialized -Wno-comment \
             -wd279,810,869,981,1418,1419,1572
-  endif
-endif
-ifeq ($(COMPILER),intel8.1)
-  CC    = icc
-  CF    = ifort
-  COPT  = -fast
-  ifndef RELEASE
-    CWARN = -Wall -wd9,279,810,869,981,1418,1419,1572
-  endif
 endif
 ifeq ($(COMPILER),compaq)
+  # This compiler was not tested since 2007. In particular, warning options may
+  # not fit exactly the C99 standard, to which the code was transferred.
+  # Its support for 64 bit compilations is also undefined.
+  # If you happen to use this compiler, please report results to the authors.
+  #
   # You can add option '-arch host' to COPT and FOPT in this section
   CC    = cc
   CF    = f77
   COPT  = -fast
-  ifndef RELEASE
-    CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
-  endif
+  CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
+endif
+ifeq ($(COMPILER),ibm)
+  # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
+  # machine. However, it will not work in some configurations.
+  # Then use '-O3 -qarch=... -qtune=...' instead
+  CC      = xlc
+  CF      = xlf
+  COPT    = -O3 -qcache=auto -q$(BITS) -qlanglvl=extc99
+  # DFREDIRECT = 2>nul -qipa=level=2 -qhot
+  DEPFLAG = -qmakedep=gcc -qsyntaxonly
+  CWARN   = -qsuppress=1506-224:1506-342:1500-036
 endif
 ifeq ($(COMPILER),other)
+endif
+# if 'release' turn off warningns
+ifdef RELEASE
+  CWARN = -w
+  LWARN = -w
 endif
 # Finalize option flags (almost)
 CFLAGS += $(COPT) $(CWARN)
