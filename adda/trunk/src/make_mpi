@@ -13,7 +13,7 @@
 MPICC = mpicc
 
 # Compiler dependent options
-# This are options for a particular Alpha system
+# These are options for a particular Alpha system
 ifeq ($(COMPILER),compaq)
   MPICC = cc
   LDLIBS += -lmpi -lelan
@@ -66,7 +66,7 @@ $(LASTMPI):
 # we assume that each Fortran file is completely independent
 
 $(CDEPEND): %.d: %.c $(MFILES)
-	$(MPICC) $(DEPFLAG) $(CFLAGS) $(DFFLAG) $@.$$$$; \
+	$(MPICC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
