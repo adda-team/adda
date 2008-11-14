@@ -1137,7 +1137,7 @@ PARSE_FUNC(V)
 #	define COMPILER "unknown"
 #endif
 		// print version, type and compiler information
-		printf("'Amsterdam DDA' v." ADDA_VERSION "\n");
+		printf("ADDA v." ADDA_VERSION "\n");
 #ifdef MPI
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
