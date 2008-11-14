@@ -552,7 +552,7 @@ static void QMR_CS(const int mc)
   if (load_chpoint) {
     LoadIterChpoint();
     /* change pointers names according to count parity */
-    if ((count%2)==0) SwapPointers(&v,&vtilda);
+    if (IS_EVEN(count)) SwapPointers(&v,&vtilda);
     else SwapPointers(&p_old,&p_new);
   }
   else {

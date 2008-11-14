@@ -151,7 +151,7 @@ void InitComm(int *argc_p,char ***argv_p)
   MPI_Comm_rank(MPI_COMM_WORLD,&ringid);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   /* initialize Ntrans */
-  if ((nprocs%2)==0) Ntrans=nprocs-1;
+  if (IS_EVEN(nprocs)) Ntrans=nprocs-1;
   else Ntrans=nprocs;
   /* Create MPI-type for sending dcomplex-variables */
   dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;

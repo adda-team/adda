@@ -368,7 +368,7 @@ int fftFit(int x,int divis)
   int y;
 
   if (weird_nprocs) {
-      if (divis%2!=0) divis*=2;
+      if (!IS_EVEN(divis)) divis*=2;
       return (divis*((x+divis-1)/divis));
   }
   else while (TRUE) {
@@ -382,7 +382,7 @@ int fftFit(int x,int divis)
     if (y%11==0) y/=11;
     else if (y%13==0) y/=13;
 #endif
-    if (y==1 && x%2==0 && x%divis==0) return(x);
+    if (y==1 && IS_EVEN(x) && x%divis==0) return(x);
     x++;
   }
 }
