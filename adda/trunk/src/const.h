@@ -115,7 +115,7 @@
  */
 
 // which way to calculate coupleconstant
-#define POL_CM   0 // Clausius Mossotti
+#define POL_CM   0 // Clausius-Mossotti
 #define POL_RR   1 // Radiative Reaction correction
 #define POL_LDR  2 // Lattice Dispersion Relation
 #define POL_CLDR 3 // Corrected Lattice Dispersion Relation
@@ -205,7 +205,7 @@
 // numbers less than this value (compared to unity) are considered to be zero
 #define ROUND_ERR 1E-15
 
-// output and input file and dir names (can only be changed at compile time)
+// output and input file and directory names (can only be changed at compile time)
 #define F_EXPCOUNT      "ExpCount"
 #define F_EXPCOUNT_LCK  F_EXPCOUNT ".lck"
 #define F_CS            "CrossSec"
@@ -244,7 +244,7 @@
 #define F_CHP_LOG       "chp.log"
 #define F_CHP           "chp.%d"   // ringid as argument
 
-// default file and dir names; can be changed by command line options
+// default file and directory names; can be changed by command line options
 #define FD_ALLDIR_PARMS "alldir_params.dat"
 #define FD_AVG_PARMS    "avg_params.dat"
 #define FD_SCAT_PARMS   "scat_params.dat"
@@ -254,20 +254,20 @@
 #define NDCOMP 6
 
 // shape formats; numbers should be nonnegative
-#define SF_TEXT     0  // ADDA text format for one-domain particles
-#define SF_TEXT_EXT 1  // ADDA text format for multi-domain particles
-#define SF_DDSCAT   2  // DDSCAT 6.1 format (FRMFIL), produced by calltarget
+#define SF_TEXT     0 // ADDA text format for one-domain particles
+#define SF_TEXT_EXT 1 // ADDA text format for multi-domain particles
+#define SF_DDSCAT   2 // DDSCAT 6.1 format (FRMFIL), produced by calltarget
 
 //*************   Global Defines and Data structures (all for LogError) *****************
 
-#define POSIT  __FILE__,__LINE__ // position of the error in source code
+#define POSIT __FILE__,__LINE__ // position of the error in source code
 // who definitions
-#define ALL  0 // each processor may report this error
-#define ONE  1 // only root processor reports an error
+#define ALL 0 // each processor may report this error
+#define ONE 1 // only root processor reports an error
 
 // derived; for simplicity
-#define ALL_POS  ALL,POSIT
-#define ONE_POS  ONE,POSIT
+#define ALL_POS ALL,POSIT
+#define ONE_POS ONE,POSIT
 // error codes
 #define EC_ERROR 1 // error
 #define EC_WARN  2 // warning

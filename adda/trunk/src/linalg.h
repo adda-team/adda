@@ -3,15 +3,15 @@
  * DESCR: Definitions for linear algebra operations on large vectors
  *        see source (linalg.c) for description
  *
- * Copyright (C) 2006 University of Amsterdam
+ * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #ifndef __linalg_h
 #define __linalg_h
 
-#include "types.h"    /* for doublecomplex */
-#include "function.h" /* for function attributes */
-#include "timing.h"   /* for TIME_TYPE */
+#include "types.h"    // for doublecomplex
+#include "function.h" // for function attributes
+#include "timing.h"   // for TIME_TYPE
 
 void nInit(doublecomplex *a);
 void nCopy(doublecomplex *a,doublecomplex *b);
@@ -45,4 +45,4 @@ void nMult_mat(doublecomplex *a,doublecomplex *b,doublecomplex c[][3]);
 void nMultSelf_mat(doublecomplex *a,doublecomplex c[][3]);
 void nConj(doublecomplex *a);
 
-#endif /* __linalg_h */
+#endif // __linalg_h
