@@ -79,7 +79,7 @@ static const char geom_format_ext[]="%d %d %d %d\n";       // extended format of
 /* C99 allows use of %zu for size_t variables, but this is not supported by MinGW due to dependence
  * on Microsoft libraries
  */
-static const char ddscat_format[]="%ld %d %d %d %d %d %d\n";// ddscat shape format (FRMFIL)
+static const char ddscat_format[]="%ld %d %d %d %d %d %d\n";// DDSCAT shape format (FRMFIL)
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
 static double Ndip;            // total number of dipoles (in a circumscribing cube)
@@ -251,9 +251,9 @@ static int SkipComments(FILE *file)
 #define DDSCAT_HL 6 // number of header lines in DDSCAT format
 
 static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
-/* read dipole file first to determine box sizes and Nmat;
- * input is not checked for very large numbers (integer overflows) to increase speed
- * this funstion opens file for reading, the file is closed in ReadDipFile.
+/* read dipole file first to determine box sizes and Nmat; input is not checked for very large
+ * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
+ * closed in ReadDipFile.
  */
 {
 	int x,y,z,mat,line,scanned,mustbe,skiplines,anis_warned;
@@ -264,7 +264,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 
 	dipfile=FOpenErr(fname,"r",ALL_POS);
 	read_format=UNDEF;
-	/* test for ddscat format; in not-ddscat format, the line scanned below may be a long comment;
+	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
 	 * therefore we first skip all comments
 	 */
 	line=SkipComments(dipfile);
@@ -845,7 +845,7 @@ static double PlaceGranules(void)
 				cur_Ngr=MIN(ceil((gr_N-n)*overhead),max_Ngr);
 				// generate points and quick check
 				ig=false_count=0;
-				for (ui=0;ui<gr_gN;ui++) occup[ui]=MAX_GR_SET; // used as undef
+				for (ui=0;ui<gr_gN;ui++) occup[ui]=MAX_GR_SET; // used as undefined
 				while (ig<cur_Ngr) {
 					count++;
 					false_count++;
@@ -870,7 +870,7 @@ static double PlaceGranules(void)
 					gr[2]=gr[2]*gdZ+z0;
 					index=indZ*gXY+indY*gX+indX;
 					last=CheckCell(gr,vgran,tree_index,Di2,occup[index],&fits);
-					// weird construction (7 inclosed ifs) but should be fast
+					// weird construction (7 inclosed 'if' structures) but should be fast
 					if (fits) {
 						// possible x-neighbor
 						t1*=gdX; // transform shifts to usual coordinates; done only when needed
@@ -986,7 +986,7 @@ static double PlaceGranules(void)
 				if (cur_Ngr>tmp1) cur_Ngr=(int)ceil(tmp1);
 				// generate points and quick check
 				ig=false_count=0;
-				for (ui=0;ui<gr_gN;ui++) occup[ui]=MAX_GR_SET; // used as undef
+				for (ui=0;ui<gr_gN;ui++) occup[ui]=MAX_GR_SET; // used as undefined
 				while (ig<cur_Ngr) {
 					count++;
 					// random position in a double grid
@@ -1126,7 +1126,7 @@ static double PlaceGranules(void)
 				gridspace*(vgran[3*ig+1]-cY),gridspace*(vgran[3*ig+2]-cZ));
 		Nfit=n-Nfit;
 		/* overhead is estimated based on the estimation of mean value - 1*standard deviation
-		 * for the probability of fitting one granule. It is estimated from the Bernulli statistics
+		 * for the probability of fitting one granule. It is estimated from the Bernoulli statistics
 		 * k out of n successful hits. M(p)=(k+1)/(n+2); s^2(p)=(k+1)(n-k+1)/(n+3)(n+2)^2
 		 * M(p)-s(p)=[(k+1)/(n+2)]*[1-sqrt((n-k+1)/(k+1)(n+3))];
 		 * overhead=1/latter.
@@ -1144,12 +1144,13 @@ static double PlaceGranules(void)
 			}
 		}
 	}
+	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is
+	 * not yet supported by all target compiler environments
+	 */
 	PRINTZ("Granule generator: total random placements= %lu (efficiency 1 = %g)\n"
 	       "                   possible granules= %lu (efficiency 2 = %g)\n",
 	       (unsigned long)count,count_gr/(double)count,(unsigned long)count_gr,
 	       gr_N/(double)count_gr);
-	// conversions to (unsigned long) are needed (to remove warnings) because %z printf
-	// argument is not yet supported by all target compiler environments
 	MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
 	// free everything
 	if (ringid==ROOT) {
@@ -1182,8 +1183,8 @@ static double PlaceGranules(void)
 //==========================================================
 
 static int FitBox(const int box)
-/* finds the smallest value for which program would work
- * (should be even and divide jagged); the limit is also checked
+/* finds the smallest value for which program would work (should be even and divide jagged);
+ * the limit is also checked
  */
 {
 	int res;
@@ -1198,9 +1199,8 @@ static int FitBox(const int box)
 //==========================================================
 
 void InitShape(void)
-/* perform of initialization of symmetries and boxY, boxZ
- * Estimate the volume of the particle, when not discretized.
- * Check whether enough refractive indices are specified
+/* perform of initialization of symmetries and boxY, boxZ. Estimate the volume of the particle, when
+ * not discretized. Check whether enough refractive indices are specified.
  */
 {
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
@@ -1662,7 +1662,7 @@ void MakeParticle(void)
 	cY=(boxY-1)/2.0;
 	cZ=(boxZ-1)/2.0;
 	nlocalRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"nlocalRows_tmp");
-	/* allocate temporary memory; even if prognose, since they are needed for exact estimation
+	/* allocate temporary memory; even if prognosis, since they are needed for exact estimation
 	 * they will be reallocated afterwards (when nlocalRows is known).
 	 */
 	MALLOC_VECTOR(material_tmp,uchar,local_Ndip,ALL);
@@ -1748,7 +1748,7 @@ void MakeParticle(void)
 				/* TO ADD NEW SHAPE
 				 * add an option here (in the end of 'else if' sequence). Identifier ('SH_...')
 				 * should be defined in const.h. This option should set 'mat' - index of domain for
-				 * a point, specified by {xr,yz,zr} - coordinates divided by grid size along X (xr
+				 * a point, specified by {xr,yr,zr} - coordinates divided by grid size along X (xr
 				 * from -0.5 to 0.5, others - depending on aspect ratios). C array indexing used:
 				 * mat=0 - first domain, etc. If point corresponds to void, do not set 'mat'. If you
 				 * need temporary local variables (which are used only in this part of the code),
@@ -1822,8 +1822,8 @@ void MakeParticle(void)
 		mat_count[gr_mat]-=mat_count[Nmat-1];
 		Timing_Granul=GET_TIME()-tgran;
 	}
-	/* allocate main particle arrays, using precise nlocalRows
-	 * even when '-prognose' is used to enable save_geom afterwards.
+	/* allocate main particle arrays, using precise nlocalRows even when prognosis is used to enable
+	 * save_geom afterwards.
 	 */
 	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
 	MALLOC_VECTOR(DipoleCoord,double,nlocalRows,ALL);
@@ -1852,7 +1852,7 @@ void MakeParticle(void)
 	// save geometry
 	if (save_geom) SaveGeometry();
 
-	/* adjust z-axis of position vector, to speed-up matvec a little bit
+	/* adjust z-axis of position vector, to speed-up matrix-vector multiplication a little bit;
 	 * after this point 'position(z)' is taken relative to the local_z0.
 	 */
 	if (local_z0!=0) {
