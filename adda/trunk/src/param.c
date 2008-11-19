@@ -382,7 +382,7 @@ static struct opt_struct options[]={
 	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognose'.\n"
 		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
-		"                      addedif '-granul' option is used).",UNDEF,NULL},
+		"                      added if '-granul' option is used).",UNDEF,NULL},
 	{PAR(scat),"{dr|so}","Sets prescription to calculate scattering quantities. 'so' is under "
 		"development and incompatible with '-anisotr'.\n"
 		"Default: dr",1,NULL},
@@ -483,9 +483,9 @@ void PrintErrorHelp(const char *fmt, ... )
 
 void PrintErrorHelpSafe(const char *fmt, ... )
 /* print anything to stderr (on root processor), then help on the arguments used, and stop;
- * assumes that all processors call it
- * same as PrintErrorHelp but uses no internal buffers to be safe for any input parameters,
- * which may come from a command line, at a cost of lacking line wrapping
+ * assumes that all processors call it; same as PrintErrorHelp but uses no internal buffers to be
+ * safe for any input parameters, which may come from a command line, at a cost of lacking line
+ * wrapping.
  */
 {
 	va_list args;
@@ -499,10 +499,10 @@ void PrintErrorHelpSafe(const char *fmt, ... )
 		fprintf(stderr,"\n");
 		va_end(args);
 		// add help message
-		if (opt.l1==UNDEF)     // no option is found
+		if (opt.l1==UNDEF) // no option is found
 			fprintf(stderr,"Usage: %s %s\n"
 			               "Type '%s -h' for help\n",exename,exeusage,exename);
-		else {  // at least option is found
+		else { // at least option is found
 			if (opt.l2==UNDEF) use=options[opt.l1].usage;
 			else use=options[opt.l1].sub[opt.l2].usage;
 			optname=OptionName();
@@ -519,8 +519,8 @@ void PrintErrorHelpSafe(const char *fmt, ... )
 //============================================================
 
 static void NargError(const int Narg,const char *expec)
-/* Print error of illegal number of arguments to an option (suboption);
- * and display correct usage information
+/* Print error of illegal number of arguments to an option (suboption) and display correct usage
+ * information
  */
 {
 	char buf[MAX_WORD]; // not to allocate memory if needed
@@ -605,11 +605,11 @@ INLINE void ScanfIntError(const char *str,int *res)
 
 INLINE int IsOption(const char *str)
 /* checks if string is an option. First should be '-' and then letter (any case);
- * it enables use of negative numbers as subparameters
+ * it enables use of negative numbers as sub-parameters
  */
 {
-	/* conversion to int is needed to remove warnings caused by the fact
-	 * that str[1] is _signed_ char
+	/* conversion to int is needed to remove warnings caused by the fact that str[1] is
+	 * _signed_ char
 	 */
 	return (str[0]=='-' && isalpha((int)(str[1])));
 }
@@ -691,7 +691,7 @@ PARSE_FUNC(beam)
 	found=FALSE;
 	i=-1;
 	while (beam_opt[++i].name!=NULL) if (strcmp(argv[1],beam_opt[i].name)==0) {
-		// set suboption and beamtype
+		// set suboption and beam type
 		opt.l2=i;
 		beamtype=beam_opt[i].type;
 		beam_Npars=Narg;
@@ -1030,7 +1030,7 @@ PARSE_FUNC(shape)
 		break;
 	}
 	if(!found) NotSupported("Shape type",argv[1]);
-	// set shapename; takes place only if shapename was matched above
+	// set shape name; takes place only if shape name was matched above
 	strcpy(shapename,argv[1]);
 }
 PARSE_FUNC(size)
@@ -1431,8 +1431,9 @@ void VariablesInterconnect(void)
 		JAGGED_BOX(boxZ);
 	}
 #undef JAGGED_BOX
-	//determine two incident polarizations. Equivalent to rotation of X,Y,Z basis by
-	// angles Theta and Phi from (0,0,1) to given propagation vector
+	/* Determine two incident polarizations. Equivalent to rotation of X,Y,Z basis by angles theta
+	 * and phi from (0,0,1) to given propagation vector.
+	 */
 	if (fabs(prop_0[2])>=1) { // can not be >1 except for machine precision
 		incPolX_0[0]=prop_0[2];
 		incPolY_0[1]=1;
@@ -1458,9 +1459,10 @@ void VariablesInterconnect(void)
 	else {
 		// else - initialize rotation stuff
 		InitRotation();
-		// if not default incidence, break the symmetry completely. This can be improved to
-		// account for some special cases, however, then symmetry of Gaussian beam should be
-		// treated more thoroughly than now.
+		/* if not default incidence, break the symmetry completely. This can be improved to account
+		 * for some special cases, however, then symmetry of Gaussian beam should be treated more
+		 * thoroughly than now.
+		 */
 		if (prop[2]!=1 && sym_type==SYM_AUTO) sym_type=SYM_NO;
 	}
 }
@@ -1513,7 +1515,7 @@ void DirectoryLog(const int argc,char **argv)
 		// add PBS, SGE or SLURM job id to the directory name if available
 		if ((ptmp=getenv("PBS_JOBID"))!=NULL || (ptmp=getenv("JOB_ID"))!=NULL
 			|| (ptmp=getenv("SLURM_JOBID"))!=NULL) {
-				// jobid is truncated at first ".", probably can happen only for PBS
+				// job ID is truncated at first ".", probably can happen only for PBS
 				if ((ptmp2=strchr(ptmp,'.'))!=NULL) *ptmp2=0;
 				sprintf(directory+strlen(directory),"id%s",ptmp);
 		}
@@ -1529,7 +1531,7 @@ void DirectoryLog(const int argc,char **argv)
 	else sprintf(logname,"%s/" F_LOG_ERR,directory,ringid);
 	// start logfile
 	if (ringid==ROOT) {
-		// open logfille
+		// open logfile
 		logfile=FOpenErr(logname,"w",ONE_POS);
 		// log version number
 		fprintf(logfile,"Generated by ADDA v." ADDA_VERSION "\n");
