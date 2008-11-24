@@ -15,27 +15,27 @@ Ver. 0.74 - 29.03.06
 + User manual improved.
 * 'buggy' beam type removed (obsolete).
 * '-nosym' and '-sym_enf' options combined to '-sym {no|enf}'.
-- In documentation there was option '-pol ldr avg' while actually it was
-  '-pol ldr avgpol'. It is averaging over incident polarizations
+- In documentation there was option  '-pol ldr avg' while actually it was
+  '-pol ldr avgpol'. It is averaging over incident polarizations 
   (not directions). Documentation corrected.
-+ Internal fields are now automatically collected into one file, when running
++ Internal fields are now automatically collected into one file, when running 
   in parallel mode ('IntField-X' and 'IntField-Y')
 - Saving of geometry in parallel mode could produce incomplete results (parts
   of some processors could be lost). Fixed.
-+ MPI-specific command line options are enabled. Before they could cause
++ MPI-specific command line options are enabled. Before they could cause 
   segmentation fault.
-* Geometry filename given to the command line option '-save_geom' is now
-  specified relative to the output directory (i.e. if no path is given, it is
+* Geometry filename given to the command line option '-save_geom' is now 
+  specified relative to the output directory (i.e. if no path is given, it is 
   saved into this directory).
 + Some warnings are now duplicated in the log.
-+ In parallel mode each processor (except root) produces a separate logfile, if
-  any errors or warnings were detected (on this specific processor). These files
++ In parallel mode each processor (except root) produces a separate logfile, if 
+  any errors or warnings were detected (on this specific processor). These files 
   are named 'logerr.n' where n - is a number of processor.
 * Minor changes to output format to stdout.
 + Added source files 'param.c/h'.
 + Overall robustness of the code is improved (added many consistency checks).
 + Help system added (new command line option -h).
-- Fixed small bug in file locking (it could fail unexpectedly under certain
+- Fixed small bug in file locking (it could fail unexpectedly under certain 
   circumstances).
 
 ----------------------------------
@@ -45,232 +45,3 @@ Ver. 0.74.2 - 05.04.06
 + Release option added to Makefiles (turns on/of all warnings automatically).
 - A number of minor inaccuracies in the code fixed.
 + Section describing FFTW 3 installation added to the manual.
-
-----------------------------------
-Ver. 0.75 - 24.05.06
-
-- Small bug in logging of command line fixed.
-- Function 'system' (more precisely everything that calls 'fork') could fail
-  unexpectedly under certain MPI implementations. All system calls removed.
-+ Added source file 'os.h'.
-+ Checking of errors in stdout has been added.
-+ Possible size of FFT-grid (and non-weird number of processors) has been
-  extended to full range of FFTW. One possible divisor of either 11 or 13
-  has been added.
-+ Increased robustness of makefiles with Intel compilers 8.1 and 9.0 in
-  conjunction with MPICH.
-* Sample file 'batch' renamed to 'test.pbs' in 'sample/'.
-+ Added sample script for SGE 'sample/test.sge'.
-+ Different descriptions of Gaussian beam are now fully operational. Help,
-  references added. Evaluation of extinction crosssection is modified to be
-  compliant with Gaussian beams.
-- Origin is now always in the center of the computational box (before it was
-  not so when jagged>1).
-- When x_0=E_inc was used, more iterations than necessary to reach epsilon were
-  performed. Fixed.
-* Progress reported in the first iteration after checkpoint loading was
-  incorrect in certain cases. To fix it required loss of checkpoint
-  compatibility (!!!) with earlier versions.  Some additional information is
-  shown after checkpoint loading.
-- Sometimes in parallel mode program could die of some error before producing an
-  error message. Fixed.
-* Copyright statement changed in code description and output. Now it is with
-  University of Amsterdam.
-+ Precision increased to 10 in ouput of several variables into log.
-- Calculation of Csca or g caused both polarizations to be calculated even for
-  particles that are symmetric for 90 degree rotation over the z-axis. That is
-  not necessary - fixed.
-+ Integration module significantly improved. It automatically uses trapezoid
-  rule for periodic function. Error estimates now seem to be reliable.
-* Format of parameters for integration module changed because of improvement.
-  It affects parameter files alldir_params.dat, avg_params.dat,
-  scat_params.dat, making them incompatible with previous versions.
-- Integration logs for Csca and g.x-g.z were saved in the same file for both
-  incident polarizations. Now suffix "-X" or "-Y" is added to file names.
-+ www page of ADDA is now available at
-  http://www.science.uva.nl/research/scs/Software/adda/
-
-----------------------------------
-Ver. 0.76 - 14.10.06
-
-+ Makefiles modified to include new compiler 'compaq'. New variables added to
-  set path for FFTW3 header and library.
-* Default dpl is now calculated based on the maximum absolute value among given
-  refractive indices, not the first one. dpl=10*max(|m|)
-- Removed requirement of full set of refractive indices to be given for multi-
-  domain scatterers, if '-prognose' option is used. Produces information
-  message when relevant.
-+ Added information about distribution of occupied dipoles among different
-  domains to the log file for multi-domain particles.
-* GPL license changed to version 2 - file 'copyleft' replaced.
-+ New option '-V' added to show version, compiler used, and copyright
-  information. A head with information and copyright is no more shown at every
-  run (redundant).
-+ All memory allocation routines are now called by similar-typed macros - much
-  more cleaner. Robustness of memory handling improved.
-+ Timing is now produced also when '-prognose' option is used. Communication
-  times are shown only in parallel mode. Redundant calls to calculate
-  communication timing in sequential mode removed.
-* All timing in parallel mode is now done through MPI_Wtime, which measures
-  wall time. No more timer overflows in parallel runs. New header 'timing.h' for
-  this task.
-+ Function attributes moved from 'const.h' to new header 'function.h'. Just for
-  convenience.
-- Communication timing now measures exactly communication times (synchronization
-  before some communications is added for that).
-- Memory requirement in the manual slightly corrected. The values produced by
-  the program itself were correct.
-+ New option '-granul <vol_frac> <diam> [<dom_number>]' to granulate one of the
-  domains. When this option is used '_gran' is added to shapename. Currently it
-  may easily fail for volume fraction larger than 30-40%. Separate timing is
-  produced for granule generator.
-  Two files added - 'mt19937ar.c/h' - for a random generator (Mersenne Twister).
-  The header file slightly modified from the original.
-- Bug in checkpointer fixed. Was not portable to systems where size_t!=int.
-+ Added check if file system does not support file locking; error output of file
-  locking and file removal is now more informative (errno string is shown).
-- Orientation averaging did not work in parallel (reported by Antti Penttila).
-  Fixed.
-- Symmetries were not switched off by non-symmetric Gaussian beams. Fixed.
-  Improved hadling of symmetries.
-+ Computation of scattering of a tightly focused Gaussian beam was compared to
-  multiple multipole method (data by Roman Schuh and Thomas Wriedt). Perfect
-  aggreement. Results of the comparison are added to the manual.
-+ Added chapter to the manual to facilitate adding a new predefined shape.
-+ New file 'doc/faq' added for frequently asked questions.
-+ New option '-store_beam' to save incident electric fields to a file.
-+ Starting from this release ADDA executable for WIN32 is available. It is
-  compiled with MinGW, and distributed with FFTW3 dll. Thanks to Alexander
-  Shvalov for information on MinGW.
-- ADDA crashed when one of the given refractive indices was equal to one. Check
-  for this was added, now error message is produced in this case.
-+ Added support for anisotropic refractive index (option '-anisotr'). Currently
-  it is limited to refractive index tensors that are diagonal in the particle
-  reference frame. Thanks to Michiel Min for fruitful discussions.
-
-----------------------------------
-Ver. 0.77 - (05.06.07)
-
-- Calculation of radiation forces gave segmentation fault. The bug was
-  introduced in version 0.76. Fixed.
-+ Improved handling of large integers throughout the program. 'size_t' type is
-  used wherever possible, so it should work for any problem that would fit into
-  memory. Checks of integer overflow where necessary to avoid crashes.
-+ Improved handling of input parameters to check for possible very large
-  numbers, etc. Overall robustness improved.
-+ Added checks to indicate incompatibility of orientation averaging and
-  checkpoints with some other features.
-- Consistency check for coated sphere was inaccurate. Fixed.
-- Lack of EOL in the end of the input files could cause crash, as well
-  as EOL conversion in geometry files. Fixed.
-+ Makefiles improved (overall clarity + more flexibility for MPI compiling),
-  included option for intel compilers without use of static linking.
-+ Command line option '-store_dip_pol' was added to save dipole polarizations
-  to file.
-- Computer name was not properly shown when running MPI version on Windows.
-  Fixed.
-+ Improved the code that detects breakdowns of iterative solvers. Now it should
-  be much more sensitive. Thanks to Sorin Pulbere for reporting a test problem.
-- A minor bug in Romberg integration for angles that are sampled uniformly
-  in their cos values, if both min and max values are exactly equal to 90
-  degrees. Reported by Antti Penttila. Fixed.
-+ Locking of files made more flexible. Added compile option to independently
-  turn off the advanced file locking.
-- Minor change in comm.c to remove a warning.
-+ Manual was significantly improved: "DDA formulation" section was rewritten to
-  be self-contained, sections "Near-field" and "Comparison with other DDA codes"
-  were added. Sections on compiling and running the code were extended to
-  discuss in detail multi-core PCs. Sections "Applicability of DDA" and "System
-  requirements" were extended to include recent benchmarking results and
-  discussion. Thanks to Vitezslav Karasek and Liviu Clime for their feedback.
-
-----------------------------------
-Ver. 0.78 - (19.03.08)
-
-* Makefiles were improved to enable automatic compilation of both sequential and
-  MPI versions from the same source folder. Name of MPI executable is now
-  adda_mpi.
-+ New file parbas.h added. MPI version is now checked for conformity both during
-  compilation and at runtime.
-+ Parallel executable for Win32, compiled with MPICH 2, is included in the
-  package.
-+ sample/test.sge file was updated to run on DAS-3 cluster.
-+ Added explicit description of the used notation for the Euler angles in the
-  manual, source code, help system, and parameter file.
-+ sample/test.pbs was slightly improved.
-+ File sinint.c added to calculate sine and cosine integrals.
-+ Function cEqual was added to cmplx.h, it replaces memcpy calls in many other
-  files.
-+ Filtered coupled dipoles implemented (both full and quasistatic version). New
-  arguments 'fcd' and 'fcd_st' for interaction term ('-int' command line option)
-  and 'fcd' for polarization term ('-pol' command line option).
-+ To-do list added (both in xls and pdf format).
-+ Hands-on tutorial was added to the manual. It is based on the one carried out
-  during the DDA Workshop in Bremen.
-- ADDA was crashing for certain incorrect parameters given with the -h command
-  line option. Fixed.
-+ A few explicit statements that angles are specified in degrees were added to
-  the help and input files.
-+ New command line option '-opt {speed|mem}' added. It allows to choose whether
-  ADDA will optimize itself for maximum speed or for minimum memory usage.
-+ Stability of complex arithmetics slightly improved.
-+ Calculation of scattered fields is accelerated by more than 4 times (compiled
-  with gcc). Thanks to R. Scott Brock for this idea. This may also significantly
-  accelerate orientation averaging, depending on the problem. Intel compiler is
-  now only 10-20% faster than gcc, for all parts of the code.
-- Minor bug in symmetry initialization of shape 'spherebox' is fixed.
-- Information messages, when no real dipoles were allocated to one of the
-  processors, did not work. Fixed.
-* Information messages ("INFO:...") are now given without references to source
-  files, which looks simpler.
-+ New command line option '-eq_rad <arg>' was added, it allows one to specify
-  volume-equivalent radius.
-* Format of shape definitions in 'make_particle.c' was slightly changed.
-* Shapes 'box' and 'spherebox' no longer depend on the second and third argument
-  of '-grid' option.
-+ Shape 'box' now accepts two optional arguments (y/x and z/x aspect ratios)
-  defining a rectangular parallelepiped.
-+ Automatic line wrapping was added for most output to stdout and sderr. ADDA
-  tries to get terminal width from COLUMNS environmental variables and, if
-  fails, uses the default value.
-* '-pedantic' option for gcc was removed from Makefile, since it gave warnings
-  about long predefined strings.
-- Shape 'line' was not working correcty in combination with '-jagged' or
-  explicitely specified grid sizes along y- and z-axes. Fixed.
-+ Two new shapes were added: capsule and egg. They were implemented by Daniel
-  Hahn and Richard I. Joseph.
-+ Description of predefined shapes in the manual was improved.
-* Now, if grid size is auto-initialized from default dpl, ADDA ensures that it
-  is not smaller than 16.
-+ Limitation on positiveness of dipole coordinates in shape file was removed.
-  Now ADDA automatically determines the minimum box around the particle and
-  centers it as usual. It also ignores blank lines in the middle or in the end
-  of shape file.
-+ Orientation averaging was optimized. When beta=0 or 180, gamma angle is not
-  relevant but only combinations alpha+-gamma. If alpha is varied in a full
-  range [0,360), only one value of gamma for these specific beta values is
-  calculated, saving a few evaluations of internal fields. Thanks to Antti
-  Penttila for this idea.
-+ Limited two-way compatibility with DDSCAT 6.1 geometry format was added,
-  corresponding to its shape option FRMFIL and output of 'calltarget' utility.
-  ADDA automatically detects DDSCAT format during reading of dipole file. When
-  saving geometry to the file, the format is determined by new command line
-  option '-sg_format {text|text_ext|ddscat}'.
-+ New argument 'auto' was added to '-sym' command line option to correspond to
-  the general rule that one of the possible arguments is the default one. No
-  functionality is changed for other arguments.
-
-----------------------------------
-Ver. 0.78.1 - 08.04.08
-
-- Critical bug in cDiv and cDivSelf functions in source file cmplx.h was fixed
-  (introduced in version 0.78). This bug made BiCGSTAB and BiCG iterative
-  solvers to fail. However, even when other two iterative solvers were used,
-  erroneous results were calculated for certain values of refractive index.
-
-----------------------------------
-Ver. 0.78.2 - 11.04.08
-
-- An implementation of a new FCD polarization prescription (-pol fcd) was
-  somewhat faulty. Correction terms of orders (kd)^2 and ln(...)(kd)^3 were
-  interchanged. Fixed.
