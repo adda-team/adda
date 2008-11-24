@@ -35,7 +35,7 @@
 
                            email: adda@science.uva.nl
 
-                      $Date::                            $:
+                       $Date::                            $
 
                 Copyright (C) 2006-2008 University of Amsterdam
         This software package is covered by the GNU General Public License.
