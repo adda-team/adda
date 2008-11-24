@@ -1,21 +1,17 @@
-/* FILE: Romberg.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of Romberg routines
- *
- * Copyright (C) 2006,2008 University of Amsterdam
- * This code is covered by the GNU General Public License.
- */
-#ifndef __Romberg_h
-#define __Romberg_h
-
-#include "types.h" // needed for Parms_1D
-// indexes of array
 #define THETA 0
 #define PHI   1
+#define Narg  2
 
-double Romberg1D(Parms_1D param,int size,const double *data,double *ss);
 
-void Romberg2D(const Parms_1D parms_input[2],double (*func_input)(int theta,int phi,double *res),
-               int dim_input, double *res, const char *fname);
+void nrerror(char error_text[]);
+REAL *alloc_Rvector(int nl,int nh);
+void freeRv(REAL *v,int nl,int nh);
 
-#endif // __Romberg_h
+void polint(REAL xa[],REAL ya[],int n,REAL x,REAL *y,REAL *dy);
+
+
+void inner_trapzd(Parms_1D input[Narg],Rvector (*FUNC)(int theta,int phi),int fixed,Rvector *s,int n);
+Rvector inner_qromb(Parms_1D input[Narg],Rvector (*FUNC)(int theta,int phi),int fixed);
+void outer_trapzd(Parms_1D input[Narg],Rvector (*FUNC)(int theta,int phi),Rvector *s,int n);
+Rvector outer_qromb(Parms_1D input[Narg],Rvector (*FUNC)(int theta,int phi),int dim,char logfile[]);
+

@@ -30,8 +30,7 @@
 #define R3 3
 
 /* Convert the (Theta,Phi) tuple into a linear array index */
-/*#define grid_index(T,P) (R3*((T)*parms[THETA].Grid_size + (P)))original code Martijn, wrong!!!*/
-#define grid_index(T,P) (R3*((T)*parms[PHI].Grid_size + (P)))
+#define grid_index(T,P) (R3*((T)*parms[THETA].Grid_size + (P)))
 
 dcomplex **dCmatrix (int nrl, int nrh, int ncl, int nch);
 
@@ -194,8 +193,8 @@ void set_Parms(/* Set integration parameters for asymmetry-paramter & C_sca */
   FILE 
     *input;
 
-  /*name[THETA] = "theta";
-  name[PHI] = "phi";*/
+  name[THETA] = "theta";
+  name[PHI] = "phi";
 
   if (ringid == 0)
     {
@@ -289,7 +288,7 @@ void finish_int(void)
 
 void calc_alldir(dcomplex *x,   /* dipole moments */
 		 REAL **rdip,   /* dipole coordinates */
-		 double k, char which)      /* wave number */
+		 double k)      /* wave number */
 {
   int
     comp,
@@ -344,22 +343,17 @@ void calc_alldir(dcomplex *x,   /* dipole moments */
   Timing_EField = Timing_calc_EField + Timing_comm_EField;
 
   /* Store in file */
-  if ((ringid == 0) && store_all_dir)
+  if (ringid == 0 && store_all_dir)
     {
       tstart = extime();
 
       strcpy(name,directory);
-
-      if(which == 'X')
-        strcat(name,"/EgridX");
-      else
-        strcat(name,"/EgridY");
-
+      strcat(name,"/Egrid");
       scatfile = fopen(name,"w");      
  
       dtheta = (180.0/PI)*(parms[THETA].max - parms[THETA].min)/((REAL)parms[THETA].Grid_size-1);
       dphi = (180.0/PI)*(parms[PHI].max - parms[PHI].min)/((REAL)parms[PHI].Grid_size-1);
-      /* fprintf(scatfile,"theta\tphi\tEx.r\tEx.i\tEy.r\tEy.i\tEz.r\tEz.i\t\n\n"); */
+      fprintf(scatfile,"theta\tphi\tEx.r\tEx.i\tEy.r\tEy.i\tEz.r\tEz.i\t\n\n");
       for (theta=0;theta<parms[THETA].Grid_size;++theta)
 	for (phi=0;phi<parms[PHI].Grid_size;++phi)
 	  {
@@ -371,6 +365,8 @@ void calc_alldir(dcomplex *x,   /* dipole moments */
                     (double) Egrid[index+Z].r,(double) Egrid[index+Z].i);
 	  }
       fclose(scatfile);
+      sprintf(command,"gzip %s",name);
+      system(command);
 	  
       tstop = extime();
       Timing_FileIO += tstop - tstart;

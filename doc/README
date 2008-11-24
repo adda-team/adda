@@ -1,159 +1,41 @@
-                ##             ##### ##         ##### ##         ##
-             /####          /#####  /##      /#####  /##      /####
-            /  ###        //    /  / ###   //    /  / ###    /  ###
-               /##       /     /  /   ### /     /  /   ###      /##
-              /  ##           /  /     ###     /  /     ###    /  ##
-              /  ##          ## ##      ##    ## ##      ##    /  ##
-             /    ##         ## ##      ##    ## ##      ##   /    ##
-             /    ##         ## ##      ##    ## ##      ##   /    ##
-            /      ##        ## ##      ##    ## ##      ##  /      ##
-            /########        ## ##      ##    ## ##      ##  /########
-           /        ##       #  ##      ##    #  ##      ## /        ##
-           #        ##          /       /        /       /  #        ##
-          /####      ##    /###/       /    /###/       /  /####      ##
-         /   ####    ## / /   ########/    /   ########/  /   ####    ## /
-        /     ##      #/ /       ####     /       ####   /     ##      #/
-        #                #                #              #
-         ##               ##               ##             ##
+The C-sources (.c), Fortran-sources (.f), and headers (.h) 
 
+CD2main.c		cmplx.h
+CalculateE.c		const.h
+calculator.c		time.h
+crosssec.c/h		types.h
+field.c
+GenerateB.c
+make_particle.c
+read_cluster.c/h
 
+CGNR.c			cfft99S.f
+comm.c/h		cfft99D.f
+debug.c/h
+fft.c
+MatVec_nim.c
+matvec.c
+memory.c
+Romberg.c/h
 
-                                Maxim A. Yurkin
-
-                 Institute of Chemical Kinetics and Combustion,
-               Siberian Branch of the Russian Academy of Sciences,
-                  Institutskaya 3, Novosibirsk, 630090, Russia,
-                    tel: +7-383-333-3240, fax: +7-383-334-2350
-
-                               Alfons G. Hoekstra
-
-               Faculty of Science, Section Computational Science,
-                       of the University of Amsterdam,
-              Kruislaan 403, 1098 SJ, Amsterdam, The Netherlands,
-                   tel: +31-20-525-7530, fax: +31-20-525-7490
-
-
-                           email: adda@science.uva.nl
-
-                     $Date::                            $
-
-                Copyright (C) 2006-2008 University of Amsterdam
-        This software package is covered by the GNU General Public License.
-
-
-
-                                1. INTRODUCTION
-                                ***************
-
-   ADDA is a C software package to calculate scattering and absorption of
-electromagnetic waves by particles of arbitrary geometry using the Discrete
-Dipole Approximation (DDA). In this approximation the volume of the scatterer
-is divided into small cubical subvolumes ("dipoles"), interaction of which is
-considered approximately based on the integral equation for the electric field.
-Initially DDA (sometimes referred to as the "coupled dipole approximation") was
-proposed replacing the scatterer by a set of point dipoles (hence the name of
-the technique).
-
-   ADDA is a C implementation of the DDA developed by the authors. The
-development has been conducted by Hoekstra and coworkers for more than 10 years
-at the University of Amsterdam. From the very beginning the code was intended to
-run on a multiprocessor system (parallelizing a single DDA simulation). Recently
-the code was significantly rewritten and improved by Yurkin. ADDA is intended to
-be a versatile tool, suitable for a wide variety of applications ranging from
-interstellar dust and atmospheric aerosols to biological particles; its
-applicability is limited only by available computer resources. As provided, ADDA
-should be usable for many applications without modification, but the program is
-written in a modular form, so that modifications, if required, should be fairly
-straightforward.
-
-   Detailed instructions for using ADDA and all relevant issues are contained in
-the User Manual for ADDA. The User Manual is in the file "manual.pdf" in PDF
-format. It contains instructions for:
-* compiling and linking the code;
-* running a sample simulation;
-* defining a scatterer and its orientation;
-* specifying the type and propagation direction of the incident beam;
-* specifying the DDA formulation;
-* specifying what scattering quantities should be calculated;
-* understanding the computational aspects and timing of the code;
-* understanding the command line options and formats of input and output files.
-* modifying the source code for added functionality
-
-
-                                2. AVAILABILITY
-                                ***************
-
-   The authors make this code openly available to others, in the hope that
-it will prove to be a useful tool.  We ask only that:
-
-* If you publish results obtained using ADDA, you should acknowledge the source
-  of the code. We recommend the following general reference:
-  M. A. Yurkin, V. P. Maltsev, and A.G. Hoekstra, "The discrete dipole
-  approximation for simulation of light scattering by particles much larger than
-  the wavelength", J. Quant. Spectros. Radiat. Transf. 106, 546-557 (2007).
-
-* If you discover any errors in the code, please promptly communicate them to
-  the authors.
-
-* You comply with the "copyleft" agreement (more formally, the GNU General
-  Public License) of the Free Software Foundation: you may copy, distribute,
-  and/or modify the software identified as coming under this agreement.  If
-  you distribute copies of this software, you must give the recipients all the
-  rights which you have.  See the file "copyleft" distributed with the ADDA
-  software.
-
-   We also strongly encourage you to send email to the authors identifying
-yourself as a user of ADDA;  this will enable the authors to notify you of any
-bugs, corrections, or improvements in ADDA.
-
-
-                         3. OBTAINING THE SOURCE CODE
-                         ****************************
-
-   The recent version can be downloaded from:
-http://www.science.uva.nl/research/scs/Software/adda/
-The package contains the following:
-
-doc/ - documentation
-  copyleft - GNU General Public License
-  history - complete history of ADDA development
-  faq - frequently asked questions
-  manual.doc - source of User Manual in MS Word format
-  manual.pdf - user Manual for ADDA in PDF format
-  README - this file
-  todo.xls - source of the todo list in MS Excel format
-  todo.pdf - todo list in PDF format
-input/ - default input files
-  tables/ - 10 auxiliary files with tables of integrals
-  alldir_params.dat - parameters for integral scattering quantities
-  avg_params.dat - parameters for orientation averaging
-  scat_params.dat - parameters for grid of scattering angles
-misc/ - additional files, not supported by the authors.
-sample/ - sample output and other files
-  run000_sphere_g16m1_5/ - sample output directory, contains "log", "mueller",
-                           and "CrossSec-Y".
-  test.pbs - sample PBS script for MPI system
-  test.sge - sample SGE script for MPI system
-  stdout - stdout of a sample simulation
-src/
-  Makefile, make_seq, make_mpi - makefiles
-  ADDAmain.c, CalculateE.c, calculator.c, cmplx.h, const.h, crosssec.c/h,
-  comm.c/h, debug.c/h, fft.c, function.h, GenerateB.c, io.c/h, iterative.c,
-  make_particle.c, matvec.c, memory.c/h, os.h, param.c/h, parbas.h,
-  prec_time.c/h, Romberg.c/h, sinint.c, timing.c/h, types.h, vars.c/h
-            - source and header files of ADDA
-  cfft99D.f - source file for Temperton FFT
-  mt19937ar.c/h - source and header files for Mersenne Twister random generator.
-
-
-                           4. COMPILING AND LINKING
-                           ************************
-
-   On Unix systems, while positioned in src/, type
-  > make seq
-or
-  > make mpi
-for sequential and MPI versions respectively. By default you need FFTW to be
-installed (www.fftw.org) on your system.
-
-                   Please read the User Manual (manual.pdf).
+make up the parallel CG-FFT DDA program. The different makefiles
+1) Makefile
+2) make_mpi_s
+3) make_mpi_d
+4) make_pvm_s
+5) make_seq_s
+6) make_seq_d
+and their functions are described in Makefile. The input-files
+1) Romb4.dat
+2) Romb5.dat
+3) Romb6.dat
+4) Romb7.dat
+5) Romb8.dat
+specify the accuracy to which the Romberg-routine should integrate. 
+Min and max are the lower and upper boundary of the integration-interval
+respectively, JMAX is the number of times the integration interval must 
+be refined, K is the number of values to be used in the extrapolation,
+and epsilon finally is the convergence criterium. For a detailed 
+for a detailed description of this integration-procedure see 
+"Application of the discrete dipole approximation to radiation pressure
+calculatinos on dust-aggregates: An exploration".

@@ -8,7 +8,7 @@ void set_Parms(void);
 void fill_tab(void);
 void finish_int(void);
 
-void calc_alldir(dcomplex *x,REAL **rdip,double k,char which);
+void calc_alldir(dcomplex *x,REAL **rdip,double k);
 void Sca_cross(double k,double *res);
 void Asym_parm(double k,double vec[]);
 void Asym_parm_x(double k,double *vec);

@@ -218,66 +218,6 @@ void accumulate(/* gather and add scattered fields on proces root */
 #endif
 }
 
-void accumulate_new(/* gather and add scattered fields on proces root */
-                REAL *vector,int n)
-     /* we noticed some problems witht the MPI_Reduce call running in MPICH on the */
-     /* UvA Blue Beowulf cluster. So here we replace MPI_Reduce with plain point- */
-     /* to-point communication. */
-{
-  int root=0; /* processor 0 will accumulate everything */
-
-  REAL *eper_buffer;
-  int i,j;
-
- #if defined(MPI)
-  MPI_Status status;
-#endif
- 
- #if defined(PVM)
-  /* send data to proc root */
-  pvm_barrier("foo", nprocs );
-  if (ringid!=root) {
-    pvm_initsend(PvmDataDefault);
-    pvm_pkfloat(vector,n,1);
-    pvm_send(tids[root],1);
-  }
-  else { /* wait for data */
-  if ((eper_buffer = (REAL *)malloc(n*sizeof(REAL))) == NULL) {
-    LogError (EC_ERROR,"comm.c",
-              "processor %d, ringID %d, could not malloc Eperb",
-              MyProcId, RingId);
-    stop(1);
-  }
-    for( i=0 ; i<nprocs-1 ; i++ ) {
-      pvm_recv( -1, 1);
-      pvm_upkfloat(eper_buffer,n,1);
-      for(j=0;j<n;j++) vector[j]+=eper_buffer[j];
-    }
- free(eper_buffer);
-  }
- 
-#elif defined(MPI)
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (ringid!=0) {
-    MPI_Send(vector,n,mpi_REAL,0,0,MPI_COMM_WORLD);
-  }
-  else {
-  if ((eper_buffer = (REAL *)malloc(n*sizeof(REAL))) == NULL) {
-    LogError (EC_ERROR,"comm.c",
-              "processor %d, ringID %d, could not malloc Eperb",
-              MyProcId, RingId);
-    stop(1);
-  }
-    for(i=1; i<nprocs; i++){
-      MPI_Recv(eper_buffer,n,mpi_REAL,i,0,MPI_COMM_WORLD,&status);
-      for(j=0;j<n;j++) vector[j]+=eper_buffer[j];
-    }
- free(eper_buffer);
-  }     
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-}
-
 void my_inner_product(/* gather local inproducts of a distributed vector or
 			 sum, stored in *a, add them and return them in *a */
                       double *a)
@@ -325,7 +265,7 @@ void block_transpose(/* Do the data-transposition, i.e. exchange,
                       REAL *X)
 {
   REAL
-    *buffer, *rbuffer;
+    *buffer;
   int
     bufsize,
     x,y,z,
@@ -336,13 +276,9 @@ void block_transpose(/* Do the data-transposition, i.e. exchange,
 #if defined(MPI)
   int position;
   MPI_Status status;
-  bufsize = 2*local_Nz*smallY*local_xs_unit; 
-  buffer = (REAL *) malloc(bufsize*sizeof(REAL));
-  rbuffer = (REAL *) malloc(bufsize*sizeof(REAL));
 #endif
  
   tstart=extime();
-
   for(transmission=1;transmission<nprocs;transmission++)
     {
       part=ringid ^ transmission;
@@ -365,6 +301,8 @@ void block_transpose(/* Do the data-transposition, i.e. exchange,
  
       pvm_barrier("foo",nprocs);
 #elif defined(MPI)
+      bufsize = 2*local_Nz*smallY*local_xs_unit;
+      buffer = (REAL *) malloc(bufsize*sizeof(REAL));
  
       position = 0;
       for(z=local_z0;z<local_z1;z++) for(y=0;y<smallY;y++) {
@@ -374,31 +312,23 @@ void block_transpose(/* Do the data-transposition, i.e. exchange,
         if ( (position += 2*local_xs_unit) > bufsize)
           printf("block_transpose, ringid=%d transm=%d\n buffer-overflow: bufsize=%d position=%d",ringid,transmission,bufsize,position);
         }
-      /* it looks like that the original code by Martijn, see below, may block in some situations, e.g. -grid 160 on */
-      /* 32 processors. So, lets see what happens if we change all this with MPI_Sendrecv routines */
-     /*  MPI_Send(buffer,bufsize,mpi_REAL,part,0,MPI_COMM_WORLD); */
-     /* MPI_Barrier(MPI_COMM_WORLD); */
+      MPI_Send(buffer,bufsize,mpi_REAL,part,0,MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
  
-      /* MPI_Recv(buffer,bufsize,mpi_REAL,part,0,MPI_COMM_WORLD,&status); */
-
-      MPI_Sendrecv(buffer, bufsize, mpi_REAL, part, 0,
-		  rbuffer, bufsize, mpi_REAL, part, 0,
-		  MPI_COMM_WORLD,&status);
-
+ 
+      MPI_Recv(buffer,bufsize,mpi_REAL,part,0,MPI_COMM_WORLD,&status);
       position = 0;
       for(z=local_z0;z<local_z1;z++) for(y=0;y<smallY;y++) {
         memcpy(&X[2*index_Xmatrix(local_xs_unit*part,y,z)],
-               &rbuffer[position],
+               &buffer[position],
                2*local_xs_unit*sizeof(REAL));
         if ( (position += 2*local_xs_unit) > bufsize)
           printf("block_transpose, ringid=%d transm=%d\n buffer-overflow: bufsize=%d position=%d",ringid,transmission,bufsize,position);
       }
       MPI_Barrier(MPI_COMM_WORLD);
-      /* free(buffer);*/
+      free(buffer);
 #endif
     }
-  free(buffer);
-  free(rbuffer);
   tstop=extime();
   Timing_OneIterComm += tstop - tstart;
 }
