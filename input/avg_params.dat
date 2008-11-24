@@ -3,16 +3,12 @@
 # This file should be manually modified by user. 
 # Program does not assume any symmetries of the particle.
 # Therefore, possible symmetries should be considered by user and this can lead
-# to decrease of integration limits. 
-# Here zyz-notation (or y-convention) is used for the Euler angles.
+# to decrease of integration limits 
 
 alpha:
 # calculation for alpha is cheap but only precalculated, therefore
 # Jmax should be rather large.
 # Jmin and eps are really not used;
-# Do not change the range from default unless you have a good reason;
-#   using only one value of gamma for beta=0,pi is done only when full
-#   range is specified here to avoid possible inaccuracies.
 # default: min=0;max=360;Jmax=5;equiv=true;periodic=true
 min=0
 max=360
@@ -47,7 +43,6 @@ eps=1e-3
 equiv=true
 periodic=true
 
-# all angles are specified in degrees
 # Jmin,Jmax are minimum and maximum numbers of refinement stages
 # Nmax = 2^Jmax + 1
 # for those with equiv=true Nmax is effectively less by 1 

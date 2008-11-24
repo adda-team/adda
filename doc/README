@@ -1,3 +1,27 @@
+                                   ADDA 0.77
+                                   *********
+                                "Amsterdam DDA"
+
+                    Maxim A. Yurkin(1,2) and Alfons G. Hoekstra(1)
+
+             (1) Faculty of Science, Section Computational Science,
+                       of the University of Amsterdam,
+              Kruislaan 403, 1098 SJ, Amsterdam, The Netherlands,
+                   tel: +31-20-525-7530, fax: +31-20-525-7490
+
+             (2) Institute of Chemical Kinetics and Combustion,
+               Siberian Branch of the Russian Academy of Sciences,
+                  Institutskaya 3, Novosibirsk 630090 Russia,
+                    tel: +7-383-333-3240, fax: +7-383-334-2350
+
+                           email: adda@science.uva.nl
+
+                          last revised: 4 April 2007
+
+                Copyright (C) 2006-2007 University of Amsterdam
+        This software package is covered by the GNU General Public License.
+
+
                 ##             ##### ##         ##### ##         ##
              /####          /#####  /##      /#####  /##      /####
             /  ###        //    /  / ###   //    /  / ###    /  ###
@@ -15,31 +39,6 @@
         /     ##      #/ /       ####     /       ####   /     ##      #/
         #                #                #              #
          ##               ##               ##             ##
-
-
-
-                                Maxim A. Yurkin
-
-                 Institute of Chemical Kinetics and Combustion,
-               Siberian Branch of the Russian Academy of Sciences,
-                  Institutskaya 3, Novosibirsk, 630090, Russia,
-                    tel: +7-383-333-3240, fax: +7-383-334-2350
-
-                               Alfons G. Hoekstra
-
-               Faculty of Science, Section Computational Science,
-                       of the University of Amsterdam,
-              Kruislaan 403, 1098 SJ, Amsterdam, The Netherlands,
-                   tel: +31-20-525-7530, fax: +31-20-525-7490
-
-
-                           email: adda@science.uva.nl
-
-                     $Date::                            $
-
-                Copyright (C) 2006-2008 University of Amsterdam
-        This software package is covered by the GNU General Public License.
-
 
 
                                 1. INTRODUCTION
@@ -77,7 +76,6 @@ format. It contains instructions for:
 * specifying what scattering quantities should be calculated;
 * understanding the computational aspects and timing of the code;
 * understanding the command line options and formats of input and output files.
-* modifying the source code for added functionality
 
 
                                 2. AVAILABILITY
@@ -87,10 +85,8 @@ format. It contains instructions for:
 it will prove to be a useful tool.  We ask only that:
 
 * If you publish results obtained using ADDA, you should acknowledge the source
-  of the code. We recommend the following general reference:
-  M. A. Yurkin, V. P. Maltsev, and A.G. Hoekstra, "The discrete dipole
-  approximation for simulation of light scattering by particles much larger than
-  the wavelength", J. Quant. Spectros. Radiat. Transf. 106, 546-557 (2007).
+  of the code. Please contact the authors (adda@science.uva.nl) for the most
+  recent reference.
 
 * If you discover any errors in the code, please promptly communicate them to
   the authors.
@@ -118,11 +114,9 @@ doc/ - documentation
   copyleft - GNU General Public License
   history - complete history of ADDA development
   faq - frequently asked questions
-  manual.doc - source of User Manual in MS Word format
-  manual.pdf - user Manual for ADDA in PDF format
+  manual.doc - Source of User Manual in MS Word format
+  manual.pdf - User Manual for ADDA in PDF format
   README - this file
-  todo.xls - source of the todo list in MS Excel format
-  todo.pdf - todo list in PDF format
 input/ - default input files
   tables/ - 10 auxiliary files with tables of integrals
   alldir_params.dat - parameters for integral scattering quantities
@@ -139,8 +133,8 @@ src/
   Makefile, make_seq, make_mpi - makefiles
   ADDAmain.c, CalculateE.c, calculator.c, cmplx.h, const.h, crosssec.c/h,
   comm.c/h, debug.c/h, fft.c, function.h, GenerateB.c, io.c/h, iterative.c,
-  make_particle.c, matvec.c, memory.c/h, os.h, param.c/h, parbas.h,
-  prec_time.c/h, Romberg.c/h, sinint.c, timing.c/h, types.h, vars.c/h
+  make_particle.c, matvec.c, memory.c/h, os.h, param.c/h, prec_time.c/h,
+  Romberg.c/h, timing.c/h, types.h, vars.c/h
             - source and header files of ADDA
   cfft99D.f - source file for Temperton FFT
   mt19937ar.c/h - source and header files for Mersenne Twister random generator.

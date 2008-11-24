@@ -15,7 +15,7 @@ Ver. 0.74 - 29.03.06
 + User manual improved.
 * 'buggy' beam type removed (obsolete).
 * '-nosym' and '-sym_enf' options combined to '-sym {no|enf}'.
-- In documentation there was option '-pol ldr avg' while actually it was
+- In documentation there was option  '-pol ldr avg' while actually it was
   '-pol ldr avgpol'. It is averaging over incident polarizations
   (not directions). Documentation corrected.
 + Internal fields are now automatically collected into one file, when running
@@ -96,7 +96,7 @@ Ver. 0.76 - 14.10.06
 + Makefiles modified to include new compiler 'compaq'. New variables added to
   set path for FFTW3 header and library.
 * Default dpl is now calculated based on the maximum absolute value among given
-  refractive indices, not the first one. dpl=10*max(|m|)
+  refractive indices, not the first one. dpl=10*sqrt(max(|m|))
 - Removed requirement of full set of refractive indices to be given for multi-
   domain scatterers, if '-prognose' option is used. Produces information
   message when relevant.
@@ -183,94 +183,3 @@ Ver. 0.77 - (05.06.07)
   discuss in detail multi-core PCs. Sections "Applicability of DDA" and "System
   requirements" were extended to include recent benchmarking results and
   discussion. Thanks to Vitezslav Karasek and Liviu Clime for their feedback.
-
-----------------------------------
-Ver. 0.78 - (19.03.08)
-
-* Makefiles were improved to enable automatic compilation of both sequential and
-  MPI versions from the same source folder. Name of MPI executable is now
-  adda_mpi.
-+ New file parbas.h added. MPI version is now checked for conformity both during
-  compilation and at runtime.
-+ Parallel executable for Win32, compiled with MPICH 2, is included in the
-  package.
-+ sample/test.sge file was updated to run on DAS-3 cluster.
-+ Added explicit description of the used notation for the Euler angles in the
-  manual, source code, help system, and parameter file.
-+ sample/test.pbs was slightly improved.
-+ File sinint.c added to calculate sine and cosine integrals.
-+ Function cEqual was added to cmplx.h, it replaces memcpy calls in many other
-  files.
-+ Filtered coupled dipoles implemented (both full and quasistatic version). New
-  arguments 'fcd' and 'fcd_st' for interaction term ('-int' command line option)
-  and 'fcd' for polarization term ('-pol' command line option).
-+ To-do list added (both in xls and pdf format).
-+ Hands-on tutorial was added to the manual. It is based on the one carried out
-  during the DDA Workshop in Bremen.
-- ADDA was crashing for certain incorrect parameters given with the -h command
-  line option. Fixed.
-+ A few explicit statements that angles are specified in degrees were added to
-  the help and input files.
-+ New command line option '-opt {speed|mem}' added. It allows to choose whether
-  ADDA will optimize itself for maximum speed or for minimum memory usage.
-+ Stability of complex arithmetics slightly improved.
-+ Calculation of scattered fields is accelerated by more than 4 times (compiled
-  with gcc). Thanks to R. Scott Brock for this idea. This may also significantly
-  accelerate orientation averaging, depending on the problem. Intel compiler is
-  now only 10-20% faster than gcc, for all parts of the code.
-- Minor bug in symmetry initialization of shape 'spherebox' is fixed.
-- Information messages, when no real dipoles were allocated to one of the
-  processors, did not work. Fixed.
-* Information messages ("INFO:...") are now given without references to source
-  files, which looks simpler.
-+ New command line option '-eq_rad <arg>' was added, it allows one to specify
-  volume-equivalent radius.
-* Format of shape definitions in 'make_particle.c' was slightly changed.
-* Shapes 'box' and 'spherebox' no longer depend on the second and third argument
-  of '-grid' option.
-+ Shape 'box' now accepts two optional arguments (y/x and z/x aspect ratios)
-  defining a rectangular parallelepiped.
-+ Automatic line wrapping was added for most output to stdout and sderr. ADDA
-  tries to get terminal width from COLUMNS environmental variables and, if
-  fails, uses the default value.
-* '-pedantic' option for gcc was removed from Makefile, since it gave warnings
-  about long predefined strings.
-- Shape 'line' was not working correcty in combination with '-jagged' or
-  explicitely specified grid sizes along y- and z-axes. Fixed.
-+ Two new shapes were added: capsule and egg. They were implemented by Daniel
-  Hahn and Richard I. Joseph.
-+ Description of predefined shapes in the manual was improved.
-* Now, if grid size is auto-initialized from default dpl, ADDA ensures that it
-  is not smaller than 16.
-+ Limitation on positiveness of dipole coordinates in shape file was removed.
-  Now ADDA automatically determines the minimum box around the particle and
-  centers it as usual. It also ignores blank lines in the middle or in the end
-  of shape file.
-+ Orientation averaging was optimized. When beta=0 or 180, gamma angle is not
-  relevant but only combinations alpha+-gamma. If alpha is varied in a full
-  range [0,360), only one value of gamma for these specific beta values is
-  calculated, saving a few evaluations of internal fields. Thanks to Antti
-  Penttila for this idea.
-+ Limited two-way compatibility with DDSCAT 6.1 geometry format was added,
-  corresponding to its shape option FRMFIL and output of 'calltarget' utility.
-  ADDA automatically detects DDSCAT format during reading of dipole file. When
-  saving geometry to the file, the format is determined by new command line
-  option '-sg_format {text|text_ext|ddscat}'.
-+ New argument 'auto' was added to '-sym' command line option to correspond to
-  the general rule that one of the possible arguments is the default one. No
-  functionality is changed for other arguments.
-
-----------------------------------
-Ver. 0.78.1 - 08.04.08
-
-- Critical bug in cDiv and cDivSelf functions in source file cmplx.h was fixed
-  (introduced in version 0.78). This bug made BiCGSTAB and BiCG iterative
-  solvers to fail. However, even when other two iterative solvers were used,
-  erroneous results were calculated for certain values of refractive index.
-
-----------------------------------
-Ver. 0.78.2 - 11.04.08
-
-- An implementation of a new FCD polarization prescription (-pol fcd) was
-  somewhat faulty. Correction terms of orders (kd)^2 and ln(...)(kd)^3 were
-  interchanged. Fixed.
