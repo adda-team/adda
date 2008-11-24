@@ -1,37 +1,47 @@
 # Makefile for sequential version of ADDA package
-# All options are defined in Makefile
+# Highest agressive optimization is used
 # AUTH: Maxim Yurkin
 
-# !!! This file do not have any options designed to be changed by ADDA user
+MFILES += make_seq
+# Compiler dependent options
+ifeq ($(COMPILER),gnu)
+  CC    = gcc
+  CF    = g77
+endif
+ifeq ($(COMPILER),intel9.0)
+  CC    = icc
+  CF    = ifort
+endif  
+ifeq ($(COMPILER),intel8.1)
+  CC    = icc
+  CF    = ifort
+endif  
+ifeq ($(COMPILER),other)
+  CC    = other
+  CF    = other
+endif  
 
-MFILES += make_seq $(LASTSEQ)
-
-#===============================================================================
-# Main action part
-#===============================================================================
+#==========================================================
+# main part
 
 .DELETE_ON_ERROR:
 
 
-$(PROGSEQ): $(COBJECTS) $(FOBJECTS) 
+$(PROG): $(COBJECTS) $(FOBJECTS) 
 	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
-# Everything is recompiled (but not dependencies)
-# when any of makefiles is changed
+# Everything is recompiled (but not dependencies) when any of makefiles is changed)
 $(COBJECTS): %.o: %.c %.d $(MFILES)
 	$(CC) -c $(CFLAGS) $<
 
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
 
-$(LASTSEQ):
-	echo "void" > $(LASTSEQ)
-
 # Dependencies are only generated for C sources;
 # we assume that each Fortran file is completely independent
 
-$(CDEPEND): %.d: %.c $(MFILES)
-	$(CC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
+$(CDEPEND): %.d: %.c
+	$(CC) $(DEPFLAG) $(CFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 

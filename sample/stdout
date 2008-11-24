@@ -1,7 +1,11 @@
+'Amsterdam DDA' v.0.75
+Copyright (C) 2006 University of Amsterdam
+This program is covered by the GNU General Public License
+
 all data is saved in 'run000_sphere_g16m1_5'
 0 :  0 16 16 4096 32 
-lambda: 6.283185307   Dipoles/lambda: 15
-Required relative residual norm: 1e-05
+lambda: 6.283185307   m0: 1.5+0i   Dipoles/lambda: 15
+Required relative error: 1e-05
 Total number of occupied dipoles: 2176
 Memory usage for MatVec matrices: 1.3 Mb
 Calculating Dmatrix......
@@ -27,14 +31,14 @@ RE_011 = 2.4111231314E-02  +
 RE_012 = 3.8307716444E-03  + 
 RE_013 = 3.0434605426E-03  + 
 RE_014 = 1.3101400518E-03  + 
-RE_015 = 8.2588869902E-04  + 
-RE_016 = 5.0452779281E-04  + 
-RE_017 = 1.1339755335E-04  + 
-RE_018 = 9.3640503439E-05  + 
-RE_019 = 6.8748633527E-05  + 
-RE_020 = 2.2386152530E-05  + 
-RE_021 = 1.5169835168E-05  + 
-RE_022 = 3.1682277704E-06  + 
+RE_015 = 8.2588869908E-04  + 
+RE_016 = 5.0452779283E-04  + 
+RE_017 = 1.1339755286E-04  + 
+RE_018 = 9.3640503878E-05  + 
+RE_019 = 6.8748635222E-05  + 
+RE_020 = 2.2386137724E-05  + 
+RE_021 = 1.5169807150E-05  + 
+RE_022 = 3.1682119643E-06  + 
 Cext	= 135.0449046
 Qext	= 3.79114961
 Cabs	= 0

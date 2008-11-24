@@ -1,8 +1,8 @@
 #!/bin/sh
 # This is sample batch file to run ADDA using SGE
-# it was designed for DAS-3 cluster
-# (http://www.cs.vu.nl/das3/)
-# Auth: Adianto Wibisono
+# it was designed for DAS-2 cluster
+# (http://www.cs.vu.nl/das2/)
+# Auth: Maxim Yurkin
 #
 # Choose shell
 #$ -S /bin/sh
@@ -13,41 +13,15 @@
 # Set requested execution time
 #$ -l h_rt=0:15:00
 # Set parallel environment and number of nodes 
-#   (number of processors is a multiple of that number)
-#$ -pe mpich 4
+#   (number of processors is twice that number)
+#$ -pe mpi 4
 # Merge stderr with stdout
 #$ -j yes
+# Export all environmental variables to the job
+# -V
 
-PROG=adda_mpi
+PROG=adda
 ARGS=""
 
-# The number of cores per node can be different on the various DAS sites.
-# Here we will use every cpu core there is on the first compute node,
-# and assume this will be the same on the other nodes in the same cluster:
-cpuspernode=`cat /proc/cpuinfo | grep processor | wc -l`
-ncpus=`expr $NSLOTS \* $cpuspernode`
-
-export MPICH_PROCESS_GROUP=no
-. /etc/profile.d/modules.sh
-module add default-ethernet  # or "default-myrinet"
-
-#$ -v MPI_HOME
-#$ -v LD_LIBRARY_PATH
-
-echo "Got $NSLOTS nodes."
-echo "Original machines file:"
-cat $TMPDIR/machines
-for i in `cat $TMPDIR/machines`; do
-    j=0
-    while [ $j -lt $cpuspernode ]; do
-        echo $i
-        j=`expr $j + 1`
-    done
-done > $TMPDIR/machines2
-echo "Using following machines file:"
-cat $TMPDIR/machines2
-
-cmd="$MPI_HOME/bin/mpirun -np $ncpus -machinefile \
-$TMPDIR/machines2  $PROG $ARGS"
-echo Will run: $cmd
-$cmd
+/usr/local/mpich/mpich-gm-gcc/bin/mpirun \
+    -np `expr $NSLOTS \* 2` -machinefile $TMPDIR/machines $PROG $ARGS
