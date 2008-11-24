@@ -1,31 +1,31 @@
-/* FILE: crosssec.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of functions for
- *        calculation of different measured quantities
- *
- * Copyright (C) 2006,2008 University of Amsterdam
- * This code is covered by the GNU General Public License.
- */
 #ifndef __crosssec_h
 #define __crosssec_h
 
-#include "function.h" // for function attributes
+void calc_field (doublecomplex *x, doublecomplex *ebuff, double **rdip, 
+                  double *n, double kk, int nlocalDip);
 
-void CalcField(doublecomplex *ebuff,const double *n);
-void InitRotation(void);
-double ExtCross(const double *incPol) ATT_PURE;
-double AbsCross(void) ATT_PURE;
-double ScaCross(char *f_suf);
-void ReadAlldirParms(const char *fname);
-void ReadAvgParms(const char *fname);
-void ReadScatGridParms(const char *fname);
-void CalcAlldir(void);
-void CalcScatGrid(char which);
-void AsymParm(double *vec,char *f_suf);
-void AsymParm_x(double *vec,char *f_suf);
-void AsymParm_y(double *vec,char *f_suf);
-void AsymParm_z(double *vec,char *f_suf);
-void Frp_mat(double Fsca_tot[3],double *Fsca,double Finc_tot[3],
-             double *Finc,double Frp_tot[3],double *Frp);
+int n_non_void_sites(int mat_count[],int Nmat);
+void init_rotation (void);
 
-#endif // __crosssec_h
+double Ext_cross(doublecomplex *x,double *incPol,double **rdip,double k);
+double Abs_cross(doublecomplex *x,double k);
+
+void set_Parms(void);
+void fill_tab(void);
+void finish_int(void);
+
+void calc_alldir(doublecomplex *x,double **rdip,double k,char which);
+void Sca_cross(double k,double *res);
+void Asym_parm(double k,double vec[]);
+void Asym_parm_x(double k,double *vec);
+void Asym_parm_y(double k,double *vec);
+void Asym_parm_z(double k,double *vec);
+
+void Frp_mat(double Fsca_tot[3],double *Fsca,
+	     double Finc_tot[3],double *Finc,
+	     double Frp_tot[3],double *Frp,
+	     doublecomplex *x,double **rdip,double k);
+
+void read_avg_parms(char *fname);
+	     
+#endif /*__crosssec_h*/

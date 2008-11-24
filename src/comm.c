@@ -1,669 +1,375 @@
 /* FILE : comm.c
- * AUTH : Maxim Yurkin
+ * AUTH : Martijn Frijlink 
  * DESCR: The main intention of this library is to incorporate all
- *        parallelization related code, so most of it is directly
- *        involved in or closely related to interprocess communication,
- *        hence its name.
+ *        parallelisation related code, so most of it is directly
+ *        involved in or closely related to inter-proces communication,
+ *        hence its name. The only acception is the LogError-function,
+ *        originally in its own file, which is merely defined here
+ *        because I could not think of a better place (and wanted to
+ *        reduce the number of source-files.
  *
- *        Previous versions were by Martijn Frijlink
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * This code is covered by the GNU General Public License.
+ *        Currently is developed by Maxim Yurkin
  */
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include "vars.h"
+#include <stdio.h>
+#include "stdarg.h"
+#include <time.h>
+#include "debug.h"
+#include "cmplx.h"
+#include "types.h"
 #include "comm.h"
 #include "const.h"
-#include "io.h"
-#include "fft.h"
-#include "memory.h"
-#include "timing.h"
-#include "function.h"
-#include "parbas.h"
 
-// for getch in Stop
-#ifdef RUN_BCB
-# include <conio.h>
+#if defined(MPI)
+ #include <mpi.h>
+ MPI_Datatype mpi_dcomplex;
 #endif
 
-#ifdef MPI
-MPI_Datatype mpi_dcomplex;
-#endif
+int nprocs;
 
-/* whether a synchronize call should be performed before parallel timing. It makes communication
- * timing more accurate, but may deteriorate overall performance by introducing unnecessary
- * delays (test showed only slight difference for granule generator) */
-#define SYNCHRONIZE_TIMING
+int local_z0,local_z1,local_Nz,local_x0,local_x1,local_Nx,local_z1_f,local_Nz_f;
+int local_d0,local_d1,local_Ndip,Ndip;
+int ringid;
 
-// SEMI-GLOBAL VARIABLES
+char buffer1[40960];
 
-// defined and allocated in fft.c
-extern double *BT_buffer, *BT_rbuffer;
-// defined and initialized in timing.c
-extern TIME_TYPE Timing_Dm_Init_comm;
+/*===========================================*/
 
-// LOCAL VARIABLES
-
-#ifdef PARALLEL
-static int Ntrans;         // number of transmissions; used in CalcPartner
-static int *gr_comm_size;  // sizes of transmissions for granule generator communications
-static int *gr_comm_overl; // shows whether two sequential transmissions overlap
-static unsigned char *gr_comm_ob; // buffer for overlaps
-static void *gr_comm_buf;         // buffer for MPI transfers
-
-// First several functions are defined only in parallel mode
-//===========================================
-
-static void RecoverCommandLine(int *argc_p,char ***argv_p)
-/* eliminate all NULL pointers from argv, shift the rest, and adjust argc accordingly.
- * Used in InitComm
- * */
+void init_comm(int *argc,char ***argv)
 {
-	int i,j;
+#if defined(MPI)
+  int 
+    dcmplx_blocklength[2]={1,1},dcmplx_displs[2] = {0,1};
+  MPI_Datatype
+    dcmplx_type[2];
 
-	for (i=0,j=0;i<(*argc_p);i++) {
-		if ((*argv_p)[i]==NULL) j++;
-		else if (j!=0) (*argv_p)[i-j]=(*argv_p)[i];
-	}
-	(*argc_p)-=j;
-}
-//============================================================
+  MPI_Init(argc,argv);
+  MPI_Comm_rank(MPI_COMM_WORLD,&ringid);
+  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 
-INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
-// index block; used in BlockTranspose
-{
-	return((z*lengthY+y)*gridX+x);
-}
-
-//============================================================
-
-INLINE int CalcPartner(const int tran)
-/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
- * different implementations are possible; the only requirements are
- * 1) f(tran,f(tran,ringid))=ringid
- * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
- * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
- */
-{
-	int part;
-
-	if (ringid==0) part=tran;
-	else if (ringid==tran) part=0;
-	else {
-		part=2*tran-ringid;
-		if (part<=0) part+=Ntrans;
-		else if (part>Ntrans) part-=Ntrans;
-	}
-	return part;
-}
-
-//============================================================
-
-void CatNFiles(const char *dir,const char *tmpl,const char *dest)
-/* cat several temporary files (one for each processor, names defined by the template 'tmpl' that
- * should contain %d to be replaced by ringid). Files are located in directory 'dir'. Combined into
- * 'dest' in the same directory. Afterwards temporary files are removed.
- */
-{
-	int i,c;
-	FILE *in,*out;
-	char fname_out[MAX_TMP_FNAME],fname_in[MAX_TMP_FNAME];
-
-	// produce full path of destination file and open it
-	sprintf(fname_out,"%s/%s",directory,dest);
-	out=FOpenErr(fname_out,"w",ONE_POS);
-	for (i=0;i<nprocs;i++) {
-		// produce full path of tmp file and open it
-		sprintf(fname_in,"%s/",directory);
-		sprintf(fname_in+strlen(fname_in),tmpl,i);
-		in=FOpenErr(fname_in,"r",ONE_POS);
-		// copy file in to out
-		while((c=getc(in))!=EOF) putc(c,out);
-		// close and remove tmp file
-		FCloseErr(in,fname_in,ONE_POS);
-		RemoveErr(fname_in,ONE_POS);
-	}
-	// close destination file
-	FCloseErr(out,fname_out,ONE_POS);
-}
-#endif
-
-//============================================================
-
-void InitComm(int *argc_p,char ***argv_p)
-// initialize communications in the beginning of the program
-{
-#ifdef MPI
-	int dcmplx_blocklength[2]={1,1},ver,subver;
-	MPI_Aint dcmplx_displs[2] = {0,1};
-	MPI_Datatype dcmplx_type[2];
-
-	/* MPI_Init may alter argc and argv and interfere with normal parsing of command line
-	 * parameters. The way of altering is implementation depending. MPI searches for MPI parameters
-	 * in the command line and removes them (we assume some kind of removing does take place -
-	 * otherwise ADDA will produce error 'unknown parameter'). The best would be to change argc and
-	 * argv so that they look like no special command line arguments are present. However,
-	 * MPICH 1.2.5, for example, just replaces corresponding parameters by NULLs. To incorporate it
-	 * we introduce special function to restore the command line
-	 */
-	MPI_Init(argc_p,argv_p);
-	tstart_main = GET_TIME(); // initialize program time
-	RecoverCommandLine(argc_p,argv_p);
-	// initialize ringid and nprocs
-	MPI_Comm_rank(MPI_COMM_WORLD,&ringid);
-	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-	// initialize Ntrans
-	if (IS_EVEN(nprocs)) Ntrans=nprocs-1;
-	else Ntrans=nprocs;
-	// Create MPI-type for sending dcomplex-variables
-	dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;
-	MPI_Type_struct(2,dcmplx_blocklength,dcmplx_displs,dcmplx_type,&mpi_dcomplex);
-	MPI_Type_commit(&mpi_dcomplex);
-	// check MPI version at runtime
-	MPI_Get_version(&ver,&subver);
-	if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<MPI_SUBVER_REQ))) LogError(EC_ERROR,
-		ONE_POS,"MPI version (%d.%d) is too old. Version %d.%d or newer is required",ver,subver,
-		MPI_VER_REQ,MPI_SUBVER_REQ);
-	// if MPI crashes, it happens here
-	Synchronize();
+ 
+  /* Create MPI-type for sending dcomplex-variables */
+  dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;
+  MPI_Type_struct(2,dcmplx_blocklength,dcmplx_displs,dcmplx_type,
+                  &mpi_dcomplex);
+  MPI_Type_commit(&mpi_dcomplex);
 #elif !defined(PARALLEL)
-	nprocs=1;
-	ringid=ROOT;
+  nprocs=1; ringid=0;
 #endif
-	/* check if weird number of processors is specified; called even in sequential mode to
-	 * initialize weird_nprocs
-	 */
-	CheckNprocs();
 }
 
-//============================================================
+/*===========================================*/
 
-void Stop(const int code)
-// stops the program with exit 'code'
+void stop(int code)
+{
+  /* exit the program */
+  printf("end %i\n",ringid);
+#if defined(MPI)
+  if (code)
+    {
+      printf("Aborting proces %d\n",ringid);
+      MPI_Abort(MPI_COMM_WORLD,code);
+    }
+  else
+    {
+      MPI_Finalize();
+    }
+#endif
+  exit(code);
+}
+
+/*===========================================*/
+
+void synchronize(void)
+{
+#if defined(MPI)
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
+}
+
+/*===========================================*/
+
+void Bcast_orient(int *i, int *j, int *k)
 {
 #ifdef MPI
-	if (code) { // error occurred
-		fflush(stdout);
-		fprintf(stderr,"Aborting process %d\n",ringid);
-		fflush(stderr);
-		MPI_Abort(MPI_COMM_WORLD,code);
-	}
-	else { // regular termination
-		// wait for all processors
-		fflush(stdout);
-		Synchronize();
-		// finalize MPI communications
-		MPI_Finalize();
-	}
+  int buf[3];
+
+  if (ringid==0) {  
+    buf[0]=*i; 
+    buf[1]=*j;
+    buf[2]=*k;
+  }
+  synchronize();
+  MPI_Bcast(buf,3,MPI_INT,0,MPI_COMM_WORLD);
+  
+  if (ringid!=0) {
+    *i=buf[0]; 
+    *j=buf[1];
+    *k=buf[2];
+  }
 #endif
-	// if run under Borland C++ Builder, don't close the window automatically
-#ifdef RUN_BCB
-	PRINTZ("\nProgram has finished execution.\nPress any key to close window...");
-	// waits for pressed key
-	getch();
-#endif
-	// the code '0' corresponds to success, and '1' to failure
-	if (code==0) exit(EXIT_SUCCESS);
-	else if (code==1) exit(EXIT_FAILURE);
-	else exit(code);
 }
 
-//============================================================
+/*===========================================*/
 
-void Synchronize(void)
-// synchronizes all processes
+void Bcast_parms(Parms_1D *parms)
 {
 #ifdef MPI
-	MPI_Barrier(MPI_COMM_WORLD);
+  int root=0;  
+  int
+    len[6] = {1,1,1,1,1,1};
+  MPI_Datatype
+    mpi_parms,
+    type[6];
+  MPI_Aint
+    disp[6];
+
+  disp[0] = 0;                     type[0] = MPI_DOUBLE;
+  disp[1] = sizeof(double);          type[1] = MPI_INT;
+  disp[2] = disp[1] + sizeof(int); type[2] = MPI_INT;
+  disp[3] = disp[2] + sizeof(int); type[3] = MPI_DOUBLE;
+  disp[4] = disp[3] + sizeof(double);type[4] = MPI_DOUBLE;
+  disp[5] = disp[4] + sizeof(double);type[5] = MPI_INT;
+
+  MPI_Type_struct(6,len,disp,type,&mpi_parms);
+  MPI_Type_commit(&mpi_parms);
+
+  MPI_Bcast(parms,2,mpi_parms,root,MPI_COMM_WORLD);
 #endif
 }
 
-//============================================================
-
-void MyBcast(void *data,const var_type type,size_t n_elem,TIME_TYPE *timing)
-/* casts values stored in '*data' from ROOT processor to all other; works for all types; increments
- * 'timing' (if not NULL) by the time used
- */
+/*===========================================*/
+ 
+void accumulate(/* gather and add scattered fields on proces root */
+                double *vector,int n)
 {
-#ifdef MPI
-	MPI_Datatype mes_type;
-	TIME_TYPE tstart;
-
-	if (timing!=NULL) {
-#ifdef SYNCHRONIZE_TIMING
-		MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-		tstart=GET_TIME();
-	}
-	if (type==char_type) mes_type=MPI_CHAR;
-	if (type==int_type) mes_type=MPI_INT;
-	else if (type==double_type) mes_type=MPI_DOUBLE;
-	else if (type==cmplx_type) {
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-	}
-	else LogError(EC_ERROR,ONE_POS,"MyBcast: variable type %u is not supported",type);
-
-	MPI_Bcast(data,n_elem,mes_type,ROOT,MPI_COMM_WORLD);
-	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
+#if defined(MPI)
+  int root=0;
+  int i;
+  double *temp[GLOB_LOC];
+ 
+  temp[LOCAL] = (double *) malloc(n*sizeof(double));
+  temp[GLOBAL] = (double *) calloc(n,sizeof(double));
+ 
+  memcpy(temp[LOCAL],vector,n*sizeof(double));
+  MPI_Reduce(temp[LOCAL],temp[GLOBAL],n,MPI_DOUBLE,
+             MPI_SUM,root,MPI_COMM_WORLD);
+  memcpy(vector,temp[GLOBAL],n*sizeof(double));
+ 
+  free(temp[LOCAL]);
+  free(temp[GLOBAL]);
 #endif
 }
 
-//============================================================
+/*===========================================*/
 
-void BcastOrient(int *i, int *j, int *k)
-// cast current orientation angle (in orientation averaging) to all processes from root
+void accumulate_new(/* gather and add scattered fields on proces root */
+                double *vector,int n)
+     /* we noticed some problems witht the MPI_Reduce call running in MPICH on the */
+     /* UvA Blue Beowulf cluster. So here we replace MPI_Reduce with plain point- */
+     /* to-point communication. */
 {
-#ifdef MPI
-	int buf[3];
+  int root=0; /* processor 0 will accumulate everything */
 
-	if (ringid==ROOT) {
-		buf[0]=*i;
-		buf[1]=*j;
-		buf[2]=*k;
-	}
-	MPI_Bcast(buf,3,MPI_INT,ROOT,MPI_COMM_WORLD);
-	if (ringid!=ROOT) {
-		*i=buf[0];
-		*j=buf[1];
-		*k=buf[2];
-	}
+  double *eper_buffer;
+  int i,j;
+
+#if defined(MPI)
+  MPI_Status status;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (ringid!=0) {
+    MPI_Send(vector,n,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
+  }
+  else {
+    if ((eper_buffer = (double *)malloc(n*sizeof(double))) == NULL)
+      LogError(EC_ERROR,ALL,POSIT,"Could not malloc eper_buffer");
+    for(i=1; i<nprocs; i++){
+      MPI_Recv(eper_buffer,n,MPI_DOUBLE,i,0,MPI_COMM_WORLD,&status);
+      for(j=0;j<n;j++) vector[j]+=eper_buffer[j];
+    }
+    free(eper_buffer);
+  }     
+  MPI_Barrier(MPI_COMM_WORLD);
 #endif
 }
 
-//============================================================
+/*===========================================*/
 
-void AccumulateMax(double *data,double *max)
-// given a single double on each processor, accumulates their sum and maximum on ROOT processor
+void my_inner_product(/* gather local inproducts of a distributed vector or
+			 sum, stored in *a, add them and return them in *a */
+                      double *a)
 {
-#ifdef MPI
-	double buf;
-	// potentially can be optimized by combining into one operation
-	MPI_Reduce(data,&buf,1,MPI_DOUBLE,MPI_SUM,ROOT,MPI_COMM_WORLD);
-	MPI_Reduce(data,max,1,MPI_DOUBLE,MPI_MAX,ROOT,MPI_COMM_WORLD);
-	if (ringid==ROOT) *data=buf;
+#if defined(MPI)
+  int root=0;
+  double temp[GLOB_LOC];
+ 
+  temp[LOCAL] = *a;
+  MPI_Allreduce(&temp[LOCAL],&temp[GLOBAL],1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  *a = temp[GLOBAL];
 #endif
 }
 
-//============================================================
+/*===========================================*/
 
-void Accumulate(double *vector,const size_t n,double *buf,TIME_TYPE *timing)
-// gather and add double vector on processor ROOT; total time is saved in timing (NOT incremented)
+void block_transpose(/* Do the data-transposition, i.e. exchange,
+                        between fftX and fftY&fftZ */
+                      double *X, int nnn)
 {
-#ifdef MPI
-	TIME_TYPE tstart;
+  int tstart;  
+  extern clock_t Timing_OneIterComm;  
+#if defined(MPI)  
+  double
+    *buffer, *rbuffer;
+  int
+    bufsize,
+    x,y,z,
+    transmission,part;
+  extern int smallY,smallZ;
+  int position;
+  MPI_Status status;
+  bufsize = 2*nnn*local_Nz_f*smallY*local_Nx; 
+  buffer = (double *) malloc(bufsize*sizeof(double));
+  rbuffer = (double *) malloc(bufsize*sizeof(double));
+#endif
+  tstart=clock();
+#if defined(MPI)
+  for(transmission=1;transmission<nprocs;transmission++)
+    {
+      part=ringid ^ transmission;
+      position = 0;
+      for(z=nnn*local_z0;z<nnn*local_z1_f;z++) for(y=0;y<smallY;y++) {
+        memcpy(&buffer[position],
+               &X[2*index_Xmatrix(local_Nx*part,y,z,nnn)],
+               2*local_Nx*sizeof(double));
+        if ( (position += 2*local_Nx) > bufsize)
+          LogError(EC_ERROR,ALL,POSIT,"(transm=%d) buffer-overflow: bufsize=%d position=%d",transmission,bufsize,position);
+        }
+      /* it looks like that the original code by Martijn, see below, may block in some situations, e.g. -grid 160 on */
+      /* 32 processors. So, lets see what happens if we change all this with MPI_Sendrecv routines */
+     /*  MPI_Send(buffer,bufsize,MPI_DOUBLE,part,0,MPI_COMM_WORLD); */
+     /* MPI_Barrier(MPI_COMM_WORLD); */
+ 
+      /* MPI_Recv(buffer,bufsize,MPI_DOUBLE,part,0,MPI_COMM_WORLD,&status); */
 
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
+      MPI_Sendrecv(buffer, bufsize, MPI_DOUBLE, part, 0,
+		  rbuffer, bufsize, MPI_DOUBLE, part, 0,
+		  MPI_COMM_WORLD,&status);
+  
+      position = 0;
+      for(z=nnn*local_z0;z<nnn*local_z1_f;z++) for(y=0;y<smallY;y++) {
+        memcpy(&X[2*index_Xmatrix(local_Nx*part,y,z,nnn)],
+               &rbuffer[position],
+               2*local_Nx*sizeof(double));
+        if ( (position += 2*local_Nx) > bufsize)
+          LogError(EC_ERROR,ALL,POSIT,"(transm=%d) buffer-overflow: bufsize=%d position=%d",transmission,bufsize,position);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+
+      /* free(buffer);*/
+    }
+  free(buffer);
+  free(rbuffer);
 #endif
-	tstart=GET_TIME();
-	MPI_Reduce(vector,buf,n,MPI_DOUBLE,MPI_SUM,ROOT,MPI_COMM_WORLD);
-	if (ringid==ROOT) memcpy(vector,buf,n*sizeof(double));
-	(*timing)=GET_TIME()-tstart;
-#endif
+  Timing_OneIterComm += clock() - tstart;
 }
 
-//============================================================
+/*===========================================*/
 
-void MyInnerProduct(void *data,const var_type type,size_t n_elem,TIME_TYPE *timing)
-/* gather values stored in *data, add them and return them in *data; works for all types; increments
- * 'timing' (if not NULL) by the time used; not optimized for long data (allocates memory at every
- * call)
- */
+void par_setup(void)
 {
-#ifdef MPI
-	size_t size;
-	MPI_Datatype mes_type;
-	void *temp;
-	TIME_TYPE tstart;
+  extern int boxX,boxY,boxZ,smallZ,smallX;
+  int unitZ,unitX;
 
-	if (timing!=NULL) {
-#ifdef SYNCHRONIZE_TIMING
-		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
-#endif
-		tstart=GET_TIME();
-	}
-	if (type==int_type) {
-		mes_type=MPI_INT;
-		size=n_elem*sizeof(int);
-	}
-	else if (type==double_type) {
-		mes_type=MPI_DOUBLE;
-		size=n_elem*sizeof(double);
-	}
-	else if (type==cmplx_type) {
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-		size=n_elem*sizeof(double);
-	}
-	else LogError(EC_ERROR,ONE_POS,"MyInnerProduct: variable type %u is not supported",type);
-
-	MALLOC_VECTOR(temp,void,size,ALL);
-	MPI_Allreduce(data,temp,n_elem,mes_type,MPI_SUM,MPI_COMM_WORLD);
-	memcpy(data,temp,size);
-	Free_general(temp);
-	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
-#endif
-}
-
-//============================================================
-
-void BlockTranspose(doublecomplex *X)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
- *  do 3 components in one message;
- */
-{
-#ifdef MPI
-	TIME_TYPE tstart;
-	size_t bufsize,msize,posit,step,y,z;
-	int transmission,part,Xpos,Xcomp;
-	MPI_Status status;
-
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-	tstart=GET_TIME();
-	step=2*local_Nx;
-	msize=local_Nx*sizeof(doublecomplex);
-	bufsize=6*local_Nz*smallY*local_Nx;
-
-	for(transmission=1;transmission<=Ntrans;transmission++) {
-		// if part==nprocs then skip this transmission
-		if ((part=CalcPartner(transmission))!=nprocs) {
-			posit=0;
-			Xpos=local_Nx*part;
-			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
-				memcpy(BT_buffer+posit,X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),msize);
-				posit+=step;
-			}
-
-			MPI_Sendrecv(BT_buffer, bufsize, MPI_DOUBLE, part, 0,
-				BT_rbuffer, bufsize, MPI_DOUBLE, part, 0,
-				MPI_COMM_WORLD,&status);
-
-			posit=0;
-			Xpos=local_Nx*part;
-			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
-				memcpy(X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),BT_rbuffer+posit,msize);
-				posit+=step;
-			}
-		}
-	}
-	Timing_OneIterComm += GET_TIME() - tstart;
-#endif
-}
-
-//============================================================
-
-void BlockTranspose_Dm(doublecomplex *X,const size_t lengthY,const size_t lengthZ)
-// do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
-{
-#ifdef MPI
-	TIME_TYPE tstart;
-	size_t bufsize,msize,posit,step,y,z;
-	int transmission,part,Xpos;
-	MPI_Status status;
-
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-	tstart=GET_TIME();
-	step=2*local_Nx;
-	msize=local_Nx*sizeof(doublecomplex);
-	bufsize = 2*lengthZ*lengthY*local_Nx;
-
-	for(transmission=1;transmission<=Ntrans;transmission++) {
-		if ((part=CalcPartner(transmission))!=nprocs) {
-			posit=0;
-			Xpos=local_Nx*part;
-			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
-				memcpy(BT_buffer+posit,X+IndexBlock(Xpos,y,z,lengthY),msize);
-				posit+=step;
-			}
-
-			MPI_Sendrecv(BT_buffer,bufsize,MPI_DOUBLE,part,0,
-				BT_rbuffer,bufsize,MPI_DOUBLE,part,0,
-				MPI_COMM_WORLD,&status);
-
-			posit=0;
-			Xpos=local_Nx*part;
-			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
-				memcpy(X+IndexBlock(Xpos,y,z,lengthY),BT_rbuffer+posit,msize);
-				posit+=step;
-			}
-		}
-	}
-	Timing_Dm_Init_comm += GET_TIME() - tstart;
-#endif
-}
-
-//============================================================
-
-void ParSetup(void)
-// initialize common parameters; need to do in the beginning to enable call to MakeParticle
-{
 #ifdef PARALLEL
-	int unitZ,unitX;
-#endif
-	// calculate size of 3D grid
-	gridX=fftFit(2*boxX,nprocs);
-	gridY=fftFit(2*boxY,1);
-	gridZ=fftFit(2*boxZ,2*nprocs);
-	// initialize some variables
-	smallY=gridY/2;
-	smallZ=gridZ/2;
-	/* if this check is passed then all other multiplications of 2 grids are OK,
-	 * except for XY values, used in granule generator
-	 */
-	gridYZ=MultOverflow(gridY,gridZ,ALL_POS,"gridYZ");
-#ifdef PARALLEL
-	unitZ=smallZ/nprocs; // this should always be an exact division
-	local_z0=ringid*unitZ;
-	local_z1=(ringid+1)*unitZ;
-	if (local_z1 > boxZ) local_z1_coer=boxZ;
-	else local_z1_coer=local_z1;
-	unitX=gridX/nprocs;
-	local_x0=ringid*unitX;
-	local_x1=(ringid+1)*unitX;
+  unitZ=(float) smallZ/nprocs+.99999;
+  local_z0=ringid*unitZ;
+  local_z1_f=(ringid+1)*unitZ;
+  if (local_z1_f > boxZ) local_z1=boxZ;
+  else local_z1=local_z1_f;
+  unitX=(float) smallX/nprocs+.99999;
+  local_x0=ringid*unitX;
+  local_x1=(ringid+1)*unitX;
 #else
-	local_z0=0;
-	local_z1=smallZ;
-	local_z1_coer=boxZ;
-	local_x0=0;
-	local_x1=gridX;
+  local_z0=0;
+  local_z1_f=smallZ;
+  local_z1=boxZ;
+  local_x0=0;
+  local_x1=smallX;
 #endif
-	if (local_z1_coer<=local_z0) {
-		LogError(EC_INFO,ALL_POS,"No real dipoles are assigned");
-		local_z1_coer=local_z0;
-	}
-	local_Nz=local_z1-local_z0;
-	local_Nx=local_x1-local_x0;
-	local_Ndip=MultOverflow(boxX*(size_t)boxY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
-	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is
-	 * not yet supported by all target compiler environments
-	 */
-	printf("%i :  %i %i %i %lu %lu \n",
-		ringid,local_z0,local_z1_coer,local_z1,(unsigned long)local_Ndip,(unsigned long)local_Nx);
+  if (local_z1<=local_z0) {
+    LogError(EC_WARN,ALL,POSIT,"No real dipoles are assigned");
+    local_z1=local_z0;
+  }
+  local_Nz_f=local_z1_f-local_z0;
+  local_Nz=local_z1-local_z0;
+  local_Nx=local_x1-local_x0;
+  local_d0=boxX*boxY*local_z0;
+  local_d1=boxX*boxY*local_z1;
+  local_Ndip=local_d1-local_d0;
+  Ndip=boxX*boxY*boxZ;
+  printf("%i :  %i %i %i %i %i %i\n",ringid,local_z0,local_z1,local_z1_f,local_Ndip,Ndip,local_Nx);
 }
 
-//============================================================
+/*===========================================*/
 
-void AllGather(void *x_from,void *x_to,const var_type type,size_t n_elem)
-// Gather distributed arrays; works for all types
+void all_gather(void *x_from,void *x_to,
+		char data_type[],
+		int n_elem)       
+     /* Gather distributed arrays */
 {
-#ifdef MPI
-	// TODO: need to be rewritten when n_elem are unequal on each processor
-	MPI_Datatype mes_type;
+#if defined(MPI)
+  MPI_Datatype mes_type;
 
-	if (type==char_type) mes_type = MPI_CHAR;
-	else if (type==int_type) mes_type = MPI_INT;
-	else if (type==double_type) mes_type = MPI_DOUBLE;
-	else if (type==cmplx_type) {
-		mes_type = MPI_DOUBLE;
-		n_elem *= 2;
-	}
-	else LogError(EC_ERROR,ONE_POS,"AllGather: variable type %u is not supported",type);
+  if (strcmp(data_type,"int")==0)
+    mes_type = MPI_INT;
+  if (strcmp(data_type,"double")==0)
+    mes_type = MPI_DOUBLE;
+  if (strcmp(data_type,"doublecomplex")==0)
+    {
+      mes_type = MPI_DOUBLE;
+      n_elem *= 2;
+    }
 
-	MPI_Allgather(x_from,n_elem,mes_type,x_to,n_elem,mes_type,MPI_COMM_WORLD);
+  MPI_Allgather(x_from,n_elem,mes_type,
+		x_to,n_elem,mes_type,MPI_COMM_WORLD);
 #endif
 }
 
+/*============================================*/
 
-//============================================================
-
-#ifdef PARALLEL
-void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const int gZ,
-	const int id,int *lz0,int *lz1)
-/* calculates starting and ending (+1) cell of granule grid (lz0 & lz1) on a processor with
- * ringid=id
+/* LogError
+ * we use sprintf a couple of times, because we want each node to
+ * generate an atomic message, not a couple of messages after
+ * each other, since other nodes may then interfere with our
+ * output!
  */
+void LogError(int code, int who, char *fname, int lineN, char *fmt, ... )
+   /* performs output of error specified by code at fname:lineN                  */
+   /* fmt + args (...) specify error message                                     */
+   /* who specifies whether 1 (ringid=0) or all processors should produce output */
+   /* if code is EC_ERROR program aborts after output                            */
 {
-	int dzl,dzh; // similar to local_z0 and local_z1
+  va_list args;
+  char line[255];
+  char id_str[30];
+ 
+  if (who==ALL || ringid==0) {
+    va_start(args, fmt);
+    
+    strcpy(id_str,"");
+    #ifdef PARALLEL 
+    if (who==ALL) sprintf(id_str," - ringID=%d",ringid);
+    #endif
 
-	dzl=local_Nz*id;
-	// should not be coerced because the result differs only for dzh>boxZ, then dzh-1>z0
-	dzh=dzl+local_Nz;
-	if (dzl>z1) *lz0=*lz1=gZ;
-	else {
-		if (dzl>z0) *lz0=(int)floor((dzl-z0)/gdZ);
-		else *lz0=0;
-		if (dzh>z1) *lz1=gZ;
-		else if (dzh-1>z0) *lz1=(int)floor((dzh-z0-1)/gdZ)+1;
-		else *lz1=0;
-	}
-}
-#endif
-
-//============================================================
-
-void SetGranulComm(const double z0,const double z1,const double gdZ,const int gZ,const size_t gXY,
-	size_t max_gran,int *lz0,int *lz1,const int sm_gr)
-/* sets communication for granule generator; max_gran - maximum number of granules in one set
- * (used to allocate buffer); sm_gr - whether granules are small (simpler)
- */
-{
-#ifdef PARALLEL
-	int i,loc0,loc1,loc1_prev=0;
-
-	MALLOC_VECTOR(gr_comm_buf,void,max_gran*sizeof(char),ALL);
-	if (!sm_gr) {
-		if (ringid==ROOT) {
-			MALLOC_VECTOR(gr_comm_size,int,nprocs,ONE);
-			MALLOC_VECTOR(gr_comm_overl,int,nprocs-1,ONE);
-			// always allocated, not to mess with its freeing
-			MALLOC_VECTOR(gr_comm_ob,uchar,gXY,ONE);
-			/* The following is very inefficient (may be significantly optimized), but using one
-			 * common function is more robust.
-			 */
-			for (i=0;i<nprocs;i++) {
-				CalcLocalGranulGrid(z0,z1,gdZ,gZ,i,&loc0,&loc1);
-				if (i==ROOT) {
-					*lz0=loc0;
-					*lz1=loc1;
-				}
-				gr_comm_size[i]=loc1-loc0;
-				if (i!=0) gr_comm_overl[i-1]=(loc0<loc1_prev);
-				loc1_prev=loc1;;
-			}
-		}
-		else CalcLocalGranulGrid(z0,z1,gdZ,gZ,ringid,lz0,lz1);
-	}
-#else
-	*lz0=0;
-	*lz1=gZ;
-#endif
-}
-
-//============================================================
-
-void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
-	const int locgZ,TIME_TYPE *timing)
-/* collects the map of domain for granule generator on the ROOT processor;
- * timing is incremented by the total time used
- */
-{
-#ifdef PARALLEL
-	int i,unit,index;
-	size_t j;
-	MPI_Status status;
-	TIME_TYPE tstart;
-
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-	tstart=GET_TIME();
-	unit=gXY*sizeof(char);
-	if (ringid==ROOT) {
-		index=(lz0+gr_comm_size[ROOT])*gXY;
-		for (i=ROOT+1;i<nprocs;i++) {
-			if (gr_comm_size[i]!=0) {
-				if (gr_comm_overl[i-1]) {
-					index-=gXY;
-					memcpy(gr_comm_ob,dom+index,unit);
-				}
-				MPI_Recv(dom+index,unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,MPI_COMM_WORLD,
-					&status);
-				if (gr_comm_overl[i-1]) for (j=0;j<gXY;j++) dom[index+j]|=gr_comm_ob[j];
-				index+=gXY*gr_comm_size[i];
-			}
-		}
-		// that is only needed when ROOT!=0; kind of weird but should work
-		index=lz0*gXY;
-		for (i=ROOT-1;i>=0;i--) {
-			if (gr_comm_size[i]!=0) {
-				if (gr_comm_overl[i]) {
-					memcpy(gr_comm_ob,dom+index,unit);
-					index+=gXY;
-				}
-				MPI_Recv(dom+index-gXY*gr_comm_size[i],unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,
-					MPI_COMM_WORLD,&status);
-				if (gr_comm_overl[i]) for (j=0;j<gXY;j++) dom[index-gXY+j]|=gr_comm_ob[j];
-				index-=gXY*gr_comm_size[i];
-			}
-		}
-	}
-	else if (locgZ!=0) {
-		MPI_Send(dom,unit*locgZ,MPI_UNSIGNED_CHAR,ROOT,0,MPI_COMM_WORLD);
-	}
-	(*timing)+=GET_TIME()-tstart;
-#endif
-}
-
-//============================================================
-
-void FreeGranulComm(const int sm_gr)
-/* frees all additional memory used for communications of granule generator;
- * simpler if small granules
- */
-{
-#ifdef PARALLEL
-	Free_general(gr_comm_buf);
-	if (!sm_gr && ringid==ROOT) {
-		Free_general(gr_comm_size);
-		Free_general(gr_comm_overl);
-		Free_general(gr_comm_ob);
-	}
-#endif
-}
-
-//============================================================
-
-void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing)
-/* performs a collective AND operation on the (vector) data; timing is incremented by the total
- * time used
- */
-{
-#ifdef MPI
-	TIME_TYPE tstart;
-
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-	tstart=GET_TIME();
-	MPI_Allreduce(data,gr_comm_buf,n,MPI_CHAR,MPI_LAND,MPI_COMM_WORLD);
-	memcpy(data,gr_comm_buf,n*sizeof(char));
-	(*timing)+=GET_TIME()-tstart;
-#endif
+    if (code==EC_ERROR) strcpy(line,"ERROR:");
+    else if (code==EC_WARN) strcpy(line,"WARNING:");
+    else sprintf(line,"Error code=%d:",code);
+    sprintf(line+strlen(line)," (%s:%d%s) ", fname, lineN, id_str);
+    vsprintf(line+strlen(line), fmt, args);
+    strcat(line,"\n");
+    fprintf(stderr, line);
+    fflush(stderr);
+    va_end(args);
+  }
+  if (code==EC_ERROR) stop(1);
 }

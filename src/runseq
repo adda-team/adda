@@ -1,0 +1,8 @@
+make clean
+make seq
+if [ -f ./scatter ]
+then
+    cp scatter ./../run/
+    cd ./../run
+    ./scatter -grid 12 -dpl 12 -m 1.33 0.0 -Cext -Cabs
+fi
