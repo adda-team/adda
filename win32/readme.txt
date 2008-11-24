@@ -1,3 +1,27 @@
+                                   ADDA 0.78
+                                  ***********
+                                "Amsterdam DDA"
+
+                    Maxim A. Yurkin(1,2) and Alfons G. Hoekstra(1)
+
+             (1) Faculty of Science, Section Computational Science,
+                       of the University of Amsterdam,
+              Kruislaan 403, 1098 SJ, Amsterdam, The Netherlands,
+                   tel: +31-20-525-7530, fax: +31-20-525-7490
+
+             (2) Institute of Chemical Kinetics and Combustion,
+               Siberian Branch of the Russian Academy of Sciences,
+                  Institutskaya 3, Novosibirsk, 630090, Russia,
+                    tel: +7-383-333-3240, fax: +7-383-334-2350
+
+                          email: adda@science.uva.nl
+
+                          last revised: 19 March 2008
+
+                   Copyright (C) 2006-2008 University of Amsterdam
+        This software package is covered by the GNU General Public License.
+
+
                 ##             ##### ##         ##### ##         ##
              /####          /#####  /##      /#####  /##      /####
             /  ###        //    /  / ###   //    /  / ###    /  ###
@@ -15,31 +39,6 @@
         /     ##      #/ /       ####     /       ####   /     ##      #/
         #                #                #              #
          ##               ##               ##             ##
-
-
-
-                                Maxim A. Yurkin
-
-                 Institute of Chemical Kinetics and Combustion,
-               Siberian Branch of the Russian Academy of Sciences,
-                  Institutskaya 3, Novosibirsk, 630090, Russia,
-                    tel: +7-383-333-3240, fax: +7-383-334-2350
-
-                               Alfons G. Hoekstra
-
-               Faculty of Science, Section Computational Science,
-                       of the University of Amsterdam,
-              Kruislaan 403, 1098 SJ, Amsterdam, The Netherlands,
-                   tel: +31-20-525-7530, fax: +31-20-525-7490
-
-
-                           email: adda@science.uva.nl
-
-                       $Date::                            $
-
-                Copyright (C) 2006-2008 University of Amsterdam
-        This software package is covered by the GNU General Public License.
-
 
 
                             WINDOWS 32 EXECUTABLES
