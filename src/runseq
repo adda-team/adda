@@ -1,0 +1,8 @@
+rm adda
+make seq
+if [ -f ./adda ]
+then
+    cp adda ./../run/
+    cd ./../run
+    ./adda -grid 12 -dpl 12 -m 1.33 0.0 -Cext -Cabs
+fi
