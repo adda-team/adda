@@ -1,224 +1,236 @@
 /* FILE: GenerateB.c
- * AUTH: Maxim Yurkin
+ * AUTH: Alfons Hoekstra
  * DESCR: generate a incident beam
  *        original by A. Hoekstra, rewritten by Grimminck.
- *        plane wave by Alfons Hoekstra, others were first implemented by Michel Grimminck.
+ *        plane wave and buggy type by Alfons Hoekstra, others by
+ *        Michel Grimminck.
+ *  
+ *        Currently is developed by Maxim Yurkin
  *
- *        Lminus beam is based on:
- *        G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
- *        in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5, 1427-1443 (1988).
- *        Eq.(22) - complex conjugate
- *
- *        Davis beam is based on:
- *        L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
- *        Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo)
- *
- *        Barton beam is based on:
- *        J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field
- *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66, 2800-2802 (1989).
- *        Eqs.(25)-(28) - complex conjugate
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * This code is covered by the GNU General Public License.
+ *        included incident propagation vector,
+ *        but only for plane wave. Others work correctly only for default incidence
  */
 #include <stdio.h>
-#include <string.h>
 #include "vars.h"
 #include "cmplx.h"
 #include "const.h"
 #include "comm.h"
 
-// SEMI-GLOBAL VARIABLES
+/* SEMI-GLOBAL VARIABLES */
 
-// defined and initialized in param.c
-extern const int beam_Npars;
-extern const double beam_pars[];
+/* defined and initialized in io.c */
+extern int beamtype;
+extern double beam_w0,beam_x0,beam_y0,beam_z0;
 
-// used in crosssec.c
-double beam_center_0[3]; // position of the beam center in laboratory reference frame
-// used in param.c
-char beam_descr[MAX_PARAGRAPH]; // string for log file with beam parameters
+/*============================================================*/
 
-// LOCAL VARIABLES
-double s,s2;            // beam confinement factor and its square
-double scale_x,scale_z; // multipliers for scaling coordinates
+void GenerateB (char which,		/* x - or y polarized incident light   */
+                doublecomplex *b)	/* the b vector for the incident field */
+   /* generates incident beam at every dipole */
+{ 
+  int i;
+  
+  int p1,p2,p3;
+  doublecomplex psi0, Q;
+  double l = WaveNum * beam_w0 * beam_w0;       /* spreading length */
+  double hplus, Qdenom, xsidiff;
+  double x, y, z;
+  double co, si, ex, tmpArg;
+  doublecomplex ctemp;  
+  double *incPol;	  	 /*used incident polarization*/
+  
+  /* polarisation is in the p1 direction - old version; new - choose from one of the basic 
+  (latter only for plane wave, for now) */
+  if (which=='Y') {p1=1; p2=0; p3=2; incPol=incPolY;}
+  if (which=='X') {p1=0; p2=1; p3=2; incPol=incPolX;}
+  if (beamtype==B_PLANE)
+    for (i=0;i<local_nvoid_Ndip;i++) {
+      tmpArg=WaveNum*DotProd(DipoleCoord+3*i,prop);
+      ctemp[RE]=cos(tmpArg);
+      ctemp[IM]=sin(tmpArg);
+      cScalMultRVec(incPol,ctemp,b+3*i); /* b[i]=ctemp*incPol */
+    } 
+  else if (beamtype==B_LMINUS) {
+    double s;
 
-//============================================================
+    s=beam_w0/l;
+    printz("beam confinement factor s:%g\n",s);
+    for (i=0;i<local_nvoid_Ndip;i++) {
+      x = DipoleCoord[3*i];
+      y = DipoleCoord[3*i+1];
+      z = DipoleCoord[3*i+2];
 
-void InitBeam(void)
-// initialize beam; produce description string
-{
-	double w0; // beam width
+      hplus = ((x-beam_x0)*(x-beam_x0)+(y-beam_y0)*(y-beam_y0))/(beam_w0*beam_w0);
 
-	if (beamtype==B_PLANE) {
-		STRCPYZ(beam_descr,"Plane wave");
-		beam_asym=FALSE;
-	}
-	else {
-		// initialize parameters
-		w0=beam_pars[0];
-		beam_asym=(beam_Npars==4 && (beam_pars[1]!=0 || beam_pars[2]!=0 || beam_pars[3]!=0));
-		if (beam_asym) {
-			memcpy(beam_center_0,beam_pars+1,3*sizeof(double));
-			// if necessary break the symmetry of the problem
-			if (beam_center_0[0]!=0) symX=symR=FALSE;
-			if (beam_center_0[1]!=0) symY=symR=FALSE;
-			if (beam_center_0[2]!=0) symZ=FALSE;
-		}
-		else beam_center[0]=beam_center[1]=beam_center[2]=0;
-		s=1/(WaveNum*w0);
-		s2=s*s;
-		scale_x=1/w0;
-		scale_z=s*scale_x; // 1/(k*w0^2)
-		// beam info
-		if (ringid==ROOT) {
-			strcpy(beam_descr,"Gaussian beam (");
-			if (beamtype==B_LMINUS) strcat(beam_descr,"L- approximation)\n");
-			else if (beamtype==B_DAVIS3) strcat(beam_descr,"3rd order approximation, by Davis)\n");
-			else if (beamtype==B_BARTON5) strcat(beam_descr,"5th order approximation, by Barton)\n");
-			sprintf(beam_descr+strlen(beam_descr),"\tWidth=%g (confinement factor s=%g)\n",w0,s);
-			if (beam_asym)
-				sprintf(beam_descr+strlen(beam_descr),"\tCenter position: (%g,%g,%g)",
-					beam_center_0[0],beam_center_0[1],beam_center_0[2]);
-			else strcat(beam_descr,"\tCenter is in the origin");
-		}
-	}
+      /* calculate Q */
+      xsidiff = -(z - beam_z0)/l;
+      Qdenom = 1.0 + 4 * xsidiff * xsidiff;
+      Q[RE] = 2.0 * xsidiff / Qdenom;
+      Q[IM] = -1.0 / Qdenom;
+
+      /* calculate psi0 */
+      co = cos(Q[RE]*hplus);
+      si = sin(Q[RE]*hplus);
+      ex = exp(Q[IM]*hplus);
+      psi0[RE] = (-Q[IM]*co + Q[RE]*si)*ex;
+      psi0[IM] = (Q[RE]*co + Q[IM]*si)*ex; 
+      
+      /* calculate the fields */
+      co = cos(WaveNum*(z-beam_z0));
+      si = sin(WaveNum*(z-beam_z0));
+      b[3*i+p1][RE] = psi0[RE]*co - psi0[IM]*si;
+      b[3*i+p1][IM] = psi0[IM]*co + psi0[RE]*si;
+      b[3*i+p2][RE] = 0.0;
+      b[3*i+p2][IM] = 0.0;
+      b[3*i+p3][RE] = 0.0;
+      b[3*i+p3][IM] = 0.0;
+    }
+  }
+  else if (beamtype==B_BUGGY) {
+    double s;
+    s=beam_w0/l;
+    printz("beam confinement factor s:%g\n",s);
+    for (i=0;i<local_nvoid_Ndip;i++) {
+      x = DipoleCoord[3*i];
+      y = DipoleCoord[3*i+1];
+      z = DipoleCoord[3*i+2];
+
+      hplus = ((x-beam_x0)*(x-beam_x0)+(y-beam_y0)*(y-beam_y0))/(beam_w0*beam_w0);
+      
+      /* calculate Q */
+      xsidiff = (z - beam_z0)/l;
+      Qdenom = 1.0 + 4 * xsidiff * xsidiff;
+      Q[RE] = 2.0 * xsidiff / Qdenom;
+      Q[IM] = -1.0 / Qdenom;
+      
+      /* calculate psi0 */
+      co = cos(Q[RE]*hplus);
+      si = sin(Q[RE]*hplus);
+      ex = exp(Q[IM]*hplus);
+      psi0[RE] = (-Q[IM]*co + Q[RE]*si)*ex;
+      psi0[IM] = (Q[RE]*co + Q[IM]*si)*ex; 
+      
+      /* calculate the fields */
+      co = cos(WaveNum*(z-beam_z0));
+      si = sin(WaveNum*(z-beam_z0));
+      b[3*i+p1][RE] = psi0[RE]*co - psi0[IM]*si;
+      b[3*i+p1][IM] = psi0[IM]*co + psi0[RE]*si;
+      b[3*i+p2][RE] = 0.0;
+      b[3*i+p2][IM] = 0.0;
+      if (which=='Y') {
+	b[3*i+p3][RE] = -2.0*(y-beam_y0)*(Q[RE]*b[3*i+p1][RE] - Q[IM]*b[3*i+p1][IM])/l;
+	b[3*i+p3][IM] = -2.0*(y-beam_y0)*(Q[IM]*b[3*i+p1][RE] + Q[RE]*b[3*i+p1][IM])/l;
+      }
+      else {
+	b[3*i+p3][RE] = -2.0*(x-beam_x0)*(Q[RE]*b[3*i+p1][RE] - Q[IM]*b[3*i+p1][IM])/l;
+	b[3*i+p3][IM] = -2.0*(x-beam_x0)*(Q[IM]*b[3*i+p1][RE] + Q[RE]*b[3*i+p1][IM])/l;
+      }
+    }
+  }
+  else if (beamtype==B_DAVIS1 || beamtype==B_BARTON1 || beamtype==B_BARTON3
+	   || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
+    double s;
+    doublecomplex ex,ey,ez;
+    double zeta,xsi,eta,nu;
+    doublecomplex d,d2,d3,d4,d5,d6;
+    doublecomplex temp,temp2,temp3;
+
+    s=beam_w0/l;
+    printz("beam confinement factor s:%g\n",s);
+    for (i=0;i<local_nvoid_Ndip;i++) {
+      if (which=='X') {
+        x = DipoleCoord[3*i]-beam_x0;
+        y = DipoleCoord[3*i+1]-beam_y0;
+      } else {
+        x = DipoleCoord[3*i+1]-beam_y0;
+        y = DipoleCoord[3*i]-beam_x0;
+      }
+
+      z = -(DipoleCoord[3*i+2]-beam_z0); /* minus to give beam the right direction */
+      xsi=x/beam_w0;
+      eta=y/beam_w0;
+      zeta=s*z/beam_w0;
+      nu=xsi*xsi+eta*eta;
+      d[RE]=1.0/(1.0+4*zeta*zeta); d[IM]=2.0*zeta/(1.0+4*zeta*zeta);
+      
+      if (beamtype==B_DAVIS1 || beamtype==B_BARTON1) {
+	ex[RE]=1; ex[IM]=0;
+	ey[RE]=0; ey[IM]=0;
+	ez[RE]=s; ez[IM]=0;
+      }
+      else if (beamtype==B_BARTON3) {
+	cSquare(d,d2);
+	cMult(d2,d,d3);
+	ex[RE]=1+s*s*(2*xsi*xsi*d2[RE]+nu*d2[RE]-nu*nu*d3[RE]);
+	ex[IM]=s*s*(2*xsi*xsi*d2[IM]+nu*d2[IM]-nu*nu*d3[IM]);
+	ey[RE]=s*s*2*xsi*eta*d2[RE];
+	ey[IM]=s*s*2*xsi*eta*d2[IM];
+	ez[RE]=s+s*s*s*(3*nu*d2[RE]-nu*nu*d3[RE]);
+	ez[IM]=s*s*s*(3*nu*d2[IM]-nu*nu*d3[IM]);
+      }
+      else if (beamtype==B_DAVIS3) {
+	cSquare(d,d2);
+	cMult(d2,d,d3);
+	ex[RE]=1+s*s*(4*xsi*xsi*d2[RE]-nu*nu*d3[RE]);
+	ex[IM]=s*s*(4*xsi*xsi*d2[IM]-nu*nu*d3[IM]);
+	ey[RE]=s*s*4*xsi*eta*d2[RE];
+	ey[IM]=s*s*4*xsi*eta*d2[IM];
+	ez[RE]=s+s*s*s*(-2*d[RE]+4*nu*d2[RE]-nu*nu*d3[RE]);
+	ez[IM]=s*s*s*(-2*d[IM]+4*nu*d2[IM]-nu*nu*d3[IM]);
+      }
+      else if (beamtype==B_BARTON5) {
+	cSquare(d,d2);
+	cMult(d2,d,d3);
+	cMult(d3,d,d4);
+	cMult(d4,d,d5);
+	cMult(d5,d,d6);
+	ex[RE]=1+s*s*(2*xsi*xsi*d2[RE]+nu*d2[RE]-nu*nu*d3[RE]) +
+	           s*s*s*s*(2*nu*nu*d4[RE]+8*xsi*xsi*nu*d4[RE]-3*nu*nu*nu*d5[RE] -
+		   2*xsi*xsi*nu*nu*d5[RE]+.5*nu*nu*nu*nu*d6[RE]);
+	ex[IM]=s*s*(2*xsi*xsi*d2[IM]+nu*d2[IM]-nu*nu*d3[IM]) +
+	           s*s*s*s*(2*nu*nu*d4[IM]+8*xsi*xsi*nu*d4[IM]-3*nu*nu*nu*d5[IM]-
+		   2*xsi*xsi*nu*nu*d5[IM]+.5*nu*nu*nu*nu*d6[IM]);
+	ey[RE]=s*s*2*xsi*eta*d2[RE] +
+	           s*s*s*s*(2*xsi*eta*d2[RE])*(4*nu*d2[RE]-nu*nu*d3[RE]);
+	ey[IM]=s*s*2*xsi*eta*d2[IM] +
+	           s*s*s*s*(2*xsi*eta*d2[IM])*(4*nu*d2[IM]-nu*nu*d3[IM]);
+	ez[RE]=s+s*s*s*(3*nu*d2[RE]-nu*nu*d3[RE]) +
+	           s*s*s*s*s*(10*nu*nu*d4[RE]-5*nu*nu*nu*d5[RE]+.5*nu*nu*nu*nu*d6[RE]);
+	ez[IM]=s*s*s*(3*nu*d2[IM]-nu*nu*d3[IM]) +
+	           s*s*s*s*s*(10*nu*nu*d4[IM]-5*nu*nu*nu*d5[IM]+.5*nu*nu*nu*nu*d6[IM]);
+      }
+      temp[RE]=cos(-WaveNum*z);     /* temp=exp(-i*k*z) */
+      temp[IM]=sin(-WaveNum*z);     
+      temp2[RE]=temp[RE]*d[RE]-temp[IM]*d[IM];      /* temp2=exp(-i*k*z)*D */
+      temp2[IM]=temp[RE]*d[IM]+temp[IM]*d[RE];
+      temp[RE]=exp(-nu*d[RE])*cos(-nu*d[IM]);      /* temp=exp(-nu*d) */
+      temp[IM]=exp(-nu*d[RE])*sin(-nu*d[IM]);
+      temp3[RE]=temp[RE]*temp2[RE]-temp[IM]*temp2[IM]; /* temp3=(i*k*z)*D*exp(-nu*d) */
+      temp3[IM]=temp[RE]*temp2[IM]+temp[IM]*temp2[RE];
+      
+      temp[RE]=d[RE]*ez[RE]-d[IM]*ez[IM];              /* temp=d*ez */
+      temp[IM]=d[RE]*ez[IM]+d[IM]*ez[RE];
+
+      temp[RE]*=2*xsi;                         /* temp=2*xsi*d*ez */
+      temp[IM]*=2*xsi;
+
+      temp2[RE]=-temp[IM]*temp3[RE]-temp[RE]*temp3[IM];  /* temp2=2*i*xsi*d*ez*temp3 */
+      temp2[IM]=temp[RE]*temp3[RE]-temp[IM]*temp3[IM];
+
+      /* fill in E field */
+      b[3*i+p1][RE] =temp3[RE]*ex[RE]-temp3[IM]*ex[IM];
+      b[3*i+p1][IM] =temp3[RE]*ex[IM]+temp3[IM]*ex[RE];
+      b[3*i+p2][RE] =temp3[RE]*ey[RE]-temp3[IM]*ey[IM];
+      b[3*i+p2][IM] =temp3[RE]*ey[IM]+temp3[IM]*ey[RE];
+      b[3*i+p3][RE] =-temp2[RE];
+      b[3*i+p3][IM] =-temp2[IM];
+
+      /* correction for carvature of the field */
+      /*corr=1+.63*.63*(xsi*xsi/12-1/24)/beam_w0/beam_w0;
+      b[3*i+p1][RE]*=corr; b[3*i+p1][IM]*=corr;
+      b[3*i+p2][RE]*=corr; b[3*i+p2][IM]*=corr;
+      b[3*i+p3][RE]*=corr; b[3*i+p3][IM]*=corr;*/
+    }
+  }
 }
 
-//============================================================
-
-void GenerateB (const char which, // x - or y polarized incident light
-                doublecomplex *b) // the b vector for the incident field
-// generates incident beam at every dipole
-{
-	size_t i,j;
-	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3];
-	double ro2,ro4;
-	double x,y,z,x2_s,xy_s;
-	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,t0,ctemp;
-	double const *ex; // coordinate axis of the beam reference frame
-	double ey[3];
-	double r1[3];
-
-	// set reference frame of the beam; ez=prop, ex - incident polarization
-	if (which=='Y') {
-		ex=incPolY;
-		memcpy(ey,incPolX,3*sizeof(double));
-		MultScal(-1,ey,ey);
-	}
-	if (which=='X') {
-		ex=incPolX;
-		memcpy(ey,incPolY,3*sizeof(double));
-	}
-	// plane is separate to be fast
-	if (beamtype==B_PLANE)
-		for (i=0;i<local_nvoid_Ndip;i++) {
-			j=3*i;
-			imExp(WaveNum*DotProd(DipoleCoord+j,prop),ctemp); // ctemp=exp(ik*r.a)
-			cScalMultRVec(ex,ctemp,b+j); // b[i]=ctemp*ex
-		}
-	else { // all other beam types
-		for (i=0;i<local_nvoid_Ndip;i++) {
-			j=3*i;
-			// set relative coordinates (in beam's coordinate system)
-			LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-			x=DotProd(r1,ex)*scale_x;
-			y=DotProd(r1,ey)*scale_x;
-			z=DotProd(r1,prop)*scale_z;
-			ro2=x*x+y*y;
-			// calculate Q=1/(2z-i)
-			Q[IM]=1/(1+4*z*z);
-			Q[RE]=2*z*Q[IM];
-			// calculate psi0=-iQexp(iQro^2)
-			cMult_i2(Q,t1);
-			cMultReal(ro2,t1,t2);
-			cExpSelf(t2);
-			cMult(t1,t2,psi0);
-			cInvSign(psi0);
-			// ctemp=exp(ik*z*scale_z)*psi0
-			imExp(WaveNum*z/scale_z,ctemp);
-			cMultSelf(ctemp,psi0);
-			if (beamtype==B_LMINUS) {
-				cScalMultRVec(ex,ctemp,b+j); // b[i]=ctemp*ex
-			}
-			else {
-				x2_s=x*x/ro2;
-				cSquare(Q,Q2);
-				ro4=ro2*ro2;
-				// some combinations that are used more than once
-				cMultReal(s2*ro2,Q2,t4); // t4=(s*ro*Q)^2
-				cMultReal(ro2,Q,t5);
-				cMult_i(t5);             // t5=i*Q*ro^2
-				cMultReal(ro4,Q2,t6);    // t6=ro^4*Q^2
-				cMultReal(x*s,Q,t7);     // t7=x*s*Q
-				if (beamtype==B_DAVIS3) {
-					// t1=1+s^2(-4Q^2*x^2-iQ^3*ro^4)=1-t4(4x2_s+t5)
-					cEqual(t5,t1);
-					t1[RE]+=4*x2_s;
-					cMultSelf(t1,t4);
-					cMultReal(-1,t1,t1);
-					t1[RE]+=1;
-					// t2=0
-					t2[RE]=t2[IM]=0;
-					// t3=-s(2Qx)+s^3(8Q^3*ro^2*x+2iQ^4*ro^4*x-4iQ^2x)=2t7[-1+iQ*s2*(-4t5+t6-2)]
-					cMultReal(-4,t5,t3);
-					cAdd(t3,t6,t3);
-					t3[RE]-=2;
-					cMultReal(s2,t3,t3);
-					cMultSelf(t3,Q);
-					cMult_i(t3);
-					t3[RE]-=1;
-					cMultSelf(t3,t7);
-					cMultReal(2,t3,t3);
-				}
-				else if (beamtype==B_BARTON5) {
-					xy_s=x*y/ro2;
-					cMultReal(2,t5,t8);
-					t8[RE]+=8; // t8=8+2i*Q*ro^2
-					/* t1 = 1 + s^2(-ro^2*Q^2-i*ro^4*Q^3-2Q^2*x^2)
-					 *    + s^4[2ro^4*Q^4+3iro^6*Q^5-0.5ro^8*Q^6+x^2(8ro^2*Q^4+2iro^4*Q^5)]
-					 *    = 1 + t4*{-1-2xs2-t5+t4*[2+3t5-0.5t6+x2_s*t8]}
-					 */
-					cMultReal(x2_s,t8,t1);
-					cMultReal(-0.5,t6,t0);
-					cAdd(t1,t0,t1);
-					cMultReal(3,t5,t0);
-					cAdd(t1,t0,t1);
-					t1[RE]+=2;
-					cMultSelf(t1,t4);
-					cSubtr(t1,t5,t1);
-					t1[RE]-=1+2*x2_s;
-					cMultSelf(t1,t4);
-					t1[RE]+=1;
-					// t2=s^2(-2Q^2*xy)+s^4[xy(8ro^2*Q^4+2iro^4*Q^5)]=xy_s*t4(-2+t4*t8)
-					cMult(t4,t8,t2);
-					t2[RE]-=2;
-					cMultSelf(t2,t4);
-					cMultReal(xy_s,t2,t2);
-					/* t3 = s(-2Qx) + s^3[(6ro^2*Q^3+2iro^4*Q^4)x]
-					 *    + s^5[(-20ro^4*Q^5-10iro^6*Q^6+ro^8*Q^7)x]
-					 *    = t7{-2+t4[6+2t5+t4(-20-10t5+t6)]}
-					 */
-					cMultReal(-10,t5,t3);
-					cAdd(t3,t6,t3);
-					t3[RE]-=20;
-					cMultSelf(t3,t4);
-					cMultReal(2,t5,t0);
-					cAdd(t3,t0,t3);
-					t3[RE]+=6;
-					cMultSelf(t3,t4);
-					t3[RE]-=2;
-					cMultSelf(t3,t7);
-				}
-				// b[i]=ctemp(ex*t1+ey*t2+ez*t3)
-				cScalMultRVec(ex,t1,v1);
-				cScalMultRVec(ey,t2,v2);
-				cScalMultRVec(prop,t3,v3);
-				cvAdd(v1,v2,v1);
-				cvAdd(v1,v3,v1);
-				cvMultScal_cmplx(ctemp,v1,b+j);
-			}
-		}
-	}
-}

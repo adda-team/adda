@@ -1,0 +1,8 @@
+rm adda
+make mpi
+if [ -f ./adda ]
+then
+    cp adda ./run/
+    cd run
+    qsub batch
+fi
