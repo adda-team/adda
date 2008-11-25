@@ -1,14 +1,15 @@
-/* FILE: cmplx.h
- * AUTH: Maxim Yurkin
- * DESCR: inline complex functions
+/* File: cmplx.h
+ * $Author$
+ * $Date::                            $
+ * Descr: inline complex functions
  *        plus few auxiliary functions
  *
  *        'const' can be used for many more function variables, however it doesn't
  *        work in combination with 'doublecomplex *' or more nested lists. That seems
  *        to be a principal limitation of C standard (some compilers may work, some produce
  *        warnings)
- *        A few changes for reliability and stability were made according to the ideas of section 5.5
- *        of the Numerical Recipes, 3rd edition
+ *        A few changes for reliability and stability were made according to the ideas of
+ *        section 5.5 of the Numerical Recipes, 3rd edition
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
