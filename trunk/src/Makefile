@@ -3,6 +3,21 @@
 # sequential and parallel (mpi) version respectively
 # $Author$
 # $Date::                            $
+#
+# Copyright (C) 2006-2008 University of Amsterdam
+# This file is part of ADDA.
+#
+# ADDA is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# ADDA is distributed in the hope that it will be useful,but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# ADDA. If not, see <http://www.gnu.org/licenses/>.
 
 #===============================================================================
 # !!! Start of control section. Flags and options here are designed to be
@@ -55,7 +70,7 @@ RELEASE = on
 #FFTW3_INC_PATH = "$(HOME)/include"
 #FFTW3_LIB_PATH = "$(HOME)/lib"
 #FFTW3_INC_PATH = "./../lib"
-#FFTW3_LIB_PATH = "./../lib"
+#FTW3_LIB_PATH = "./../lib"
 
 #===============================================================================
 # !!! End of control section. Everything below is not designed to be modified by
