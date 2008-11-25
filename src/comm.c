@@ -33,11 +33,6 @@
 #include "function.h"
 #include "parbas.h"
 
-// for getch in Stop
-#ifdef RUN_BCB
-# include <conio.h>
-#endif
-
 #ifdef MPI
 MPI_Datatype mpi_dcomplex;
 #endif
@@ -194,7 +189,7 @@ void Stop(const int code)
 // stops the program with exit 'code'
 {
 #ifdef MPI
-	if (code) { // error occurred
+	if (code!=EXIT_SUCCESS) { // error occurred
 		fflush(stdout);
 		fprintf(stderr,"Aborting process %d\n",ringid);
 		fflush(stderr);
@@ -208,16 +203,7 @@ void Stop(const int code)
 		MPI_Finalize();
 	}
 #endif
-	// if run under Borland C++ Builder, don't close the window automatically
-#ifdef RUN_BCB
-	PRINTZ("\nProgram has finished execution.\nPress any key to close window...");
-	// waits for pressed key
-	getch();
-#endif
-	// the code '0' corresponds to success, and '1' to failure
-	if (code==0) exit(EXIT_SUCCESS);
-	else if (code==1) exit(EXIT_FAILURE);
-	else exit(code);
+	exit(code);
 }
 
 //============================================================

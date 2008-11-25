@@ -187,7 +187,7 @@ void LogError(const int code,const int who,const char *fname,const int lineN,con
 	}
 	if (code==EC_ERROR) {
 		if (who==ONE && ringid!=ROOT) Synchronize();
-		Stop(1);
+		Stop(EXIT_FAILURE);
 	}
 }
 
@@ -216,7 +216,7 @@ void PrintError(const char *fmt, ... )
 	}
 	// wait for root to generate an error message
 	Synchronize();
-	Stop(1);
+	Stop(EXIT_FAILURE);
 }
 
 //============================================================

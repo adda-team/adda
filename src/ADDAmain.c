@@ -20,6 +20,7 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "vars.h"
@@ -78,7 +79,7 @@ int main(int argc,char **argv)
 	if (ferror(stdout)) LogError(EC_WARN,ALL_POS,
 		"Some errors occurred while writing to stdout during the execution of ADDA");
 	// finish execution normally
-	Stop(0);
+	Stop(EXIT_SUCCESS);
 	// never actually reached; just to make the compiler happy
 	return 0;
 }
