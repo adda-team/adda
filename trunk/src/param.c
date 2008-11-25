@@ -488,7 +488,7 @@ void PrintErrorHelp(const char *fmt, ... )
 	}
 	// wait for root to generate an error message
 	Synchronize();
-	Stop(1);
+	Stop(EXIT_FAILURE);
 }
 
 //============================================================
@@ -525,7 +525,7 @@ void PrintErrorHelpSafe(const char *fmt, ... )
 	}
 	// wait for root to generate an error message
 	Synchronize();
-	Stop(1);
+	Stop(EXIT_FAILURE);
 }
 
 //============================================================
@@ -853,7 +853,7 @@ PARSE_FUNC(h)
 		}
 	}
 	// exit
-	Stop(0);
+	Stop(EXIT_FAILURE);
 }
 PARSE_FUNC(int)
 {
@@ -1164,7 +1164,7 @@ PARSE_FUNC(V)
 		printf("%s",copyright);
 	}
 	// exit
-	Stop(0);
+	Stop(EXIT_FAILURE);
 #undef COMPILER
 #undef CCVERSION
 #undef COMPILER_UNKNOWN
