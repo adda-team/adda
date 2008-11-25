@@ -1,6 +1,7 @@
-/* FILE: timing.h
- * AUTH: Maxim Yurkin
- * DESCR: Definitions for usual timing; should be completely portable
+/* File: timing.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions for usual timing; should be completely portable
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

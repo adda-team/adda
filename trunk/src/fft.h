@@ -1,6 +1,7 @@
-/* FILE: fft.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of FFT parameters and routines
+/* File: fft.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of FFT parameters and routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

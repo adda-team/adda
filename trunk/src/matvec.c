@@ -1,7 +1,8 @@
-/* FILE: matvec.c
- * AUTH: Maxim Yurkin
- * DESCR: calculate local matrix vector product of decomposed interaction
- *        matrix with r_k or p_k, using a FFT based convolution algorithm
+/* File: matvec.c
+ * $Author$
+ * $Date::                            $
+ * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k,
+ *        using a FFT based convolution algorithm
  *
  *        Previous version by Michel Grimminck
  *

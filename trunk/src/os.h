@@ -1,6 +1,7 @@
-/* FILE: os.h
- * AUTH: Maxim Yurkin
- * DESCR: determines which operation system is used
+/* File: os.h
+ * $Author$
+ * $Date::                            $
+ * Descr: determines which operation system is used
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

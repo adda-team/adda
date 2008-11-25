@@ -1,7 +1,7 @@
-/* FILE: comm.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of communication global variables
- *        and routines
+/* File: comm.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of communication global variables and routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

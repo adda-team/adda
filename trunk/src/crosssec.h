@@ -1,7 +1,7 @@
-/* FILE: crosssec.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of functions for
- *        calculation of different measured quantities
+/* File: crosssec.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of functions for calculation of different measured quantities
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

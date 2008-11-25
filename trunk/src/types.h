@@ -1,6 +1,7 @@
-/* FILE: types.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of various structures
+/* File: types.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of various structures
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

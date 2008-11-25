@@ -1,6 +1,7 @@
-/* FILE: ADDAmain.c
- * AUTH: Maxim Yurkin
- * DESCR: Main. All the work moved to other modules.
+/* File: ADDAmain.c
+ * $Author$
+ * $Date::                            $
+ * Descr: main; all the work is done in other modules.
  *
  *        Previous versions were developed by Alfons Hoekstra.
  *        Sequential version, Michel Grimminck January 1995

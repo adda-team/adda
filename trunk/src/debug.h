@@ -1,6 +1,7 @@
-/* FILE: debug.h
- * AUTH: Maxim Yurkin
- * DESCR: Definitions for debug functions
+/* File: debug.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions for debug functions
  *
  *        Previous versions by "vesseur"
  *

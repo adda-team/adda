@@ -1,6 +1,7 @@
-/* FILE: io.h
- * AUTH: Maxim Yurkin
- * DESCR: i/o and error handling routines
+/* File: io.h
+ * $Author$
+ * $Date::                            $
+ * Descr: i/o and error handling routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

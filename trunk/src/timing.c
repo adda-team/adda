@@ -1,6 +1,7 @@
-/* FILE: timing.c
- * AUTH: Maxim Yurkin
- * DESCR: Basic timing and statistics routines
+/* File: timing.c
+ * $Author$
+ * $Date::                            $
+ * Descr: basic timing and statistics routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

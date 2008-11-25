@@ -1,7 +1,8 @@
-/* FILE: calculator.c
- * AUTH: Maxim Yurkin
- * DESCR: All the initialization is done here before actually
- *        calculating internal fields. Calculation of couple constants.
+/* File: calculator.c
+ * $Author$
+ * $Date::                            $
+ * Descr: all the initialization is done here before actually calculating internal fields; includes
+ *        calculation of couple constants
  *
  *        Previous versions were by Alfons Hoekstra
  *

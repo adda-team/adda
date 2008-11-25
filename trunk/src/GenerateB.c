@@ -1,22 +1,21 @@
-/* FILE: GenerateB.c
- * AUTH: Maxim Yurkin
- * DESCR: generate a incident beam
- *        original by A. Hoekstra, rewritten by Grimminck.
- *        plane wave by Alfons Hoekstra, others were first implemented by Michel Grimminck.
+/* File: GenerateB.c
+ * $Author$
+ * $Date::                            $
+ * Descr: generate a incident beam
  *
- *        Lminus beam is based on:
- *        G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
- *        in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5, 1427-1443 (1988).
- *        Eq.(22) - complex conjugate
+ *        Plane wave by Alfons Hoekstra, others were first implemented by Michel Grimminck.
  *
- *        Davis beam is based on:
- *        L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
- *        Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo)
+ *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere
+ *        arbitrary located in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,
+ *        1427-1443 (1988). Eq.(22) - complex conjugate.
  *
- *        Barton beam is based on:
- *        J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field
- *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66, 2800-2802 (1989).
- *        Eqs.(25)-(28) - complex conjugate
+ *        Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19,
+ *        1177-1179 (1979). Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2"
+ *        (typo).
+ *
+ *        Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected
+ *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
+ *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

@@ -1,8 +1,8 @@
 /* FILE : crosssec.c
- * AUTH : Maxim Yurkin
- * DESCR: All the functions to calculate scattering quantities (except Mueller matrix).
- *        Functions to read different parameters from files.
- *        Initialization of orientation of the particle.
+ * $Author$
+ * $Date::                            $
+ * Descr: all the functions to calculate scattering quantities (except Mueller matrix); to read
+ *        different parameters from files; and initialize orientation of the particle
  *
  *        Previous versions by Martijn Frijlink
  *

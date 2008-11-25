@@ -1,7 +1,7 @@
-/* FILE: prec_time.c
- * AUTH: Maxim Yurkin
- * DESCR: precision timing routines (OS dependent)
- *        definitions (including inline ones) are in prec_time.h
+/* File: prec_time.c
+ * $Author$
+ * $Date::                            $
+ * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

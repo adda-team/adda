@@ -1,12 +1,11 @@
-/* FILE: linalg.c
- * AUTH: Maxim Yurkin
- * DESCR: Different linear algebra operations for use with iterative solvers
- *        Highly specialized for DDA
+/* File: linalg.c
+ * $Author$
+ * $Date::                            $
+ * Descr: different linear algebra operations for use with iterative solvers; highly specialized
  *
- *        'const' can be used for many more function variables, however it doesn't
- *        work in combination with 'doublecomplex *' or more nested lists. That seems
- *        to be a principal limitation of C standard (some compilers may work, some produce
- *        warnings)
+ *        'const' can be used for many more function variables, however it doesn't work in
+ *        combination with 'doublecomplex *' or more nested lists. That seems to be a principal
+ *        limitation of C standard (some compilers may work, some produce warnings)
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

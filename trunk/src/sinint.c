@@ -1,10 +1,12 @@
-/* FILE: sinint.c
- * AUTH: Maxim Yurkin
- * DESCR: Function for calculating sine and cosine integrals. It was originaly based on
- *        routine given in "Numerical Recipes in C" 2nd ed. and then was slightly corrected
- *        according to the 3rd ed. of the same book.
+/* File: sinint.c
+ * $Author$
+ * $Date::                            $
+ * Descr: function for calculating sine and cosine integrals
  *
- * Copyright (C) 2007-2008 University of Amsterdam
+ *        It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was
+ *        slightly corrected according to the 3rd ed. of the same book.
+ *
+ * Copyright (C) 2007,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
  */
 #include <math.h>
