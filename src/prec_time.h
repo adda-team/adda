@@ -1,6 +1,7 @@
-/* FILE: prec_time.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of inline functions for precise timing
+/* File: prec_time.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of inline functions for precise timing
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

@@ -1,6 +1,7 @@
-/* FILE: param.h
- * AUTH: Maxim Yurkin
- * DESCR: INLINE routines for testing of input parameters
+/* File: param.h
+ * $Author$
+ * $Date::                            $
+ * Descr: inline routines for testing of input parameters
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

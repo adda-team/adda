@@ -1,28 +1,28 @@
-/* FILE: iterative.c
- * AUTH: Maxim Yurkin
- * DESCR: Few iterative techniques to solve DDA equations
- *        Currently CGNR,BiCGStab,BiCG-CS,QMR-CS are implemented
+/* File: iterative.c
+ * $Author$
+ * $Date::                            $
+ * Descr: a few iterative techniques to solve DDA equations; currently CGNR,BiCGStab,BiCG-CS,QMR-CS
+ *        are implemented
  *
- *        CGNR and BiCGStab are based on "Templates for the Solution of Linear Systems:
- *          Building Blocks for Iterative Methods"
- *          http://www.netlib.org/templates/Templates.html
+ *        CGNR and BiCGStab are based on "Templates for the Solution of Linear Systems: Building
+ *        Blocks for Iterative Methods", http://www.netlib.org/templates/Templates.html .
  *
  *        BiCG-CS and QMR-CS are based on: Freund R.W. "Conjugate gradient-type methods for linear
- *          systems with complex symmetric coefficient matrices",
- *          SIAM Journal of Scientific Statistics and Computation, 13(1):425-448, 1992.
+ *        systems with complex symmetric coefficient matrices", SIAM Journal of Scientific
+ *        Statistics and Computation, 13(1):425-448, 1992.
  *
- *        BiCG-CS is identical to COCG, described in:
- *          van der Vorst H.A., Melissen J.B.M. "A Petrov-Galerkin type method for solving Ax=b,
- *          where A is symmetric complex", IEEE Transactions on Magnetics, 26(2):706-708, 1990.
+ *        BiCG-CS is identical to COCG, described in: van der Vorst H.A., Melissen J.B.M. "A
+ *        Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex", IEEE
+ *        Transactions on Magnetics, 26(2):706-708, 1990.
  *
- *        CGNR was first implemented by Alfons Hoekstra
+ *        CGNR was first implemented by Alfons Hoekstra.
  *
- *        The linear system is composed so that diagonal terms are equal to 1, therefore
- *          use of Jacobi preconditioners does not have any effect
+ *        The linear system is composed so that diagonal terms are equal to 1, therefore use of
+ *        Jacobi preconditioners does not have any effect.
  *
- *        CS methods still converge to the right result even when matrix is slightly
- *           non-symmetric (e.g. -int so), however they do it much slowly than usually.
- *           It is recommended then to use BiCGStab
+ *        CS methods still converge to the right result even when matrix is slightly non-symmetric
+ *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
+ *        BiCGStab.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

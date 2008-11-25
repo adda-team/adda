@@ -1,7 +1,8 @@
 # Main makefile for ADDA package
 # Actual compiling goes in make_seq and make_mpi for
 # sequential and parallel (mpi) version respectively
-# AUTH: Maxim Yurkin
+# $Author$
+# $Date::                            $
 
 #===============================================================================
 # !!! Start of control section. Flags and options here are designed to be

@@ -1,6 +1,7 @@
-/* FILE: parbas.h
- * AUTH: Maxim Yurkin
- * DESCR: Parallel basics. Include necessary headers and checks version of the standard.
+/* File: parbas.h
+ * $Author: yurkin $
+ * $Date:: 2008-11-25 10:26:04 +0600 #$
+ * Descr: parallel basics; includes necessary headers and checks version of the standard.
  *
  * Copyright (C) 2007,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

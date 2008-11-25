@@ -1,7 +1,7 @@
-/* FILE: debug.c
- * AUTH: Maxim Yurkin
- * DESCR: Functions for printing debugging information when compiling
- *        with option -DDEBUG
+/* File: debug.c
+ * $Author$
+ * $Date::                            $
+ * Descr: functions for printing debugging information when compiling with option -DDEBUG
  *
  *        Previous versions by "vesseur"
  *

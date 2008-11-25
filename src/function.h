@@ -1,6 +1,7 @@
-/* FILE: function.h
- * AUTH: Maxim Yurkin
- * DESCR: INLINE definition and function attributes
+/* File: function.h
+ * $Author$
+ * $Date::                            $
+ * Descr: INLINE definition and function attributes
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

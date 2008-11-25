@@ -1,8 +1,8 @@
-/* FILE: memory.c
- * AUTH: Maxim Yurkin
- * DESCR: allocation and freeing of different vectors and matrices, checks for
- *        out of memory performed;
- *        Resistant to 0 sizes in allocation and NULL in freeing
+/* File: memory.c
+ * $Author$
+ * $Date::                            $
+ * Descr: allocation and freeing of different vectors and matrices; checks for 'out of memory';
+ *       resistant to 0 sizes in allocation and NULL in freeing
  *
  *        Previous versions by Alfons Hoekstra
  *

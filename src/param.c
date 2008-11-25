@@ -1,7 +1,8 @@
-/* FILE: param.c
- * AUTH: Maxim Yurkin
- * DESCR: Initialization, parsing and handling of input parameters.
- *        Also printout general information. Contains file locking routines.
+/* File: param.c
+ * $Author$
+ * $Date::                            $
+ * Descr: initialization, parsing and handling of input parameters; also printout general
+ *        information; contains file locking routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

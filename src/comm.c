@@ -1,9 +1,8 @@
 /* FILE : comm.c
- * AUTH : Maxim Yurkin
- * DESCR: The main intention of this library is to incorporate all
- *        parallelization related code, so most of it is directly
- *        involved in or closely related to interprocess communication,
- *        hence its name.
+ * $Author$
+ * $Date::                            $
+ * Descr: incorporates all parallelization related code, so most of it is directly involved in or
+ *        closely related to interprocess communication
  *
  *        Previous versions were by Martijn Frijlink
  *

@@ -1,6 +1,7 @@
 # Makefile for MPI version of ADDA package
 # Most options are defined in Makefile
-# AUTH: Maxim Yurkin
+# $Author$
+# $Date::                            $
 
 #===============================================================================
 # !!! Start of control section. Flags and options here are designed to be

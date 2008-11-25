@@ -1,10 +1,11 @@
-/* FILE: vars.c
- * AUTH: Maxim Yurkin
- * DESCR: All the global variables are defined here
- *        Global means: used in three or more source files.
- *        Variables that are used in only two source files are called 'semi-global'
- *           and not listed here. They are defined in one file and referenced with
- *           'extern' in another one.
+/* File: vars.c
+ * $Author$
+ * $Date::                            $
+ * Descr: all the global variables are declared here
+ *
+ *        Global means: used in three or more source files. Variables that are used in only two
+ *        source files are called 'semi-global' and not listed here. They are defined in one file
+ *        and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

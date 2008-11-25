@@ -1,7 +1,8 @@
-/* FILE: linalg.h
- * AUTH: Maxim Yurkin
- * DESCR: Definitions for linear algebra operations on large vectors
- *        see source (linalg.c) for description
+/* File: linalg.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions for linear algebra operations on large vectors; see source (linalg.c) for
+ *        details
  *
  * Copyright (C) 2006,2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

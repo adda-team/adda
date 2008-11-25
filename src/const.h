@@ -1,7 +1,7 @@
-/* FILE: const.h
- * AUTH: Maxim Yurkin
- * DESCR: All the constants used by ADDA code
- *        also defines some useful macros
+/* File: const.h
+ * $Author$
+ * $Date::                            $
+ * Descr: all the constants used by ADDA code, also defines some useful macros
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
@@ -10,7 +10,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.79a3"
+#define ADDA_VERSION "0.79a4"
 
 // basic constants
 #define FALSE  0

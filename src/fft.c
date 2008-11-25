@@ -1,8 +1,9 @@
-/* FILE: fft.c
- * AUTH: Maxim Yurkin
- * DESCR: Initialization of all FFT for matrix-vector products
- *        and FFT procedures themselves
- *        A lot of indirect indexing used - way to optimize
+/* File: fft.c
+ * $Author$
+ * $Date::                            $
+ * Descr: initialization of all FFT for matrix-vector products; and FFT procedures themselves
+
+ *        TODO: A lot of indirect indexing used - way to optimize.
  *
  *        Previous versions by Michel Grimminck and Alfons Hoekstra
  *

@@ -1,6 +1,7 @@
-/* FILE: io.c
- * AUTH: Maxim Yurkin
- * DESCR: io routines
+/* File: io.c
+ * $Author$
+ * $Date::                            $
+ * Descr: i/o routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

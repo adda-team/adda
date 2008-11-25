@@ -1,13 +1,16 @@
-/* FILE: make_particlce.c
- * AUTH: Alfons Hoekstra
- * DESCR: This module initializes the dipole set, either using predefined shapes
- *        or reading from a file. Includes granule generator.
+/* File: make_particlce.c
+ * $Author$
+ * $Date::                            $
+ * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
+ *        file; includes granule generator
  *
- *        rewriten,
+ *        Up to 2004 it was maintained by Alfons Hoekstra.
+ *        -----------------------------------------------------------
+ *        rewritten,
  *        Michel Grimminck 1995
  *        -----------------------------------------------------------
  *        included ellipsoidal particle for work with Victor Babenko
- *        september 2002
+ *        September 2002
  *        -----------------------------------------------------------
  *        included many more new particles:
  *        leucocyte, stick, rotatable oblate spheroid, lymphocyte,
@@ -18,8 +21,6 @@
  *        Shapes 'capsule' and 'egg' are implemented by Daniel Hahn and Richard Joseph.
  *        -----------------------------------------------------------
  *        Shape 'axisymmetric' is based on the code by Konstantin Gilev
- *
- *        Currently is developed by Maxim Yurkin
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.

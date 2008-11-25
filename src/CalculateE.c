@@ -1,11 +1,13 @@
-/* FILE: CalculateE.c
- * AUTH: Maxim Yurkin
- * DESCR: The module that will calculate the E field and all scattering quantities.
- *        Routines for most scattering quantities are in crosssec.c
- *        Also saves internal fields to file (optional).
+/* File: CalculateE.c
+ * $Author$
+ * $Date::                            $
+ * Descr: the module to calculate the E field and all scattering quantities
  *
- *        January 2004 : include module to compute full Mueller Matrix over
- *        full space angle, not very efficient, must be improved (A. Hoekstra)
+ *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
+ *        file (optional).
+ *
+ *        January 2004 : include module to compute full Mueller Matrix over full space angle, not
+ *        very efficient, must be improved (A. Hoekstra)
  *
  *        Previous versions by Alfons Hoekstra
  *

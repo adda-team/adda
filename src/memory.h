@@ -1,8 +1,7 @@
-/* FILE: memory.h
- * AUTH: Maxim Yurkin
- * DESCR: definitions of functions for
- *        memory allocation and freeing
- *        also includes overflows checks
+/* File: memory.h
+ * $Author$
+ * $Date::                            $
+ * Descr: definitions of functions for memory allocation and freeing; also includes overflows checks
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * This code is covered by the GNU General Public License.
