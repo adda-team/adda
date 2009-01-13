@@ -1,752 +1,485 @@
-/* File: cmplx.h
- * $Author$
- * $Date::                            $
- * Descr: inline complex functions plus few auxiliary functions
- *
- *        'const' can be used for many more function variables, however it doesn't work in
- *        combination with 'doublecomplex *' or more nested lists. That seems to be a principal
- *        limitation of C standard (some compilers may work, some produce warnings). A few changes
- *        for reliability and stability were made according to the ideas of section 5.5 of the
- *        Numerical Recipes, 3rd edition.
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * This file is part of ADDA.
- *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with ADDA. If not, see
- * <http://www.gnu.org/licenses/>.
+/* FILE: cmplx.h
+ * AUTH: Maxim Yurkin
+ * DESCR: inline complex functions
+ *        plus few auxiliary functions
  */
 #ifndef __cmplx_h
 #define __cmplx_h
 
-#include <string.h>   // for memcpy
-#include <math.h>     // for cos, sin
-#include "const.h"    // for math constants
-#include "types.h"    // for doublecomplex
-#include "function.h" // for INLINE
+#include <string.h>
+#include <math.h>
+#include "const.h"
 
-//============================================================
-// operations on complex numbers
+/*============================================================*/
+/* operations on complex numbers */
 
-INLINE void cEqual(const doublecomplex a,doublecomplex b)
-// performs b=a
+INLINE double cAbs2(doublecomplex a)
+     /* square of absolute value of complex number; |a|^2 */
 {
-	memcpy(b,a,sizeof(doublecomplex));
+  return (a[re]*a[re] + a[im]*a[im]);
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double cAbs2(const doublecomplex a)
-// square of absolute value of complex number; |a|^2
+INLINE void cConj(doublecomplex a,doublecomplex b)
+     /* complex conjugate; b=a* */
 {
-	return (a[RE]*a[RE] + a[IM]*a[IM]);
+  b[re] = a[re];
+  b[im] = - a[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double cAbs(const doublecomplex a)
-// absolute value of complex number |a|, specially designed to avoid overflow
+INLINE void cAdd(doublecomplex a,doublecomplex b,doublecomplex c)
+     /* add two complex numbers; c=a+b */
 {
-	double u,v,w;
-	u=fabs(a[RE]);
-	v=fabs(a[IM]);
-
-	if (u==0 && v==0) return 0;
-	else {
-		if (u>=v) {
-			w=v/u;
-			return (u*sqrt(1+w*w));
-		}
-		else {
-			w=u/v;
-			return (v*sqrt(1+w*w));
-		}
-	}
+  c[re] = a[re] + b[re];
+  c[im] = a[im] + b[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cConj(const doublecomplex a,doublecomplex b)
-// complex conjugate; b=a*
+INLINE void cSubtr(doublecomplex a,doublecomplex b,doublecomplex c)
+     /* subtract two complex numbers; c=a-b */
 {
-	b[RE] = a[RE];
-	b[IM] = - a[IM];
+  c[re] = a[re] - b[re];
+  c[im] = a[im] - b[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cAdd(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// add two complex numbers; c=a+b
+INLINE void cSquare(doublecomplex a,doublecomplex b)
+     /* square of complex number; b=a^2 */
 {
-	c[RE] = a[RE] + b[RE];
-	c[IM] = a[IM] + b[IM];
+  b[re]=a[re]*a[re] - a[im]*a[im];
+  b[im]=2*a[im]*a[re];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cSubtr(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// subtract two complex numbers; c=a-b
+INLINE void cMultReal(double a,doublecomplex b,doublecomplex c)
+     /* complex multiplication by real; c=ab */
 {
-	c[RE] = a[RE] - b[RE];
-	c[IM] = a[IM] - b[IM];
+  c[re]=a*b[re];
+  c[im]=a*b[im];
 }
 
-//============================================================
-
-INLINE void cSquare(const doublecomplex a,doublecomplex b)
-// square of complex number; b=a^2
-{
-	b[RE]=a[RE]*a[RE] - a[IM]*a[IM];
-	b[IM]=2*a[IM]*a[RE];
-}
-
-//============================================================
-
-INLINE void cMultReal(const double a,const doublecomplex b,doublecomplex c)
-// complex multiplication by real; c=ab
-{
-	c[RE]=a*b[RE];
-	c[IM]=a*b[IM];
-}
-
-//============================================================
+/*============================================================*/
 
 INLINE void cMult_i(doublecomplex c)
-// complex multiplication by i; c=i*c
+     /* complex multiplication by i; c=i*c */
 {
-	double tmp;
-	tmp=c[RE];
-	c[RE]=-c[IM];
-	c[IM]=tmp;
+  double tmp;
+  tmp=c[re];
+  c[re]=-c[im];
+  c[im]=tmp;
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cMult_i2(doublecomplex a,doublecomplex b)
-// complex multiplication by i; b=i*a; !!! b and c should be different !!!
+INLINE void cMult(doublecomplex a,doublecomplex b,doublecomplex c)
+     /* complex multiplication; c=ab */
+     /* !!! c should be different from a and b !!! */
 {
-	b[RE]=-a[IM];
-	b[IM]=a[RE];
-}
-//============================================================
-
-INLINE void cMult(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// complex multiplication; c=ab; !!! c should be different from a and b !!!
-{
-	c[RE]=a[RE]*b[RE] - a[IM]*b[IM];
-	c[IM]=a[IM]*b[RE] + a[RE]*b[IM];
+  c[re]=a[re]*b[re] - a[im]*b[im];
+  c[im]=a[im]*b[re] + a[re]*b[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cMultSelf(doublecomplex a,const doublecomplex b)
-// complex multiplication; a*=b
+INLINE void cMultSelf(doublecomplex a,doublecomplex b)
+     /* complex multiplication; a*=b */
 {
-	double tmp;
-
-	tmp=a[RE];
-	a[RE]=a[RE]*b[RE] - a[IM]*b[IM];
-	a[IM]=a[IM]*b[RE] + tmp*b[IM];
+  double tmp;
+  tmp=a[re];
+  a[re]=a[re]*b[re] - a[im]*b[im];
+  a[im]=a[im]*b[re] + tmp*b[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double cMultConRe(const doublecomplex a,const doublecomplex b)
-// complex multiplication; returns real(a*b_conjugated)
+INLINE double cMultConRe(doublecomplex a,doublecomplex b)
+     /* complex multiplication; returns real(a*b_conjugated) */
 {
-	return (a[RE]*b[RE] + a[IM]*b[IM]);
+  return (a[re]*b[re] + a[im]*b[im]);
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double cMultConIm(const doublecomplex a,const doublecomplex b)
-// complex multiplication; returns imag(a*b_conjugated)
+INLINE double cMultConIm(doublecomplex a,doublecomplex b)
+     /* complex multiplication; returns imag(a*b_conjugated) */
 {
-	return (a[IM]*b[RE] - a[RE]*b[IM]);
+  return (a[im]*b[re] - a[re]*b[im]);
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cLinComb(const doublecomplex a,const doublecomplex b,
-                     const double c1,const double c2,doublecomplex c)
-// linear combination of two complex numbers; c=c1*a+c2*b
+INLINE void cLinComb(doublecomplex a,doublecomplex b, double  c1, double c2, doublecomplex c)
+    /* linear combination of two complex numbers; c=c1*a+c2*b */
 {
-	c[RE]=c1*a[RE]+c2*b[RE];
-	c[IM]=c1*a[IM]+c2*b[IM];
+    c[re]=c1*a[re]+c2*b[re];
+    c[im]=c1*a[im]+c2*b[im];
 }
 
-//============================================================
+/*============================================================*/
 
 INLINE void cInvSign(doublecomplex a)
-// change sign of complex number; a*=-1;
+     /* change sign of complex number; a*=-1; */
 {
-	a[RE] = - a[RE];
-	a[IM] = - a[IM];
+  a[re] = - a[re];
+  a[im] = - a[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cInvSign2(const doublecomplex a,doublecomplex b)
-// change sign of complex number and store to different address; b=-a;
+INLINE void cInvSign2(doublecomplex a,doublecomplex b)
+     /* change sign of complex number and store to different address; b=-a; */
 {
-	b[RE] = - a[RE];
-	b[IM] = - a[IM];
+  b[re] = - a[re];
+  b[im] = - a[im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cInv(const doublecomplex a,doublecomplex b)
-// complex inversion; b=1/a; designed to avoid under and overflows
+INLINE void cInv(doublecomplex a,doublecomplex b)
+     /* complex inversion; b=1/a */
 {
-	double tmp;
-
-	if (fabs(a[RE])>=fabs(a[IM])) {
-		tmp=a[IM]/a[RE];
-		b[RE]=1/(a[RE]+a[IM]*tmp);
-		b[IM]=-b[RE]*tmp;
-	}
-	else {
-		tmp=a[RE]/a[IM];
-		b[IM]=-1/(a[RE]*tmp+a[IM]);
-		b[RE]=-b[IM]*tmp;
-	}
+  double tmp;
+  tmp=1/(a[re]*a[re] + a[im]*a[im]);
+  b[re]= a[re] * tmp;
+  b[im]= - a[im] * tmp;
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double cInvIm(const doublecomplex a)
-// returns Im of inverse of a; designed to avoid under and overflows
+INLINE void cDiv(doublecomplex a,doublecomplex b,doublecomplex c)
+     /* complex division; c=a/b */
+     /* !!! c should be different from a and b !!! */
 {
-	double tmp;
-
-	if (fabs(a[RE])>=fabs(a[IM])) {
-		tmp=a[IM]/a[RE];
-		return (-tmp/(a[RE]+a[IM]*tmp));
-	}
-	else {
-		tmp=a[RE]/a[IM];
-		return (-1/(a[RE]*tmp+a[IM]));
-	}
+  double tmp;
+  tmp=1/(b[re]*b[re] + b[im]*b[im]);
+  c[re]=(a[re]*b[re] + a[im]*b[im])*tmp;
+  c[im]=(a[im]*b[re] - a[re]*b[im])*tmp;
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cDiv(const doublecomplex a,const doublecomplex b,doublecomplex c)
-/* complex division; c=a/b; designed to avoid under and overflows
- * !!! c should be different from a !!!
- */
+INLINE void cDivSelf(doublecomplex a,doublecomplex b)
+     /* complex division; a/=b */
 {
-	double u,v;
-
-	if (fabs(b[RE])>=fabs(b[IM])) {
-		u=b[IM]/b[RE];
-		v=1/(b[RE]+b[IM]*u);
-		c[RE]=(a[RE]+a[IM]*u)*v;
-		c[IM]=(a[IM]-a[RE]*u)*v;
-	}
-	else {
-		u=b[RE]/b[IM];
-		v=1/(b[RE]*u+b[IM]);
-		c[RE]=(a[RE]*u+a[IM])*v;
-		c[IM]=(a[IM]*u-a[RE])*v;
-	}
+  double tmp, tmp2;
+  tmp=1/(b[re]*b[re] + b[im]*b[im]);
+  tmp2=a[re];
+  a[re]=(a[re]*b[re] + a[im]*b[im])*tmp;
+  a[im]=(a[im]*b[re] - tmp2*b[im])*tmp;
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cDivSelf(doublecomplex a,const doublecomplex b)
-// complex division; a/=b; designed to avoid under and overflows
+INLINE void cSqrt(doublecomplex a, doublecomplex b)
+     /* complex square root; b=a
+        branch cut discontinuity is (-inf,0) - b[re]>=0 */
 {
-	double u,v,w;
+  double tmp;
 
-	w=a[RE];
-	if (fabs(b[RE])>=fabs(b[IM])) {
-		u=b[IM]/b[RE];
-		v=1/(b[RE]+b[IM]*u);
-		a[RE]=(w+a[IM]*u)*v;
-		a[IM]=(a[IM]-w*u)*v;
-	}
-	else {
-		u=b[RE]/b[IM];
-		v=1/(b[RE]*u+b[IM]);
-		a[RE]=(w*u+a[IM])*v;
-		a[IM]=(a[IM]*u-w)*v;
-	}
+  tmp=sqrt(a[re]*a[re]+a[im]*a[im]);
+  b[re]=sqrt((tmp+a[re])/2.0);
+  b[im]=sqrt((tmp-a[re])/2.0);
+  if (a[im]<0) b[re]=-b[re];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cSqrt(const doublecomplex a,doublecomplex b)
-/* complex square root; b=sqrt(a); designed to avoid under and overflows;
- * branch cut discontinuity is (-inf,0) - b[RE]>=0
- */
+INLINE void cExp(double arg, doublecomplex c)
+     /* complex exponent c=Exp(i*arg)*/
 {
-	double u,v,w,r;
+  while (arg>=TWO_PI) arg-=TWO_PI;
+  while (arg<0) arg+=TWO_PI;
 
-	u=fabs(a[RE]);
-	v=fabs(a[IM]);
-	if (u==0 && v==0) b[RE]=b[IM]=0;
-	else {
-		// first determine w
-		if (u>=v) {
-			r=v/u;
-			w=sqrt(u)*sqrt((1+sqrt(1+r*r))/2);
-		}
-		else {
-			r=u/v;
-			w=sqrt(v)*sqrt((r+sqrt(1+r*r))/2);
-		}
-		// compute the result
-		if (a[RE]>=0) {
-			b[RE]=w;
-			b[IM]=a[IM]/(2*w);
-		}
-		else {
-			b[RE]=v/(2*w);
-			if (a[IM]>=0) b[IM]=w;
-			else b[IM]=-w;
-		}
-	}
+  c[re] = cos(arg);
+  c[im] = sqrt(1-c[re]*c[re]);
+  if (arg>PI) c[im]=-c[im];
 }
 
-//============================================================
+/*============================================================*/
+/* operations on complex vectors */
 
-INLINE void imExp(const double arg,doublecomplex c)
-// exponent of imaginary argument c=Exp(i*arg); optimization is performed by compiler
+INLINE void cvMultScal(double a,doublecomplex *b,doublecomplex *c)
+     /* multiplication of vector by real scalar; c=ab */
 {
-	c[RE]=cos(arg);
-	c[IM]=sin(arg);
+  c[0][re] = a*b[0][re];
+  c[0][im] = a*b[0][im];
+  c[1][re] = a*b[1][re];
+  c[1][im] = a*b[1][im];
+  c[2][re] = a*b[2][re];
+  c[2][im] = a*b[2][im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void imExp_arr(const double arg,const int size,doublecomplex *c)
-/* construct an array of exponent of imaginary argument c=Exp(i*k*arg)
- * where k=0,1,...,size-1. Uses stable recurrence from Numerical Recipes.
- * Optimization of the initial simultaneous calculation of sin and cos is performed
- * by compiler; It is assumed that size is at least 1
- */
+INLINE void cScalMultRVec(double *a, doublecomplex b, doublecomplex *c)
+    /* complex scalar- real vector[3] multiplication; c=b*a */
 {
-	int k;
-	double a,b;
-
-	c[0][RE]=1;
-	c[0][IM]=0;
-	if (size>1) {
-		// set a=2*sin^2(arg/2), b=sin(arg)
-		a=sin(arg/2);
-		b=cos(arg/2);
-		b*=2*a;
-		a*=2*a;
-		// this a bit faster than in the main cycle
-		c[1][RE]=1-a;
-		c[1][IM]=b;
-		// main cycle
-		for (k=2;k<size;k++) {
-			/* potentially compiler may open brackets to accelerate calculation but lose significant
-			 * digits. We hope it doesn't happen, but it should not be a big problem anyway
-			 */
-			c[k][RE]=c[k-1][RE]-(a*c[k-1][RE]+b*c[k-1][IM]);
-			c[k][IM]=c[k-1][IM]-(a*c[k-1][IM]-b*c[k-1][RE]);
-		}
-	}
+  c[0][re] = b[re]*a[0];
+  c[0][im] = b[im]*a[0];
+  c[1][re] = b[re]*a[1];
+  c[1][im] = b[im]*a[1];
+  c[2][re] = b[re]*a[2];
+  c[2][im] = b[im]*a[2];
 }
 
-//============================================================
-
-INLINE void cExp(const doublecomplex arg,doublecomplex c)
-/* complex exponent of complex argument c=Exp(arg); optimization is performed by compiler;
- * !!! c should be different from arg !!!
- */
-{
-	c[RE]=c[IM]=exp(arg[RE]);
-	c[RE]*=cos(arg[IM]);
-	c[IM]*=sin(arg[IM]);
-}
-
-//============================================================
-
-INLINE void cExpSelf(doublecomplex arg)
-/* complex exponent of complex argument arg=Exp(arg); result is stored in the argument itself
- * Optimization is performed by compiler
- */
-{
-	double tmp;
-
-	tmp=arg[IM];
-	arg[RE]=arg[IM]=exp(arg[RE]);
-	arg[RE]*=cos(tmp);
-	arg[IM]*=sin(tmp);
-}
-
-//============================================================
-// operations on complex vectors
-
-INLINE void cvMultScal(const double a,doublecomplex *b,doublecomplex *c)
-// multiplication of vector by real scalar; c=ab
-{
-	c[0][RE] = a*b[0][RE];
-	c[0][IM] = a*b[0][IM];
-	c[1][RE] = a*b[1][RE];
-	c[1][IM] = a*b[1][IM];
-	c[2][RE] = a*b[2][RE];
-	c[2][IM] = a*b[2][IM];
-}
-
-//============================================================
-
-INLINE void cScalMultRVec(const double *a,const doublecomplex b,doublecomplex *c)
-// complex scalar- real vector[3] multiplication; c=b*a
-{
-	c[0][RE] = b[RE]*a[0];
-	c[0][IM] = b[IM]*a[0];
-	c[1][RE] = b[RE]*a[1];
-	c[1][IM] = b[IM]*a[1];
-	c[2][RE] = b[RE]*a[2];
-	c[2][IM] = b[IM]*a[2];
-}
-
-//============================================================
-
-INLINE void cvMultScal_cmplx(const doublecomplex a,doublecomplex *b,doublecomplex *c)
-// multiplication of vector[3] by complex scalar; c=ab
-{
-	c[0][RE] = a[RE]*b[0][RE] - a[IM]*b[0][IM];
-	c[0][IM] = a[RE]*b[0][IM] + a[IM]*b[0][RE];
-	c[1][RE] = a[RE]*b[1][RE] - a[IM]*b[1][IM];
-	c[1][IM] = a[RE]*b[1][IM] + a[IM]*b[1][RE];
-	c[2][RE] = a[RE]*b[2][RE] - a[IM]*b[2][IM];
-	c[2][IM] = a[RE]*b[2][IM] + a[IM]*b[2][RE];
-}
-
-//============================================================
+/*============================================================*/
 
 INLINE double cvNorm2(doublecomplex *a)
-// square of the norm of a complex vector[3]
+    /* square of the norm of a complex vector[3] */
 {
-	return ( a[0][RE]*a[0][RE] + a[0][IM]*a[0][IM]
-	       + a[1][RE]*a[1][RE] + a[1][IM]*a[1][IM]
-	       + a[2][RE]*a[2][RE] + a[2][IM]*a[2][IM] );
+  return (a[0][re]*a[0][re] + a[0][im]*a[0][im] +
+          a[1][re]*a[1][re] + a[1][im]*a[1][im] +
+          a[2][re]*a[2][re] + a[2][im]*a[2][im]);
 }
 
 
-//============================================================
+/*============================================================*/
 
 INLINE void cDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c)
-// conjugate dot product of two complex vector[3]; c=a.b = a[0]*b*[0]+...+a[2]*b*[2]*/
+    /* conjugate dot product of two complex vector[3]; c=a.b */
 {
-	c[RE] = a[0][RE]*b[0][RE] + a[0][IM]*b[0][IM]
-	      + a[1][RE]*b[1][RE] + a[1][IM]*b[1][IM]
-	      + a[2][RE]*b[2][RE] + a[2][IM]*b[2][IM];
-	c[IM] = a[0][IM]*b[0][RE] - a[0][RE]*b[0][IM]
-	      + a[1][IM]*b[1][RE] - a[1][RE]*b[1][IM]
-	      + a[2][IM]*b[2][RE] - a[2][RE]*b[2][IM];
+  c[re] = a[0][re]*b[0][re] + a[0][im]*b[0][im] +
+          a[1][re]*b[1][re] + a[1][im]*b[1][im] +
+          a[2][re]*b[2][re] + a[2][im]*b[2][im];
+  c[im] = a[0][im]*b[0][re] - a[0][re]*b[0][im] +
+          a[1][im]*b[1][re] - a[1][re]*b[1][im] +
+          a[2][im]*b[2][re] - a[2][re]*b[2][im];
 }
 
-//============================================================
-
-INLINE double cDotProd_Re(doublecomplex *a,doublecomplex *b)
-// real part of dot product of two complex vector[3]; c=Re(a.b)
-{
-	return ( a[0][RE]*b[0][RE] + a[0][IM]*b[0][IM]
-	       + a[1][RE]*b[1][RE] + a[1][IM]*b[1][IM]
-	       + a[2][RE]*b[2][RE] + a[2][IM]*b[2][IM] );
-}
-
-//============================================================
-
-INLINE double cDotProd_Im(doublecomplex *a,doublecomplex *b)
-// imaginary part of dot product of two complex vector[3]; c=Im(a.b)
-{
-	return ( a[0][IM]*b[0][RE] - a[0][RE]*b[0][IM]
-	       + a[1][IM]*b[1][RE] - a[1][RE]*b[1][IM]
-	       + a[2][IM]*b[2][RE] - a[2][RE]*b[2][IM] );
-}
-
-//============================================================
+/*============================================================*/
 
 INLINE void cDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c)
-// dot product of two complex vector[3]; c=a.b* = a[0]*b[0]+...+a[2]*b[2]
+    /* dot product of two complex vector[3]; c=a.b* */
 {
-	c[RE] = a[0][RE]*b[0][RE] - a[0][IM]*b[0][IM]
-	      + a[1][RE]*b[1][RE] - a[1][IM]*b[1][IM]
-	      + a[2][RE]*b[2][RE] - a[2][IM]*b[2][IM];
-	c[IM] = a[0][IM]*b[0][RE] + a[0][RE]*b[0][IM]
-	      + a[1][IM]*b[1][RE] + a[1][RE]*b[1][IM]
-	      + a[2][IM]*b[2][RE] + a[2][RE]*b[2][IM];
+  c[re] = a[0][re]*b[0][re] - a[0][im]*b[0][im] +
+          a[1][re]*b[1][re] - a[1][im]*b[1][im] +
+          a[2][re]*b[2][re] - a[2][im]*b[2][im];
+  c[im] = a[0][im]*b[0][re] + a[0][re]*b[0][im] +
+          a[1][im]*b[1][re] + a[1][re]*b[1][im] +
+          a[2][im]*b[2][re] + a[2][re]*b[2][im];
 }
 
-//============================================================
-
-INLINE double cDotProd_conj_Re(doublecomplex *a,doublecomplex *b)
-// real part of dot product of two complex vector[3]; c=Re(a.b*)
-{
-	return ( a[0][RE]*b[0][RE] - a[0][IM]*b[0][IM]
-	       + a[1][RE]*b[1][RE] - a[1][IM]*b[1][IM]
-	       + a[2][RE]*b[2][RE] - a[2][IM]*b[2][IM] );
-}
-
-//============================================================
-
-INLINE double cDotProd_conj_Im(doublecomplex *a,doublecomplex *b)
-// imaginary part of dot product of two complex vector[3]; c=Im(a.b*)
-{
-	return ( a[0][IM]*b[0][RE] + a[0][RE]*b[0][IM]
-	       + a[1][IM]*b[1][RE] + a[1][RE]*b[1][IM]
-	       + a[2][IM]*b[2][RE] + a[2][RE]*b[2][IM] );
-}
-
-//============================================================
-
-INLINE void cvAdd(doublecomplex *a,doublecomplex *b,doublecomplex *c)
-// add two complex vector[3]; c=a+b
-{
-	c[0][RE] = a[0][RE] + b[0][RE];
-	c[0][IM] = a[0][IM] + b[0][IM];
-	c[1][RE] = a[1][RE] + b[1][RE];
-	c[1][IM] = a[1][IM] + b[1][IM];
-	c[2][RE] = a[2][RE] + b[2][RE];
-	c[2][IM] = a[2][IM] + b[2][IM];
-}
-
-//============================================================
+/*============================================================*/
 
 INLINE void cvSubtr(doublecomplex *a,doublecomplex *b,doublecomplex *c)
-// subtraction of two complex vector[3]; c=a-b
+    /* subtraction of two complex vector[3]; c=a-b */
 {
-	c[0][RE] = a[0][RE] - b[0][RE];
-	c[0][IM] = a[0][IM] - b[0][IM];
-	c[1][RE] = a[1][RE] - b[1][RE];
-	c[1][IM] = a[1][IM] - b[1][IM];
-	c[2][RE] = a[2][RE] - b[2][RE];
-	c[2][IM] = a[2][IM] - b[2][IM];
+  c[0][re] = a[0][re] - b[0][re];
+  c[0][im] = a[0][im] - b[0][im];
+  c[1][re] = a[1][re] - b[1][re];
+  c[1][im] = a[1][im] - b[1][im];
+  c[2][re] = a[2][re] - b[2][re];
+  c[2][im] = a[2][im] - b[2][im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void crDotProd(doublecomplex *a,const double *b,doublecomplex c)
-// dot product of complex and real vectors[3]; c=a.b
+INLINE void crDotProd(doublecomplex *a, double *b, doublecomplex c)
+    /* dot product of complex and real vectors[3]; c=a.b */
 {
-	c[RE] = a[0][RE]*b[0] + a[1][RE]*b[1] + a[2][RE]*b[2];
-	c[IM] = a[0][IM]*b[0] + a[1][IM]*b[1] + a[2][IM]*b[2];
+  c[re] = a[0][re]*b[0] + a[1][re]*b[1] + a[2][re]*b[2];
+  c[im] = a[0][im]*b[0] + a[1][im]*b[1] + a[2][im]*b[2];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double crDotProd_Re(doublecomplex *a,const double *b)
-// real part of dot product of complex and real vectors[3]; c=Re(a.b)
+INLINE void cvIncremScaled_cmplx(doublecomplex *a,doublecomplex b, doublecomplex *c)
+    /* increment of complex vectors[3] by complex-scaled other vector; c+=b*a */
 {
-	return (a[0][RE]*b[0] + a[1][RE]*b[1] + a[2][RE]*b[2]);
+  c[0][re] += b[re]*a[0][re] - b[im]*a[0][im];
+  c[0][im] += b[re]*a[0][im] + b[im]*a[0][re];
+  c[1][re] += b[re]*a[1][re] - b[im]*a[1][im];
+  c[1][im] += b[re]*a[1][im] + b[im]*a[1][re];
+  c[2][re] += b[re]*a[2][re] - b[im]*a[2][im];
+  c[2][im] += b[re]*a[2][im] + b[im]*a[2][re];
+}
+/*============================================================*/
+
+INLINE void cvMultAdd(doublecomplex *a,doublecomplex b, doublecomplex *c)
+    /* multiply complex vectors[3] with complex constant and add another vector;
+       second coef is unity; c=c1*a+b   !!! c=b*c+a */
+{
+  double tmp;
+  tmp=c[0][re];
+  c[0][re] = c[0][re]*b[re] - c[0][im]*b[im] + a[0][re];
+  c[0][im] = tmp*b[im] + c[0][im]*b[re] + a[0][im];
+  tmp=c[1][re];
+  c[1][re] = c[1][re]*b[re] - c[1][im]*b[im] + a[1][re];
+  c[1][im] = tmp*b[im] + c[1][im]*b[re] + a[1][im];
+  tmp=c[2][re];
+  c[2][re] = c[2][re]*b[re] - c[2][im]*b[im] + a[2][re];
+  c[2][im] = tmp*b[im] + c[2][im]*b[re] + a[2][im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double crDotProd_Im(doublecomplex *a,const double *b)
-// imaginary part of dot product of complex and real vectors[3]; c=Im(a.b)
+INLINE void cvLinComb1(doublecomplex *a,doublecomplex *b, double c1, doublecomplex *c)
+    /* linear combination of complex vectors[3]; second coef is unity; c=c1*a+b */
 {
-	return (a[0][IM]*b[0] + a[1][IM]*b[1] + a[2][IM]*b[2]);
+  c[0][re] = c1*a[0][re] + b[0][re];
+  c[0][im] = c1*a[0][im] + b[0][im];
+  c[1][re] = c1*a[1][re] + b[1][re];
+  c[1][im] = c1*a[1][im] + b[1][im];
+  c[2][re] = c1*a[2][re] + b[2][re];
+  c[2][im] = c1*a[2][im] + b[2][im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cvIncremScaled_cmplx(doublecomplex *a,const doublecomplex b,doublecomplex *c)
-// increment of complex vectors[3] by complex-scaled other vector; c+=b*a
+INLINE void cvLinComb1_cmplx(doublecomplex *a,doublecomplex *b, doublecomplex c1, doublecomplex *c)
+    /* linear combination of complex vectors[3] with complex coefficients;
+       second coef is unity; c=c1*a+b   !!! c!=a */
 {
-	c[0][RE] += b[RE]*a[0][RE] - b[IM]*a[0][IM];
-	c[0][IM] += b[RE]*a[0][IM] + b[IM]*a[0][RE];
-	c[1][RE] += b[RE]*a[1][RE] - b[IM]*a[1][IM];
-	c[1][IM] += b[RE]*a[1][IM] + b[IM]*a[1][RE];
-	c[2][RE] += b[RE]*a[2][RE] - b[IM]*a[2][IM];
-	c[2][IM] += b[RE]*a[2][IM] + b[IM]*a[2][RE];
-}
-//============================================================
-
-INLINE void cvMultAdd(doublecomplex *a,const doublecomplex b,doublecomplex *c)
-// multiply complex vectors[3] with complex constant and add another vector; c=b*c+a
-{
-	double tmp;
-	tmp=c[0][RE];
-	c[0][RE] = c[0][RE]*b[RE] - c[0][IM]*b[IM] + a[0][RE];
-	c[0][IM] = tmp*b[IM] + c[0][IM]*b[RE] + a[0][IM];
-	tmp=c[1][RE];
-	c[1][RE] = c[1][RE]*b[RE] - c[1][IM]*b[IM] + a[1][RE];
-	c[1][IM] = tmp*b[IM] + c[1][IM]*b[RE] + a[1][IM];
-	tmp=c[2][RE];
-	c[2][RE] = c[2][RE]*b[RE] - c[2][IM]*b[IM] + a[2][RE];
-	c[2][IM] = tmp*b[IM] + c[2][IM]*b[RE] + a[2][IM];
+  c[0][re] = a[0][re]*c1[re] - a[0][im]*c1[im] + b[0][re];
+  c[0][im] = a[0][re]*c1[im] + a[0][im]*c1[re] + b[0][im];
+  c[1][re] = a[1][re]*c1[re] - a[1][im]*c1[im] + b[1][re];
+  c[1][im] = a[1][re]*c1[im] + a[1][im]*c1[re] + b[1][im];
+  c[2][re] = a[2][re]*c1[re] - a[2][im]*c1[im] + b[2][re];
+  c[2][im] = a[2][re]*c1[im] + a[2][im]*c1[re] + b[2][im];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cvLinComb1(doublecomplex *a,doublecomplex *b,
-                       const double c1,doublecomplex *c)
-// linear combination of complex vectors[3]; second coefficient is unity; c=c1*a+b
+INLINE void csymMatrVec(doublecomplex *matr, doublecomplex *vec, doublecomplex *res)
+     /* multiplication of complex symmetric matrix[6] by complex vec[3]
+        res=matr.vec */
 {
-	c[0][RE] = c1*a[0][RE] + b[0][RE];
-	c[0][IM] = c1*a[0][IM] + b[0][IM];
-	c[1][RE] = c1*a[1][RE] + b[1][RE];
-	c[1][IM] = c1*a[1][IM] + b[1][IM];
-	c[2][RE] = c1*a[2][RE] + b[2][RE];
-	c[2][IM] = c1*a[2][IM] + b[2][IM];
+  res[0][re] = matr[0][re] * vec[0][re] - matr[0][im] * vec[0][im] +
+    matr[1][re] * vec[1][re] - matr[1][im] * vec[1][im] +
+    matr[2][re] * vec[2][re] - matr[2][im] * vec[2][im];
+  res[0][im] = matr[0][re] * vec[0][im] + matr[0][im] * vec[0][re] +
+    matr[1][re] * vec[1][im] + matr[1][im] * vec[1][re] +
+    matr[2][re] * vec[2][im] + matr[2][im] * vec[2][re];
+
+  res[1][re] = matr[1][re] * vec[0][re] - matr[1][im] * vec[0][im] +
+    matr[3][re] * vec[1][re] - matr[3][im] * vec[1][im] +
+    matr[4][re] * vec[2][re] - matr[4][im] * vec[2][im];
+  res[1][im] = matr[1][re] * vec[0][im] + matr[1][im] * vec[0][re] +
+    matr[3][re] * vec[1][im] + matr[3][im] * vec[1][re] +
+    matr[4][re] * vec[2][im] + matr[4][im] * vec[2][re];
+
+  res[2][re] = matr[2][re] * vec[0][re] - matr[2][im] * vec[0][im] +
+    matr[4][re] * vec[1][re] - matr[4][im] * vec[1][im] +
+    matr[5][re] * vec[2][re] - matr[5][im] * vec[2][im];
+  res[2][im] = matr[2][re] * vec[0][im] + matr[2][im] * vec[0][re] +
+    matr[4][re] * vec[1][im] + matr[4][im] * vec[1][re] +
+    matr[5][re] * vec[2][im] + matr[5][im] * vec[2][re];
 }
 
-//============================================================
+/*============================================================*/
+/* operations on real vectors */
 
-INLINE void cvLinComb1_cmplx(doublecomplex *a,doublecomplex *b,
-                             const doublecomplex c1,doublecomplex *c)
-/* linear combination of complex vectors[3] with complex coefficients;
- * second coefficient is unity; c=c1*a+b   !!! c!=a
- */
+INLINE void MultScal(double a,double *b,double *c)
+     /* multiplication of vector by scalar; c=a*b */
 {
-	c[0][RE] = a[0][RE]*c1[RE] - a[0][IM]*c1[IM] + b[0][RE];
-	c[0][IM] = a[0][RE]*c1[IM] + a[0][IM]*c1[RE] + b[0][IM];
-	c[1][RE] = a[1][RE]*c1[RE] - a[1][IM]*c1[IM] + b[1][RE];
-	c[1][IM] = a[1][RE]*c1[IM] + a[1][IM]*c1[RE] + b[1][IM];
-	c[2][RE] = a[2][RE]*c1[RE] - a[2][IM]*c1[IM] + b[2][RE];
-	c[2][IM] = a[2][RE]*c1[IM] + a[2][IM]*c1[RE] + b[2][IM];
+  c[0]=a*b[0];
+  c[1]=a*b[1];
+  c[2]=a*b[2];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void cSymMatrVec(doublecomplex *matr,doublecomplex *vec,doublecomplex *res)
-// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+INLINE void vMult(double *a,double *b,double *c)
+     /* multiplication of two vectors (by elements); c[i]=a[i]*b[i] */
 {
-	res[0][RE] = matr[0][RE]*vec[0][RE] - matr[0][IM]*vec[0][IM]
-	           + matr[1][RE]*vec[1][RE] - matr[1][IM]*vec[1][IM]
-	           + matr[2][RE]*vec[2][RE] - matr[2][IM]*vec[2][IM];
-	res[0][IM] = matr[0][RE]*vec[0][IM] + matr[0][IM]*vec[0][RE]
-	           + matr[1][RE]*vec[1][IM] + matr[1][IM]*vec[1][RE]
-	           + matr[2][RE]*vec[2][IM] + matr[2][IM]*vec[2][RE];
-
-	res[1][RE] = matr[1][RE]*vec[0][RE] - matr[1][IM]*vec[0][IM]
-	           + matr[3][RE]*vec[1][RE] - matr[3][IM]*vec[1][IM]
-	           + matr[4][RE]*vec[2][RE] - matr[4][IM]*vec[2][IM];
-	res[1][IM] = matr[1][RE]*vec[0][IM] + matr[1][IM]*vec[0][RE]
-	           + matr[3][RE]*vec[1][IM] + matr[3][IM]*vec[1][RE]
-	           + matr[4][RE]*vec[2][IM] + matr[4][IM]*vec[2][RE];
-
-	res[2][RE] = matr[2][RE]*vec[0][RE] - matr[2][IM]*vec[0][IM]
-	           + matr[4][RE]*vec[1][RE] - matr[4][IM]*vec[1][IM]
-	           + matr[5][RE]*vec[2][RE] - matr[5][IM]*vec[2][IM];
-	res[2][IM] = matr[2][RE]*vec[0][IM] + matr[2][IM]*vec[0][RE]
-	           + matr[4][RE]*vec[1][IM] + matr[4][IM]*vec[1][RE]
-	           + matr[5][RE]*vec[2][IM] + matr[5][IM]*vec[2][RE];
+  c[0]=a[0]*b[0];
+  c[1]=a[1]*b[1];
+  c[2]=a[2]*b[2];
 }
 
-//============================================================
-// operations on real vectors
+/*============================================================*/
 
-INLINE void MultScal(const double a,const double *b,double *c)
-// multiplication of vector by scalar; c=a*b
+INLINE double DotProd(double *a, double *b)
+    /* dot product of two real vectors[3] */
 {
-	c[0]=a*b[0];
-	c[1]=a*b[1];
-	c[2]=a*b[2];
+  return (a[0]*b[0]+a[1]*b[1]+a[2]*b[2]);
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void vMult(const double *a,const double *b,double *c)
-// multiplication of two vectors (by elements); c[i]=a[i]*b[i]
+INLINE void LinComb(double *a,double *b, double  c1, double c2, double *c)
+    /* linear combination of real vectors[3]; c=c1*a+c2*b */
 {
-	c[0]=a[0]*b[0];
-	c[1]=a[1]*b[1];
-	c[2]=a[2]*b[2];
+  c[0]=c1*a[0]+c2*b[0];
+  c[1]=c1*a[1]+c2*b[1];
+  c[2]=c1*a[2]+c2*b[2];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double DotProd(const double *a,const double *b)
-// dot product of two real vectors[3]
+INLINE double TrSym(double *a)
+    /* trace of a symmetric matrix stored as a vector of size 6 */
 {
-	return (a[0]*b[0]+a[1]*b[1]+a[2]*b[2]);
+  return (a[0]+a[2]+a[5]);
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE void LinComb(const double *a,const double *b,
-	const double c1,const double c2, double *c)
-// linear combination of real vectors[3]; c=c1*a+c2*b
+INLINE double QuadForm(double *matr, double *vec)
+    /* value of a quadratic form matr (symmetric matrix stored as
+       a vector of size 6) over a vector vec */
 {
-	c[0]=c1*a[0]+c2*b[0];
-	c[1]=c1*a[1]+c2*b[1];
-	c[2]=c1*a[2]+c2*b[2];
+  return (vec[0]*vec[0]*matr[0]+vec[1]*vec[1]*matr[2]+vec[2]*vec[2]*matr[5]+
+    2*(vec[0]*vec[1]*matr[1]+vec[0]*vec[2]*matr[3]+vec[1]*vec[2]*matr[4]));
 }
 
-//============================================================
-
-INLINE double TrSym(const double *a)
-// trace of a symmetric matrix stored as a vector of size 6
+/*============================================================*/
+INLINE void MatrVec(double matr[3][3], double *vec, double *res)
+     /* multiplication of matrix[3][3] by vec[3] (all real)
+        res=matr.vec */
 {
-	return (a[0]+a[2]+a[5]);
+  res[0]=matr[0][0]*vec[0]+matr[0][1]*vec[1]+matr[0][2]*vec[2];
+  res[1]=matr[1][0]*vec[0]+matr[1][1]*vec[1]+matr[1][2]*vec[2];
+  res[2]=matr[2][0]*vec[0]+matr[2][1]*vec[1]+matr[2][2]*vec[2];
 }
 
-//============================================================
+/*============================================================*/
 
-INLINE double QuadForm(const double *matr,const double *vec)
-// value of a quadratic form matr (symmetric matrix stored as a vector of size 6) over a vector vec
+INLINE void permutate(double *vec, int *ord)
+    /* permutate double vector vec using permutation ord */
 {
-	return ( vec[0]*vec[0]*matr[0] + vec[1]*vec[1]*matr[2] + vec[2]*vec[2]*matr[5]
-	       + 2*(vec[0]*vec[1]*matr[1] + vec[0]*vec[2]*matr[3] + vec[1]*vec[2]*matr[4]) );
+  double buf[3];
+
+  memcpy(buf,vec,3*sizeof(double));
+  vec[0]=buf[ord[0]];
+  vec[1]=buf[ord[1]];
+  vec[2]=buf[ord[2]];
 }
 
-//============================================================
-INLINE void MatrVec(double matr[3][3],const double *vec, double *res)
-// multiplication of matrix[3][3] by vec[3] (all real); res=matr.vec
+/*============================================================*/
+
+INLINE void permutate_i(int *vec, int *ord)
+    /* permutate int vector vec using permutation ord */
 {
-	res[0]=matr[0][0]*vec[0]+matr[0][1]*vec[1]+matr[0][2]*vec[2];
-	res[1]=matr[1][0]*vec[0]+matr[1][1]*vec[1]+matr[1][2]*vec[2];
-	res[2]=matr[2][0]*vec[0]+matr[2][1]*vec[1]+matr[2][2]*vec[2];
+  int buf[3];
+
+  memcpy(buf,vec,3*sizeof(int));
+  vec[0]=buf[ord[0]];
+  vec[1]=buf[ord[1]];
+  vec[2]=buf[ord[2]];
 }
 
-//============================================================
+/*=====================================================================*/
+/* Auxillary functions */
 
-INLINE void Permutate(double *vec,const int *ord)
-// permutate double vector vec using permutation ord
+INLINE double deg2rad(double deg)
+   /* transforms angle in degrees to radians */
 {
-	double buf[3];
-
-	memcpy(buf,vec,3*sizeof(double));
-	vec[0]=buf[ord[0]];
-	vec[1]=buf[ord[1]];
-	vec[2]=buf[ord[2]];
+  return (PI*deg/180);
 }
 
-//============================================================
+/*=====================================================================*/
 
-INLINE void Permutate_i(int *vec,const int *ord)
-// permutate int vector vec using permutation ord
+INLINE double rad2deg(double rad)
+   /* transforms angle in radians to degrees */
 {
-	int buf[3];
-
-	memcpy(buf,vec,3*sizeof(int));
-	vec[0]=buf[ord[0]];
-	vec[1]=buf[ord[1]];
-	vec[2]=buf[ord[2]];
+  return(180.0*rad/PI);
 }
 
-//============================================================
-// Auxiliary functions
-
-INLINE double Deg2Rad(const double deg)
-// transforms angle in degrees to radians
-{
-	return (PI_OVER_180*deg);
-}
-
-//============================================================
-
-INLINE double Rad2Deg(const double rad)
-// transforms angle in radians to degrees
-{
-	return (INV_PI_180*rad);
-}
-
-#endif // __cmplx_h
+#endif /*__cmplx_h*/

@@ -1,518 +1,478 @@
-/* File: linalg.c
- * $Author$
- * $Date::                            $
- * Descr: different linear algebra operations for use with iterative solvers; highly specialized
- *
- *        'const' can be used for many more function variables, however it doesn't work in
- *        combination with 'doublecomplex *' or more nested lists. That seems to be a principal
- *        limitation of C standard (some compilers may work, some produce warnings)
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * This file is part of ADDA.
- *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with ADDA. If not, see
- * <http://www.gnu.org/licenses/>.
+/* FILE: linalg.c
+ * AUTH: Maxim Yurkin
+ * DESCR: Different linear algebra operations for use with iterative solvers
+ *        Highly specialized for DDA
  */
-#include <string.h>
-#include "vars.h"
-#include "types.h"
+#include "time.h"
+#include "cmplx.h"
 #include "comm.h"
 #include "linalg.h"
 
-//============================================================
+extern clock_t Timing_OneIterComm;
+extern int nlocalRows;
+extern char *material;
+
+/*============================================================*/
 
 void nInit(doublecomplex *a)
-// initialize vector a with null values
+    /* initialize vector a with null values */
 {
-	size_t i;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;i++) a[i][RE]=a[i][IM]=0.0;
+  int i;
+  
+  for (i=0;i<nlocalRows;i++) a[i][re]=a[i][im]=0.0;
 }
 
-//============================================================
+/*============================================================*/
 
 void nCopy(doublecomplex *a,doublecomplex *b)
-// copy vector b to a
+    /* copy vector b to a */
 {
-	memcpy(a,b,nlocalRows*sizeof(doublecomplex));
+  memcpy(a,b,nlocalRows*sizeof(doublecomplex));
 }
 
-//============================================================
+/*============================================================*/
 
-double nNorm2(doublecomplex *a,TIME_TYPE *timing)
-// squared norm of a large vector a
+double nNorm2(doublecomplex *a)
+    /* squared norm of a large vector a */
 {
-	size_t i;
-	double inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) inprod += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM];
-	// this function is not called inside the main iteration loop
-	MyInnerProduct(&inprod,double_type,1,timing);
-	return inprod;
+  int i;
+  double inprod=0.0;
+
+  for (i=0;i<nlocalRows;++i)
+    inprod += a[i][re]*a[i][re] + a[i][im]*a[i][im];
+  my_inner_product(&inprod,double_type,1);
+  return inprod;
 }
 
-//============================================================
+/*============================================================*/
 
-void nDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c,TIME_TYPE *timing)
-// dot product of two large vectors; c=a.b
+void nDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c)
+    /* dot product of two large vectors; c=a.b */
 {
-	size_t i;
+  int i;
+  doublecomplex dotprod;
+  clock_t tstart;
 
-	c[RE]=c[IM]=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		c[RE] += a[i][RE]*b[i][RE] + a[i][IM]*b[i][IM];
-		c[IM] += a[i][IM]*b[i][RE] - a[i][RE]*b[i][IM];
-	}
-	MyInnerProduct(c,cmplx_type,1,timing);
+  c[re]=c[im]=0.0;
+  for (i=0;i<nlocalRows;++i) {
+    c[re] += a[i][re]*b[i][re] + a[i][im]*b[i][im];
+    c[im] += a[i][im]*b[i][re] - a[i][re]*b[i][im];
+  }
+  tstart=clock();
+  my_inner_product(c,cmplx_type,1);
+  Timing_OneIterComm+=clock()-tstart;
 }
 
-//============================================================
+/*============================================================*/
 
-void nDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c,TIME_TYPE *timing)
-// conjugate dot product of two large vectors; c=a.b*=b.a*
+void nDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c)
+    /* conjugate dot product of two large vectors; c=a.b*=b.a* */
 {
-	size_t i;
+  int i;
+  doublecomplex dotprod;
+  clock_t tstart;
 
-	c[RE]=c[IM]=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		c[RE] += a[i][RE]*b[i][RE] - a[i][IM]*b[i][IM];
-		c[IM] += a[i][IM]*b[i][RE] + a[i][RE]*b[i][IM];
-	}
-	MyInnerProduct(c,cmplx_type,1,timing);
+  c[re]=c[im]=0.0;
+  for (i=0;i<nlocalRows;++i) {
+    c[re] += a[i][re]*b[i][re] - a[i][im]*b[i][im];
+    c[im] += a[i][im]*b[i][re] + a[i][re]*b[i][im];
+  }
+  tstart=clock();
+  my_inner_product(c,cmplx_type,1);
+  Timing_OneIterComm+=clock()-tstart;
 }
 
-//============================================================
+/*============================================================*/
 
-void nDotProdSelf_conj(doublecomplex *a,doublecomplex c,TIME_TYPE *timing)
-// conjugate dot product of vector on itself; c=a.a*
+void nDotProdSelf_conj(doublecomplex *a,doublecomplex c)
+    /* conjugate dot product of vector on itself; c=a.a* */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	c[RE]=c[IM]=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		c[RE]+=a[i][RE]*a[i][RE]-a[i][IM]*a[i][IM];
-		c[IM]+=a[i][RE]*a[i][IM];
-	}
-	MyInnerProduct(c,cmplx_type,1,timing);
-	c[IM]*=2;
+  c[re]=c[im]=0.0;
+  for (i=0;i<nlocalRows;++i) {
+    c[re]+=a[i][re]*a[i][re]-a[i][im]*a[i][im];
+    c[im]+=a[i][re]*a[i][im];
+  }
+  tstart=clock();
+  my_inner_product(c,cmplx_type,1);
+  Timing_OneIterComm+=clock()-tstart;
+  c[im]*=2;
 }
 
-//============================================================
+/*============================================================*/
 
-void nDotProdSelf_conj_Norm2(doublecomplex *a,doublecomplex c,double *norm,TIME_TYPE *timing)
-/* Computes both conjugate dot product of vector on itself (c=a.a*)
- * and its Hermitian squared norm=||a||^2
- */
+void nDotProdSelf_conj_Norm2(doublecomplex *a,doublecomplex c,double *norm)
+    /* Computes both conjugate dot product of vector on itself (c=a.a*)
+         and its hermitian Norm squared norm=||a||^2 */
 {
-	size_t i;
-	double buf[3];
+  int i;
+  double buf[3];
+  clock_t tstart;
 
-	buf[0]=buf[1]=buf[2]=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		buf[0]+=a[i][RE]*a[i][RE];
-		buf[1]+=a[i][IM]*a[i][IM];
-		buf[2]+=a[i][RE]*a[i][IM];
-	}
-	MyInnerProduct(buf,double_type,3,timing);
-	*norm=buf[0]+buf[1];
-	c[RE]=buf[0]-buf[1];
-	c[IM]=2*buf[2];
+  buf[0]=buf[1]=buf[2]=0.0;
+  for (i=0;i<nlocalRows;++i) {
+    buf[0]+=a[i][re]*a[i][re];
+    buf[1]+=a[i][im]*a[i][im];
+    buf[2]+=a[i][re]*a[i][im];
+  }
+  tstart=clock();
+  my_inner_product(buf,double_type,3);
+  Timing_OneIterComm+=clock()-tstart;
+  *norm=buf[0]+buf[1];
+  c[re]=buf[0]-buf[1];
+  c[im]=2*buf[2];
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem110_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2)
-// a=c1*a+c2*b+c
+void nIncrem110_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,
+                      doublecomplex c1,doublecomplex c2)
+     /* a=c1*a+c2*b+c */
 {
-	size_t i;
-	double tmp;
+  int i;
+  double tmp;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		tmp=a[i][RE];
-		a[i][RE] = c1[RE]*a[i][RE] - c1[IM]*a[i][IM] + c2[RE]*b[i][RE] - c2[IM]*b[i][IM] + c[i][RE];
-		a[i][IM] = c1[RE]*a[i][IM] + c1[IM]*tmp + c2[RE]*b[i][IM] + c2[IM]*b[i][RE] + c[i][IM];
-	}
+  for (i=0;i<nlocalRows;++i) {
+    tmp=a[i][re];
+    a[i][re] = c1[re]*a[i][re] - c1[im]*a[i][im] + c2[re]*b[i][re] - c2[im]*b[i][im] + c[i][re];
+    a[i][im] = c1[re]*a[i][im] + c1[im]*tmp + c2[re]*b[i][im] + c2[im]*b[i][re] + c[i][im];
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem011_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2)
-// a+=c1*b+c2*c
+void nIncrem011_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,
+                      doublecomplex c1,doublecomplex c2)
+     /* a+=c1*b+c2*c */
 {
-	size_t i;
+  int i;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		a[i][RE] += c1[RE]*b[i][RE] - c1[IM]*b[i][IM] + c2[RE]*c[i][RE] - c2[IM]*c[i][IM];
-		a[i][IM] += c1[RE]*b[i][IM] + c1[IM]*b[i][RE] + c2[RE]*c[i][IM] + c2[IM]*c[i][RE];
-	}
+  for (i=0;i<nlocalRows;++i) {
+    a[i][re] += c1[re]*b[i][re] - c1[im]*b[i][im] + c2[re]*c[i][re] - c2[im]*c[i][im];
+    a[i][im] += c1[re]*b[i][im] + c1[im]*b[i][re] + c2[re]*c[i][im] + c2[im]*c[i][re];
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem111_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2,const doublecomplex c3)
-// a=c1*a+c2*b+c3*c
+void nIncrem111_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,
+                      doublecomplex c1,doublecomplex c2,doublecomplex c3)
+     /* a=c1*a+c2*b+c3*c */
 {
-	size_t i;
-	double tmp;
+  int i;
+  double tmp;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		tmp=a[i][RE];
-		a[i][RE] = c1[RE]*a[i][RE] - c1[IM]*a[i][IM] + c2[RE]*b[i][RE] - c2[IM]*b[i][IM]
-		         + c3[RE]*c[i][RE] - c3[IM]*c[i][IM];
-		a[i][IM] = c1[RE]*a[i][IM] + c1[IM]*tmp + c2[RE]*b[i][IM] + c2[IM]*b[i][RE]
-		         + c3[RE]*c[i][IM] + c3[IM]*c[i][RE];
-	}
+  for (i=0;i<nlocalRows;++i) {
+    tmp=a[i][re];
+    a[i][re] = c1[re]*a[i][re] - c1[im]*a[i][im] + c2[re]*b[i][re] - c2[im]*b[i][im] +
+               c3[re]*c[i][re] - c3[im]*c[i][im];
+    a[i][im] = c1[re]*a[i][im] + c1[im]*tmp + c2[re]*b[i][im] + c2[im]*b[i][re] +
+               c3[re]*c[i][im] + c3[im]*c[i][re];
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem01(doublecomplex *a,doublecomplex *b,const double c,double *inprod,TIME_TYPE *timing)
-// a=a+c*b, inprod=|a|^2
+void nIncrem01(doublecomplex *a,doublecomplex *b,double c,double *inprod)
+     /* a=a+c*b, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] += c*b[i][RE]; // a+=c*b
-			a[i][IM] += c*b[i][IM];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] += c*b[i][RE]; // a+=c*b
-			a[i][IM] += c*b[i][IM];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] += c*b[i][re];   /* a+=c*b */
+      a[i][im] += c*b[i][im];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] += c*b[i][re];   /* a+=c*b */
+      a[i][im] += c*b[i][im];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];   /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem10(doublecomplex *a,doublecomplex *b,const double c,double *inprod,TIME_TYPE *timing)
-// a=c*a+b, inprod=|a|^2
+void nIncrem10(doublecomplex *a,doublecomplex *b,double c,double *inprod)
+     /* a=c*a+b, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = c*a[i][RE] + b[i][RE]; // a=c*a+b
-			a[i][IM] = c*a[i][IM] + b[i][IM];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = c*a[i][RE] + b[i][RE]; // a=c*a+b
-			a[i][IM] = c*a[i][IM] + b[i][IM];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM];  // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = c*a[i][re] + b[i][re];  /* a=c*a+b */
+      a[i][im] = c*a[i][im] + b[i][im];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = c*a[i][re] + b[i][re];  /* a=c*a+b */
+      a[i][im] = c*a[i][im] + b[i][im];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem11_d_c(doublecomplex *a,doublecomplex *b,const double c1,const doublecomplex c2,
-	double *inprod,TIME_TYPE *timing)
-// a=c1*a+c2*b, inprod=|a|^2 , one constant is double, another - complex
+void nIncrem11_d_c(doublecomplex *a,doublecomplex *b,double c1,doublecomplex c2,double *inprod)
+     /* a=c1*a+c2*b, inprod=|a|^2 , one constant is double, another - complex */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = c1*a[i][RE] + c2[RE]*b[i][RE] - c2[IM]*b[i][IM]; // a=c1*a+c2*b
-			a[i][IM] = c1*a[i][IM] + c2[RE]*b[i][IM] + c2[IM]*b[i][RE];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = c1*a[i][RE] + c2[RE]*b[i][RE] - c2[IM]*b[i][IM]; // a=c1*a+c2*b
-			a[i][IM] = c1*a[i][IM] + c2[RE]*b[i][IM] + c2[IM]*b[i][RE];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = c1*a[i][re] + c2[re]*b[i][re] - c2[im]*b[i][im];     /* a=c1*a+c2*b */
+      a[i][im] = c1*a[i][im] + c2[re]*b[i][im] + c2[im]*b[i][re];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = c1*a[i][re] + c2[re]*b[i][re] - c2[im]*b[i][im];     /* a=c1*a+c2*b */
+      a[i][im] = c1*a[i][im] + c2[re]*b[i][im] + c2[im]*b[i][re];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem01_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c,double *inprod,
-	TIME_TYPE *timing)
-// a=a+c*b, inprod=|a|^2
+void nIncrem01_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex c,double *inprod)
+     /* a=a+c*b, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] += c[RE]*b[i][RE] - c[IM]*b[i][IM]; // a+=c*b
-			a[i][IM] += c[RE]*b[i][IM] + c[IM]*b[i][RE];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] += c[RE]*b[i][RE] - c[IM]*b[i][IM]; // a+=c*b
-			a[i][IM] += c[RE]*b[i][IM] + c[IM]*b[i][RE];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] += c[re]*b[i][re] - c[im]*b[i][im];     /* a+=c*b */
+      a[i][im] += c[re]*b[i][im] + c[im]*b[i][re];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] += c[re]*b[i][re] - c[im]*b[i][im];     /* a+=c*b */
+      a[i][im] += c[re]*b[i][im] + c[im]*b[i][re];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nIncrem10_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c,double *inprod,
-	TIME_TYPE *timing)
-// a=c*a+b, inprod=|a|^2
+void nIncrem10_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex c,double *inprod)
+     /* a=c*a+b, inprod=|a|^2 */
 {
-	size_t i;
-	double tmp;
+  int i;
+  double tmp;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			tmp=a[i][RE]; // a=c*a+b
-			a[i][RE] = c[RE]*a[i][RE] - c[IM]*a[i][IM] + b[i][RE];
-			a[i][IM] = c[RE]*a[i][IM] + c[IM]*tmp + b[i][IM];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			tmp=a[i][RE]; // a=c*a+b
-			a[i][RE] = c[RE]*a[i][RE] - c[IM]*a[i][IM] + b[i][RE];
-			a[i][IM] = c[RE]*a[i][IM] + c[IM]*tmp + b[i][IM];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      tmp=a[i][re];                                         /* a=c*a+b */
+      a[i][re] = c[re]*a[i][re] - c[im]*a[i][im] + b[i][re];
+      a[i][im] = c[re]*a[i][im] + c[im]*tmp + b[i][im];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      tmp=a[i][re];                                         /* a=c*a+b */
+      a[i][re] = c[re]*a[i][re] - c[im]*a[i][im] + b[i][re];
+      a[i][im] = c[re]*a[i][im] + c[im]*tmp + b[i][im];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nLinComb_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2,double *inprod,TIME_TYPE *timing)
-// a=c1*b+c2*c, inprod=|a|^2
+void nLinComb_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,
+                     doublecomplex c1, doublecomplex c2,double *inprod)
+     /* a=c1*b+c2*c, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			// a=c1*b+c2*c
-			a[i][RE] = c1[RE]*b[i][RE] - c1[IM]*b[i][IM] + c2[RE]*c[i][RE] - c2[IM]*c[i][IM];
-			a[i][IM] = c1[RE]*b[i][IM] + c1[IM]*b[i][RE] + c2[RE]*c[i][IM] + c2[IM]*c[i][RE];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			// a=c1*b+c2*c
-			a[i][RE] = c1[RE]*b[i][RE] - c1[IM]*b[i][IM] + c2[RE]*c[i][RE] - c2[IM]*c[i][IM];
-			a[i][IM] = c1[RE]*b[i][IM] + c1[IM]*b[i][RE] + c2[RE]*c[i][IM] + c2[IM]*c[i][RE];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      /* a=c1*b+c2*c */
+      a[i][re] = c1[re]*b[i][re] - c1[im]*b[i][im] + c2[re]*c[i][re] - c2[im]*c[i][im];
+      a[i][im] = c1[re]*b[i][im] + c1[im]*b[i][re] + c2[re]*c[i][im] + c2[im]*c[i][re];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      /* a=c1*b+c2*c */
+      a[i][re] = c1[re]*b[i][re] - c1[im]*b[i][im] + c2[re]*c[i][re] - c2[im]*c[i][im];
+      a[i][im] = c1[re]*b[i][im] + c1[im]*b[i][re] + c2[re]*c[i][im] + c2[im]*c[i][re];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nLinComb1_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	double *inprod,TIME_TYPE *timing)
-// a=c1*b+c, inprod=|a|^2
+void nLinComb1_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,
+                     doublecomplex c1,double *inprod)
+     /* a=c1*b+c, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			// a=c1*b+c
-			a[i][RE] = c1[RE]*b[i][RE] - c1[IM]*b[i][IM] + c[i][RE];
-			a[i][IM] = c1[RE]*b[i][IM] + c1[IM]*b[i][RE] + c[i][IM];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			// a=c1*b+c
-			a[i][RE] = c1[RE]*b[i][RE] - c1[IM]*b[i][IM] + c[i][RE];
-			a[i][IM] = c1[RE]*b[i][IM] + c1[IM]*b[i][RE] + c[i][IM];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      /* a=c1*b+c */
+      a[i][re] = c1[re]*b[i][re] - c1[im]*b[i][im] + c[i][re];
+      a[i][im] = c1[re]*b[i][im] + c1[im]*b[i][re] + c[i][im];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      /* a=c1*b+c */
+      a[i][re] = c1[re]*b[i][re] - c1[im]*b[i][im] + c[i][re];
+      a[i][im] = c1[re]*b[i][im] + c1[im]*b[i][re] + c[i][im];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nSubtr(doublecomplex *a,doublecomplex *b,doublecomplex *c,double *inprod,TIME_TYPE *timing)
-// a=b-c, inprod=|a|^2
+void nSubtr(doublecomplex *a,doublecomplex *b,doublecomplex *c,double *inprod)
+     /* a=b-c, inprod=|a|^2 */
 {
-	size_t i;
+  int i;
+  clock_t tstart;
 
-	if (inprod==NULL) {
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = b[i][RE] - c[i][RE]; // a=b-c
-			a[i][IM] = b[i][IM] - c[i][IM];
-		}
-	}
-	else {
-		*inprod=0.0;
-#pragma loop count (100000)
-#pragma ivdep
-		for (i=0;i<nlocalRows;++i) {
-			a[i][RE] = b[i][RE] - c[i][RE]; // a=b-c
-			a[i][IM] = b[i][IM] - c[i][IM];
-			(*inprod) += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // *inprod=|a|^2
-		}
-		MyInnerProduct(inprod,double_type,1,timing);
-	}
+  if (inprod==NULL) {
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = b[i][re] - c[i][re];     /* a=b-c */
+      a[i][im] = b[i][im] - c[i][im];
+    }
+  }
+  else {
+    *inprod=0.0;
+    for (i=0;i<nlocalRows;++i) {
+      a[i][re] = b[i][re] - c[i][re];     /* a=b-c */
+      a[i][im] = b[i][im] - c[i][im];
+      (*inprod) += a[i][re]*a[i][re] + a[i][im]*a[i][im];  /* *inprod=|a|^2   */
+    }
+    tstart=clock();
+    my_inner_product(inprod,double_type,1);
+    Timing_OneIterComm+=clock()-tstart;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nMult_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c)
-// multiply vector by a complex constant; a=c*b
+void nMult_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex c)
+     /* multiply vector by a complex constant; a=c*b */
 {
-	size_t i;
+  int i;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		a[i][RE] = c[RE]*b[i][RE] - c[IM]*b[i][IM]; // a[i]=c*b[i]
-		a[i][IM] = c[RE]*b[i][IM] + c[IM]*b[i][RE];
-	}
+  for (i=0;i<nlocalRows;++i) {
+    a[i][re] = c[re]*b[i][re] - c[im]*b[i][im];     /* a[i]=c*b[i] */
+    a[i][im] = c[re]*b[i][im] + c[im]*b[i][re];
+  }
 }
 
-//============================================================
+/*============================================================*/
 
-void nMultSelf_cmplx(doublecomplex *a,const doublecomplex c)
-// multiply vector by a complex constant; a*=c
+void nMultSelf_cmplx(doublecomplex *a,doublecomplex c)
+   /* multiply vector by a complex constant; a*=c */
 {
-	size_t i;
-	double tmp;
+  int i;
+  double tmp;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) {
-		tmp=a[i][RE];
-		a[i][RE] = c[RE]*a[i][RE] - c[IM]*a[i][IM]; // a[i]*=c
-		a[i][IM] = c[RE]*a[i][IM] + c[IM]*tmp;
-	}
+  for (i=0;i<nlocalRows;++i) {
+    tmp=a[i][re];
+    a[i][re] = c[re]*a[i][re] - c[im]*a[i][im];     /* a[i]*=c */
+    a[i][im] = c[re]*a[i][im] + c[im]*tmp;
+  }
 }
 
-//============================================================
+/*============================================================*/
 
 void nMult_mat(doublecomplex *a,doublecomplex *b,doublecomplex c[][3])
-// multiply by a function of material of a dipole and component; a[3*i+j]=c[mat[i]][j]*b[3*i+j]
+   /* multiply by a function of material of a dipole and component; a[3*i+j]=c[mat[i]][j]*b[3*i+j] */
 {
-	size_t i,k;
-	int j;
-	doublecomplex *val;
+  int i,j,k;
+  doublecomplex *val;
 
-	k=0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<local_nvoid_Ndip;++i) {
-		val=c[material[i]];
-		for (j=0;j<3;j++) {
-			a[k][RE] = val[j][RE]*b[k][RE] - val[j][IM]*b[k][IM];
-			a[k][IM] = val[j][RE]*b[k][IM] + val[j][IM]*b[k][RE];
-			k++;
-		}
-	}
+  k=0;
+  for (i=0;i<local_nvoid_Ndip;++i) {
+    val=c[material[i]];
+    for (j=0;j<3;j++) {
+      a[k][re] = val[j][re]*b[k][re] - val[j][im]*b[k][im];
+      a[k][im] = val[j][re]*b[k][im] + val[j][im]*b[k][re];
+      k++;
+    }  
+  }
 }
 
-//============================================================
+/*============================================================*/
 
 void nMultSelf_mat(doublecomplex *a,doublecomplex c[][3])
-// multiply by a function of material of a dipole and component; a[3*i+j]*=c[mat[i]][j]
+   /* multiply by a function of material of a dipole and component; a[3*i+j]*=c[mat[i]][j] */
 {
-	size_t i,k;
-	int j;
-	double tmp;
-	doublecomplex *val;
+  int i,j,k;
+  double tmp;
+  doublecomplex *val;
 
-	k=0;
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<local_nvoid_Ndip;++i) {
-		val=c[material[i]];
-		for (j=0;j<3;j++) {
-			tmp=a[k][RE];
-			a[k][RE] = val[j][RE]*a[k][RE] - val[j][IM]*a[k][IM];
-			a[k][IM] = val[j][RE]*a[k][IM] + val[j][IM]*tmp;
-			k++;
-		}
-	}
+  k=0;
+  for (i=0;i<local_nvoid_Ndip;++i) {
+    val=c[material[i]];
+    for (j=0;j<3;j++) {
+      tmp=a[k][re];
+      a[k][re] = val[j][re]*a[k][re] - val[j][im]*a[k][im];
+      a[k][im] = val[j][re]*a[k][im] + val[j][im]*tmp;
+      k++;
+    }
+  }
 }
 
-//============================================================
+/*============================================================*/
 
 void nConj(doublecomplex *a)
-// complex conjugate of the vector
+   /* complex conjugate of the vector */
 {
-	size_t i;
+  int i;
 
-#pragma loop count (100000)
-#pragma ivdep
-	for (i=0;i<nlocalRows;++i) a[i][IM]=-a[i][IM];
+  for (i=0;i<nlocalRows;++i) a[i][im]=-a[i][im];
 }
+
