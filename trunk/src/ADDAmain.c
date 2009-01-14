@@ -7,6 +7,7 @@
  *        Sequential version, Michel Grimminck, January 1995.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -34,7 +35,7 @@
 void Calculator(void);
 // make_particle.c
 void InitShape(void);
-int MakeParticle(void);
+void MakeParticle(void);
 // param.c
 void InitVariables(void);
 void ParseParameters(int argc,char **argv);
