@@ -7,6 +7,7 @@
  *        slightly corrected according to the 3rd ed. of the same book.
  *
  * Copyright (C) 2007,2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -41,7 +42,8 @@ void cisi(const double x,double *ci,double *si)
  */
 
 {
-	int i,k,odd;
+	int i,k;
+	bool odd;
 	double a,err,fact,sign,sum,sumc,sums,t,term;
 	doublecomplex h,b,c,d,del,tmp;
 
@@ -92,7 +94,7 @@ void cisi(const double x,double *ci,double *si)
 		else {
 			sum=sums=sumc=0;
 			sign=fact=1;
-			odd=TRUE;
+			odd=true;
 			for (k=1;k<=MAXIT;k++) {
 				fact*=t/k;
 				term=fact/k;

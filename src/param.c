@@ -5,6 +5,7 @@
  *        information; contains file locking routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -68,29 +69,29 @@ extern const char avg_string[];
 // defined and initialized in GenerateB.c
 extern const char beam_descr[];
 // defined and initialized in make_particle.c
-extern const int volcor_used;
+extern const bool volcor_used;
 extern const char sh_form_str[];
 extern const int gr_N;
 extern const double gr_vf_real;
 extern const double mat_count[];
 
 // used in CalculateE.c
-int store_int_field; // save full internal fields to text file
-int store_dip_pol;   // save dipole polarizations to text file
-int store_beam;      // save incident beam to file
-int store_scat_grid; // Store the scattered field for grid of angles
-int calc_Cext;       // Calculate the extinction cross-section - always do
-int calc_Cabs;       // Calculate the absorption cross-section - always do
-int calc_Csca;       // Calculate the scattering cross-section by integration
-int calc_vec;        // Calculate the unnormalized asymmetry-parameter
-int calc_asym;       // Calculate the asymmetry-parameter
-int calc_mat_force;  // Calculate the scattering force by matrix-evaluation
-int store_force;     // Write radiation pressure per dipole to file
-int phi_int_type;    /* type of phi integration (each bit determines
-                      * whether to calculate with different multipliers)
-                      */
+bool store_int_field; // save full internal fields to text file
+bool store_dip_pol;   // save dipole polarizations to text file
+bool store_beam;      // save incident beam to file
+bool store_scat_grid; // Store the scattered field for grid of angles
+bool calc_Cext;       // Calculate the extinction cross-section - always do
+bool calc_Cabs;       // Calculate the absorption cross-section - always do
+bool calc_Csca;       // Calculate the scattering cross-section by integration
+bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
+bool calc_asym;       // Calculate the asymmetry-parameter
+bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
+bool store_force;     // Write radiation pressure per dipole to file
+int phi_int_type;     /* type of phi integration (each bit determines
+                       * whether to calculate with different multipliers)
+                       */
 // used in calculator.c
-int avg_inc_pol;                 // whether to average CC over incident polarization
+bool avg_inc_pol;                 // whether to average CC over incident polarization
 char alldir_parms[MAX_FNAME];    // name of file with alldir parameters
 char scat_grid_parms[MAX_FNAME]; // name of file with parameters of scattering grid
 // used in crosssec.c
@@ -116,15 +117,15 @@ int jagged;                      // size of big dipoles, used to construct a par
 char shape_fname[MAX_FNAME];     // name of file, defining the shape
 char save_geom_fname[MAX_FNAME]; // geometry file name to save dipole configuration
 char shapename[MAX_LINE];        // name of the used shape
-int volcor;                      // whether to use volume correction
-int save_geom;                   // whether to save dipole configuration in .geom file
+bool volcor;                     // whether to use volume correction
+bool save_geom;                  // whether to save dipole configuration in .geom file
 opt_index opt_sh;                // option index of shape option used
 double gr_vf;                    // granules volume fraction
 double gr_d;                     // granules diameter
 int gr_mat;                      // domain number to granulate
 double a_eq;                     // volume-equivalent radius of the particle
 int sg_format;                   // format for saving geometry files
-int store_grans;                 // whether to save granule positions to file
+bool store_grans;                 // whether to save granule positions to file
 
 // LOCAL VARIABLES
 
@@ -145,7 +146,7 @@ struct subopt_struct {
 struct opt_struct {
 	const char *name;                   // name of option
 	void (*func)(int Narg,char **argv); // pointer to a function, that parse this parameter
-	int used;                        // flag to indicate, if the option was already used
+	bool used;                       // flag to indicate, if the option was already used
 	const char *usage;               // how to use (argument list)
 	const char *help;                // help string
 	const int narg;                  // possible number of arguments; UNDEF -> should not be checked
@@ -222,7 +223,7 @@ void InitBeam(void);
 // declarations of parsing functions; definitions are given below. defines are for conciseness
 #define PARSE_NAME(a) parse_##a
 #define PARSE_FUNC(a) void PARSE_NAME(a)(int Narg,char **argv)
-#define PAR(a) #a,PARSE_NAME(a),FALSE
+#define PAR(a) #a,PARSE_NAME(a),false
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
@@ -615,7 +616,7 @@ INLINE void ScanfIntError(const char *str,int *res)
 
 //============================================================
 
-INLINE int IsOption(const char *str)
+INLINE bool IsOption(const char *str)
 /* checks if string is an option. First should be '-' and then letter (any case);
  * it enables use of negative numbers as sub-parameters
  */
@@ -686,21 +687,22 @@ PARSE_FUNC(alldir_inp)
 }
 PARSE_FUNC(anisotr)
 {
-	anisotropy = TRUE;
+	anisotropy = true;
 	Ncomp=3;
 }
 PARSE_FUNC(asym)
 {
-	calc_asym = TRUE;
-	calc_vec = TRUE;
-	calc_Csca = TRUE;
+	calc_asym = true;
+	calc_vec = true;
+	calc_Csca = true;
 }
 PARSE_FUNC(beam)
 {
-	int i,j,found;
+	int i,j;
+	bool found;
 
 	Narg--;
-	found=FALSE;
+	found=false;
 	i=-1;
 	while (beam_opt[++i].name!=NULL) if (strcmp(argv[1],beam_opt[i].name)==0) {
 		// set suboption and beam type
@@ -716,7 +718,7 @@ PARSE_FUNC(beam)
 		for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],beam_pars+j);
 		if (Narg>0) TestPositive(beam_pars[0],"beam width");
 		// stop search
-		found=TRUE;
+		found=true;
 		break;
 	}
 	if(!found) NotSupported("Beam type",argv[1]);
@@ -728,7 +730,7 @@ PARSE_FUNC(chp_dir)
 }
 PARSE_FUNC(chp_load)
 {
-	load_chpoint = TRUE;
+	load_chpoint = true;
 }
 PARSE_FUNC(chp_type)
 {
@@ -748,11 +750,11 @@ PARSE_FUNC(chpoint)
 }
 PARSE_FUNC(Cpr_mat)
 {
-	calc_mat_force = TRUE;
+	calc_mat_force = true;
 }
 PARSE_FUNC(Csca)
 {
-	calc_Csca = TRUE;
+	calc_Csca = true;
 }
 PARSE_FUNC(dir)
 {
@@ -790,7 +792,7 @@ PARSE_FUNC(granul)
 	}
 	else gr_mat=1;
 	gr_mat--; // converted to usual indexing starting from 0
-	sh_granul=TRUE;
+	sh_granul=true;
 }
 PARSE_FUNC(grid)
 {
@@ -806,12 +808,13 @@ PARSE_FUNC(grid)
 }
 PARSE_FUNC(h)
 {
-	int i,j,found;
+	int i,j;
+	bool found;
 
 	if (Narg>2) NargError(Narg,"not more than 2");
 	// do all output on root processor
 	if (ringid==ROOT) {
-		found=FALSE;
+		found=false;
 		if (Narg>=1) {
 			for(i=0;i<LENGTH(options);i++) if (strcmp(argv[1],options[i].name)==0) {
 				if (Narg==2) {
@@ -823,7 +826,7 @@ PARSE_FUNC(h)
 							if (strcmp(argv[2],options[i].sub[j].name)==0) {
 								printf("  -%s %s %s\n%s\n",options[i].name,options[i].sub[j].name,
 									options[i].sub[j].usage,WrapLinesCopy(options[i].sub[j].help));
-								found=TRUE;
+								found=true;
 								break;
 							}
 						if (!found) printf("Unknown suboption '%s'\n\n",argv[2]);
@@ -840,7 +843,7 @@ PARSE_FUNC(h)
 						printf("Type '%s -h %s <subopt>' for details\n",exename,options[i].name);
 					}
 				}
-				found=TRUE;
+				found=true;
 				break;
 			}
 			if (!found) printf("Unknown option '%s'\n\n",argv[1]);
@@ -853,7 +856,7 @@ PARSE_FUNC(h)
 		}
 	}
 	// exit
-	Stop(EXIT_FAILURE);
+	Stop(EXIT_SUCCESS);
 }
 PARSE_FUNC(int)
 {
@@ -905,11 +908,11 @@ PARSE_FUNC(maxiter)
 }
 PARSE_FUNC(no_reduced_fft)
 {
-	reduced_FFT=FALSE;
+	reduced_FFT=false;
 }
 PARSE_FUNC(no_vol_cor)
 {
-	volcor=FALSE;
+	volcor=false;
 }
 PARSE_FUNC(ntheta)
 {
@@ -919,8 +922,8 @@ PARSE_FUNC(ntheta)
 }
 PARSE_FUNC(opt)
 {
-	if (strcmp(argv[1],"speed")==0) save_memory=FALSE;
-	else if (strcmp(argv[1],"mem")==0) save_memory=TRUE;
+	if (strcmp(argv[1],"speed")==0) save_memory=false;
+	else if (strcmp(argv[1],"mem")==0) save_memory=true;
 	else NotSupported("Optimization method",argv[1]);
 }
 PARSE_FUNC(orient)
@@ -929,7 +932,7 @@ PARSE_FUNC(orient)
 	if (strcmp(argv[1],"avg")==0) {
 		if (Narg>2) PrintErrorHelp(
 			"Illegal number of arguments (%d) to '-orient avg' option (0 or 1 expected)",Narg-1);
-		orient_avg=TRUE;
+		orient_avg=true;
 		if (Narg==2) {
 			TestStrLength(argv[2],MAX_FNAME);
 			strcpy(avg_parms,argv[2]);
@@ -944,7 +947,7 @@ PARSE_FUNC(orient)
 }
 PARSE_FUNC(phi_integr)
 {
-	phi_integr = TRUE;
+	phi_integr = true;
 	ScanfIntError(argv[1],&phi_int_type);
 	TestRange_i(phi_int_type,"type of integration over phi",1,31);
 }
@@ -959,13 +962,13 @@ PARSE_FUNC(pol)
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
 	else NotSupported("Polarization relation",argv[1]);
 	if (Narg==2) {
-		if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=TRUE;
+		if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=true;
 		else PrintErrorHelpSafe("Unknown argument '%s' to '-pol %s' option",argv[2],argv[1]);
 	}
 }
 PARSE_FUNC(prognose)
 {
-	prognose=TRUE;
+	prognose=true;
 	strcpy(run_name,"test");
 }
 PARSE_FUNC(prop)
@@ -985,7 +988,7 @@ PARSE_FUNC(prop)
 PARSE_FUNC(save_geom)
 {
 	if (Narg>1) NargError(Narg,"0 or 1");
-	save_geom=TRUE;
+	save_geom=true;
 	if (Narg==1) {
 		TestStrLength(argv[1],MAX_FNAME);
 		strcpy(save_geom_fname,argv[1]);
@@ -1011,10 +1014,11 @@ PARSE_FUNC(sg_format)
 }
 PARSE_FUNC(shape)
 {
-	int i,j,found;
+	int i,j;
+	bool found;
 
 	Narg--;
-	found=FALSE;
+	found=false;
 	i=-1;
 	while (shape_opt[++i].name!=NULL) if (strcmp(argv[1],shape_opt[i].name)==0) {
 		// set shape and shape option index
@@ -1038,7 +1042,7 @@ PARSE_FUNC(shape)
 		// else parse all parameters as float; their consistency is checked in InitShape()
 		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],sh_pars+j);
 		// stop search
-		found=TRUE;
+		found=true;
 		break;
 	}
 	if(!found) NotSupported("Shape type",argv[1]);
@@ -1052,27 +1056,27 @@ PARSE_FUNC(size)
 }
 PARSE_FUNC(store_beam)
 {
-	store_beam = TRUE;
+	store_beam = true;
 }
 PARSE_FUNC(store_dip_pol)
 {
-	store_dip_pol=TRUE;
+	store_dip_pol=true;
 }
 PARSE_FUNC(store_force)
 {
-	store_force = TRUE;
+	store_force = true;
 }
 PARSE_FUNC(store_grans)
 {
-	store_grans=TRUE;
+	store_grans=true;
 }
 PARSE_FUNC(store_int_field)
 {
-	store_int_field=TRUE;
+	store_int_field=true;
 }
 PARSE_FUNC(store_scat_grid)
 {
-	store_scat_grid = TRUE;
+	store_scat_grid = true;
 }
 PARSE_FUNC(sym)
 {
@@ -1164,18 +1168,18 @@ PARSE_FUNC(V)
 		printf("%s",copyright);
 	}
 	// exit
-	Stop(EXIT_FAILURE);
+	Stop(EXIT_SUCCESS);
 #undef COMPILER
 #undef CCVERSION
 #undef COMPILER_UNKNOWN
 }
 PARSE_FUNC(vec)
 {
-	calc_vec = TRUE;
+	calc_vec = true;
 }
 PARSE_FUNC(yz)
 {
-	yzplane = TRUE;
+	yzplane = true;
 }
 #undef PAR
 #undef PARSE_FUNC
@@ -1287,14 +1291,15 @@ void InitVariables(void)
 	eps=1E-5;
 	shape=SH_SPHERE;
 	strcpy(shapename,"sphere");
-	store_int_field=FALSE;
-	store_dip_pol=FALSE;
+	store_int_field=false;
+	store_dip_pol=false;
 	PolRelation=POL_LDR;
+	avg_inc_pol=false;
 	ScatRelation=SQ_DRAINE;
 	IntRelation=G_POINT_DIP;
 	IterMethod=IT_QMR_CS;
 	sym_type=SYM_AUTO;
-	prognose=FALSE;
+	prognose=false;
 	maxiter=UNDEF;
 	jagged=1;
 	beamtype=B_PLANE;
@@ -1304,30 +1309,30 @@ void InitVariables(void)
 	strcpy(chp_dir,FD_CHP_DIR);
 	chp_time=UNDEF;
 	chp_type=CHP_NONE;
-	orient_avg=FALSE;
+	orient_avg=false;
 	alph_deg=bet_deg=gam_deg=0.0;
-	volcor=TRUE;
-	reduced_FFT=TRUE;
-	save_geom=FALSE;
+	volcor=true;
+	reduced_FFT=true;
+	save_geom=false;
 	save_geom_fname[0]=0;
-	yzplane=UNDEF;
-	all_dir=FALSE;
-	scat_grid=FALSE;
-	phi_integr=FALSE;
-	store_scat_grid=FALSE;
-	calc_Cext=TRUE;
-	calc_Cabs=TRUE;
-	calc_Csca=FALSE;
-	calc_vec=FALSE;
-	calc_asym=FALSE;
-	calc_mat_force=FALSE;
-	store_force=FALSE;
-	store_grans=FALSE;
-	load_chpoint=FALSE;
-	sh_granul=FALSE;
-	symX=symY=symZ=symR=TRUE;
-	anisotropy=FALSE;
-	save_memory=FALSE;
+	yzplane=false;
+	all_dir=false;
+	scat_grid=false;
+	phi_integr=false;
+	store_scat_grid=false;
+	calc_Cext=true;
+	calc_Cabs=true;
+	calc_Csca=false;
+	calc_vec=false;
+	calc_asym=false;
+	calc_mat_force=false;
+	store_force=false;
+	store_grans=false;
+	load_chpoint=false;
+	sh_granul=false;
+	symX=symY=symZ=symR=true;
+	anisotropy=false;
+	save_memory=false;
 	sg_format=SF_TEXT;
 	memory=0;
 	Ncomp=1;
@@ -1339,7 +1344,7 @@ void ParseParameters(const int argc,char **argv)
 // parses input parameters
 {
 	int i,j,Narg,tmp;
-	int found;
+	bool found;
 	char *p1,*p2;
 
 	// try to determine terminal width
@@ -1362,7 +1367,7 @@ void ParseParameters(const int argc,char **argv)
 		Narg--;
 
 		argv[i]++; // shift to remove "-" in the beginning of the string
-		found=FALSE;
+		found=false;
 		opt.l1=opt.l2=UNDEF;
 		for (j=0;j<LENGTH(options);j++) if (strcmp(argv[i],options[j].name)==0) {
 			opt.l1=j;
@@ -1372,9 +1377,9 @@ void ParseParameters(const int argc,char **argv)
 			(*options[j].func)(Narg,argv+i);
 			// check duplicate options; it is safe since at this point argv[i] is known to be normal
 			if (options[j].used) PrintError("Option '-%s' is used more than once",argv[i]);
-			else options[j].used=TRUE;
+			else options[j].used=true;
 			// stop search
-			found=TRUE;
+			found=true;
 			break;
 		}
 		if(!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
@@ -1393,13 +1398,10 @@ void VariablesInterconnect(void)
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI/lambda;
 	// parameter interconnections
-	if (IntRelation==G_SO) reduced_FFT=FALSE;
-	if (calc_Csca || calc_vec) all_dir = TRUE;
-	if (store_scat_grid || phi_integr) {
-		scat_grid = TRUE;
-		if (yzplane==UNDEF) yzplane = FALSE;
-	}
-	else if (yzplane==UNDEF) yzplane = TRUE;
+	if (IntRelation==G_SO) reduced_FFT=false;
+	if (calc_Csca || calc_vec) all_dir = true;
+	// yzplane is true except rare cases and when not forced by -yz option
+	if (!(store_scat_grid || phi_integr)) yzplane = true;
 	// parameter incompatibilities
 	if (orient_avg) {
 		if (prop_0[2]!=1) PrintError("'-prop' and '-orient avg' can not be used together");
@@ -1465,7 +1467,7 @@ void VariablesInterconnect(void)
 	if (orient_avg) {
 		ReadAvgParms(avg_parms);
 		if (sym_type==SYM_AUTO) sym_type=SYM_NO;
-		avg_inc_pol=TRUE;
+		avg_inc_pol=true;
 	}
 	else {
 		// else - initialize rotation stuff

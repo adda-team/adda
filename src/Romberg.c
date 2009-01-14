@@ -24,6 +24,7 @@
  *        Different implementation of Romberg integration was first coded by Martin Frijlink
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -50,7 +51,7 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in crosssec.c
-extern const int full_al_range;
+extern const bool full_al_range;
 
 // LOCAL VARIABLES
 
@@ -290,10 +291,10 @@ static double InnerTrapzd(const int fixed,double *res,const int n)
 
 //============================================================
 
-static double InnerRomberg(const int fixed,double *res,const int onepoint)
+static double InnerRomberg(const int fixed,double *res,const bool onepoint)
 /* Integrate (average) func for fixed theta=fixed; returns estimate of the absolute error (for the
  * first element); if function is periodic then only the first column of the table is used  - i.e.
- * trapezoid rule; if 'onepoint' is TRUE only one point is used for evaluation, this is used e.g.
+ * trapezoid rule; if 'onepoint' is true only one point is used for evaluation, this is used e.g.
  * for theta==0, when all phi points are equivalent
  * */
 {
@@ -385,7 +386,7 @@ static double OuterTrapzd(double *res,const int n)
 	err=0;
 	// accumulate sum
 	for (j=step>>1;j<input[THETA].Grid_size;j+=step) {
-		err+=InnerRomberg(j,dummy_out,FALSE);
+		err+=InnerRomberg(j,dummy_out,false);
 		for (comp=0;comp<dim;++comp) res[comp]+=dummy_out[comp];
 	}
 	// scale it
@@ -409,7 +410,7 @@ static double OuterRomberg(double *res)
 
 	if (input[THETA].Grid_size==1) { // if only one point
 		N_eval=0;
-		int_err=InnerRomberg(0,res,FALSE);
+		int_err=InnerRomberg(0,res,false);
 		fprintf(file,"single\t\t%d integrand-values were used.\n",N_eval);
 		N_tot_eval+=N_eval;
 		return ((res[0]==0) ? 0 : (int_err/fabs(res[0])));

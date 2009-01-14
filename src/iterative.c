@@ -25,6 +25,7 @@
  *        BiCGStab.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -89,8 +90,8 @@ static int method;         // iteration method
 static int count;          // iteration count
 static int counter;        // number of successive iterations without residual decrease
 static int max_count;      // maximum allowed value of counter
-static int chp_exit;       // checkpoint occurred - exit
-static int chp_skip;       // skip checkpoint, even if it is time to do
+static bool chp_exit;      // checkpoint occurred - exit
+static bool chp_skip;      // skip checkpoint, even if it is time to do
 typedef struct // data for checkpoints
 {
 	void *ptr; // pointer to the data
@@ -108,7 +109,7 @@ static iter_data_type iter_data; // actually the structure
 // EXTERNAL FUNCTIONS
 
 // matvec.c
-void MatVec(doublecomplex *in,doublecomplex *out,double *inprod,int her);
+void MatVec(doublecomplex *in,doublecomplex *out,double *inprod,bool her);
 
 //============================================================
 
@@ -290,7 +291,7 @@ static void ProgressReport(const double inprod)
 		if (chp_time<elapsed) {
 			SaveIterChpoint();
 			time(&last_chp_wt);
-			if (chp_type!=CHP_REGULAR) chp_exit=TRUE;
+			if (chp_type!=CHP_REGULAR) chp_exit=true;
 		}
 	}
 }
@@ -330,10 +331,10 @@ static void CGNR(const int mc)
 		Timing_OneIterComm=0; // initialize time
 		tstart=GET_TIME();
 		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
-		if (count==1) MatVec(rvec,pvec,&ro_new,TRUE);
+		if (count==1) MatVec(rvec,pvec,&ro_new,true);
 		else {
 			// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
-			MatVec(rvec,Avecbuffer,&ro_new,TRUE);
+			MatVec(rvec,Avecbuffer,&ro_new,true);
 			// beta_k-1=ro_k-1/ro_k-2
 			beta=ro_new/ro_old;
 			// p_k=beta_k-1*p_k-1+AH.r_k-1
@@ -341,7 +342,7 @@ static void CGNR(const int mc)
 		}
 		// alpha_k=ro_k-1/|A.p_k|^2
 		// Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,&denumeratorAlpha,FALSE);
+		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false);
 		alpha=ro_new/denumeratorAlpha;
 		// x_k=x_k-1+alpha_k*p_k
 		nIncrem01(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
@@ -418,7 +419,7 @@ static void BiCGStab(const int mc)
 			nIncrem110_cmplx(pvec,v,rvec,beta,temp1);
 		}
 		// calculate v_k=A.p_k
-		MatVec(pvec,v,NULL,FALSE);
+		MatVec(pvec,v,NULL,false);
 		// alpha_k=ro_new/(v_k.r~)
 		nDotProd(v,rtilda,temp1,&Timing_OneIterComm);
 		cDiv(ro_new,temp1,alpha);
@@ -430,11 +431,11 @@ static void BiCGStab(const int mc)
 			inprodR=inprodRplus1;
 			// x_k=x_k-1+alpha_k*p_k
 			nIncrem01_cmplx(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
-			chp_skip=TRUE;
+			chp_skip=true;
 		}
 		else {
 			// t=Avecbuffer=A.s
-			MatVec(s,Avecbuffer,&denumOmega,FALSE);
+			MatVec(s,Avecbuffer,&denumOmega,false);
 			// omega_k=s.t/|t|^2
 			nDotProd(s,Avecbuffer,temp1,&Timing_OneIterComm);
 			cMultReal(1/denumOmega,temp1,omega);
@@ -497,7 +498,7 @@ static void BiCG_CS(const int mc)
 			nIncrem10_cmplx(pvec,rvec,beta,NULL,&Timing_OneIterComm);
 		}
 		// q_k=Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,NULL,FALSE);
+		MatVec(pvec,Avecbuffer,NULL,false);
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
@@ -592,7 +593,7 @@ static void QMR_CS(const int mc)
 		if (dtmp1<EPS_QMR_CS1)
 			LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(r.r) is too small (%.2g).",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
-		MatVec(v,Avecbuffer,NULL,FALSE);
+		MatVec(v,Avecbuffer,NULL,false);
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
 		// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
 		cInvSign2(alpha,temp2);
@@ -681,8 +682,8 @@ int IterativeSolver(const int method_in)
 	char tmp_str[MAX_LINE];
 
 	method=method_in;
-	chp_exit=FALSE;
-	chp_skip=FALSE;
+	chp_exit=false;
+	chp_skip=false;
 	/* Instead of solving system (I+D.C).x=b , C - diagonal matrix with couple constants
 	 *                                         D - symmetric interaction matrix of Green's tensor
 	 * we solve system (I+S.D.S).(S.x)=(S.b), S=sqrt(C), then total interaction matrix is symmetric
@@ -696,7 +697,7 @@ int IterativeSolver(const int method_in)
 		temp=nNorm2(pvec,&Timing_InitIter_comm); // |r_0|^2 when x_0=0
 		resid_scale=1/temp;
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-		MatVec(pvec,Avecbuffer,NULL,FALSE);
+		MatVec(pvec,Avecbuffer,NULL,false);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIter_comm);
 		// check which x_0 is better
 		if (temp<inprodR) { // use x_0=0

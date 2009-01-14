@@ -18,6 +18,7 @@
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -62,7 +63,7 @@ void InitBeam(void)
 
 	if (beamtype==B_PLANE) {
 		STRCPYZ(beam_descr,"Plane wave");
-		beam_asym=FALSE;
+		beam_asym=false;
 	}
 	else {
 		// initialize parameters
@@ -71,9 +72,9 @@ void InitBeam(void)
 		if (beam_asym) {
 			memcpy(beam_center_0,beam_pars+1,3*sizeof(double));
 			// if necessary break the symmetry of the problem
-			if (beam_center_0[0]!=0) symX=symR=FALSE;
-			if (beam_center_0[1]!=0) symY=symR=FALSE;
-			if (beam_center_0[2]!=0) symZ=FALSE;
+			if (beam_center_0[0]!=0) symX=symR=false;
+			if (beam_center_0[1]!=0) symY=symR=false;
+			if (beam_center_0[2]!=0) symZ=false;
 		}
 		else beam_center[0]=beam_center[1]=beam_center[2]=0;
 		s=1/(WaveNum*w0);

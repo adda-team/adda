@@ -4,6 +4,7 @@
  * Descr: definitions of various structures
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,6 +21,8 @@
 #ifndef __types_h
 #define __types_h
 
+#include <stdbool.h> // for bool
+
 // complex numbers
 typedef double doublecomplex[2]; // complies with FFTW3 definition
 #define RE 0
@@ -33,8 +36,8 @@ typedef struct	      // integration parameters
 	double min;       // minimum
 	double max;       // maximum
 	size_t Grid_size; // number of grid points
-	int equival;      // whether max and min points are equivalent
-	int periodic;     // whether integrated function is periodic
+	bool equival;     // whether max and min points are equivalent
+	bool periodic;    // whether integrated function is periodic
 } Parms_1D;
 
 typedef struct	 // values of angles

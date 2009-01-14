@@ -8,6 +8,7 @@
  *        and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,11 +25,12 @@
 #ifndef __vars_h
 #define __vars_h
 
-#include <stdio.h>  // for FILE and size_t
-#include <time.h>   // for time_t
-#include "const.h"  // for MAX_NMAT
-#include "types.h"  // for doublecomplex, angle_set, scat_grid_angles
-#include "timing.h" // for TIME_TYPE
+#include <stdio.h>   // for FILE and size_t
+#include <time.h>    // for time_t
+#include <stdbool.h> // for bool
+#include "const.h"   // for MAX_NMAT
+#include "types.h"   // for doublecomplex, angle_set, scat_grid_angles
+#include "timing.h"  // for TIME_TYPE
 
 // basic variables
 extern int boxX,boxY,boxZ;
@@ -41,11 +43,11 @@ extern int PolRelation;
 extern int beamtype;
 
 // symmetries
-extern int symX,symY,symZ,symR;
+extern bool symX,symY,symZ,symR;
 
 // flags
-extern int prognose,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
-           load_chpoint,beam_asym,anisotropy,save_memory;
+extern bool prognose,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
+            load_chpoint,beam_asym,anisotropy,save_memory;
 // 3D vectors
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
