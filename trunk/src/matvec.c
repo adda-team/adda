@@ -7,6 +7,7 @@
  *        Previous version by Michel Grimminck
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -73,7 +74,7 @@ INLINE size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 
 //============================================================
 
-INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const int transposed)
+INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
 	if (transposed) { // used only for G_SO
 		if (x>0) x=gridX-x;
@@ -93,7 +94,7 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const int transposed)
 void MatVec (doublecomplex *argvec,    // the argument vector
              doublecomplex *resultvec, // the result vector
              double *inprod,           // the resulting inner product
-             const int her)            // 0 for non-Hermitian, 1 for Hermitian
+             const bool her)           // whether Hermitian transpose of the matrix is used
 /* This function implements both MatVec_nim and MatVecAndInp_nim. The difference is that when we
  * want to calculate the inner product as well, we pass 'inprod' as a non-NULL pointer. if 'inprod'
  * is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards, however it is not
@@ -104,9 +105,8 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	doublecomplex fmat[6],xv[3],yv[3];
 	doublecomplex temp;
 	size_t index,x,y,z,Xcomp;
-	int ipr;
+	bool ipr,transposed;
 	unsigned char mat;
-	int transposed;
 	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
 #ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[18];
@@ -138,8 +138,7 @@ void MatVec (doublecomplex *argvec,    // the argument vector
  */
 
 	transposed=(!reduced_FFT) && her;
-	if (inprod) ipr=TRUE;
-	else ipr=FALSE;
+	ipr=(inprod!=NULL);
 
 #ifdef PRECISE_TIMING
 	InitTime(&Timing_FFTYf);

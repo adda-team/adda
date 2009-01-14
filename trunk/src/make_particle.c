@@ -23,6 +23,7 @@
  *        Shape 'axisymmetric' is based on the code by Konstantin Gilev
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -66,19 +67,19 @@ extern const int jagged;
 extern const char shape_fname[];
 extern char shapename[];
 extern char save_geom_fname[];
-extern const int volcor,save_geom;
+extern const bool volcor,save_geom;
 extern opt_index opt_sh;
 extern const double gr_vf;
 extern double gr_d;
 extern const int gr_mat;
 extern int sg_format;
-extern int store_grans;
+extern bool store_grans;
 
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Particle,Timing_Granul,Timing_Granul_comm;
 
 // used in param.c
-int volcor_used;                 // volume correction was actually employed
+bool volcor_used;                // volume correction was actually employed
 char sh_form_str[MAX_PARAGRAPH]; // string for log file with shape parameters
 size_t gr_N;                     // number of granules
 double gr_vf_real;               // actual granules volume fraction
@@ -268,7 +269,8 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
  * closed in ReadDipFile.
  */
 {
-	int x,y,z,mat,line,scanned,mustbe,skiplines,anis_warned;
+	int x,y,z,mat,line,scanned,mustbe,skiplines;
+	bool anis_warned;
 	long tl; // dumb variable
 	int t2,t3; // dumb variables
 	int maxX,maxY,maxZ,maxN;
@@ -320,7 +322,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 	maxX=maxY=maxZ=INT_MIN;
 	minX=minY=minZ=INT_MAX;
 	maxN=1;
-	anis_warned=FALSE;
+	anis_warned=false;
 	// reading is performed in lines
 	while(FgetsError(dipfile,fname,&line,POSIT)!=NULL) {
 		// scan numbers in a line
@@ -333,7 +335,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 				LogError(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
 					"line %d). ADDA ignores this anisotropy, using only the identifier of "
 					"x-component of refractive index as domain number",fname,line);
-				anis_warned=TRUE;
+				anis_warned=true;
 			}
 		}
 		// if sscanf returns EOF, that is a blank line -> just skip
@@ -656,7 +658,7 @@ void FreeContourSegment(struct segment *seg)
 #define MIN_CELL_SIZE 4.0       // minimum cell size for small granules
 
 INLINE int CheckCell(const double *gr,const double *vgran,const unsigned short *tree_index,
-                     const double Di2,const int start,int *fits)
+                     const double Di2,const int start,bool *fits)
 // function that checks whether granule intersects anything in the cell
 {
 	int index,last,index1;
@@ -669,7 +671,7 @@ INLINE int CheckCell(const double *gr,const double *vgran,const unsigned short *
 		t1=gr[0]-vgran[index1];
 		t2=gr[1]-vgran[index1+1];
 		t3=gr[2]-vgran[index1+2];
-		if ((t1*t1+t2*t2+t3*t3)<Di2) *fits=FALSE;
+		if ((t1*t1+t2*t2+t3*t3)<Di2) *fits=false;
 		index=tree_index[index];
 	}
 	return last;
@@ -711,7 +713,7 @@ static double PlaceGranules(void)
 	size_t avail;                        // number of available (free) domain cells
 	int gX2,gY2,gZ2,locgZ2;
 	int i0,i1,j0,j1,k0,k1;
-	int fits;
+	bool fits;
 	int cur_Ngr,ig,max_Ngr; // number of granules in a current set, index, and maximum set size
 	double gdX,gdY,gdZ,gdXh,gdYh,gdZh; // auxiliary grid cell sizes and their halfs (h)
 	int locz0,locz1,locgZ,gr_locgN;
@@ -861,7 +863,7 @@ static double PlaceGranules(void)
 				while (ig<cur_Ngr) {
 					count++;
 					false_count++;
-					fits=TRUE;
+					fits=true;
 					// random position in a grid
 					gr[0]=genrand(0,gX);
 					gr[1]=genrand(0,gY);
@@ -1021,7 +1023,7 @@ static double PlaceGranules(void)
 						gr[0]=gr[0]*gdXh+x0;
 						gr[1]=gr[1]*gdYh+y0;
 						gr[2]=gr[2]*gdZh+z0;
-						fits=TRUE;
+						fits=true;
 						false_count++;
 						if ((i0=indX-sx)<0) i0=0;
 						if ((i1=indX+sx+1)>gZ) i1=gX;
@@ -1040,7 +1042,7 @@ static double PlaceGranules(void)
 									t2=gr[1]-vgran[index1+1];
 									t3=gr[2]-vgran[index1+2];
 									if ((t1*t1+t2*t2+t3*t3)<Di2) {
-										fits=FALSE;
+										fits=false;
 										break;
 									}
 								}
@@ -1074,7 +1076,7 @@ static double PlaceGranules(void)
 			memcpy(gr,vgran+3*ig,3*sizeof(double));
 			k0=MAX((int)ceil(gr[2]-R),local_z0);
 			k1=MIN((int)floor(gr[2]+R),local_z1_coer-1);
-			fits=TRUE;
+			fits=true;
 			index2=(k0-local_z0)*boxXY;
 			for (k=k0;k<=k1;k++,index2+=boxXY) {
 				tmp1=R2-(gr[2]-k)*(gr[2]-k);
@@ -1089,7 +1091,7 @@ static double PlaceGranules(void)
 					index=index1+i0;
 					for (i=i0;i<=i1;i++,index++) {
 						if (material_tmp[index]!=gr_mat) {
-							fits=FALSE;
+							fits=false;
 							break;
 						}
 					}
@@ -1223,10 +1225,10 @@ void InitShape(void)
 	double ad,ct,ct2; // cos(theta0) and its square
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
-	int dpl_def_used; // if default dpl is used for grid initialization
-	bool box_det_sh; // if boxX is determined by shape itself
-	bool size_det_sh; // if size is determined by shape itself
-	bool size_given_cmd; // if size is given in the command line
+	bool dpl_def_used;       // if default dpl is used for grid initialization
+	bool box_det_sh;         // if boxX is determined by shape itself
+	bool size_det_sh;        // if size is determined by shape itself
+	bool size_given_cmd;     // if size is given in the command line
 	char sizename[MAX_LINE]; // type of input size, used in diagnostic messages
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
@@ -1271,7 +1273,7 @@ void InitShape(void)
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
 	dpl_def=10*sqrt(tmp2);
-	dpl_def_used=FALSE;
+	dpl_def_used=false;
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -1285,7 +1287,7 @@ void InitShape(void)
 			" diameter:%%.10g",shape_fname);
 		InitContour(shape_fname,&zx_ratio,&n_sizeX);
 		yx_ratio=1;
-		symZ=FALSE; // input contour is assumed asymmetric over ro-axis
+		symZ=false; // input contour is assumed asymmetric over ro-axis
 		/* TODO: this can be determined from the contour. However, it is not trivial, especially
 		 * when the contour intersects itself.
 		 */
@@ -1305,7 +1307,7 @@ void InitShape(void)
 			SPRINTZ(sh_form_str,"rectangular parallelepiped; size along x-axis:%%.10g, aspect "
 				"ratios y/x=%.10g, z/x=%.10g",aspectY,aspectZ);
 		}
-		if (aspectY!=1) symR=FALSE;
+		if (aspectY!=1) symR=false;
 		// set half-aspect ratios
 		haspY=aspectY/2;
 		haspZ=aspectZ/2;
@@ -1342,9 +1344,9 @@ void InitShape(void)
 		else coat_x=coat_y=coat_z=0; // initialize default values
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		volume_ratio=PI_OVER_SIX;
-		if (coat_x!=0) symX=symR=FALSE;
-		if (coat_y!=0) symY=symR=FALSE;
-		if (coat_z!=0) symZ=FALSE;
+		if (coat_x!=0) symX=symR=false;
+		if (coat_y!=0) symY=symR=false;
+		if (coat_z!=0) symZ=false;
 		yx_ratio=zx_ratio=1;
 		Nmat_need=2;
 	}
@@ -1370,7 +1372,7 @@ void InitShape(void)
 		egnu=sh_pars[1];
 		TestRangeIN(egnu,"egg parameter nu",0,egeps);
 		// egg shape is symmetric about z-axis (xz and yz planes, but generally NOT xy plane)
-		if (egnu!=0) symZ=FALSE;
+		if (egnu!=0) symZ=false;
 		/* cos(theta0): ct=-nu/[eps+sqrt(eps^2-nu^2)]; this expression for root of the quadratic
 		 * equation is used for numerical stability (i.e. when nu=0); at this theta0 the diameter
 		 * (maximum width perpendicular to z-axis) d=Dx is located
@@ -1408,7 +1410,7 @@ void InitShape(void)
 		TestPositive(aspectZ,"aspect ratio z/x");
 		SPRINTZ(sh_form_str,"ellipsoid; size along x-axis:%%.10g, aspect ratios y/x=%.10g, "
 			"z/x=%.10g",aspectY,aspectZ);
-		if (aspectY!=1) symR=FALSE;
+		if (aspectY!=1) symR=false;
 		// set inverse squares of aspect ratios
 		invsqY=1/(aspectY*aspectY);
 		invsqZ=1/(aspectZ*aspectZ);
@@ -1419,7 +1421,7 @@ void InitShape(void)
 	}
 	else if (shape==SH_LINE) {
 		STRCPYZ(sh_form_str,"line; length:%g");
-		symY=symZ=symR=FALSE;
+		symY=symZ=symR=false;
 		n_boxY=n_boxZ=jagged;
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
@@ -1462,7 +1464,7 @@ void InitShape(void)
 	}
 	else if (shape==SH_READ) {
 		SPRINTZ(sh_form_str,"specified by file %s; size along x-axis:%%.10g",shape_fname);
-		symX=symY=symZ=symR=FALSE; // input file is assumed asymmetric
+		symX=symY=symZ=symR=false; // input file is assumed asymmetric
 		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
@@ -1492,8 +1494,8 @@ void InitShape(void)
 	 *    they would automatically produce informative output in case of error). If the shape can
 	 *    accept different number of parameters (UNDEF was set in array shape_opt) then also test
 	 *    the number of parameters.
-	 * 3) if shape breaks any symmetry, corresponding variable should be set to FALSE. Do not set
-	 *    any of them to TRUE, as they can be set to FALSE by some other factors.
+	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set
+	 *    any of them to true, as they can be set to false by some other factors.
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
 	 *    symR - symmetry of rotation for 90 degrees over the Z axis
 	 * 4) initialize the following:
@@ -1520,7 +1522,7 @@ void InitShape(void)
 
 	// initialize domain granulation
 	if (sh_granul) {
-		symX=symY=symZ=symR=FALSE;  // no symmetry with granules
+		symX=symY=symZ=symR=false;  // no symmetry with granules
 		if (gr_mat+1>Nmat_need)
 			PrintError("Specified domain number to be granulated (%d) is larger than total number "
 				"of domains (%d) for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
@@ -1545,8 +1547,8 @@ void InitShape(void)
 	if (anisotropy) for (i=0;i<Nmat;i++) symR=symR && ref_index[3*i][RE]==ref_index[3*i+1][RE]
 	                                         && ref_index[3*i][IM]==ref_index[3*i+1][IM];
 
-	if (sym_type==SYM_NO) symX=symY=symZ=symR=FALSE;
-	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=TRUE;
+	if (sym_type==SYM_NO) symX=symY=symZ=symR=false;
+	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=true;
 
 	// determine which size to use
 	if (size_det_sh) {
@@ -1581,7 +1583,7 @@ void InitShape(void)
 				 */
 				temp=(int)ceil(sizeX*dpl_def/lambda);
 				boxX=FitBox(MAX(temp,MIN_AUTO_GRID));
-				dpl_def_used=TRUE;
+				dpl_def_used=true;
 			}
 			else { // if dpl is given in the command line; then believe it
 				boxX=FitBox((int)ceil(sizeX*dpl/lambda));
@@ -1705,9 +1707,9 @@ void MakeParticle(void)
 								CheckContourSegment(contSeg+ns) ? largerZ++ : smallerZ++;
 						// check for consistency; if the code is perfect, this is not needed
 						if (!IS_EVEN(largerZ+smallerZ)) LogError(EC_ERROR,ALL_POS,
-							"Point (ro,z)=(%g,%g) produced weird result when checking whether it lies "
-							"inside the contour. Larger than z %d intersections, smaller - %d.",
-							contCurRo,contCurZ,largerZ,smallerZ);
+							"Point (ro,z)=(%g,%g) produced weird result when checking whether it "
+							"lies inside the contour. Larger than z %d intersections, smaller - %d."
+							,contCurRo,contCurZ,largerZ,smallerZ);
 						if (!IS_EVEN(largerZ)) mat=0;
 					}
 				}

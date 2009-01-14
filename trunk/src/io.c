@@ -4,6 +4,7 @@
  * Descr: i/o routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -52,7 +53,7 @@ void WrapLines(char *str)
  */
 {
 	char *left,*right,*mid,*end;
-	int divided;
+	bool divided;
 
 	end=str+strlen(str);
 	left=str;
@@ -61,14 +62,14 @@ void WrapLines(char *str)
 		right=strchr(left,'\n');
 		if (right==NULL) right=end;
 		while ((right-left)>term_width) {
-			divided=FALSE;
+			divided=false;
 			mid=left+term_width;
 			// search backward for space
 			while (mid>=left) {
 				if(mid[0]==' ') {
 					mid[0]='\n';
 					left=mid+1;
-					divided=TRUE;
+					divided=true;
 					break;
 				}
 				mid--;
@@ -80,7 +81,7 @@ void WrapLines(char *str)
 					if(mid[0]==' ') {
 						mid[0]='\n';
 						left=mid+1;
-						divided=TRUE;
+						divided=true;
 						break;
 					}
 					mid++;

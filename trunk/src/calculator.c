@@ -7,6 +7,7 @@
  *        Previous versions were by Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -70,7 +71,8 @@ doublecomplex *rvec,*vec1,*vec2,*vec3,*Avecbuffer; // vectors for iterative solv
 // LOCAL VARIABLES
 
 static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
-static int finish_avg;     // whether to stop orientation averaging
+	// whether to stop orientation averaging; defined as int to simplify MPI casting
+static int finish_avg;
 	// used to collect both mueller matrix and integral scattering quantities when orient_avg
 static double *out;
 
@@ -91,7 +93,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 	double S,prop2[3];
 	int asym; // whether polarizability is asymmetric (for isotropic m)
 	const double *incPol;
-	int pol_avg=TRUE;
+	bool pol_avg=true; // temporary fixed value for SO polarization
 
 	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO);
 	// !!! this should never happen
@@ -599,7 +601,7 @@ void Calculator (void)
 	block_theta= 16*(size_t)nTheta;
 	// if not enough symmetry, calculate for +- theta (for one plane)
 	if (!(symY || orient_avg)) nTheta=2*(nTheta-1);
-	finish_avg=FALSE;
+	finish_avg=false;
 	// read tables if needed
 	if (IntRelation == G_SO) ReadTables();
 	// initialize D matrix (for matrix-vector multiplication)
@@ -620,7 +622,7 @@ void Calculator (void)
 			D("Romberg2D started on ROOT");
 			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
 			D("Romberg2D finished on ROOT");
-			finish_avg=TRUE;
+			finish_avg=true;
 			/* first two are dummy variables; this call corresponds to similar call in
 			 * orient_integrand by other processors;
 			 * TODO: replace by a call without unnecessary overhead

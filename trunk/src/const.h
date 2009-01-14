@@ -4,6 +4,7 @@
  * Descr: all the constants used by ADDA code, also defines some useful macros
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,8 +25,6 @@
 #define ADDA_VERSION "0.79a4"
 
 // basic constants
-#define FALSE  0
-#define TRUE   1 // do not use for comparison, since true may be != TRUE; use only for assignment
 #define UNDEF -1 // should be used only for variables, which are naturally non-negative
 	// denotes that shape accepts single filename argument; used in definitions of suboptions
 #define FNAME_ARG -2

@@ -8,6 +8,7 @@
  *        and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -44,26 +45,26 @@ int PolRelation;          // type of formula for self-term (polarization relatio
 int beamtype;             // type of incident beam
 
 // symmetries
-int symX,symY,symZ; /* symmetries of reflection relative to the planes perpendicular to x, y, and
+bool symX,symY,symZ; /* symmetries of reflection relative to the planes perpendicular to x, y, and
                      * z axes. Only Y is actually used
                      */
-int symR;           // symmetry of 90-degrees rotation about z axes
+bool symR;           // symmetry of 90-degrees rotation about z axes
 
-// flags (TRUE or FALSE)
-int prognose;     // make a prognosis about needed ram
-int yzplane;      // Calculate the field in the yz-plane
-int all_dir;      /* Calculate the field for all directions on a theta-phi grid (internal
+// flags (true or false)
+bool prognose;     // make a prognosis about needed ram
+bool yzplane;      // Calculate the field in the yz-plane
+bool all_dir;      /* Calculate the field for all directions on a theta-phi grid (internal
                    * parameter - initialized by other options: calculation of Csca and asym)
                    */
-int scat_grid;    // calculate field on a grid of scattering angles
-int phi_integr;   // integrate over the phi angle
-int reduced_FFT;  // reduced number of storage for FFT, when matrix is symmetric
-int orient_avg;   // whether to use orientation averaging
-int load_chpoint; // whether to load checkpoint
-int beam_asym;    // whether the beam center is shifted relative to the origin
-int sh_granul;    // whether to fill one domain with granules
-int anisotropy;   // whether the scattering medium is anisotropic
-int save_memory;  // whether to sacrifice some speed for memory
+bool scat_grid;    // calculate field on a grid of scattering angles
+bool phi_integr;   // integrate over the phi angle
+bool reduced_FFT;  // reduced number of storage for FFT, when matrix is symmetric
+bool orient_avg;   // whether to use orientation averaging
+bool load_chpoint; // whether to load checkpoint
+bool beam_asym;    // whether the beam center is shifted relative to the origin
+bool sh_granul;    // whether to fill one domain with granules
+bool anisotropy;   // whether the scattering medium is anisotropic
+bool save_memory;  // whether to sacrifice some speed for memory
 
 // 3D vectors (in particle reference frame)
 double prop[3];               // incident direction (in particle reference frame)

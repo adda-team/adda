@@ -12,6 +12,7 @@
  *        Previous versions by Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -52,8 +53,9 @@ extern double *muel_alpha;
 // defined and initialized in crosssec.c
 extern const Parms_1D phi_sg;
 // defined and initialized in param.c
-extern const int store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,phi_int_type;
+extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
+calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force;
+extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EFieldPlane,Timing_comm_EField,
 Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan;

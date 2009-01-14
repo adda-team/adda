@@ -7,6 +7,7 @@
  *        Previous versions by Martijn Frijlink
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -60,7 +61,7 @@ angle_set beta_int,gamma_int,theta_int,phi_int; // sets of angles
 // used in param.c
 char avg_string[MAX_PARAGRAPH]; // string for output of function that reads averaging parameters
 // used in Romberg.c
-int full_al_range; // whether full range of alpha angle is used
+bool full_al_range; // whether full range of alpha angle is used
 
 //=====================================================================
 
@@ -228,7 +229,7 @@ static void ScanIntegrParms(
 	FILE *file,const char *fname, // opened file and filename
 	angle_set *a,                 // pointer to angle set
 	Parms_1D *b,                  // pointer to parameters of integration
-	const int ifcos,              // if space angles equally in cos
+	const bool ifcos,             // if space angles equally in cos
 	char *buf,char* temp,         // 2 buffers
 	const int buf_size)           // and their size
 // scan integration parameters for angles from file
@@ -243,12 +244,12 @@ static void ScanIntegrParms(
 	ScanInt(file,fname,buf,buf_size,"Jmax=",&(b->Jmax));
 	ScanDouble(file,fname,buf,buf_size,"eps=",&(b->eps));
 	ScanString(file,fname,buf,buf_size,"equiv=",temp);
-	if (strcmp(temp,"true")==0) b->equival=TRUE;
-	else if (strcmp(temp,"false")==0) b->equival=FALSE;
+	if (strcmp(temp,"true")==0) b->equival=true;
+	else if (strcmp(temp,"false")==0) b->equival=false;
 	else LogError(EC_ERROR,ONE_POS,"Wrong argument of 'equiv' option in file %s",fname);
 	ScanString(file,fname,buf,buf_size,"periodic=",temp);
-	if (strcmp(temp,"true")==0) b->periodic=TRUE;
-	else if (strcmp(temp,"false")==0) b->periodic=FALSE;
+	if (strcmp(temp,"true")==0) b->periodic=true;
+	else if (strcmp(temp,"false")==0) b->periodic=false;
 	else LogError(EC_ERROR,ONE_POS,"Wrong argument of 'periodic' option in file %s",fname);
 
 	// fill all parameters
@@ -361,12 +362,12 @@ void ReadAvgParms(const char *fname)
 	input=FOpenErr(fname,"r",ALL_POS);
 	//scan file
 	ReadLineStart(input,fname,buf,BUF_LINE,"alpha:");
-	ScanIntegrParms(input,fname,&alpha_int,&parms_alpha,FALSE,buf,temp,BUF_LINE);
+	ScanIntegrParms(input,fname,&alpha_int,&parms_alpha,false,buf,temp,BUF_LINE);
 	full_al_range=fabs(alpha_int.max-alpha_int.min-FULL_ANGLE)<FULL_ANGLE*ROUND_ERR;
 	ReadLineStart(input,fname,buf,BUF_LINE,"beta:");
-	ScanIntegrParms(input,fname,&beta_int,&parms[THETA],TRUE,buf,temp,BUF_LINE);
+	ScanIntegrParms(input,fname,&beta_int,&parms[THETA],true,buf,temp,BUF_LINE);
 	ReadLineStart(input,fname,buf,BUF_LINE,"gamma:");
-	ScanIntegrParms(input,fname,&gamma_int,&parms[PHI],FALSE,buf,temp,BUF_LINE);
+	ScanIntegrParms(input,fname,&gamma_int,&parms[PHI],false,buf,temp,BUF_LINE);
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info to string
@@ -397,9 +398,9 @@ void ReadAlldirParms(const char *fname)
 	input=FOpenErr(fname,"r",ALL_POS);
 	//scan file
 	ReadLineStart(input,fname,buf,BUF_LINE,"theta:");
-	ScanIntegrParms(input,fname,&theta_int,&parms[THETA],TRUE,buf,temp,BUF_LINE);
+	ScanIntegrParms(input,fname,&theta_int,&parms[THETA],true,buf,temp,BUF_LINE);
 	ReadLineStart(input,fname,buf,BUF_LINE,"phi:");
-	ScanIntegrParms(input,fname,&phi_int,&parms[PHI],FALSE,buf,temp,BUF_LINE);
+	ScanIntegrParms(input,fname,&phi_int,&parms[PHI],false,buf,temp,BUF_LINE);
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info
@@ -437,7 +438,7 @@ void ReadScatGridParms(const char *fname)
 		theta_type=ScanAngleSet(input,fname,&(angles.theta),buf,temp,BUF_LINE);
 		if (phi_integr) {
 			ReadLineStart(input,fname,buf,BUF_LINE,"phi_integr:");
-			ScanIntegrParms(input,fname,&(angles.phi),&phi_sg,FALSE,buf,temp,BUF_LINE);
+			ScanIntegrParms(input,fname,&(angles.phi),&phi_sg,false,buf,temp,BUF_LINE);
 			phi_type = SG_RANGE;
 		}
 		else {
@@ -515,7 +516,7 @@ void CalcField (doublecomplex *ebuff, // where to write calculated scattering am
 	size_t j,jjj;
 	double temp, na;
 	doublecomplex mult_mat[MAX_NMAT];
-	const int scat_avg=TRUE;
+	const bool scat_avg=true; // temporary fixed option for SO formulation
 
 	if (ScatRelation==SQ_SO) {
 		// !!! this should never happen

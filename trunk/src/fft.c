@@ -8,6 +8,7 @@
  *        Previous versions by Michel Grimminck and Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -70,7 +71,7 @@ double *BT_buffer, *BT_rbuffer; // buffers for BlockTranspose
 static doublecomplex *slice,*slice_tr,*D2matrix;
 static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ; see fft.h
-static int weird_nprocs;               // whether weird number of processors is used
+static bool weird_nprocs;              // whether weird number of processors is used
 #ifdef FFTW3
 // FFTW3 plans: f - FFT_FORWARD; b - FFT_BACKWARD
 static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb,planXf_Dm,planYf_Dm,planZf_Dm;
@@ -147,7 +148,10 @@ INLINE size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
 //============================================================
 
 void TransposeYZ(const int direction)
-// optimized routine to transpose y and z; forward: slices->slices_tr; backward: slices_tr->slices
+/* optimized routine to transpose y and z; forward: slices->slices_tr; backward: slices_tr->slices;
+ * direction can be made boolean but this contradicts with existing definitions of FFT_FORWARD and
+ * FFT_BACKWARD, which themselves are determined by FFT routines invocation format
+ */
 {
 	size_t y,z,Y,Z,y1,y2,z1,z2,i,j,y0,z0,Xcomp;
 	doublecomplex *t0,*t1,*t2,*t3,*t4,*w0,*w1,*w2,*w3;
@@ -343,7 +347,7 @@ void CheckNprocs(void)
 	int y=nprocs;
 
 	// initialize weird_nprocs
-	weird_nprocs=FALSE;
+	weird_nprocs=false;
 	// remove simple prime divisors of y
 	while (y%2==0) y/=2;
 	while (y%3==0) y/=3;
@@ -361,7 +365,7 @@ void CheckNprocs(void)
 		LogError(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime divisors "
 			"larger than 13 or more than one divisor of either 11 or 13). FFTW3 will work less "
 			"efficiently. It is strongly recommended to revise the number of processors.",nprocs);
-		weird_nprocs=TRUE;
+		weird_nprocs=true;
 	}
 #endif
 }
@@ -379,7 +383,7 @@ int fftFit(int x,int divis)
 		if (!IS_EVEN(divis)) divis*=2;
 		return (divis*((x+divis-1)/divis));
 	}
-	else while (TRUE) {
+	else while (true) {
 		y=x;
 		while (y%2==0) y/=2;
 		while (y%3==0) y/=3;
@@ -521,7 +525,7 @@ static void CalcInterTerm(int i,int j,int k,int mu,int nu,doublecomplex result)
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
 	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
 	//int pr;
-	const int inter_avg=TRUE;
+	const bool inter_avg=true; // temporary fixed option for SO formulation
 
 	// self interaction; self term is computed in different subroutine
 	if (i==0 && j==0 && k==0) {
