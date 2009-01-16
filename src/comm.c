@@ -648,7 +648,9 @@ void FreeGranulComm(const int sm_gr)
 
 void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing)
 /* performs a collective AND operation on the (vector) data; timing is incremented by the total
- * time used
+ * time used.
+ * TODO: When MPI_BOOL data type will become widely supported, this function should be rewritten
+ * using bool input data.
  */
 {
 #ifdef MPI
