@@ -69,7 +69,7 @@ TIME_TYPE tstart_CE;
 // GenerateB.c
 void GenerateB(char which,doublecomplex *x);
 // iterative.c
-int IterativeSolver(int method);
+int IterativeSolver(enum iter method);
 
 //============================================================
 
@@ -371,7 +371,7 @@ void MuellerMatrix(void)
 
 //============================================================
 
-static void CalcEplane(const char which,const int type)
+static void CalcEplane(const char which,const enum Eftype type)
 // calculates scattered electric field in a plane
 {
 	double *incPol,*incPolper,*incPolpar;
@@ -678,7 +678,7 @@ static void StoreIntFields(const char which)
 
 //============================================================
 
-int CalculateE(const char which,const int type)
+int CalculateE(const char which,const enum Eftype type)
 /* Calculate everything for x or y polarized incident light; or one and use symmetry to determine
  * the rest (determined by type)
  */

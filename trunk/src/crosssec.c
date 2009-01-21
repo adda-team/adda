@@ -47,7 +47,7 @@ extern doublecomplex *expsX,*expsY,*expsZ;
 extern const double beam_center_0[3];
 // defined and initialized in param.c
 extern const double prop_0[3],incPolX_0[3],incPolY_0[3];
-extern const int ScatRelation;
+extern const enum scat ScatRelation;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EField_ad,Timing_comm_EField_ad,Timing_EField_sg,Timing_comm_EField_sg,
 Timing_ScatQuan_comm;
@@ -306,10 +306,10 @@ static void ScanIntegrParms(
 
 //=====================================================================
 
-static int ScanAngleSet(FILE *file,const char *fname, // opened file and filename
-	angle_set *a,                                     // pointers to angle set
-	char *buf,char *temp,                             // 2 buffers
-	const int buf_size)                               // and their size
+static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file and filename
+	angle_set *a,                                               // pointers to angle set
+	char *buf,char *temp,                                       // 2 buffers
+	const int buf_size)                                         // and their size
 // scan range or set of angles (theta or phi) from file (used for scat_grid)
 {
 	size_t i;
@@ -331,7 +331,7 @@ static int ScanAngleSet(FILE *file,const char *fname, // opened file and filenam
 			unit = (a->max - a->min)/(a->N - 1);
 			for (i=0;i<a->N;i++) a->val[i] = a->min + unit*i;
 		}
-		return SG_RANGE;
+		return AS_RANGE;
 	}
 	else if (strcmp(temp,"values")==0) {
 		ReadLineStart(file,fname,buf,buf_size,"values=");
@@ -343,7 +343,7 @@ static int ScanAngleSet(FILE *file,const char *fname, // opened file and filenam
 			if (sscanf(buf,"%lf\n",a->val+i)!=1) LogError(EC_ERROR,ONE_POS,
 				"Failed scanning values from line '%s' in file '%s'",buf,fname);
 		}
-		return SG_VALUES;
+		return AS_VALUES;
 	}
 	else LogError(EC_ERROR,ONE_POS,"Unknown type '%s' in file '%s'",temp,fname);
 	// not actually reached
@@ -425,7 +425,7 @@ void ReadScatGridParms(const char *fname)
 {
 	FILE *input;
 	char buf[BUF_LINE],temp[BUF_LINE];
-	int theta_type,phi_type;
+	enum angleset theta_type,phi_type;
 	size_t i;
 
 	// open file
@@ -439,7 +439,7 @@ void ReadScatGridParms(const char *fname)
 		if (phi_integr) {
 			ReadLineStart(input,fname,buf,BUF_LINE,"phi_integr:");
 			ScanIntegrParms(input,fname,&(angles.phi),&phi_sg,false,buf,temp,BUF_LINE);
-			phi_type = SG_RANGE;
+			phi_type = AS_RANGE;
 		}
 		else {
 			ReadLineStart(input,fname,buf,BUF_LINE,"phi:");
@@ -477,17 +477,17 @@ void ReadScatGridParms(const char *fname)
 	if (ringid==ROOT) {
 		fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
 		if (angles.type==SG_GRID) {
-			if (theta_type==SG_RANGE)
+			if (theta_type==AS_RANGE)
 				fprintf(logfile,"theta: from %g to %g in %lu steps\n",angles.theta.min,
 					angles.theta.max,(unsigned long)angles.theta.N);
-			else if (theta_type==SG_VALUES)
+			else if (theta_type==AS_VALUES)
 				fprintf(logfile,"theta: %lu given values\n",(unsigned long)angles.theta.N);
-			if (phi_type==SG_RANGE) {
+			if (phi_type==AS_RANGE) {
 				fprintf(logfile,"phi: from %g to %g in %lu steps\n",angles.phi.min,angles.phi.max,
 					(unsigned long)angles.phi.N);
 				if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
 			}
-			else if (phi_type==SG_VALUES)
+			else if (phi_type==AS_VALUES)
 				fprintf(logfile,"phi: %lu given values\n",(unsigned long)angles.phi.N);
 		}
 		else if (angles.type==SG_PAIRS)

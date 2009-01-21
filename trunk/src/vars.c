@@ -40,9 +40,9 @@ unsigned short *position; /* position of the dipoles; in the very end of make_pa
                            * z-components are adjusted to be relative to the local_z0
                            */
 double memory;            // total memory usage in bytes
-int IntRelation;          // type of formula for interaction term
-int PolRelation;          // type of formula for self-term (polarization relation)
-int beamtype;             // type of incident beam
+enum inter IntRelation;   // type of formula for interaction term
+enum pol PolRelation;     // type of formula for self-term (polarization relation)
+enum beam  beamtype;      // type of incident beam
 
 // symmetries
 bool symX,symY,symZ; /* symmetries of reflection relative to the planes perpendicular to x, y, and
@@ -90,11 +90,11 @@ doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
 unsigned char *material;            // material: index for cc
 
 // iterative solver
-int IterMethod;      // iterative method to use
-int maxiter;         // maximum number of iterations
-doublecomplex *xvec; // total electric field on the dipoles
-doublecomplex *pvec; // polarization of dipoles
-doublecomplex *Einc; // incident field on dipoles
+enum iter IterMethod; // iterative method to use
+int maxiter;          // maximum number of iterations
+doublecomplex *xvec;  // total electric field on the dipoles
+doublecomplex *pvec;  // polarization of dipoles
+doublecomplex *Einc;  // incident field on dipoles
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile
@@ -107,7 +107,7 @@ doublecomplex *EgridX,*EgridY;     /* E calculated on a grid for many different 
 double *Egrid_buffer;              // buffer to accumulate Egrid
 
 // checkpoint
-int chp_type;              // type of checkpoint (to save)
+enum chpoint chp_type;              // type of checkpoint (to save)
 time_t chp_time;           // time of checkpoint (in sec)
 char chp_dir[MAX_DIRNAME]; // directory name to save/load checkpoint
 

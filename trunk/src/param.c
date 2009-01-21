@@ -97,7 +97,7 @@ char scat_grid_parms[MAX_FNAME]; // name of file with parameters of scattering g
 // used in crosssec.c
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
-int ScatRelation;                 // type of formulae for scattering quantities
+enum scat ScatRelation;           // type of formulae for scattering quantities
 // used in GenerateB.c
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
@@ -106,10 +106,10 @@ char logname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
 double eps; // relative error to reach
 // used in make_particle.c
-int shape;                       // particle shape definition
+enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
 double sh_pars[MAX_N_SH_PARMS];  // storage for shape parameters
-int sym_type;                    // how to treat particle symmetries
+enum sym sym_type;               // how to treat particle symmetries
 double sizeX;                    // size of particle along x-axis
 double dpl;                      // number of dipoles per lambda (wavelength)
 double lambda;                   // incident wavelength (in vacuum)
@@ -205,8 +205,8 @@ static const struct subopt_struct shape_opt[]={
  * add a row here, before null-terminating element. It contains:
  * shape name (used in command line), usage string (what command line parameters can be used
  * for this shape), help string (shown when -h option is used), possible number of float parameters,
- * shape identifier (constant defined in const.h). Instead of number of parameters UNDEF can be
- * used (if shape can accept variable number of parameters, then check it explicitly in
+ * shape identifier (defined inside 'enum sh' in const.h). Instead of number of parameters UNDEF can
+ * be used (if shape can accept variable number of parameters, then check it explicitly in
  * function InitShape) or FNAME_ARG (if the shape accepts a single string argument with file name).
  * Number of parameters should not be greater than MAX_N_SH_PARMS (defined in const.h). It is
  * recommended to use dimensionless shape parameters, e.g. aspect ratios.
@@ -955,7 +955,7 @@ PARSE_FUNC(pol)
 {
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
-	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RR;
+	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
 	else if (strcmp(argv[1],"ldr")==0) PolRelation=POL_LDR;
 	else if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
@@ -1661,7 +1661,7 @@ void PrintInfo(void)
 		// log Polarization relation
 		fprintf(logfile,"Polarization relation: ");
 		if (PolRelation==POL_CM) fprintf(logfile,"'Clausius-Mossotti'\n");
-		else if (PolRelation==POL_RR) fprintf(logfile,"'Radiative Reaction Correction'\n");
+		else if (PolRelation==POL_RRC) fprintf(logfile,"'Radiative Reaction Correction'\n");
 		else if (PolRelation==POL_LDR) {
 			fprintf(logfile,"'Lattice Dispersion Relation'");
 			if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");

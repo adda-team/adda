@@ -38,9 +38,9 @@ extern double gridspace,kd,ka_eq,inv_G,WaveNum;
 extern double *DipoleCoord;
 extern unsigned short *position;
 extern double memory;
-extern int IntRelation;
-extern int PolRelation;
-extern int beamtype;
+extern enum inter IntRelation;
+extern enum pol PolRelation;
+extern enum beam beamtype;
 
 // symmetries
 extern bool symX,symY,symZ,symR;
@@ -63,7 +63,8 @@ extern doublecomplex cc_sqrt[MAX_NMAT][3];
 extern unsigned char *material;
 
 // iterative solver
-extern int IterMethod,maxiter;
+extern enum iter IterMethod;
+extern int maxiter;
 extern doublecomplex *xvec,*pvec,*Einc;
 
 // scattering at different angles
@@ -75,7 +76,7 @@ extern doublecomplex *EgridX,*EgridY;
 extern double *Egrid_buffer;
 
 // checkpoint
-extern int chp_type;
+extern enum chpoint chp_type;
 extern time_t chp_time;
 extern char chp_dir[];
 
