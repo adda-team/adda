@@ -1,7 +1,8 @@
 /* File: const.h
  * $Author$
  * $Date::                            $
- * Descr: all the constants used by ADDA code, also defines some useful macros
+ * Descr: all the constants used by ADDA code, including enum constants, also defines some
+ *        useful macros
  *
  * Copyright (C) 2006-2008 University of Amsterdam
  * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
@@ -104,43 +105,46 @@
 #define DEF_TERM_WIDTH 80 // default
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
-// shape types
-#define SH_SPHERE        0 // sphere
-#define SH_BOX           1 // box (may be rectangular)
-#define SH_PRISMA        2 // prisma (triangular) -- not operational
-#define SH_LINE          3 // line with width of one dipole
-#define SH_COATED        4 // coated sphere
-#define SH_SPHEREBOX     5 // sphere in a box
-#define SH_RBC           6 // Red Blood Cell
-#define SH_ELLIPSOID     7 // general ellipsoid
-#define SH_SDISK_ROT     8 // disc cut of a sphere -- not operational
-#define SH_CYLINDER      9 // cylinder
-#define SH_READ         10 // read from file
-#define SH_EGG          11 // egg
-#define SH_CAPSULE      12 // capsule
-#define SH_AXISYMMETRIC 13 // axisymmetric
+enum sh { // shape types
+	SH_SPHERE,       // sphere
+	SH_BOX,          // box (may be rectangular)
+	SH_PRISMA,       // prisma (triangular) -- not operational
+	SH_LINE,         // line with width of one dipole
+	SH_COATED,       // coated sphere
+	SH_SPHEREBOX,    // sphere in a box
+	SH_RBC,          // Red Blood Cell
+	SH_ELLIPSOID,    // general ellipsoid
+	SH_SDISK_ROT,    // disc cut of a sphere -- not operational
+	SH_CYLINDER,     // cylinder
+	SH_READ,         // read from file
+	SH_EGG,          // egg
+	SH_CAPSULE,      // capsule
+	SH_AXISYMMETRIC  // axisymmetric
 /* TO ADD NEW SHAPE
- * add a define starting with 'SH_' here; the number should be different from any others in this
- * list. Add a descriptive comment.
+ * add an identifier starting with 'SH_' and a descriptive comment here.
  */
+};
 
-// which way to calculate coupleconstant
-#define POL_CM   0 // Clausius-Mossotti
-#define POL_RR   1 // Radiative Reaction correction
-#define POL_LDR  2 // Lattice Dispersion Relation
-#define POL_CLDR 3 // Corrected Lattice Dispersion Relation
-#define POL_FCD  4 // Filtered Coupled Dipoles
-#define POL_SO   5 // Second Order formulation
+enum pol { // which way to calculate coupleconstant
+	POL_CM,   // Clausius-Mossotti
+	POL_RRC,   // Radiative Reaction correction
+	POL_LDR,  // Lattice Dispersion Relation
+	POL_CLDR, // Corrected Lattice Dispersion Relation
+	POL_FCD,  // Filtered Coupled Dipoles
+	POL_SO    // Second Order formulation
+};
 
-// how to calculate scattering quantities
-#define SQ_DRAINE 0 // classical, as Draine
-#define SQ_SO     1 // Second Order formulation
+enum scat { // how to calculate scattering quantities
+	SQ_DRAINE, // classical, as Draine
+	SQ_SO      // Second Order formulation
+};
 
-// how to calculate interaction term
-#define G_POINT_DIP 0 // as point dipoles
-#define G_FCD       1 // Filtered Green's tensor (Filtered Coupled Dipoles)
-#define G_FCD_ST    2 // quasi-static version of FCD
-#define G_SO        3 // Second Order formulation
+enum inter { // how to calculate interaction term
+	G_POINT_DIP, // as point dipoles
+	G_FCD,       // Filtered Green's tensor (Filtered Coupled Dipoles)
+	G_FCD_ST,    // quasi-static version of FCD
+	G_SO         // Second Order formulation
+};
 
 // ldr constants
 #define LDR_B1  1.8915316
@@ -156,16 +160,19 @@
 #define G_BOUND_CLOSE  1 // k*R^2/d < GB_CLOSE => 'close'
 #define G_BOUND_MEDIAN 1 // k*R < GB_MEDIAN => 'median'
 
-// iterative methods; see iterative.c for info
-#define IT_CGNR     0
-#define IT_BICGSTAB 1
-#define IT_BICG_CS  2
-#define IT_QMR_CS   3
+enum iter { // iterative methods; see iterative.c for info
+	IT_CGNR,
+	IT_BICGSTAB,
+	IT_BICG_CS,
+	IT_QMR_CS
+};
 
-// type of E field calculation
-#define CE_NORMAL 0 // normal
-#define CE_PARPER 1 // use symmetry to calculate both incident polarizations
-                    // from one calculation of internal fields
+enum Eftype { // type of E field calculation
+	CE_NORMAL, // normal
+	CE_PARPER  /* use symmetry to calculate both incident polarizations from one calculation of
+	            * internal fields
+	            */
+};
 
 // path and size of tables
 #define TAB_PATH     "tables/"
@@ -173,18 +180,21 @@
 #define TAB_SIZE     142
 #define TAB_RMAX     10
 
-// beam types
-#define B_PLANE   0
-#define B_LMINUS  1
-#define B_DAVIS3  2
-#define B_BARTON5 3
+enum beam { // beam types
+	B_PLANE,
+	B_LMINUS,
+	B_DAVIS3,
+	B_BARTON5
+};
 
-// types of scattering grid
-#define SG_GRID  0 // grid of angles
-#define SG_PAIRS 1 // set of independent pairs
-// types of angles set
-#define SG_RANGE  0 // range with uniformly spaced points
-#define SG_VALUES 1 // any set of values
+enum scatgrid { // types of scattering grid
+	SG_GRID, // grid of angles
+	SG_PAIRS // set of independent pairs
+};
+enum angleset {// types of angles set
+	AS_RANGE, // range with uniformly spaced points
+	AS_VALUES // any set of values
+};
 
 // types of phi_integr (should be different one-bit numbers)
 #define PHI_UNITY 1 // just integrate
@@ -193,18 +203,21 @@
 #define PHI_COS4  8 // integrate with cos(4*phi)
 #define PHI_SIN4 16 // integrate with sin(4*phi)
 
-// ways to treat particle symmetries
-#define SYM_AUTO 0 // automatic
-#define SYM_NO   1 // do not take into account
-#define SYM_ENF  2 // enforce
+enum sym { // ways to treat particle symmetries
+	SYM_AUTO, // automatic
+	SYM_NO,   // do not take into account
+	SYM_ENF   // enforce
+};
 
-// types of checkpoint (to save)
-#define CHP_NONE    0 // do not save checkpoint
-#define CHP_NORMAL  1 // save checkpoint if not finished in time and exit
-#define CHP_REGULAR 2 // save checkpoints in regular time intervals (until finished or halted)
-#define CHP_ALWAYS  3 /* save checkpoint either if finished or time elapsed
-                       * and calculate all scattering quantities
-                       */
+enum chpoint { // types of checkpoint (to save)
+	CHP_NONE,    // do not save checkpoint
+	CHP_NORMAL,  // save checkpoint if not finished in time and exit
+	CHP_REGULAR, // save checkpoints in regular time intervals (until finished or halted)
+	CHP_ALWAYS   /* save checkpoint if either simulation is finished or time elapsed and calculate
+	              * all scattering quantities
+                  */
+};
+
 // return values for functions
 #define CHP_EXIT -2 // exit after saving checkpoint
 
@@ -268,19 +281,22 @@
 #define SF_TEXT_EXT 1 // ADDA text format for multi-domain particles
 #define SF_DDSCAT   2 // DDSCAT 6.1 format (FRMFIL), produced by calltarget
 
-//*************   Global Defines and Data structures (all for LogError) *****************
-
 #define POSIT __FILE__,__LINE__ // position of the error in source code
-// who definitions
-#define ALL 0 // each processor may report this error
-#define ONE 1 // only root processor reports an error
+
+enum enwho { // who is calling
+	ALL, // each processor may report this error
+	ONE  // only root processor reports an error
+};
 
 // derived; for simplicity
 #define ALL_POS ALL,POSIT
 #define ONE_POS ONE,POSIT
-// error codes
-#define EC_ERROR 1 // error
-#define EC_WARN  2 // warning
-#define EC_INFO  3 // slight warning, that does not interfere at all with normal execution
+
+enum ec { // error codes
+	EC_OK,    // no error, corresponds to zero exit code
+	EC_ERROR, // error
+	EC_WARN,  // warning
+	EC_INFO   // slight warning, that does not interfere at all with normal execution
+};
 
 #endif // __const_h

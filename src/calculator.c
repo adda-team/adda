@@ -79,7 +79,7 @@ static double *out;
 // EXTERNAL FUNCTIONS
 
 // CalculateE.c
-extern int CalculateE(char which,int type);
+extern int CalculateE(char which,enum Eftype type);
 extern void MuellerMatrix(void);
 
 //============================================================

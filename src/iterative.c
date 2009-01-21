@@ -86,7 +86,7 @@ static double resid_scale; // scale to get square of relative error
 static double prev_err;    /* previous relative error; used in ProgressReport, initialized in
                             * IterativeSolver
                             */
-static int method;         // iteration method
+static enum iter method;   // iteration method
 static int count;          // iteration count
 static int counter;        // number of successive iterations without residual decrease
 static int max_count;      // maximum allowed value of counter
@@ -156,7 +156,7 @@ static void SaveIterChpoint(void)
 	sprintf(fname,"%s/" F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"wb",ALL_POS);
 	// write common scalars
-	fwrite(&method,sizeof(int),1,chp_file);
+	fwrite(&method,sizeof(enum iter),1,chp_file);
 	fwrite(&nlocalRows,sizeof(size_t),1,chp_file);
 	fwrite(&count,sizeof(int),1,chp_file);
 	fwrite(&counter,sizeof(int),1,chp_file);
@@ -195,7 +195,8 @@ static void LoadIterChpoint(void)
  * on the same machine (number of processors) and with the same command line.
  * */
 {
-	int i, method_new;
+	int i;
+	enum iter method_new;
 	size_t nlocalRows_new;
 	char fname[MAX_FNAME],ch;
 	FILE *chp_file;
@@ -206,7 +207,7 @@ static void LoadIterChpoint(void)
 	sprintf(fname,"%s/" F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"rb",ALL_POS);
 	// check for consistency
-	fread(&method_new,sizeof(int),1,chp_file);
+	fread(&method_new,sizeof(enum iter),1,chp_file);
 	if (method_new!=method)
 		LogError(EC_ERROR,ALL_POS,"File '%s' is for different iterative method",fname);
 	fread(&nlocalRows_new,sizeof(size_t),1,chp_file);
@@ -675,7 +676,7 @@ static void QMR_CS(const int mc)
 
 //============================================================
 
-int IterativeSolver(const int method_in)
+int IterativeSolver(const enum iter method_in)
 /* choose required iterative method; do common initialization part */
 {
 	double temp;

@@ -22,6 +22,7 @@
 #define __types_h
 
 #include <stdbool.h> // for bool
+#include "const.h"   // for enum types
 
 // complex numbers
 typedef double doublecomplex[2]; // complies with FFTW3 definition
@@ -48,12 +49,12 @@ typedef struct	 // values of angles
 	double *val; // values of points
 } angle_set;
 
-typedef struct	     // integration parameters
-{	                 // !!! All angles are in degrees
-	int type;        // if pairs are used or grid
-	size_t N;        // total number of pairs (grid points)
-	angle_set theta; // values of theta
-	angle_set phi;   // values of phi
+typedef struct	        // integration parameters
+{	                    // !!! All angles are in degrees
+	enum scatgrid type; // if pairs are used or grid
+	size_t N;           // total number of pairs (grid points)
+	angle_set theta;    // values of theta
+	angle_set phi;      // values of phi
 } scat_grid_angles;
 
 #endif // __types_h

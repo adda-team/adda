@@ -22,10 +22,11 @@
 
 #include <stddef.h>   // for size_t
 #include "function.h" // for function attributes
+#include "const.h"    // for enum types
 
 #define MBYTE 1048576.0
 // for conciseness
-#define OTHER_ARGUMENTS const int who,const char *fname,const int line,const char *name
+#define OTHER_ARGUMENTS const enum enwho who,const char *fname,const int line,const char *name
 
 void CheckOverflow(double size,OTHER_ARGUMENTS);
 size_t MultOverflow(size_t a,size_t b,OTHER_ARGUMENTS);

@@ -58,9 +58,10 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in param.c
-extern const int shape,sh_Npars;
+extern const int sh_Npars;
+extern const enum sh shape;
 extern const double sh_pars[];
-extern const int sym_type;
+extern const enum sym sym_type;
 extern const double lambda;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
@@ -1487,7 +1488,7 @@ void InitShape(void)
 	}
 	/* TO ADD NEW SHAPE
 	 * add an option here (in the end of 'else if' sequence). Identifier ('SH_...') should be
-	 * defined in const.h. The option should
+	 * defined inside 'enum sh' in const.h. The option should
 	 * 1) save all the input parameters from array 'sh_pars' to local variables
 	 *    (defined in the beginning of this source files)
 	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since
@@ -1522,7 +1523,7 @@ void InitShape(void)
 
 	// initialize domain granulation
 	if (sh_granul) {
-		symX=symY=symZ=symR=false;  // no symmetry with granules
+		symX=symY=symZ=symR=false; // no symmetry with granules
 		if (gr_mat+1>Nmat_need)
 			PrintError("Specified domain number to be granulated (%d) is larger than total number "
 				"of domains (%d) for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
@@ -1761,13 +1762,13 @@ void MakeParticle(void)
 				}
 				/* TO ADD NEW SHAPE
 				 * add an option here (in the end of 'else if' sequence). Identifier ('SH_...')
-				 * should be defined in const.h. This option should set 'mat' - index of domain for
-				 * a point, specified by {xr,yr,zr} - coordinates divided by grid size along X (xr
-				 * from -0.5 to 0.5, others - depending on aspect ratios). C array indexing used:
-				 * mat=0 - first domain, etc. If point corresponds to void, do not set 'mat'. If you
-				 * need temporary local variables (which are used only in this part of the code),
-				 * either use 'tmp1'-'tmp3' or define your own (with more informative names) in the
-				 * beginning of this function.
+				 * should be defined inside 'enum sh' in const.h. This option should set 'mat' -
+				 * index of domain for a point, specified by {xr,yr,zr} - coordinates divided by
+				 * grid size along X (xr from -0.5 to 0.5, others - depending on aspect ratios).
+				 * C array indexing used: mat=0 - first domain, etc. If point corresponds to void,
+				 * do not set 'mat'. If you need temporary local variables (which are used only in
+				 * this part of the code), either use 'tmp1'-'tmp3' or define your own (with more
+				 * informative names) in the beginning of this function.
 				 */
 
 				position_tmp[3*index]=(unsigned short)i;

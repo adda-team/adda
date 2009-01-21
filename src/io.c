@@ -112,7 +112,8 @@ char *WrapLinesCopy(const char *str)
 
 //============================================================
 
-void LogError(const int code,const int who,const char *fname,const int lineN,const char *fmt, ... )
+void LogError(const enum ec code,const enum enwho who,const char *fname,const int lineN,
+	const char *fmt, ... )
 /* performs output of error specified by 'code' at 'fname':'lineN'; 'fmt' & arguments ('...')
  * specify error message, 'who' specifies whether 1 (ringid=ROOT) or all processors should produce
  * output. If 'code' is EC_ERROR program aborts after output. We use sprintf a couple of times,
@@ -131,6 +132,11 @@ void LogError(const int code,const int who,const char *fname,const int lineN,con
 		if (code==EC_ERROR) strcpy(line,"ERROR: ");
 		else if (code==EC_WARN) strcpy(line,"WARNING: ");
 		else if (code==EC_INFO) strcpy(line,"INFO: ");
+		/* the following statement is for full robustness, however all new error codes should be
+		 * included in the 'enum ec' in const.h and handled explicitly (this is what 'enum' is for).
+		 * Moreover the logical structure of this function is not immediately ready for new error
+		 * codes (at least, this should be checked separately).
+		 */
 		else sprintf(line,"Error code=%d: ",code);
 		pos=line+strlen(line);
 #ifdef PARALLEL
@@ -257,7 +263,7 @@ void PrintBoth(FILE *file,const char *fmt, ... )
 
 //============================================================
 
-FILE *FOpenErr(const char *fname,const char *mode,const int who,const char *err_fname,
+FILE *FOpenErr(const char *fname,const char *mode,const enum enwho who,const char *err_fname,
 	const int lineN)
 // open file and check for error
 {
@@ -270,7 +276,8 @@ FILE *FOpenErr(const char *fname,const char *mode,const int who,const char *err_
 
 //============================================================
 
-void FCloseErr(FILE *file,const char *fname,const int who,const char *err_fname,const int lineN)
+void FCloseErr(FILE *file,const char *fname,const enum enwho who,const char *err_fname,
+	const int lineN)
 // close file and check for error
 {
 	if (fclose(file)) LogError(EC_WARN,who,err_fname,lineN,
@@ -279,7 +286,7 @@ void FCloseErr(FILE *file,const char *fname,const int who,const char *err_fname,
 
 //============================================================
 
-void RemoveErr(const char *fname,const int who,const char *err_fname,const int lineN)
+void RemoveErr(const char *fname,const enum enwho who,const char *err_fname,const int lineN)
 // remove file and check the result
 {
 	if(remove(fname) && errno!=ENOENT) LogError(EC_WARN,who,err_fname,lineN,
@@ -289,7 +296,7 @@ void RemoveErr(const char *fname,const int who,const char *err_fname,const int l
 
 //============================================================
 
-void MkDirErr(const char *dir,const int who,const char *err_fname,const int lineN)
+void MkDirErr(const char *dir,const enum enwho who,const char *err_fname,const int lineN)
 // make directory and check for error.
 {
 #ifdef WINDOWS
