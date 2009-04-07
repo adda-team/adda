@@ -34,11 +34,13 @@
 
 
                            email: adda@science.uva.nl
+                                  adda-discuss@googlegroups.com
 
                        $Date::                            $
 
-                Copyright (C) 2006-2008 University of Amsterdam
-        This software package is covered by the GNU General Public License.
+Copyright (C) 2006-2008 University of Amsterdam
+Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+This software package is covered by the GNU General Public License.
 
 
 
@@ -47,10 +49,9 @@
 
 This Win32 package contains executables of ADDA for sequential and parallel
 execution (adda.exe and adda_mpi.exe) and DLL for FFTW 3.1.2 (libfftw3-3.dll).
-ADDA was compiled with MinGW 5.1.3 (gcc 3.4.5), using the default Makefile.
-Parallel version was compiled linking to MPICH2 1.0.6p1, and requires it to be
+ADDA was compiled with MinGW 5.1.4 (gcc 3.4.5), using the default Makefile.
+Parallel version was compiled linking to MPICH2 1.0.8p1, and requires it to be
 installed on the system. However, it may also work with other MPI
 implementations (try it at your own risk). Please download the main ADDA package
-from http://www.science.uva.nl/research/scs/Software/adda/ to complement this
-one. All the information, including manual and sample input files, can be found
-in the main package.
+from http://code.google.com/p/a-dda/ to complement this one. All the information,
+including manual and sample input files, can be found in the main package.

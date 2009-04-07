@@ -34,11 +34,13 @@
 
 
                            email: adda@science.uva.nl
+                                  adda-discuss@googlegroups.com
 
                      $Date::                            $
 
-                Copyright (C) 2006-2008 University of Amsterdam
-        This software package is covered by the GNU General Public License.
+Copyright (C) 2006-2008 University of Amsterdam
+Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+This software package is covered by the GNU General Public License.
 
 
 
@@ -111,7 +113,7 @@ bugs, corrections, or improvements in ADDA.
                          ****************************
 
    The recent version can be downloaded from:
-http://www.science.uva.nl/research/scs/Software/adda/
+http://code.google.com/p/a-dda/
 The package contains the following:
 
 doc/ - documentation
@@ -121,8 +123,6 @@ doc/ - documentation
   manual.doc - source of User Manual in MS Word format
   manual.pdf - user Manual for ADDA in PDF format
   README - this file
-  todo.xls - source of the todo list in MS Excel format
-  todo.pdf - todo list in PDF format
 input/ - default input files
   tables/ - 10 auxiliary files with tables of integrals
   alldir_params.dat - parameters for integral scattering quantities
