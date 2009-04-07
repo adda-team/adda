@@ -327,7 +327,7 @@ void MuellerMatrix(void)
 					}
 					if (store_scat_grid)
 						fprintf(mueller,
-							"%.2f %.2f %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E"\
+							"%.2f %.2f %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E"
 							" %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E\n",
 							theta,phi,matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],
 							matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
@@ -547,10 +547,10 @@ static void CalcIntegralScatQuantities(const char which)
 			if (ringid==ROOT) {
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
-				PrintBoth(CCfile,"\nMatrix\n"\
-				                 "Cext\t= %.10g\nQext\t= %.10g\n"\
-				                 "Csca.g\t= (%.10g,%.10g,%.10g)\n"\
-				                 "Cpr\t= (%.10g,%.10g,%.10g)\n"\
+				PrintBoth(CCfile,"\nMatrix\n"
+				                 "Cext\t= %.10g\nQext\t= %.10g\n"
+				                 "Csca.g\t= (%.10g,%.10g,%.10g)\n"
+				                 "Cpr\t= (%.10g,%.10g,%.10g)\n"
 				                 "Qpr\t= (%.10g,%.10g,%.10g)\n",Cnorm*Finc_tot[2],Qnorm*Finc_tot[2],
 				                 -Cnorm*Fsca_tot[0],-Cnorm*Fsca_tot[1],-Cnorm*Fsca_tot[2],
 				                 Cnorm*Frp_tot[0],Cnorm*Frp_tot[1],Cnorm*Frp_tot[2],
@@ -562,9 +562,9 @@ static void CalcIntegralScatQuantities(const char which)
 					strcat(fname_frp,f_suf);
 					strcat(fname_frp,".dat"); // TODO: should be removed in the future
 					VisFrp=FOpenErr(fname_frp,"w",ONE_POS);
-					fprintf(VisFrp,"#sphere  x=%.10g  m=%.10g%+.10gi\n"\
-						"#number of real dipoles  %.0f\n"\
-						"#Forces per dipole\n"\
+					fprintf(VisFrp,"#sphere  x=%.10g  m=%.10g%+.10gi\n"
+						"#number of real dipoles  %.0f\n"
+						"#Forces per dipole\n"
 						"#r.x r.y r.z F.x F.y F.z\n",
 						ka_eq,ref_index[0][RE],ref_index[0][IM],nvoid_Ndip);
 					for (j=0;j<local_nvoid_Ndip;++j) fprintf(VisFrp,

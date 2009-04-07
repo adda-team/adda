@@ -1492,9 +1492,7 @@ void InitShape(void)
 	 * 1) save all the input parameters from array 'sh_pars' to local variables
 	 *    (defined in the beginning of this source files)
 	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since
-	 *    they would automatically produce informative output in case of error). If the shape can
-	 *    accept different number of parameters (UNDEF was set in array shape_opt) then also test
-	 *    the number of parameters.
+	 *    they would automatically produce informative output in case of error).
 	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set
 	 *    any of them to true, as they can be set to false by some other factors.
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.

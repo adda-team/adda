@@ -4,6 +4,7 @@
  * Descr: basic timing and statistics routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -97,14 +98,14 @@ void FinalStatistics(void)
 		time(&wt_end);
 		// log statistics
 		fprintf(logfile,
-			"\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"\
-			"                Timing Results             \n"\
+			"\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"                Timing Results             \n"
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 		if (!prognose) {
 			if (orient_avg) fprintf(logfile,
 				"Total number of single particle evaluations: %lu\n",TotalEval);
 			fprintf(logfile,
-				"Total number of iterations: %lu\n"\
+				"Total number of iterations: %lu\n"
 				"Total planes of E field calculation (each %d points): %lu\n\n",
 				TotalIter,nTheta,TotalEFieldPlane);
 		}
@@ -112,10 +113,10 @@ void FinalStatistics(void)
 			"Total wall time:     %.0f\n",difftime(wt_end,wt_start));
 		fprintf(logfile,
 #ifdef MPI
-			"--Everything below is also wall times--\n"\
+			"--Everything below is also wall times--\n"
 			"Time since MPI_Init: %.4f\n",
 #else
-			"--Everything below is processor times--\n"\
+			"--Everything below is processor times--\n"
 			"Total time:          %.4f\n",
 #endif
 			TO_SEC(Timing_TotalTime));
@@ -143,8 +144,8 @@ void FinalStatistics(void)
 		}
 		if (!prognose) {
 			fprintf(logfile,
-				"  Internal fields:     %.4f\n"\
-				"    one solution:        %.4f\n"\
+				"  Internal fields:     %.4f\n"
+				"    one solution:        %.4f\n"
 				"      init solver:         %.4f\n",
 				TO_SEC(Timing_IntField),TO_SEC(Timing_IntFieldOne),TO_SEC(Timing_InitIter));
 #ifdef PARALLEL
@@ -190,7 +191,7 @@ void FinalStatistics(void)
 				"    communication:       %.4f\n",TO_SEC(Timing_ScatQuan_comm));
 #endif
 			fprintf (logfile,
-				"  File I/O:            %.4f\n"\
+				"  File I/O:            %.4f\n"
 				"Integration:         %.4f\n",
 				TO_SEC(Timing_FileIO),TO_SEC(Timing_Integration));
 		}

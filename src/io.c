@@ -137,7 +137,7 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 		 * Moreover the logical structure of this function is not immediately ready for new error
 		 * codes (at least, this should be checked separately).
 		 */
-		else sprintf(line,"Error code=%d: ",code);
+		else sprintf(line,"Unknown Error Type: ");
 		pos=line+strlen(line);
 #ifdef PARALLEL
 		if (code!=EC_INFO) { // for EC_INFO position in source code is not saved
