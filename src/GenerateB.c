@@ -38,12 +38,17 @@
 #include "cmplx.h"
 #include "const.h"
 #include "comm.h"
+#include "param.h"
+
 
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in param.c
 extern const int beam_Npars;
 extern const double beam_pars[];
+extern const char beam_fname[];
+extern opt_index opt_beam;
+
 
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
@@ -53,6 +58,12 @@ char beam_descr[MAX_PARAGRAPH]; // string for log file with beam parameters
 // LOCAL VARIABLES
 double s,s2;            // beam confinement factor and its square
 double scale_x,scale_z; // multipliers for scaling coordinates
+/* TO ADD NEW BEAM
+ * Add here all internal variables (beam parameters), which you initialize in InitBeam()
+ * and use in GenerateB() afterwards. If you need local, intermediate variables, put them into
+ * the beginning of the corresponding function.
+ * Add descriptive comments, use 'static'.
+ */
 
 //============================================================
 
@@ -60,14 +71,22 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
+	/* TO ADD NEW BEAM
+	 * Add here all intermediate variables, which are used only inside this function.
+	 */
 
+	// initialization of global option index for error messages
+	opt=opt_beam;
+	// beam initialization
 	if (beamtype==B_PLANE) {
 		STRCPYZ(beam_descr,"Plane wave");
 		beam_asym=false;
 	}
-	else {
+	// for now, this is all non-plane beams, but another beams may be added in the future
+	else if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
 		// initialize parameters
 		w0=beam_pars[0];
+		TestPositive(w0,"beam width");
 		beam_asym=(beam_Npars==4 && (beam_pars[1]!=0 || beam_pars[2]!=0 || beam_pars[3]!=0));
 		if (beam_asym) {
 			memcpy(beam_center_0,beam_pars+1,3*sizeof(double));
@@ -94,6 +113,29 @@ void InitBeam(void)
 			else strcat(beam_descr,"\tCenter is in the origin");
 		}
 	}
+	/* TO ADD NEW BEAM
+	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...') should be
+	 * defined inside 'enum beam' in const.h. The option should
+	 * 1) save all the input parameters from array 'beam_pars' to local variables
+	 *    (defined in the beginning of this source files)
+	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since
+	 *    they would automatically produce informative output in case of error).
+	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set
+	 *    any of them to true, as they can be set to false by other factors.
+	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
+	 *    symR - symmetry of rotation for 90 degrees over the Z axis
+	 * 4) initialize the following:
+	 * beam_descr - descriptive string, which will appear in log file.
+	 * beam_asym - whether beam center does not coincide with the reference frame origin. If it is
+	 *             set to true, then set also beam_center_0 - 3D radius-vector of beam center in the
+	 *             laboratory reference frame (it will be then automatically transformed to particle
+	 *             reference frame, if required).
+	 * all other auxiliary variables, which are used in beam generation (GenerateB(), see
+	 *   below), should be defined in the beginning of this file. If you need temporary local
+	 *   variables (which are used only in this part of the code), define them in the beginning of
+	 *   this function.
+	 */
+
 }
 
 //============================================================
@@ -111,6 +153,10 @@ void GenerateB (const char which, // x - or y polarized incident light
 	double const *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
+	/* TO ADD NEW BEAM
+	 * Add here all intermediate variables, which are used only inside this function. You may as
+	 * well use 't1'-'t8' variables defined above.
+	 */
 
 	// set reference frame of the beam; ez=prop, ex - incident polarization
 	if (which=='Y') {
@@ -129,7 +175,8 @@ void GenerateB (const char which, // x - or y polarized incident light
 			imExp(WaveNum*DotProd(DipoleCoord+j,prop),ctemp); // ctemp=exp(ik*r.a)
 			cScalMultRVec(ex,ctemp,b+j); // b[i]=ctemp*ex
 		}
-	else { // all other beam types
+	// for now, this is all non-plane beams, but another beams may be added in the future
+	else if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
 		for (i=0;i<local_nvoid_Ndip;i++) {
 			j=3*i;
 			// set relative coordinates (in beam's coordinate system)
@@ -232,4 +279,17 @@ void GenerateB (const char which, // x - or y polarized incident light
 			}
 		}
 	}
+	/* TO ADD NEW BEAM
+	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...')
+	 * should be defined inside 'enum beam' in const.h. This option should set complex vector 'b',
+	 * describing the incident field in the particle reference frame. It is set inside the cycle for
+	 * each dipole of the particle and is calculated using 1) 'DipoleCoord' – array of dipole
+	 * coordinates; 2) 'prop' – propagation direction of the incident field; 3) 'ex' – direction of
+	 * incident polarization; 4) 'ey' – complementary unity vector of polarization (orthogonal to
+	 * both 'prop' and 'ex'); 5) 'beam_center' – beam center in the particle reference frame
+	 * (automatically calculated from 'beam_center_0' defined in InitBeam). If you need temporary
+	 * local variables (which are used only in this part of the code), either use 't1'-'t8' or
+	 * define your own (with more informative names) in the beginning of this function.
+	 */
+
 }

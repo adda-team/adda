@@ -74,9 +74,9 @@
 #define BOX_MAX USHRT_MAX
 
 // sizes of some arrays
-#define MAX_NMAT        15   // maximum number of different refractive indices (<256)
-#define MAX_N_SH_PARMS  25   // maximum number of shape parameters
-#define MAX_N_BEAM_PARMS 4   // maximum number of beam parameters
+#define MAX_NMAT         15   // maximum number of different refractive indices (<256)
+#define MAX_N_SH_PARMS   25   // maximum number of shape parameters
+#define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
 
 // sizes of filenames and other strings
 #define MAX_DIRNAME      300 // maximum length of dirname; increase THIS if any errors appear
@@ -186,6 +186,9 @@ enum beam { // beam types
 	B_DAVIS3,
 	B_BARTON5
 };
+/* TO ADD NEW BEAM
+ * add an identifier starting with 'B_' and a descriptive comment here.
+ */
 
 enum scatgrid { // types of scattering grid
 	SG_GRID, // grid of angles
