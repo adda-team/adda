@@ -60,7 +60,7 @@
 
 // GLOBAL VARIABLES
 
-opt_index opt; // main option index
+opt_index opt; // main option index; it is also defined as extern in param.h
 
 // SEMI-GLOBAL VARIABLES
 
@@ -92,8 +92,8 @@ int phi_int_type;     /* type of phi integration (each bit determines
                        */
 // used in calculator.c
 bool avg_inc_pol;                 // whether to average CC over incident polarization
-char alldir_parms[MAX_FNAME];    // name of file with alldir parameters
-char scat_grid_parms[MAX_FNAME]; // name of file with parameters of scattering grid
+char alldir_parms[MAX_FNAME];     // name of file with alldir parameters
+char scat_grid_parms[MAX_FNAME];  // name of file with parameters of scattering grid
 // used in crosssec.c
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
@@ -101,6 +101,8 @@ enum scat ScatRelation;           // type of formulae for scattering quantities
 // used in GenerateB.c
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
+opt_index opt_beam;                 // option index of beam option used
+char beam_fname[MAX_FNAME];         // name of file, defining the beam
 // used in io.c
 char logname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
@@ -173,6 +175,15 @@ static const struct subopt_struct beam_opt[]={
 		"optional parameters (all in um). By default beam center coincides with the center of the "
 		"computational box. This option is recommended for the description of the Gaussian beam.",
 		UNDEF,B_BARTON5},
+/* TO ADD NEW BEAM
+ * add a row here, before null-terminating element. It contains:
+ * beam name (used in command line), usage string (what command line parameters can be used
+ * for this beam), help string (shown when -h option is used), possible number of float parameters,
+ * beam identifier (defined inside 'enum beam' in const.h). Instead of number of parameters UNDEF
+ * can be used (if beam can accept variable number of parameters, then check it explicitly in
+ * function PARSE_FUNC(beam) below) or FNAME_ARG (if beam accepts a single string argument with file
+ * name). Number of parameters should not be greater than MAX_N_BEAM_PARMS (defined in const.h).
+ */
 	{NULL,NULL,NULL,0,0}
 };
 static const struct subopt_struct shape_opt[]={
@@ -207,9 +218,9 @@ static const struct subopt_struct shape_opt[]={
  * for this shape), help string (shown when -h option is used), possible number of float parameters,
  * shape identifier (defined inside 'enum sh' in const.h). Instead of number of parameters UNDEF can
  * be used (if shape can accept variable number of parameters, then check it explicitly in
- * function InitShape) or FNAME_ARG (if the shape accepts a single string argument with file name).
- * Number of parameters should not be greater than MAX_N_SH_PARMS (defined in const.h). It is
- * recommended to use dimensionless shape parameters, e.g. aspect ratios.
+ * function PARSE_FUNC(shape) below) or FNAME_ARG (if the shape accepts a single string argument
+ * with file name). Number of parameters should not be greater than MAX_N_SH_PARMS (defined in
+ * const.h). It is recommended to use dimensionless shape parameters, e.g. aspect ratios.
  */
 	{NULL,NULL,NULL,0,0}
 };
@@ -586,7 +597,7 @@ INLINE void TestStrLength(const char *str,const unsigned int size)
  */
 {
 	if (strlen(str)>=size)
-		PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "\
+		PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
 			"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
 }
 
@@ -707,16 +718,27 @@ PARSE_FUNC(beam)
 	while (beam_opt[++i].name!=NULL) if (strcmp(argv[1],beam_opt[i].name)==0) {
 		// set suboption and beam type
 		opt.l2=i;
-		beamtype=beam_opt[i].type;
+		beamtype=(enum beam)beam_opt[i].type;
 		beam_Npars=Narg;
+		opt_beam=opt;
 		// check number of arguments
 		TestNarg_sub(Narg);
-		if (beamtype!=B_PLANE) {
+		// for now, this is all non-plane beams, but another beams may be added in the future
+		if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
 			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
 		}
-		// parse and check consistency
-		for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],beam_pars+j);
-		if (Narg>0) TestPositive(beam_pars[0],"beam width");
+		/* TO ADD NEW BEAM
+		 * If the beam accepts variable number of arguments (UNDEF was used in beam definition
+		 * above) add a check of number of received arguments to this else-if sequence.
+		*/
+
+		// special cases to parse filename
+		if (beam_opt[i].narg==FNAME_ARG) {
+			TestStrLength(argv[2],MAX_FNAME);
+			strcpy(beam_fname,argv[2]);
+		}
+		// else parse all parameters as float; their consistency is checked in InitBeam()
+		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
 		break;
@@ -1022,7 +1044,7 @@ PARSE_FUNC(shape)
 	i=-1;
 	while (shape_opt[++i].name!=NULL) if (strcmp(argv[1],shape_opt[i].name)==0) {
 		// set shape and shape option index
-		shape=shape_opt[i].type;
+		shape=(enum sh)shape_opt[i].type;
 		opt.l2=i;
 		opt_sh=opt;
 		sh_Npars=Narg;
@@ -1034,6 +1056,11 @@ PARSE_FUNC(shape)
 		else if (shape==SH_BOX) {
 			if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2");
 		}
+		/* TO ADD NEW SHAPE
+		 * If the shape accepts variable number of arguments (UNDEF was used in shape definition
+		 * above) add a check of number of received arguments to this else-if sequence.
+		*/
+
 		// special cases to parse filename
 		if (shape_opt[i].narg==FNAME_ARG) {
 			TestStrLength(argv[2],MAX_FNAME);
@@ -1092,6 +1119,7 @@ PARSE_FUNC(test)
 PARSE_FUNC(V)
 {
 	char copyright[]="\n\nCopyright (C) 2006-2008 University of Amsterdam\n"
+		"Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms "
 		"of the GNU General Public License as published by the Free Software Foundation; either "
 		"version 3 of the License, or (at your option) any later version.\n\n"

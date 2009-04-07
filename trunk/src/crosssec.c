@@ -314,6 +314,7 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 {
 	size_t i;
 	double unit;
+	enum angleset out;
 
 	ScanString(file,fname,buf,buf_size,"type=",temp);
 	ScanSizet(file,fname,buf,buf_size,"N=",&(a->N));
@@ -331,7 +332,7 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 			unit = (a->max - a->min)/(a->N - 1);
 			for (i=0;i<a->N;i++) a->val[i] = a->min + unit*i;
 		}
-		return AS_RANGE;
+		out=AS_RANGE;
 	}
 	else if (strcmp(temp,"values")==0) {
 		ReadLineStart(file,fname,buf,buf_size,"values=");
@@ -343,11 +344,11 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 			if (sscanf(buf,"%lf\n",a->val+i)!=1) LogError(EC_ERROR,ONE_POS,
 				"Failed scanning values from line '%s' in file '%s'",buf,fname);
 		}
-		return AS_VALUES;
+		out=AS_VALUES;
 	}
 	else LogError(EC_ERROR,ONE_POS,"Unknown type '%s' in file '%s'",temp,fname);
 	// not actually reached
-	return -1;
+	return out;
 }
 
 //=====================================================================
@@ -372,9 +373,9 @@ void ReadAvgParms(const char *fname)
 	FCloseErr(input,fname,ALL_POS);
 	// print info to string
 	SPRINTZ(avg_string,
-		"alpha: from %g to %g in %lu steps\n"\
-		"beta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"\
-		"gamma: from %g to %g in (up to) %lu steps\n"\
+		"alpha: from %g to %g in %lu steps\n"
+		"beta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"
+		"gamma: from %g to %g in (up to) %lu steps\n"
 		"see file 'log_orient_avg' for details\n",
 		alpha_int.min,alpha_int.max,(unsigned long)alpha_int.N,beta_int.min,beta_int.max,
 		(unsigned long)beta_int.N,gamma_int.min,gamma_int.max,(unsigned long)gamma_int.N);
@@ -405,9 +406,9 @@ void ReadAlldirParms(const char *fname)
 	FCloseErr(input,fname,ALL_POS);
 	// print info
 	FPRINTZ(logfile,
-		"\nScattered field is calculated for all directions (for integrated scattering quantities)\n"\
-		"theta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"\
-		"phi: from %g to %g in (up to) %lu steps\n"\
+		"\nScattered field is calculated for all directions (for integrated scattering quantities)\n"
+		"theta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"
+		"phi: from %g to %g in (up to) %lu steps\n"
 		"see files 'log_int_***' for details\n\n",
 		theta_int.min,theta_int.max,(unsigned long)theta_int.N,phi_int.min,phi_int.max,
 		(unsigned long)phi_int.N);
@@ -616,6 +617,11 @@ double ExtCross(const double *incPol)
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
 		sum*=FOUR_PI*WaveNum;
 	}
+	/* TO ADD NEW BEAM
+	 * The formulae above works only if the amplitude of the beam is unity at the focal point.
+	 * Either make sure that new beam satisfies this condition or add another case here with
+	 * different formulae.
+	*/
 	return sum;
 }
 
