@@ -5,6 +5,7 @@
 # $Date::                            $
 #
 # Copyright (C) 2006-2008 University of Amsterdam
+# Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the
@@ -29,32 +30,30 @@
 # --Optional flags-- Uncomment those that you find appropriate;
 # information can be found in corresponding headers
 
-# for faster recompiling turn on in debug.h
+# debug.h
 #CFLAGS += -DDEBUG
 
-# info in fft.h; change here
+# fft.h
 #CFLAGS += -DFFT_TEMPERTON
 
-# for faster recompiling turn on in prec_timing.h
+# prec_timing.h
 #CFLAGS += -DPRECISE_TIMING
 
-# for faster recompiling turn on in io.h
+# io.h
 #CFLAGS += -DNOT_USE_LOCK
 #CFLAGS += -DONLY_LOCKFILE
 
 # --Compilers-- Choose one of the following
-# gnu - tested for gcc 3.2.3 - 3.4.6
-# intel - tested on icc 9.0 and 9.1
+# gnu - tested for gcc 3.2.3 - 4.3.2
+# intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk)
 # ibm - tested on xlc 8.0
 # other -
 COMPILER = gnu
 
-# Compilation mode (bits): 32 or 64
-# Although all options in this Makefile are adjusted automatically, different
-# modes may require different configurations (environments) of the system,
-# especially if MPI mode is used.
-BITS = 32
+# Additional options for compiler. For instance, one may use -m32 to force 32 bit
+# compilation in 64 bit environment
+CFLAGS +=
 
 # --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
@@ -70,7 +69,7 @@ RELEASE = on
 #FFTW3_INC_PATH = "$(HOME)/include"
 #FFTW3_LIB_PATH = "$(HOME)/lib"
 #FFTW3_INC_PATH = "./../lib"
-#FTW3_LIB_PATH = "./../lib"
+#FFTW3_LIB_PATH = "./../lib"
 
 #===============================================================================
 # !!! End of control section. Everything below is not designed to be modified by
@@ -127,7 +126,7 @@ ifeq ($(COMPILER),gnu)
   # You can add option '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
-  COPT  = -m$(BITS) -std=c99 -O3 -ffast-math -funroll-loops
+  COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
   CWARN = -Wall -W -Wpointer-arith -Wcast-qual \
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
@@ -136,10 +135,10 @@ endif
 ifeq ($(COMPILER),intel)
   CC    = icc
   CF    = ifort
-  COPT  = -fp-model fast -O3 -ipo -no-prec-div -xP
-  FOPT  = -O3 -ipo -no-prec-div -xP
+  COPT  = -std=c99 -O3
+  FOPT  = -O3
   CWARN = -Wall -Wno-uninitialized -Wno-comment \
-            -wd279,810,869,981,1418,1419,1572
+            -wd279,810,869,981,1418,1419,1572,2259
 endif
 ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may
@@ -159,7 +158,7 @@ ifeq ($(COMPILER),ibm)
   # Then use '-O3 -qarch=... -qtune=...' instead
   CC      = xlc
   CF      = xlf
-  COPT    = -O3 -qcache=auto -q$(BITS) -qlanglvl=extc99
+  COPT    = -O3 -qcache=auto -qlanglvl=extc99
   # DFREDIRECT = 2>nul -qipa=level=2 -qhot
   DEPFLAG = -qmakedep=gcc -qsyntaxonly
   CWARN   = -qsuppress=1506-224:1506-342:1500-036
