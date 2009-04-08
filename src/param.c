@@ -1127,13 +1127,15 @@ PARSE_FUNC(V)
 		"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A "
 		"PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\n"
 		"You should have received a copy of the GNU General Public License along with this "
-		"program. If not, see <http://www.gnu.org/licenses/>.";
+		"program. If not, see <http://www.gnu.org/licenses/>.\n";
 	char ccver_str[MAX_LINE];
 #if defined(__DECC)
 	char cctype;
 #elif defined(__BORLANDC__)
 	int ccver;
 #endif
+	size_t num;
+	int bits;
 
 	if (ringid==ROOT) {
 		// compiler & version (works only for selected compilers)
@@ -1179,7 +1181,7 @@ PARSE_FUNC(V)
 #	define COMPILER_UNKNOWN
 #	define COMPILER "unknown"
 #endif
-		// print version, type and compiler information
+		// print version, MPI standard, type and compiler information, bit-mode
 		printf("ADDA v." ADDA_VERSION "\n");
 #ifdef MPI
 		// Version of MPI standard is specified, requires MPI 1.2
@@ -1191,6 +1193,11 @@ PARSE_FUNC(V)
 #ifndef COMPILER_UNKNOWN
 		printf(", version %s",ccver_str);
 #endif
+		// determine number of bits in size_t; not the most efficient way, but should work robustly
+		num=SIZE_MAX;
+		bits=1;
+		while(num>>=1) bits++;
+		printf(" (%d-bit)",bits);
 		// print copyright information
 		WrapLines(copyright);
 		printf("%s",copyright);
