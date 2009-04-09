@@ -71,6 +71,14 @@ RELEASE = on
 #FFTW3_INC_PATH = "./../lib"
 #FFTW3_LIB_PATH = "./../lib"
 
+# --C standard--
+# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
+# at compile time (and error is produced if the test fails). However, if you believe that your
+# compiler supports all the required features (listed in const.h), but do not define itself
+# conforming to C99, you may uncomment the following option to override the test.
+# Do it at your own risk!
+#CFLAGS += -DOVERRIDE_STDC_TEST
+
 #===============================================================================
 # !!! End of control section. Everything below is not designed to be modified by
 # user. However, advanced users may wish to modify some compilers  flags below,
@@ -128,9 +136,9 @@ ifeq ($(COMPILER),gnu)
   CF    = g77
   COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
-  CWARN = -Wall -W -Wpointer-arith -Wcast-qual \
+  CWARN = -Wall -W -pedantic -Wcast-qual -Wpointer-arith \
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
-          -Wno-unknown-pragmas -Wno-comment -Wno-unused-parameter
+          -Wno-unknown-pragmas -Wno-unused-parameter
 endif
 ifeq ($(COMPILER),intel)
   CC    = icc
@@ -138,7 +146,7 @@ ifeq ($(COMPILER),intel)
   COPT  = -std=c99 -O3
   FOPT  = -O3
   CWARN = -Wall -Wno-uninitialized -Wno-comment \
-            -wd279,810,869,981,1418,1419,1572,2259
+            -wd810,869,981,1418,1419,1572,2259
 endif
 ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may
