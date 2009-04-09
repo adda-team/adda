@@ -23,7 +23,20 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.79a4"
+#define ADDA_VERSION "0.79b1"
+
+/* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
+ * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
+ * check the version of the standard here and produce a strong warning, if it is not satisfied.
+ * The list of C99 features, used by ADDA, include (but may be not limited to):
+ * stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
+*/
+# if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
+#   error Support for C99 standard (at least many of its parts) is strongly recommended for \
+          compilation. Otherwise the compilation will may fail or produce wrong results. If you \
+          still want to try, you may enable an override in the Makefile.
+#endif
+
 
 // basic constants
 #define UNDEF -1 // should be used only for variables, which are naturally non-negative
@@ -65,7 +78,9 @@
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
 
-// determines the maximum number representable by size_t
+/* determines the maximum number representable by size_t. Actually, SIZE_MAX is part of the C99
+ * standard, but we leave this code to be.
+ */
 #ifndef SIZE_MAX
 #define SIZE_MAX ((size_t)-1)
 #endif
