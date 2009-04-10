@@ -1,8 +1,10 @@
-# This is sample batch file to run ADDA using PBS
+# This is sample batch file to run ADDA
 # it was designed for Dutch national compute cluster LISA
 # based on the sample script located at
 # https://subtrac.sara.nl/userdoc/wiki/lisa/usage/batch/jobmpich4
-# Auth: Maxim Yurkin
+#
+# $Author$
+# $Date::                            $
 
 # ----- start of PBS parameters
 
@@ -18,7 +20,10 @@
 # Request that regular output and terminal output go to the same file
 #PBS -j oe
 #
-# shell to be used for this script
+# do not rerun this job if it fails
+#PBS -r n
+#
+# Select shell
 #PBS -S /bin/sh
 #
 # export all my environment variables to the job
@@ -26,8 +31,8 @@
 
 # ---- end of PBS parameters
 
-# add the GNU environment for MPICH, using Infiniband:
-module load gnu-mpich-openib
+# load necessary modules
+module load mvapich2/gnu
 
 # ---- start of MVAPICH related code:
 
@@ -48,7 +53,7 @@ mpdboot -n $nnodes -f $PBS_NODEFILE
 
 # cd to the work directory
 cd $PBS_O_WORKDIR
-# show information about used cores
+# show information
 echo "Job executes on $nnodes nodes ($nprocs cores)"
 echo "cores:"
 cat $PBS_NODEFILE
