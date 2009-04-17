@@ -121,28 +121,29 @@
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
 enum sh { // shape types
-	SH_SPHERE,       // sphere
+	SH_AXISYMMETRIC, // axisymmetric
 	SH_BOX,          // box (may be rectangular)
-	SH_PRISMA,       // prisma (triangular) -- not operational
-	SH_LINE,         // line with width of one dipole
-	SH_COATED,       // coated sphere
-	SH_SPHEREBOX,    // sphere in a box
-	SH_RBC,          // Red Blood Cell
-	SH_ELLIPSOID,    // general ellipsoid
-	SH_SDISK_ROT,    // disc cut of a sphere -- not operational
-	SH_CYLINDER,     // cylinder
-	SH_READ,         // read from file
-	SH_EGG,          // egg
 	SH_CAPSULE,      // capsule
-	SH_AXISYMMETRIC  // axisymmetric
-/* TO ADD NEW SHAPE
- * add an identifier starting with 'SH_' and a descriptive comment here.
- */
+	SH_COATED,       // coated sphere
+	SH_CYLINDER,     // cylinder
+	SH_EGG,          // egg
+	SH_ELLIPSOID,    // general ellipsoid
+	SH_LINE,         // line with width of one dipole
+	SH_PRISMA,       // prisma (triangular) -- not operational
+	SH_RBC,          // Red Blood Cell
+	SH_READ,         // read from file
+	SH_SDISK_ROT,    // disc cut of a sphere -- not operational
+	SH_SPHERE,       // sphere
+	SH_SPHEREBOX     // sphere in a box
+	/* TO ADD NEW SHAPE
+	 * add an identifier starting with 'SH_' and a descriptive comment to this list in alphabetical
+	 * order.
+	 */
 };
 
 enum pol { // which way to calculate coupleconstant
 	POL_CM,   // Clausius-Mossotti
-	POL_RRC,   // Radiative Reaction correction
+	POL_RRC,  // Radiative Reaction correction
 	POL_LDR,  // Lattice Dispersion Relation
 	POL_CLDR, // Corrected Lattice Dispersion Relation
 	POL_FCD,  // Filtered Coupled Dipoles
@@ -175,11 +176,11 @@ enum inter { // how to calculate interaction term
 #define G_BOUND_CLOSE  1 // k*R^2/d < GB_CLOSE => 'close'
 #define G_BOUND_MEDIAN 1 // k*R < GB_MEDIAN => 'median'
 
-enum iter { // iterative methods; see iterative.c for info
-	IT_CGNR,
-	IT_BICGSTAB,
-	IT_BICG_CS,
-	IT_QMR_CS
+enum iter { // iterative methods
+	IT_CGNR,     // Conjugate Gradient for Normalized equations minimizing Residual norm
+	IT_BICGSTAB, // Bi-Conjugate Gradient Stabilized
+	IT_BICG_CS,  // Bi-Conjugate Gradient for Complex-Symmetric matrices
+	IT_QMR_CS    // Quasi-minimal residual for Complex-Symmetric matrices
 };
 
 enum Eftype { // type of E field calculation
@@ -196,14 +197,15 @@ enum Eftype { // type of E field calculation
 #define TAB_RMAX     10
 
 enum beam { // beam types
-	B_PLANE,
-	B_LMINUS,
-	B_DAVIS3,
-	B_BARTON5
+	B_BARTON5, // 5th order description of the Gaussian beam
+	B_DAVIS3,  // 3rd order description of the Gaussian beam
+	B_LMINUS,  // 1st order description of the Gaussian beam
+	B_PLANE    // infinite plane wave
+	/* TO ADD NEW BEAM
+	 * add an identifier starting with 'B_' and a descriptive comment to this list in alphabetical
+	 * order.
+	 */
 };
-/* TO ADD NEW BEAM
- * add an identifier starting with 'B_' and a descriptive comment here.
- */
 
 enum scatgrid { // types of scattering grid
 	SG_GRID, // grid of angles

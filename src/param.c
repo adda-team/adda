@@ -127,7 +127,7 @@ double gr_d;                     // granules diameter
 int gr_mat;                      // domain number to granulate
 double a_eq;                     // volume-equivalent radius of the particle
 int sg_format;                   // format for saving geometry files
-bool store_grans;                 // whether to save granule positions to file
+bool store_grans;                // whether to save granule positions to file
 
 // LOCAL VARIABLES
 
@@ -135,13 +135,26 @@ static char run_name[MAX_WORD];   // first part of the dir name ('run' or 'test'
 static char avg_parms[MAX_FNAME]; // name of file with orientation averaging parameters
 static char *exename;             // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;            // number of refractive indices given in the command line
+
+/* TO ADD NEW COMMAND LINE OPTION
+ * If you need new variables or flags to implement effect of the new command line option, define
+ * them here. If a variable is used only in this source file, define it as local (static).
+ * If it is used in one another file, define them as semi-global, i.e. define them here under
+ * corresponding 'used in ...' line and put 'extern' declaration in corresponding source file under
+ * 'defined and initialized in param.c' line.
+ * If it is used in this and two or more files, define it as global, by putting definition in
+ * vars.c and 'extern' declaration in vars.h.
+ */
+
 // structure definitions
 struct subopt_struct {
 	const char *name;  // name of option
 	const char *usage; // how to use (argument list)
 	const char *help;  // help string
 	const int narg;    /* possible number of arguments; UNDEF -> should not be checked;
-	                    * may contain also some special negative codes, like FNAME_ARG
+	                    * may contain also some special negative codes, like FNAME_ARG.
+	                    * Currently it is assumed that all arguments are float (if no special
+	                    * argument is specified), but it can be changed if will become a limitation.
 	                    */
 	const int type;    // type of suboption
 };
@@ -156,34 +169,36 @@ struct opt_struct {
 };
 // const string for usage of ADDA
 static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
-/* initializations of suboptions; should be 'NULL terminated'
- * each row contains: suboption name, usage string, help string, number of arguments
- * (UNDEF = not checked automatically), identifier (number)
- */
+
+// initializations of suboptions (comments to elements of subopt_struct are above)
 static const struct subopt_struct beam_opt[]={
-	{"plane","","Infinite plane wave",0,B_PLANE},
-	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam "
-		"width is obligatory and x, y, z coordinates of the center of the beam are optional "
-		"parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_LMINUS},
-	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). "
-		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
-		"optional parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_DAVIS3},
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). "
 		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
 		"optional parameters (all in um). By default beam center coincides with the center of the "
 		"computational box. This option is recommended for the description of the Gaussian beam.",
 		UNDEF,B_BARTON5},
-/* TO ADD NEW BEAM
- * add a row here, before null-terminating element. It contains:
- * beam name (used in command line), usage string (what command line parameters can be used
- * for this beam), help string (shown when -h option is used), possible number of float parameters,
- * beam identifier (defined inside 'enum beam' in const.h). Instead of number of parameters UNDEF
- * can be used (if beam can accept variable number of parameters, then check it explicitly in
- * function PARSE_FUNC(beam) below) or FNAME_ARG (if beam accepts a single string argument with file
- * name). Number of parameters should not be greater than MAX_N_BEAM_PARMS (defined in const.h).
- */
+	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). "
+		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
+		"optional parameters (all in um). By default beam center coincides with the center of the "
+		"computational box.",UNDEF,B_DAVIS3},
+	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam "
+		"width is obligatory and x, y, z coordinates of the center of the beam are optional "
+		"parameters (all in um). By default beam center coincides with the center of the "
+		"computational box.",UNDEF,B_LMINUS},
+	{"plane","","Infinite plane wave",0,B_PLANE},
+	/* TO ADD NEW BEAM
+	 * add a row to this list in alphabetical order. It contains:
+	 * beam name (used in command line), usage string, help string, possible number of float
+	 * parameters, beam identifier (defined inside 'enum beam' in const.h). Usage and help string
+	 * are shown either when -h option is invoked or error is found in input command line. Usage
+	 * string is one line giving a list of possible arguments or argument combinations. Do not
+	 * include beam name in it, use <arg_name> to denote argument, [...] for optional arguments, and
+	 * {...|...|...} for multiple options of an argument. Help string should contain general
+	 * description of the beam type and its arguments. Instead of number of parameters UNDEF can be
+	 * used (if beam can accept variable number of parameters, then check it explicitly in function
+	 * PARSE_FUNC(beam) below) or FNAME_ARG (if beam accepts a single string argument with file
+	 * name). Number of parameters should not be greater than MAX_N_BEAM_PARMS (defined in const.h).
+	 */
 	{NULL,NULL,NULL,0,0}
 };
 static const struct subopt_struct shape_opt[]={
@@ -212,18 +227,27 @@ static const struct subopt_struct shape_opt[]={
 	{"sphere","","Homogeneous sphere",0,SH_SPHERE},
 	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",
 	1,SH_SPHEREBOX},
-/* TO ADD NEW SHAPE
- * add a row here, before null-terminating element. It contains:
- * shape name (used in command line), usage string (what command line parameters can be used
- * for this shape), help string (shown when -h option is used), possible number of float parameters,
- * shape identifier (defined inside 'enum sh' in const.h). Instead of number of parameters UNDEF can
- * be used (if shape can accept variable number of parameters, then check it explicitly in
- * function PARSE_FUNC(shape) below) or FNAME_ARG (if the shape accepts a single string argument
- * with file name). Number of parameters should not be greater than MAX_N_SH_PARMS (defined in
- * const.h). It is recommended to use dimensionless shape parameters, e.g. aspect ratios.
- */
+	/* TO ADD NEW SHAPE
+	 * add a row to this list in alphabetical order. It contains:
+	 * shape name (used in command line), usage string, help string, possible number of float
+	 * parameters, shape identifier (defined inside 'enum sh' in const.h). Usage and help string
+	 * are shown either when -h option is invoked or error is found in input command line. Usage
+	 * string is one line giving a list of possible arguments or argument combinations. Do not
+	 * include shape name in it, use <arg_name> to denote argument, [...] for optional arguments,
+	 * and {...|...|...} for multiple options of an argument. Help string should contain general
+	 * description of the shape and its arguments. Instead of number of parameters UNDEF can be used
+	 * (if shape can accept variable number of parameters, then check it explicitly in function
+	 * PARSE_FUNC(shape) below) or FNAME_ARG (if the shape accepts a single string argument with
+	 * file name). Number of parameters should not be greater than MAX_N_SH_PARMS (defined in
+	 * const.h). It is recommended to use dimensionless shape parameters, e.g. aspect ratios.
+	 */
 	{NULL,NULL,NULL,0,0}
 };
+/* TO ADD NEW COMMAND LINE OPTION
+ * If a new option requires separate description of suboptions, add a static structure here (similar
+ * to already existing ones). It should contain a number of rows corresponding to different
+ * suboptions (see definition of subopt_struct above for details) and terminate with a NULL row.
+ */
 
 // EXTERNAL FUNCTIONS
 
@@ -231,7 +255,7 @@ static const struct subopt_struct shape_opt[]={
 void InitBeam(void);
 
 //========================================================================
-// declarations of parsing functions; definitions are given below. defines are for conciseness
+// prototypes of parsing functions; definitions are given below. defines are for conciseness
 #define PARSE_NAME(a) parse_##a
 #define PARSE_FUNC(a) void PARSE_NAME(a)(int Narg,char **argv)
 #define PAR(a) #a,PARSE_NAME(a),false
@@ -284,10 +308,11 @@ PARSE_FUNC(test);
 PARSE_FUNC(V) ATT_NORETURN;
 PARSE_FUNC(vec);
 PARSE_FUNC(yz);
-/* initialization of options, their usage and help;
- * each row contains: PAR(option name),usage string, help string, number of arguments
- * (UNDEF = not checked automatically),pointer to suboption (if exist)
+/* TO ADD NEW COMMAND LINE OPTION
+ * add a function prototype to this list. Add a line 'PARSE_FUNC(option_name);' in alphabetical
+ * order. It will be expanded automatically using defines specified above.
  */
+
 static struct opt_struct options[]={
 	{PAR(alldir_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating integral scattering quantities.\n"
@@ -435,7 +460,8 @@ static struct opt_struct options[]={
 		0,NULL},
 	{PAR(store_grans),"","Save granule coordinates (placed by '-granul' option) to a file",0,NULL},
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
-	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
+	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it "
+		"to a file.",0,NULL},
 	{PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take "
 		"them into account ('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
@@ -446,7 +472,22 @@ static struct opt_struct options[]={
 	{PAR(yz),"","Calculate the Mueller matrix in yz-plane even if it is calculated for a "
 		"scattering grid. If the latter option is not enabled, scattering in yz-plane is always "
 		"calculated.",0,NULL}
+	/* TO ADD NEW COMMAND LINE OPTION
+	 * add a row to this list, initializing an option. It should contain:
+	 * PAR(option_name), usage string, help string, number of arguments, pointer to suboption (if
+	 * exist, NULL otherwise). Usage and help string are shown either when -h option is invoked or
+	 * error is found in input command line. Usage string is one line giving a list of possible
+	 * arguments or argument combinations. Do not include option name in it, use <arg_name> to
+	 * denote argument, [...] for optional arguments, and {...|...|...} for multiple options of an
+	 * argument. Help string should contain general description of the option and its arguments, and
+	 * provide default value for the arguments (if applicable). UNDEF can be used instead of number
+	 * of arguments to avoid automatic checking, e.g. when command line option can accept variable
+	 * number of arguments. Then check it explicitly in function PARSE_FUNC(option_name) below. A
+	 * separate suboption structure is recommended only for large options such as -beam and -shape,
+	 * and it should be defined above.
+	 */
 };
+
 // auxiliary functions
 //============================================================
 
@@ -729,8 +770,9 @@ PARSE_FUNC(beam)
 		}
 		/* TO ADD NEW BEAM
 		 * If the beam accepts variable number of arguments (UNDEF was used in beam definition
-		 * above) add a check of number of received arguments to this else-if sequence.
-		*/
+		 * above) add a check of number of received arguments to this else-if sequence. Use
+		 * NargError function similarly as done in existing tests.
+		 */
 
 		// special cases to parse filename
 		if (beam_opt[i].narg==FNAME_ARG) {
@@ -1058,7 +1100,8 @@ PARSE_FUNC(shape)
 		}
 		/* TO ADD NEW SHAPE
 		 * If the shape accepts variable number of arguments (UNDEF was used in shape definition
-		 * above) add a check of number of received arguments to this else-if sequence.
+		 * above) add a check of number of received arguments to this else-if sequence. Use
+		 * NargError function similarly as done in existing tests.
 		*/
 
 		// special cases to parse filename
@@ -1216,6 +1259,25 @@ PARSE_FUNC(yz)
 {
 	yzplane = true;
 }
+/* TO ADD NEW COMMAND LINE OPTION
+ * add a function definition to this list. It should start with 'PARSE_FUNC(option_name)', and
+ * contain all necessary logic (code) to implement (or register) command line option. Typically,
+ * it should check number of parameters (if UNDEF was used instead of number of parameters in the
+ * option definition), scanf input parameters (if any) and check them for consistency and set the
+ * values of some internal variables or flags. These variables should be defined in the beginning of
+ * this file and initialized in InitVariables() below.
+ * It is recommended to use functions from param.h and those defined above since they are designed
+ * to be overflow-safe for any input parameters and would automatically produce informative output
+ * in case of error.
+ * If a new command line option contains suboptions, you may easily parse them using the suboption
+ * structure (which should be defined in the beginning of this file). See PARSE_FUNC(beam) and
+ * PARSE_FUNC(shape) above for examples.
+ * Potential conflicts or interactions between different command line options should be processed in
+ * VariablesInterconnect() below.
+ * If any output in log files or stdout should be produced based on the values of command line
+ * option, this should be implemented in PrintInfo() below.
+ */
+
 #undef PAR
 #undef PARSE_FUNC
 #undef PARSE_NAME
@@ -1371,6 +1433,10 @@ void InitVariables(void)
 	sg_format=SF_TEXT;
 	memory=0;
 	Ncomp=1;
+	/* TO ADD NEW COMMAND LINE OPTION
+	 * If you use some new variables, flags, etc. you should specify their default values here. This
+	 * value will be used if new option is not specified in the command line.
+	 */
 }
 
 //============================================================
@@ -1513,6 +1579,10 @@ void VariablesInterconnect(void)
 		 */
 		if (prop[2]!=1 && sym_type==SYM_AUTO) sym_type=SYM_NO;
 	}
+	/* TO ADD NEW COMMAND LINE OPTION
+	 * If a new command line option may potentially conflict or interact with other options, add
+	 * here code to implement corresponding tests or cross-dependence.
+	 */
 }
 
 //============================================================
@@ -1754,5 +1824,10 @@ void PrintInfo(void)
 		}
 		if (load_chpoint || chp_type!=CHP_NONE)
 			fprintf(logfile,"    directory = '%s'\n",chp_dir);
+		/* TO ADD NEW COMMAND LINE OPTION
+		 * If a new command line option requires additional output to log file or stdout, implement
+		 * this functionality here, choosing appropriate place for this information among the above
+		 * lines.
+		 */
 	}
 }
