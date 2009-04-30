@@ -208,7 +208,7 @@ static double *ReadTableFile(const char *sh_fname,const int size_multiplier)
 
 	size=TAB_SIZE*size_multiplier;
 	memory+=size*sizeof(double);
-	if (!prognose) {
+	if (!prognosis) {
 		// allocate memory for tab_n
 		MALLOC_VECTOR(tab_n,double,size,ALL);
 		// open file
@@ -243,7 +243,7 @@ static void ReadTables(void)
 	tab9=ReadTableFile(TAB_FNAME(9),1);
 	tab10=ReadTableFile(TAB_FNAME(10),6);
 
-	if (!prognose) {
+	if (!prognosis) {
 		// allocate memory for tab_index
 		MALLOC_IMATRIX(tab_index,1,TAB_RMAX,0,TAB_RMAX,ALL);
 		// fill tab_index
@@ -403,7 +403,7 @@ static void AllocateEverything(void)
 
 	// allocate all the memory
 	tmp=sizeof(doublecomplex)*(double)nlocalRows;
-	if (!prognose) {
+	if (!prognosis) {
 		MALLOC_VECTOR(xvec,complex,nlocalRows,ALL);
 		MALLOC_VECTOR(rvec,complex,nlocalRows,ALL);
 		MALLOC_VECTOR(pvec,complex,nlocalRows,ALL);
@@ -413,7 +413,7 @@ static void AllocateEverything(void)
 	memory+=5*tmp;
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		// additional vectors for iterative methods
-		if (!prognose) {
+		if (!prognosis) {
 			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
 			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
 			MALLOC_VECTOR(vec3,complex,nlocalRows,ALL);
@@ -425,7 +425,7 @@ static void AllocateEverything(void)
 	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
 	if (yzplane) {
 		tmp=2*(double)nTheta;
-		if (!prognose) {
+		if (!prognosis) {
 			CheckOverflow(2*tmp,ONE_POS,"AllocateEverything()");
 			temp_int=tmp;
 			MALLOC_VECTOR(EplaneX,complex,temp_int,ALL);
@@ -434,7 +434,7 @@ static void AllocateEverything(void)
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
 		if (ringid==ROOT) { // buffer for accumulate operation
-			if (!prognose) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
+			if (!prognosis) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
 #endif
@@ -445,7 +445,7 @@ static void AllocateEverything(void)
 		 * of the field, and only afterwards - squares.
 		 */
 		tmp=4*((double)theta_int.N)*phi_int.N;
-		if (!prognose) {
+		if (!prognosis) {
 			CheckOverflow(tmp,ONE_POS,"AllocateEverything()");
 			temp_int=tmp;
 			MALLOC_VECTOR(E2_alldir,double,temp_int,ALL);
@@ -453,7 +453,7 @@ static void AllocateEverything(void)
 		memory+=tmp*sizeof(double);
 #ifdef PARALLEL
 		if (ringid==ROOT) { // buffer for accumulate operation
-			if (!prognose) MALLOC_VECTOR(E2_alldir_buffer,double,temp_int,ONE);
+			if (!prognosis) MALLOC_VECTOR(E2_alldir_buffer,double,temp_int,ONE);
 			memory+=tmp*sizeof(double);
 		}
 #endif
@@ -462,7 +462,7 @@ static void AllocateEverything(void)
 		ReadScatGridParms(scat_grid_parms);
 		// calculate size of vectors - holds all per-par combinations
 		tmp=2*(double)angles.N;
-		if (!prognose) {
+		if (!prognosis) {
 			CheckOverflow(2*tmp,ONE_POS,"AllocateEverything()");
 			temp_int=tmp;
 			MALLOC_VECTOR(EgridX,complex,temp_int,ALL);
@@ -471,13 +471,13 @@ static void AllocateEverything(void)
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
 		if (ringid==ROOT) { // buffer for accumulate operation
-			if (!prognose) MALLOC_VECTOR(Egrid_buffer,double,2*temp_int,ONE);
+			if (!prognosis) MALLOC_VECTOR(Egrid_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
 #endif
 		if (phi_integr && ringid==ROOT) {
 			tmp=16*(double)angles.phi.N;
-			if (!prognose) {
+			if (!prognosis) {
 				CheckOverflow(tmp,ONE_POS,"AllocateEverything()");
 				temp_int=tmp;
 				MALLOC_VECTOR(muel_phi,double,temp_int,ONE);
@@ -488,7 +488,7 @@ static void AllocateEverything(void)
 	}
 	if (orient_avg) {
 		tmp=2*((double)nTheta)*alpha_int.N;
-		if (!prognose) {
+		if (!prognosis) {
 			// this covers these 2 and next 2 malloc calls
 			CheckOverflow(8*tmp+2,ONE_POS,"AllocateEverything()");
 			temp_int=tmp;
@@ -497,7 +497,7 @@ static void AllocateEverything(void)
 		}
 		memory += 2*tmp*sizeof(doublecomplex);
 		if (ringid==ROOT) {
-			if (!prognose) {
+			if (!prognosis) {
 				MALLOC_VECTOR(muel_alpha,double,block_theta*alpha_int.N+2,ONE);
 				muel_alpha+=2;
 				MALLOC_VECTOR(out,double,block_theta+2,ONE);
@@ -614,7 +614,7 @@ void Calculator (void)
 	if (!orient_avg) alpha_int.N=1;
 	Timing_Init = GET_TIME() - tstart_main;
 	// prognosis stops here
-	if (prognose) return;
+	if (prognosis) return;
 	// main calculation part
 	if (orient_avg) {
 		if (ringid==ROOT) {

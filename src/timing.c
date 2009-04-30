@@ -101,7 +101,7 @@ void FinalStatistics(void)
 			"\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 			"                Timing Results             \n"
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-		if (!prognose) {
+		if (!prognosis) {
 			if (orient_avg) fprintf(logfile,
 				"Total number of single particle evaluations: %lu\n",TotalEval);
 			fprintf(logfile,
@@ -122,7 +122,7 @@ void FinalStatistics(void)
 			TO_SEC(Timing_TotalTime));
 		fprintf(logfile,
 			"  Initialization time: %.4f\n",TO_SEC(Timing_Init));
-		if (!prognose) {
+		if (!prognosis) {
 			fprintf(logfile,
 				"    init Dmatrix         %.4f\n",TO_SEC(Timing_Dm_Init));
 #ifdef PARALLEL
@@ -142,7 +142,7 @@ void FinalStatistics(void)
 				"        communication:       %.4f\n",TO_SEC(Timing_Granul_comm));
 #endif
 		}
-		if (!prognose) {
+		if (!prognosis) {
 			fprintf(logfile,
 				"  Internal fields:     %.4f\n"
 				"    one solution:        %.4f\n"

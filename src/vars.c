@@ -51,7 +51,7 @@ bool symX,symY,symZ; /* symmetries of reflection relative to the planes perpendi
 bool symR;           // symmetry of 90-degrees rotation about z axes
 
 // flags (true or false)
-bool prognose;     // make a prognosis about needed ram
+bool prognosis;     // make a prognosis about needed ram
 bool yzplane;      // Calculate the field in the yz-plane
 bool all_dir;      /* Calculate the field for all directions on a theta-phi grid (internal
                    * parameter - initialized by other options: calculation of Csca and asym)

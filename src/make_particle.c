@@ -1530,7 +1530,7 @@ void InitShape(void)
 	}
 	// check if enough refractive indices or extra
 	if (Nmat<Nmat_need) {
-		if (prognose) {
+		if (prognosis) {
 			if (dpl_def_used) PrintError("Given number of refractive indices (%d) is less "
 				"than number of domains (%d). Since computational grid is initialized based on "
 				"the default dpl, it may change depending on the actual refractive indices.",
