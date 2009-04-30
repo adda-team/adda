@@ -290,6 +290,7 @@ PARSE_FUNC(orient);
 PARSE_FUNC(phi_integr);
 PARSE_FUNC(pol);
 PARSE_FUNC(prognose);
+PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
@@ -423,13 +424,14 @@ static struct opt_struct options[]={
 		"averaged over incident polarizations. 'so' is under development. 'cldr' and 'so' are "
 		"incompatible with '-anisotr'. 'fcd' requires dpl to be larger than 2.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
-	{PAR(prognose),"","Do not actually perform simulation (not even memory allocation) but only "
+	{PAR(prognose),"","Deprecated command line option. Use '-prognosis' instead.",0,NULL},
+	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only "
 		"estimate the required RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. "
 		"Normalization (to the unity vector) is performed automatically.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
-		"relative to the output directory). Can be used with '-prognose'.\n"
+		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
 		"                      added if '-granul' option is used).",UNDEF,NULL},
 	{PAR(scat),"{dr|so}","Sets prescription to calculate scattering quantities. 'so' is under "
@@ -1032,7 +1034,14 @@ PARSE_FUNC(pol)
 }
 PARSE_FUNC(prognose)
 {
-	prognose=true;
+	prognosis=true;
+	strcpy(run_name,"test");
+	LogError(EC_WARN,ONE_POS,
+		"Command line option '-prognose' is deprecated. Use '-prognosis' instead");
+}
+PARSE_FUNC(prognosis)
+{
+	prognosis=true;
 	strcpy(run_name,"test");
 }
 PARSE_FUNC(prop)
@@ -1396,7 +1405,7 @@ void InitVariables(void)
 	IntRelation=G_POINT_DIP;
 	IterMethod=IT_QMR_CS;
 	sym_type=SYM_AUTO;
-	prognose=false;
+	prognosis=false;
 	maxiter=UNDEF;
 	jagged=1;
 	beamtype=B_PLANE;

@@ -945,7 +945,7 @@ void InitDmatrix(void)
 #endif
 	FFLUSHZ(logfile);
 	memory+=mem;
-	if (prognose) return;
+	if (prognosis) return;
 	// allocate memory for Dmatrix
 	MALLOC_VECTOR(Dmatrix,complex,MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS,"Dmatrix"),ALL);
 	// allocate memory for D2matrix components
