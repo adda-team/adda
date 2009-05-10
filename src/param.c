@@ -1510,8 +1510,9 @@ void VariablesInterconnect(void)
 	// parameter interconnections
 	if (IntRelation==G_SO) reduced_FFT=false;
 	if (calc_Csca || calc_vec) all_dir = true;
-	// yzplane is true except rare cases and when not forced by -yz option
-	if (!(store_scat_grid || phi_integr)) yzplane = true;
+	// yzplane is true except when this case is true and when not forced by -yz option
+	if (store_scat_grid || phi_integr) scat_grid = true;
+	else yzplane = true;
 	// parameter incompatibilities
 	if (orient_avg) {
 		if (prop_0[2]!=1) PrintError("'-prop' and '-orient avg' can not be used together");
