@@ -12,7 +12,7 @@
 #PBS -N ADDA
 #
 # request nodes, ppn - processor per node
-#PBS -l nodes=4:ppn=2:infiniband:cores2
+#PBS -l nodes=2:ppn=8:cores8
 #
 # max. wall clock time
 #PBS -l walltime=0:05:00
@@ -32,9 +32,7 @@
 # ---- end of PBS parameters
 
 # load necessary modules
-module load mvapich2/gnu
-
-# ---- start of MVAPICH related code:
+module load openmpi/intel
 
 # test if ~/.mpd.conf exists, create it if not:
 if [ ! -e ~/.mpd.conf ]
@@ -46,10 +44,6 @@ fi
 nprocs=`wc -l < $PBS_NODEFILE`
 # determine the number of nodes:
 nnodes=`sort -u $PBS_NODEFILE | wc -l`
-# start the mpd daemons:
-mpdboot -n $nnodes -f $PBS_NODEFILE
-
-# ---- End of MVAPICH related code
 
 # cd to the work directory
 cd $PBS_O_WORKDIR
