@@ -38,6 +38,7 @@
 #include "io.h"
 #include "vars.h"
 #include "memory.h"
+#include "linalg.h" // for nMult_mat
 #include "timing.h"
 #include "function.h"
 
@@ -501,8 +502,11 @@ static void CalcIntegralScatQuantities(const char which)
 		incPol=incPolY;
 	}
 	strcat(fname_cs,f_suf);
-	if (calc_Cext) Cext = ExtCross(incPol);
+	/* order of calculations is important, when using SQ_FINDIP. Then first dCabs should be
+	 * calculated, which is further used to correct Cext
+	 */
 	if (calc_Cabs) Cabs = AbsCross();
+	if (calc_Cext) Cext = ExtCross(incPol);
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
 		if (ringid==ROOT) {
@@ -647,31 +651,8 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
 static void StoreIntFields(const char which)
 // Write actual internal fields (not exciting) on each dipole to file
 {
-	double V;
-	doublecomplex hi,hi_inv[MAX_NMAT];
-	unsigned char mat;
-	size_t i;
-	int j;
-
-	// calculate multipliers
-	V=gridspace*gridspace*gridspace;
-	for (j=0;j<Ncomp*Nmat;j++) {
-		// hi_inv=1/(V*hi)=4*PI/(V(m^2-1)); for anisotropic - by components
-		cSquare(ref_index[j],hi);
-		hi[RE]-=1;
-		cMultReal(V,hi,hi);
-		cInv(hi,hi_inv[j]);
-		cMultReal(FOUR_PI,hi_inv[j],hi_inv[j]);
-	}
-	// calculate fields
-	for (i=0;i<local_nvoid_Ndip;++i) {
-		mat=(unsigned char)(material[i]*Ncomp);
-		// e_field=P/(V*hi); for anisotropic - by components
-		for (j=0;j<3;j++) {
-			cMult(hi_inv[mat],pvec[3*i+j],xvec[3*i+j]);
-			if (anisotropy) mat++;
-		}
-	}
+	// calculate fields; e_field=P/(V*chi)=chi_inv*P; for anisotropic - by components
+	nMult_mat(xvec,pvec,chi_inv);
 	// save fields to file
 	StoreFields(which,xvec,F_INTFLD,F_INTFLD_TMP,"E","Internal fields");
 }

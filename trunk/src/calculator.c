@@ -88,8 +88,8 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 {
 	doublecomplex coup_con[3];
 	doublecomplex tempa,tempb,cm,m2,t1;
-	double temp,V,b1,b2,b3;
-	int i,imax,j,jmax; // counters: i is for 'asym', j is for 'anysotropy'
+	double temp,b1,b2,b3;
+	int i,imax,j; // counters: i is for 'asym', j is for 'anysotropy'
 	double S,prop2[3];
 	int asym; // whether polarizability is asymmetric (for isotropic m)
 	const double *incPol;
@@ -100,8 +100,6 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 	if (asym && anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in CoupleConstant");
 	if (asym) imax=3;
 	else imax=1;
-	if (anisotropy) jmax=3;
-	else jmax=1;
 	if (PolRelation==POL_LDR || PolRelation==POL_CLDR) {
 		b1=LDR_B1;
 		b2=LDR_B2;
@@ -113,9 +111,8 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 		b3=SO_B3;
 	}
 	// calculate the CM couple constant CC=(3V/4pi)*(m^2-1)/(m^2+2)
-	V=gridspace*gridspace*gridspace; // volume of one dipole
-	temp = (3*V)/(4*PI);
-	for (j=0;j<jmax;j++) {
+	temp = 3*dipvol/FOUR_PI;
+	for (j=0;j<Ncomp;j++) {
 		cSquare(mrel[j],m2); // m2=m^2
 		tempa[RE] = m2[RE] - 1.0;
 		tempa[IM] = tempb[IM] = m2[IM];
@@ -156,7 +153,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 					t1[IM]+=(b2+b3*S)*m2[IM]*kd*kd;
 				}
 				// CC[i]=cm/(1-(cm/V)*t1)
-				cMultReal(1.0/V,t1,t1);
+				cMultReal(1.0/dipvol,t1,t1);
 				cMultSelf(t1,cm);
 				t1[RE]=1-t1[RE];
 				t1[IM]=-t1[IM];
@@ -186,13 +183,26 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 //============================================================
 
 static void InitCC(const char which)
-// calculate cc and cc_sqrt
+// calculate cc, cc_sqrt, and chi_inv
 {
 	int i,j;
+	doublecomplex chi;
 
 	for(i=0;i<Nmat;i++) {
 		CoupleConstant(ref_index+Ncomp*i,which,cc[i]);
 		for(j=0;j<3;j++) cSqrt(cc[i][j],cc_sqrt[i][j]);
+		// chi_inv=1/(V*chi)=4*PI/(V(m^2-1)); for anisotropic - by components
+		for (j=0;j<Ncomp;j++) {
+			cSquare(ref_index[Ncomp*i+j],chi);
+			chi[RE]-=1;
+			cMultReal(dipvol/FOUR_PI,chi,chi);
+			cInv(chi,chi_inv[i][j]);
+		}
+		// copy first component of chi_inv[i] into other two, if they are not calculated explicitly
+		if (!anisotropy) {
+			cEqual(chi_inv[i][0],chi_inv[i][1]);
+			cEqual(chi_inv[i][0],chi_inv[i][2]);
+		}
 	}
 }
 

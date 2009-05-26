@@ -434,8 +434,10 @@ static struct opt_struct options[]={
 		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
 		"                      added if '-granul' option is used).",UNDEF,NULL},
-	{PAR(scat),"{dr|so}","Sets prescription to calculate scattering quantities. 'so' is under "
-		"development and incompatible with '-anisotr'.\n"
+	{PAR(scat),"{dr|fin|so}","Sets prescription to calculate scattering quantities. 'dr' is "
+		"standard formulation proposed by Draine, 'fin' is a slightly different one that is based "
+		"on a radiative correction for a finite dipole. 'so' is under development and incompatible "
+		"with '-anisotr'.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -1070,6 +1072,7 @@ PARSE_FUNC(save_geom)
 PARSE_FUNC(scat)
 {
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
+	if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
 	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
@@ -1508,6 +1511,10 @@ void VariablesInterconnect(void)
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI/lambda;
 	// parameter interconnections
+	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be
+	 * calculated before Cext, when SQ_FINDIP is used
+	 */
+	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
 	if (IntRelation==G_SO) reduced_FFT=false;
 	if (calc_Csca || calc_vec) all_dir = true;
 	// yzplane is true except when this case is true and when not forced by -yz option
@@ -1789,6 +1796,7 @@ void PrintInfo(void)
 		// log Scattering Quantities formulae
 		fprintf(logfile,"Scattering quantities formulae: ");
 		if (ScatRelation==SQ_DRAINE) fprintf(logfile,"'by Draine'\n");
+		else if (ScatRelation==SQ_FINDIP) fprintf(logfile,"'Finite Dipoles'\n");
 		else if (ScatRelation==SQ_SO) fprintf(logfile,"'Second Order'\n");
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");

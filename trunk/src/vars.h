@@ -34,7 +34,7 @@
 
 // basic variables
 extern int boxX,boxY,boxZ;
-extern double gridspace,kd,ka_eq,inv_G,WaveNum;
+extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double *DipoleCoord;
 extern unsigned short *position;
 extern double memory;
@@ -60,6 +60,7 @@ extern int term_width;
 extern int Nmat,Ncomp;
 extern doublecomplex ref_index[MAX_NMAT];
 extern doublecomplex cc_sqrt[MAX_NMAT][3];
+extern doublecomplex chi_inv[MAX_NMAT][3];
 extern unsigned char *material;
 
 // iterative solver

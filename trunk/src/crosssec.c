@@ -63,6 +63,11 @@ char avg_string[MAX_PARAGRAPH]; // string for output of function that reads aver
 // used in Romberg.c
 bool full_al_range; // whether full range of alpha angle is used
 
+// LOCAL VARIABLES
+
+double dCabs;           // difference between Cabs calculated by 'dr' and 'fin' formulations
+bool dCabs_ready=false; // whether dCabs is already calculated
+
 //=====================================================================
 
 INLINE int AlldirIndex(const int theta,const int phi)
@@ -152,7 +157,6 @@ static void ReadLineStart(FILE *file,const char *fname, // opened file and filen
 	LogError(EC_ERROR,ONE_POS,"String '%s' is not found (in correct place) in file '%s'",
 		start,fname);
 }
-
 
 //=====================================================================
 
@@ -575,7 +579,7 @@ void CalcField (doublecomplex *ebuff, // where to write calculated scattering am
 		cMultSelf(a,mult_mat[material[j]]);
 		PART2
 	}
-	else {
+	else if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP){
 		PART1
 		PART2
 	}
@@ -622,6 +626,11 @@ double ExtCross(const double *incPol)
 	 * Either make sure that new beam satisfies this condition or add another case here with
 	 * different formulae.
 	*/
+	if (ScatRelation==SQ_FINDIP) {
+		if (dCabs_ready) sum+=dCabs;
+		else LogError(EC_ERROR,ONE_POS,"When using 'fin' scattering quantities formulation, Cabs "
+			"should be calculated before Cext");
+	}
 	return sum;
 }
 
@@ -633,40 +642,74 @@ double AbsCross(void)
 	size_t dip,index;
 	int i,j;
 	unsigned char mat;
-	double sum,dummy,temp1,temp2;
+	double sum,temp1,temp2;
 	doublecomplex m2;
 	double *m; // not doublecomplex=double[2] to allow assignment to it
-	double cc_inv_im[MAX_NMAT][3]; // Im(1/cc)=-Im(cc)/|cc|^2
-	double mult_mat[MAX_NMAT];
+	double multdr[MAX_NMAT][3];  // multiplier for draine formulation
+	double multfin[MAX_NMAT][3]; // multiplier for finite dipoles
+	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
 
-	if (ScatRelation==SQ_DRAINE) {
-		// calculate constant and cc_inv_im
-		dummy = 2*WaveNum*WaveNum*WaveNum/3;
-		for (i=0;i<Nmat;i++) for (j=0;j<3;j++) cc_inv_im[i][j]=cInvIm(cc[i][j]);
+	// Cabs = 4*pi*sum
+	if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP) {
+		/* code below is applicable only for diagonal (possibly anisotropic) polarizability and
+		 * should be rewritten otherwise
+		 */
+
+		/* based on Eq.(35) from Yurkin and Hoekstra, "The discrete dipole approximation: an
+		 * overview and recent developments," JQSRT 106:558-589 (2007).
+		 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
+		 */
+		temp1 = 2*WaveNum*WaveNum*WaveNum/3;
+		for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cInvIm(cc[i][j])-temp1;
+		if (ScatRelation==SQ_FINDIP) {
+			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
+			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
+			 * Difference between this formulation and the classical one is also calculated, which
+			 * is further used to correct Cext.
+			 */
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multfin[i][j]=-chi_inv[i][j][IM];
+		}
 		// main cycle
-		for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
-			mat=material[dip];
-			index=3*dip;
-			// Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
-			for(i=0;i<3;i++) sum-=(cc_inv_im[mat][i]+dummy)*cAbs2(pvec[index+i]);
+		if (ScatRelation==SQ_DRAINE) {
+			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
+				mat=material[dip];
+				index=3*dip;
+				for(i=0;i<3;i++) sum+=multdr[mat][i]*cAbs2(pvec[index+i]);
+			}
+		}
+		else if (ScatRelation==SQ_FINDIP) {
+			for (dip=0,sum=0,dCabs=0;dip<local_nvoid_Ndip;++dip) {
+				mat=material[dip];
+				index=3*dip;
+				for(i=0;i<3;i++) {
+					temp1=cAbs2(pvec[index+i]);
+					sum+=multfin[mat][i]*temp1;
+					dCabs+=(multfin[mat][i]-multdr[mat][i])*temp1;
+				}
+			}
 		}
 	}
 	else if (ScatRelation==SQ_SO) {
 		// !!! this should never happen
 		if (anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in AbsCross");
-		// calculate constants
+		// calculate mult1
 		temp1=kd*kd/6;
-		temp2=FOUR_PI/(gridspace*gridspace*gridspace);
+		temp2=FOUR_PI/dipvol;
 		for (i=0;i<Nmat;i++) {
 			m=ref_index[i];
 			cSquare(m,m2);
 			m2[RE]-=1;
-			// mult_mat=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
-			mult_mat[i]=temp2*m2[IM]*(1+temp1*m[IM]*m[IM])/cAbs2(m2);
+			// mult1=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
+			mult1[i]=temp2*m2[IM]*(1+temp1*m[IM]*m[IM])/cAbs2(m2);
 		}
 		// main cycle
 		for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip)
-			sum+=mult_mat[material[dip]]*cvNorm2(pvec+3*dip);
+			sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
+	}
+	if (ScatRelation==SQ_FINDIP) {
+		MyInnerProduct(&dCabs,double_type,1,&Timing_ScatQuan_comm);
+		dCabs*=(FOUR_PI*WaveNum);
+		dCabs_ready=true;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
 	return FOUR_PI*WaveNum*sum;
