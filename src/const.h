@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.79b2"
+#define ADDA_VERSION "0.79b3"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -152,6 +152,9 @@ enum pol { // which way to calculate coupleconstant
 
 enum scat { // how to calculate scattering quantities
 	SQ_DRAINE, // classical, as Draine
+	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole when
+	            * calculating absorption cross section
+	            */
 	SQ_SO      // Second Order formulation
 };
 

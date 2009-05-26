@@ -79,6 +79,9 @@ extern bool store_grans;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Particle,Timing_Granul,Timing_Granul_comm;
 
+// used in fft.c
+double gridspace; // interdipole distance (dipole size)
+
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
 char sh_form_str[MAX_PARAGRAPH]; // string for log file with shape parameters
@@ -1805,7 +1808,9 @@ void MakeParticle(void)
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
 		LogError(EC_ERROR,ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
+	// initialize gridspace and dipvol
 	gridspace=lambda/dpl;
+	dipvol=gridspace*gridspace*gridspace;
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can

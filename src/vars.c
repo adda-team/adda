@@ -30,7 +30,7 @@
 
 // basic variables
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
-double gridspace;         // inter-dipole distance
+double dipvol;            // dipole volume
 double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
@@ -87,6 +87,7 @@ int Nmat;                           /* number of different domains (for each eit
 int Ncomp;                          // number of components of each refractive index (1 or 3)
 doublecomplex ref_index[MAX_NMAT];  // a set of refractive indexes
 doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
+doublecomplex chi_inv[MAX_NMAT][3]; // normalized inverse susceptibility: = 1/(V*chi)
 unsigned char *material;            // material: index for cc
 
 // iterative solver

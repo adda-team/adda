@@ -52,6 +52,10 @@
 // defined ant initialized in calculator.c
 extern const double *tab1,*tab2,*tab3,*tab4,*tab5,*tab6,*tab7,*tab8,*tab9,*tab10;
 extern const int **tab_index;
+
+// defined and initialized in make_particle.c
+extern double gridspace;
+
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
