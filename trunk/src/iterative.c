@@ -58,12 +58,14 @@
 #define MAXCOUNT_BICGSTAB 30000
 #define MAXCOUNT_BICG_CS  50000
 #define MAXCOUNT_QMR_CS   50000
-// zero value for checks
+// boundary values for tests
 #define EPS_BICGSTAB1 1E-16 // for (r~.r)/(r.r)
 #define EPS_BICGSTAB2 1E-10 // for 1/|beta_k|
-#define EPS_BICG_CS1  1E-10 // for (rT.r)/(r.r)
+#define EPS_BICG_CS1L 1E-10 // for (rT.r)/(r.r), low bound
+#define EPS_BICG_CS1H 1E+10 // for (rT.r)/(r.r), high bound (indicates residual increase)
 #define EPS_BICG_CS2  1E-10 // for (pT.A.p)/(rT.r)
-#define EPS_QMR_CS1   1E-10 // for (vT.v)/(r.r)
+#define EPS_QMR_CS1L  1E-10 // for (vT.v)/(b.b), low bound
+#define EPS_QMR_CS1H  1E+20 // for (vT.v)/(b.b), high bound
 #define EPS_QMR_CS2   1E-40 // for overflow of exponent number
 
 // SEMI-GLOBAL VARIABLES
@@ -484,13 +486,13 @@ static void BiCG_CS(const int mc)
 	while (inprodR>=epsB && count<=maxiter && counter<=max_count && !chp_exit) {
 		Timing_OneIterComm=0; // initialize time
 		tstart=GET_TIME();
-		// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
+		// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0 (and very high values as well)
 		nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
 		abs_ro_new=cAbs(ro_new);
 		dtmp=abs_ro_new/inprodR;
 		D2z("(rT.r)/(r.r)=%.2g",dtmp);
-		if (dtmp<EPS_BICG_CS1)
-			LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is too small (%.2g).",dtmp);
+		if (dtmp<EPS_BICG_CS1L || dtmp>EPS_BICG_CS1H)
+			LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is out of bounds (%.2g).",dtmp);
 		if (count==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=ro_k-1/ro_k-2
@@ -588,11 +590,11 @@ static void QMR_CS(const int mc)
 	while (inprodR>=epsB && count<=maxiter && counter<=max_count && !chp_exit) {
 		Timing_OneIterComm=0; // initialize time
 		tstart=GET_TIME();
-		// check for zero beta
-		dtmp1=cAbs2(beta)/inprodR;
-		D2z("(vT.v)/(r.r)=%.2g",dtmp1);
-		if (dtmp1<EPS_QMR_CS1)
-			LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(r.r) is too small (%.2g).",dtmp1);
+		// check for zero or very high beta
+		dtmp1=cAbs2(beta)*resid_scale;
+		D2z("(vT.v)/(b.b)=%.2g",dtmp1);
+		if (dtmp1<EPS_QMR_CS1L || dtmp1>EPS_QMR_CS1H)
+			LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(b.b) is out of bounds (%.2g).",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
 		MatVec(v,Avecbuffer,NULL,false);
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
