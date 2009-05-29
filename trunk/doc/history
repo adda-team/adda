@@ -149,7 +149,7 @@ Ver. 0.76 - 14.10.06
   reference frame. Thanks to Michiel Min for fruitful discussions.
 
 ----------------------------------
-Ver. 0.77 - (05.06.07)
+Ver. 0.77 - 05.06.07
 
 - Calculation of radiation forces gave segmentation fault. The bug was
   introduced in version 0.76. Fixed.
@@ -185,7 +185,7 @@ Ver. 0.77 - (05.06.07)
   discussion. Thanks to Vitezslav Karasek and Liviu Clime for their feedback.
 
 ----------------------------------
-Ver. 0.78 - (19.03.08)
+Ver. 0.78 - 19.03.08
 
 * Makefiles were improved to enable automatic compilation of both sequential and
   MPI versions from the same source folder. Name of MPI executable is now
@@ -274,3 +274,69 @@ Ver. 0.78.2 - 11.04.08
 - An implementation of a new FCD polarization prescription (-pol fcd) was
   somewhat faulty. Correction terms of orders (kd)^2 and ln(...)(kd)^3 were
   interchanged. Fixed.
+
+----------------------------------
+Ver. 0.79 - 29.05.09
+
++ Added using SLURM job ID, when available.
+- Corrected inaccuracies in passing grid... to FFTW planning functions by making
+  explicit conversion from size_t to int *.
+- Warnings were produced about anisotropic refractive index in the input file
+  for any file in DDSCAT format. Fixed.
++ Saving of granule coordinates to a file was implemented.
++ Discussion of difference between two ways to calculate Csca, possibilities to
+  improve the accuracy of these calculations, and connection between
+  differential cross section and the Mueller matrix has been added to the
+  manual.
++ Tested for 64bit, implementing a number of corrections/improvements.
++ Support for new compiler (IBM XLC/XLF) added to the makefiles.
+- Warnings for grid adjustments (e.g. from odd to even) were extended to cover
+  all possible ambiguities, including combination with specified '-size' command
+  line option. A discussion of these issues is added to the manual.
+* Affiliation of one of the author (Maxim Yurkin) has changed to Institute of
+  Chemical Kinetics & Combustion (Novosibirsk, Russia). This does not change the
+  global strategy of ADDA development.
++ New shape 'axisymmetric' was added. The internals of shape generation routines
+  were adjusted so that shape can now define the absolute size of the particle.
+* Full name of the package was changed from 'Amsterdam DDA' to 'ADDA'.
+* Code for calculating and saving different variants of Mueller matrix
+  integrated over phi was shortened by implementing repeated blocks as inline
+  function.
+* Code repository has been moved to Google Code: http://a-dda.googlecode.com
++ Google groups adda-announce, adda-discuss and adda-develop were created to
+  facilitate interaction with users. This replaces the previous mailing list.
+* Heads of source and a few other files were changed using subversion keywords.
+* Copyright was updated to GPL 3.
+* Exit codes inside the code were changed to standard ones (EXIT_FAILURE,
+  EXIT_SUCCESS).
+* The special code in exit sequence for Borland compiler was removed (no more
+  relevant).
++ Short history of earlier ADDA development was added to the manual.
+* To-do list was replaced by issue tracker http://code.google.com/p/a-dda/issues
+- avg_inc_pol was not initialized in param.c, which could potentially lead to
+  undetermined behavior of LDR polarizability prescription (whether it is
+  averaged over incident polaeization or not). Fixed.
+- MakeParticle() was referenced as int instead of void in ADDAmain.c. This
+  should not cause any problems, but was fixed anyway.
++ A description how to add new beam type and new command line options were added
+  to the code and manual.
+* All 'intel...' compilation options in makefiles were combined into one. Tested
+  with icc 10.1 and 11.0.
++ Information on how to cite the manual was added to its first page. It includes
+  a direct link to the particular version of the manual on Google code.
+* PBS script was updated according to recent changes of module structure and
+  64-bit OS on LISA . An extensive description of this script was removed from
+  the manual.
++ Manual license is now explicitly set to Creative Commons Attribution 3.0
+  license.
++ A small summary of the comparison of the DDA with the FDTD was added to the
+  manual.
+* '-prognose' command line option was replaced by '-prognosis' (correct
+  spelling). The former is still operational but marked as deprecated.
++ A new option '-scat fin' was implemented, which uses finite dipole correction
+  for calculation of Cabs and Cext.
++ Breakdown detection of iterative solvers was improved.
+* The code was transformed to C99 standard without using its parts, which are
+  not yet widely supported by compilers (such as inline and complex). Explicit
+  support of this standard is required during compilation. Some style changes
+  were done, and some work in this direction is still due.
