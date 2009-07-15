@@ -1,6 +1,6 @@
 #summary Frequently asked questions.
 
-This list is far from being complete, therefore please send your questions to [adda-discuss@googlegroups.com].
+This list is far from being complete, therefore please send your questions to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com].
 
 === I have found a bug in ADDA. What should I do? ===
   * Make sure you are using the latest version of *ADDA*. If you modified the code yourself, try the original release.
@@ -12,7 +12,7 @@ This list is far from being complete, therefore please send your questions to [a
 === I do not understand how to ...? I run *ADDA* and get strange output or something different from what I have expected. What should I do? ===
   * Make sure you are using the latest version of *ADDA*. Read carefully the relevant parts of the manual.
   * Check this FAQ.
-  * If that does not help, you're encouraged to send your question to [adda-discuss@googlegroups.com]. Please try to make your question as specific as possible. If your question is based on a particular run, provide all relevant input and output files, at least log.
+  * If that does not help, you're encouraged to send your question to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com]. Please try to make your question as specific as possible. If your question is based on a particular run, provide all relevant input and output files, at least log.
 
 === Can I use *ADDA* to calculate scattering by a particle near the infinite dielectric plane surface? ===
 Basically, no. *ADDA* can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future. However, you may approach this problem using the current version of *ADDA*:
