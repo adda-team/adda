@@ -1,4 +1,5 @@
 #summary Frequently asked questions.
+#labels Featured
 
 This list is far from being complete, therefore please send your questions to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com].
 
@@ -17,7 +18,7 @@ This list is far from being complete, therefore please send your questions to [m
 === Can I use *ADDA* to calculate scattering by a particle near the infinite dielectric plane surface? ===
 Basically, no. *ADDA* can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future. However, you may approach this problem using the current version of *ADDA*:
  * You may completely ignore the surface, this may be accurate enough if particle is far from the surface and the refractive index change when crossing the surface is small.
- * A little more accurate approach is to consider the "incident field" in *ADDA* as a sum of incident and reflected plane waves. However, currently such incident field is not implemented, therefore it need first to be coded into *ADDA*.
+ * A little more accurate approach is to consider the "incident field" in *ADDA* as a sum of incident and reflected plane waves. However, currently such incident field is not implemented, therefore it need first to be coded into *ADDA*. How to do it is described in appendix F.2 of the manual.
  * Another approach is to take a large computational box around the particle, and discretize the surface that falls into it. This is rigorous in the limit of infinite size of computational box, but requires enormous computational time. It also requires you to specify the shape files for all different sizes of the computational box.
 
 === Can I calculate near-field using *ADDA*? ===
