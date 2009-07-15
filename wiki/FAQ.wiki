@@ -3,11 +3,11 @@
 This list is far from being complete, therefore please send your questions to [adda-discuss@googlegroups.com].
 
 === I have found a bug in ADDA. What should I do? ===
-  * Make sure you are using the latest version of *ADDA*. If you have modified the code yourself, try the original release.
-  * Look at the list of known bugs at [http://code.google.com/p/a-dda/issues/list issue tracker], maybe your bug is already known.
+  * Make sure you are using the latest version of *ADDA*. If you modified the code yourself, try the original release.
+  * Look at the list of known bugs at [http://code.google.com/p/a-dda/issues issue tracker], maybe your bug is already known.
   * Try to understand how exactly the bug occurs, write down the sequence of actions that lead to it.
   * Please try to localize the bug, i.e. try to remove as much command line parameters as possible without removing the bug. Also try to use default versions of input files, which you have modified.
-  * Submit your bug to [http://code.google.com/p/a-dda/issues/list issue tracker], including input files and Makefiles that you used for compilation. Do not forget to include all the relevant output files, at least log. Please also include a brief description of your operation system and hardware. We will try to fix the bug as soon as possible.
+  * Submit your bug to [http://code.google.com/p/a-dda/issues issue tracker], including input files and Makefiles that you used for compilation. Do not forget to include all the relevant output files, at least log. Please also include a brief description of your operation system and hardware. We will try to fix the bug as soon as possible.
 
 === I do not understand how to ...? I run *ADDA* and get strange output or something different from what I have expected. What should I do? ===
   * Make sure you are using the latest version of *ADDA*. Read carefully the relevant parts of the manual.
