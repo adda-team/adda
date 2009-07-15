@@ -15,10 +15,10 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * `-prognose` command line option was replaced by `-prognosis` (correct  spelling). The former is still operational but marked as deprecated.
  * The code was transformed to C99 standard without using its parts, which are not yet widely supported by compilers (such as inline and complex). Explicit support of this standard is required during compilation. Some style changes were done, and some work in this direction is still due.
  * Affiliation of one of the author (Maxim Yurkin) has changed to Institute of Chemical Kinetics & Combustion (Novosibirsk, Russia). Full name of the package was changed from *Amsterdam DDA* to *ADDA*. This does not change the global strategy of *ADDA* development.
- * Code repository has been [http://a-dda.googlecode.com moved to Google Code. Google groups [http://groups.google.com/group/adda-announce adda-announce], [http://groups.google.com/group/adda-discuss adda-discuss] and [http://groups.google.com/group/adda-develop adda-develop] were created to facilitate interaction with users. This replaces the previous mailing list.
+ * Code repository has been [http://a-dda.googlecode.com moved to Google Code]. Google groups [http://groups.google.com/group/adda-announce adda-announce], [http://groups.google.com/group/adda-discuss adda-discuss] and [http://groups.google.com/group/adda-develop adda-develop] were created to facilitate interaction with users. This replaces the previous mailing list.
  * Copyright was updated to [http://www.gnu.org/copyleft/gpl.html GPL 3].
  * To-do list was replaced by [http://code.google.com/p/a-dda/issues issue tracker].
- * Additions to the manual: short history of earlier <b>ADDA</b> development, description how to add new beam type and new command line options, a small summary of the comparison of the DDA with the FDTD, discussion of difference between two ways to calculate <i>C</i><sub>sca</sub>, possibilities to improve the accuracy of these calculations, and connection between differential cross section and the Mueller matrix.
+ * Additions to the manual: short history of earlier *ADDA* development, description how to add new beam type and new command line options, a small summary of the comparison of the DDA with the FDTD, discussion of difference between two ways to calculate _C_,,sca,,, possibilities to improve the accuracy of these calculations, and connection between differential cross section and the Mueller matrix.
  * Information on how to cite the manual was added to its first page. It includes a direct link to the particular version of the manual on Google code.
  * Manual license is now explicitly set to [http://creativecommons.org/licenses/by/3.0/ Creative Commons Attribution 3.0 license].
  * Several minor bugs were fixed.
@@ -42,7 +42,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Two new shapes were added: `capsule` and `egg`. They were implemented by Daniel Hahn and Richard I. Joseph.
  * Now, if grid size is auto-initialized from default dpl, *ADDA* ensures that it is not smaller than 16.
  * Limitation on positiveness of dipole coordinates in shape file was removed. Now *ADDA* automatically determines the minimum box around the particle and centers it as usual.
- * Orientation averaging was optimized. If _?_ is varied in a full range [0ø,360ø), only one value of _?_ is simulated for _?_=0ø and 180ø, saving a few evaluations of internal fields. Thanks to Antti Penttila for this idea.
+ * Orientation averaging was optimized. If _Î±_ is varied in a full range [0Â°,360Â°), only one value of _Î³_ is simulated for _Î²_=0Â° and 180Â°, saving a few evaluations of internal fields. Thanks to Antti Penttila for this idea.
  * Limited two-way compatibility with DDSCAT 6.1 geometry format was added. *ADDA* automatically detects DDSCAT format during reading of dipole file. When saving geometry to the file, the format is determined by new command line option `'-sg_format {text|text_ext|ddscat}'`.
  * Several minor bugs were fixed.
 
@@ -76,7 +76,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Added support for anisotropic refractive index (option `-anisotr`). Currently it is limited to refractive index tensors that are diagonal in the particle reference frame. Thanks to Michiel Min for fruitful discussions.
 
 =Ver. 0.75 - 24.05.06=
- * All `'system'` calls were removed to improve robustness under certain MPI implementations.
+ * All `system` calls were removed to improve robustness under certain MPI implementations.
  * Possible size of FFT-grid (and non-weird number of processors) has been extended to full range of FFTW. One possible divisor of either 11 or 13 has been added.
  * Robustness of makefiles with Intel compilers 8.1 and 9.0 in conjunction with MPICH has been increased.
  * Sample script for Sun Grid Engine has been added: `sample/test.sge`.
@@ -87,18 +87,18 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Robustness of generation of error messages in parallel mode has been increased.
  * Calculation of _C_,,sca,, or *g* caused both polarizations to be calculated even for particles that are symmetric for 90 degree rotation over the _z_-axis. That is not necessary - fixed.
  * Integration module has been significantly improved. It automatically uses the trapezoid rule for periodic function. Error estimates now seem to be reliable. Format of parameters for integration module has been changed because of the improvement.
- * www page of *ADDA* has been created.
+ * [http://www.science.uva.nl/research/scs/Software/adda/ Homepage of ADDA] has been created.
 
 =Ver. 0.74.2 - 05.04.06=
  * Makefiles has been improved to allow simple usage of Intel compilers.
  * A section describing FFTW 3 installation has been added to the manual.
 
 =Ver. 0.74 - 29.03.06=
- * 'buggy' beam type has been removed (obsolete).
+ * `buggy` beam type has been removed (obsolete).
  * Command line options `-nosym` and `-sym_enf` has been combined into `'-sym {no|enf}'`.
  * Internal fields are now automatically collected into one file, when running in parallel mode (named `IntField-X` and `IntField-Y`)
  * MPI-specific command line options has been enabled.
- * Geometry filename given to the command line option -save_geom should now be specified relative to the output directory.
+ * Geometry filename given to the command line option `-save_geom` should now be specified relative to the output directory.
  * In parallel mode each processor (except root) produces a separate logfile, if any errors or warnings were detected (on this specific processor).
  * Overall robustness of the code is improved (added many consistency checks).
  * Help system has been added (new command line option `-h`).
