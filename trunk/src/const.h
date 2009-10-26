@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.79"
+#define ADDA_VERSION "0.80a2"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -296,7 +296,9 @@ enum chpoint { // types of checkpoint (to save)
 #define FD_SCAT_PARMS   "scat_params.dat"
 #define FD_CHP_DIR      "chpoint"
 
-// number of components of D
+/* number of components of D. Really, it can't be easily changed, but using constant instead of 6
+ * adds more understanding for reader
+ */
 #define NDCOMP 6
 
 // shape formats; numbers should be nonnegative

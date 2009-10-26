@@ -171,18 +171,18 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	}
 #ifdef PRECISE_TIMING
 	GetTime(tvp+1);
-	elapsed(tvp,tvp+1,&Timing_Mult1);
+	Elapsed(tvp,tvp+1,&Timing_Mult1);
 #endif
 	// FFT X
 	fftX(FFT_FORWARD); // fftX Xmatrix
 #ifdef PRECISE_TIMING
 	GetTime(tvp+2);
-	elapsed(tvp+1,tvp+2,&Timing_FFTXf);
+	Elapsed(tvp+1,tvp+2,&Timing_FFTXf);
 #endif
 	BlockTranspose(Xmatrix);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+3);
-	elapsed(tvp+2,tvp+3,&Timing_BTf);
+	Elapsed(tvp+2,tvp+3,&Timing_BTf);
 #endif
 	// following is done by slices
 	for(x=local_x0;x<local_x1;x++) {
@@ -278,12 +278,12 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	BlockTranspose(Xmatrix);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+14);
-	elapsed(tvp+13,tvp+14,&Timing_BTb);
+	Elapsed(tvp+13,tvp+14,&Timing_BTb);
 #endif
 	fftX(FFT_BACKWARD); // fftX Xmatrix
 #ifdef PRECISE_TIMING
 	GetTime(tvp+15);
-	elapsed(tvp+14,tvp+15,&Timing_FFTXb);
+	Elapsed(tvp+14,tvp+15,&Timing_FFTXb);
 #endif
 	// fill resultvec
 	for (i=0;i<local_nvoid_Ndip;i++) {
@@ -303,12 +303,12 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	}
 #ifdef PRECISE_TIMING
 	GetTime(tvp+16);
-	elapsed(tvp+15,tvp+16,&Timing_Mult5);
+	Elapsed(tvp+15,tvp+16,&Timing_Mult5);
 #endif
 	if (ipr) MyInnerProduct(inprod,double_type,1,&Timing_OneIterComm);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+17);
-	elapsed(tvp+16,tvp+17,&Timing_ipr);
+	Elapsed(tvp+16,tvp+17,&Timing_ipr);
 
 	SetTimerFreq();
 	t_Mult1=TimerToSec(&Timing_Mult1);

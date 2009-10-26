@@ -51,7 +51,7 @@ double DiffSec(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2) ATT_PURE;
 
 //============================================================
 
-INLINE void elapsed(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *res)
+INLINE void Elapsed(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *res)
 // compute time difference
 {
 #ifdef WINDOWS

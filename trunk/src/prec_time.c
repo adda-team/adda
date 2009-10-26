@@ -78,7 +78,7 @@ double DiffSec(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2)
 {
 	SYSTEM_TIME res;
 
-	elapsed(t1,t2,&res);
+	Elapsed(t1,t2,&res);
 	return TimerToSec(&res);
 }
 
