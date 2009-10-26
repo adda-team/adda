@@ -876,12 +876,11 @@ void InitDmatrix(void)
  */
 {
 	int i,j,k,kcor,Dcomp;
-	size_t x,y,z,indexfrom,indexto,ind,index,D2sizeTot;
+	size_t x,y,z,indexfrom,indexto,ind,index,Dsize,D2sizeTot;
 	double invNgrid,mem;
 	int nnn; // multiplier used for reduced_FFT or not reduced; 1 or 2
 	int jstart, kstart;
 	size_t lengthN;
-	int mu, nu; // indices for interaction term
 	TIME_TYPE start,time1;
 #ifdef PARALLEL
 	size_t bufsize;
@@ -889,10 +888,10 @@ void InitDmatrix(void)
 #ifdef PRECISE_TIMING
 	// precise timing of the Dmatrix computation
 	SYSTEM_TIME tvp[13];
-	SYSTEM_TIME Timing_fftX,Timing_fftY,Timing_fftZ,Timing_ar1,Timing_ar2,Timing_ar3,
+	SYSTEM_TIME Timing_fftX,Timing_fftY,Timing_fftZ,Timing_Gcalc,Timing_ar1,Timing_ar2,Timing_ar3,
 	Timing_BT,Timing_TYZ,Timing_beg;
 	double t_fftX,t_fftY,t_fftZ,t_ar1,t_ar2,t_ar3,
-	t_TYZ,t_beg,t_Arithm,t_FFT,t_BT;
+	t_TYZ,t_beg,t_Gcalc,t_Arithm,t_FFT,t_BT;
 
 	InitTime(&Timing_fftX);
 	InitTime(&Timing_fftY);
@@ -951,9 +950,10 @@ void InitDmatrix(void)
 	memory+=mem;
 	if (prognosis) return;
 	// allocate memory for Dmatrix
-	MALLOC_VECTOR(Dmatrix,complex,MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS,"Dmatrix"),ALL);
+	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS,"Dmatrix");
+	MALLOC_VECTOR(Dmatrix,complex,Dsize,ALL);
 	// allocate memory for D2matrix components
-	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX;
+	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
 	MALLOC_VECTOR(D2matrix,complex,D2sizeTot,ALL);
 	MALLOC_VECTOR(slice,complex,gridYZ,ALL);
 	MALLOC_VECTOR(slice_tr,complex,gridYZ,ALL);
@@ -969,60 +969,47 @@ void InitDmatrix(void)
 
 #ifdef PRECISE_TIMING
 	GetTime(tvp+1);
-	elapsed(tvp,tvp+1,&Timing_beg);
+	Elapsed(tvp,tvp+1,&Timing_beg);
 #endif
-	PRINTZ("Calculating Dmatrix");
+	PRINTZ("Calculating Green's function (Dmatrix)\n");
 	FFLUSHZ(stdout);
+	/* Interaction matrix values are calculated all at once for performance reasons. They are stored
+	 * in Dmatrix with indexing corresponding to D2matrix (to facilitate copying) but NDCOMP
+	 * elements instead of one. Afterwards they are replaced by Fourier transforms (with different
+	 * indexing) component-wise (in cycle over NDCOMP)
+	 */
 
+	/* fill Dmatrix with 0, this if to fill the possible gap between e.g. boxY and gridY/2;
+	 * probably faster than using a lot of conditionals
+	 */
+	for (ind=0;ind<Dsize;ind++) Dmatrix[ind][RE]=Dmatrix[ind][IM]=0;
+	// fill Dmatrix with values of Green's tensor
+	for(k=nnn*local_z0;k<nnn*local_z1;k++) {
+		// correction of k is relevant only if reduced_FFT is not used
+		if (k>(int)smallZ) kcor=k-gridZ;
+		else kcor=k;
+		for (j=jstart;j<boxY;j++) for (i=1-boxX;i<boxX;i++) {
+			index=NDCOMP*IndexD2matrix(i,j,k,nnn);
+			CalcInterTerm(i,j,kcor,0,0,Dmatrix[index]);
+			CalcInterTerm(i,j,kcor,0,1,Dmatrix[index+1]);
+			CalcInterTerm(i,j,kcor,0,2,Dmatrix[index+2]);
+			CalcInterTerm(i,j,kcor,1,1,Dmatrix[index+3]);
+			CalcInterTerm(i,j,kcor,1,2,Dmatrix[index+4]);
+			CalcInterTerm(i,j,kcor,2,2,Dmatrix[index+5]);
+		}
+	} // end of i,j,k loop
+#ifdef PRECISE_TIMING
+	GetTime(tvp+2);
+	Elapsed(tvp+1,tvp+2,&Timing_Gcalc);
+#endif
+	PRINTZ("Fourier transform of Dmatrix");
+	FFLUSHZ(stdout);
 	for(Dcomp=0;Dcomp<NDCOMP;Dcomp++) { // main cycle over components of Dmatrix
 #ifdef PRECISE_TIMING
-		GetTime(tvp+2);
+		GetTime(tvp+2); // same as the last before cycle
 #endif
-		switch((char) Dcomp) { // determine mu,nu
-			case 0: {
-				mu=0;
-				nu=0;
-				break;
-			}
-			case 1: {
-				mu=0;
-				nu=1;
-				break;
-			}
-			case 2: {
-				mu=0;
-				nu=2;
-				break;
-			}
-			case 3: {
-				mu=1;
-				nu=1;
-				break;
-			}
-			case 4: {
-				mu=1;
-				nu=2;
-				break;
-			}
-			case 5: {
-				mu=2;
-				nu=2;
-				break;
-			}
-		} // end of switch
-
-		// fill D2matrix with 0.0
-		for (ind=0;ind<D2sizeTot;ind++) D2matrix[ind][RE]=D2matrix[ind][IM]=0.0;
-
-		// fill D (F'i-j)
-		for(k=nnn*local_z0;k<nnn*local_z1;k++) {
-			if (k>(int)smallZ) kcor=k-gridZ;
-			else kcor=k;
-			for (j=jstart;j<boxY;j++) for (i=1-boxX;i<boxX;i++) {
-				index=IndexD2matrix(i,j,k,nnn);
-				CalcInterTerm(i,j,kcor,mu,nu,D2matrix[index]); // calculate F[mu][nu]
-			}
-		} // end of i,j,k loop
+		// fill D2matrix with precomputed values from D2matrix
+		for (ind=0;ind<D2sizeTot;ind++) cEqual(Dmatrix[NDCOMP*ind+Dcomp],D2matrix[ind]);
 #ifdef PRECISE_TIMING
 		GetTime(tvp+3);
 		ElapsedInc(tvp+2,tvp+3,&Timing_ar1);
@@ -1121,6 +1108,7 @@ void InitDmatrix(void)
 	// analyze and print precise timing information
 	SetTimerFreq();
 	t_beg=TimerToSec(&Timing_beg);
+	t_Gcalc=TimerToSec(&Timing_Gcalc);
 	t_ar1=TimerToSec(&Timing_ar1);
 	t_ar2=TimerToSec(&Timing_ar2);
 	t_ar3=TimerToSec(&Timing_ar3);
@@ -1129,7 +1117,7 @@ void InitDmatrix(void)
 	t_fftZ=TimerToSec(&Timing_fftZ);
 	t_TYZ=TimerToSec(&Timing_TYZ);
 	t_BT=TimerToSec(&Timing_BT);
-	t_Arithm=t_beg+t_ar1+t_ar2+t_ar3+t_TYZ;
+	t_Arithm=t_beg+t_Gcalc+t_ar1+t_ar2+t_ar3+t_TYZ;
 	t_FFT=t_fftX+t_fftY+t_fftZ;
 
 	PRINTBOTHZ(logfile,
@@ -1137,16 +1125,17 @@ void InitDmatrix(void)
 		"            Init Dmatrix timing            \n"
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 		"Begin  = %4.4f    Arithmetics = %4.4f\n"
-		"Arith1 = %4.4f    FFT         = %4.4f\n"
-		"FFTX   = %4.4f    Comm        = %4.4f\n"
-		"BT     = %4.4f\n"
-		"Arith2 = %4.4f          Total = %4.4f\n"
+		"Gcalc  = %4.4f    FFT         = %4.4f\n"
+		"Arith1 = %4.4f    Comm        = %4.4f\n"
+		"FFTX   = %4.4f\n"
+		"BT     = %4.4f          Total = %4.4f\n"
+		"Arith2 = %4.4f\n"
 		"FFTZ   = %4.4f\n"
 		"TYZ    = %4.4f\n"
 		"FFTY   = %4.4f\n"
 		"Arith3 = %4.4f\n\n",
-		t_beg,t_Arithm,t_ar1,t_FFT,t_fftX,t_BT,t_BT,
-		t_ar2,DiffSec(tvp,tvp+12),t_fftZ,t_TYZ,t_fftY,t_ar3);
+		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_BT,
+		DiffSec(tvp,tvp+12),t_ar2,t_fftZ,t_TYZ,t_fftY,t_ar3);
 #endif
 
 	fftInitAfterD();
