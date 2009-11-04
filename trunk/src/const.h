@@ -162,6 +162,7 @@ enum inter { // how to calculate interaction term
 	G_POINT_DIP, // as point dipoles
 	G_FCD,       // Filtered Green's tensor (Filtered Coupled Dipoles)
 	G_FCD_ST,    // quasi-static version of FCD
+	G_IGT,       // (direct) integration of Green's tensor
 	G_SO         // Second Order formulation
 };
 

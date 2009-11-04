@@ -4,25 +4,25 @@
 # $Date::                            $
 # 
 # Copyright (C) 2006-2008 University of Amsterdam
+# Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
-# ADDA is free software: you can redistribute it and/or modify it under the 
-# terms of the GNU General Public License as published by the Free Software 
-# Foundation, either version 3 of the License, or (at your option) any later 
-# version.
+## ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# ADDA is distributed in the hope that it will be useful,but WITHOUT ANY 
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR 
-# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+# the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+# Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with 
-# ADDA. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with ADDA. If not, see
+# <http://www.gnu.org/licenses/>.
 
-#===============================================================================
-# !!! Start of control section. Flags and options here are designed to be
-# modified by user to choose particular options for compilation. However, the
-# default set of options may work out-of-box on some systems.  
-#===============================================================================
+#===================================================================================================
+# !!! Start of control section. Flags and options here are designed to be modified by user to choose
+# particular options for compilation. However, the default set of options may work out-of-box on 
+# some systems.  
+#===================================================================================================
 
 # Either use compiler directly or use MPI wrapper
 #MPICC = $(CC)
@@ -37,8 +37,8 @@ endif
 
 # If the compiler is used directly, few additional options are needed
 ifeq ($(MPICC),$(CC))
-  # Depending on a particular MPI installation it may be required to manually
-  # specify paths to MPI headers and libraries
+  # Depending on a particular MPI installation one may need to manually specify paths to MPI headers
+  # and libraries
   #CFLAGS += -I"/C/Program Files/MPICH2/include"
   #LFLAGS += -L"/C/Program Files/MPICH2/lib"
   
@@ -50,18 +50,17 @@ else
   export MPICH_CLINKER = $(CC)
 endif
 
-#===============================================================================
-# !!! End of control section. Everything below is not designed to be modified by
-# user
-#===============================================================================
+#===================================================================================================
+# !!! End of control section. Everything below is not designed to be modified by user
+#===================================================================================================
 
 # Finalize flags
 CFLAGS += -DMPI
 MFILES += make_mpi $(LASTMPI)
 
-#===============================================================================
+#===================================================================================================
 # Main action part
-#===============================================================================
+#===================================================================================================
 
 .DELETE_ON_ERROR:
 
@@ -78,8 +77,8 @@ $(FOBJECTS): %.o: %.f $(MFILES)
 
 $(LASTMPI):
 	echo "void" > $(LASTMPI)
-# Dependencies are only generated for C sources;
-# we assume that each Fortran file is completely independent
+# Dependencies are only generated for C sources; we assume that each Fortran file is completely 
+# independent or compiled all at once
 
 $(CDEPEND): %.d: %.c $(MFILES)
 	$(MPICC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
