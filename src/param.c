@@ -98,6 +98,9 @@ char scat_grid_parms[MAX_FNAME];  // name of file with parameters of scattering 
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
+// used in fft.c
+double igt_lim; // limit (threshold) for integration in IGT
+double igt_eps; // relative error of integration in IGT
 // used in GenerateB.c
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
@@ -369,10 +372,18 @@ static struct opt_struct options[]={
 		"preceding dash). For some options (e.g. '-beam' or '-shape') specific help on a "
 		"particular suboption <subopt> may be shown.\n"
 		"Example: shape coated",UNDEF,NULL},
-	{PAR(int),"{poi|fcd|fcd_st|so}","Sets prescription to calculate interaction term. 'so' is "
-		"under development and incompatible with '-anisotr'. 'fcd' requires dpl to be larger "
-		"than 2.\n"
-		"Default: poi",1,NULL},
+	{PAR(int),"{poi|fcd|fcd_st|igt [<lim> [<prec>]]|so}","Sets prescription to calculate "
+		"interaction term.\n"
+		"'so' is under development and incompatible with '-anisotr'.\n"
+		"'fcd' requires dpl to be larger than 2.\n"
+		"Parameters of 'igt' are: <lim> - maximum distance (in dipole sizes), for which "
+		"integration is used, (default: infinity); <prec> - minus decimal logarithm of relative "
+		"error of the integration, i.e. epsilon=10^(-<prec>) (default: same as argument of '-eps' "
+		"command line option).\n"
+#ifdef DISABLE_IGT
+		"'igt' was disabled at compile time.\n"
+#endif
+		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 	{PAR(jagged),"<arg>","Sets a size of a big dipole in units of small dipoles, integer. It is "
@@ -665,7 +676,7 @@ INLINE void ScanfIntError(const char *str,int *res)
 	if (sscanf(str,"%lf",&tmp)!=1) PrintErrorHelpSafe(
 		"Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
 	if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelpSafe(
-		"Argumenent value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
+		"Argument value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
 	if (sscanf(str,"%d",res)!=1)
 		PrintErrorHelpSafe("Error reading argument (%s) of the option '-%s'",str,OptionName());
 }
@@ -928,11 +939,32 @@ PARSE_FUNC(h)
 }
 PARSE_FUNC(int)
 {
+	double tmp;
+
+	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
 	else if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
 	else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
+	else if (strcmp(argv[1],"igt")==0) {
+#ifdef DISABLE_IGT
+		PrintErrorHelp("To use IGT it should be enabled at compile time (comment line "
+			           "'CFLAGS += -DDISABLE_IGT' in Makefile");
+#endif
+		IntRelation=G_IGT;
+		if (Narg>=2) {
+			ScanfDoubleError(argv[2],&igt_lim);
+			TestNonNegative(igt_lim,"distance limit for IGT");
+			if (Narg==3) {
+				ScanfDoubleError(argv[3],&tmp);
+				TestPositive(tmp,"IGT precision");
+				igt_eps=pow(10,-tmp);
+			}
+		}
+	}
 	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
 	else NotSupported("Interaction term prescription",argv[1]);
+	if (Narg>1 && strcmp(argv[1],"igt")!=0)
+		PrintErrorHelp("Additional arguments are allowed only for 'igt'");
 }
 PARSE_FUNC(iter)
 {
@@ -1024,15 +1056,19 @@ PARSE_FUNC(pol)
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
-	else if (strcmp(argv[1],"ldr")==0) PolRelation=POL_LDR;
+	else if (strcmp(argv[1],"ldr")==0) {
+		PolRelation=POL_LDR;
+		if (Narg==2) {
+			if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=true;
+			else PrintErrorHelpSafe("Unknown argument '%s' to '-pol ldr' option",argv[2]);
+		}
+	}
 	else if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
 	else NotSupported("Polarization relation",argv[1]);
-	if (Narg==2) {
-		if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=true;
-		else PrintErrorHelpSafe("Unknown argument '%s' to '-pol %s' option",argv[2],argv[1]);
-	}
+	if (Narg==2 && strcmp(argv[1],"ldr")!=0)
+		PrintErrorHelp("Second argument is allowed only for 'ldr'");
 }
 PARSE_FUNC(prognose)
 {
@@ -1445,6 +1481,8 @@ void InitVariables(void)
 	sg_format=SF_TEXT;
 	memory=0;
 	Ncomp=1;
+	igt_lim=UNDEF;
+	igt_eps=UNDEF;
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If you use some new variables, flags, etc. you should specify their default values here. This
 	 * value will be used if new option is not specified in the command line.
@@ -1520,6 +1558,8 @@ void VariablesInterconnect(void)
 	// yzplane is true except when this case is true and when not forced by -yz option
 	if (store_scat_grid || phi_integr) scat_grid = true;
 	else yzplane = true;
+	// if not initialized before, IGT precision is set to that of the iterative solver
+	if (igt_eps==UNDEF) igt_eps=eps;
 	// parameter incompatibilities
 	if (orient_avg) {
 		if (prop_0[2]!=1) PrintError("'-prop' and '-orient avg' can not be used together");
@@ -1804,6 +1844,11 @@ void PrintInfo(void)
 		else if (IntRelation==G_FCD) fprintf(logfile,"'Filtered Green's tensor'\n");
 		else if (IntRelation==G_FCD_ST)
 			fprintf(logfile,"'Filtered Green's tensor (quasistatic)'\n");
+		else if (IntRelation==G_IGT) {
+			fprintf(logfile,"'Integrated Green's tensor' (accuracy %g, ",igt_eps);
+			if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
+			else fprintf(logfile,"for distance < %g dipole sizes)\n",igt_lim);
+		}
 		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
 		// log FFT method
 		fprintf(logfile,"FFT algorithm: ");

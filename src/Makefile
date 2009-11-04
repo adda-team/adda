@@ -8,24 +8,23 @@
 # Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
-# ADDA is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
+# ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# ADDA is distributed in the hope that it will be useful,but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+# the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+# Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# ADDA. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with ADDA. If not, see
+# <http://www.gnu.org/licenses/>.
 
-#===============================================================================
+#===================================================================================================
 # !!! Start of control section. Flags and options here are designed to be
 # modified by user to choose particular options for compilation. However, the
 # default set of options may work out-of-box on some systems. If compiling with
 # MPI support please also look at control section in file 'make_mpi'.
-#===============================================================================
+#===================================================================================================
 
 # --Optional flags-- Uncomment those that you find appropriate;
 # information can be found in corresponding headers
@@ -43,11 +42,15 @@
 #CFLAGS += -DNOT_USE_LOCK
 #CFLAGS += -DONLY_LOCKFILE
 
+# This should be uncommented, if compiling of Fortran sources cause problems
+# and IGT is not needed
+#CFLAGS += -DDISABLE_IGT
+
 # --Compilers-- Choose one of the following
 # gnu - tested for gcc 3.2.3 - 4.3.2
 # intel - tested on icc 9.0 - 11.0
-# compaq - tested on Compaq C V6.5-303 (dtk)
-# ibm - tested on xlc 8.0
+# compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
+# ibm - tested on xlc 8.0 - last tested in 2008
 # other -
 COMPILER = gnu
 
@@ -72,28 +75,26 @@ RELEASE = on
 #FFTW3_LIB_PATH = "./../lib"
 
 # --C standard--
-# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
-# at compile time (and error is produced if the test fails). However, if you believe that your
-# compiler supports all the required features (listed in const.h), but do not define itself
-# conforming to C99, you may uncomment the following option to override the test.
-# Do it at your own risk!
+# ADDA code relies on certain parts of C99 standard, therefore support of this
+# standard is checked at compile time (and error is produced if the test fails).
+# However, if you believe that your compiler supports all the required features
+# (listed in const.h), but do not define itself conforming to C99, you may
+# uncomment the following option to override the test. Do it at your own risk!
 #CFLAGS += -DOVERRIDE_STDC_TEST
 
-#===============================================================================
-# !!! End of control section. Everything below is not designed to be modified by
-# user. However, advanced users may wish to modify some compilers  flags below,
-# especially when using 'other' compiler.
+#===================================================================================================
+# !!! End of control section. Everything below is not designed to be modified by user. However, 
+# advanced users may wish to modify some compilers  flags below, especially when using 'other' 
+# compiler.
 
 # Unconditional variables
-#===============================================================================
+#===================================================================================================
 
 
-CSOURCE  = ADDAmain.c  calculator.c make_particle.c CalculateE.c \
-           GenerateB.c debug.c timing.c linalg.c \
-           iterative.c memory.c comm.c matvec.c param.c \
-           fft.c crosssec.c Romberg.c io.c prec_time.c vars.c \
-           mt19937ar.c sinint.c
-# One file is added below
+CSOURCE  = ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
+           linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
+           prec_time.c vars.c mt19937ar.c sinint.c
+# Some file may be added below
 FSOURCE  =
 
 COBJECTS = $(CSOURCE:.c=.o)
@@ -111,9 +112,9 @@ MFILES   = Makefile
 # Fortran sources generate a lot of warnings
 FWARN    = -w
 
-#===============================================================================
+#===================================================================================================
 # Conditional variables that depend on the values of optional flags
-#===============================================================================
+#===================================================================================================
 
 # adds link to fftw3 library and modifies paths when above is commented
 ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
@@ -127,15 +128,25 @@ ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
 else
   FSOURCE += cfft99D.f
 endif
+# adds necessary sources when IGT is used
+ifeq ($(findstring -DDISABLE_IGT,$(CFLAGS)),)
+  FSOURCE += d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
+             drlhre.f dtrhre.f propaesplibreintadda.f
+endif
 # compiler warnings and optimization flags;
 # when release, warning are turned off below
-FOPT    = $(COPT)
+FOPT = $(COPT)
+# This is for additional libraries that may be needed when using C linker on a Fortran sources 
+# (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are 
+# assigned for each compiler below
+FLIBS =
 ifeq ($(COMPILER),gnu)
-  # You can add option '-march=...' or 'mcpu=...' to COPT and FOPT in this section
+  # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
   COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
+  FLIBS = -lg2c
   CWARN = -Wall -W -pedantic -Wcast-qual -Wpointer-arith \
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
           -Wno-unknown-pragmas -Wno-unused-parameter
@@ -145,14 +156,12 @@ ifeq ($(COMPILER),intel)
   CF    = ifort
   COPT  = -std=c99 -O3
   FOPT  = -O3
-  CWARN = -Wall -Wno-uninitialized -Wno-comment \
-            -wd810,869,981,1418,1419,1572,2259
+  CWARN = -Wall -Wno-uninitialized -wd810,869,981,1418,1419,1572,2259
 endif
 ifeq ($(COMPILER),compaq)
-  # This compiler was not tested since 2007. In particular, warning options may
-  # not fit exactly the C99 standard, to which the code was transferred.
-  # Its support for 64 bit compilations is also undefined.
-  # If you happen to use this compiler, please report results to the authors.
+  # This compiler was not tested since 2007. In particular, warning options may not fit exactly the 
+  # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also 
+  # undefined. If you happen to use this compiler, please report results to the authors.
   #
   # You can add option '-arch host' to COPT and FOPT in this section
   CC    = cc
@@ -161,6 +170,9 @@ ifeq ($(COMPILER),compaq)
   CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 endif
 ifeq ($(COMPILER),ibm)
+  # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS 
+  # should be used. If you happen to use this compiler, please report results to the authors.
+  #
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
   # machine. However, it will not work in some configurations.
   # Then use '-O3 -qarch=... -qtune=...' instead
@@ -173,6 +185,10 @@ ifeq ($(COMPILER),ibm)
 endif
 ifeq ($(COMPILER),other)
 endif
+# if Fortran sources are used, Fortran libraries are added
+ifneq ($(FSOURCE),)
+  LDLIBS += $(FLIBS)
+endif
 # if 'release' turn off warningns
 ifdef RELEASE
   CWARN = -w
@@ -183,9 +199,9 @@ CFLAGS += $(COPT) $(CWARN)
 FFLAGS += $(FOPT) $(FWARN)
 LFLAGS += $(COPT) $(LWARN)
 
-#===============================================================================
+#===================================================================================================
 # Main action part
-#===============================================================================
+#===================================================================================================
 
 .EXPORT_ALL_VARIABLES:
 .PHONY: seq mpi clean
@@ -199,4 +215,4 @@ mpi:
 	$(MAKE) -f make_mpi
 
 clean:
-	rm -f *.o *.d $(PROGSEQ) $(PROGMPI) $(LASTSEQ) $(LASTMPI)
+	rm -f *.o *.d $(PROGSEQ) $(PROGSEQ).exe $(PROGMPI) $(PROGMPI).exe $(LASTSEQ) $(LASTMPI)

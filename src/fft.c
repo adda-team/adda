@@ -56,6 +56,9 @@ extern const int **tab_index;
 // defined and initialized in make_particle.c
 extern double gridspace;
 
+// defined and initialized in param.c
+extern double igt_lim, igt_eps;
+
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
@@ -87,6 +90,10 @@ static int ifaxX[IFAX_SIZE],ifaxY[IFAX_SIZE],ifaxZ[IFAX_SIZE];
 void cftfax_(const int *nn,int *ifax,double *trigs);
 void cfft99_(double *data,double *_work,const double *trigs,const int *ifax,const int *inc,
 	const int *jump,const int *nn,const int *lot,const int *isign);
+#endif
+#ifndef DISABLE_IGT
+void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,
+	const double *relreq, double *result);
 #endif
 
 // EXTERNAL FUNCTIONS
@@ -544,31 +551,39 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 	rr2=DotProd(rtemp,rtemp);
 	rr=sqrt(rr2);
 	rn=rr/gridspace; // normalized r
-	invr=1/rr;
-	invr3=invr*invr*invr;
-	MultScal(invr,rtemp,qvec);
-	kr=WaveNum*rr;
-	kr2=kr*kr;
-	kfr=PI*rn; // k_F*r, for FCD
-	// cov=cos(kr); siv=sin(kr); expval=Exp(ikr)/r^3
-	imExp(kr,expval);
-	cov=expval[RE];
-	siv=expval[IM];
-	cMultReal(invr3,expval,expval);
-	//====== calculate Gp ========
-	for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-		dmunu[comp]= mu==nu ? 1 : 0;
-		qmunu[comp]=qvec[mu]*qvec[nu];
-		// br=delta[mu,nu]*(-1+ikr+kr^2)-qmunu*(-3+3ikr+kr^2)
-		br[RE]=(3-kr2)*qmunu[comp];
-		br[IM]=-3*kr*qmunu[comp];
-		if(dmunu[comp]) {
-			br[RE]+=kr2-1;
-			br[IM]+=kr;
+#ifndef DISABLE_IGT
+	if (IntRelation==G_IGT && (igt_lim==UNDEF || rn<=igt_lim))
+		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
+	else {
+#endif
+		invr=1/rr;
+		invr3=invr*invr*invr;
+		MultScal(invr,rtemp,qvec);
+		kr=WaveNum*rr;
+		kr2=kr*kr;
+		kfr=PI*rn; // k_F*r, for FCD
+		// cov=cos(kr); siv=sin(kr); expval=Exp(ikr)/r^3
+		imExp(kr,expval);
+		cov=expval[RE];
+		siv=expval[IM];
+		cMultReal(invr3,expval,expval);
+		//====== calculate Gp ========
+		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+			dmunu[comp]= mu==nu ? 1 : 0;
+			qmunu[comp]=qvec[mu]*qvec[nu];
+			// br=delta[mu,nu]*(-1+ikr+kr^2)-qmunu*(-3+3ikr+kr^2)
+			br[RE]=(3-kr2)*qmunu[comp];
+			br[IM]=-3*kr*qmunu[comp];
+			if(dmunu[comp]) {
+				br[RE]+=kr2-1;
+				br[IM]+=kr;
+			}
+			// result=Gp=expval*br
+			cMult(br,expval,result[comp]);
 		}
-		// result=Gp=expval*br
-		cMult(br,expval,result[comp]);
-	}
+#ifndef DISABLE_IGT
+	} // end of else
+#endif
 	//====== FCD (static and full) ========
 	/* speed of FCD can be improved by using faster version of sici routine, using predefined
 	 * tables, etc (e.g. as is done in GSL library). But currently extra time for this computation
