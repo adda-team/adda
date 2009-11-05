@@ -144,7 +144,9 @@ src/
             - source and header files of ADDA
   cfft99D.f - source file for Temperton FFT
   mt19937ar.c/h - source and header files for Mersenne Twister random generator.
-
+  propaesplibreintadda.f, d07hre.f, d09hre.f, d113re.f, d132re.f, dadhre.f,
+  dchhre.f, dcuhre.f, dfshre.f, dinhre.f, drlhre.f, dtrhre.f
+            - subroutine to compute IGT and auxiliary numerical routines.
 
                            4. COMPILING AND LINKING
                            ************************
