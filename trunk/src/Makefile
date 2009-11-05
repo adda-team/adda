@@ -83,8 +83,8 @@ RELEASE = on
 #CFLAGS += -DOVERRIDE_STDC_TEST
 
 #===================================================================================================
-# !!! End of control section. Everything below is not designed to be modified by user. However, 
-# advanced users may wish to modify some compilers  flags below, especially when using 'other' 
+# !!! End of control section. Everything below is not designed to be modified by user. However,
+# advanced users may wish to modify some compilers  flags below, especially when using 'other'
 # compiler.
 
 # Unconditional variables
@@ -136,8 +136,8 @@ endif
 # compiler warnings and optimization flags;
 # when release, warning are turned off below
 FOPT = $(COPT)
-# This is for additional libraries that may be needed when using C linker on a Fortran sources 
-# (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are 
+# This is for additional libraries that may be needed when using C linker on a Fortran sources
+# (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are
 # assigned for each compiler below
 FLIBS =
 ifeq ($(COMPILER),gnu)
@@ -156,11 +156,12 @@ ifeq ($(COMPILER),intel)
   CF    = ifort
   COPT  = -std=c99 -O3
   FOPT  = -O3
+  FLIBS = -lifcore
   CWARN = -Wall -Wno-uninitialized -wd810,869,981,1418,1419,1572,2259
 endif
 ifeq ($(COMPILER),compaq)
-  # This compiler was not tested since 2007. In particular, warning options may not fit exactly the 
-  # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also 
+  # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
+  # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also
   # undefined. If you happen to use this compiler, please report results to the authors.
   #
   # You can add option '-arch host' to COPT and FOPT in this section
@@ -170,7 +171,7 @@ ifeq ($(COMPILER),compaq)
   CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 endif
 ifeq ($(COMPILER),ibm)
-  # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS 
+  # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
   # should be used. If you happen to use this compiler, please report results to the authors.
   #
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host

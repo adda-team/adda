@@ -1156,9 +1156,12 @@ static double PlaceGranules(void)
 			// check if taking too long
 			if (zerofit>MAX_ZERO_FITS) {
 				MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
+				/* conversions to (unsigned long) are needed (to remove warnings) because %z printf
+				 * argument is not yet supported by all target compiler environments
+				 */
 				LogError(EC_ERROR,ONE_POS,"The granule generator failed to reach required volume "
-					"fraction (%g) of granules. %zu granules were successfully placed up to a "
-					"volume fraction of %g.",gr_vf,n,nd/mat_count[gr_mat]);
+					"fraction (%g) of granules. %lu granules were successfully placed up to a "
+					"volume fraction of %g.",gr_vf,(unsigned long)n,nd/mat_count[gr_mat]);
 			}
 		}
 	}
