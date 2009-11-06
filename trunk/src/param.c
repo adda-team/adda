@@ -481,8 +481,8 @@ static struct opt_struct options[]={
 		"them into account ('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
 	{PAR(test),"","Begin name of the output directory with 'test' instead of 'run'",0,NULL},
-	{PAR(V),"","Show ADDA version, compiler used to build this executable, and copyright "
-		"information",0,NULL},
+	{PAR(V),"","Show ADDA version, compiler used to build this executable, build options, and "
+		"copyright information",0,NULL},
 	{PAR(vec),"","Calculate the not-normalized asymmetry vector",0,NULL},
 	{PAR(yz),"","Calculate the Mueller matrix in yz-plane even if it is calculated for a "
 		"scattering grid. If the latter option is not enabled, scattering in yz-plane is always "
@@ -1219,7 +1219,8 @@ PARSE_FUNC(V)
 		"PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\n"
 		"You should have received a copy of the GNU General Public License along with this "
 		"program. If not, see <http://www.gnu.org/licenses/>.\n";
-	char ccver_str[MAX_LINE];
+#define BUILD_OPTS_SIZE 100
+	char ccver_str[MAX_LINE],build_opts[BUILD_OPTS_SIZE];
 #if defined(__DECC)
 	char cctype;
 #elif defined(__BORLANDC__)
@@ -1288,7 +1289,33 @@ PARSE_FUNC(V)
 		num=SIZE_MAX;
 		bits=1;
 		while(num>>=1) bits++;
-		printf(" (%d-bit)",bits);
+		printf(" (%d-bit)\n",bits);
+		// extra build flags
+		strncpy(build_opts,
+#ifdef DEBUG
+		"DEBUG, "
+#endif
+#ifdef FFT_TEMPERTON
+		"FFT_TEMPERTON, "
+#endif
+#ifdef PRECISE_TIMING
+		"PRECISE_TIMING, "
+#endif
+#ifdef NOT_USE_LOCK
+		"NOT_USE_LOCK, "
+#elif defined(ONLY_LOCKFILE)
+		"ONLY_LOCKFILE, "
+#endif
+#ifdef DISABLE_IGT
+		"DISABLE_IGT, "
+#endif
+#ifdef OVERRIDE_STDC_TEST
+		"OVERRIDE_STDC_TEST, "
+#endif
+		"",BUILD_OPTS_SIZE-1);
+		if (build_opts[0]==0) strncpy(build_opts,"none",BUILD_OPTS_SIZE-1);
+		else build_opts[strlen(build_opts)-2]=0; // remove trailing comma and space
+		printf("Extra build options: %s",build_opts);
 		// print copyright information
 		WrapLines(copyright);
 		printf("%s",copyright);
@@ -1298,6 +1325,7 @@ PARSE_FUNC(V)
 #undef COMPILER
 #undef CCVERSION
 #undef COMPILER_UNKNOWN
+#undef BUILD_OPTS_SIZE
 }
 PARSE_FUNC(vec)
 {
