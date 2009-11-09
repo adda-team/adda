@@ -115,10 +115,10 @@ char *WrapLinesCopy(const char *str)
 void LogError(const enum ec code,const enum enwho who,const char *fname,const int lineN,
 	const char *fmt, ... )
 /* performs output of error specified by 'code' at 'fname':'lineN'; 'fmt' & arguments ('...')
- * specify error message, 'who' specifies whether 1 (ringid=ROOT) or all processors should produce
- * output. If 'code' is EC_ERROR program aborts after output. We use sprintf a couple of times,
- * because we want each node to generate an atomic message, not a couple of messages after each
- * other, since other nodes may then interfere with our output. INFO is printed to stdout and
+ * specify error message, 'who' specifies whether 1 (ringid=ADDA_ROOT) or all processors should
+ * produce output. If 'code' is EC_ERROR program aborts after output. We use sprintf a couple of
+ * times, because we want each node to generate an atomic message, not a couple of messages after
+ * each other, since other nodes may then interfere with our output. INFO is printed to stdout and
  * without showing the position in the source file, ERROR and WARN - to stderr and logfile.
  */
 {
@@ -126,7 +126,7 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 	char line[MAX_MESSAGE2];
 	char *pos;
 
-	if (who==ALL || ringid==ROOT) { // controls whether output should be produced
+	if (who==ALL || ringid==ADDA_ROOT) { // controls whether output should be produced
 		// first build output string
 		va_start(args,fmt);
 		if (code==EC_ERROR) strcpy(line,"ERROR: ");
@@ -165,7 +165,7 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 		else if (code==EC_ERROR || code==EC_WARN) {
 			// first put error message in logfile
 			if (logname[0]!=0) { // otherwise can't produce output at all
-				if (ringid==ROOT) {
+				if (ringid==ADDA_ROOT) {
 					/* logfile is initialized to NULL in the beginning of the program. Hence if
 					 * logfile!=NULL, logfile is necessarily initialized (open or already closed).
 					 * logfile==NULL (when logname!=0) means that error is in opening logfile
@@ -193,7 +193,7 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 		}
 	}
 	if (code==EC_ERROR) {
-		if (who==ONE && ringid!=ROOT) Synchronize();
+		if (who==ONE && ringid!=ADDA_ROOT) Synchronize();
 		Stop(EXIT_FAILURE);
 	}
 }
@@ -210,7 +210,7 @@ void PrintError(const char *fmt, ... )
 	char line[MAX_MESSAGE];
 	char *pos;
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		va_start(args,fmt);
 		strcpy(line,"ERROR: ");
 		pos=line+strlen(line);
@@ -234,7 +234,7 @@ void LogPending(void)
  */
 {
 	if (warn_buf[0]!=0) {
-		if (ringid==ROOT) fprintf(logfile,"%s",warn_buf);
+		if (ringid==ADDA_ROOT) fprintf(logfile,"%s",warn_buf);
 		else if ((logfile=fopen(logname,"a"))!=NULL) {
 			fprintf(logfile,"%s",warn_buf);
 			fclose(logfile);

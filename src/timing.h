@@ -4,6 +4,7 @@
  * Descr: definitions for usual timing; should be completely portable
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,7 +23,7 @@
 
 #include "parbas.h"
 
-#ifdef MPI
+#ifdef ADDA_MPI
 #	define TIME_TYPE double
 #	define GET_TIME MPI_Wtime
 #else

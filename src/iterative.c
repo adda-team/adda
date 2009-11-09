@@ -140,7 +140,7 @@ static void SaveIterChpoint(void)
 	TIME_TYPE tstart;
 
 	tstart=GET_TIME();
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// create directory "chp_dir" if needed and open info file
 		sprintf(fname,"%s/" F_CHP_LOG,chp_dir);
 		if ((chp_file=fopen(fname,"w"))==NULL) {
@@ -163,7 +163,7 @@ static void SaveIterChpoint(void)
 	fwrite(&count,sizeof(int),1,chp_file);
 	fwrite(&counter,sizeof(int),1,chp_file);
 	fwrite(&inprodR,sizeof(double),1,chp_file);
-	fwrite(&prev_err,sizeof(double),1,chp_file); // written on ALL processors but used only on ROOT
+	fwrite(&prev_err,sizeof(double),1,chp_file); // written on ALL processors but used only on root
 	fwrite(&resid_scale,sizeof(double),1,chp_file);
 	// write specific scalars
 	for (i=0;i<iter_data.sc_N;i++)
@@ -219,7 +219,7 @@ static void LoadIterChpoint(void)
 	fread(&count,sizeof(int),1,chp_file);
 	fread(&counter,sizeof(int),1,chp_file);
 	fread(&inprodR,sizeof(double),1,chp_file);
-	fread(&prev_err,sizeof(double),1,chp_file); // read on ALL processors but used only on ROOT
+	fread(&prev_err,sizeof(double),1,chp_file); // read on ALL processors but used only on root
 	fread(&resid_scale,sizeof(double),1,chp_file);
 	// read specific scalars
 	for (i=0;i<iter_data.sc_N;i++)
@@ -243,7 +243,7 @@ static void LoadIterChpoint(void)
 	// initialize auxiliary variables
 	epsB=eps*eps/resid_scale;
 	// print info
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		PrintBoth(logfile,"Checkpoint (iteration) loaded\n");
 		// if residual is stagnating print info about last minimum
 		if (counter!=0) fprintf(logfile,
@@ -269,7 +269,7 @@ static void ProgressReport(const double inprod)
 		counter=0;
 	}
 	else counter++;
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		err=sqrt(resid_scale*inprod);
 		progr=1-err/prev_err;
 		if (counter==0) strcpy(temp,"+ ");
@@ -717,7 +717,7 @@ int IterativeSolver(const enum iter method_in)
 		}
 		epsB=eps*eps/resid_scale;
 		// print start values
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
 			sprintf(tmp_str+strlen(tmp_str),"RE_000 = %.10E\n",prev_err);
 			if (!orient_avg) {

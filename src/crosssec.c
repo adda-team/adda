@@ -479,7 +479,7 @@ void ReadScatGridParms(const char *fname)
 	/* print info; conversions to (unsigned long) are needed (to remove warnings) because %z printf
 	 * argument is not yet supported by all target compiler environmets
 	 */
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
 		if (angles.type==SG_GRID) {
 			if (theta_type==AS_RANGE)

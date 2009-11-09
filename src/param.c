@@ -530,7 +530,7 @@ void PrintErrorHelp(const char *fmt, ... )
 	char *pos;
 	char line[MAX_MESSAGE];
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// produce error message
 		va_start(args,fmt);
 		strcpy(line,"ERROR: ");
@@ -571,7 +571,7 @@ void PrintErrorHelpSafe(const char *fmt, ... )
 	va_list args;
 	const char *optname,*use;
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// produce error message
 		va_start(args,fmt);
 		fprintf(stderr,"ERROR: ");
@@ -892,7 +892,7 @@ PARSE_FUNC(h)
 
 	if (Narg>2) NargError(Narg,"not more than 2");
 	// do all output on root processor
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		found=false;
 		if (Narg>=1) {
 			for(i=0;i<LENGTH(options);i++) if (strcmp(argv[1],options[i].name)==0) {
@@ -1229,7 +1229,7 @@ PARSE_FUNC(V)
 	size_t num;
 	int bits;
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// compiler & version (works only for selected compilers)
 		// Intel
 #if defined(__ICC) || defined(__INTEL_COMPILER)
@@ -1275,7 +1275,7 @@ PARSE_FUNC(V)
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
 		printf("ADDA v." ADDA_VERSION "\n");
-#ifdef MPI
+#ifdef ADDA_MPI
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
 #else
@@ -1690,8 +1690,8 @@ void DirectoryLog(const int argc,char **argv)
 
 	// devise directory name (for output files)
 	if (directory[0]==0) {
-		// ROOT processor works with ExpCount
-		if (ringid==ROOT) {
+		// root processor works with ExpCount
+		if (ringid==ADDA_ROOT) {
 			// lock file
 			lockid=CreateLockFile(F_EXPCOUNT_LCK);
 			// read ExpCount
@@ -1725,15 +1725,15 @@ void DirectoryLog(const int argc,char **argv)
 #endif
 	}
 	// make new directory and print info
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		MkDirErr(directory,ONE_POS);
 		printf("all data is saved in '%s'\n",directory);
 	}
 	// make logname; do it for all processors to enable additional logging in LogError
-	if (ringid==ROOT) sprintf(logname,"%s/" F_LOG,directory);
+	if (ringid==ADDA_ROOT) sprintf(logname,"%s/" F_LOG,directory);
 	else sprintf(logname,"%s/" F_LOG_ERR,directory,ringid);
 	// start logfile
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// open logfile
 		logfile=FOpenErr(logname,"w",ONE_POS);
 		// log version number
@@ -1774,7 +1774,7 @@ void PrintInfo(void)
 	int i;
 	char sbuffer[MAX_LINE];
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// print basic parameters
 		printf("lambda: %.10g   Dipoles/lambda: %g\n",lambda,dpl);
 		printf("Required relative residual norm: %g\n",eps);

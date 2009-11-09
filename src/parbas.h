@@ -4,6 +4,7 @@
  * Descr: parallel basics; includes necessary headers and checks version of the standard.
  *
  * Copyright (C) 2007,2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,7 +21,7 @@
 #ifndef __parbas_h
 #define __parbas_h
 
-#ifdef MPI
+#ifdef ADDA_MPI
 #	include <mpi.h>
 // define required version of MPI
 #	define MPI_VER_REQ 1

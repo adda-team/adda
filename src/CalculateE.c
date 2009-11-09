@@ -210,7 +210,7 @@ void MuellerMatrix(void)
 	double alph;
 	TIME_TYPE tstart;
 
-	if (ringid!=ROOT) return;
+	if (ringid!=ADDA_ROOT) return;
 
 	if (orient_avg) { // Amplitude matrix stored in ampl_alplha is
 		index1=index=0; // transformed into Mueller matrix stored in muel_alpha
@@ -509,7 +509,7 @@ static void CalcIntegralScatQuantities(const char which)
 	if (calc_Cext) Cext = ExtCross(incPol);
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			if (which == 'Y') { // assumed that first call of CalculateE is with 'Y' flag
 				muel_alpha[-2]=Cext;
 				muel_alpha[-1]=Cabs;
@@ -521,7 +521,7 @@ static void CalcIntegralScatQuantities(const char which)
 		}
 	}
 	else { // not orient_avg
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= %.10g\nQext\t= %.10g\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= %.10g\nQabs\t= %.10g\n",Cabs,Cabs*inv_G);
@@ -538,7 +538,7 @@ static void CalcIntegralScatQuantities(const char which)
 				if (calc_asym) PrintBoth(CCfile,"g\t= (%.10g,%.10g,%.10g)\n",
 					dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
-		} // end of ROOT
+		} // end of root
 		if (calc_mat_force) {
 			MALLOC_VECTOR(Fsca,double,3*local_nvoid_Ndip,ALL);
 			MALLOC_VECTOR(Finc,double,3*local_nvoid_Ndip,ALL);
@@ -548,7 +548,7 @@ static void CalcIntegralScatQuantities(const char which)
 			// Calculate forces
 			Frp_mat(Fsca_tot,Fsca,Finc_tot,Finc,Frp_tot,Frp);
 			// Write Cross-Sections and Efficiencies to file
-			if (ringid==ROOT) {
+			if (ringid==ADDA_ROOT) {
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
 				PrintBoth(CCfile,"\nMatrix\n"
@@ -583,7 +583,7 @@ static void CalcIntegralScatQuantities(const char which)
 			Free_general(Finc);
 			Free_general(Frp);
 		}
-		if (ringid==ROOT) FCloseErr(CCfile,fname_cs,ONE_POS);
+		if (ringid==ADDA_ROOT) FCloseErr(CCfile,fname_cs,ONE_POS);
 	}
 	D("Calculation of cross sections finished");
 	Timing_ScatQuan += GET_TIME() - tstart;
@@ -621,7 +621,7 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
 	file=FOpenErr(fname,"w",ALL_POS);
 	// print head of file
 #ifdef PARALLEL
-	if (ringid==0) { // this condition can be different from being ROOT
+	if (ringid==0) { // this condition can be different from being root
 #endif
 		fprintf(file,"x y z |%s|^2 %sx.r %sx.i %sy.r %sy.i %sz.r %sz.i\n",field_name,field_name,
 			field_name,field_name,field_name,field_name,field_name);
@@ -640,7 +640,7 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
 #ifdef PARALLEL
 	// wait for all processes to save their part of geometry
 	Synchronize();
-	if (ringid==ROOT) CatNFiles(directory,tmpl,fname_sh);
+	if (ringid==ADDA_ROOT) CatNFiles(directory,tmpl,fname_sh);
 #endif
 	PRINTZ("%s saved to file\n",fullname);
 	Timing_FileIO += GET_TIME() - tstart;

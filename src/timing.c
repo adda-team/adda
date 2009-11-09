@@ -26,7 +26,7 @@
 #include "io.h"
 #include "timing.h"
 
-#ifdef MPI
+#ifdef ADDA_MPI
 #	define TO_SEC(p) (p)
 #else
 #	define TO_SEC(p) ((p) / (double) CLOCKS_PER_SEC)
@@ -67,7 +67,7 @@ void StartTime(void)
 {
 	time(&wt_start);
 	last_chp_wt=wt_start;
-#ifndef MPI  // otherwise this initialization is performed immediately after MPI_Init
+#ifndef ADDA_MPI  // otherwise this initialization is performed immediately after MPI_Init
 	tstart_main = GET_TIME();
 #endif
 }
@@ -92,7 +92,7 @@ void FinalStatistics(void)
 
 	// wait for all processes to show correct execution time
 	Synchronize();
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		// last time measurements
 		Timing_TotalTime = GET_TIME() - tstart_main;
 		time(&wt_end);
@@ -112,7 +112,7 @@ void FinalStatistics(void)
 		fprintf(logfile,
 			"Total wall time:     %.0f\n",difftime(wt_end,wt_start));
 		fprintf(logfile,
-#ifdef MPI
+#ifdef ADDA_MPI
 			"--Everything below is also wall times--\n"
 			"Time since MPI_Init: %.4f\n",
 #else

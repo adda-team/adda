@@ -101,7 +101,7 @@ void InitBeam(void)
 		scale_x=1/w0;
 		scale_z=s*scale_x; // 1/(k*w0^2)
 		// beam info
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			strcpy(beam_descr,"Gaussian beam (");
 			if (beamtype==B_LMINUS) strcat(beam_descr,"L- approximation)\n");
 			else if (beamtype==B_DAVIS3) strcat(beam_descr,"3rd order approximation, by Davis)\n");
