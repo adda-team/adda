@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.80a2"
+#define ADDA_VERSION "0.80a3"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -50,14 +50,14 @@
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 
 // parallel definitions
-#ifdef MPI
+#ifdef ADDA_MPI
 #define PARALLEL
 #endif
 
-/* ringid of root processor. Using ROOT!=0 should work, however it was not thoroughly tested.
+/* ringid of root processor. Using ADDA_ROOT!=0 should work, however it was not thoroughly tested.
  * Hence do not change without necessity.
  */
-#define ROOT 0
+#define ADDA_ROOT 0
 
 // math constants rounded for 32 decimals
 #define PI                  3.1415926535897932384626433832795

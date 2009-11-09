@@ -377,12 +377,12 @@ static void calculate_one_orientation(double *res)
 	D("CalculateE finished");
 	MuellerMatrix();
 	D("MuellerMatrix finished");
-	if (ringid==ROOT && orient_avg) {
+	if (ringid==ADDA_ROOT && orient_avg) {
 		tstart=GET_TIME();
 		printf("\nError of alpha integration (Mueller) is %g\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
-		D("Integration over alpha completed on ROOT");
+		D("Integration over alpha completed on root");
 		Timing_Integration += GET_TIME() - tstart;
 	}
 	TotalEval++;
@@ -443,7 +443,7 @@ static void AllocateEverything(void)
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
-		if (ringid==ROOT) { // buffer for accumulate operation
+		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
@@ -462,7 +462,7 @@ static void AllocateEverything(void)
 		}
 		memory+=tmp*sizeof(double);
 #ifdef PARALLEL
-		if (ringid==ROOT) { // buffer for accumulate operation
+		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(E2_alldir_buffer,double,temp_int,ONE);
 			memory+=tmp*sizeof(double);
 		}
@@ -480,12 +480,12 @@ static void AllocateEverything(void)
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
-		if (ringid==ROOT) { // buffer for accumulate operation
+		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(Egrid_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
 #endif
-		if (phi_integr && ringid==ROOT) {
+		if (phi_integr && ringid==ADDA_ROOT) {
 			tmp=16*(double)angles.phi.N;
 			if (!prognosis) {
 				CheckOverflow(tmp,ONE_POS,"AllocateEverything()");
@@ -506,7 +506,7 @@ static void AllocateEverything(void)
 			MALLOC_VECTOR(ampl_alphaY,complex,temp_int,ONE);
 		}
 		memory += 2*tmp*sizeof(doublecomplex);
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			if (!prognosis) {
 				MALLOC_VECTOR(muel_alpha,double,block_theta*alpha_int.N+2,ONE);
 				muel_alpha+=2;
@@ -573,7 +573,7 @@ static void FreeEverything(void)
 		Free_general(angles.phi.val);
 		Free_cVector(EgridX);
 		Free_cVector(EgridY);
-		if (phi_integr && ringid==ROOT) {
+		if (phi_integr && ringid==ADDA_ROOT) {
 			Free_general(muel_phi);
 			Free_general(muel_phi_buf);
 		}
@@ -587,7 +587,7 @@ static void FreeEverything(void)
 	Free_general(material);
 
 	if (orient_avg) {
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			Free_cVector(ampl_alphaX);
 			Free_cVector(ampl_alphaY);
 			Free_general(muel_alpha-2);
@@ -627,11 +627,11 @@ void Calculator (void)
 	if (prognosis) return;
 	// main calculation part
 	if (orient_avg) {
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			sprintf(fname,"%s/" F_LOG_ORAVG,directory);
-			D("Romberg2D started on ROOT");
+			D("Romberg2D started on root");
 			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
-			D("Romberg2D finished on ROOT");
+			D("Romberg2D finished on root");
 			finish_avg=true;
 			/* first two are dummy variables; this call corresponds to similar call in
 			 * orient_integrand by other processors;

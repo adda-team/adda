@@ -34,7 +34,7 @@
 #include "function.h"
 #include "parbas.h"
 
-#ifdef MPI
+#ifdef ADDA_MPI
 MPI_Datatype mpi_dcomplex;
 #endif
 
@@ -141,7 +141,7 @@ void CatNFiles(const char *dir,const char *tmpl,const char *dest)
 void InitComm(int *argc_p,char ***argv_p)
 // initialize communications in the beginning of the program
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	int dcmplx_blocklength[2]={1,1},ver,subver;
 	MPI_Aint dcmplx_displs[2] = {0,1};
 	MPI_Datatype dcmplx_type[2];
@@ -176,7 +176,7 @@ void InitComm(int *argc_p,char ***argv_p)
 	Synchronize();
 #elif !defined(PARALLEL)
 	nprocs=1;
-	ringid=ROOT;
+	ringid=ADDA_ROOT;
 #endif
 	/* check if weird number of processors is specified; called even in sequential mode to
 	 * initialize weird_nprocs
@@ -189,7 +189,7 @@ void InitComm(int *argc_p,char ***argv_p)
 void Stop(const int code)
 // stops the program with exit 'code'
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	if (code!=EXIT_SUCCESS) { // error occurred
 		fflush(stdout);
 		fprintf(stderr,"Aborting process %d\n",ringid);
@@ -212,7 +212,7 @@ void Stop(const int code)
 void Synchronize(void)
 // synchronizes all processes
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
 }
@@ -220,11 +220,11 @@ void Synchronize(void)
 //============================================================
 
 void MyBcast(void *data,const var_type type,size_t n_elem,TIME_TYPE *timing)
-/* casts values stored in '*data' from ROOT processor to all other; works for all types; increments
+/* casts values stored in '*data' from root processor to all other; works for all types; increments
  * 'timing' (if not NULL) by the time used
  */
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	MPI_Datatype mes_type;
 	TIME_TYPE tstart;
 
@@ -243,7 +243,7 @@ void MyBcast(void *data,const var_type type,size_t n_elem,TIME_TYPE *timing)
 	}
 	else LogError(EC_ERROR,ONE_POS,"MyBcast: variable type %u is not supported",type);
 
-	MPI_Bcast(data,n_elem,mes_type,ROOT,MPI_COMM_WORLD);
+	MPI_Bcast(data,n_elem,mes_type,ADDA_ROOT,MPI_COMM_WORLD);
 	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
@@ -253,16 +253,16 @@ void MyBcast(void *data,const var_type type,size_t n_elem,TIME_TYPE *timing)
 void BcastOrient(int *i, int *j, int *k)
 // cast current orientation angle (in orientation averaging) to all processes from root
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	int buf[3];
 
-	if (ringid==ROOT) {
+	if (ringid==ADDA_ROOT) {
 		buf[0]=*i;
 		buf[1]=*j;
 		buf[2]=*k;
 	}
-	MPI_Bcast(buf,3,MPI_INT,ROOT,MPI_COMM_WORLD);
-	if (ringid!=ROOT) {
+	MPI_Bcast(buf,3,MPI_INT,ADDA_ROOT,MPI_COMM_WORLD);
+	if (ringid!=ADDA_ROOT) {
 		*i=buf[0];
 		*j=buf[1];
 		*k=buf[2];
@@ -273,31 +273,31 @@ void BcastOrient(int *i, int *j, int *k)
 //============================================================
 
 void AccumulateMax(double *data,double *max)
-// given a single double on each processor, accumulates their sum and maximum on ROOT processor
+// given a single double on each processor, accumulates their sum and maximum on root processor
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	double buf;
 	// potentially can be optimized by combining into one operation
-	MPI_Reduce(data,&buf,1,MPI_DOUBLE,MPI_SUM,ROOT,MPI_COMM_WORLD);
-	MPI_Reduce(data,max,1,MPI_DOUBLE,MPI_MAX,ROOT,MPI_COMM_WORLD);
-	if (ringid==ROOT) *data=buf;
+	MPI_Reduce(data,&buf,1,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
+	MPI_Reduce(data,max,1,MPI_DOUBLE,MPI_MAX,ADDA_ROOT,MPI_COMM_WORLD);
+	if (ringid==ADDA_ROOT) *data=buf;
 #endif
 }
 
 //============================================================
 
 void Accumulate(double *vector,const size_t n,double *buf,TIME_TYPE *timing)
-// gather and add double vector on processor ROOT; total time is saved in timing (NOT incremented)
+// gather and add double vector on processor root; total time is saved in timing (NOT incremented)
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
 	tstart=GET_TIME();
-	MPI_Reduce(vector,buf,n,MPI_DOUBLE,MPI_SUM,ROOT,MPI_COMM_WORLD);
-	if (ringid==ROOT) memcpy(vector,buf,n*sizeof(double));
+	MPI_Reduce(vector,buf,n,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
+	if (ringid==ADDA_ROOT) memcpy(vector,buf,n*sizeof(double));
 	(*timing)=GET_TIME()-tstart;
 #endif
 }
@@ -310,7 +310,7 @@ void MyInnerProduct(void *data,const var_type type,size_t n_elem,TIME_TYPE *timi
  * call)
  */
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	size_t size;
 	MPI_Datatype mes_type;
 	void *temp;
@@ -352,7 +352,7 @@ void BlockTranspose(doublecomplex *X)
  *  do 3 components in one message;
  */
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	TIME_TYPE tstart;
 	size_t bufsize,msize,posit,step,y,z;
 	int transmission,part,Xpos,Xcomp;
@@ -397,7 +397,7 @@ void BlockTranspose(doublecomplex *X)
 void BlockTranspose_Dm(doublecomplex *X,const size_t lengthY,const size_t lengthZ)
 // do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	TIME_TYPE tstart;
 	size_t bufsize,msize,posit,step,y,z;
 	int transmission,part,Xpos;
@@ -490,7 +490,7 @@ void ParSetup(void)
 void AllGather(void *x_from,void *x_to,const var_type type,size_t n_elem)
 // Gather distributed arrays; works for all types
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	// TODO: need to be rewritten when n_elem are unequal on each processor
 	MPI_Datatype mes_type;
 
@@ -546,7 +546,7 @@ void SetGranulComm(const double z0,const double z1,const double gdZ,const int gZ
 
 	MALLOC_VECTOR(gr_comm_buf,void,max_gran*sizeof(char),ALL);
 	if (!sm_gr) {
-		if (ringid==ROOT) {
+		if (ringid==ADDA_ROOT) {
 			MALLOC_VECTOR(gr_comm_size,int,nprocs,ONE);
 			MALLOC_VECTOR(gr_comm_overl,int,nprocs-1,ONE);
 			// always allocated, not to mess with its freeing
@@ -556,7 +556,7 @@ void SetGranulComm(const double z0,const double z1,const double gdZ,const int gZ
 			 */
 			for (i=0;i<nprocs;i++) {
 				CalcLocalGranulGrid(z0,z1,gdZ,gZ,i,&loc0,&loc1);
-				if (i==ROOT) {
+				if (i==ADDA_ROOT) {
 					*lz0=loc0;
 					*lz1=loc1;
 				}
@@ -577,7 +577,7 @@ void SetGranulComm(const double z0,const double z1,const double gdZ,const int gZ
 
 void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
 	const int locgZ,TIME_TYPE *timing)
-/* collects the map of domain for granule generator on the ROOT processor;
+/* collects the map of domain for granule generator on the root processor;
  * timing is incremented by the total time used
  */
 {
@@ -592,9 +592,9 @@ void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
 #endif
 	tstart=GET_TIME();
 	unit=gXY*sizeof(char);
-	if (ringid==ROOT) {
-		index=(lz0+gr_comm_size[ROOT])*gXY;
-		for (i=ROOT+1;i<nprocs;i++) {
+	if (ringid==ADDA_ROOT) {
+		index=(lz0+gr_comm_size[ADDA_ROOT])*gXY;
+		for (i=ADDA_ROOT+1;i<nprocs;i++) {
 			if (gr_comm_size[i]!=0) {
 				if (gr_comm_overl[i-1]) {
 					index-=gXY;
@@ -606,9 +606,9 @@ void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
 				index+=gXY*gr_comm_size[i];
 			}
 		}
-		// that is only needed when ROOT!=0; kind of weird but should work
+		// that is only needed when ADDA_ROOT!=0; kind of weird but should work
 		index=lz0*gXY;
-		for (i=ROOT-1;i>=0;i--) {
+		for (i=ADDA_ROOT-1;i>=0;i--) {
 			if (gr_comm_size[i]!=0) {
 				if (gr_comm_overl[i]) {
 					memcpy(gr_comm_ob,dom+index,unit);
@@ -622,7 +622,7 @@ void CollectDomainGranul(unsigned char *dom,const size_t gXY,const int lz0,
 		}
 	}
 	else if (locgZ!=0) {
-		MPI_Send(dom,unit*locgZ,MPI_UNSIGNED_CHAR,ROOT,0,MPI_COMM_WORLD);
+		MPI_Send(dom,unit*locgZ,MPI_UNSIGNED_CHAR,ADDA_ROOT,0,MPI_COMM_WORLD);
 	}
 	(*timing)+=GET_TIME()-tstart;
 #endif
@@ -637,7 +637,7 @@ void FreeGranulComm(const int sm_gr)
 {
 #ifdef PARALLEL
 	Free_general(gr_comm_buf);
-	if (!sm_gr && ringid==ROOT) {
+	if (!sm_gr && ringid==ADDA_ROOT) {
 		Free_general(gr_comm_size);
 		Free_general(gr_comm_overl);
 		Free_general(gr_comm_ob);
@@ -654,7 +654,7 @@ void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing)
  * using bool input data.
  */
 {
-#ifdef MPI
+#ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
 #ifdef SYNCHRONIZE_TIMING

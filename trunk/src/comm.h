@@ -4,6 +4,7 @@
  * Descr: definitions of communication global variables and routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -49,16 +50,16 @@ void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing);
 // this functions are defined only in parallel mode
 void CatNFiles(const char *dir,const char *tmpl,const char *dest);
 
-/* analogs of frequently used functions that should be executed only by the ROOT processor
+/* analogs of frequently used functions that should be executed only by the root processor
  * !!! not safe if used in constructions like { if (...) PRINTZ(...); else }
  */
-#	define PRINTZ if (ringid==ROOT) printf
-#	define FPRINTZ if (ringid==ROOT) fprintf
-#	define SPRINTZ if (ringid==ROOT) sprintf
-#	define STRCPYZ if (ringid==ROOT) strcpy
-#	define FCLOSEZ if (ringid==ROOT) fclose
-#	define FFLUSHZ if (ringid==ROOT) fflush
-#	define PRINTBOTHZ if (ringid==ROOT) PrintBoth
+#	define PRINTZ if (ringid==ADDA_ROOT) printf
+#	define FPRINTZ if (ringid==ADDA_ROOT) fprintf
+#	define SPRINTZ if (ringid==ADDA_ROOT) sprintf
+#	define STRCPYZ if (ringid==ADDA_ROOT) strcpy
+#	define FCLOSEZ if (ringid==ADDA_ROOT) fclose
+#	define FFLUSHZ if (ringid==ADDA_ROOT) fflush
+#	define PRINTBOTHZ if (ringid==ADDA_ROOT) PrintBoth
 #else
 #	define PRINTZ printf
 #	define FPRINTZ fprintf
