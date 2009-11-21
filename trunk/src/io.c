@@ -39,7 +39,7 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in param.c
-extern const char logname[];
+extern const char logfname[];
 
 // LOCAL VARIABLES
 
@@ -164,7 +164,7 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 		}
 		else if (code==EC_ERROR || code==EC_WARN) {
 			// first put error message in logfile
-			if (logname[0]!=0) { // otherwise can't produce output at all
+			if (logfname[0]!=0) { // otherwise can't produce output at all
 				if (ringid==ADDA_ROOT) {
 					/* logfile is initialized to NULL in the beginning of the program. Hence if
 					 * logfile!=NULL, logfile is necessarily initialized (open or already closed).
@@ -175,12 +175,12 @@ void LogError(const enum ec code,const enum enwho who,const char *fname,const in
 						if (fprintf(logfile,"%s",line)==EOF) {
 							fclose(logfile); // in most cases this is redundant
 							// try to reopen logfile and save message
-							if ((logfile=fopen(logname,"a"))!=NULL) fprintf(logfile,"%s",line);
+							if ((logfile=fopen(logfname,"a"))!=NULL) fprintf(logfile,"%s",line);
 						}
 						fflush(logfile); // needed for warnings to appear on time
 					}
 				} // other processors
-				else if ((logfile=fopen(logname,"a"))!=NULL) {
+				else if ((logfile=fopen(logfname,"a"))!=NULL) {
 					fprintf(logfile,"%s",line);
 					fclose(logfile);
 				}
@@ -235,7 +235,7 @@ void LogPending(void)
 {
 	if (warn_buf[0]!=0) {
 		if (ringid==ADDA_ROOT) fprintf(logfile,"%s",warn_buf);
-		else if ((logfile=fopen(logname,"a"))!=NULL) {
+		else if ((logfile=fopen(logfname,"a"))!=NULL) {
 			fprintf(logfile,"%s",warn_buf);
 			fclose(logfile);
 		}
