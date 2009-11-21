@@ -28,34 +28,41 @@ A) COMPILING ==================================================
 
     Note that  the "nearfield"  program  is an MPI program.
     The other one are serial.
+ 
+    If everything went ok, type 
 
+    "./runexample".
+        
+    to check that all programs are working.
+  
 B) RUNNING TESTS ==============================================
-
+   
    It is REQUIRED that you test the program before using it
-   for your applications
+   for your applications.
 
    First of all select your adda binary (both path and adda name):
 
    export ADDABIN=youraddbinary
  
-   Then into the directory RUNTEST and type
+   Then into the directory RUNTESTS and type
 
-   "runall"
+   "./runall"
 
    If ADDABIN is not set the program ../../../src/adda will be used.
    
    The tests wil take 2-10 minutes depending on your architecture.
-   "nearfield" will be ran with 4 MPI tasks.  
+   Note that "nearfield" will be executed with 4 MPI tasks.  
 
    If all test are passed, you should not see any error message and
-   that all numbers  are zero (or almost zero ,i.e. less than 1.d-6). 
+   that all the showed numbers should be zero (or almost zero ,i.e. less than 1.d-6). 
    Then you  can compute the nearfield for your application safely !
 
    Otherwise try to understand what's wrong, looking
    at the output file in the RUNTEST subdirectories.
 
-   Note that "runall" will also run "adda" (version 0.78 or later) 
-   Thus errors can also be related to incorrect functioning of adda.
+   Note that "runall" will also run adda (version 0.78 or later) 
+   Thus errors can also be related to incorrect functioning of your 
+   adda version.
    
    For any queries contact the author.
 
