@@ -3,7 +3,7 @@ echo '------------adda----------------'
 $ADDABIN -store_dip_pol -save_geom -shape sphere -dir . -lambda 0.400 -grid 20 
 mv sphere.geom target
 echo '------------gendip-------------------'
-gendip 
+./gendip 
 
 echo '------------genplane------------'
 cat >plane_input_xy <<%EOF%
