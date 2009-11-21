@@ -1,9 +1,11 @@
 #/bin/ksh
 echo '------------adda----------------'
-$ADDABIN -store_dip_pol -save_geom -shape sphere -dir . -lambda 0.400 -grid 20 
+$ADDABIN -store_dip_pol -save_geom -shape sphere -dir example -lambda 0.400 -grid 20 
+cd example 
+
 mv sphere.geom target
 echo '------------gendip-------------------'
-./gendip 
+../gendip 
 
 echo '------------genplane------------'
 cat >plane_input_xy <<%EOF%
@@ -11,7 +13,7 @@ cat >plane_input_xy <<%EOF%
    -10.0 30.0 80
     10.0 30.0 80
 %EOF%
-./genplane < plane_input_xy > plane_points_xy
+../genplane < plane_input_xy > plane_points_xy
 cat > commvar <<%EOF%
 0.d0
 0 0 1
@@ -29,6 +31,7 @@ totfield
 0 ! debug
 0 ! internal points
 %EOF%
-mpirun -np 4 ./nearfield < input_xy 
+mpirun -np 4 ../nearfield < input_xy 
+cd ..
 
 
