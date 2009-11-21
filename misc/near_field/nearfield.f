@@ -341,7 +341,7 @@
 
            write(*,*) '} commvar'    
 
-           if (debug.ge.1.and.iext.eq.1) then
+           if (debug.ge.1.and.iext.ge.1) then
 !               use AKD in nm because DX is in nm
             call testbeam(1.d0*icx,1.d0*icy,1.d0*icz,debug,
      &                   POS,OS,INCBEAM,dir,pol,AKD,DX)  
@@ -353,7 +353,7 @@
             endif
            endif 
 
-           if (debug.ge.2.and.iext.eq.2) then   
+           if (debug.ge.2.and.iext.ge.2) then   
             call testinternalfield(INTFIELD,CXPOL,INCBEAM,OS,
      &       AKD2,  ! uses the adda in micromenters
      &       alpha,succe,vol)
@@ -584,7 +584,7 @@
             else if (what.eq.1) then
              tmpval= field 
              write(2445,'(2E16.8)') 
-     &        xf_xmin+U*1.d0/NGP*(xf_xmax-xf_xmin),
+     &        xf_xmin+(U-1)*1.d0/(NGP-1)*(xf_xmax-xf_xmin),
      &        tmpval
             endif
 
