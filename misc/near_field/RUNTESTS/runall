@@ -1,0 +1,16 @@
+#/bin/ksh
+
+if [ -z "${ADDABIN}" ]; then
+ export ADDABIN=../../../src/adda
+fi
+
+for j in *; do
+  if [ -d $j ]; then 
+  echo "*****************************"
+  echo " Running Test " $j
+  echo "*****************************"
+  cd $j
+  ./run
+  cd ..
+  fi
+done
