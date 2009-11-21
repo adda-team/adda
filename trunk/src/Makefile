@@ -53,6 +53,8 @@
 # ibm - tested on xlc 8.0 - last tested in 2008
 # other -
 COMPILER = gnu
+#COMPILER = intel
+#COMPILER = hpuxia64
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit
 # compilation in 64 bit environment
@@ -73,6 +75,8 @@ RELEASE = on
 #FFTW3_LIB_PATH = "$(HOME)/lib"
 #FFTW3_INC_PATH = "./../lib"
 #FFTW3_LIB_PATH = "./../lib"
+#FFTW3_INC_PATH = "$(FFTWINCLUDE)"  
+#FFTW3_LIB_PATH = "$(FFTWLIB)"
 
 # --C standard--
 # ADDA code relies on certain parts of C99 standard, therefore support of this
@@ -150,6 +154,16 @@ ifeq ($(COMPILER),gnu)
   CWARN = -Wall -W -pedantic -Wcast-qual -Wpointer-arith \
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
           -Wno-unknown-pragmas -Wno-unused-parameter
+endif
+ifeq ($(COMPILER),hpuxia64)
+  CC    = cc 
+  CF    = f90 
+  FOPT  = +O1  +DSitanium2 +DO11.23 +DD64
+  COPT  =  -AC99 +O3 +DSitanium2 +DO11.23 +DD64
+  ifndef RELEASE
+    CWARN = 
+  endif
+  CFLAGS += -DNOT_USE_LOCK
 endif
 ifeq ($(COMPILER),intel)
   CC    = icc
