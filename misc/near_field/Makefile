@@ -3,7 +3,7 @@
 
 # ---- Intel Fortran Compiler Linux
 FC     = ifort 
-FFLAGS = -warn all -O3 -C
+FFLAGS = -warn all -O3 
 MPIFC  = mpif90 
 LIBS   =
 MPILIBS= -L/opt/hpmpi/lib/linux_64 -lmpi
