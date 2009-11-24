@@ -22,8 +22,8 @@ Basically, no. *ADDA* can not rigorously solve such light scattering problem. Su
  * Another approach is to take a large computational box around the particle, and discretize the surface that falls into it. This is rigorous in the limit of infinite size of computational box, but requires enormous computational time. It also requires you to specify the shape files for all different sizes of the computational box.
 
 === Can I calculate near-field using *ADDA*? ===
-We are currently working to implement this feature in a convenient manner. For now there are two possible workarounds:
-  * You may save dipole polarizations to file by *ADDA* and then compute the near-field yourself, using a simple formula.
+We are currently working to implement this feature in a convenient manner (issue 10). For now there are two possible workarounds:
+  * (Recommended)  You may save dipole polarizations to file by *ADDA* and then use auxiliary package `misc/near_field` (see [http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description]). For *ADDA* 0.79 the package should be [http://a-dda.googlecode.com/files/near_field_1_01.tar.gz downloaded separately], for later versions - it will be included in the main release.
   * Or you may extend the computational box with "dummy" dipoles located at points where you wish to calculate near-field. Saving the internal fields by *ADDA* will then produce the desired result, but at expense of extra computational time. Please see the section 12.5 of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
 
 === How can I simulate light scattering by a particle which shape can not be described by any of the *ADDA* predefined shapes? ===
