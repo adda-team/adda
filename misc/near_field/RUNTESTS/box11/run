@@ -58,6 +58,6 @@ grep ERROR nearfieldy.out   | grep -v _SY >> err.dat
 grep ERROR checknfsymmy.out | grep -v _SY >> err.dat
 awk '{ ZUM+=$3 } END { printf "%.12f\n", ZUM} ' err.dat
 
-paste nearfieldX_yz.DAT  nearfieldX_yz.DAT.ref | awk '{ SUM+=($4-$8)*($4-$5)} END { printf "%.12f\n", SUM}'
-paste nearfieldY_xy.DAT  nearfieldY_xy.DAT.ref | awk '{ SUM+=($4-$8)*($1-$2)} END { printf "%.12f\n", SUM}'
+paste nearfieldX_yz.DAT  nearfieldX_yz.DAT.ref | awk '{ SUM+=($4-$8)*($4-$8)} END { printf "%.12f\n", SUM}'
+paste nearfieldY_xy.DAT  nearfieldY_xy.DAT.ref | awk '{ SUM+=($4-$8)*($4-$8)} END { printf "%.12f\n", SUM}'
 
