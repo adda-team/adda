@@ -51,10 +51,10 @@
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
+# hpux - tested on ia64
 # other -
 COMPILER = gnu
-#COMPILER = intel
-#COMPILER = hpuxia64
+
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit
 # compilation in 64 bit environment
@@ -155,16 +155,6 @@ ifeq ($(COMPILER),gnu)
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
           -Wno-unknown-pragmas -Wno-unused-parameter
 endif
-ifeq ($(COMPILER),hpuxia64)
-  CC    = cc 
-  CF    = f90 
-  FOPT  = +O1  +DSitanium2 +DO11.23 +DD64
-  COPT  =  -AC99 +O3 +DSitanium2 +DO11.23 +DD64
-  ifndef RELEASE
-    CWARN = 
-  endif
-  CFLAGS += -DNOT_USE_LOCK
-endif
 ifeq ($(COMPILER),intel)
   CC    = icc
   CF    = ifort
@@ -197,6 +187,14 @@ ifeq ($(COMPILER),ibm)
   # DFREDIRECT = 2>nul -qipa=level=2 -qhot
   DEPFLAG = -qmakedep=gcc -qsyntaxonly
   CWARN   = -qsuppress=1506-224:1506-342:1500-036
+endif
+ifeq ($(COMPILER),hpux)
+  CC    = cc 
+  CF    = f90 
+  FOPT  = +O3  +DD64
+  COPT  =  -AC99 +O3  +DD64
+  CWARN = 
+  CFLAGS += -DNOT_USE_LOCK
 endif
 ifeq ($(COMPILER),other)
 endif
