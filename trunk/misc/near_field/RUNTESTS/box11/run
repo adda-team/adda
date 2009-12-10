@@ -24,7 +24,7 @@ nearfieldY_xy
 0 !internal
 %EOF%
 cp commvar.y commvar
-mpirun -np 4 ../../nearfield < input_xy > nearfieldy.out
+$MPIEXEC ../../nearfield < input_xy > nearfieldy.out
 echo -------------verifying--y-----------
 ../../checknfsymm < input_xy > checknfsymmy.out
 
@@ -47,7 +47,7 @@ nearfieldX_yz
 0 !internal
 %EOF%
 cp commvar.x commvar
-mpirun -np 4 ../../nearfield < input_yz > nearfieldx.out
+$MPIEXEC ../../nearfield < input_yz > nearfieldx.out
 echo -------------verifying--x-----------
 ../../checknfsymm < input_yz > checknfsymmx.out
 
