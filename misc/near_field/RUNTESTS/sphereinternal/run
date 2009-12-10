@@ -24,7 +24,7 @@ nearfieldinternal
 2 ! debug
 1 ! internal points
 %EOF%
-mpirun -np 4 ../../nearfield < input_xy > nearfield.out
+$MPIEXEC ../../nearfield < input_xy > nearfield.out
 echo -------------checksymm-------------
 ../../checknfsymm < input_xy > checknfsymm.out
 echo -------------verifying-------------

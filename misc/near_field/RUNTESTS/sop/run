@@ -23,7 +23,7 @@ nearfield_xy
 2 !debug
 0 !internal
 %EOF%
-mpirun -np 4 ../../nearfield < input_xy > nearfield.out
+$MPIEXEC ../../nearfield < input_xy > nearfield.out
 echo -------------verifying-------------
 ../../checknfsymm < input_xy > checknfsymm.out
 

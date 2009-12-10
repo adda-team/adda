@@ -1,6 +1,10 @@
 #/bin/ksh
+
 if [ -z "${ADDABIN}" ]; then
- export ADDABIN=../../../src/adda
+ export ADDABIN=../../src/adda
+fi
+if [ -z "${MPIEXEC}" ]; then
+ export MPIEXEC="mpirun -np 4"
 fi
 
 echo '------------adda----------------'
@@ -35,7 +39,7 @@ totfield
 0 ! debug
 0 ! internal points
 %EOF%
-mpirun -np 4 ../nearfield < input_xy 
+$MPIEXEC ../nearfield < input_xy 
 cd ..
 
 

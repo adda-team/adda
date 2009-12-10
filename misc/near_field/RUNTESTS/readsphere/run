@@ -23,7 +23,7 @@ nearfield_xy
 2 !debug
 0 !internal
 %EOF%
-mpirun -np 4 ../../nearfield < input_xy > nearfield.out
+$MPIEXEC ../../nearfield < input_xy > nearfield.out
 
 echo -------------verifying-------------
 ../../checknfsymm < input_xy > checknfsymm.out
@@ -46,7 +46,7 @@ nearfield_line
 0 !debug
 0 !internal
 %EOF%
-mpirun -np 4 ../../nearfield < inputl > nearfieldl.out 
+$MPIEXEC ../../nearfield < inputl > nearfieldl.out 
 
 grep ERROR gendip.out                     > err.dat
 grep ERROR nearfield.out   | grep -v _SZ >> err.dat 

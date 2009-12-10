@@ -3,6 +3,9 @@
 if [ -z "${ADDABIN}" ]; then
  export ADDABIN=../../../src/adda
 fi
+if [ -z "${MPIEXEC}" ]; then
+ export MPIEXEC="mpirun -np 4"
+fi
 
 for j in *; do
   if [ -d $j ]; then 
