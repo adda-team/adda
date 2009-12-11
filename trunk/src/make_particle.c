@@ -1694,7 +1694,13 @@ void MakeParticle(void)
 				xj=jagged*(i/jagged)-boxX/2;
 				yj=jagged*(j/jagged)-boxY/2;
 				zj=jagged*(k/jagged)-boxZ/2;
-
+				/* all coordinates are scaled by the same box size (boxX), so yr and zr are not
+				 * necessarily in fixed ranges (like from -1/2 to 1/2). This is done to treat
+				 * adequately cases when particle dimensions are the same (along different axes),
+				 * but e.g. boxY!=boxX (so there are some extra void dipoles). All anisotropies in
+				 * the particle itself are treated in the specific shape modules below (see e.g.
+				 * ELLIPSOID).
+				 */
 				xr=(xj+jcX)/(boxX);
 				yr=(yj+jcY)/(boxX);
 				zr=(zj+jcZ)/(boxX);
