@@ -30,7 +30,7 @@ MFILES += make_seq $(LASTSEQ)
 
 
 $(PROGSEQ): $(COBJECTS) $(FOBJECTS) 
-	$(CC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
+	$(CC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
 # Everything is recompiled (but not dependencies) when any of makefiles is changed
 $(COBJECTS): %.o: %.c %.d $(MFILES)

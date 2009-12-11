@@ -7,7 +7,7 @@
 # Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
-## ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
+# ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
 # General Public License as published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
@@ -39,8 +39,8 @@ endif
 ifeq ($(MPICC),$(CC))
   # Depending on a particular MPI installation one may need to manually specify paths to MPI headers
   # and libraries
-  #CFLAGS += -I"/C/Program Files/MPICH2/include"
-  #LFLAGS += -L"/C/Program Files/MPICH2/lib"
+  #CFLAGS += -I"C:/Program Files/MPICH2/include"
+  #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
   
   LDLIBS += -lmpi
 # If MPI compiler wrapper is used, a few environmental variables are set
@@ -66,7 +66,7 @@ MFILES += make_mpi $(LASTMPI)
 
 
 $(PROGMPI): $(COBJECTS) $(FOBJECTS) 
-	$(MPICC) -o $@ $(LFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
+	$(MPICC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
 # Everything is recompiled (but not dependencies) when any of makefiles is changed)
 $(COBJECTS): %.o: %.c %.d $(MFILES)
