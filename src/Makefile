@@ -1,6 +1,6 @@
 # Main makefile for ADDA package
-# Actual compiling goes in make_seq and make_mpi for
-# sequential and parallel (mpi) version respectively
+# Actual compiling goes in make_seq and make_mpi for sequential and parallel (mpi) version
+# respectively
 # $Author$
 # $Date::                            $
 #
@@ -20,14 +20,19 @@
 # <http://www.gnu.org/licenses/>.
 
 #===================================================================================================
-# !!! Start of control section. Flags and options here are designed to be
-# modified by user to choose particular options for compilation. However, the
-# default set of options may work out-of-box on some systems. If compiling with
-# MPI support please also look at control section in file 'make_mpi'.
+# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, LDFLAGS, and LDLIBS. First two
+# are passed to C and Fortran compiler respectively, and last two are passed to linker.
 #===================================================================================================
 
-# --Optional flags-- Uncomment those that you find appropriate;
-# information can be found in corresponding headers
+#===================================================================================================
+# !!! Start of control section. Flags and options here are designed to be modified by user to choose
+# particular options for compilation. However, the default set of options may work out-of-box on
+# some systems. If compiling with MPI support please also look at control section in file
+# 'make_mpi'.
+#===================================================================================================
+
+# --Optional flags-- Uncomment those that you find appropriate; information can be found in
+# corresponding headers
 
 # debug.h
 #CFLAGS += -DDEBUG
@@ -42,8 +47,7 @@
 #CFLAGS += -DNOT_USE_LOCK
 #CFLAGS += -DONLY_LOCKFILE
 
-# This should be uncommented, if compiling of Fortran sources cause problems
-# and IGT is not needed
+# This should be uncommented, if compiling of Fortran sources cause problems and IGT is not needed
 #CFLAGS += -DDISABLE_IGT
 
 # --Compilers-- Choose one of the following
@@ -55,35 +59,33 @@
 # other -
 COMPILER = gnu
 
-
-# Additional options for compiler. For instance, one may use -m32 to force 32 bit
-# compilation in 64 bit environment
+# Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
+# bit environment
 CFLAGS +=
 
 # --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
 
 # --FFTW3 paths--
-# Specify path to headers and libraries of FFTW3. Some systems
-# do not need them at all, some specify special global variables
-# (first 2 lines), on some - FFTW3 is installed under user account
-# (next 2 lines). Under Windows it may be required to specify manually
-# relative or absolute paths (last 2 lines).
+# Specify path to headers and libraries of FFTW3. Some systems do not need them at all, some specify
+# special global variables (first or second 2 lines), on some - FFTW3 is installed under user
+# account (next 2 lines). Under Windows it may be required to specify manually relative or absolute
+# paths (last 2 lines).
 #FFTW3_INC_PATH = "$(FFTW_INC)"
 #FFTW3_LIB_PATH = "$(FFTW_LIB)"
+#FFTW3_INC_PATH = "$(FFTWINCLUDE)"
+#FFTW3_LIB_PATH = "$(FFTWLIB)"
 #FFTW3_INC_PATH = "$(HOME)/include"
 #FFTW3_LIB_PATH = "$(HOME)/lib"
 #FFTW3_INC_PATH = "./../lib"
 #FFTW3_LIB_PATH = "./../lib"
-#FFTW3_INC_PATH = "$(FFTWINCLUDE)"  
-#FFTW3_LIB_PATH = "$(FFTWLIB)"
 
 # --C standard--
-# ADDA code relies on certain parts of C99 standard, therefore support of this
-# standard is checked at compile time (and error is produced if the test fails).
-# However, if you believe that your compiler supports all the required features
-# (listed in const.h), but do not define itself conforming to C99, you may
-# uncomment the following option to override the test. Do it at your own risk!
+# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
+# at compile time (and error is produced if the test fails). However, if you believe that your
+# compiler supports all the required features (listed in const.h), but do not define itself
+# conforming to C99, you may uncomment the following option to override the test. Do it at your own
+# risk!
 #CFLAGS += -DOVERRIDE_STDC_TEST
 
 #===================================================================================================
@@ -109,7 +111,7 @@ PROGMPI  = adda_mpi
 LASTSEQ  = .lastseq
 LASTMPI  = .lastmpi
 SHELL    = /bin/sh
-LDLIBS   = -lm
+LDLIBS   += -lm
 DEPFLAG  = -M
 DFFLAG   = -MF
 MFILES   = Makefile
@@ -127,7 +129,7 @@ ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
     CFLAGS += -I$(FFTW3_INC_PATH)
   endif
   ifneq ($(FFTW3_LIB_PATH),)
-    LFLAGS += -L$(FFTW3_LIB_PATH)
+    LDFLAGS += -L$(FFTW3_LIB_PATH)
   endif
 else
   FSOURCE += cfft99D.f
@@ -143,14 +145,14 @@ FOPT = $(COPT)
 # This is for additional libraries that may be needed when using C linker on a Fortran sources
 # (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are
 # assigned for each compiler below
-FLIBS =
+FLIBS +=
 ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
   COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
-  FLIBS = -lg2c
+  FLIBS += -lg2c
   CWARN = -Wall -W -pedantic -Wcast-qual -Wpointer-arith \
           -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
           -Wno-unknown-pragmas -Wno-unused-parameter
@@ -160,8 +162,9 @@ ifeq ($(COMPILER),intel)
   CF    = ifort
   COPT  = -std=c99 -O3
   FOPT  = -O3
-  FLIBS = -lifcore
+  FLIBS += -lifcore
   CWARN = -Wall -Wno-uninitialized -wd810,869,981,1418,1419,1572,2259
+  # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 endif
 ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
@@ -189,11 +192,11 @@ ifeq ($(COMPILER),ibm)
   CWARN   = -qsuppress=1506-224:1506-342:1500-036
 endif
 ifeq ($(COMPILER),hpux)
-  CC    = cc 
-  CF    = f90 
+  CC    = cc
+  CF    = f90
   FOPT  = +O3  +DD64
   COPT  =  -AC99 +O3  +DD64
-  CWARN = 
+  CWARN =
   CFLAGS += -DNOT_USE_LOCK
 endif
 ifeq ($(COMPILER),other)
@@ -205,12 +208,11 @@ endif
 # if 'release' turn off warningns
 ifdef RELEASE
   CWARN = -w
-  LWARN = -w
+  LDFLAGS += -w
 endif
 # Finalize option flags (almost)
 CFLAGS += $(COPT) $(CWARN)
 FFLAGS += $(FOPT) $(FWARN)
-LFLAGS += $(COPT) $(LWARN)
 
 #===================================================================================================
 # Main action part
