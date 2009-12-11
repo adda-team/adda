@@ -1453,7 +1453,6 @@ void InitVariables(void)
 	ref_index[0][IM]=0.0;
 	// initialize to null to determine further whether it is initialized
 	logfile=NULL;
-	logfname[0]=""; 
 
 	boxX=boxY=boxZ=UNDEF;
 	sizeX=UNDEF;
