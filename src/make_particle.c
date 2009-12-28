@@ -1301,6 +1301,34 @@ void InitShape(void)
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
+	else if(shape==SH_BICOATED) { // based on code by Jin You Lu
+		diskratio=sh_pars[0];
+		coat_ratio=sh_pars[1];
+		coat_r2=0.25*coat_ratio*coat_ratio;
+		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
+		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
+		SPRINTZ(sh_form_str,"bicoated; diameter(d):%%.10g, center-center distance R_cc/d=%.10g, "
+			"inner diameter d_in/d=%.10g",diskratio,coat_ratio);
+		coat_r2=0.25*coat_ratio*coat_ratio;
+		hdratio=diskratio/2.0;
+		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
+		else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
+		yx_ratio=1;
+		zx_ratio=diskratio+1;
+		Nmat_need=2;
+	}
+	else if (shape==SH_BISPHERE) { // based on code by Jin You Lu
+		diskratio=sh_pars[0];
+		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
+		SPRINTZ(sh_form_str,
+			"bisphere; diameter(d):%%.10g, center-center distance R_cc/d=%.10g",diskratio);
+		hdratio=diskratio/2.0;
+		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
+		else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
+		yx_ratio=1;
+		zx_ratio=diskratio+1;
+		Nmat_need=1;
+	}
 	else if (shape==SH_BOX) {
 		if (sh_Npars==0) {
 			STRCPYZ(sh_form_str,"cube; size of edge along x-axis:%.10g");
@@ -1493,8 +1521,8 @@ void InitShape(void)
 		Nmat_need=2;
 	}
 	/* TO ADD NEW SHAPE
-	 * add an option here (in the end of 'else if' sequence). Identifier ('SH_...') should be
-	 * defined inside 'enum sh' in const.h. The option should
+	 * add an option here (in 'else if' sequence in alphabetical order). Identifier ('SH_...')
+	 * should be defined inside 'enum sh' in const.h. The option should
 	 * 1) save all the input parameters from array 'sh_pars' to local variables
 	 *    (defined in the beginning of this source files)
 	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since
@@ -1724,6 +1752,23 @@ void MakeParticle(void)
 						if (!IS_EVEN(largerZ)) mat=0;
 					}
 				}
+				else if (shape==SH_BICOATED) {
+					r2=xr*xr+yr*yr;
+					if (r2<=0.25) {
+						tmp1=fabs(zr)-hdratio;
+						if (tmp1*tmp1+r2<=0.25) {
+							if (tmp1*tmp1+r2<=coat_r2) mat=1;
+							else mat=0;
+						}
+					}
+				}
+				else if (shape==SH_BISPHERE) {
+					r2=xr*xr+yr*yr;
+					if (r2<=0.25) {
+						tmp1=fabs(zr)-hdratio;
+						if (tmp1*tmp1+r2<=0.25) mat=0;
+					}
+				}
 				else if (shape==SH_BOX) {
 					if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
 				}
@@ -1771,14 +1816,14 @@ void MakeParticle(void)
 					else if (fabs(yr)<=0.5 && fabs(zr)<=0.5) mat=0;
 				}
 				/* TO ADD NEW SHAPE
-				 * add an option here (in the end of 'else if' sequence). Identifier ('SH_...')
-				 * should be defined inside 'enum sh' in const.h. This option should set 'mat' -
-				 * index of domain for a point, specified by {xr,yr,zr} - coordinates divided by
-				 * grid size along X (xr from -0.5 to 0.5, others - depending on aspect ratios).
-				 * C array indexing used: mat=0 - first domain, etc. If point corresponds to void,
-				 * do not set 'mat'. If you need temporary local variables (which are used only in
-				 * this part of the code), either use 'tmp1'-'tmp3' or define your own (with more
-				 * informative names) in the beginning of this function.
+				 * add an option here (in 'else if' sequence in alphabetical order). Identifier
+				 * ('SH_...') should be defined inside 'enum sh' in const.h. This option should set
+				 * 'mat' - index of domain for a point, specified by {xr,yr,zr} - coordinates
+				 * divided by grid size along X (xr from -0.5 to 0.5, others - depending on aspect
+				 * ratios). C array indexing used: mat=0 - first domain, etc. If point corresponds
+				 * to void, do not set 'mat'. If you need temporary local variables (which are used
+				 * only in this part of the code), either use 'tmp1'-'tmp3' or define your own (with
+				 * more informative names) in the beginning of this function.
 				 */
 
 				position_tmp[3*index]=(unsigned short)i;

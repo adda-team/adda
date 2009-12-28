@@ -122,6 +122,8 @@
 
 enum sh { // shape types
 	SH_AXISYMMETRIC, // axisymmetric
+	SH_BICOATED,     // two coated spheres
+	SH_BISPHERE,     // two spheres
 	SH_BOX,          // box (may be rectangular)
 	SH_CAPSULE,      // capsule
 	SH_COATED,       // coated sphere

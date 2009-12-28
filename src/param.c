@@ -208,6 +208,12 @@ static const struct subopt_struct shape_opt[]={
 	{"axisymmetric","<filename>","Axisymmetric homogeneous shape, defined by its contour in "
 		"ro-z plane of the cylindrical coordinate system. Its symmetry axis coincides with the "
 		"z-axis, and the contour is read from file.",FNAME_ARG,SH_AXISYMMETRIC},
+	{"bicoated","<R_cc/d> <d_in/d>","Two identical concentric coated spheres with outer diameter d "
+		"(first domain), inner diameter d_in, and center-to-center distance R_cc (along the "
+		"z-axis). It describes both separate and sintered coated spheres. In the latter case "
+		"sintering is considered symmetrically for cores and shells.",2,SH_BICOATED},
+	{"bisphere","<R_cc/d> ","Two identical spheres with diameter d and center-to-center distance "
+		"R_cc (along the z-axis). It describe both separate and sintered spheres.",1,SH_BISPHERE},
 	{"box","[<y/x> <z/x>]","Homogeneous cube (if no arguments are given) or a rectangular "
 		"parallelepiped with edges x,y,z.",UNDEF,SH_BOX},
 	{"capsule","<h/d>","Homogeneous capsule (cylinder with half-spherical end caps) with cylinder "
