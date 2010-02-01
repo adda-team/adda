@@ -212,6 +212,9 @@ static const struct subopt_struct shape_opt[]={
 		"(first domain), inner diameter d_in, and center-to-center distance R_cc (along the "
 		"z-axis). It describes both separate and sintered coated spheres. In the latter case "
 		"sintering is considered symmetrically for cores and shells.",2,SH_BICOATED},
+	{"biellipsoid","<y1/x1> <z1/x1> <x2/x1> <y2/x2> <z2/x2>","Two general ellipsoids in default "
+		"orientations with centers on the z-axis, touching each other. Their semi-axes are x1,y1,"
+		"z1 (lower one, first domain) and x2,y2,z2 (upper one, second domain).",5,SH_BIELLIPSOID},
 	{"bisphere","<R_cc/d> ","Two identical spheres with diameter d and center-to-center distance "
 		"R_cc (along the z-axis). It describe both separate and sintered spheres.",1,SH_BISPHERE},
 	{"box","[<y/x> <z/x>]","Homogeneous cube (if no arguments are given) or a rectangular "
@@ -331,9 +334,10 @@ static struct opt_struct options[]={
 		"diagonal in particle reference frame). '-m' then accepts 6 arguments per each domain. "
 		"Can not be used with CLDR polarizability and all SO formulations.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
-	{PAR(beam),"<type> [<arg1>...]","Sets a type of the incident beam. Four other float arguments "
-		"must be specified for all beam types except 'plane'. These are the width and x, y, z "
-		"coordinates of the center of the beam respectively (all in um).\n"
+	{PAR(beam),"<type> [<args>]","Sets a type of the incident beam. Four other float arguments are "
+		"relevant for all beam types except 'plane'. These are the width and x, y, z coordinates of "
+		"the center of the beam respectively (all in um). The latter three can be omitted (then "
+		"beam center is located in the origin).\n"
 		"Default: plane",UNDEF,beam_opt},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: " FD_CHP_DIR,1,NULL},
@@ -465,7 +469,7 @@ static struct opt_struct options[]={
 		"corresponds to its shape option FRMFIL and output of 'calltarget' utility "
 		"(version 6.1).\n"
 		"Default: text",1,NULL},
-	{PAR(shape),"<type> [<arg1>...]","Sets shape of the particle, either predefined or 'read' "
+	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' "
 		"from file. All the parameters of predefined shapes are floats except for filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
 	{PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If "
