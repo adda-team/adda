@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.80a3"
+#define ADDA_VERSION "0.80a4"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -123,6 +123,7 @@
 enum sh { // shape types
 	SH_AXISYMMETRIC, // axisymmetric
 	SH_BICOATED,     // two coated spheres
+	SH_BIELLIPSOID,  // two general ellipsoids
 	SH_BISPHERE,     // two spheres
 	SH_BOX,          // box (may be rectangular)
 	SH_CAPSULE,      // capsule

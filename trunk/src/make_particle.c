@@ -109,7 +109,8 @@ double cX,cY,cZ;               // center for DipoleCoord, it is sometimes used i
 // shape parameters
 static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps,egz0; // for egg
-static double hdratio,invsqY,invsqZ,haspY,haspZ;
+static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
+static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double P,Q,R,S; // for RBC
 // for axisymmetric; all coordinates defined here are relative
 static double *contSegRoMin,*contSegRoMax,*contRo,*contZ;
@@ -1228,7 +1229,8 @@ void InitShape(void)
 	double n_sizeX; // new value for size
 	double h_d,b_d,c_d,h2,b2,c2;
 	double yx_ratio,zx_ratio,tmp1,tmp2,tmp3;
-	double diskratio,aspectY,aspectZ;
+	double diskratio,aspectY,aspectZ,aspectY2,aspectZ2,aspectXs;
+	double aspectY2sc,aspectZ2sc,invmaxX;
 	double ad,ct,ct2; // cos(theta0) and its square
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
@@ -1295,8 +1297,8 @@ void InitShape(void)
 		InitContour(shape_fname,&zx_ratio,&n_sizeX);
 		yx_ratio=1;
 		symZ=false; // input contour is assumed asymmetric over ro-axis
-		/* TODO: this can be determined from the contour. However, it is not trivial, especially
-		 * when the contour intersects itself.
+		/* TODO: volume_ratio can be determined from the contour. However, it is not trivial,
+		 * especially when the contour intersects itself.
 		 */
 		volume_ratio=UNDEF;
 		Nmat_need=1;
@@ -1315,6 +1317,48 @@ void InitShape(void)
 		else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
 		yx_ratio=1;
 		zx_ratio=diskratio+1;
+		Nmat_need=2;
+	}
+	else if (shape==SH_BIELLIPSOID) { // based on code by Alexander Moskalensky
+		aspectY=sh_pars[0];
+		TestPositive(aspectY,"aspect ratio y1/x1");
+		aspectZ=sh_pars[1];
+		TestPositive(aspectZ,"aspect ratio z1/x1");
+		aspectXs=sh_pars[2];
+		TestPositive(aspectXs,"aspect ratio x2/x1");
+		aspectY2=sh_pars[3];
+		TestPositive(aspectY2,"aspect ratio y2/x2");
+		aspectZ2=sh_pars[4];
+		TestPositive(aspectZ2,"aspect ratio z2/x2");
+		// set descriptive string and symmetry
+		SPRINTZ(sh_form_str,"biellipsoid; size along x-axis:%%.10g; aspect ratios: y1/x1=%.10g, "
+			"z1/x1=%.10g, x2/x1=%.10g, y2/x2=%.10g, z2/x2=%.10g",aspectY,aspectZ,aspectXs,aspectY2,
+			aspectZ2);
+		if (aspectY!=1 || aspectY2!=1) symR=false;
+		symZ=false; // since upper and lower ellipsoids are generally different both in size and RI
+		// set inverse squares of aspect ratios
+		invsqY=1/(aspectY*aspectY);
+		invsqZ=1/(aspectZ*aspectZ);
+		invsqY2=1/(aspectY2*aspectY2);
+		invsqZ2=1/(aspectZ2*aspectZ2);
+		// determine scale to be used for variables below; and "radii" of ellipsoids
+		invmaxX=1/MAX(aspectXs,1);
+		ell_x1=0.5*invmaxX;
+		ell_x2=ell_x1*aspectXs;
+		ell_rsq1=ell_x1*ell_x1;
+		ell_rsq2=ell_x2*ell_x2;
+		// rescale aspect ratios for second ellipsoid
+		aspectY2sc=aspectY2*aspectXs;
+		aspectZ2sc=aspectZ2*aspectXs;
+		// set z positions of centers and intersection
+		zcenter1=-aspectZ2sc*invmaxX/2;
+		zcenter2=aspectZ*invmaxX/2;
+		boundZ=zcenter1+zcenter2;
+		// set box and volume ratios
+		volume_ratio=PI_OVER_SIX*(aspectY*aspectZ+aspectY2sc*aspectZ2sc*aspectXs)
+			        *invmaxX*invmaxX*invmaxX;
+		yx_ratio=MAX(aspectY,aspectY2sc)*invmaxX;
+		zx_ratio=(aspectZ+aspectZ2sc)*invmaxX;
 		Nmat_need=2;
 	}
 	else if (shape==SH_BISPHERE) { // based on code by Jin You Lu
@@ -1499,7 +1543,7 @@ void InitShape(void)
 	}
 	else if (shape==SH_READ) {
 		SPRINTZ(sh_form_str,"specified by file %s; size along x-axis:%%.10g",shape_fname);
-		symX=symY=symZ=symR=false; // input file is assumed asymmetric
+		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
 		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
@@ -1759,6 +1803,20 @@ void MakeParticle(void)
 						if (tmp1*tmp1+r2<=0.25) {
 							if (tmp1*tmp1+r2<=coat_r2) mat=1;
 							else mat=0;
+						}
+					}
+				}
+				else if (shape==SH_BIELLIPSOID) {
+					if (zr<=boundZ) { // lower ellipsoid
+						if (fabs(xr)<=ell_x1) {
+							zshift=zr-zcenter1;
+							if (xr*xr+yr*yr*invsqY+zshift*zshift*invsqZ<=ell_rsq1) mat=0;
+						}
+					}
+					else { // upper ellipsoid
+						if (fabs(xr)<=ell_x2) {
+							zshift=zr-zcenter2;
+							if (xr*xr+yr*yr*invsqY2+zshift*zshift*invsqZ2<=ell_rsq2) mat=1;
 						}
 					}
 				}
