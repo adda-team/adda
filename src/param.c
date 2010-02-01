@@ -5,7 +5,7 @@
  *        information; contains file locking routines
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -1220,7 +1220,8 @@ PARSE_FUNC(test)
 PARSE_FUNC(V)
 {
 	char copyright[]="\n\nCopyright (C) 2006-2008 University of Amsterdam\n"
-		"Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam\n"
+		"Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of "
+		"Amsterdam\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms "
 		"of the GNU General Public License as published by the Free Software Foundation; either "
 		"version 3 of the License, or (at your option) any later version.\n\n"
