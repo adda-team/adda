@@ -2,9 +2,9 @@
 # Most options are defined in Makefile
 # $Author$
 # $Date::                            $
-# 
+#
 # Copyright (C) 2006-2008 University of Amsterdam
-# Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+# Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,8 +20,8 @@
 
 #===================================================================================================
 # !!! Start of control section. Flags and options here are designed to be modified by user to choose
-# particular options for compilation. However, the default set of options may work out-of-box on 
-# some systems.  
+# particular options for compilation. However, the default set of options may work out-of-box on
+# some systems.
 #===================================================================================================
 
 # Either use compiler directly or use MPI wrapper
@@ -38,10 +38,10 @@ endif
 # If the compiler is used directly, few additional options are needed
 ifeq ($(MPICC),$(CC))
   # Depending on a particular MPI installation one may need to manually specify paths to MPI headers
-  # and libraries
+  # and libraries. Path should be absolute or relative to the location of this Makefile.
   #CFLAGS += -I"C:/Program Files/MPICH2/include"
   #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
-  
+
   LDLIBS += -lmpi
 # If MPI compiler wrapper is used, a few environmental variables are set
 else
@@ -56,7 +56,9 @@ endif
 
 # Finalize flags
 CFLAGS += -DADDA_MPI
-MFILES += make_mpi $(LASTMPI)
+vpath %.c $(CPATH)
+vpath %.h $(HPATH)
+vpath %.f $(FPATH)
 
 #===================================================================================================
 # Main action part
@@ -64,20 +66,18 @@ MFILES += make_mpi $(LASTMPI)
 
 .DELETE_ON_ERROR:
 
-
-$(PROGMPI): $(COBJECTS) $(FOBJECTS) 
+$(PROGMPI): $(COBJECTS) $(FOBJECTS)
+	@echo "Building $@"
 	$(MPICC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
-# Everything is recompiled (but not dependencies) when any of makefiles is changed)
+# Everything is recompiled when any of makefiles is changed)
 $(COBJECTS): %.o: %.c %.d $(MFILES)
 	$(MPICC) -c $(CFLAGS) $<
 
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
 
-$(LASTMPI):
-	echo "void" > $(LASTMPI)
-# Dependencies are only generated for C sources; we assume that each Fortran file is completely 
+# Dependencies are only generated for C sources; we assume that each Fortran file is completely
 # independent or compiled all at once
 
 $(CDEPEND): %.d: %.c $(MFILES)

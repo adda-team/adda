@@ -390,8 +390,8 @@ static struct opt_struct options[]={
 		"integration is used, (default: infinity); <prec> - minus decimal logarithm of relative "
 		"error of the integration, i.e. epsilon=10^(-<prec>) (default: same as argument of '-eps' "
 		"command line option).\n"
-#ifdef DISABLE_IGT
-		"'igt' was disabled at compile time.\n"
+#ifdef NO_FORTRAN
+		"'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
@@ -956,9 +956,9 @@ PARSE_FUNC(int)
 	else if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
 	else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
 	else if (strcmp(argv[1],"igt")==0) {
-#ifdef DISABLE_IGT
-		PrintErrorHelp("To use IGT it should be enabled at compile time (comment line "
-			           "'CFLAGS += -DDISABLE_IGT' in Makefile");
+#ifdef NO_FORTRAN
+		PrintErrorHelp("To use IGT compiling of Fortran sources must be enabled (comment line "
+			           "'CFLAGS += -DNO_FORTRAN' in Makefile and recompile");
 #endif
 		IntRelation=G_IGT;
 		if (Narg>=2) {
@@ -1317,8 +1317,8 @@ PARSE_FUNC(V)
 #elif defined(ONLY_LOCKFILE)
 		"ONLY_LOCKFILE, "
 #endif
-#ifdef DISABLE_IGT
-		"DISABLE_IGT, "
+#ifdef NO_FORTRAN
+		"NO_FORTRAN, "
 #endif
 #ifdef OVERRIDE_STDC_TEST
 		"OVERRIDE_STDC_TEST, "

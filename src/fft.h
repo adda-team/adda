@@ -4,6 +4,7 @@
  * Descr: definitions of FFT parameters and routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -32,6 +33,9 @@
 
 #ifndef FFT_TEMPERTON
 #	define FFTW3 // FFTW3 is default
+#elif defined(NO_FORTRAN)
+// this is checked in Makefile, but additional check is always good
+#	error Tempertron FFT is implemented in Fortran, hence is incompatible with NO_FORTRAN option
 #endif
 
 // direction of FFT and transpose; complies with FFTW3 definition

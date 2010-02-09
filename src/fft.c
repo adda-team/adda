@@ -8,7 +8,7 @@
  *        Previous versions by Michel Grimminck and Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -91,7 +91,7 @@ void cftfax_(const int *nn,int *ifax,double *trigs);
 void cfft99_(double *data,double *_work,const double *trigs,const int *ifax,const int *inc,
 	const int *jump,const int *nn,const int *lot,const int *isign);
 #endif
-#ifndef DISABLE_IGT
+#ifndef NO_FORTRAN
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,
 	const double *relreq, double *result);
 #endif
@@ -551,7 +551,7 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 	rr2=DotProd(rtemp,rtemp);
 	rr=sqrt(rr2);
 	rn=rr/gridspace; // normalized r
-#ifndef DISABLE_IGT
+#ifndef NO_FORTRAN
 	if (IntRelation==G_IGT && (igt_lim==UNDEF || rn<=igt_lim))
 		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
 	else {
@@ -581,7 +581,7 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 			// result=Gp=expval*br
 			cMult(br,expval,result[comp]);
 		}
-#ifndef DISABLE_IGT
+#ifndef NO_FORTRAN
 	} // end of else
 #endif
 	//====== FCD (static and full) ========
