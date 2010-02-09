@@ -4,7 +4,7 @@
 # $Date::                            $
 #
 # Copyright (C) 2006-2008 University of Amsterdam
-# Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+# Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,7 +20,9 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
-MFILES += make_seq $(LASTSEQ)
+vpath %.c $(CPATH)
+vpath %.h $(HPATH)
+vpath %.f $(FPATH)
 
 #===================================================================================================
 # Main action part
@@ -28,19 +30,16 @@ MFILES += make_seq $(LASTSEQ)
 
 .DELETE_ON_ERROR:
 
-
 $(PROGSEQ): $(COBJECTS) $(FOBJECTS) 
+	@echo "Building $@"
 	$(CC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
 
-# Everything is recompiled (but not dependencies) when any of makefiles is changed
+# Everything is recompiled when any of makefiles is changed
 $(COBJECTS): %.o: %.c %.d $(MFILES)
 	$(CC) -c $(CFLAGS) $<
 
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
-
-$(LASTSEQ):
-	echo "void" > $(LASTSEQ)
 
 # Dependencies are only generated for C sources; we assume that each Fortran file is completely 
 # independent or all of them are compiled at once
