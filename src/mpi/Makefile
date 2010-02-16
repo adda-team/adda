@@ -24,9 +24,16 @@
 # some systems.
 #===================================================================================================
 
-# Either use compiler directly or use MPI wrapper
-#MPICC = $(CC)
-MPICC = mpicc
+# Heurestics to determine if MPI wrapper is available. If $(MPICC) is defined it is used as is. 
+# Otherwise we try to locate 'mpicc' wrapper through system call, and reverse to $(CC) as the last 
+# resort. This should work fine in many cases, but can be replaced by a simple assignment of MPICC.
+ifndef MPICC
+  ifeq ($(shell which mpicc > /dev/null 2>&1 && echo 0),0)
+    MPICC = mpicc
+  else
+    MPICC = $(CC)
+  endif
+endif
 
 # Compiler dependent options
 # These are options for a particular Alpha system
@@ -35,7 +42,7 @@ ifeq ($(COMPILER),compaq)
   LDLIBS += -lmpi -lelan
 endif
 
-# If the compiler is used directly, few additional options are needed
+# If the compiler is used directly, a few additional options are needed
 ifeq ($(MPICC),$(CC))
   # Depending on a particular MPI installation one may need to manually specify paths to MPI headers
   # and libraries. Path should be absolute or relative to the location of this Makefile.
@@ -55,7 +62,7 @@ endif
 #===================================================================================================
 
 # Finalize flags
-CFLAGS += -DADDA_MPI
+CDEFS += -DADDA_MPI
 vpath %.c $(CPATH)
 vpath %.h $(HPATH)
 vpath %.f $(FPATH)
@@ -72,17 +79,17 @@ $(PROGMPI): $(COBJECTS) $(FOBJECTS)
 
 # Everything is recompiled when any of makefiles is changed)
 $(COBJECTS): %.o: %.c %.d $(MFILES)
-	$(MPICC) -c $(CFLAGS) $<
+	$(MPICC) -c $(CFLAGS) $(CDEFS) $<
 
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
 
 # Dependencies are only generated for C sources; we assume that each Fortran file is completely
-# independent or compiled all at once
+# independent or all of them are compiled at once
 
 $(CDEPEND): %.d: %.c $(MFILES)
-	$(MPICC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
+	$(MPICC) $(DEPFLAG) $(CFLAGS) $(CDEFS) $< $(DFFLAG) $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-include $(CDEPEND)
+-include $(CDEPEND)

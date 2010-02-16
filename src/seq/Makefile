@@ -36,7 +36,7 @@ $(PROGSEQ): $(COBJECTS) $(FOBJECTS)
 
 # Everything is recompiled when any of makefiles is changed
 $(COBJECTS): %.o: %.c %.d $(MFILES)
-	$(CC) -c $(CFLAGS) $<
+	$(CC) -c $(CFLAGS) $(CDEFS) $<
 
 $(FOBJECTS): %.o: %.f $(MFILES)
 	$(CF) -c $(FFLAGS) $<
@@ -45,8 +45,8 @@ $(FOBJECTS): %.o: %.f $(MFILES)
 # independent or all of them are compiled at once
 
 $(CDEPEND): %.d: %.c $(MFILES)
-	$(CC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
+	$(CC) $(DEPFLAG) $(CFLAGS) $(CDEFS) $< $(DFFLAG) $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-include $(CDEPEND)
+-include $(CDEPEND)

@@ -22,13 +22,17 @@
 #===================================================================================================
 # !!! This makefile accepts environmental variables CFLAGS, FFLAGS, LDFLAGS, and LDLIBS. First two
 # are passed to C and Fortran compiler respectively, and last two are passed to linker.
+# Values specified below are added to the values given by the environment.
+# These variables can also be given in the command line to make, but it will override all values 
+# specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
+# with much care, including all relevant flags in the new value.
 #===================================================================================================
 
 #===================================================================================================
 # Fixed definitions for non-compilation targets 
 #===================================================================================================
 
-SHELL    = /bin/bash
+SHELL    = /bin/sh
 # Separate directories to store Makefiles and .o and .d files for sequential and MPI executables
 SEQ      = seq
 MPI      = mpi
@@ -52,33 +56,48 @@ NONTRIVIAL = all seq mpi
 
 # Everything from here down to the main action part of this makefile is skipped if targets specified 
 # in the command line to this makefile do not imply compilation.
-ifneq ($(strip $(if $(MAKECMDGOALS), \
-        $(if $(strip $(foreach var,$(NONTRIVIAL),$(findstring $(var),$(MAKECMDGOALS)))),1,),1)),)
+ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),)
 #===================================================================================================
 
-# --Optional flags-- Uncomment those that you find appropriate; information can be found in
-# corresponding headers
+# ---Optional flags--- 
+# Uncomment those that you find appropriate; additional information is in specified headers.
+# One can also export environmental variable OPTIONS before executing make, or define its value in 
+# the command line of make. For instance, 'make OPTIONS=DEBUG ...' or 'make OPTIONS+=DEBUG ...'. If
+# several options need to be given, they should be given as one argument in quotes with its parts 
+# separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented 
+# below are appended to the list specified elsewhere.
+# Full list of possible options is the following:
+VALID_OPTS=DEBUG FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
+           OVERRIDE_STDC_TEST
 
-# debug.h
-#CFLAGS += -DDEBUG
+# Debug mode (debug.h).
+#override OPTIONS += DEBUG
 
-# fft.h
-#CFLAGS += -DFFT_TEMPERTON
+# Temperton FFT (fft.h).
+#override OPTIONS += FFT_TEMPERTON
 
-# prec_timing.h
-#CFLAGS += -DPRECISE_TIMING
+# Precise timing (prec_timing.h).
+#override OPTIONS += PRECISE_TIMING
 
-# io.h
-#CFLAGS += -DNOT_USE_LOCK
-#CFLAGS += -DONLY_LOCKFILE
+# Controls the mode of file locking, if any (io.h). Use at maximum one of the following options.
+#override OPTIONS += NOT_USE_LOCK
+#override OPTIONS += ONLY_LOCKFILE
 
 # This should be uncommented, if compiling of Fortran sources cause problems. However, currently a
-# number of ADDA (optional) features rely on Fortran sources, in particular:
-# IGT, Temperton FFT.
+# number of ADDA (optional) features rely on Fortran sources, in particular: IGT, Temperton FFT.
 # This features will not work if line below is uncommented.
-#CFLAGS += -DNO_FORTRAN
+#override OPTIONS += NO_FORTRAN
 
-# --Compilers-- Choose one of the following
+# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
+# at compile time (and error is produced if the test fails). However, if you believe that your
+# compiler supports all the required features (listed in const.h), but do not define itself
+# conforming to C99, you may uncomment the following option to override the test. Do it at your own
+# risk!
+#override OPTIONS += OVERRIDE_STDC_TEST
+
+# ---Compilers--- 
+# Choose one of the following. Can also be specified from command line to make (see explanation 
+# above for OPTIONS), overriding definition below.
 # gnu - tested for gcc 3.2.3 - 4.3.2
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
@@ -88,8 +107,9 @@ ifneq ($(strip $(if $(MAKECMDGOALS), \
 COMPILER = gnu
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
-# bit environment
-CFLAGS +=
+# bit environment. Flags specified below are appended to the ones specified in the environment or
+# command line of make (see explanation above for OPTIONS).
+override EXTRA_CFLAGS += 
 
 # --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
@@ -99,7 +119,8 @@ RELEASE = on
 # special global variables (first or second 2 lines), on some - FFTW3 is installed under user
 # account (next 2 lines). Under Windows it may be required to specify paths manually (last 2 lines).
 # Relative (to location of this Makefile) paths should be immediately transformed into absolute
-# ones using "$(abspath ...)".
+# ones using "$(abspath ...)". This two variables (FFTW3_INC_PATH and FFTW3_LIB_PATH) can also be 
+# defined in the enviroment or in the command line of make (see explanation above for OPTIONS).
 #FFTW3_INC_PATH := $(FFTW_INC)
 #FFTW3_LIB_PATH := $(FFTW_LIB)
 #FFTW3_INC_PATH := $(FFTWINCLUDE)
@@ -108,14 +129,6 @@ RELEASE = on
 #FFTW3_LIB_PATH := $(HOME)/lib
 #FFTW3_INC_PATH := "$(abspath ./../lib)"
 #FFTW3_LIB_PATH := "$(abspath ./../lib)"
-
-# --C standard--
-# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
-# at compile time (and error is produced if the test fails). However, if you believe that your
-# compiler supports all the required features (listed in const.h), but do not define itself
-# conforming to C99, you may uncomment the following option to override the test. Do it at your own
-# risk!
-#CFLAGS += -DOVERRIDE_STDC_TEST
 
 #===================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However,
@@ -151,37 +164,72 @@ DEPFLAG  = -M
 DFFLAG   = -MF # this is required
 MFILE    = Makefile # this file; child makefiles are named the same
 MFILES   := $(MFILE) ../$(MFILE)
-# Fortran sources generate a lot of warnings
+# Fortran sources generate a lot of warnings, we do not plan to investigate them
 FWARN    = -w
 
 #===================================================================================================
 # Conditional variables that depend on the values of optional flags.
 #===================================================================================================
+# 
+# Process OPTIONS
+# Produce warnings if any of OPTIONS are not present in VALID_OPTS list
+$(foreach var,$(filter-out $(VALID_OPTS),$(OPTIONS)),\
+              $(warning The option '$(var)' is not recognized. Please check the spelling.))
 
-# adds link to fftw3 library and modifies paths when above is commented
-ifeq ($(findstring -DFFT_TEMPERTON,$(CFLAGS)),)
-  $(info Compiling with FFTW3)
-  LDLIBS += -lfftw3
-  ifneq ($(FFTW3_INC_PATH),)
-    CFLAGS += -I$(FFTW3_INC_PATH)
-  endif
-  ifneq ($(FFTW3_LIB_PATH),)
-    LDFLAGS += -L$(FFTW3_LIB_PATH)
-  endif
-else
-  $(info Compiling with Temperton FFT)
-  ifeq ($(findstring -DNO_FORTRAN,$(CFLAGS)),)
+$(info --- Compilation options: ---)
+ifneq ($(filter DEBUG,$(OPTIONS)),)
+  $(info Debug mode)
+  CDEFS += -DDEBUG
+endif
+ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
+  $(info Temperton FFT)
+  CDEFS += -DFFT_TEMPERTON
+  ifeq ($(filter NO_FORTRAN,$(OPTIONS)),)
     FSOURCE += cfft99D.f
   else
     $(error Temperton FFT (FFT_TEMPERTON) relies on Fortran sources, hence it is incompatible with \
     NO_FORTRAN)
   endif
+else
+  $(info FFTW3)
+  LDLIBS += -lfftw3
+  ifdef FFTW3_INC_PATH
+    CFLAGS += -I$(FFTW3_INC_PATH)
+  endif
+  ifdef FFTW3_LIB_PATH
+    LDFLAGS += -L$(FFTW3_LIB_PATH)
+  endif
 endif
-# essentials of NO_FORTRAN option
-ifneq ($(findstring -DNO_FORTRAN,$(CFLAGS)),)
-  $(info Compiling without Fortran sources)
+ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
+  $(info Precise timing)
+  CDEFS += -DPRECISE_TIMING
+endif
+ifneq ($(filter NOT_USE_LOCK,$(OPTIONS)),)
+  $(info No locks at all)
+  CDEFS += -DNOT_USE_LOCK
+  ifneq ($(filter ONLY_LOCKFILE,$(OPTIONS)),)
+    $(warning ONLY_LOCKFILE has no effect when NOT_USE_LOCK is enabled)
+  endif
+else ifneq ($(filter ONLY_LOCKFILE,$(OPTIONS)),)
+  $(info Only lock files (without system locks))
+  CDEFS += -DDONLY_LOCKFILE
+endif
+ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
+  $(info Without Fortran sources)
+  CDEFS += -DNO_FORTRAN
   FSOURCE = 
 endif
+ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
+  $(info Overriding test for C99 conformance)
+  CDEFS += -DOVERRIDE_STDC_TEST
+endif
+# Process EXTRA_CFLAGS
+ifneq ($(strip $(EXTRA_CFLAGS)),)
+  $(info Extra CFLAGS: '$(EXTRA_CFLAGS)')
+  CFLAGS += $(EXTRA_CFLAGS)
+endif
+
+# adds link to fftw3 library and modifies paths when above is commented
 # compiler warnings and optimization flags;
 # when release, warning are turned off below
 FOPT = $(COPT)
@@ -238,11 +286,11 @@ else ifeq ($(COMPILER),hpux)
   CWARN =
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)
-
+# add here definitions corresponding to 'other' compiler, if you want to use it.
 else
   $(error Unknown compiler set '$(COMPILER)')
 endif
-$(info Using compiler set '$(COMPILER)')
+$(info Compiler set '$(COMPILER)')
 
 # if Fortran sources are used, Fortran libraries are added
 ifneq ($(strip $(FSOURCE)),)
@@ -259,6 +307,8 @@ CFLAGS += $(COPT) $(CWARN)
 FFLAGS += $(FOPT) $(FWARN)
 
 FOBJECTS = $(FSOURCE:.f=.o)
+
+$(info ----------------------------)
 
 #===================================================================================================
 #end of check for targets implying compilation
