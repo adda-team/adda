@@ -1118,7 +1118,7 @@ PARSE_FUNC(save_geom)
 PARSE_FUNC(scat)
 {
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
-	if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
+	else if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
 	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
