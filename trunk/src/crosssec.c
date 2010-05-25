@@ -263,14 +263,14 @@ static void ScanIntegrParms(
 	}
 	else {
 		// consistency check
-		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,
-			"Wrong range (min=%g, max=%g) in file %s (max must be >= min)",a->min,a->max,fname);
+		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF
+			") in file %s (max must be >= min)",a->min,a->max,fname);
 		if (b->Jmax<b->Jmin) LogError(EC_ERROR,ONE_POS,
 			"Wrong Jmax (%d) in file %s; it must be >= Jmin (%d)",b->Jmax,fname,b->Jmin);
 		if (b->Jmin<1) LogError(EC_ERROR,ONE_POS,
 			"Wrong Jmin (%d) in file %s (must be >=1)",b->Jmin,fname);
 		if (b->eps<0) LogError(EC_ERROR,ONE_POS,
-			"Wrong eps (%g) in file %s (must be >=0)",b->eps,fname);
+			"Wrong eps ("GFORMDEF") in file %s (must be >=0)",b->eps,fname);
 		if (b->Jmax >= (int)(8*sizeof(int))) LogError(EC_ERROR,ONE_POS,
 			"Too large Jmax(%d) in file %s, it will cause integer overflow",b->Jmax,fname);
 
@@ -284,9 +284,9 @@ static void ScanIntegrParms(
 	if (ifcos) { // make equal intervals in cos(angle)
 		// consistency check
 		if (a->min<0) LogError(EC_ERROR,ONE_POS,
-			"Wrong min (%g) in file %s (must be >=0 for this angle)",a->min,fname);
+			"Wrong min ("GFORMDEF") in file %s (must be >=0 for this angle)",a->min,fname);
 		if (a->max>180) LogError(EC_ERROR,ONE_POS,
-			"Wrong max (%g) in file %s (must be <=180 for this angle)",a->max,fname);
+			"Wrong max ("GFORMDEF") in file %s (must be <=180 for this angle)",a->max,fname);
 		b->min=cos(Deg2Rad(a->max));
 		b->max=cos(Deg2Rad(a->min));
 		if (fabs(b->min)<ROUND_ERR) b->min=0; // just for convenience of display in log file
@@ -329,8 +329,8 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 	if (strcmp(temp,"range")==0) {
 		ScanDouble(file,fname,buf,buf_size,"min=",&(a->min));
 		ScanDouble(file,fname,buf,buf_size,"max=",&(a->max));
-		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,
-			"Wrong range (min=%g, max=%g) in file %s (max must be >= min)",a->min,a->max,fname);
+		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF
+			") in file %s (max must be >= min)",a->min,a->max,fname);
 		if (a->N==1) a->val[0]=(a->max + a->min)/2;
 		else {
 			unit = (a->max - a->min)/(a->N - 1);
@@ -377,9 +377,10 @@ void ReadAvgParms(const char *fname)
 	FCloseErr(input,fname,ALL_POS);
 	// print info to string
 	SPRINTZ(avg_string,
-		"alpha: from %g to %g in %lu steps\n"
-		"beta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"
-		"gamma: from %g to %g in (up to) %lu steps\n"
+		"alpha: from "GFORMDEF" to "GFORMDEF" in %lu steps\n"
+		"beta: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps (equally spaced in cosine "
+			"values)\n"
+		"gamma: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps\n"
 		"see file 'log_orient_avg' for details\n",
 		alpha_int.min,alpha_int.max,(unsigned long)alpha_int.N,beta_int.min,beta_int.max,
 		(unsigned long)beta_int.N,gamma_int.min,gamma_int.max,(unsigned long)gamma_int.N);
@@ -411,8 +412,9 @@ void ReadAlldirParms(const char *fname)
 	// print info
 	FPRINTZ(logfile,
 		"\nScattered field is calculated for all directions (for integrated scattering quantities)\n"
-		"theta: from %g to %g in (up to) %lu steps (equally spaced in cosine values)\n"
-		"phi: from %g to %g in (up to) %lu steps\n"
+		"theta: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps (equally spaced in cosine "
+			"values)\n"
+		"phi: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps\n"
 		"see files 'log_int_***' for details\n\n",
 		theta_int.min,theta_int.max,(unsigned long)theta_int.N,phi_int.min,phi_int.max,
 		(unsigned long)phi_int.N);
@@ -483,13 +485,13 @@ void ReadScatGridParms(const char *fname)
 		fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
 		if (angles.type==SG_GRID) {
 			if (theta_type==AS_RANGE)
-				fprintf(logfile,"theta: from %g to %g in %lu steps\n",angles.theta.min,
-					angles.theta.max,(unsigned long)angles.theta.N);
+				fprintf(logfile,"theta: from "GFORMDEF" to "GFORMDEF" in %lu steps\n",
+					angles.theta.min,angles.theta.max,(unsigned long)angles.theta.N);
 			else if (theta_type==AS_VALUES)
 				fprintf(logfile,"theta: %lu given values\n",(unsigned long)angles.theta.N);
 			if (phi_type==AS_RANGE) {
-				fprintf(logfile,"phi: from %g to %g in %lu steps\n",angles.phi.min,angles.phi.max,
-					(unsigned long)angles.phi.N);
+				fprintf(logfile,"phi: from "GFORMDEF" to "GFORMDEF" in %lu steps\n",
+					angles.phi.min,angles.phi.max,(unsigned long)angles.phi.N);
 				if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
 			}
 			else if (phi_type==AS_VALUES)
@@ -856,7 +858,7 @@ double ScaCross(char *f_suf)
 	char fname[MAX_FNAME];
 	double res;
 
-	sprintf(fname,"%s/" F_LOG_INT_CSCA "%s",directory,f_suf);
+	sprintf(fname,"%s/"F_LOG_INT_CSCA "%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,CscaIntegrand,1,&res,fname);
@@ -890,7 +892,7 @@ void AsymParm(double *vec,char *f_suf)
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/" F_LOG_INT_ASYM "%s",directory,f_suf);
+	sprintf(log_int,"%s/"F_LOG_INT_ASYM "%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gIntegrand,3,vec,log_int);
@@ -916,7 +918,7 @@ void AsymParm_x(double *vec,char *f_suf)
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/" F_LOG_INT_ASYM F_LOG_X "%s",directory,f_suf);
+	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_X"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gxIntegrand,1,vec,log_int);
@@ -942,7 +944,7 @@ void AsymParm_y(double *vec,char *f_suf)
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/" F_LOG_INT_ASYM F_LOG_Y "%s",directory,f_suf);
+	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_Y"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gyIntegrand,1,vec,log_int);
@@ -968,7 +970,7 @@ void AsymParm_z(double *vec,char *f_suf)
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/" F_LOG_INT_ASYM F_LOG_Z "%s",directory,f_suf);
+	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_Z"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gzIntegrand,1,vec,log_int);

@@ -72,6 +72,17 @@ void GenerateB(char which,doublecomplex *x);
 // iterative.c
 int IterativeSolver(enum iter method);
 
+// LOCAL VARIABLES
+
+#define MUEL_HEADER "s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44"
+#define THETA_HEADER "theta"
+#define PHI_HEADER "phi"
+#define RMSE_HEADER "RMSE(integr)"
+#define MUEL_FORMAT EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "\
+	EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM
+#define ANGLE_FORMAT "%.2f"
+#define RMSE_FORMAT "%.3E"
+
 //============================================================
 
 static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,const doublecomplex s2,
@@ -147,8 +158,7 @@ INLINE void InitMuellerIntegrFile(const int type,const char *fname,FILE **file,c
 	if (phi_int_type & type) {
 		sprintf(buf,"%s/%s",directory,fname);
 		(*file)=FOpenErr(buf,"w",ONE_POS);
-		fprintf(*file,"theta s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44 "
-			"RMSE(integr)\n");
+		fprintf(*file,THETA_HEADER" "MUEL_HEADER" "RMSE_HEADER"\n");
 		if (mult!=NULL) MALLOC_VECTOR(*mult,double,angles.phi.N,ALL);
 	}
 }
@@ -173,11 +183,10 @@ INLINE void PrintToIntegrFile(const int type,FILE *file,double *maxerr,const dou
 			err=Romberg1D(phi_sg,16,muel_buf,matrix[0]);
 		}
 		if (err>*maxerr) *maxerr=err;
-		fprintf(file,"%.2f %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E"
-			" %.10E %.10E %.10E %.10E %.3E\n",theta,matrix[0][0],matrix[0][1],matrix[0][2],
-			matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],matrix[2][0],
-			matrix[2][1],matrix[2][2],matrix[2][3],matrix[3][0],matrix[3][1],matrix[3][2],
-			matrix[3][3],err);
+		fprintf(file,ANGLE_FORMAT" "MUEL_FORMAT" "RMSE_FORMAT"\n",theta,matrix[0][0],
+			matrix[0][1],matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],
+			matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],matrix[3][0],
+			matrix[3][1],matrix[3][2],matrix[3][3],err);
 	}
 }
 
@@ -239,17 +248,14 @@ void MuellerMatrix(void)
 	else {
 		tstart=GET_TIME(); // here Mueller matrix is saved to file
 		if (yzplane) {
-			strcpy(fname,directory);
-			strcat(fname,"/" F_MUEL);
+			sprintf(fname,"%s/"F_MUEL,directory);
 			mueller=FOpenErr(fname,"w",ONE_POS);
-			fprintf(mueller,
-				"theta s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44\n");
+			fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 			for (i=0;i<nTheta;i++) {
 				theta=i*dtheta_deg;
 				ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],
 					EplaneY[2*i]);
-				fprintf(mueller,"%.2f %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E "
-					"%.10E %.10E %.10E %.10E %.10E %.10E\n",theta,matrix[0][0],matrix[0][1],
+				fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],
 					matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
 					matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],matrix[3][0],matrix[3][1],
 					matrix[3][2],matrix[3][3]);
@@ -269,11 +275,9 @@ void MuellerMatrix(void)
 			 */
 			// open files for writing
 			if (store_scat_grid) {
-				strcpy(fname,directory);
-				strcat(fname,"/" F_MUEL_SG);
+				sprintf(fname,"%s/"F_MUEL_SG,directory);
 				mueller=FOpenErr(fname,"w",ONE_POS);
-				fprintf(mueller,
-					"theta phi s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44\n");
+				fprintf(mueller,THETA_HEADER" "PHI_HEADER" "MUEL_HEADER"\n");
 			}
 			if (phi_integr) { // also initializes arrays of multipliers
 				InitMuellerIntegrFile(PHI_UNITY,F_MUEL_INT,&mueller_int,fname,NULL);
@@ -327,9 +331,7 @@ void MuellerMatrix(void)
 						index1+=16;
 					}
 					if (store_scat_grid)
-						fprintf(mueller,
-							"%.2f %.2f %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E"
-							" %.10E %.10E %.10E %.10E %.10E %.10E %.10E %.10E\n",
+						fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",
 							theta,phi,matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],
 							matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
 							matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
@@ -350,11 +352,16 @@ void MuellerMatrix(void)
 			}
 			if (phi_integr) {
 				fprintf(logfile,"\nMaximum relative mean-square error of Mueller integration:\n");
-				if (phi_int_type & PHI_UNITY) fprintf(logfile,"  1          -> %.3E\n",max_err);
-				if (phi_int_type & PHI_COS2) fprintf(logfile,"  cos(2*phi) -> %.3E\n",max_err_c2);
-				if (phi_int_type & PHI_SIN2) fprintf(logfile,"  cos(2*phi) -> %.3E\n",max_err_c2);
-				if (phi_int_type & PHI_COS4) fprintf(logfile,"  cos(2*phi) -> %.3E\n",max_err_c2);
-				if (phi_int_type & PHI_SIN4) fprintf(logfile,"  cos(2*phi) -> %.3E\n",max_err_c2);
+				if (phi_int_type & PHI_UNITY)
+					fprintf(logfile,"  1          -> "RMSE_FORMAT"\n",max_err);
+				if (phi_int_type & PHI_COS2)
+					fprintf(logfile,"  cos(2*phi) -> "RMSE_FORMAT"\n",max_err_c2);
+				if (phi_int_type & PHI_SIN2)
+					fprintf(logfile,"  sin(2*phi) -> "RMSE_FORMAT"\n",max_err_s2);
+				if (phi_int_type & PHI_COS4)
+					fprintf(logfile,"  cos(4*phi) -> "RMSE_FORMAT"\n",max_err_c4);
+				if (phi_int_type & PHI_SIN4)
+					fprintf(logfile,"  sin(4*phi) -> "RMSE_FORMAT"\n",max_err_s4);
 			}
 			// close files; free arrays
 			if (store_scat_grid) FCloseErr(mueller,F_MUEL_SG,ONE_POS);
@@ -491,8 +498,6 @@ static void CalcIntegralScatQuantities(const char which)
 	D("Calculation of cross sections started");
 	tstart = GET_TIME();
 
-	strcpy(fname_cs,directory);
-	strcat(fname_cs,"/" F_CS);
 	if (which == 'X') {
 		strcpy(f_suf,F_XSUF);
 		incPol=incPolX;
@@ -501,7 +506,7 @@ static void CalcIntegralScatQuantities(const char which)
 		strcpy(f_suf,F_YSUF);
 		incPol=incPolY;
 	}
-	strcat(fname_cs,f_suf);
+	sprintf(fname_cs,"%s/"F_CS"%s",directory,f_suf);
 	/* order of calculations is important, when using SQ_FINDIP. Then first dCabs should be
 	 * calculated, which is further used to correct Cext
 	 */
@@ -523,19 +528,21 @@ static void CalcIntegralScatQuantities(const char which)
 	else { // not orient_avg
 		if (ringid==ADDA_ROOT) {
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
-			if (calc_Cext) PrintBoth(CCfile,"Cext\t= %.10g\nQext\t= %.10g\n",Cext,Cext*inv_G);
-			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= %.10g\nQabs\t= %.10g\n",Cabs,Cabs*inv_G);
+			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",
+				Cext,Cext*inv_G);
+			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",
+				Cabs,Cabs*inv_G);
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
 				Csca=ScaCross(f_suf);
-				PrintBoth(CCfile,"Csca\t= %.10g\nQsca\t= %.10g\n",Csca,Csca*inv_G);
+				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
 			if (calc_vec) {
 				AsymParm_x(dummy,f_suf);
 				AsymParm_y(dummy+1,f_suf);
 				AsymParm_z(dummy+2,f_suf);
-				PrintBoth(CCfile,"Csca.g\t= (%.10g,%.10g,%.10g)\n",dummy[0],dummy[1],dummy[2]);
-				if (calc_asym) PrintBoth(CCfile,"g\t= (%.10g,%.10g,%.10g)\n",
+				PrintBoth(CCfile,"Csca.g\t= "GFORM3V"\n",dummy[0],dummy[1],dummy[2]);
+				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",
 					dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
 		} // end of root
@@ -552,29 +559,26 @@ static void CalcIntegralScatQuantities(const char which)
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
 				PrintBoth(CCfile,"\nMatrix\n"
-				                 "Cext\t= %.10g\nQext\t= %.10g\n"
-				                 "Csca.g\t= (%.10g,%.10g,%.10g)\n"
-				                 "Cpr\t= (%.10g,%.10g,%.10g)\n"
-				                 "Qpr\t= (%.10g,%.10g,%.10g)\n",Cnorm*Finc_tot[2],Qnorm*Finc_tot[2],
+				                 "Cext\t= "GFORM"\nQext\t= "GFORM"\n"
+				                 "Csca.g\t= "GFORM3V"\n"
+				                 "Cpr\t= "GFORM3V"\n"
+				                 "Qpr\t= "GFORM3V"\n",
+				                 Cnorm*Finc_tot[2],Qnorm*Finc_tot[2],
 				                 -Cnorm*Fsca_tot[0],-Cnorm*Fsca_tot[1],-Cnorm*Fsca_tot[2],
 				                 Cnorm*Frp_tot[0],Cnorm*Frp_tot[1],Cnorm*Frp_tot[2],
 				                 Qnorm*Frp_tot[0],Qnorm*Frp_tot[1],Qnorm*Frp_tot[2]);
 				if (store_force) {
 					// Write Radiation pressure per dipole to file
-					strcpy(fname_frp,directory);
-					strcat(fname_frp,"/" F_FRP);
-					strcat(fname_frp,f_suf);
-					strcat(fname_frp,".dat"); // TODO: should be removed in the future
+					// TODO: ".dat" should be removed in the future
+					sprintf(fname_frp,"%s/"F_FRP"%s.dat",directory,f_suf);
 					VisFrp=FOpenErr(fname_frp,"w",ONE_POS);
-					fprintf(VisFrp,"#sphere  x=%.10g  m=%.10g%+.10gi\n"
+					fprintf(VisFrp,"#sphere  x="GFORM"  m="CFORM"\n"
 						"#number of real dipoles  %.0f\n"
 						"#Forces per dipole\n"
 						"#r.x r.y r.z F.x F.y F.z\n",
 						ka_eq,ref_index[0][RE],ref_index[0][IM],nvoid_Ndip);
-					for (j=0;j<local_nvoid_Ndip;++j) fprintf(VisFrp,
-						"%.10g %.10g %.10g %.10g %.10g %.10g\n",
-						DipoleCoord[3*j],DipoleCoord[3*j+1],
-						DipoleCoord[3*j+2],
+					for (j=0;j<local_nvoid_Ndip;++j) fprintf(VisFrp,GFORM6L"\n",
+						DipoleCoord[3*j],DipoleCoord[3*j+1],DipoleCoord[3*j+2],
 						Frp[3*j],Frp[3*j+1],Frp[3*j+2]);
 					FCloseErr(VisFrp,fname_frp,ONE_POS);
 				}
@@ -631,9 +635,7 @@ static void StoreFields(const char which,doublecomplex *field,const char *fname_
 	// saves fields to file
 	for (i=0;i<local_nvoid_Ndip;++i) {
 		j=3*i;
-		fprintf(file,
-			"%.10g %.10g %.10g %.10g %.10g %.10g %.10g %.10g %.10g %.10g\n",
-			DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],cvNorm2(field+j),
+		fprintf(file,GFORM10L"\n",DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],cvNorm2(field+j),
 			field[j][RE],field[j][IM],field[j+1][RE],field[j+1][IM],field[j+2][RE],field[j+2][IM]);
 	}
 	FCloseErr(file,fname,ALL_POS);
@@ -694,4 +696,44 @@ int CalculateE(const char which,const enum Eftype type)
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
 	return 0;
+}
+
+//============================================================
+
+void SaveMuellerAndCS(double *in)
+/* saves Mueller matrix and cross sections (averaged) to files; vector in contains values of cross
+ * sections and then array of Mueller matrix elements
+ */
+{
+	FILE *mueller,*CCfile;
+	char fname[MAX_FNAME];
+	int i;
+	double Cext,Cabs,*muel;
+	TIME_TYPE tstart;
+
+	tstart=GET_TIME();
+	// distribute input values
+	Cext=in[0];
+	Cabs=in[1];
+	muel=in+2;
+	// save Mueller matrix
+
+	sprintf(fname,"%s/"F_MUEL,directory);
+	mueller=FOpenErr(fname,"w",ONE_POS);
+	fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
+	for (i=0;i<nTheta;i++) {
+		fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",
+			i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],muel[6],muel[7],muel[8],
+			muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
+		muel+=16;
+	}
+	FCloseErr(mueller,F_MUEL,ONE_POS);
+	// save cross sections
+	sprintf(fname,"%s/"F_CS,directory);
+	CCfile=FOpenErr(fname,"w",ONE_POS);
+	PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
+	PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+	FCloseErr(CCfile,F_CS,ONE_POS);
+
+	Timing_FileIO += GET_TIME() - tstart;
 }

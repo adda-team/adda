@@ -504,12 +504,12 @@ static void fftInitAfterD(void)
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 		"         FFTW3 planning       \n"
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-		"Yf = %4.4f  Total = %4.4f\n"
-		"Yb = %4.4f\n"
-		"Zf = %4.4f\n"
-		"Zb = %4.4f\n"
-		"Xf = %4.4f\n"
-		"Xb = %4.4f\n\n",
+		"Yf = "FFORMPT"  Total = "FFORMPT"\n"
+		"Yb = "FFORMPT"\n"
+		"Zf = "FFORMPT"\n"
+		"Zb = "FFORMPT"\n"
+		"Xf = "FFORMPT"\n"
+		"Xb = "FFORMPT"\n\n",
 		DiffSec(tvp,tvp+1),DiffSec(tvp,tvp+6),DiffSec(tvp+1,tvp+2),DiffSec(tvp+2,tvp+3),
 		DiffSec(tvp+3,tvp+4),DiffSec(tvp+4,tvp+5),DiffSec(tvp+5,tvp+6));
 #	endif
@@ -968,9 +968,9 @@ void InitDmatrix(void)
 	FPRINTZ(logfile,"The FFT grid is: %lux%lux%lu\n",(unsigned long)gridX,(unsigned long)gridY,
 		(unsigned long)gridZ);
 #ifdef PARALLEL
-	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices (per processor): %.1f Mb\n",mem/MBYTE);
+	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",mem/MBYTE);
 #else
-	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices: %.1f Mb\n",mem/MBYTE);
+	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices: "FFORMM" MB\n",mem/MBYTE);
 #endif
 	FFLUSHZ(logfile);
 	memory+=mem;
@@ -1145,16 +1145,16 @@ void InitDmatrix(void)
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 		"            Init Dmatrix timing            \n"
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-		"Begin  = %4.4f    Arithmetics = %4.4f\n"
-		"Gcalc  = %4.4f    FFT         = %4.4f\n"
-		"Arith1 = %4.4f    Comm        = %4.4f\n"
-		"FFTX   = %4.4f\n"
-		"BT     = %4.4f          Total = %4.4f\n"
-		"Arith2 = %4.4f\n"
-		"FFTZ   = %4.4f\n"
-		"TYZ    = %4.4f\n"
-		"FFTY   = %4.4f\n"
-		"Arith3 = %4.4f\n\n",
+		"Begin  = "FFORMPT"    Arithmetics = "FFORMPT"\n"
+		"Gcalc  = "FFORMPT"    FFT         = "FFORMPT"\n"
+		"Arith1 = "FFORMPT"    Comm        = "FFORMPT"\n"
+		"FFTX   = "FFORMPT"\n"
+		"BT     = "FFORMPT"          Total = "FFORMPT"\n"
+		"Arith2 = "FFORMPT"\n"
+		"FFTZ   = "FFORMPT"\n"
+		"TYZ    = "FFORMPT"\n"
+		"FFTY   = "FFORMPT"\n"
+		"Arith3 = "FFORMPT"\n\n",
 		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_BT,
 		DiffSec(tvp,tvp+12),t_ar2,t_fftZ,t_TYZ,t_fftY,t_ar3);
 #endif

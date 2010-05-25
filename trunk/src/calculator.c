@@ -81,6 +81,7 @@ static double *out;
 // CalculateE.c
 extern int CalculateE(char which,enum Eftype type);
 extern void MuellerMatrix(void);
+extern void SaveMuellerAndCS(double *in);
 
 //============================================================
 
@@ -164,7 +165,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 	}
 	if (asym || anisotropy) {
 		if (!orient_avg) {
-			PRINTBOTHZ(logfile, "CoupleConstant:(%.10g%+.10gi,%.10g%+.10gi,%.10g%+.10gi)\n",
+			PRINTBOTHZ(logfile, "CoupleConstant:"CFORM3V"\n",
 				coup_con[0][RE],coup_con[0][IM],coup_con[1][RE],
 				coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
 		}
@@ -173,7 +174,7 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 		cEqual(coup_con[0],coup_con[1]);
 		cEqual(coup_con[0],coup_con[2]);
 		if (!orient_avg) {
-			PRINTBOTHZ(logfile,"CoupleConstant:%.10g%+.10gi\n",
+			PRINTBOTHZ(logfile,"CoupleConstant:"CFORM"\n",
 				coup_con[0][RE],coup_con[0][IM]);
 		}
 	}
@@ -222,8 +223,7 @@ static double *ReadTableFile(const char *sh_fname,const int size_multiplier)
 		// allocate memory for tab_n
 		MALLOC_VECTOR(tab_n,double,size,ALL);
 		// open file
-		strcpy(fname,TAB_PATH);
-		strcat(fname,sh_fname);
+		sprintf(fname,TAB_PATH"%s",sh_fname);
 		ftab=FOpenErr(fname,"r",ALL_POS);
 		// scan file
 		for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
@@ -291,58 +291,6 @@ static void FreeTables(void)
 
 //============================================================
 
-static void SaveMueller(double *muel)
-// saves Mueller matrix (averaged) to file
-{
-	FILE *mueller;
-	char fname[MAX_FNAME];
-	int i,j;
-	double theta;
-	TIME_TYPE tstart;
-
-	tstart=GET_TIME();
-
-	strcpy(fname,directory);
-	strcat(fname,"/" F_MUEL);
-	mueller=FOpenErr(fname,"w",ONE_POS);
-	fprintf(mueller,"theta s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44\n");
-	for (i=0;i<nTheta;i++) {
-		theta=i*dtheta_deg;
-		fprintf(mueller,"%.2f",theta);
-		for (j=0;j<16;j++) fprintf(mueller," %.10E",muel[16*i+j]);
-		fprintf(mueller,"\n");
-	}
-	FCloseErr(mueller,F_MUEL,ONE_POS);
-
-	Timing_FileIO += GET_TIME() - tstart;
-}
-
-//==============================================================
-
-static void SaveCS(const double Cext,const double Cabs)
-// save calculated cross sections (averaged) to file
-{
-	FILE *CCfile;
-	char fname[MAX_FNAME];
-	TIME_TYPE tstart;
-
-	tstart=GET_TIME();
-
-	strcpy(fname,directory);
-	strcat(fname,"/" F_CS);
-
-	CCfile=FOpenErr(fname,"w",ONE_POS);
-
-	PrintBoth(CCfile,"Cext\t= %.10g\nQext\t= %.10g\n",Cext,Cext*inv_G);
-	PrintBoth(CCfile,"Cabs\t= %.10g\nQabs\t= %.10g\n",Cabs,Cabs*inv_G);
-
-	FCloseErr(CCfile,F_CS,ONE_POS);
-
-	Timing_FileIO += GET_TIME() - tstart;
-}
-
-//============================================================
-
 static void calculate_one_orientation(double *res)
 // performs calculation for one orientation; may do orientation averaging and put the result in res
 {
@@ -351,7 +299,8 @@ static void calculate_one_orientation(double *res)
 	if (orient_avg) {
 		alph_deg=0;
 		InitRotation();
-		PRINTBOTHZ(logfile,"\nORIENTATION STEP beta=%g gamma=%g\n",bet_deg,gam_deg);
+		PRINTBOTHZ(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",
+			bet_deg,gam_deg);
 	}
 
 	// calculate scattered field for y - polarized incident light
@@ -379,7 +328,7 @@ static void calculate_one_orientation(double *res)
 	D("MuellerMatrix finished");
 	if (ringid==ADDA_ROOT && orient_avg) {
 		tstart=GET_TIME();
-		printf("\nError of alpha integration (Mueller) is %g\n",
+		printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
 		D("Integration over alpha completed on root");
@@ -525,9 +474,9 @@ static void AllocateEverything(void)
 	 */
 	memory/=MBYTE;
 	AccumulateMax(&memory,&memmax);
-	PRINTBOTHZ(logfile,"Total memory usage: %.1f Mb\n",memory);
+	PRINTBOTHZ(logfile,"Total memory usage: "FFORMM" MB\n",memory);
 #ifdef PARALLEL
-	PRINTBOTHZ(logfile,"Maximum memory usage of single processor: %.1f Mb\n",memmax);
+	PRINTBOTHZ(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax);
 #endif
 }
 
@@ -628,7 +577,7 @@ void Calculator (void)
 	// main calculation part
 	if (orient_avg) {
 		if (ringid==ADDA_ROOT) {
-			sprintf(fname,"%s/" F_LOG_ORAVG,directory);
+			sprintf(fname,"%s/"F_LOG_ORAVG,directory);
 			D("Romberg2D started on root");
 			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
 			D("Romberg2D finished on root");
@@ -638,8 +587,7 @@ void Calculator (void)
 			 * TODO: replace by a call without unnecessary overhead
 			 */
 			BcastOrient(&finish_avg,&finish_avg,&finish_avg);
-			SaveMueller(&out[2]);
-			SaveCS(out[0],out[1]);
+			SaveMuellerAndCS(out);
 		}
 		else while (!finish_avg) orient_integrand(0,0,NULL);
 	}

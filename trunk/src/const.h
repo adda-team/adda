@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.80a5"
+#define ADDA_VERSION "0.80a6"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -120,6 +120,20 @@
 #define DEF_TERM_WIDTH 80 // default
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
+// formats for outputs of float values
+#define EFORM "%.10E"        // fixed width
+#define GFORM "%.10g"        // variable width (showing significant digits)
+#define GFORMDEF "%g"        // default output for non-precise values
+#define GFORM_DEBUG "%.2g"   // for debug and error output
+#define CFORM "%.10g%+.10gi" // for complex numbers; may be defined in terms of GFORM
+	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
+#define GFORM3V "("GFORM","GFORM","GFORM")"
+#define GFORM3L ""GFORM" "GFORM" "GFORM
+#define GFORM6L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
+#define GFORM10L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
+#define GFORMDEF3V "("GFORMDEF","GFORMDEF","GFORMDEF")"
+#define CFORM3V "("CFORM","CFORM","CFORM")"
+
 enum sh { // shape types
 	SH_AXISYMMETRIC, // axisymmetric
 	SH_BICOATED,     // two coated spheres
@@ -199,7 +213,7 @@ enum Eftype { // type of E field calculation
 
 // path and size of tables
 #define TAB_PATH     "tables/"
-#define TAB_FNAME(a) "t" #a "f.dat" // a is a number, e.g. TAB_FNAME(2) -> "t2f.dat"
+#define TAB_FNAME(a) "t"#a"f.dat" // a is a number, e.g. TAB_FNAME(2) -> "t2f.dat"
 #define TAB_SIZE     142
 #define TAB_RMAX     10
 

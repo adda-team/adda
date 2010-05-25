@@ -26,6 +26,7 @@
 #include "const.h"    // for enum types
 
 #define MBYTE 1048576.0
+#define FFORMM "%.1f" // format for memory footprint (estimates) in MB
 // for conciseness
 #define OTHER_ARGUMENTS const enum enwho who,const char *fname,const int line,const char *name
 

@@ -339,7 +339,8 @@ static double InnerRomberg(const int fixed,double *res,const bool onepoint)
 		res[comp]=0.5*(M_in[0][comp]+T_in[comp]);
 	// set no_convergence
 	if (err>=input[PHI].eps) {
-		fprintf(file,"Inner_qromb converged only to d=%g for cosine value #%d\n",err,fixed);
+		fprintf(file,"Inner_qromb converged only to d="GFORMDEF" for cosine value #%d\n",
+			err,fixed);
 		fflush(file);
 		no_convergence++;
 	}
@@ -501,12 +502,12 @@ void Romberg2D(const Parms_1D parms_input[2],double (*func_input)(int theta,int 
 	// print info
 	fprintf(file,
 		"                   %4s(rad)   cos(%s)\n"
-		"EPS                    %-7g   %g\n"
+		"EPS                    %-7g   "GFORMDEF"\n"
 		"Refinement stages:\n"
 		"Minimum                %-7d   %d\n"
 		"Maximum                %-7d   %d\n"
-		"lower boundary         %-7g   %g\n"
-		"upper boundary         %-7g   %g\n"
+		"lower boundary         %-7g   "GFORMDEF"\n"
+		"upper boundary         %-7g   "GFORMDEF"\n"
 		"equivalent min&max     %-7s   %s\n"
 		"periodic               %-7s   %s\n",
 		buf2,buf1,
@@ -530,10 +531,10 @@ void Romberg2D(const Parms_1D parms_input[2],double (*func_input)(int theta,int 
 	}
 	else {
 		if (no_convergence==0) PrintBoth(file,"Only the outer integration did not converge \n"
-		                                      "It reached d=%g\n",error);
+		                                      "It reached d="GFORMDEF"\n",error);
 		else PrintBoth(file,"%d inner integrations did not converge.\n"
 		                    "The outer integration did not converge\n"
-		                    "The outer integration reached d=%g\n",no_convergence,error);
+		                    "The outer integration reached d="GFORMDEF"\n",no_convergence,error);
 	}
 	PrintBoth(file,"In total %d evaluations were used\n",N_tot_eval);
 	FCloseErr(file,fname,ONE_POS);
