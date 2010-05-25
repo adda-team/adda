@@ -44,6 +44,8 @@
 #	error *** Unknown operation system. Precise timing is not supported. ***
 #endif
 
+#define FFORMPT "%.4f" // format for precise timing results
+
 void InitTime(SYSTEM_TIME *t);
 void SetTimerFreq(void);
 double TimerToSec(const SYSTEM_TIME *t) ATT_PURE;

@@ -79,7 +79,7 @@ void cisi(const double x,double *ci,double *si)
 			if (fabs(del[RE]-1)+fabs(del[IM])<=EPS) break;
 		}
 		if (i>=MAXIT) LogError(EC_ERROR,ALL_POS,
-			"Failed to converge during calculation of sine integral of %g",x);
+			"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		imExp(-t,tmp);
 		cMultSelf(h,tmp);
 		*ci=-h[RE];
@@ -113,7 +113,7 @@ void cisi(const double x,double *ci,double *si)
 				odd=!odd;
 			}
 			if (k>MAXIT) LogError(EC_ERROR,ALL_POS,
-				"Failed to converge during calculation of sine integral of %g",x);
+				"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		}
 		*si=sums;
 		*ci=sumc+log(t)+EULER;

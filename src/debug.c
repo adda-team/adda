@@ -56,10 +56,9 @@ void FieldPrint (doublecomplex *x)
 	int i=9810;
 
 	i*=3;
-	fprintf(logfile,"Dipole coordinates = %.10E, %.10E, %.10E\n",DipoleCoord[i],DipoleCoord[i+1],
-		DipoleCoord[i+2]);
-	fprintf(logfile,"E = %.10E%+.10Ei,  %.10E%+.10Ei, %.10E%+.10Ei\n",x[i][RE],x[i][IM],x[i+1][RE],
-		x[i+1][IM],x[i+2][RE],x[i+2][IM]);
+	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",
+		DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
+	fprintf(logfile,"E = "CFORM3V,x[i][RE],x[i][IM],x[i+1][RE],x[i+1][IM],x[i+2][RE],x[i+2][IM]);
 }
 
 #endif // DEBUG

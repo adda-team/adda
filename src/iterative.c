@@ -82,6 +82,9 @@ extern unsigned long TotalIter;
 
 // LOCAL VARIABLES
 
+#define RESID_STRING "RE_%03d = "EFORM // string containing residual value
+#define FFORM_PROG "% .6f"  // format for progress value
+
 static double inprodR;     // used as r_0 (and main residual) in each method
 static double epsB;        // stopping criterion
 static double resid_scale; // scale to get square of relative error
@@ -142,7 +145,7 @@ static void SaveIterChpoint(void)
 	tstart=GET_TIME();
 	if (ringid==ADDA_ROOT) {
 		// create directory "chp_dir" if needed and open info file
-		sprintf(fname,"%s/" F_CHP_LOG,chp_dir);
+		sprintf(fname,"%s/"F_CHP_LOG,chp_dir);
 		if ((chp_file=fopen(fname,"w"))==NULL) {
 			MkDirErr(chp_dir,ONE_POS);
 			chp_file=FOpenErr(fname,"w",ONE_POS);
@@ -155,7 +158,7 @@ static void SaveIterChpoint(void)
 	// wait to ensure that directory exists
 	Synchronize();
 	// open output file; writing errors are checked only for vectors
-	sprintf(fname,"%s/" F_CHP,chp_dir,ringid);
+	sprintf(fname,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"wb",ALL_POS);
 	// write common scalars
 	fwrite(&method,sizeof(enum iter),1,chp_file);
@@ -206,7 +209,7 @@ static void LoadIterChpoint(void)
 
 	tstart=GET_TIME();
 	// open input file; reading errors are checked only for vectors
-	sprintf(fname,"%s/" F_CHP,chp_dir,ringid);
+	sprintf(fname,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"rb",ALL_POS);
 	// check for consistency
 	fread(&method_new,sizeof(enum iter),1,chp_file);
@@ -248,8 +251,7 @@ static void LoadIterChpoint(void)
 		// if residual is stagnating print info about last minimum
 		if (counter!=0) fprintf(logfile,
 			"Residual has been stagnating already for %d iterations since:\n"
-			"RE_%03d = %.10E\n"
-			"...\n",counter,count-counter-1,sqrt(resid_scale*inprodR));
+			RESID_STRING"\n...\n",counter,count-counter-1,sqrt(resid_scale*inprodR));
 	}
 	Timing_FileIO+=GET_TIME()-tstart;
 }
@@ -275,9 +277,9 @@ static void ProgressReport(const double inprod)
 		if (counter==0) strcpy(temp,"+ ");
 		else if (progr>0) strcpy(temp,"-+");
 		else strcpy(temp,"- ");
-		sprintf(progr_string,"RE_%03d = %.10E  %s",count,err,temp);
+		sprintf(progr_string,RESID_STRING"  %s",count,err,temp);
 		if (!orient_avg) {
-			fprintf(logfile,"%s  progress = %.6f\n",progr_string,progr);
+			fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
 			fflush(logfile);
 		}
 		printf("%s\n",progr_string);
@@ -402,9 +404,9 @@ static void BiCGStab(const int mc)
 		// ro_k-1=r_k-1.r~ ; check for ro_k-1!=0
 		nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
 		dtmp=cAbs(ro_new)/inprodR;
-		D2z("(r~.r)/(r.r)=%.2g",dtmp);
-		if (dtmp<EPS_BICGSTAB1)
-			LogError(EC_ERROR,ONE_POS,"BiCGStab fails: (r~.r)/(r.r) is too small (%.2g).",dtmp);
+		D2z("(r~.r)/(r.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS_BICGSTAB1) LogError(EC_ERROR,ONE_POS,
+			"BiCGStab fails: (r~.r)/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (count==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1)
@@ -412,9 +414,9 @@ static void BiCGStab(const int mc)
 			cMult(ro_old,omega,temp2);
 			// check that omega_k-1!=0
 			dtmp=cAbs(temp2)/cAbs(temp1);
-			D2z("1/|beta_k|=%.2g",dtmp);
-			if (dtmp<EPS_BICGSTAB2)
-				LogError(EC_ERROR,ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small (%.2g).",dtmp);
+			D2z("1/|beta_k|="GFORM_DEBUG,dtmp);
+			if (dtmp<EPS_BICGSTAB2) LogError(EC_ERROR,ONE_POS,
+				"Bi-CGStab fails: 1/|beta_k| is too small ("GFORM_DEBUG").",dtmp);
 			cDiv(temp1,temp2,beta);
 			// p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1
 			cMult(beta,omega,temp1);
@@ -490,9 +492,9 @@ static void BiCG_CS(const int mc)
 		nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
 		abs_ro_new=cAbs(ro_new);
 		dtmp=abs_ro_new/inprodR;
-		D2z("(rT.r)/(r.r)=%.2g",dtmp);
-		if (dtmp<EPS_BICG_CS1L || dtmp>EPS_BICG_CS1H)
-			LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (rT.r)/(r.r) is out of bounds (%.2g).",dtmp);
+		D2z("(rT.r)/(r.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS_BICG_CS1L || dtmp>EPS_BICG_CS1H) LogError(EC_ERROR,ONE_POS,
+			"BiCG_CS fails: (rT.r)/(r.r) is out of bounds ("GFORM_DEBUG").",dtmp);
 		if (count==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=ro_k-1/ro_k-2
@@ -505,9 +507,9 @@ static void BiCG_CS(const int mc)
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
-		D2z("(pT.A.p)/(rT.r)=%.2g",dtmp);
-		if (dtmp<EPS_BICG_CS2)
-			LogError(EC_ERROR,ONE_POS,"BiCG_CS fails: (pT.A.p)/(rT.r) is too small (%.2g).",dtmp);
+		D2z("(pT.A.p)/(rT.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS_BICG_CS2) LogError(EC_ERROR,ONE_POS,
+			"BiCG_CS fails: (pT.A.p)/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 		// alpha_k=ro_k/mu_k
 		cDiv(ro_new,mu,alpha);
 		// x_k=x_k-1+alpha_k*p_k
@@ -592,9 +594,9 @@ static void QMR_CS(const int mc)
 		tstart=GET_TIME();
 		// check for zero or very high beta
 		dtmp1=cAbs2(beta)*resid_scale;
-		D2z("(vT.v)/(b.b)=%.2g",dtmp1);
-		if (dtmp1<EPS_QMR_CS1L || dtmp1>EPS_QMR_CS1H)
-			LogError(EC_ERROR,ONE_POS,"QMR_CS fails: (vT.v)/(b.b) is out of bounds (%.2g).",dtmp1);
+		D2z("(vT.v)/(b.b)="GFORM_DEBUG,dtmp1);
+		if (dtmp1<EPS_QMR_CS1L || dtmp1>EPS_QMR_CS1H) LogError(EC_ERROR,ONE_POS,
+			"QMR_CS fails: (vT.v)/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
 		MatVec(v,Avecbuffer,NULL,false);
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
@@ -719,7 +721,7 @@ int IterativeSolver(const enum iter method_in)
 		// print start values
 		if (ringid==ADDA_ROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
-			sprintf(tmp_str+strlen(tmp_str),"RE_000 = %.10E\n",prev_err);
+			sprintf(tmp_str+strlen(tmp_str),RESID_STRING"\n",0,prev_err);
 			if (!orient_avg) {
 				fprintf(logfile,"%s",tmp_str);
 				fflush(logfile);

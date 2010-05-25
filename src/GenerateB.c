@@ -105,10 +105,12 @@ void InitBeam(void)
 			strcpy(beam_descr,"Gaussian beam (");
 			if (beamtype==B_LMINUS) strcat(beam_descr,"L- approximation)\n");
 			else if (beamtype==B_DAVIS3) strcat(beam_descr,"3rd order approximation, by Davis)\n");
-			else if (beamtype==B_BARTON5) strcat(beam_descr,"5th order approximation, by Barton)\n");
-			sprintf(beam_descr+strlen(beam_descr),"\tWidth=%g (confinement factor s=%g)\n",w0,s);
+			else if (beamtype==B_BARTON5)
+				strcat(beam_descr,"5th order approximation, by Barton)\n");
+			sprintf(beam_descr+strlen(beam_descr),
+				"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
 			if (beam_asym)
-				sprintf(beam_descr+strlen(beam_descr),"\tCenter position: (%g,%g,%g)",
+				sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,
 					beam_center_0[0],beam_center_0[1],beam_center_0[2]);
 			else strcat(beam_descr,"\tCenter is in the origin");
 		}
@@ -291,5 +293,4 @@ void GenerateB (const char which, // x - or y polarized incident light
 	 * local variables (which are used only in this part of the code), either use 't1'-'t8' or
 	 * define your own (with more informative names) in the beginning of this function.
 	 */
-
 }

@@ -60,6 +60,8 @@ TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
 TIME_TYPE Timing_Particle,                  // for particle construction
           Timing_Granul,Timing_Granul_comm; // for granule generation: total & comm
 
+#define FFORMT "%.4f" // format for timing results
+
 //============================================================
 
 void StartTime(void)
@@ -114,85 +116,85 @@ void FinalStatistics(void)
 		fprintf(logfile,
 #ifdef ADDA_MPI
 			"--Everything below is also wall times--\n"
-			"Time since MPI_Init: %.4f\n",
+			"Time since MPI_Init: "FFORMT"\n",
 #else
 			"--Everything below is processor times--\n"
-			"Total time:          %.4f\n",
+			"Total time:          "FFORMT"\n",
 #endif
 			TO_SEC(Timing_TotalTime));
 		fprintf(logfile,
-			"  Initialization time: %.4f\n",TO_SEC(Timing_Init));
+			"  Initialization time: "FFORMT"\n",TO_SEC(Timing_Init));
 		if (!prognosis) {
 			fprintf(logfile,
-				"    init Dmatrix         %.4f\n",TO_SEC(Timing_Dm_Init));
+				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"      communication:       %.4f\n",TO_SEC(Timing_Dm_Init_comm));
+				"      communication:       "FFORMT"\n",TO_SEC(Timing_Dm_Init_comm));
 #endif
 			fprintf(logfile,
-				"    FFT setup:           %.4f\n",TO_SEC(Timing_FFT_Init));
+				"    FFT setup:           "FFORMT"\n",TO_SEC(Timing_FFT_Init));
 		}
 		fprintf(logfile,
-			"    make particle:       %.4f\n",TO_SEC(Timing_Particle));
+			"    make particle:       "FFORMT"\n",TO_SEC(Timing_Particle));
 		if (sh_granul) {
 			fprintf(logfile,
-				"      granule generator:   %.4f\n",TO_SEC(Timing_Granul));
+				"      granule generator:   "FFORMT"\n",TO_SEC(Timing_Granul));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"        communication:       %.4f\n",TO_SEC(Timing_Granul_comm));
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_Granul_comm));
 #endif
 		}
 		if (!prognosis) {
 			fprintf(logfile,
-				"  Internal fields:     %.4f\n"
-				"    one solution:        %.4f\n"
-				"      init solver:         %.4f\n",
+				"  Internal fields:     "FFORMT"\n"
+				"    one solution:        "FFORMT"\n"
+				"      init solver:         "FFORMT"\n",
 				TO_SEC(Timing_IntField),TO_SEC(Timing_IntFieldOne),TO_SEC(Timing_InitIter));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"        communication:       %.4f\n",TO_SEC(Timing_InitIter_comm));
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_InitIter_comm));
 #endif
 			fprintf(logfile,
-				"      one iteration:       %.4f\n",TO_SEC(Timing_OneIter));
+				"      one iteration:       "FFORMT"\n",TO_SEC(Timing_OneIter));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"        communication:       %.4f\n",TO_SEC(Timing_OneIterComm));
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_OneIterComm));
 #endif
 			fprintf(logfile,
-				"  Scattered fields:    %.4f\n",TO_SEC(Timing_EField));
+				"  Scattered fields:    "FFORMT"\n",TO_SEC(Timing_EField));
 			if (yzplane) {
 				fprintf(logfile,
-					"    one plane:           %.4f\n",TO_SEC(Timing_EFieldPlane));
+					"    one plane:           "FFORMT"\n",TO_SEC(Timing_EFieldPlane));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       %.4f\n",TO_SEC(Timing_comm_EField));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField));
 #endif
 			}
 			if (all_dir) {
 				fprintf(logfile,
-					"    one alldir:          %.4f\n",TO_SEC(Timing_EField_ad));
+					"    one alldir:          "FFORMT"\n",TO_SEC(Timing_EField_ad));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       %.4f\n",TO_SEC(Timing_comm_EField_ad));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField_ad));
 #endif
 			}
 			if (scat_grid) {
 				fprintf(logfile,
-					"    one scat_grid:          %.4f\n",TO_SEC(Timing_EField_sg));
+					"    one scat_grid:          "FFORMT"\n",TO_SEC(Timing_EField_sg));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       %.4f\n",TO_SEC(Timing_comm_EField_sg));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField_sg));
 #endif
 			}
 			fprintf (logfile,
-				"  Other sc.quantities: %.4f\n",TO_SEC(Timing_ScatQuan));
+				"  Other sc.quantities: "FFORMT"\n",TO_SEC(Timing_ScatQuan));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"    communication:       %.4f\n",TO_SEC(Timing_ScatQuan_comm));
+				"    communication:       "FFORMT"\n",TO_SEC(Timing_ScatQuan_comm));
 #endif
 			fprintf (logfile,
-				"  File I/O:            %.4f\n"
-				"Integration:         %.4f\n",
+				"  File I/O:            "FFORMT"\n"
+				"Integration:         "FFORMT"\n",
 				TO_SEC(Timing_FileIO),TO_SEC(Timing_Integration));
 		}
 		// close logfile
