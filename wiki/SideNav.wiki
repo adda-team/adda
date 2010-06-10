@@ -3,9 +3,12 @@
  * [Features Features]
  * [ReleaseNotes Release notes] 
  * [Tutorial Tutorial]
+ * Simulation results
+    * [ComparisonOtherCodes Comparison with other codes]
+    * [LargestSimulations Largest simulations performed with ADDA]
  * Adding new code
-    * [NewShape Adding a new predefined shape]
-    * [NewBeam Adding a new predefined beam type]
-    * [NewOption Adding a new command line option]
-    * [NewIterativeSolver Adding a new iterative solver]  
+    * [AddingNewShape Adding a new predefined shape]
+    * [AddingNewBeam Adding a new predefined beam type]
+    * [AddingNewCommandLineOption Adding a new command line option]
+    * [AddingNewIterativeSolver Adding a new iterative solver]
  * [EarlyHistory A brief history of long ADDA development]
