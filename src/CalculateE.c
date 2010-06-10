@@ -1,4 +1,4 @@
-/* File: CalculateE.c
+ /* File: CalculateE.c
  * $Author$
  * $Date::                            $
  * Descr: the module to calculate the E field and all scattering quantities
@@ -55,7 +55,7 @@ extern double *muel_alpha;
 extern const Parms_1D phi_sg;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force;
+calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_mueller,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EFieldPlane,Timing_comm_EField,
@@ -75,11 +75,13 @@ int IterativeSolver(enum iter method);
 // LOCAL VARIABLES
 
 #define MUEL_HEADER "s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44"
+#define AMPL_HEADER "s1.r s1.i s2.r s2.i s3.r s3.i s4.r s4.i"
 #define THETA_HEADER "theta"
 #define PHI_HEADER "phi"
 #define RMSE_HEADER "RMSE(integr)"
 #define MUEL_FORMAT EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "\
 	EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM
+#define AMPL_FORMAT EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM
 #define ANGLE_FORMAT "%.2f"
 #define RMSE_FORMAT "%.3E"
 
@@ -206,11 +208,11 @@ INLINE void CloseIntegrFile(const int type,FILE *file,const char *fname,double *
 
 void MuellerMatrix(void)
 {
-	FILE *mueller,*mueller_int,*mueller_int_c2,*mueller_int_s2,*mueller_int_c4,*mueller_int_s4;
+	FILE *mueller,*ampl,*mueller_int,*mueller_int_c2,*mueller_int_s2,*mueller_int_c4,
+		*mueller_int_s4;
 	double *cos2,*sin2,*cos4,*sin4;
 	double matrix[4][4];
-	double theta,phi,ph,
-	max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
+	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
 	doublecomplex s1,s2,s3,s4,s10,s20,s30,s40;
 	char fname[MAX_FNAME];
 	int i;
@@ -221,48 +223,67 @@ void MuellerMatrix(void)
 
 	if (ringid!=ADDA_ROOT) return;
 
-	if (orient_avg) { // Amplitude matrix stored in ampl_alplha is
-		index1=index=0; // transformed into Mueller matrix stored in muel_alpha
-		for (k_or=0;k_or<alpha_int.N;k_or++) {
-			alph=Deg2Rad(alpha_int.val[k_or]); // read current alpha
-			co=cos(alph);
-			si=sin(alph);
-			for (i=0;i<nTheta;i++) {
-				// read amplitude matrix from memory
-				cEqual(ampl_alphaX[index],s10);
-				cEqual(ampl_alphaX[index+1],s30);
-				cEqual(ampl_alphaY[index],s40);
-				cEqual(ampl_alphaY[index+1],s20);
-				// transform it, multiplying by rotation matrix (-alpha)
-				cLinComb(s20,s30,co,si,s2);  // s2 =  co*s20 + si*s30
-				cLinComb(s20,s30,-si,co,s3); // s3 = -si*s20 + co*s30
-				cLinComb(s40,s10,co,si,s4);  // s4 =  co*s40 + si*s10
-				cLinComb(s40,s10,-si,co,s1); // s1 = -si*s40 + co*s10
+	if (orient_avg) { // Amplitude matrix (ampl_alplha) => Mueller matrix (muel_alpha)
+		/* amplitude matrix is not integrated (hence not used here). We do check store_mueller
+		 * because orient_avg may have sense (though very little) without it (e.g. to compute only
+		 * averaged cross sections).
+		 */
+		if (store_mueller) {
+			index1=index=0;
+			for (k_or=0;k_or<alpha_int.N;k_or++) {
+				alph=Deg2Rad(alpha_int.val[k_or]); // read current alpha
+				co=cos(alph);
+				si=sin(alph);
+				for (i=0;i<nTheta;i++) {
+					// read amplitude matrix from memory
+					cEqual(ampl_alphaX[index],s10);
+					cEqual(ampl_alphaX[index+1],s30);
+					cEqual(ampl_alphaY[index],s40);
+					cEqual(ampl_alphaY[index+1],s20);
+					// transform it, multiplying by rotation matrix (-alpha)
+					cLinComb(s20,s30,co,si,s2);  // s2 =  co*s20 + si*s30
+					cLinComb(s20,s30,-si,co,s3); // s3 = -si*s20 + co*s30
+					cLinComb(s40,s10,co,si,s4);  // s4 =  co*s40 + si*s10
+					cLinComb(s40,s10,-si,co,s1); // s1 = -si*s40 + co*s10
 
-				ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
-				index+=2;
-				index1+=16;
+					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
+					index+=2;
+					index1+=16;
+				}
 			}
 		}
 	}
 	else {
 		tstart=GET_TIME(); // here Mueller matrix is saved to file
 		if (yzplane) {
-			sprintf(fname,"%s/"F_MUEL,directory);
-			mueller=FOpenErr(fname,"w",ONE_POS);
-			fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
-			for (i=0;i<nTheta;i++) {
-				theta=i*dtheta_deg;
-				ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],
-					EplaneY[2*i]);
-				fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],
-					matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
-					matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],matrix[3][0],matrix[3][1],
-					matrix[3][2],matrix[3][3]);
+			if (store_ampl) {
+				sprintf(fname,"%s/"F_AMPL,directory);
+				ampl=FOpenErr(fname,"w",ONE_POS);
+				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
+				for (i=0;i<nTheta;i++) {
+					theta=i*dtheta_deg;
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,EplaneX[2*i][RE],
+						EplaneX[2*i][IM],EplaneY[2*i+1][RE],EplaneY[2*i+1][IM],EplaneX[2*i+1][RE],
+						EplaneX[2*i+1][IM],EplaneY[2*i][RE],EplaneY[2*i][IM]);
+				}
+				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
-			FCloseErr(mueller,F_MUEL,ONE_POS);
+			if (store_mueller) {
+				sprintf(fname,"%s/"F_MUEL,directory);
+				mueller=FOpenErr(fname,"w",ONE_POS);
+				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
+				for (i=0;i<nTheta;i++) {
+					theta=i*dtheta_deg;
+					ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],
+						EplaneY[2*i]);
+					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],
+						matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],
+						matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
+						matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+				}
+				FCloseErr(mueller,F_MUEL,ONE_POS);
+			}
 		}
-
 		if (scat_grid) {
 			/* compute Mueller Matrix in full space angle.
 			 * E-fields are stored in arrays EgridX and EgridY for incoming X and Y polarized light.
@@ -275,11 +296,22 @@ void MuellerMatrix(void)
 			 */
 			// open files for writing
 			if (store_scat_grid) {
-				sprintf(fname,"%s/"F_MUEL_SG,directory);
-				mueller=FOpenErr(fname,"w",ONE_POS);
-				fprintf(mueller,THETA_HEADER" "PHI_HEADER" "MUEL_HEADER"\n");
+				if (store_ampl) {
+					sprintf(fname,"%s/"F_AMPL_SG,directory);
+					ampl=FOpenErr(fname,"w",ONE_POS);
+					fprintf(ampl,THETA_HEADER" "PHI_HEADER" "AMPL_HEADER"\n");
+				}
+				if (store_mueller) {
+					sprintf(fname,"%s/"F_MUEL_SG,directory);
+					mueller=FOpenErr(fname,"w",ONE_POS);
+					fprintf(mueller,THETA_HEADER" "PHI_HEADER" "MUEL_HEADER"\n");
+				}
 			}
 			if (phi_integr) { // also initializes arrays of multipliers
+				/* amplitude matrix is not integrated. Moreover, if mueller matrix is not needed,
+				 * then phi_integr has no action at all. So we assume that phi_integr implies
+				 * store_mueller (to be checked in param.c).
+				 */
 				InitMuellerIntegrFile(PHI_UNITY,F_MUEL_INT,&mueller_int,fname,NULL);
 				InitMuellerIntegrFile(PHI_COS2,F_MUEL_C2,&mueller_int_c2,fname,&cos2);
 				InitMuellerIntegrFile(PHI_SIN2,F_MUEL_S2,&mueller_int_s2,fname,&sin2);
@@ -318,36 +350,42 @@ void MuellerMatrix(void)
 					cEqual(EgridY[index+1],s30);
 					cEqual(EgridX[index],s40);
 					cEqual(EgridX[index+1],s20);
+					index+=2;
 					// transform it, multiplying by rotation matrix from per-par to X-Y
 					cLinComb(s20,s30,co,si,s2);  // s2 =  co*s20 + si*s30
 					cLinComb(s20,s30,si,-co,s3); // s3 =  si*s20 - co*s30
 					cLinComb(s40,s10,co,si,s4);  // s4 =  co*s40 + si*s10
 					cLinComb(s40,s10,si,-co,s1); // s1 =  si*s40 - co*s10
 
-					ComputeMuellerMatrix(matrix,s1,s2,s3,s4);
-					index+=2;
+					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4);
+
 					if (phi_integr) {
 						memcpy(muel_phi+index1,matrix[0],16*sizeof(double));
 						index1+=16;
 					}
-					if (store_scat_grid)
-						fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",
-							theta,phi,matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],
-							matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
-							matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
-							matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+					if (store_scat_grid) {
+						if (store_mueller)
+							fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",
+								theta,phi,matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],
+								matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
+								matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
+								matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+						if (store_ampl)
+							fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",
+								theta,phi,s1[RE],s1[IM],s2[RE],s2[IM],s3[RE],s3[IM],s4[RE],s4[IM]);
+					}
 				}
 				if (phi_integr) {
 					PrintToIntegrFile(PHI_UNITY,mueller_int,&max_err,muel_phi,NULL,
-						NULL,matrix,theta);
-					PrintToIntegrFile(PHI_COS2,mueller_int_c2,&max_err_c2,muel_phi,muel_phi_buf,
-						cos2,matrix,theta);
-					PrintToIntegrFile(PHI_SIN2,mueller_int_s2,&max_err_s2,muel_phi,muel_phi_buf,
-						sin2,matrix,theta);
-					PrintToIntegrFile(PHI_COS4,mueller_int_c4,&max_err_c4,muel_phi,muel_phi_buf,
-						cos4,matrix,theta);
-					PrintToIntegrFile(PHI_SIN4,mueller_int_s4,&max_err_s4,muel_phi,muel_phi_buf,
-						sin4,matrix,theta);
+					NULL,matrix,theta);
+				PrintToIntegrFile(PHI_COS2,mueller_int_c2,&max_err_c2,muel_phi,muel_phi_buf,
+					cos2,matrix,theta);
+				PrintToIntegrFile(PHI_SIN2,mueller_int_s2,&max_err_s2,muel_phi,muel_phi_buf,
+					sin2,matrix,theta);
+				PrintToIntegrFile(PHI_COS4,mueller_int_c4,&max_err_c4,muel_phi,muel_phi_buf,
+					cos4,matrix,theta);
+				PrintToIntegrFile(PHI_SIN4,mueller_int_s4,&max_err_s4,muel_phi,muel_phi_buf,
+					sin4,matrix,theta);
 				}
 			}
 			if (phi_integr) {
@@ -364,7 +402,10 @@ void MuellerMatrix(void)
 					fprintf(logfile,"  sin(4*phi) -> "RMSE_FORMAT"\n",max_err_s4);
 			}
 			// close files; free arrays
-			if (store_scat_grid) FCloseErr(mueller,F_MUEL_SG,ONE_POS);
+			if (store_scat_grid) {
+				if (store_mueller) FCloseErr(mueller,F_MUEL_SG,ONE_POS);
+				if (store_ampl) FCloseErr(ampl,F_AMPL_SG,ONE_POS);
+			}
 			if (phi_integr) {
 				CloseIntegrFile(PHI_UNITY,mueller_int,F_MUEL_INT,NULL);
 				CloseIntegrFile(PHI_COS2,mueller_int_c2,F_MUEL_C2,cos2);
@@ -716,18 +757,19 @@ void SaveMuellerAndCS(double *in)
 	Cext=in[0];
 	Cabs=in[1];
 	muel=in+2;
-	// save Mueller matrix
 
-	sprintf(fname,"%s/"F_MUEL,directory);
-	mueller=FOpenErr(fname,"w",ONE_POS);
-	fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
-	for (i=0;i<nTheta;i++) {
-		fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",
-			i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],muel[6],muel[7],muel[8],
-			muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
-		muel+=16;
+	if (store_mueller) { // save Mueller matrix
+		sprintf(fname,"%s/"F_MUEL,directory);
+		mueller=FOpenErr(fname,"w",ONE_POS);
+		fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
+		for (i=0;i<nTheta;i++) {
+			fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",
+				i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],muel[6],muel[7],
+				muel[8],muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
+			muel+=16;
+		}
+		FCloseErr(mueller,F_MUEL,ONE_POS);
 	}
-	FCloseErr(mueller,F_MUEL,ONE_POS);
 	// save cross sections
 	sprintf(fname,"%s/"F_CS,directory);
 	CCfile=FOpenErr(fname,"w",ONE_POS);

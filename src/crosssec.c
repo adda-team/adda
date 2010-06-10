@@ -410,8 +410,8 @@ void ReadAlldirParms(const char *fname)
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info
-	FPRINTZ(logfile,
-		"\nScattered field is calculated for all directions (for integrated scattering quantities)\n"
+	FPRINTZ(logfile,"\n"
+		"Scattered field is calculated for all directions (for integrated scattering quantities)\n"
 		"theta: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps (equally spaced in cosine "
 			"values)\n"
 		"phi: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps\n"

@@ -87,6 +87,8 @@ bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
 bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
+bool store_mueller;   // Calculate and write Mueller matrix to file
+bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;     /* type of phi integration (each bit determines
                        * whether to calculate with different multipliers)
                        */
@@ -308,6 +310,7 @@ PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
+PARSE_FUNC(scat_matr);
 PARSE_FUNC(scat_grid_inp);
 PARSE_FUNC(sg_format);
 PARSE_FUNC(shape);
@@ -462,6 +465,10 @@ static struct opt_struct options[]={
 		"on a radiative correction for a finite dipole. 'so' is under development and incompatible "
 		"with '-anisotr'.\n"
 		"Default: dr",1,NULL},
+	{PAR(scat_matr),"{muel|ampl|both|none}","Specifies which scattering matrices (from Mueller and "
+		"amplitude) should be saved to file. Amplitude matrix is never integrated (in combination "
+		"with '-orient avg' or '-phi_integr').\n"
+		"Default: muel",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
 		"Default: "FD_SCAT_PARMS,1,NULL},
@@ -1124,6 +1131,20 @@ PARSE_FUNC(scat)
 	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
+PARSE_FUNC(scat_matr)
+{
+	if (strcmp(argv[1],"muel")==0) {
+		store_mueller=true;
+		store_ampl=false;
+	}
+	else if (strcmp(argv[1],"ampl")==0) {
+		store_mueller=false;
+		store_ampl=true;
+	}
+	else if (strcmp(argv[1],"both")==0) store_mueller=store_ampl=true;
+	else if (strcmp(argv[1],"none")==0) store_mueller=store_ampl=false;
+	else NotSupported("Scattering matrix specifier",argv[1]);
+}
 PARSE_FUNC(scat_grid_inp)
 {
 	TestStrLength(argv[1],MAX_FNAME);
@@ -1512,6 +1533,8 @@ void InitVariables(void)
 	calc_asym=false;
 	calc_mat_force=false;
 	store_force=false;
+	store_mueller=true;
+	store_ampl=false;
 	store_grans=false;
 	load_chpoint=false;
 	sh_granul=false;
@@ -1613,6 +1636,23 @@ void VariablesInterconnect(void)
 		// TODO: this limitation should be removed in the future
 		if (all_dir)
 			PrintError("Currently '-orient avg' can not be used with calculation of asym or Csca");
+		if (!store_mueller && store_ampl) {
+			store_ampl=false;
+			LogError(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So "
+				"switching off calculation of Mueller matrix results in no calculation of "
+				"scattering matrices at all.");
+		}
+	}
+	if (phi_integr && !store_mueller) PrintError("Integration over phi can only be performed for "
+		"Mueller matrix. Hence, '-phi_integr' is incompatible with '-scat_matr {ampl|none}'");
+	if (!store_mueller && !store_ampl) {
+		if (nTheta!=UNDEF) PrintError("'-scat_matr none' turns off calculation of angle-resolved "
+			"quantities making '-ntheta' irrelevant. Hence, these two options are incompatible.");
+		if (store_scat_grid) PrintError("'-scat_matr none' turns off calculation of angle-resolved "
+			"quantities. Hence, it is incompatible with '-store_scat_grid'.");
+		nTheta=0;
+		yzplane=false;
+		scat_grid=false;
 	}
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");
@@ -1860,6 +1900,16 @@ void PrintInfo(void)
 					incPolX[0],incPolX[1],incPolX[2]);
 			}
 			else fprintf(logfile,"Particle orientation: default\n\n");
+		}
+		// log type of scattering matrices
+		if (store_mueller) {
+			if (store_ampl)
+				fprintf(logfile,"Calculating both amplitude and Mueller scattering matrices\n");
+			else fprintf(logfile,"Calculating only Mueller scattering matrix\n");
+		}
+		else {
+			if (store_ampl) fprintf(logfile,"Calculating only amplitude scattering matrix\n");
+			else fprintf(logfile,"Calculating no scattering matrices\n");
 		}
 		// log Polarization relation
 		fprintf(logfile,"Polarization relation: ");
