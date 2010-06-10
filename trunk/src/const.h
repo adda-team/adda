@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "0.80a6"
+#define ADDA_VERSION "1.0a1"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -299,6 +299,9 @@ enum chpoint { // types of checkpoint (to save)
 #define F_MUEL_S2       "mueller_integr_s2"
 #define F_MUEL_C4       "mueller_integr_c4"
 #define F_MUEL_S4       "mueller_integr_s4"
+	// files for amplitude matrix
+#define F_AMPL          "ampl"
+#define F_AMPL_SG       "ampl_scatgrid"
 	// temporary files; used in printf with ringid as argument
 #define F_BEAM_TMP      "b%d.tmp"
 #define F_INTFLD_TMP    "f%d.tmp"

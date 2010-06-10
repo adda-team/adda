@@ -328,7 +328,10 @@ static void calculate_one_orientation(double *res)
 	D("MuellerMatrix finished");
 	if (ringid==ADDA_ROOT && orient_avg) {
 		tstart=GET_TIME();
-		printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
+		/* it is more logical to use store_mueller in the following test, but for orientation
+		 * averaging these two flags are identical
+		 */
+		if (yzplane) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
 		D("Integration over alpha completed on root");
@@ -450,9 +453,11 @@ static void AllocateEverything(void)
 		if (!prognosis) {
 			// this covers these 2 and next 2 malloc calls
 			CheckOverflow(8*tmp+2,ONE_POS,"AllocateEverything()");
-			temp_int=tmp;
-			MALLOC_VECTOR(ampl_alphaX,complex,temp_int,ONE);
-			MALLOC_VECTOR(ampl_alphaY,complex,temp_int,ONE);
+			if (yzplane) {
+				temp_int=tmp;
+				MALLOC_VECTOR(ampl_alphaX,complex,temp_int,ONE);
+				MALLOC_VECTOR(ampl_alphaY,complex,temp_int,ONE);
+			}
 		}
 		memory += 2*tmp*sizeof(doublecomplex);
 		if (ringid==ADDA_ROOT) {
@@ -537,8 +542,10 @@ static void FreeEverything(void)
 
 	if (orient_avg) {
 		if (ringid==ADDA_ROOT) {
-			Free_cVector(ampl_alphaX);
-			Free_cVector(ampl_alphaY);
+			if (yzplane) {
+				Free_cVector(ampl_alphaX);
+				Free_cVector(ampl_alphaY);
+			}
 			Free_general(muel_alpha-2);
 			Free_general(out);
 		}
@@ -555,11 +562,14 @@ void Calculator (void)
 	char fname[MAX_FNAME];
 
 	// initialize variables
-	dtheta_deg = 180.0 / ((double)(nTheta-1));
-	dtheta_rad = Deg2Rad(dtheta_deg);
-	block_theta= 16*(size_t)nTheta;
-	// if not enough symmetry, calculate for +- theta (for one plane)
-	if (!(symY || orient_avg)) nTheta=2*(nTheta-1);
+	if (nTheta!=0) {
+		dtheta_deg = 180.0 / ((double)(nTheta-1));
+		dtheta_rad = Deg2Rad(dtheta_deg);
+		block_theta= 16*(size_t)nTheta;
+		// if not enough symmetry, calculate for +- theta (for one plane)
+		if (!(symY || orient_avg)) nTheta=2*(nTheta-1);
+	}
+	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;
 	// read tables if needed
 	if (IntRelation == G_SO) ReadTables();
