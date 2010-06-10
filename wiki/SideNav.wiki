@@ -5,10 +5,10 @@
  * [Tutorial Tutorial]
  * Simulation results
     * [ComparisonOtherCodes Comparison with other codes]
-    * [LargestSimulations Largest simulations performed with ADDA]
+    * [LargestSimulations Largest simulations]
  * Adding new code
-    * [AddingNewShape Adding a new predefined shape]
-    * [AddingNewBeam Adding a new predefined beam type]
-    * [AddingNewCommandLineOption Adding a new command line option]
-    * [AddingNewIterativeSolver Adding a new iterative solver]
- * [EarlyHistory A brief history of long ADDA development]
+    * [AddingShape Adding a predefined shape]
+    * [AddingBeam Adding a predefined beam type]
+    * [AddingCommandLineOption Adding a command line option]
+    * [AddingIterativeSolver Adding an iterative solver]
+ * [EarlyHistory Early history of ADDA development]
