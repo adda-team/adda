@@ -1,4 +1,4 @@
-#summary This page briefly describes the development of ADDA before 2004
+#summary A brief description of ADDA development before 2004
 
 The development of *ADDA* started in 1990 when the original author, Alfons Hoekstra, started with his PhD research. His assignment was to implement the coupled dipole method (as we called it back then) on a recently acquired computer at the University of Amsterdam. This was a distributed memory parallel computer. The research question was two-fold: 
  * demonstrate parallel computing performance of a production code on a parallel computer,
