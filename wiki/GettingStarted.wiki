@@ -1,3 +1,4 @@
 #summary A quick guide to getting started with ADDA
+#labels Featured
 
 To be done. For now use side bar for navigation.
