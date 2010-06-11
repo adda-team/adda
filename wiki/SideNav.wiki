@@ -4,11 +4,19 @@
  * [ReleaseNotes Release notes] 
  * [Tutorial Tutorial]
  * Simulation results
-    * [ComparisonOtherCodes Comparison with other codes]
-    * [LargestSimulations Largest simulations]
+   * [ComparisonOtherCodes Comparison with other codes]
+   * [LargestSimulations Largest simulations]
+ * Description of the code
+   * [PackageDescription Description of the packages]
+   * [CodeDesign General design of the code]
+   * [CodeStyleGuide Style guide for the code]
+ * Compiling and linking
+   * [CompilingADDA Compiling ADDA]
+   * [InstallingFFTW3 Installing FFTW 3]
+   * [InstallingMPI Installing MPI]
  * Adding new code
-    * [AddingShape Adding a predefined shape]
-    * [AddingBeam Adding a predefined beam type]
-    * [AddingCommandLineOption Adding a command line option]
-    * [AddingIterativeSolver Adding an iterative solver]
+   * [AddingShape Adding a predefined shape]
+   * [AddingBeam Adding a predefined beam type]
+   * [AddingCommandLineOption Adding a command line option]
+   * [AddingIterativeSolver Adding an iterative solver]
  * [EarlyHistory Early history of ADDA development]
