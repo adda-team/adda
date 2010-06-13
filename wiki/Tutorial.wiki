@@ -9,7 +9,7 @@ libfftw3-3.dll (for Windows)
 }}}
 In the command lines of this tutorial it is assumed that *ADDA* can be run by typing `adda`, when positioned in the working directory. This can differ depending on the particular operating system.
 
-1. Running ADDA is simple. Go and try it:
+1. Running *ADDA* is simple. Go and try it:
 {{{
 adda
 }}}
