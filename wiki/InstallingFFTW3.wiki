@@ -1,0 +1,16 @@
+#summary A schematic overview of FFTW 3 installation.
+
+The installation of [http://www.fftw.org FFTW 3] on any Unix system is straightforward and therefore is _highly recommended_, since it greatly improves the performance of *ADDA*. The easiest is to [http://www.fftw.org/fftw3_doc/Installation-on-Unix.html install FFTW 3 for the entire system], using `root` account.  However, it also can be installed under any user account as follows:
+ * Download the [http://www.fftw.org/download.html latest version of FFTW 3] 
+ * Unpack it, cd into its directory, and type
+{{{
+./configure --prefix=$HOME [--enable-sse2|--enable-k7]
+}}}
+ where `'--enable'` options are specialized for modern Intel or AMD processors respectively. Then type
+{{{
+make
+make install
+}}}
+ * Modify the initialization of internal variables `FFTW3_INC_PATH` and `FFTW3_LIB_PATH` in the `Makefile`, as described in [CompilingADDA].
+
+[http://www.fftw.org/install/windows.html Installation of FFTW 3 on non-Unix systems] is slightly more complicated. However, FFTW 3 installation is not required to use Windows executables included in the [PackageDescription ADDA package].
