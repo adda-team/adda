@@ -39,7 +39,7 @@ The packages themselves can be found at [http://code.google.com/p/a-dda/download
    * `mt19937ar.c/h` – source and header files for Mersenne twister random generator
 
 =Windows 32-bit executables=
-`adda_1.0_win32.zip` (to be released). Compiled with [http://www.mingw.org/ MinGW] 5.1.4, including [http://gcc.gnu.org/ GCC] 3.4.5.
+`adda_1.0_win32.zip` (to be released). Should be downloaded together with the source package (in particular, sample input files). It was compiled with [http://www.mingw.org/ MinGW] 5.1.4, including [http://gcc.gnu.org/ GCC] 3.4.5.
  * `win32/`
    * `libfftw3-3.dll` - DLL for FFTW 3.1.2
    * `adda.exe` - executable for sequential version of *ADDA*
