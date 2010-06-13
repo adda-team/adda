@@ -3,7 +3,8 @@
 The packages themselves can be found at [http://code.google.com/p/a-dda/downloads/list Downloads]. Alternatively, the constituent files may be extracted directly from the [http://code.google.com/p/a-dda/source/browse/trunk/ repository].
 <wiki:toc>
 
-=Source - adda`_###`.zip=
+=Source=
+`adda_1.0.zip` (to be released).
  * `doc/` – documentation
    * `copyleft` – GNU General Public License
    * `history` – complete history of *ADDA* development
@@ -30,19 +31,17 @@ The packages themselves can be found at [http://code.google.com/p/a-dda/download
      * `cfft99D.f` - source file for Temperton FFT 
      * `propaesplibreintadda.f`, `d07hre.f`, `d09hre.f`, `d113re.f`, `d132re.f`, `dadhre.f`, `dchhre.f`, `dcuhre.f`, `dfshre.f`, `dinhre.f`, `drlhre.f`, `dtrhre.f` - subroutine to compute IGT and auxiliary numerical routines.
    * `seq/` - holds all files, produced during compilation of sequential version of *ADDA*
-     * `make_seq` - makefile for sequential version (called from the `Makefile`)
+     * `Makefile` - makefile for sequential version (called from the main `Makefile`)
    * `mpi/` - holds all files, produced during compilation of MPI version of *ADDA*
-     * `make_mpi` - makefile for MPI version (called from the `Makefile`)
+     * `Makefile` - makefile for MPI version (called from the main `Makefile`)
    * `Makefile` – main makefile
    * `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `cmplx.h`, `const.h`, `crosssec.c/h`, `comm.c/h`, `debug.c/h`, `fft.c`, `function.h`, `GenerateB.c`, `io.c/h`, `iterative.c`, `make_particle.c`, `matvec.c`, `memory.c/h`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of *ADDA*
    * `mt19937ar.c/h` – source and header files for Mersenne twister random generator
 
-=Win32 executables - adda`_###_`win32.zip=
+=Windows 32-bit executables=
+`adda_1.0_win32.zip` (to be released). Compiled with [http://www.mingw.org/ MinGW] 5.1.4, including [http://gcc.gnu.org/ GCC] 3.4.5.
  * `win32/`
-   * `libfftw3-3.dll` - DLL for FFTW 3
+   * `libfftw3-3.dll` - DLL for FFTW 3.1.2
    * `adda.exe` - executable for sequential version of *ADDA*
-   * `adda_mpi.exe` - executable for MPI version of *ADDA*
-   * `readme.txt` - very brief description of the package
-<wiki:comment>
-executable for near_field should be added here for version 1.0
-</wiki:comment>
+   * `adda_mpi.exe` - executable for MPI version of *ADDA* (linked with [http://www.mcs.anl.gov/mpi/mpich/ MPICH2] 1.0.8p1)
+   * `near_field/` - executables for `near_field` package
