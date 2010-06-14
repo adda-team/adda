@@ -2,7 +2,7 @@
 
 If you plan to run *ADDA* on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. <b>ADDA</b>’s usage of MPI is based on the [http://www.mpi-forum.org MPI 1.2] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by *ADDA* both during compilation and at runtime.
 
-If you plan to run a parallel version of *ADDA* on a single computer, e.g. using multicore processor, you need first to install some implementation of MPI. Installation instruction can be found in the manual of a particular MPI package. In the following we describe a single example of installation of [http://www.mcs.anl.gov/mpi/mpich/ MPICH2] package on Windows.
+If you plan to run a parallel version of *ADDA* on a single computer, e.g. using multicore processor, you need first to install some implementation of MPI. Installation instruction can be found in the manual of a particular MPI package. In the following we describe a single example of installation of [http://www.mcs.anl.gov/mpi/mpich/ MPICH2] package on Windows (tested for version 1.2.1p1).
  * [http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads Download the installer] of MPICH2 for your combination of Windows and hardware and install it.
  * Specify paths to `include` and `lib` subdirectories of MPICH2 directory in file `src/mpi/Makefile`, as described in [CompilingADDA]. Add `bin` subdirectory to Windows environmental variable `PATH`.
  * MPICH needs user credentials to run on Windows. To remove asking for them at every MPI run, run a GUI utility `wmpiregister.exe` or type:
@@ -10,6 +10,11 @@ If you plan to run a parallel version of *ADDA* on a single computer, e.g. using
 mpiexec –register
 }}}
  You will be asked for your credentials, which then will be stored encrypted in the Windows registry.
+ * On some systems (e.g. Vista) you may need to manually install `smpd` as a system service. For that open Windows console (`cmd`) with administrator's privileges (e.g. right-clicking on its icon and choosing corresponding option). Then run
+{{{
+smpd -install -phrase behappy
+}}}
+ The (pass)phrase should be the same for all computers running in a cluster. Specifying it at this moment will stop `mpiexec` from asking for it at every run.
  * First time you run `mpiexec` you probably will be prompted by the Windows firewall, whether to allow `mpiexec` and `smpd` to access network. If you plan to run *ADDA* only on a single PC, you may block them. Otherwise, you should unblock them.
 
 MPICH2 has much more advanced features. For instance, one may combine several single- and multi-core Windows machines in a cluster. However, we do not discuss it here.
