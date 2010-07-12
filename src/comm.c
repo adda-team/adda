@@ -650,8 +650,9 @@ void FreeGranulComm(const int sm_gr)
 void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing)
 /* performs a collective AND operation on the (vector) data; timing is incremented by the total
  * time used.
- * TODO: When MPI_BOOL data type will become widely supported, this function should be rewritten
- * using bool input data.
+ * TODO: When MPI_C_BOOL data type will become widely supported, this function should be rewritten
+ * using bool input data. However, this may be memory-inefficient if sizeof(MPI_BOOL)>1. This is
+ * currently discussed as an errata to MPI 2.2.
  */
 {
 #ifdef ADDA_MPI
@@ -661,7 +662,7 @@ void ExchangeFits(char *data,const size_t n,TIME_TYPE *timing)
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
 	tstart=GET_TIME();
-	MPI_Allreduce(data,gr_comm_buf,n,MPI_CHAR,MPI_LAND,MPI_COMM_WORLD);
+	MPI_Allreduce(data,gr_comm_buf,n,MPI_SIGNED_CHAR,MPI_LAND,MPI_COMM_WORLD);
 	memcpy(data,gr_comm_buf,n*sizeof(char));
 	(*timing)+=GET_TIME()-tstart;
 #endif
