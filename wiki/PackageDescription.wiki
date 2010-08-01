@@ -44,4 +44,3 @@ The packages themselves can be found at [http://code.google.com/p/a-dda/download
    * `libfftw3-3.dll` - DLL for FFTW 3.1.2
    * `adda.exe` - executable for sequential version of *ADDA*
    * `adda_mpi.exe` - executable for MPI version of *ADDA* (linked with [http://www.mcs.anl.gov/mpi/mpich/ MPICH2] 1.0.8p1)
-   * `near_field/` - executables for `near_field` package
