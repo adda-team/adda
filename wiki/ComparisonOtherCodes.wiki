@@ -44,9 +44,13 @@ The main conclusion is summarized in the following figure, where a ratio of comp
 
 = Comparison with the null-field method with discrete sources =
 
-Schmidt and Wriedt [[#References 3]] extended the null-field method with discrete sources ([http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM_DS]) to bi-anisotropic scatterers and verified their code by comparison with *ADDA* and DDSCAT. The following figure shows one particular example for ... Perfect agreement can be seen.
+Schmidt and Wriedt [[#References 3]] extended the null-field method with discrete sources ([http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM_DS]) to anisotropic scatterers and verified their code by comparison with *ADDA* and DDSCAT. The following figure shows one particular example for ellipsoid with semi-axes _ka_=2, _kb_=3, _kc_=4 (_k_ is the wavenumber) and refractive index _m,,x,,_=1.5, _m,,y,,_=_m,,z,,_=1.1. Incident wave propagates along the _z_-axis and _S_,,11,, is calculated in _xz_-plane. NFM-DS data was provided by Vladimir Schmidt. *ADDA* 0.79 was run with the following command line.
+{{{
+adda -size 4 -shape ellipsoid 1.5 2 -m 1.5 0 1.1 0 1.1 0 -anisotr -orient 90 0 0
+}}}
+where the last option (`-orient`) was used for convenience to make the first two columns of the file `mueller`  produced by *ADDA* (corresponding to _yz_-plane in particle reference frame) equivalent to the sought _S_,,11,, in _xz_-plane in laboratory reference frame.
 
-FIGURE (to be done).
+[http://a-dda.googlecode.com/svn/wiki/nfmds_dda_large.png http://a-dda.googlecode.com/svn/wiki/nfmds_dda_small.png]
 
 = Comparison with the improved geometric optics method =
 
@@ -60,4 +64,3 @@ Bi et al. compared *ADDA* with the improved geometric optics method (IGOM) for s
  # V. Schmidt and T. Wriedt, “T-matrix method for biaxial anisotropic particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.025 J. Quant. Spectrosc. Radiat. Transfer 110, 1392-1397 (2009)].
  # L. Bi, P. Yang, G.W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114-126 (2009)].
  # L. Bi, P. Yang, G.W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
-
