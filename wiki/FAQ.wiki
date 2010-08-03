@@ -17,11 +17,11 @@ This list is far from being complete, therefore please send your questions to [m
   * Check this FAQ.
   * If that does not help, you're encouraged to send your question to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com]. Please try to make your question as specific as possible. If your question is based on a particular run, provide all relevant input and output files, at least `log`.
 
-== Can I use *ADDA* to calculate scattering by a particle near the infinite dielectric plane surface? =
+== Can I use *ADDA* to calculate scattering by a particle near or inside the infinite plane-parallel plane substrate? =
 Basically, no. *ADDA* can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future (but there is issue 101). However, you may approach this problem using the current version of *ADDA*:
- * You may completely ignore the surface, this may be accurate enough if particle is far from the surface and the refractive index change when crossing the surface is small.
- * A little more accurate approach is to consider the "incident field" in *ADDA* as a sum of incident and reflected plane waves. However, currently such incident field is not implemented, therefore it need first to be [AddingBeam coded into ADDA].
- * Another approach is to take a large computational box around the particle, and discretize the surface that falls into it. This is rigorous in the limit of infinite size of computational box, but requires enormous computational time. It also requires you to specify the shape files for all different sizes of the computational box. It is also a good idea to replace a plane wave by a Gaussian beam with large but finite width to decrease the diffraction from the boundary of the computational box.
+ * You may completely ignore the substrate; this may be accurate enough if particle is far from the substrate and the refractive index change between substrate and upper medium is small.
+ * A little more accurate approach is to consider the "incident field" in ADDA as a sum of incident and reflected plane waves. The latter can be easily obtained analytically for infinite plane-parallel substrate. However, currently such incident field is not implemented, therefore it need first to be [AddingBeam coded into ADDA].
+ * Another approach is to take a large computational box around the particle, and discretize the substrate that falls into it. This is rigorous in the limit of infinite size of computational box, but requires much larger computer resources than that for the initial problem. It also requires one to specify the shape files for all different sizes of the computational box. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
 
 == Can I calculate near-field using *ADDA*? ==
 We are currently working to implement this feature in a convenient manner (issue 10). For now there are two possible workarounds:
@@ -31,5 +31,12 @@ We are currently working to implement this feature in a convenient manner (issue
 == How can I simulate light scattering by a particle which shape can not be described by any of the *ADDA* predefined shapes? ==
 The simplest is to specify your particle by a shape file. However, if your shape can easily be described in some parametric form and you are going to simulate a lot of particles with shapes from this class or if you think other users will probably simulate the same shapes, you are encouraged to [AddingShape implement new shape inside ADDA].
 
+To produce a shape file you can use any programming language/software. Clearly, there is demand for some graphical tool allowing one to draw a scattering object and save it to the shape file. However, we are not aware of any ready-to-use solution. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/aed1c5195eec1e5a# this discussion] for details.
+
 == How is the Mueller matrix, produced by *ADDA*, defined and/or normalized? ==
 It is defined as in Bohren & Huffman "Absorption and scattering of Light by Small Particles" (1983), and it is not normalized. Some other codes may compute Stokes scattering matrix, which is normalized so that 1,1-element is equal to 1 after averaging over the whole solid angle. This matrix should be multiplied by _πC_,,sca,,/_λ_^2^ to get Mueller matrix. _C_,,sca,, is the scattering cross section for unpolarized light, equal to average of scattering cross sections for any two perpendicular incident polarizations.
+
+== How to visualize shape files of ADDA? ==
+The most general solution is freely available software [http://albin.abo.fi/~jkniivil/litebil/ LiteBil]. It allows both quick testing of shape files produced by ADDA or other software, and producing nice pictures for publication.
+
+There are also tools developed by Roman Schuh, which are available upon request. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/c715bd07cc9274d8# this discussion] for details.
