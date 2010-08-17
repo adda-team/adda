@@ -310,8 +310,8 @@ PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
-PARSE_FUNC(scat_matr);
 PARSE_FUNC(scat_grid_inp);
+PARSE_FUNC(scat_matr);
 PARSE_FUNC(sg_format);
 PARSE_FUNC(shape);
 PARSE_FUNC(size);
@@ -465,13 +465,13 @@ static struct opt_struct options[]={
 		"on a radiative correction for a finite dipole. 'so' is under development and incompatible "
 		"with '-anisotr'.\n"
 		"Default: dr",1,NULL},
+	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
+		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
+		"Default: "FD_SCAT_PARMS,1,NULL},
 	{PAR(scat_matr),"{muel|ampl|both|none}","Specifies which scattering matrices (from Mueller and "
 		"amplitude) should be saved to file. Amplitude matrix is never integrated (in combination "
 		"with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
-	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
-		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
-		"Default: "FD_SCAT_PARMS,1,NULL},
 	{PAR(sg_format),"{text|text_ext|ddscat}","Specifies format for saving geometry files. First "
 		"two are ADDA default formats for single- and multi-domain particles respectively. 'text' "
 		"is automatically changed to 'text_ext' for multi-domain particles. DDSCAT format "
@@ -1131,6 +1131,11 @@ PARSE_FUNC(scat)
 	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
+PARSE_FUNC(scat_grid_inp)
+{
+	TestStrLength(argv[1],MAX_FNAME);
+	strcpy(scat_grid_parms,argv[1]);
+}
 PARSE_FUNC(scat_matr)
 {
 	if (strcmp(argv[1],"muel")==0) {
@@ -1144,11 +1149,6 @@ PARSE_FUNC(scat_matr)
 	else if (strcmp(argv[1],"both")==0) store_mueller=store_ampl=true;
 	else if (strcmp(argv[1],"none")==0) store_mueller=store_ampl=false;
 	else NotSupported("Scattering matrix specifier",argv[1]);
-}
-PARSE_FUNC(scat_grid_inp)
-{
-	TestStrLength(argv[1],MAX_FNAME);
-	strcpy(scat_grid_parms,argv[1]);
 }
 PARSE_FUNC(sg_format)
 {
