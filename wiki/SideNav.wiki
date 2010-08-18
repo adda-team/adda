@@ -7,8 +7,7 @@
    * [ComparisonOtherCodes Comparison with other codes]
    * [LargestSimulations Largest simulations]
  * Description of the code
-   * [PackageDescription Description of the packages]
-<wiki:comment>
+   * [PackageDescription Description of the packages]<wiki:comment> 
    * [CodeDesign General design of the code]
    * [CodeStyleGuide Style guide for the code]
 </wiki:comment>
