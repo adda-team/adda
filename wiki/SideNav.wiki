@@ -8,8 +8,10 @@
    * [LargestSimulations Largest simulations]
  * Description of the code
    * [PackageDescription Description of the packages]
+<wiki:comment>
    * [CodeDesign General design of the code]
    * [CodeStyleGuide Style guide for the code]
+</wiki:comment>
  * Compiling and linking
    * [CompilingADDA Compiling ADDA]
    * [InstallingFFTW3 Installing FFTW 3]
@@ -19,4 +21,5 @@
    * [AddingBeam Adding a predefined beam type]
    * [AddingCommandLineOption Adding a command line option]
    * [AddingIterativeSolver Adding an iterative solver]
+ * [Acknowledgements Acknowledgements]
  * [EarlyHistory Early history of ADDA development]
