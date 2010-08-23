@@ -1,0 +1,54 @@
+#summary How to add code for a new iterative solver.
+
+All places in the code, where something should be added, are commented. These comments start with `TO ADD NEW ITERATIVE SOLVER` and contain detailed description; the text below is less detailed. Added code should be analogous to iterative solvers already present. The procedure is the following:
+ * Add new iterative-solver descriptor in the file [http://code.google.com/p/a-dda/source/browse/trunk/src/const.h const.h]. Starting descriptor name with `IT_` is recommended, as well as adding a descriptive comment.
+ * Add information about the new iterative solver in the file [http://code.google.com/p/a-dda/source/browse/trunk/src/param.c param.c].
+   * Add a short name of the iterative solver, to be used in the command line, to the list inside `{...}` on the line starting with `PAR(iter)` in the constant array `options`. 
+   * Add one line to the else-if sequence in the function `PARSE_FUNC(iter)`.
+   * Add one line to the relevant else-if sequence in the function `PrintInfo`.
+ * Main part of the code should be added to [http://code.google.com/p/a-dda/source/browse/trunk/src/iterative.c iterative.c].
+   * Add a function prototype `ITER_FUNC(_name_);`  to the existing list of prototypes. `ITER_FUNC(…)` is a macro for conciseness.
+   * Add an element to the structure `params` consisting of:
+     * descriptor specified in [http://code.google.com/p/a-dda/source/browse/trunk/src/const.h const.h] (see above),
+     * maximum allowed number of iterations without the residual decrease, 
+     * numbers of additional scalars and vectors required to describe the state of the iterative solver (see comments in the code),
+     * name of a function, implementing the method (denoted by `_name_` above).
+   * Implement the function among the list of functions definitions for existing iterative solvers. For operations on complex numbers you are advised to use functions from [http://code.google.com/p/a-dda/source/browse/trunk/src/cmplx.h cmplx.h], for switching vectors - function `SwapPointers`, for linear algebra - functions from [http://code.google.com/p/a-dda/source/browse/trunk/src/linalg.c linalg.c], for multiplication of vector with matrix of the linear system - function `MatVec` from [http://code.google.com/p/a-dda/source/browse/trunk/src/matvec.c matvec.c]. A short template for the function is the following:
+{{{
+ITER_FUNC(_name_)
+// Short comment, providing full name of the iterative solver
+{
+// It is recommended to define all nontrivial constants here. 
+#define EPS1 1E-30
+	// all internal variables should be defined here as static, since the function will be called many times.
+	static double xxx;
+
+	// The function accepts a single argument 'ph' describing a current phase to execute
+	if (ph==PHASE_VARS) {
+		// Here variables are linked to structure arrays 'scalars' and 'vectors'. For example:
+		scalars[0].ptr=&xxx;
+		scalars[0].size=sizeof(double);
+		// Also, if auxiliary vectors vec1,... are used, their names may be changed
+	}
+	else if (ph==PHASE_INIT) {
+		// Initialization of the iterative solver.
+	}
+	else if (ph==PHASE_ITER) {
+		// Performs a general iteration. As a result, current residual should be calculated.
+
+		if (xxx<EPS1) // an example for checking of convergence failure (optional)
+			LogError(EC_ERROR,ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
+
+	}
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+#undef EPS1
+}
+}}}
+ * If the new iterative solver uses extra vectors (like `vec1`, etc.) you should change the code in [http://code.google.com/p/a-dda/source/browse/trunk/src/calculator.c calculator.c]
+   * Update the code for allocation of `vec1`, etc. in the function `AllocateEverything`.
+   * Analogously update the code for freeing those vectors in the function `FreeEverything`.
+
+
+Please refer to section _Iterative Solvers_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for general overview of how the iterative solvers operate inside *ADDA*.
+
+If you add a new iterative solver to *ADDA* according to the described procedure, please write to the [http://groups.google.com/group/adda-discuss discussion group], so your code can be incorporated in future releases.
