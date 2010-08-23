@@ -273,7 +273,7 @@ void InitBeam(void);
 //========================================================================
 // prototypes of parsing functions; definitions are given below. defines are for conciseness
 #define PARSE_NAME(a) parse_##a
-#define PARSE_FUNC(a) void PARSE_NAME(a)(int Narg,char **argv)
+#define PARSE_FUNC(a) static void PARSE_NAME(a)(int Narg,char **argv)
 #define PAR(a) #a,PARSE_NAME(a),false
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
@@ -401,6 +401,10 @@ static struct opt_struct options[]={
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
+		/* TO ADD NEW ITERATIVE SOLVER
+		 * add the short name, used to define the new iterative solver in the command line, to the
+		 * list "{...}" in the alphabetical order.
+		 */
 	{PAR(jagged),"<arg>","Sets a size of a big dipole in units of small dipoles, integer. It is "
 		"used to improve the discretization of the particle without changing the shape.\n"
 		"Default: 1",1,NULL},
@@ -988,9 +992,14 @@ PARSE_FUNC(int)
 PARSE_FUNC(iter)
 {
 	if (strcmp(argv[1],"cgnr")==0) IterMethod=IT_CGNR;
-	else if (strcmp(argv[1],"bicgstab")==0) IterMethod=IT_BICGSTAB;
 	else if (strcmp(argv[1],"bicg")==0) IterMethod=IT_BICG_CS;
+	else if (strcmp(argv[1],"bicgstab")==0) IterMethod=IT_BICGSTAB;
 	else if (strcmp(argv[1],"qmr")==0) IterMethod=IT_QMR_CS;
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
+	 * already present. The variable parts of the line are its name used in command line and its
+	 * descriptor, defined in const.h
+	 */
 	else NotSupported("Iterative method",argv[1]);
 }
 PARSE_FUNC(jagged)
@@ -1951,9 +1960,14 @@ void PrintInfo(void)
 		// log Iterative Method
 		fprintf(logfile,"Iterative Method: ");
 		if (IterMethod==IT_CGNR) fprintf(logfile,"CGNR\n");
-		else if (IterMethod==IT_BICGSTAB) fprintf(logfile,"Bi-CG Stabilized\n");
 		else if (IterMethod==IT_BICG_CS) fprintf(logfile,"Bi-CG (complex symmetric)\n");
+		else if (IterMethod==IT_BICGSTAB) fprintf(logfile,"Bi-CG Stabilized\n");
 		else if (IterMethod==IT_QMR_CS) fprintf(logfile,"QMR (complex symmetric)\n");
+		/* TO ADD NEW ITERATIVE SOLVER
+		 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
+		 * already present. The variable parts of the line are descriptor of the iterative solver,
+		 * defined in const.h, and its plain-text description (to be shown in log).
+		 */
 		// log Symmetry options; do not print anything in case of SYM_AUTO
 		if (sym_type==SYM_NO) fprintf(logfile,"No symmetries are used\n");
 		else if (sym_type==SYM_ENF) fprintf(logfile,"Symmetry is enforced by user (warning!)\n");

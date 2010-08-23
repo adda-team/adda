@@ -199,9 +199,13 @@ enum inter { // how to calculate interaction term
 
 enum iter { // iterative methods
 	IT_CGNR,     // Conjugate Gradient for Normalized equations minimizing Residual norm
-	IT_BICGSTAB, // Bi-Conjugate Gradient Stabilized
 	IT_BICG_CS,  // Bi-Conjugate Gradient for Complex-Symmetric matrices
+	IT_BICGSTAB, // Bi-Conjugate Gradient Stabilized
 	IT_QMR_CS    // Quasi-minimal residual for Complex-Symmetric matrices
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * add an identifier starting with 'IT_' and a descriptive comment to this list in the
+	 * alphabetical order.
+	 */
 };
 
 enum Eftype { // type of E field calculation
