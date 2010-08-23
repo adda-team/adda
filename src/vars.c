@@ -3,12 +3,12 @@
  * $Date::                            $
  * Descr: all the global variables are declared here
  *
- *        Global means: used in three or more source files. Variables that are used in only two
+ *        'Global' means used in three or more source files. Variables that are used in only two
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -94,7 +94,7 @@ unsigned char *material;            // material: index for cc
 enum iter IterMethod; // iterative method to use
 int maxiter;          // maximum number of iterations
 doublecomplex *xvec;  // total electric field on the dipoles
-doublecomplex *pvec;  // polarization of dipoles
+doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
 doublecomplex *Einc;  // incident field on dipoles
 
 // scattering at different angles

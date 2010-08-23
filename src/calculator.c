@@ -7,7 +7,7 @@
  *        Previous versions were by Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -66,7 +66,10 @@ double *E2_alldir_buffer; // buffer to accumulate E2_alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 doublecomplex *expsX,*expsY,*expsZ; // arrays of exponents along 3 axes (for calc_field)
 // used in iterative.c
-doublecomplex *rvec,*vec1,*vec2,*vec3,*Avecbuffer; // vectors for iterative solvers
+doublecomplex *rvec;             // current residual
+doublecomplex *Avecbuffer;       // used to hold the result of matrix-vector products
+// auxiliary vectors, used in some iterative solvers (with more meaningful names)
+doublecomplex *vec1,*vec2,*vec3;
 
 // LOCAL VARIABLES
 
@@ -365,7 +368,7 @@ static void AllocateEverything(void)
 
 	// allocate all the memory
 	tmp=sizeof(doublecomplex)*(double)nlocalRows;
-	if (!prognosis) {
+	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
 		MALLOC_VECTOR(xvec,complex,nlocalRows,ALL);
 		MALLOC_VECTOR(rvec,complex,nlocalRows,ALL);
 		MALLOC_VECTOR(pvec,complex,nlocalRows,ALL);
@@ -373,8 +376,12 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(Avecbuffer,complex,nlocalRows,ALL);
 	}
 	memory+=5*tmp;
+	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
+	 * for any new iterative solver, based on the information contained in structure array 'params'
+	 * in file iterative.c. However, this requires different order of function calls to extract this
+	 * information beforehand. So currently this part should be edited manually when needed.
+	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
-		// additional vectors for iterative methods
 		if (!prognosis) {
 			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
 			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
@@ -382,6 +389,12 @@ static void AllocateEverything(void)
 		}
 		memory+=3*tmp;
 	}
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * If the new iterative solver requires any extra vectors (additionally to the default ones),
+	 * i.e. number vec_N in corresponding element of structure array params in iterative.c is
+	 * non-zero, then change the above condition to allocate memory for these vectors. Variable
+	 * memory should be incremented to reflect the total allocated memory.
+	 */
 	MALLOC_VECTOR(expsX,complex,boxX,ALL);
 	MALLOC_VECTOR(expsY,complex,boxY,ALL);
 	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
@@ -499,11 +512,20 @@ static void FreeEverything(void)
 	Free_cVector(pvec);
 	Free_cVector(Einc);
 	Free_cVector(Avecbuffer);
+	/* The following can be automated to some extent, either using the information from structure
+	 * array 'params' in iterative.c or checking each vector for being NULL. However, it will anyway
+	 * require manual editing if additional (e.g. fourth) vector will be added.
+	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		Free_cVector(vec1);
 		Free_cVector(vec2);
 		Free_cVector(vec3);
 	}
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * If the new iterative solver requires any extra vectors (so that they were allocated in
+	 * function AllocateEverything() above), then this condition (immediately above) should be
+	 * changed to perform freeing of these vectors.
+	 */
 	Free_cVector(expsX);
 	Free_cVector(expsY);
 	Free_cVector(expsZ);
