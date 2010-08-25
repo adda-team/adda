@@ -49,8 +49,8 @@ extern const double beam_center_0[3];
 extern const double prop_0[3],incPolX_0[3],incPolY_0[3];
 extern const enum scat ScatRelation;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_EField_ad,Timing_comm_EField_ad,Timing_EField_sg,Timing_comm_EField_sg,
-Timing_ScatQuan_comm;
+extern TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,Timing_EFieldSG,Timing_EFieldSGComm,
+Timing_ScatQuanComm;
 
 // used in CalculateE.c
 Parms_1D phi_sg;
@@ -611,7 +611,7 @@ double ExtCross(const double *incPol)
 	if (beamtype==B_PLANE) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
 	else { /* more general formula; normalization is done assuming the unity amplitude of the
@@ -620,7 +620,7 @@ double ExtCross(const double *incPol)
 	        */
 		sum=0;
 		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
-		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI*WaveNum;
 	}
 	/* TO ADD NEW BEAM
@@ -709,11 +709,11 @@ double AbsCross(void)
 			sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
 	}
 	if (ScatRelation==SQ_FINDIP) {
-		MyInnerProduct(&dCabs,double_type,1,&Timing_ScatQuan_comm);
+		MyInnerProduct(&dCabs,double_type,1,&Timing_ScatQuanComm);
 		dCabs*=(FOUR_PI*WaveNum);
 		dCabs_ready=true;
 	}
-	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuan_comm);
+	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	return FOUR_PI*WaveNum*sum;
 }
 
@@ -765,7 +765,7 @@ void CalcAlldir(void)
 		}
 	}
 	// accumulate fields
-	Accumulate(E2_alldir,4*npoints,E2_alldir_buffer,&Timing_comm_EField_ad);
+	Accumulate(E2_alldir,4*npoints,E2_alldir_buffer,&Timing_EFieldADComm);
 	// calculate square of the field
 	for (point=0;point<npoints;point++)
 		E2_alldir[point] = cAbs2(((doublecomplex*)E2_alldir)[2*point]) +
@@ -773,8 +773,8 @@ void CalcAlldir(void)
 	PRINTZ("  done\n");
 	FFLUSHZ(stdout);
 	// timing
-	Timing_EField_ad = GET_TIME() - tstart;
-	Timing_EField += Timing_EField_ad;
+	Timing_EFieldAD = GET_TIME() - tstart;
+	Timing_EField += Timing_EFieldAD;
 }
 
 //=====================================================================
@@ -833,11 +833,11 @@ void CalcScatGrid(const char which)
 		}
 	}
 	// accumulate fields; timing
-	Accumulate((double *)Egrid,4*angles.N,Egrid_buffer,&Timing_comm_EField_sg);
+	Accumulate((double *)Egrid,4*angles.N,Egrid_buffer,&Timing_EFieldSGComm);
 	PRINTZ("  done\n");
 	FFLUSHZ(stdout);
-	Timing_EField_sg = GET_TIME() - tstart;
-	Timing_EField += Timing_EField_sg;
+	Timing_EFieldSG = GET_TIME() - tstart;
+	Timing_EField += Timing_EFieldSG;
 }
 
 //=====================================================================
@@ -1119,9 +1119,9 @@ void Frp_mat(double Fsca_tot[3],double *Fsca,double Finc_tot[3],double *Finc,dou
 	} // end j-loop
 
 	// Accumulate the total forces on all nodes
-	MyInnerProduct(Finc_tot+2,double_type,1,&Timing_ScatQuan_comm);
-	MyInnerProduct(Fsca_tot,double_type,3,&Timing_ScatQuan_comm);
-	MyInnerProduct(Frp_tot,double_type,3,&Timing_ScatQuan_comm);
+	MyInnerProduct(Finc_tot+2,double_type,1,&Timing_ScatQuanComm);
+	MyInnerProduct(Fsca_tot,double_type,3,&Timing_ScatQuanComm);
+	MyInnerProduct(Frp_tot,double_type,3,&Timing_ScatQuanComm);
 
 	Free_general(materialT);
 	Free_general(rdipT);

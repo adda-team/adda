@@ -7,7 +7,7 @@
  *        Previous versions were by Martijn Frijlink
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -48,7 +48,7 @@ MPI_Datatype mpi_dcomplex;
 // defined and allocated in fft.c
 extern double *BT_buffer, *BT_rbuffer;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_Dm_Init_comm;
+extern TIME_TYPE Timing_InitDmComm;
 
 // LOCAL VARIABLES
 
@@ -347,9 +347,9 @@ void MyInnerProduct(void *data,const var_type type,size_t n_elem,TIME_TYPE *timi
 
 //============================================================
 
-void BlockTranspose(doublecomplex *X)
+void BlockTranspose(doublecomplex *X,TIME_TYPE *timing)
 /* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
- *  do 3 components in one message;
+ *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
  */
 {
 #ifdef ADDA_MPI
@@ -358,10 +358,12 @@ void BlockTranspose(doublecomplex *X)
 	int transmission,part,Xpos,Xcomp;
 	MPI_Status status;
 
+	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
+		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
 #endif
-	tstart=GET_TIME();
+		tstart=GET_TIME();
+	}
 	step=2*local_Nx;
 	msize=local_Nx*sizeof(doublecomplex);
 	bufsize=6*local_Nz*smallY*local_Nx;
@@ -388,14 +390,17 @@ void BlockTranspose(doublecomplex *X)
 			}
 		}
 	}
-	Timing_OneIterComm += GET_TIME() - tstart;
+	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
 
 //============================================================
 
 void BlockTranspose_Dm(doublecomplex *X,const size_t lengthY,const size_t lengthZ)
-// do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
+ * It can be updated to accept timing argument for generality. But, since this is a specialized
+ * function, we keep the timing variable hard-wired in the code.
+ */
 {
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;
@@ -432,7 +437,7 @@ void BlockTranspose_Dm(doublecomplex *X,const size_t lengthY,const size_t length
 			}
 		}
 	}
-	Timing_Dm_Init_comm += GET_TIME() - tstart;
+	Timing_InitDmComm += GET_TIME() - tstart;
 #endif
 }
 

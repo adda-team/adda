@@ -77,7 +77,7 @@ extern int sg_format;
 extern bool store_grans;
 
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_Particle,Timing_Granul,Timing_Granul_comm;
+extern TIME_TYPE Timing_Particle,Timing_Granul,Timing_GranulComm;
 
 // used in fft.c
 double gridspace; // interdipole distance (dipole size)
@@ -995,7 +995,7 @@ static double PlaceGranules(void)
 				}
 			}
 			// send/collect domain pattern
-			CollectDomainGranul(dom,gXY,locz0,locgZ,&Timing_Granul_comm);
+			CollectDomainGranul(dom,gXY,locz0,locgZ,&Timing_GranulComm);
 			if (ringid==ADDA_ROOT) {
 				// analyze domain pattern
 				avail=0;
@@ -1073,8 +1073,8 @@ static double PlaceGranules(void)
 			}
 		} // end of large granules
 		// cast to all processors
-		MyBcast(&cur_Ngr,int_type,1,&Timing_Granul_comm);
-		MyBcast(vgran,double_type,3*cur_Ngr,&Timing_Granul_comm);
+		MyBcast(&cur_Ngr,int_type,1,&Timing_GranulComm);
+		MyBcast(vgran,double_type,3*cur_Ngr,&Timing_GranulComm);
 		count_gr+=cur_Ngr;
 		// final check if granules belong to the domain
 		for (ig=0;ig<cur_Ngr;ig++) {
@@ -1107,7 +1107,7 @@ static double PlaceGranules(void)
 			vfit[ig]=(char)fits;
 		}
 		// collect fits
-		ExchangeFits(vfit,cur_Ngr,&Timing_Granul_comm);
+		ExchangeFits(vfit,cur_Ngr,&Timing_GranulComm);
 		// fit dipole grid with successive granules
 		Nfit=n;
 		for (ig=0;ig<cur_Ngr;ig++) {
@@ -1156,7 +1156,7 @@ static double PlaceGranules(void)
 			zerofit++;
 			// check if taking too long
 			if (zerofit>MAX_ZERO_FITS) {
-				MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
+				MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
 				/* conversions to (unsigned long) are needed (to remove warnings) because %z printf
 				 * argument is not yet supported by all target compiler environments
 				 */
@@ -1174,7 +1174,7 @@ static double PlaceGranules(void)
 	       "                   possible granules= %lu (efficiency 2 = "GFORMDEF")\n",
 	       (unsigned long)count,count_gr/(double)count,(unsigned long)count_gr,
 	       gr_N/(double)count_gr);
-	MyInnerProduct(&nd,double_type,1,&Timing_Granul_comm);
+	MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
 	// free everything
 	if (ringid==ADDA_ROOT) {
 		Free_general(occup);
@@ -1934,7 +1934,7 @@ void MakeParticle(void)
 	// granulate one domain, if needed
 	if (sh_granul) {
 		tgran=GET_TIME();
-		Timing_Granul_comm=0;
+		Timing_GranulComm=0;
 		// calculate number of granules
 		if (mat_count[gr_mat]==0) LogError(EC_ERROR,ONE_POS,
 			"Domain to be granulated does not contain any dipoles");

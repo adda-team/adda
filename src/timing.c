@@ -35,30 +35,31 @@
 // SEMI-GLOBAL VARIABLES
 
 // used in CalculateE.c
-TIME_TYPE Timing_EFieldPlane,Timing_comm_EField, // for Eplane calculation: total and comm
-          Timing_IntField,Timing_IntFieldOne,    // for internal fields: total & one calculation
-          Timing_ScatQuan;                       // for integral scattering quantities
+TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total and comm
+          Timing_IntField,Timing_IntFieldOne, // for internal fields: total & one calculation
+          Timing_ScatQuan;                    // for integral scattering quantities
 unsigned long TotalEFieldPlane; // total number of planes for scattered field calculations
 // used in calculator.c
 TIME_TYPE Timing_Init;   // for total initialization of the program (before CalculateE)
 unsigned long TotalEval; // total number of orientation evaluations
 // used in comm.c
-TIME_TYPE Timing_Dm_Init_comm;  // communication time for initialization of D-matrix
+TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
 // used in crosssec.c
 // total time for all_dir and scat_grid calculations
-TIME_TYPE Timing_EField_ad,Timing_comm_EField_ad,  // time for all_dir: total & comm
-          Timing_EField_sg,Timing_comm_EField_sg,  // time for scat_dir: total & comm
-          Timing_ScatQuan_comm;                    // time for comm of scat.quantities
+TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & comm
+          Timing_EFieldSG,Timing_EFieldSGComm,  // time for scat_dir: total & comm
+          Timing_ScatQuanComm;                  // time for comm of scat.quantities
 // used in iterative.c
-TIME_TYPE Timing_OneIter,                       // total for one iteration
-          Timing_InitIter,Timing_InitIter_comm; // for initialization of iterations: total & comm
+TIME_TYPE Timing_OneIter,Timing_OneIterComm,    // for one iteration: total & comm
+          Timing_InitIter,Timing_InitIterComm,  // for initialization of iterations: total & comm
+          Timing_IntFieldOneComm;               // comm for one calculation of the internal fields
 unsigned long TotalIter;                        // total number of iterations performed
 // used in fft.c
 TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
           Timing_Dm_Init;  // for building Dmatrix
 // used in make_particle.c
-TIME_TYPE Timing_Particle,                  // for particle construction
-          Timing_Granul,Timing_Granul_comm; // for granule generation: total & comm
+TIME_TYPE Timing_Particle,                 // for particle construction
+          Timing_Granul,Timing_GranulComm; // for granule generation: total & comm
 
 #define FFORMT "%.4f" // format for timing results
 
@@ -81,7 +82,7 @@ void InitTiming(void)
 {
 	TotalIter=TotalEval=TotalEFieldPlane=0;
 	Timing_EField=Timing_FileIO=Timing_IntField=Timing_ScatQuan=Timing_Integration=0;
-	Timing_ScatQuan_comm=Timing_Dm_Init_comm=0;
+	Timing_ScatQuanComm=Timing_InitDmComm=0;
 }
 
 //============================================================
@@ -129,7 +130,7 @@ void FinalStatistics(void)
 				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"      communication:       "FFORMT"\n",TO_SEC(Timing_Dm_Init_comm));
+				"      communication:       "FFORMT"\n",TO_SEC(Timing_InitDmComm));
 #endif
 			fprintf(logfile,
 				"    FFT setup:           "FFORMT"\n",TO_SEC(Timing_FFT_Init));
@@ -141,18 +142,23 @@ void FinalStatistics(void)
 				"      granule generator:   "FFORMT"\n",TO_SEC(Timing_Granul));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"        communication:       "FFORMT"\n",TO_SEC(Timing_Granul_comm));
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_GranulComm));
 #endif
 		}
 		if (!prognosis) {
 			fprintf(logfile,
 				"  Internal fields:     "FFORMT"\n"
-				"    one solution:        "FFORMT"\n"
-				"      init solver:         "FFORMT"\n",
-				TO_SEC(Timing_IntField),TO_SEC(Timing_IntFieldOne),TO_SEC(Timing_InitIter));
+				"    one solution:        "FFORMT"\n",
+				TO_SEC(Timing_IntField),TO_SEC(Timing_IntFieldOne));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"        communication:       "FFORMT"\n",TO_SEC(Timing_InitIter_comm));
+				"      communication:       "FFORMT"\n",TO_SEC(Timing_IntFieldOneComm));
+#endif
+			fprintf(logfile,
+				"      init solver:         "FFORMT"\n",TO_SEC(Timing_InitIter));
+#ifdef PARALLEL
+			fprintf(logfile,
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_InitIterComm));
 #endif
 			fprintf(logfile,
 				"      one iteration:       "FFORMT"\n",TO_SEC(Timing_OneIter));
@@ -164,33 +170,33 @@ void FinalStatistics(void)
 				"  Scattered fields:    "FFORMT"\n",TO_SEC(Timing_EField));
 			if (yzplane) {
 				fprintf(logfile,
-					"    one plane:           "FFORMT"\n",TO_SEC(Timing_EFieldPlane));
+					"    one plane:           "FFORMT"\n",TO_SEC(Timing_EPlane));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_EPlaneComm));
 #endif
 			}
 			if (all_dir) {
 				fprintf(logfile,
-					"    one alldir:          "FFORMT"\n",TO_SEC(Timing_EField_ad));
+					"    one alldir:          "FFORMT"\n",TO_SEC(Timing_EFieldAD));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField_ad));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_EFieldADComm));
 #endif
 			}
 			if (scat_grid) {
 				fprintf(logfile,
-					"    one scat_grid:          "FFORMT"\n",TO_SEC(Timing_EField_sg));
+					"    one scat_grid:          "FFORMT"\n",TO_SEC(Timing_EFieldSG));
 #ifdef PARALLEL
 				fprintf(logfile,
-					"      communication:       "FFORMT"\n",TO_SEC(Timing_comm_EField_sg));
+					"      communication:       "FFORMT"\n",TO_SEC(Timing_EFieldSGComm));
 #endif
 			}
 			fprintf (logfile,
 				"  Other sc.quantities: "FFORMT"\n",TO_SEC(Timing_ScatQuan));
 #ifdef PARALLEL
 			fprintf(logfile,
-				"    communication:       "FFORMT"\n",TO_SEC(Timing_ScatQuan_comm));
+				"    communication:       "FFORMT"\n",TO_SEC(Timing_ScatQuanComm));
 #endif
 			fprintf (logfile,
 				"  File I/O:            "FFORMT"\n"

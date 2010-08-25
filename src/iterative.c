@@ -63,7 +63,8 @@ extern doublecomplex *rvec,*vec1,*vec2,*vec3,*Avecbuffer;
 // defined and initialized in param.c
 extern const double eps;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_OneIter,Timing_InitIter,Timing_InitIter_comm;
+extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
+	Timing_IntFieldOneComm;
 extern unsigned long TotalIter;
 
 // LOCAL VARIABLES
@@ -113,7 +114,7 @@ ITER_FUNC(QMR_CS);
  * function prototype.
  */
 
-static struct iter_params_struct params[]={
+static const struct iter_params_struct params[]={
 	{IT_CGNR,10,1,0,CGNR},
 	{IT_BICG_CS,50000,1,0,BiCG_CS},
 	{IT_BICGSTAB,30000,3,3,BiCGStab},
@@ -130,7 +131,7 @@ static struct iter_params_struct params[]={
 // EXTERNAL FUNCTIONS
 
 // matvec.c
-void MatVec(doublecomplex *in,doublecomplex *out,double *inprod,bool her);
+void MatVec(doublecomplex *in,doublecomplex *out,double *inprod,bool her,TIME_TYPE *comm_timing);
 
 //============================================================
 
@@ -340,10 +341,10 @@ ITER_FUNC(CGNR)
 	else if (ph==PHASE_INIT); // no specific initialization required
 	else if (ph==PHASE_ITER) {
 		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
-		if (niter==1) MatVec(rvec,pvec,&ro_new,true);
+		if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterComm);
 		else {
 			// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
-			MatVec(rvec,Avecbuffer,&ro_new,true);
+			MatVec(rvec,Avecbuffer,&ro_new,true,&Timing_OneIterComm);
 			// beta_k-1=ro_k-1/ro_k-2
 			beta=ro_new/ro_old;
 			// p_k=beta_k-1*p_k-1+AH.r_k-1
@@ -351,7 +352,7 @@ ITER_FUNC(CGNR)
 		}
 		// alpha_k=ro_k-1/|A.p_k|^2
 		// Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false);
+		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterComm);
 		alpha=ro_new/denumeratorAlpha;
 		// x_k=x_k-1+alpha_k*p_k
 		nIncrem01(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
@@ -397,7 +398,7 @@ ITER_FUNC(BiCG_CS)
 			nIncrem10_cmplx(pvec,rvec,beta,NULL,&Timing_OneIterComm);
 		}
 		// q_k=Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,NULL,false);
+		MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
@@ -473,7 +474,7 @@ ITER_FUNC(BiCGStab)
 			nIncrem110_cmplx(pvec,v,rvec,beta,temp1);
 		}
 		// calculate v_k=A.p_k
-		MatVec(pvec,v,NULL,false);
+		MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
 		// alpha_k=ro_new/(v_k.r~)
 		nDotProd(v,rtilda,temp1,&Timing_OneIterComm);
 		cDiv(ro_new,temp1,alpha);
@@ -488,7 +489,7 @@ ITER_FUNC(BiCGStab)
 		}
 		else {
 			// t=Avecbuffer=A.s
-			MatVec(s,Avecbuffer,&denumOmega,false);
+			MatVec(s,Avecbuffer,&denumOmega,false,&Timing_OneIterComm);
 			// omega_k=s.t/|t|^2
 			nDotProd(s,Avecbuffer,temp1,&Timing_OneIterComm);
 			cMultReal(1/denumOmega,temp1,omega);
@@ -551,7 +552,7 @@ ITER_FUNC(QMR_CS)
 			// omega_0=||v_0||=0
 			omega_old=0.0;
 			// beta_1=sqrt(v~_1(*).v~_1); omega_1=||v~_1||/|beta_1|; (v~_1=r_0)
-			nDotProdSelf_conj(rvec,temp1,&Timing_InitIter_comm);
+			nDotProdSelf_conj(rvec,temp1,&Timing_InitIterComm);
 			cSqrt(temp1,beta);
 			omega_new=sqrt(inprodR)/cAbs(beta); // inprodR=nNorm2(r_0)
 			// v_1=v~_1/beta_1
@@ -571,7 +572,7 @@ ITER_FUNC(QMR_CS)
 		if (dtmp1<EPS1L || dtmp1>EPS1H) LogError(EC_ERROR,ONE_POS,
 			"QMR_CS fails: (vT.v)/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
-		MatVec(v,Avecbuffer,NULL,false);
+		MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
 		// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
 		cInvSign2(alpha,temp2);
@@ -677,7 +678,7 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 	static double xxx;
 
 	// The function accepts a single argument 'ph' describing a phase, which it should perform at a
-	// particular run. This is done to move all all common parts to the function IterativeSolver.
+	// particular run. This is done to move all common parts to the function IterativeSolver.
 	// Possible phases are defined and briefly explained in the definition of 'enum phase' in the
 	// beginning of this source file.
 	if (ph==PHASE_VARS) {
@@ -692,7 +693,7 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 		// Initialization of the iterative solver. You may use 'load_chpoint' to distinguish between
 		// the plain run and the one restarted from a checkpoint. Actual loading of checkpoint
 		// happens just before this phase. For gathering communication time use variable
-		// Timing_InitIter_comm.
+		// Timing_InitIterComm.
 	}
 	else if (ph==PHASE_ITER) {
 		// Performs a general iteration. As a result, inprodRp1 (current residual) should be
@@ -728,7 +729,7 @@ int IterativeSolver(const enum iter method_in)
 {
 	double temp;
 	char tmp_str[MAX_LINE];
-	TIME_TYPE tstart;
+	TIME_TYPE tstart,time_tmp;
 
 	/* Instead of solving system (I+D.C).x=b , C - diagonal matrix with couple constants
 	 *                                         D - symmetric interaction matrix of Green's tensor
@@ -739,13 +740,14 @@ int IterativeSolver(const enum iter method_in)
 	 * themselves p is completely different vector. To avoid confusion this is done before any other
 	 * initializations, specific to iterative solvers
 	 */
+	Timing_InitIterComm=0;
 	if (!load_chpoint) {
 		nMult_mat(pvec,Einc,cc_sqrt);
-		temp=nNorm2(pvec,&Timing_InitIter_comm); // |r_0|^2 when x_0=0
+		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
 		resid_scale=1/temp;
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-		MatVec(pvec,Avecbuffer,NULL,false);
-		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIter_comm);
+		MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		// check which x_0 is better
 		if (temp<inprodR) { // use x_0=0
 			nInit(xvec);
@@ -798,7 +800,9 @@ int IterativeSolver(const enum iter method_in)
 	// load checkpoint, if needed, and finish initialization of the iterative solver
 	if (load_chpoint) LoadIterChpoint();
 	(*params[ind_m].func)(PHASE_INIT);
-	Timing_InitIter = GET_TIME() - tstart_CE; // initialization complete
+	// Initialization time includes generating the incident beam
+	Timing_InitIter = GET_TIME() - tstart_CE;
+	Timing_IntFieldOneComm=Timing_InitIterComm;
 	// main iteration cycle
 	while (inprodR>=epsB && niter<=maxiter && counter<=params[ind_m].mc && !chp_exit) {
 		// initialize time
@@ -807,8 +811,16 @@ int IterativeSolver(const enum iter method_in)
 		// main execution
 		(*params[ind_m].func)(PHASE_ITER);
 		// finalize time; time for incomplete iteration may be inadequate
-		if (complete) Timing_OneIter=GET_TIME()-tstart;
-		// check progress
+		Timing_IntFieldOneComm+=Timing_OneIterComm;
+		if (complete) {
+			Timing_OneIter=GET_TIME()-tstart;
+			time_tmp=Timing_OneIterComm;
+		}
+		else Timing_OneIterComm=time_tmp; // use result from the previous iteration
+		/* check progress; it takes negligible time by itself (O(1) operations), but may lead to
+		 * saving checkpoint. Since the latter is not relevant to the iteration itself, the
+		 * ProgressReport is called after finalizing the time of a single iteration.
+		 */
 		ProgressReport();
 	}
 	// Save checkpoint of type always
