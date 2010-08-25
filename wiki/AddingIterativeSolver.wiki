@@ -40,7 +40,7 @@ ITER_FUNC(_name_)
 			LogError(EC_ERROR,ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 #undef EPS1
 }
 }}}
