@@ -29,7 +29,7 @@ typedef enum {char_type,int_type,double_type,cmplx_type} var_type;
 
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
-void BlockTranspose(doublecomplex *X);
+void BlockTranspose(doublecomplex *X,TIME_TYPE *timing);
 void BlockTranspose_Dm(doublecomplex *X,size_t lengthY,size_t lengthZ);
 void AccumulateMax(double *data,double *max);
 void Accumulate(double *data,size_t size,double *buffer,TIME_TYPE *timing);

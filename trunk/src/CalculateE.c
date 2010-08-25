@@ -58,7 +58,7 @@ extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_
 calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_mueller,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_EFieldPlane,Timing_comm_EField,
+extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,
 Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan;
 extern unsigned long TotalEFieldPlane;
 
@@ -503,11 +503,11 @@ static void CalcEplane(const char which,const enum Eftype type)
 			// Accumulate Eplane to root and sum
 			D("Accumulating Eplane started");
 			// accumulate only on processor 0 !, done in one operation
-			Accumulate((double *)Eplane,4*nTheta,Eplane_buffer,&Timing_comm_EField);
+			Accumulate((double *)Eplane,4*nTheta,Eplane_buffer,&Timing_EPlaneComm);
 			D("Accumulating Eplane finished");
 
-			Timing_EFieldPlane = GET_TIME() - tstart;
-			Timing_EField += Timing_EFieldPlane;
+			Timing_EPlane = GET_TIME() - tstart;
+			Timing_EField += Timing_EPlane;
 			TotalEFieldPlane++;
 		} // end of orient loop
 	} // end of alpha loop

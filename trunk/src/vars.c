@@ -143,5 +143,4 @@ time_t wt_start,              // starting wall time
 TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_FileIO,      // time for input and output
           Timing_Integration, // time for all integrations (with precomputed values)
-          Timing_OneIterComm, // communication time during one iteration
           tstart_main;        // starting time of the program (after MPI_Init in parallel)

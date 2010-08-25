@@ -94,11 +94,13 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 void MatVec (doublecomplex *argvec,    // the argument vector
              doublecomplex *resultvec, // the result vector
              double *inprod,           // the resulting inner product
-             const bool her)           // whether Hermitian transpose of the matrix is used
+             const bool her,           // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *comm_timing)   // this variable is incremented by communication time
 /* This function implements both MatVec_nim and MatVecAndInp_nim. The difference is that when we
  * want to calculate the inner product as well, we pass 'inprod' as a non-NULL pointer. if 'inprod'
  * is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards, however it is not
- * strictly const - some manipulations may occur during the execution.
+ * strictly const - some manipulations may occur during the execution. comm_timing can be NULL, then
+ * it is ignored.
  */
 {
 	size_t i,j;
@@ -179,7 +181,7 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	GetTime(tvp+2);
 	Elapsed(tvp+1,tvp+2,&Timing_FFTXf);
 #endif
-	BlockTranspose(Xmatrix);
+	BlockTranspose(Xmatrix,comm_timing);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+3);
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
@@ -275,7 +277,7 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 #endif
 	} // end of loop over slices
 	// FFT-X back the result
-	BlockTranspose(Xmatrix);
+	BlockTranspose(Xmatrix,comm_timing);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+14);
 	Elapsed(tvp+13,tvp+14,&Timing_BTb);
@@ -305,7 +307,7 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	GetTime(tvp+16);
 	Elapsed(tvp+15,tvp+16,&Timing_Mult5);
 #endif
-	if (ipr) MyInnerProduct(inprod,double_type,1,&Timing_OneIterComm);
+	if (ipr) MyInnerProduct(inprod,double_type,1,comm_timing);
 #ifdef PRECISE_TIMING
 	GetTime(tvp+17);
 	Elapsed(tvp+16,tvp+17,&Timing_ipr);

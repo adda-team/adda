@@ -94,6 +94,6 @@ extern double nvoid_Ndip;
 
 // timing
 extern time_t wt_start,last_chp_wt;
-extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,Timing_OneIterComm,tstart_main;
+extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 
 #endif // __vars_h
