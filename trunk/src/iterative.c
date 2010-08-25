@@ -361,7 +361,7 @@ ITER_FUNC(CGNR)
 		// initialize ro_old -> ro_k-2 for next iteration
 		ro_old=ro_new;
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 }
 
 //============================================================
@@ -415,7 +415,7 @@ ITER_FUNC(BiCG_CS)
 		// initialize ro_old -> ro_k-2 for next iteration
 		cEqual(ro_new,ro_old);
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1L
 #undef EPS1H
@@ -502,7 +502,7 @@ ITER_FUNC(BiCGStab)
 			cEqual(ro_new,ro_old);
 		}
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1
 #undef EPS2
@@ -646,7 +646,7 @@ ITER_FUNC(QMR_CS)
 		cMultReal(c_new/omega_new,tautilda,temp1);
 		nIncrem11_d_c(rvec,v,cAbs2(s_new),temp1,&inprodRp1,&Timing_OneIterComm);
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1L
 #undef EPS1H
@@ -716,7 +716,7 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 		// Common check for convergence at the end of an iteration should not be done here, because
 		// it is performed in the function IterativeSolver.
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver: %d",ph);
+	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
 #undef EPS1
 }
 */
