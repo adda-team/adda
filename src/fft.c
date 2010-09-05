@@ -47,11 +47,18 @@
 // for transpose YZ
 #define TR_BLOCK 64
 
+#ifdef FFT_TEMPERTON
+#define ONLY_FOR_TEMPERTON
+#else
+#define ONLY_FOR_TEMPERTON ATT_UNUSED
+#endif
+
 // SEMI-GLOBAL VARIABLES
 
 // defined ant initialized in calculator.c
-extern const double *tab1,*tab2,*tab3,*tab4,*tab5,*tab6,*tab7,*tab8,*tab9,*tab10;
-extern const int **tab_index;
+extern const double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,
+	* restrict tab6,* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
+extern const int * restrict * restrict tab_index;
 
 // defined and initialized in make_particle.c
 extern double gridspace;
@@ -63,19 +70,19 @@ extern double igt_lim, igt_eps;
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
 // used in matvec.c
-doublecomplex *Dmatrix;       // holds FFT of the interaction matrix
-doublecomplex *Xmatrix;       // holds input vector (on expanded grid) to matvec
-doublecomplex *slices;        // used in inner cycle of matvec - holds 3 components (for fixed x)
-doublecomplex *slices_tr;     // additional storage space for slices to accelerate transpose
+doublecomplex * restrict Dmatrix;       // holds FFT of the interaction matrix
+doublecomplex * restrict Xmatrix;       // holds input vector (on expanded grid) to matvec
+doublecomplex * restrict slices;        // used in inner cycle of matvec - holds 3 components (for fixed x)
+doublecomplex * restrict slices_tr;     // additional storage space for slices to accelerate transpose
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D
 
 // used in comm.c
-double *BT_buffer, *BT_rbuffer; // buffers for BlockTranspose
+double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspose
 
 // LOCAL VARIABLES
 
 // D2 matrix and its two slices; used only temporary for InitDmatrix
-static doublecomplex *slice,*slice_tr,*D2matrix;
+static doublecomplex * restrict slice,* restrict slice_tr,* restrict D2matrix;
 static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ; see fft.h
 static bool weird_nprocs;              // whether weird number of processors is used
@@ -84,12 +91,14 @@ static bool weird_nprocs;              // whether weird number of processors is 
 static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb,planXf_Dm,planYf_Dm,planZf_Dm;
 #elif defined(FFT_TEMPERTON)
 # define IFAX_SIZE 20
-static double *trigsX,*trigsY,*trigsZ,*work; // arrays for Temperton FFT
+// arrays for Temperton FFT
+static double * restrict trigsX,* restrict trigsY,* restrict trigsZ,* restrict work;
 static int ifaxX[IFAX_SIZE],ifaxY[IFAX_SIZE],ifaxZ[IFAX_SIZE];
 // Fortran routines from cfft99D.f
-void cftfax_(const int *nn,int *ifax,double *trigs);
-void cfft99_(double *data,double *_work,const double *trigs,const int *ifax,const int *inc,
-	const int *jump,const int *nn,const int *lot,const int *isign);
+void cftfax_(const int *nn,int * restrict ifax,double * restrict trigs);
+void cfft99_(double * restrict data,double * restrict _work,const double * restrict trigs,
+	const int * restrict ifax,const int *inc,const int *jump,const int *nn,const int *lot,
+	const int *isign);
 #endif
 #ifndef NO_FORTRAN
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,
@@ -114,7 +123,7 @@ INLINE size_t IndexDmatrix(const size_t x,size_t y,size_t z)
 
 //============================================================
 
-INLINE size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN)
+INLINE size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP)
 // index D2 matrix after BlockTranspose
 {
 	if (y<0) y+=D2sizeY;
@@ -308,7 +317,7 @@ void fftZ(const int isign)
 
 //============================================================
 
-static void fftX_Dm(const size_t lengthZ)
+static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
 // FFT(forward) D2matrix(x) for all y,z; used for Dmatrix calculation
 {
 #ifdef FFTW3
@@ -373,9 +382,10 @@ void CheckNprocs(void)
 	if (y%11==0) y/=11;
 	else if (y%13==0) y/=13;
 	if (y!=1) {
-		LogError(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime divisors "
-			"larger than 13 or more than one divisor of either 11 or 13). FFTW3 will work less "
-			"efficiently. It is strongly recommended to revise the number of processors.",nprocs);
+		LogWarning(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime "
+			"divisors larger than 13 or more than one divisor of either 11 or 13). FFTW3 will work "
+			"less efficiently. It is strongly recommended to revise the number of processors.",
+			nprocs);
 		weird_nprocs=true;
 	}
 #endif
@@ -455,8 +465,7 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[13];
 #	endif
-	PRINTZ("Initializing FFTW3\n");
-	FFLUSHZ(stdout);
+	if (IFROOT) printf("Initializing FFTW3\n");
 #	ifdef PRECISE_TIMING
 	GetTime(tvp);
 #	endif
@@ -500,7 +509,7 @@ static void fftInitAfterD(void)
 	GetTime(tvp+6);
 	// print precise timing of FFT planning
 	SetTimerFreq();
-	PRINTBOTHZ(logfile,
+	if (IFROOT) PrintBoth(logfile,
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 		"         FFTW3 planning       \n"
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
@@ -522,7 +531,7 @@ static void fftInitAfterD(void)
 
 //============================================================
 
-static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
+static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 /* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
  * (in units of d). All six components of the symmetric matrix are computed at once.
  */
@@ -552,38 +561,37 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 	rr=sqrt(rr2);
 	rn=rr/gridspace; // normalized r
 #ifndef NO_FORTRAN
-	if (IntRelation==G_IGT && (igt_lim==UNDEF || rn<=igt_lim))
+	if (IntRelation==G_IGT && (igt_lim==UNDEF || rn<=igt_lim)) { // a special case
 		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
-	else {
+		return;
+	}
 #endif
-		invr=1/rr;
-		invr3=invr*invr*invr;
-		MultScal(invr,rtemp,qvec);
-		kr=WaveNum*rr;
-		kr2=kr*kr;
-		kfr=PI*rn; // k_F*r, for FCD
-		// cov=cos(kr); siv=sin(kr); expval=Exp(ikr)/r^3
-		imExp(kr,expval);
-		cov=expval[RE];
-		siv=expval[IM];
-		cMultReal(invr3,expval,expval);
-		//====== calculate Gp ========
-		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-			dmunu[comp]= mu==nu ? 1 : 0;
-			qmunu[comp]=qvec[mu]*qvec[nu];
-			// br=delta[mu,nu]*(-1+ikr+kr^2)-qmunu*(-3+3ikr+kr^2)
-			br[RE]=(3-kr2)*qmunu[comp];
-			br[IM]=-3*kr*qmunu[comp];
-			if(dmunu[comp]) {
-				br[RE]+=kr2-1;
-				br[IM]+=kr;
-			}
-			// result=Gp=expval*br
-			cMult(br,expval,result[comp]);
+	// a common part of the code ((up to FCD...), which effectively implements G_POINT_DIP
+	invr=1/rr;
+	invr3=invr*invr*invr;
+	MultScal(invr,rtemp,qvec);
+	kr=WaveNum*rr;
+	kr2=kr*kr;
+	kfr=PI*rn; // k_F*r, for FCD
+	// cov=cos(kr); siv=sin(kr); expval=Exp(ikr)/r^3
+	imExp(kr,expval);
+	cov=expval[RE];
+	siv=expval[IM];
+	cMultReal(invr3,expval,expval);
+	//====== calculate Gp ========
+	for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+		dmunu[comp]= mu==nu ? 1 : 0;
+		qmunu[comp]=qvec[mu]*qvec[nu];
+		// br=delta[mu,nu]*(-1+ikr+kr^2)-qmunu*(-3+3ikr+kr^2)
+		br[RE]=(3-kr2)*qmunu[comp];
+		br[IM]=-3*kr*qmunu[comp];
+		if(dmunu[comp]) {
+			br[RE]+=kr2-1;
+			br[IM]+=kr;
 		}
-#ifndef NO_FORTRAN
-	} // end of else
-#endif
+		// result=Gp=expval*br
+		cMult(br,expval,result[comp]);
+	}
 	//====== FCD (static and full) ========
 	/* speed of FCD can be improved by using faster version of sici routine, using predefined
 	 * tables, etc (e.g. as is done in GSL library). But currently extra time for this computation
@@ -627,7 +635,7 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 		 * main iterations. So first priority is to make something useful out of SO.
 		 */
 		// next line should never happen
-		if (anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in CalcInterTerm");
+		if (anisotropy) LogError(ONE_POS,"Incompatibility error in CalcInterTerm");
 		kd2=kd*kd;
 		kr3=kr2*kr;
 		// only one refractive index can be used for FFT-compatible algorithm
@@ -645,8 +653,8 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 		if (kr*rn < G_BOUND_CLOSE) {
 			//====== G close =============
 			// check if inside the table bounds; needed to recompute to make an integer comparison
-			if ((i*i+j*j+k*k) > TAB_RMAX*TAB_RMAX) LogError(EC_ERROR,ALL_POS,
-				"Not enough table size (available only up to R/d=%d)",TAB_RMAX);
+			if ((i*i+j*j+k*k) > TAB_RMAX*TAB_RMAX)
+				LogError(ALL_POS,"Not enough table size (available only up to R/d=%d)",TAB_RMAX);
 
 			// av is copy of propagation vector
 			if (!inter_avg) memcpy(av,prop,3*sizeof(double));
@@ -856,7 +864,7 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex *result)
 			}
 			if (kr < G_BOUND_MEDIAN) {
 				//===== G median ========
-				vMult(qvec,qvec,q2);
+				vSquare(qvec,q2);
 				q4=DotProd(q2,q2);
 				invrn=1/rn;
 				invrn2=invrn*invrn;
@@ -962,21 +970,19 @@ void InitDmatrix(void)
 	mem+=12*smallY*((double)(local_Nz*local_Nx))*sizeof(double);
 #endif
 	// printout some information
-	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is not
-	 * yet supported by all target compiler environmets
-	 */
-	FPRINTZ(logfile,"The FFT grid is: %lux%lux%lu\n",(unsigned long)gridX,(unsigned long)gridY,
-		(unsigned long)gridZ);
+	if (IFROOT) {
+		fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
 #ifdef PARALLEL
-	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",mem/MBYTE);
+		PrintBoth(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",
+			mem/MBYTE);
 #else
-	PRINTBOTHZ(logfile,"Memory usage for MatVec matrices: "FFORMM" MB\n",mem/MBYTE);
+		PrintBoth(logfile,"Memory usage for MatVec matrices: "FFORMM" MB\n",mem/MBYTE);
 #endif
-	FFLUSHZ(logfile);
+	}
 	memory+=mem;
 	if (prognosis) return;
 	// allocate memory for Dmatrix
-	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS,"Dmatrix");
+	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS_FUNC);
 	MALLOC_VECTOR(Dmatrix,complex,Dsize,ALL);
 	// allocate memory for D2matrix components
 	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
@@ -997,8 +1003,7 @@ void InitDmatrix(void)
 	GetTime(tvp+1);
 	Elapsed(tvp,tvp+1,&Timing_beg);
 #endif
-	PRINTZ("Calculating Green's function (Dmatrix)\n");
-	FFLUSHZ(stdout);
+	if (IFROOT) printf("Calculating Green's function (Dmatrix)\n");
 	/* Interaction matrix values are calculated all at once for performance reasons. They are stored
 	 * in Dmatrix with indexing corresponding to D2matrix (to facilitate copying) but NDCOMP
 	 * elements instead of one. Afterwards they are replaced by Fourier transforms (with different
@@ -1023,8 +1028,7 @@ void InitDmatrix(void)
 	GetTime(tvp+2);
 	Elapsed(tvp+1,tvp+2,&Timing_Gcalc);
 #endif
-	PRINTZ("Fourier transform of Dmatrix");
-	FFLUSHZ(stdout);
+	if (IFROOT) printf("Fourier transform of Dmatrix");
 	for(Dcomp=0;Dcomp<NDCOMP;Dcomp++) { // main cycle over components of Dmatrix
 #ifdef PRECISE_TIMING
 		GetTime(tvp+2); // same as the last before cycle
@@ -1100,8 +1104,7 @@ void InitDmatrix(void)
 			ElapsedInc(tvp+10,tvp+11,&Timing_ar3);
 #endif
 		} // end slice X
-		PRINTZ(".");
-		FFLUSHZ(stdout);
+		if (IFROOT) printf(".");
 	} // end of Dcomp
 	// free vectors used for computation of Dmatrix
 	Free_cVector(D2matrix);
@@ -1121,7 +1124,7 @@ void InitDmatrix(void)
 	MALLOC_VECTOR(slices,complex,3*gridYZ,ALL);
 	MALLOC_VECTOR(slices_tr,complex,3*gridYZ,ALL);
 
-	PRINTZ("\n");
+	if (IFROOT) printf("\n");
 	time1=GET_TIME();
 	Timing_Dm_Init=time1-start;
 #ifdef PRECISE_TIMING
@@ -1141,7 +1144,7 @@ void InitDmatrix(void)
 	t_Arithm=t_beg+t_Gcalc+t_ar1+t_ar2+t_ar3+t_TYZ;
 	t_FFT=t_fftX+t_fftY+t_fftZ;
 
-	PRINTBOTHZ(logfile,
+	if (IFROOT) PrintBoth(logfile,
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 		"            Init Dmatrix timing            \n"
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"

@@ -4,6 +4,7 @@
  * Descr: INLINE definition and function attributes
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,7 +25,7 @@
 #define INLINE static __inline
 
 // some optimization shortcuts; can be easily removed if not supported by compiler
-#ifdef __GNUC__
+#ifdef __GNUC__ // this should also work with Intel
 #	define ATT_NORETURN    __attribute__ ((__noreturn__))
 #	define ATT_PRINTF(a,b) __attribute__ ((__format__(__printf__,a,b)))
 #	define ATT_UNUSED      __attribute__ ((__unused__))

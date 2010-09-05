@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.0a1"
+#define ADDA_VERSION "1.0b1"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -59,7 +59,7 @@
  */
 #define ADDA_ROOT 0
 
-// math constants rounded for 32 decimals
+// math constants rounded for 32 decimals; C99 standard specifies that they are encoded as double
 #define PI                  3.1415926535897932384626433832795
 #define TWO_PI              6.283185307179586476925286766559
 #define FOUR_PI             12.566370614359172953850573533118
@@ -94,6 +94,11 @@
 #define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
 
 // sizes of filenames and other strings
+/* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to
+ * override this limit. On POSIX this constant may be much larger and have even less reliability.
+ * So the values below are conservatively high, but are not guaranteed to suffice. However, the
+ * functions in the code are designed to survive if this buffer won't suffice.
+ */
 #define MAX_DIRNAME      300 // maximum length of dirname; increase THIS if any errors appear
 #define MAX_FNAME_SH     100 // maximum length of filename (used for known names)
 #define MAX_TMP_FNAME_SH  15 // maximum length of names of temporary files (short)
@@ -215,6 +220,10 @@ enum Eftype { // type of E field calculation
 	            */
 };
 
+enum incpol {
+	INCPOL_Y, // y-polarization, assumed to be used first
+	INCPOL_X  // x-polarization
+};
 // path and size of tables
 #define TAB_PATH     "tables/"
 #define TAB_FNAME(a) "t"#a"f.dat" // a is a number, e.g. TAB_FNAME(2) -> "t2f.dat"
@@ -327,9 +336,11 @@ enum chpoint { // types of checkpoint (to save)
 #define NDCOMP 6
 
 // shape formats; numbers should be nonnegative
-#define SF_TEXT     0 // ADDA text format for one-domain particles
-#define SF_TEXT_EXT 1 // ADDA text format for multi-domain particles
-#define SF_DDSCAT   2 // DDSCAT 6.1 format (FRMFIL), produced by calltarget
+enum shform {
+	SF_TEXT,     // ADDA text format for one-domain particles
+	SF_TEXT_EXT, // ADDA text format for multi-domain particles
+	SF_DDSCAT    // DDSCAT 6.1 format (FRMFIL), produced by calltarget
+};
 
 #define POSIT __FILE__,__LINE__ // position of the error in source code
 
@@ -341,6 +352,8 @@ enum enwho { // who is calling
 // derived; for simplicity
 #define ALL_POS ALL,POSIT
 #define ONE_POS ONE,POSIT
+#define ALL_POS_FUNC ALL_POS,__func__
+#define ONE_POS_FUNC ONE_POS,__func__
 
 enum ec { // error codes
 	EC_OK,    // no error, corresponds to zero exit code

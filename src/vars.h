@@ -8,7 +8,7 @@
  *        and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -35,8 +35,8 @@
 // basic variables
 extern int boxX,boxY,boxZ;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
-extern double *DipoleCoord;
-extern unsigned short *position;
+extern double * restrict DipoleCoord;
+extern unsigned short * restrict position;
 extern double memory;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
@@ -53,7 +53,7 @@ extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
 // file info
 extern char directory[];
-extern FILE *logfile;
+extern FILE * restrict logfile;
 extern int term_width;
 
 // refractive index
@@ -61,12 +61,12 @@ extern int Nmat,Ncomp;
 extern doublecomplex ref_index[MAX_NMAT];
 extern doublecomplex cc_sqrt[MAX_NMAT][3];
 extern doublecomplex chi_inv[MAX_NMAT][3];
-extern unsigned char *material;
+extern unsigned char * restrict material;
 
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,*Einc;
+extern doublecomplex *xvec,*pvec,* restrict Einc;
 
 // scattering at different angles
 extern int nTheta;

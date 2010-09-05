@@ -4,7 +4,7 @@
  * Descr: basic timing and statistics routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -38,10 +38,10 @@
 TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total and comm
           Timing_IntField,Timing_IntFieldOne, // for internal fields: total & one calculation
           Timing_ScatQuan;                    // for integral scattering quantities
-unsigned long TotalEFieldPlane; // total number of planes for scattered field calculations
+size_t TotalEFieldPlane; // total number of planes for scattered field calculations
 // used in calculator.c
-TIME_TYPE Timing_Init;   // for total initialization of the program (before CalculateE)
-unsigned long TotalEval; // total number of orientation evaluations
+TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
+size_t TotalEval;      // total number of orientation evaluations
 // used in comm.c
 TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
 // used in crosssec.c
@@ -53,7 +53,7 @@ TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & com
 TIME_TYPE Timing_OneIter,Timing_OneIterComm,    // for one iteration: total & comm
           Timing_InitIter,Timing_InitIterComm,  // for initialization of iterations: total & comm
           Timing_IntFieldOneComm;               // comm for one calculation of the internal fields
-unsigned long TotalIter;                        // total number of iterations performed
+size_t TotalIter;                               // total number of iterations performed
 // used in fft.c
 TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
           Timing_Dm_Init;  // for building Dmatrix
@@ -95,7 +95,7 @@ void FinalStatistics(void)
 
 	// wait for all processes to show correct execution time
 	Synchronize();
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// last time measurements
 		Timing_TotalTime = GET_TIME() - tstart_main;
 		time(&wt_end);
@@ -106,10 +106,10 @@ void FinalStatistics(void)
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 		if (!prognosis) {
 			if (orient_avg) fprintf(logfile,
-				"Total number of single particle evaluations: %lu\n",TotalEval);
+				"Total number of single particle evaluations: %zu\n",TotalEval);
 			fprintf(logfile,
-				"Total number of iterations: %lu\n"
-				"Total planes of E field calculation (each %d points): %lu\n\n",
+				"Total number of iterations: %zu\n"
+				"Total planes of E field calculation (each %d points): %zu\n\n",
 				TotalIter,nTheta,TotalEFieldPlane);
 		}
 		fprintf(logfile,
@@ -207,4 +207,3 @@ void FinalStatistics(void)
 		FCloseErr(logfile,F_LOG,ONE_POS);
 	}
 }
-

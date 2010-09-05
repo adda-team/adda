@@ -4,6 +4,7 @@
  * Descr: definitions of inline functions for precise timing
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -46,14 +47,15 @@
 
 #define FFORMPT "%.4f" // format for precise timing results
 
-void InitTime(SYSTEM_TIME *t);
+void InitTime(SYSTEM_TIME * restrict t);
 void SetTimerFreq(void);
-double TimerToSec(const SYSTEM_TIME *t) ATT_PURE;
-double DiffSec(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2) ATT_PURE;
+double TimerToSec(const SYSTEM_TIME * restrict t) ATT_PURE;
+double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2) ATT_PURE;
 
 //============================================================
 
-INLINE void Elapsed(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *res)
+INLINE void Elapsed(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
+	SYSTEM_TIME * restrict res)
 // compute time difference
 {
 #ifdef WINDOWS
@@ -66,7 +68,8 @@ INLINE void Elapsed(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *res
 
 //============================================================
 
-INLINE void ElapsedInc(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *res)
+INLINE void ElapsedInc(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
+	SYSTEM_TIME * restrict res)
 // compute time difference, increment result by this value
 {
 #ifdef WINDOWS
@@ -79,7 +82,7 @@ INLINE void ElapsedInc(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2,SYSTEM_TIME *
 
 //============================================================
 
-INLINE void GetTime(SYSTEM_TIME *t)
+INLINE void GetTime(SYSTEM_TIME * restrict t)
 // get current time
 {
 #ifdef WINDOWS

@@ -46,30 +46,37 @@ extern const int avg_inc_pol;
 extern const char alldir_parms[],scat_grid_parms[];
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Init;
-extern unsigned long TotalEval;
+extern size_t TotalEval;
 
 // used in CalculateE.c
-double *muel_phi; // used to store values of Mueller matrix for different phi (to integrate)
-double *muel_phi_buf; // additional for integrating with different multipliers
+double * restrict muel_phi; // used to store values of Mueller matrix for different phi (to integrate)
+double * restrict muel_phi_buf; // additional for integrating with different multipliers
 	// scattered E (for scattering in one plane) for two incident polarizations
-doublecomplex *EplaneX, *EplaneY;
-double *Eplane_buffer; // buffer to accumulate Eplane
+doublecomplex * restrict EplaneX, * restrict EplaneY;
+double * restrict Eplane_buffer; // buffer to accumulate Eplane
 double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
-doublecomplex *ampl_alphaX,*ampl_alphaY; // storing amplitude matrix for different values of alpha
-double *muel_alpha; // storing mueller matrix for different values of alpha
+	// amplitude matrix for different values of alpha
+doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY;
+double * restrict muel_alpha; // mueller matrix for different values of alpha
 // used in fft.c
-double *tab1,*tab2,*tab3,*tab4,*tab5,*tab6,*tab7,*tab8,*tab9,*tab10; // tables of integrals
-int **tab_index; // matrix for indexing of table arrays
+  // tables of integrals
+double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,
+	* restrict tab6,* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
+/* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
+ * generally compatible with Free_iMatrix function syntax. However, it is defined so in fft.c.
+ */
+int ** restrict tab_index; // matrix for indexing of table arrays
 // used in crosssec.c
-double *E2_alldir; // square of E, calculated for alldir
-double *E2_alldir_buffer; // buffer to accumulate E2_alldir
+double * restrict E2_alldir; // square of E, calculated for alldir
+double * restrict E2_alldir_buffer; // buffer to accumulate E2_alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
-doublecomplex *expsX,*expsY,*expsZ; // arrays of exponents along 3 axes (for calc_field)
+	// arrays of exponents along 3 axes (for calc_field)
+doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 // used in iterative.c
-doublecomplex *rvec;             // current residual
-doublecomplex *Avecbuffer;       // used to hold the result of matrix-vector products
+doublecomplex *rvec;                 // current residual
+doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector products
 // auxiliary vectors, used in some iterative solvers (with more meaningful names)
-doublecomplex *vec1,*vec2,*vec3;
+doublecomplex * restrict vec1,* restrict vec2,* restrict vec3;
 
 // LOCAL VARIABLES
 
@@ -77,18 +84,18 @@ static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
 	// whether to stop orientation averaging; defined as int to simplify MPI casting
 static int finish_avg;
 	// used to collect both mueller matrix and integral scattering quantities when orient_avg
-static double *out;
+static double * restrict out;
 
 // EXTERNAL FUNCTIONS
 
 // CalculateE.c
-extern int CalculateE(char which,enum Eftype type);
+extern int CalculateE(enum incpol which,enum Eftype type);
 extern void MuellerMatrix(void);
-extern void SaveMuellerAndCS(double *in);
+extern void SaveMuellerAndCS(double * restrict in);
 
 //============================================================
 
-static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *res)
+static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex *res)
 {
 	doublecomplex coup_con[3];
 	doublecomplex tempa,tempb,cm,m2,t1;
@@ -99,9 +106,12 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 	const double *incPol;
 	bool pol_avg=true; // temporary fixed value for SO polarization
 
+	// redundant initialization to remove warnings
+	b1=b2=b3=S=0;
+
 	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO);
 	// !!! this should never happen
-	if (asym && anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in CoupleConstant");
+	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 	if (asym) imax=3;
 	else imax=1;
 	if (PolRelation==POL_LDR || PolRelation==POL_CLDR) {
@@ -136,8 +146,8 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 				if (PolRelation==POL_LDR) {
 					if (avg_inc_pol) S=0.5*(1-DotProd(prop2,prop2));
 					else {
-						if (which=='X') incPol=incPolX;
-						else if (which=='Y') incPol=incPolY;
+						if (which==INCPOL_Y) incPol=incPolY;
+						else incPol=incPolX; // which==INCPOL_X
 						S = prop2[0]*incPol[0]*incPol[0] + prop2[1]*incPol[1]*incPol[1]
 						  + prop2[2]*incPol[2]*incPol[2];
 					}
@@ -167,26 +177,21 @@ static void CoupleConstant(doublecomplex *mrel,const char which,doublecomplex *r
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg) {
-			PRINTBOTHZ(logfile, "CoupleConstant:"CFORM3V"\n",
-				coup_con[0][RE],coup_con[0][IM],coup_con[1][RE],
-				coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
-		}
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],
+			coup_con[0][IM],coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
 	}
 	else {
 		cEqual(coup_con[0],coup_con[1]);
 		cEqual(coup_con[0],coup_con[2]);
-		if (!orient_avg) {
-			PRINTBOTHZ(logfile,"CoupleConstant:"CFORM"\n",
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",
 				coup_con[0][RE],coup_con[0][IM]);
-		}
 	}
 	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
 
 //============================================================
 
-static void InitCC(const char which)
+static void InitCC(const enum incpol which)
 // calculate cc, cc_sqrt, and chi_inv
 {
 	int i,j;
@@ -212,10 +217,10 @@ static void InitCC(const char which)
 
 //============================================================
 
-static double *ReadTableFile(const char *sh_fname,const int size_multiplier)
+static double * ATT_MALLOC ReadTableFile(const char * restrict sh_fname,const int size_multiplier)
 {
-	FILE *ftab;
-	double *tab_n;
+	FILE * restrict ftab;
+	double * restrict tab_n;
 	int size;
 	char fname[MAX_FNAME];
 	int i;
@@ -226,17 +231,18 @@ static double *ReadTableFile(const char *sh_fname,const int size_multiplier)
 		// allocate memory for tab_n
 		MALLOC_VECTOR(tab_n,double,size,ALL);
 		// open file
-		sprintf(fname,TAB_PATH"%s",sh_fname);
+		SnprintfErr(ALL_POS,fname,MAX_FNAME,TAB_PATH"%s",sh_fname);
 		ftab=FOpenErr(fname,"r",ALL_POS);
 		// scan file
 		for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
-			LogError(EC_ERROR,ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
+			LogError(ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
 		if (!feof(ftab))
-			LogError(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
+			LogWarning(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
 		// close file
 		FCloseErr(ftab,fname,ALL_POS);
+		return tab_n;
 	}
-	return tab_n;
+	else return NULL;
 }
 
 //============================================================
@@ -294,7 +300,7 @@ static void FreeTables(void)
 
 //============================================================
 
-static void calculate_one_orientation(double *res)
+static void calculate_one_orientation(double * restrict res)
 // performs calculation for one orientation; may do orientation averaging and put the result in res
 {
 	TIME_TYPE tstart;
@@ -302,34 +308,38 @@ static void calculate_one_orientation(double *res)
 	if (orient_avg) {
 		alph_deg=0;
 		InitRotation();
-		PRINTBOTHZ(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",
+		if (IFROOT) PrintBoth(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",
 			bet_deg,gam_deg);
 	}
 
 	// calculate scattered field for y - polarized incident light
-	PRINTZ("\nhere we go, calc Y\n\n");
-	if (!orient_avg) FPRINTZ(logfile,"\nhere we go, calc Y\n\n");
-	InitCC('Y');
+	if (IFROOT) {
+		printf("\nhere we go, calc Y\n\n");
+		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
+	}
+	InitCC(INCPOL_Y);
 	if (symR && !scat_grid) {
-		if (CalculateE('Y',CE_PARPER)==CHP_EXIT) return;
+		if (CalculateE(INCPOL_Y,CE_PARPER)==CHP_EXIT) return;
 	}
 	else { // no rotational symmetry
 		/* TODO: in case of scat_grid we run twice to get the full electric field with incoming
 		 * light polarized in X and Y direction. In case of rotational symmetry this is not needed
 		 * but requires lots more programming so we leave this optimization to a later time.
 		 */
-		if(CalculateE('Y',CE_NORMAL)==CHP_EXIT) return;
+		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
-		PRINTZ("\nhere we go, calc X\n\n");
-		if (!orient_avg) FPRINTZ(logfile,"\nhere we go, calc X\n\n");
-		if(PolRelation==POL_LDR && !avg_inc_pol) InitCC('X');
+		if (IFROOT) {
+			printf("\nhere we go, calc X\n\n");
+			if (!orient_avg) fprintf(logfile,"\nhere we go, calc X\n\n");
+		}
+		if(PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
 
-		if(CalculateE('X',CE_NORMAL)==CHP_EXIT) return;
+		if(CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
 	}
 	D("CalculateE finished");
 	MuellerMatrix();
 	D("MuellerMatrix finished");
-	if (ringid==ADDA_ROOT && orient_avg) {
+	if (IFROOT && orient_avg) {
 		tstart=GET_TIME();
 		/* it is more logical to use store_mueller in the following test, but for orientation
 		 * averaging these two flags are identical
@@ -345,7 +355,7 @@ static void calculate_one_orientation(double *res)
 
 //============================================================
 
-static double orient_integrand(int beta_i,int gamma_i, double *res)
+static double orient_integrand(int beta_i,int gamma_i, double * restrict res)
 // function that provides interface with Romberg integration
 {
 	BcastOrient(&beta_i,&gamma_i,&finish_avg);
@@ -366,6 +376,14 @@ static void AllocateEverything(void)
 	size_t temp_int;
 	double memmax;
 
+	// redundant initialization to remove warnings
+	temp_int=0;
+
+	/* It may be nice to initialize all pointers to NULL here, so that any pointer, which is not
+	 * initialized below, will surely stay NULL (independent of a particular compiler). But even
+	 * without this forgetting to allocate a necessary vector, will surely cause segmentation fault
+	 * afterwards. So we do not implement these extra tests for now.
+	 */
 	// allocate all the memory
 	tmp=sizeof(doublecomplex)*(double)nlocalRows;
 	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
@@ -401,14 +419,19 @@ static void AllocateEverything(void)
 	if (yzplane) {
 		tmp=2*(double)nTheta;
 		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS,"AllocateEverything()");
+			CheckOverflow(2*tmp,ONE_POS_FUNC);
 			temp_int=tmp;
 			MALLOC_VECTOR(EplaneX,complex,temp_int,ALL);
 			MALLOC_VECTOR(EplaneY,complex,temp_int,ALL);
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
-		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
+		/* Buffers like Eplane_buffer are defined always (without "ifdef PARALLEL"), so that
+		 * functions like Accumulate may be called even in sequential mode with buffers in their
+		 * arguments. Such calls are void, but are good for generality of the code. So only
+		 * allocation of these buffers is put inside "ifdef".
+		 */
+		if (IFROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
@@ -421,13 +444,13 @@ static void AllocateEverything(void)
 		 */
 		tmp=4*((double)theta_int.N)*phi_int.N;
 		if (!prognosis) {
-			CheckOverflow(tmp,ONE_POS,"AllocateEverything()");
+			CheckOverflow(tmp,ONE_POS_FUNC);
 			temp_int=tmp;
 			MALLOC_VECTOR(E2_alldir,double,temp_int,ALL);
 		}
 		memory+=tmp*sizeof(double);
 #ifdef PARALLEL
-		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
+		if (IFROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(E2_alldir_buffer,double,temp_int,ONE);
 			memory+=tmp*sizeof(double);
 		}
@@ -438,22 +461,22 @@ static void AllocateEverything(void)
 		// calculate size of vectors - holds all per-par combinations
 		tmp=2*(double)angles.N;
 		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS,"AllocateEverything()");
+			CheckOverflow(2*tmp,ONE_POS_FUNC);
 			temp_int=tmp;
 			MALLOC_VECTOR(EgridX,complex,temp_int,ALL);
 			MALLOC_VECTOR(EgridY,complex,temp_int,ALL);
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
-		if (ringid==ADDA_ROOT) { // buffer for accumulate operation
+		if (IFROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(Egrid_buffer,double,2*temp_int,ONE);
 			memory+=2*tmp*sizeof(double);
 		}
 #endif
-		if (phi_integr && ringid==ADDA_ROOT) {
+		if (phi_integr && IFROOT) {
 			tmp=16*(double)angles.phi.N;
 			if (!prognosis) {
-				CheckOverflow(tmp,ONE_POS,"AllocateEverything()");
+				CheckOverflow(tmp,ONE_POS_FUNC);
 				temp_int=tmp;
 				MALLOC_VECTOR(muel_phi,double,temp_int,ONE);
 				MALLOC_VECTOR(muel_phi_buf,double,temp_int,ONE);
@@ -465,7 +488,7 @@ static void AllocateEverything(void)
 		tmp=2*((double)nTheta)*alpha_int.N;
 		if (!prognosis) {
 			// this covers these 2 and next 2 malloc calls
-			CheckOverflow(8*tmp+2,ONE_POS,"AllocateEverything()");
+			CheckOverflow(8*tmp+2,ONE_POS_FUNC);
 			if (yzplane) {
 				temp_int=tmp;
 				MALLOC_VECTOR(ampl_alphaX,complex,temp_int,ONE);
@@ -473,7 +496,7 @@ static void AllocateEverything(void)
 			}
 		}
 		memory += 2*tmp*sizeof(doublecomplex);
-		if (ringid==ADDA_ROOT) {
+		if (IFROOT) {
 			if (!prognosis) {
 				MALLOC_VECTOR(muel_alpha,double,block_theta*alpha_int.N+2,ONE);
 				muel_alpha+=2;
@@ -492,10 +515,12 @@ static void AllocateEverything(void)
 	 */
 	memory/=MBYTE;
 	AccumulateMax(&memory,&memmax);
-	PRINTBOTHZ(logfile,"Total memory usage: "FFORMM" MB\n",memory);
+	if (IFROOT) {
+		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memory);
 #ifdef PARALLEL
-	PRINTBOTHZ(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax);
+		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax);
 #endif
+	}
 }
 
 //============================================================
@@ -549,7 +574,7 @@ static void FreeEverything(void)
 		Free_general(angles.phi.val);
 		Free_cVector(EgridX);
 		Free_cVector(EgridY);
-		if (phi_integr && ringid==ADDA_ROOT) {
+		if (phi_integr && IFROOT) {
 			Free_general(muel_phi);
 			Free_general(muel_phi_buf);
 		}
@@ -563,7 +588,7 @@ static void FreeEverything(void)
 	Free_general(material);
 
 	if (orient_avg) {
-		if (ringid==ADDA_ROOT) {
+		if (IFROOT) {
 			if (yzplane) {
 				Free_cVector(ampl_alphaX);
 				Free_cVector(ampl_alphaY);
@@ -608,8 +633,8 @@ void Calculator (void)
 	if (prognosis) return;
 	// main calculation part
 	if (orient_avg) {
-		if (ringid==ADDA_ROOT) {
-			sprintf(fname,"%s/"F_LOG_ORAVG,directory);
+		if (IFROOT) {
+			SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_LOG_ORAVG,directory);
 			D("Romberg2D started on root");
 			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
 			D("Romberg2D finished on root");

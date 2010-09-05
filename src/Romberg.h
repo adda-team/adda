@@ -4,6 +4,7 @@
  * Descr: definitions of Romberg routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,9 +26,10 @@
 #define THETA 0
 #define PHI   1
 
-double Romberg1D(Parms_1D param,int size,const double *data,double *ss);
+double Romberg1D(Parms_1D param,int size,const double * restrict data,double * restrict ss);
 
-void Romberg2D(const Parms_1D parms_input[2],double (*func_input)(int theta,int phi,double *res),
-               int dim_input, double *res, const char *fname);
+void Romberg2D(const Parms_1D parms_input[2],
+	double (*func_input)(int theta,int phi,double * restrict res),
+	int dim_input, double * restrict res, const char * restrict fname);
 
 #endif // __Romberg_h

@@ -43,6 +43,7 @@
 #include <time.h> // for time and clock (used for random seed)
 #include <limits.h>
 #include <stdbool.h>
+#include <float.h> // for DBL_MAX
 #include "vars.h"
 #include "const.h"
 #include "cmplx.h"
@@ -73,7 +74,7 @@ extern opt_index opt_sh;
 extern const double gr_vf;
 extern double gr_d;
 extern const int gr_mat;
-extern int sg_format;
+extern enum shform sg_format;
 extern bool store_grans;
 
 // defined and initialized in timing.c
@@ -93,27 +94,29 @@ double mat_count[MAX_NMAT+1];    // number of dipoles in each domain
 
 static const char geom_format[]="%d %d %d\n";              // format of the geom file
 static const char geom_format_ext[]="%d %d %d %d\n";       // extended format of the geom file
-/* C99 allows use of %zu for size_t variables, but this is not supported by MinGW due to dependence
- * on Microsoft libraries
+/* DDSCAT shape formats; several format are used, since first variable is unpredictable and last two
+ * are not actually used (only to produce warnings
  */
-static const char ddscat_format[]="%ld %d %d %d %d %d %d\n";// DDSCAT shape format (FRMFIL)
+static const char ddscat_format_read1[]="%*f %d %d %d %d %d %d\n";
+static const char ddscat_format_read2[]="%*f %d %d %d %d";
+static const char ddscat_format_write[]="%zd %d %d %d %d %d %d\n";
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
-static double Ndip;            // total number of dipoles (in a circumscribing cube)
-static double dpl_def;         // default value of dpl
-static int minX,minY,minZ;     // minimum values of dipole positions in dipole file
-static FILE *dipfile;          // handle of dipole file
-static int read_format;        // format of dipole file, which is read
-static char linebuf[BUF_LINE]; // buffer for reading lines from dipole file
-double cX,cY,cZ;               // center for DipoleCoord, it is sometimes used in PlaceGranules
+static double Ndip;             // total number of dipoles (in a circumscribing cube)
+static double dpl_def;          // default value of dpl
+static int minX,minY,minZ;      // minimum values of dipole positions in dipole file
+static FILE * restrict dipfile; // handle of dipole file
+static enum shform read_format; // format of dipole file, which is read
+static char linebuf[BUF_LINE];  // buffer for reading lines from dipole file
+double cX,cY,cZ;                // center for DipoleCoord, it is sometimes used in PlaceGranules
 // shape parameters
 static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps,egz0; // for egg
 static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
-static double P,Q,R,S; // for RBC
+static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 // for axisymmetric; all coordinates defined here are relative
-static double *contSegRoMin,*contSegRoMax,*contRo,*contZ;
+static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo, contCurZ, contRoSqMin;
 static int contNseg;
 struct segment {
@@ -128,7 +131,7 @@ struct segment {
 	double slope;          // only for single; (z[i+1]-z[i])/(ro[i+1]-ro[i])
 	double add;            // only for single; ro[i](1-slope);
 };
-struct segment *contSeg;
+struct segment * restrict contSeg;
 /* TO ADD NEW SHAPE
  * Add here all internal variables (aspect ratios, etc.), which you initialize in InitShape()
  * and use in MakeParticle() afterwards. If you need local, intermediate variables, put them into
@@ -137,9 +140,9 @@ struct segment *contSeg;
  */
 
 // temporary arrays before their real counterparts are allocated
-static unsigned char *material_tmp;
-static double *DipoleCoord_tmp;
-static unsigned short *position_tmp;
+static unsigned char * restrict material_tmp;
+static double * restrict DipoleCoord_tmp;
+static unsigned short * restrict position_tmp;
 
 //============================================================
 
@@ -147,7 +150,7 @@ static void SaveGeometry(void)
 // saves dipole configuration to .geom file
 {
 	char fname[MAX_FNAME];
-	FILE *geom;
+	FILE * restrict geom;
 	size_t i,j;
 	int mat;
 
@@ -157,9 +160,9 @@ static void SaveGeometry(void)
 	if (sg_format==SF_TEXT && Nmat>1) sg_format=SF_TEXT_EXT;
 	// choose filename
 #ifdef PARALLEL
-	sprintf(fname,"%s/"F_GEOM_TMP,directory,ringid);
+	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/"F_GEOM_TMP,directory,ringid);
 #else
-	sprintf(fname,"%s/%s",directory,save_geom_fname);
+	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/%s",directory,save_geom_fname);
 #endif
 	geom=FOpenErr(fname,"w",ALL_POS);
 	// print head of file
@@ -194,24 +197,21 @@ static void SaveGeometry(void)
 	else if (sg_format==SF_DDSCAT) for(i=0;i<local_nvoid_Ndip;i++) {
 		j=3*i;
 		mat=material[i]+1;
-		fprintf(geom,ddscat_format,(long)(i+1),position[j],position[j+1],position[j+2],mat,mat,mat);
-		/* conversion to long is needed (to remove warnings) because %z printf
-		 * argument is not yet supported by all target compiler environments
-		 */
+		fprintf(geom,ddscat_format_write,i+1,position[j],position[j+1],position[j+2],mat,mat,mat);
 	}
 	FCloseErr(geom,fname,ALL_POS);
 #ifdef PARALLEL
 	// wait for all processes to save their part of geometry
 	Synchronize();
 	// combine all files into one and clean
-	if (ringid==ADDA_ROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
+	if (IFROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
 #endif
-	PRINTZ("Geometry saved to file\n");
+	if (IFROOT) printf("Geometry saved to file\n");
 }
 
 //===========================================================
 
-INLINE void SkipFullLine(FILE* file)
+INLINE void SkipFullLine(FILE * restrict file)
 // skips full line in the file, starting from current position; it uses predefined buffer 'linebuf'
 {
 	do fgets(linebuf,BUF_LINE,file); while (strchr(linebuf,'\n')==NULL && !feof(file));
@@ -219,7 +219,7 @@ INLINE void SkipFullLine(FILE* file)
 
 //===========================================================
 
-INLINE char *FgetsError(FILE* file,const char *fname,int *line,const char *s_fname,const int s_line)
+INLINE char *FgetsError(FILE * restrict file,const char * restrict fname,size_t *line,ERR_LOC_DECL)
 /* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname
  * and line number to be shown in error message; result is stored in predefined buffer 'linebuf'.
  */
@@ -229,8 +229,8 @@ INLINE char *FgetsError(FILE* file,const char *fname,int *line,const char *s_fna
 	res=fgets(linebuf,BUF_LINE,file);
 	if (res!=NULL) {
 		(*line)++;
-		if (strchr(linebuf,'\n')==NULL && !feof(file)) LogError(EC_ERROR,ONE,s_fname,s_line,
-			"Buffer overflow while scanning lines in file '%s' (size of line %d > %d)",
+		if (strchr(linebuf,'\n')==NULL && !feof(file)) LogError(ERR_LOC_CALL,
+			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",
 			fname,*line,BUF_LINE-1);
 	}
 	return res;
@@ -238,7 +238,7 @@ INLINE char *FgetsError(FILE* file,const char *fname,int *line,const char *s_fna
 
 //===========================================================
 
-INLINE void SkipNLines(FILE *file,int n)
+INLINE void SkipNLines(FILE * restrict file,size_t n)
 // skips n lines from the file starting from current position in a file
 {
 	while (n>0) {
@@ -249,12 +249,13 @@ INLINE void SkipNLines(FILE *file,int n)
 
 //===========================================================
 
-static int SkipComments(FILE *file)
+static size_t SkipComments(FILE * restrict file)
 /* skips comments (#...), all lines, starting from current position in a file.
  * returns number of lines skipped
  */
 {
-	int lines=0,ch;
+	int ch;
+	size_t lines=0;
 
 	while ((ch=fgetc(file))=='#') {
 		SkipFullLine(file);
@@ -268,39 +269,36 @@ static int SkipComments(FILE *file)
 //===========================================================
 #define DDSCAT_HL 6 // number of header lines in DDSCAT format
 
-static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
+static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm)
 /* read dipole file first to determine box sizes and Nmat; input is not checked for very large
  * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
  * closed in ReadDipFile.
  */
 {
-	int x,y,z,mat,line,scanned,mustbe,skiplines;
+	int x,y,z,mat,scanned,mustbe;
+	size_t line,skiplines;
 	bool anis_warned;
-	long tl; // dumb variable
 	int t2,t3; // dumb variables
 	int maxX,maxY,maxZ,maxN;
 	char formtext[MAX_LINE];
 
 	dipfile=FOpenErr(fname,"r",ALL_POS);
-	read_format=UNDEF;
 	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
 	 * therefore we first skip all comments
 	 */
 	line=SkipComments(dipfile);
-	if (line<=DDSCAT_HL) {
-		SkipNLines(dipfile,DDSCAT_HL-line);
-		if (FgetsError(dipfile,fname,&line,POSIT)!=NULL
-			&& sscanf(linebuf,ddscat_format,&tl,&x,&y,&z,&mat,&t2,&t3)==7) {
-				read_format=SF_DDSCAT;
-				strcpy(formtext,"DDSCAT format (FRMFIL)");
-				mustbe=7;
-				line=DDSCAT_HL;
-				fseek(dipfile,0,SEEK_SET);
-				SkipNLines(dipfile,line);
-		}
+	if (line<=DDSCAT_HL
+		&& (SkipNLines(dipfile,DDSCAT_HL-line),FgetsError(dipfile,fname,&line,ONE_POS)!=NULL)
+		&& sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
+
+		read_format=SF_DDSCAT;
+		strcpy(formtext,"DDSCAT format (FRMFIL)");
+		mustbe=6;
+		line=DDSCAT_HL;
+		fseek(dipfile,0,SEEK_SET);
+		SkipNLines(dipfile,line);
 	}
-	// if format is not yet determined, test for ADDA text formats
-	if (read_format==UNDEF) {
+	else { // test for ADDA text formats
 		fseek(dipfile,0,SEEK_SET);
 		line=SkipComments(dipfile);
 		/* scanf and analyze Nmat; if there is blank line between comments and Nmat, it fails later;
@@ -308,7 +306,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 		 * domain number among all dipoles.
 		 */
 		scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
-		if (scanned==EOF) LogError(EC_ERROR,ONE_POS,"No dipole positions are found in %s",fname);
+		if (scanned==EOF) LogError(ONE_POS,"No dipole positions are found in %s",fname);
 		else if (scanned==0) { // no "Nmat=..."
 			read_format=SF_TEXT;
 			strcpy(formtext,"ADDA text format (single domain)");
@@ -322,6 +320,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 			line++;
 		}
 	}
+	D("%s was detected",formtext);
 	// scan main part of the file
 	skiplines=line;
 	maxX=maxY=maxZ=INT_MIN;
@@ -329,16 +328,16 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 	maxN=1;
 	anis_warned=false;
 	// reading is performed in lines
-	while(FgetsError(dipfile,fname,&line,POSIT)!=NULL) {
+	while(FgetsError(dipfile,fname,&line,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x,&y,&z);
 		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
 		// for ddscat format, only first material is used, other two are ignored
-		else if (read_format==SF_DDSCAT) {
-			scanned=sscanf(linebuf,ddscat_format,&tl,&x,&y,&z,&mat,&t2,&t3);
+		else { // read_format==SF_DDSCAT
+			scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
 			if (!anis_warned && (t2!=mat || t3!=mat)) {
-				LogError(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
-					"line %d). ADDA ignores this anisotropy, using only the identifier of "
+				LogWarning(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
+					"line %zu). ADDA ignores this anisotropy, using only the identifier of "
 					"x-component of refractive index as domain number",fname,line);
 				anis_warned=true;
 			}
@@ -346,11 +345,11 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 		// if sscanf returns EOF, that is a blank line -> just skip
 		if (scanned!=EOF) {
 			if (scanned!=mustbe) // this in most cases indicates wrong format
-				LogError(EC_ERROR,ONE_POS,"%s was detected, but error occurred during scanning "
-					"of line %d from dipole file %s",formtext,line,fname);
+				LogError(ONE_POS,"%s was detected, but error occurred during scanning of line %zu "
+					"from dipole file %s",formtext,line,fname);
 			if (read_format!=SF_TEXT) {
-				if (mat<=0) LogError(EC_ERROR,ONE_POS,"%s was detected, but nonpositive material "
-					"number (%d) encountered during scanning of line %d from dipole file %s",
+				if (mat<=0) LogError(ONE_POS,"%s was detected, but nonpositive material number "
+					"(%d) encountered during scanning of line %zu from dipole file %s",
 					formtext,mat,line,fname);
 				else if (mat>maxN) maxN=mat;
 			}
@@ -364,7 +363,7 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 		}
 	}
 	if (read_format==SF_TEXT_EXT) {
-		if (*Nm!=maxN) LogError(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the "
+		if (*Nm!=maxN) LogWarning(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the "
 				"maximum domain number (%d) among all specified dipoles; hence the former is "
 				"ignored",*Nm,fname,maxN);
 	}
@@ -380,14 +379,12 @@ static void InitDipFile(const char *fname,int *bX,int *bY,int *bZ,int *Nm)
 #undef DDSCAT_HL
 //===========================================================
 
-static void ReadDipFile(const char *fname)
+static void ReadDipFile(const char * restrict fname)
 /* read dipole file; no consistency checks are made since they are made in InitDipFile.
  * the file is opened in InitDipFile; this function only closes the file.
  */
 {
 	int x,y,z,x0,y0,z0,mat,scanned;
-	long tl; // dumb variable
-	int t2,t3; // dumb variables
 	int index;
 	size_t boxXY,boxX_l;
 
@@ -400,8 +397,7 @@ static void ReadDipFile(const char *fname)
 		// scan numbers in a line
 		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
 		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
-		else if (read_format==SF_DDSCAT)
-			scanned=sscanf(linebuf,ddscat_format,&tl,&x0,&y0,&z0,&mat,&t2,&t3);
+		else scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat); // read_format==SF_DDSCAT
 		// if sscanf returns EOF, that is a blank line -> just skip
 		if (scanned!=EOF) {
 			// shift dipole position to be nonnegative
@@ -423,7 +419,7 @@ static void ReadDipFile(const char *fname)
 #define ALLOCATE_SEGMENTS(N) (struct segment *)voidVector((N)*sizeof(struct segment),ALL_POS,\
 	"contour segment");
 
-void InitContourSegment(struct segment *seg,const bool increasing)
+void InitContourSegment(struct segment * restrict seg,const bool increasing)
 /* recursively initialize a segment of a contour: allocates memory and calculates all elements
  * some elements are calculated during the forward sweep (from long segments to short), others -
  * during the backward sweep.
@@ -431,7 +427,7 @@ void InitContourSegment(struct segment *seg,const bool increasing)
  */
 {
 	int i;
-	struct segment *s1,*s2;
+	struct segment * restrict s1,* restrict s2;
 
 	/* Remove constant parts in the beginning and end of segment, if present.
 	 * After this procedure first is guaranteed to be less than last by definition of the segment
@@ -482,9 +478,9 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
  * test each dipole for being inside the contour. Segments are either increasing or non-decreasing.
  */
 {
-	int line; // current line number
-	int nr;   // number of contour points read from the file
-	int size; // current size of the allocated memory for contour
+	size_t line; // current line number
+	int nr;      // number of contour points read from the file
+	int size;    // current size of the allocated memory for contour
 	int i,j,scanned;
 	double *bufRo,*bufZ; // temporary buffers
 	int *index;
@@ -500,29 +496,26 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	MALLOC_VECTOR(bufRo,double,size,ALL);
 	MALLOC_VECTOR(bufZ,double,size,ALL);
 	nr=0;
+	// this depends on variables been declared double
+	romin=zmin=DBL_MAX;
+	romax=zmax=-DBL_MAX;
 	// reading is performed in lines
-	while(FgetsError(file,fname,&line,POSIT)!=NULL) {
+	while(FgetsError(file,fname,&line,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		scanned=sscanf(linebuf,"%lf %lf",&ro,&z);
 		// if sscanf returns EOF, that is a blank line -> just skip
 		if (scanned!=EOF) {
 			if (scanned!=2) // this in most cases indicates wrong format
-				LogError(EC_ERROR,ONE_POS,"Error occurred during scanning of line %d from contour "
-					"file %s",line,fname);
+				LogError(ONE_POS,"Error occurred during scanning of line %zu in contour file %s",
+					line,fname);
 			// check for consistency of input
-			if (ro<0) LogError(EC_ERROR,ONE_POS,"Negative ro-coordinate is found on line %d in "
-				"contour file %s",line,fname);
+			if (ro<0) LogError(ONE_POS,"Negative ro-coordinate is found on line %zu in contour "
+				"file %s",line,fname);
 			// update extreme values
-			if (nr==0) {
-				zmax=zmin=z;
-				romax=romin=ro;
-			}
-			else {
-				if (z>zmax) zmax=z;
-				if (z<zmin) zmin=z;
-				if (ro>romax) romax=ro;
-				if (ro<romin) romin=ro;
-			}
+			if (z>zmax) zmax=z;
+			if (z<zmin) zmin=z;
+			if (ro>romax) romax=ro;
+			if (ro<romin) romin=ro;
 			// add allocated memory to buf, if needed
 			if (nr >= size) {
 				size+=CHUNK_SIZE;
@@ -536,8 +529,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	}
 	FCloseErr(file,fname,ALL_POS);
 	// Check number of points read
-	if (nr<3) LogError(EC_ERROR,ONE_POS,
-		"Contour from file %s contains less than three points",fname);
+	if (nr<3) LogError(ONE_POS,"Contour from file %s contains less than three points",fname);
 
 	// Determine initial point with local minimum ro[i-1]>=ro[i]<ro[i+1]
 	i=0;
@@ -549,8 +541,8 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 		}
 	}
 	// if the whole contour is non-decreasing, check for constancy
-	else if (i==nr-1 && bufRo[nr-1]==bufRo[0]) LogError(EC_ERROR,ONE_POS,
-		"Contour from file %s has zero area. Hence the scatterer is void",fname);
+	else if (i==nr-1 && bufRo[nr-1]==bufRo[0])
+		LogError(ONE_POS,"Contour from file %s has zero area. Hence the scatterer is void",fname);
 	/* Construct working contour so that its first point = last and is a local minimum. It is done
 	 * by rotating buf and adding one extra point. Then free the buffer.
 	 */
@@ -618,15 +610,15 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	Free_general(contRo);
 	Free_general(contZ);
 	D("InitContour has finished");
-	D2("Nseg=%d",contNseg);
-	D2("minroSq="GFORM_DEBUG,contRoSqMin);
+	D("Nseg=%d",contNseg);
+	D("minroSq="GFORM_DEBUG,contRoSqMin);
 }
 #undef CHUNK_SIZE
 #undef ALLOCATE_SEGMENTS
 
 //==========================================================
 
-bool CheckContourSegment(struct segment *seg)
+bool CheckContourSegment(struct segment * restrict seg)
 /* Checks, whether point is under or above the segment, by traversing the tree of segments.
  * It returns true, if intersecting z value is larger than given z, and false otherwise. Point is
  * defined by local variables contCurRo and contCurZ.
@@ -642,7 +634,7 @@ bool CheckContourSegment(struct segment *seg)
 
 //==========================================================
 
-void FreeContourSegment(struct segment *seg)
+void FreeContourSegment(struct segment * restrict seg)
 /* recursively frees memory allocated for contour segments
  * Recursive function calls incurs certain overhead, however here it is not critical.
  */
@@ -661,9 +653,12 @@ void FreeContourSegment(struct segment *seg)
 #define MAX_FALSE_SKIP_SMALL 10 // the same for small granules
 #define MAX_GR_SET USHRT_MAX    // maximum size of granule set
 #define MIN_CELL_SIZE 4.0       // minimum cell size for small granules
+#define CHECK_CELL(a) CheckCell(gr,vgran,tree_index,Di2,occup[a],&fits) // macro for simplicity
+#define CHECK_CELL_TEST(a) (CHECK_CELL(a),fits) // ... combined with test for 'fits'
 
-INLINE int CheckCell(const double *gr,const double *vgran,const unsigned short *tree_index,
-                     const double Di2,const int start,bool *fits)
+INLINE int CheckCell(const double * restrict gr,const double * restrict vgran,
+	const unsigned short * restrict tree_index,const double Di2,const int start,
+	bool * restrict fits)
 // function that checks whether granule intersects anything in the cell
 {
 	int index,last,index1;
@@ -727,62 +722,89 @@ static double PlaceGranules(void)
 	int id0,id1,jd0,jd1,kd0,kd1; // dipoles limit that fall inside inner box
 	int Nfit;        // number of successfully placed granules in a current set
 	double overhead; // estimate of the overhead needed to have exactly needed N of granules
-	double tmp1,tmp2,tmp3,t1,t2,t3;
+	double tmp1,tmp2,t1,t2,t3;
 	int sx,sy,sz; /* maximum shifts for checks of neighboring cells in auxiliary grid
 	               *  for 'small' it is the shift in index
 	               */
-	unsigned long key[KEY_LENGTH]; // key to initialize random number generator
-	unsigned char *dom;            // information about the domain on a granule grid
-	unsigned short *occup;         // information about the occupied cells
-	int sm_gr;                     // whether granules are small (then simpler algorithm is used)
-	unsigned short *tree_index;    // index for traversing granules inside one cell (for small)
-	double *vgran;                 // coordinates of a set of granules
-	char *vfit;                    // results of granule fitting on the grid (boolean)
-	int *ginX,*ginY,*ginZ;         // indices to find dipoles inside auxiliary grid
-	int indX,indY,indZ;            // indices for doubled auxiliary grid
-	int bit;                       // bit position in char of 'dom'
-	double gr[3];                  // coordinates of a single granule
-	FILE *file;                    // file for saving granule positions
-	char fname[MAX_FNAME];         // filename of file
+	unsigned long key[KEY_LENGTH];   // key to initialize random number generator
+	unsigned char * restrict dom;    // information about the domain on a granule grid
+	unsigned short * restrict occup; // information about the occupied cells
+	int sm_gr;                       // whether granules are small (then simpler algorithm is used)
+	unsigned short * restrict tree_index; // index for traversing granules inside one cell (small)
+	double * restrict vgran;              // coordinates of a set of granules
+	char * restrict vfit;                 // results of granule fitting on the grid (boolean)
+		// indices to find dipoles inside auxiliary grid
+	int * restrict ginX,* restrict ginY,* restrict ginZ;
+	int indX,indY,indZ;    // indices for doubled auxiliary grid
+	int bit;               // bit position in char of 'dom'
+	double gr[3];          // coordinates of a single granule
+	FILE * restrict file;  // file for saving granule positions
+	char fname[MAX_FNAME]; // filename of file
+	double minval;         // minimum size of auxiliary grid
+
+	/* redundant initialization to remove warnings; most of this is due to the fact that code for
+	 * small and large granules is largely independent (although there are some common parts, which
+	 * motivates against complete separation of them into two functions).
+	 */
+	zerofit=gX2=gY2=gZ2=locgZ2=id0=id1=jd0=jd1=kd0=kd1=indZ=locgZ=gr_locgN=0;
+	gdXh=gdYh=gdZh=0;
+	ginX=ginY=ginZ=NULL;
+	dom=NULL;
+	tree_index=occup=NULL;
+	file=NULL;
 
 	// prepare granule file for saving if needed
-	if (store_grans && ringid==ADDA_ROOT) {
-		sprintf(fname,"%s/"F_GRANS,directory);
+	if (store_grans && IFROOT) {
+		SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_GRANS,directory);
 		file=FOpenErr(fname,"w",ONE_POS);
 		fprintf(file,"#generated by ADDA v."ADDA_VERSION"\n"
 		             "#granule diameter = "GFORM"\n",gr_d);
 	}
 	// set variables; consider jagged
 	Di=gr_d/(gridspace*jagged);
-	if (Di<1) LogError(EC_WARN,ONE_POS,"Granule diameter is smaller than dipole size. It is "
+	if (Di<1) LogWarning(EC_WARN,ONE_POS,"Granule diameter is smaller than dipole size. It is "
 		"recommended to increase resolution");
 	R=Di/2;
 	R2=R*R;
 	Di2=4*R2;
 	boxXY=boxX*(size_t)boxY;
 	// inner box
-	if (Di>MIN(boxX,MIN(boxY,boxZ))) LogError(EC_WARN,ONE_POS,
-		"Granule size is larger than minimum particle dimension");
+	D("gr_N=%d, Di="GFORMDEF,gr_N,Di);
 	x0=R-0.5;
 	x1=boxX-R-0.5;
 	y0=R-0.5;
 	y1=boxY-R-0.5;
 	z0=R-0.5;
 	z1=boxZ-R-0.5;
-	// initialize auxiliary grid
-	CheckOverflow(MAX(boxX,MAX(boxY,boxZ))*10/Di,ONE_POS,"PlaceGranules()");
+	minval=MIN(x1-x0,MIN(y1-y0,z1-z0));
+	if (minval<=0)
+		LogError(ONE_POS,"Granule size must be smaller than minimum particle dimension");
+	/* initialize auxiliary grid; grid size is chosen to be always <= D/sqrt(3). Thus we can be sure
+	 * that each cell contain no more than 1 granule.
+	 */
+	CheckOverflow(MAX(boxX,MAX(boxY,boxZ))*10/Di,ONE_POS_FUNC);
 	tmp1=sqrt(3)/Di;
 	gX=(int)ceil((x1-x0)*tmp1);
-	gdX=(x1-x0)/gX;
 	gY=(int)ceil((y1-y0)*tmp1);
-	gdY=(y1-y0)/gY;
 	gZ=(int)ceil((z1-z0)*tmp1);
+	// this should occur only as a consequence of float inaccuracy in error check above
+	if (gX==0 || gY==0 || gZ==0)
+		LogError(ONE_POS,"Granule size is too close to minimum particle dimension");
+	gdX=(x1-x0)/gX;
+	gdY=(y1-y0)/gY;
 	gdZ=(z1-z0)/gZ;
-	sm_gr=(gdX<2 || gdY<2 || gdZ<2); // sets the discrimination for small or large granules
+	tmp1=MAX(2*Di,MIN_CELL_SIZE);
+	/* sets the discrimination for small or large granules; it should guarantee that no divisions by
+	 * zero occur afterwards in the code for small granules
+	 */
+	sm_gr=minval>tmp1 && (gdX<2 || gdY<2 || gdZ<2);
 	if (sm_gr) {
-		PRINTZ("Using algorithm for small granules\n");
-		// redefine auxiliary grid
-		tmp1=1/MAX(2*Di,MIN_CELL_SIZE);
+		if (IFROOT) printf("Using algorithm for small granules\n");
+		/* redefine auxiliary grid; now the grid size is chosen to be always >= 2*D. Thus we can be
+		 * sure that granule can intersect with granule in either left or right (x=+-1) cell but not
+		 * both (and analogously with other coordinates).
+		 */
+		tmp1=1/tmp1;
 		gX=(int)floor((x1-x0)*tmp1);
 		gdX=(x1-x0)/gX;
 		gY=(int)floor((y1-y0)*tmp1);
@@ -790,8 +812,8 @@ static double PlaceGranules(void)
 		gZ=(int)floor((z1-z0)*tmp1);
 		gdZ=(z1-z0)/gZ;
 	}
-	else {
-		PRINTZ("Using algorithm for large granules\n");
+	else { // large granules
+		if (IFROOT) printf("Using algorithm for large granules\n");
 		gX2=2*gX;
 		gdXh=gdX/2;
 		gY2=2*gY;
@@ -809,19 +831,20 @@ static double PlaceGranules(void)
 		if (gdZ<R) sz=3;
 		else sz=2;
 	}
-	gXY=MultOverflow(gX,gY,ONE_POS,"PlaceGranules()");
-	gr_gN=MultOverflow(gXY,gZ,ONE_POS,"PlaceGranules()");
+	gXY=MultOverflow(gX,gY,ONE_POS_FUNC);
+	gr_gN=MultOverflow(gXY,gZ,ONE_POS_FUNC);
 	// calculate maximum number of granules in a grid; crude estimate
 	tmp2=(ceil((x1-x0)/Di)+1)*(ceil((y1-y0)/Di)+1)*(ceil((z1-z0)/Di)+1);
 	max_Ngr=MIN(MAX_GR_SET,tmp2);
 	// local z grid + initialize communications
+	D("gr_gN=%zu, max_Ngr=%d",gr_gN,max_Ngr);
 	SetGranulComm(z0,z1,gdZ,gZ,gXY,max_Ngr,&locz0,&locz1,sm_gr);
 	if (!sm_gr) {
 		locgZ=locz1-locz0;
 		locgZ2=2*locgZ;
 		gr_locgN=gXY*locgZ;
 	}
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// initialize random generator
 		key[0]=(unsigned long)time(NULL);
 		key[1]=(unsigned long)(clock()-wt_start);
@@ -844,7 +867,7 @@ static double PlaceGranules(void)
 		id1=ginX[gX2];
 		for (i=0;i<=gY2;i++) ginY[i]=(int)ceil(y0+i*gdYh);
 		jd0=ginY[0];
-		jd1=ginY[gZ2];
+		jd1=ginY[gY2];
 		for (i=0;i<=locgZ2;i++) ginZ[i]=(int)ceil(z0+(i+2*locz0)*gdZh);
 		kd0=MAX(ginZ[0],local_z0);
 		indZ=1;
@@ -857,10 +880,11 @@ static double PlaceGranules(void)
 	if (sm_gr) overhead=Ndip/mat_count[gr_mat];
 	else overhead=1;
 	// main cycle
+	D("Starting main iteration cycle");
 	while (n<gr_N) {
 		if (sm_gr) { // small granules
 			// just generate granules
-			if (ringid==ADDA_ROOT) {
+			if (IFROOT) {
 				cur_Ngr=MIN(ceil((gr_N-n)*overhead),max_Ngr);
 				// generate points and quick check
 				ig=false_count=0;
@@ -888,56 +912,44 @@ static double PlaceGranules(void)
 					gr[1]=gr[1]*gdY+y0;
 					gr[2]=gr[2]*gdZ+z0;
 					index=indZ*gXY+indY*gX+indX;
-					last=CheckCell(gr,vgran,tree_index,Di2,occup[index],&fits);
-					// weird construction (7 inclosed 'if' structures) but should be fast
+					// 'last' is used only if fits, so when this test actually reaches last element
+					last=CHECK_CELL(index);
+					// weird construction (7-level nested 'ifs') but should be fast
 					if (fits) {
-						// possible x-neighbor
 						t1*=gdX; // transform shifts to usual coordinates; done only when needed
 						sx=0;
 						if (t1<Di) {
 							if (indX!=0) sx=-1;
 						}
 						else if ((t1=gdX-t1)<Di && indX!=gX-1) sx=1;
-						if (sx!=0) CheckCell(gr,vgran,tree_index,Di2,occup[index+sx],&fits);
-						if (fits) {
-							// possible y-neighbor
+						if (sx==0 || CHECK_CELL_TEST(index+sx)) { // test for x-neighbor
 							t2*=gdY;
 							sy=0;
 							if (t2<Di) {
 								if (indY!=0) sy=-gX;
 							}
 							else if ((t2=gdY-t2)<Di && indY!=gY-1) sy=gX;
-							if (sy!=0) CheckCell(gr,vgran,tree_index,Di2,occup[index+sy],&fits);
-							if (fits) {
-								// possible z-neighbor
+							if (sy==0 || CHECK_CELL_TEST(index+sy)) { // test for y-neighbor
 								t3*=gdZ;
 								sz=0;
 								if (t3<Di) {
 									if (indZ!=0) sz=-(int)gXY;
 								}
 								else if ((t3=gdZ-t3)<Di && indZ!=gZ-1) sz=gXY;
-								if (sz!=0) CheckCell(gr,vgran,tree_index,Di2,occup[index+sz],&fits);
-								if (fits) {
-									// possible xy-neighbor
-									if (sx!=0 && sy!=0 && ((tmp1=t1*t1)+(tmp2=t2*t2)<Di2))
-										CheckCell(gr,vgran,tree_index,Di2,occup[index+sx+sy],&fits);
-									if (fits) {
-										// possible xz-neighbor
-										if (sx!=0 && sz!=0 && ((tmp1+(tmp3=t3*t3))<Di2))
-											CheckCell(gr,vgran,tree_index,Di2,
-												occup[index+sx+sz],&fits);
-										if (fits) {
-											// possible yz-neighbor & xyz-neighbor
-											if (sy!=0 && sz!=0 && (tmp2+tmp3<Di2)) {
-												CheckCell(gr,vgran,tree_index,Di2,
-													occup[index+sy+sz],&fits);
-												if (fits && sx!=0 && (tmp1+tmp2+tmp3<Di2))
-													CheckCell(gr,vgran,tree_index,Di2,
-														occup[index+sx+sy+sz],&fits);
-											}
+								if (sz!=0) {
+									if (CHECK_CELL_TEST(index+sz)) { // test for z-neighbor
+										if (sy!=0) {
+											tmp1=Di2-t2*t2-t3*t3;
+											// test for yz-neighbor
+											if (tmp1>0 && CHECK_CELL_TEST(index+sy+sz)
+												// test for xyz-neighbor
+												&& sx!=0 && t1*t1<tmp1) CHECK_CELL(index+sx+sy+sz);
 										}
+										else if (sx!= 0 && t1*t1+t3*t3<Di2) CHECK_CELL(index+sx+sz);
 									}
 								}
+								// test for xy-neighbor
+								else if (sx!=0 && sy!=0 && t1*t1+t2*t2<Di2) CHECK_CELL(index+sx+sy);
 							}
 						}
 					}
@@ -959,6 +971,11 @@ static double PlaceGranules(void)
 			// generate domain pattern
 			if (locgZ!=0) {
 				for (i=0;i<gr_locgN;i++) dom[i]=0;
+				/* indices 'index' and 'dom_index' are build up gradually for optimization.
+				 * Finally, index=(k-local_z0)*boxXY + j*boxX +i.
+				 * ??? final formula for dom_index is unclear, moreover indZ seems to be not
+				 * ??? always initialized
+				 */
 				dom_index2=0;
 				index2=(kd0-local_z0)*boxXY;
 				bit=((indZ&1)^1)<<2;
@@ -994,9 +1011,10 @@ static double PlaceGranules(void)
 					}
 				}
 			}
+			D("Domain pattern generated");
 			// send/collect domain pattern
 			CollectDomainGranul(dom,gXY,locz0,locgZ,&Timing_GranulComm);
-			if (ringid==ADDA_ROOT) {
+			if (IFROOT) {
 				// analyze domain pattern
 				avail=0;
 				for (ui=0;ui<gr_gN;ui++) if (dom[ui]!=0xFF) avail++;
@@ -1015,8 +1033,8 @@ static double PlaceGranules(void)
 					// coordinates in doubled grid
 					indX=(int)floor(gr[0]);
 					indY=(int)floor(gr[1]);
-					indZ=(int)floor(gr[2]); // position bit inside one cell
-					bit=1<<((indX&1)+((indY&1)<<1)+((indZ&1)<<2));
+					indZ=(int)floor(gr[2]);
+					bit=1<<((indX&1)+((indY&1)<<1)+((indZ&1)<<2)); // position bit inside one cell
 					// coordinates in usual grid
 					indX/=2;
 					indY/=2;
@@ -1031,7 +1049,7 @@ static double PlaceGranules(void)
 						fits=true;
 						false_count++;
 						if ((i0=indX-sx)<0) i0=0;
-						if ((i1=indX+sx+1)>gZ) i1=gX;
+						if ((i1=indX+sx+1)>gX) i1=gX;
 						if ((j0=indY-sy)<0) j0=0;
 						if ((j1=indY+sy+1)>gY) j1=gY;
 						if ((k0=indZ-sz)<0) k0=0;
@@ -1072,6 +1090,7 @@ static double PlaceGranules(void)
 				cur_Ngr=ig;
 			}
 		} // end of large granules
+		D("Set of possible granules produced");
 		// cast to all processors
 		MyBcast(&cur_Ngr,int_type,1,&Timing_GranulComm);
 		MyBcast(vgran,double_type,3*cur_Ngr,&Timing_GranulComm);
@@ -1140,7 +1159,7 @@ static double PlaceGranules(void)
 			}
 		}
 		// save correct granule positions to file
-		if (store_grans && ringid==ADDA_ROOT) for (ig=0;ig<cur_Ngr;ig++) if (vfit[ig])
+		if (store_grans && IFROOT) for (ig=0;ig<cur_Ngr;ig++) if (vfit[ig])
 			fprintf(file,GFORM3L"\n",gridspace*(vgran[3*ig]-cX),gridspace*(vgran[3*ig+1]-cY),
 				gridspace*(vgran[3*ig+2]-cZ));
 		Nfit=n-Nfit;
@@ -1157,26 +1176,19 @@ static double PlaceGranules(void)
 			// check if taking too long
 			if (zerofit>MAX_ZERO_FITS) {
 				MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
-				/* conversions to (unsigned long) are needed (to remove warnings) because %z printf
-				 * argument is not yet supported by all target compiler environments
-				 */
-				LogError(EC_ERROR,ONE_POS,"The granule generator failed to reach required volume "
-					"fraction ("GFORMDEF") of granules. %lu granules were successfully placed up "
-					"to a volume fraction of "GFORMDEF".",
-					gr_vf,(unsigned long)n,nd/mat_count[gr_mat]);
+				LogError(ONE_POS,"The granule generator failed to reach required volume fraction ("
+					GFORMDEF") of granules. %zu granules were successfully placed up to a volume "
+					"fraction of "GFORMDEF".",gr_vf,n,nd/mat_count[gr_mat]);
 			}
 		}
 	}
-	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is
-	 * not yet supported by all target compiler environments
-	 */
-	PRINTZ("Granule generator: total random placements= %lu (efficiency 1 = "GFORMDEF")\n"
-	       "                   possible granules= %lu (efficiency 2 = "GFORMDEF")\n",
-	       (unsigned long)count,count_gr/(double)count,(unsigned long)count_gr,
-	       gr_N/(double)count_gr);
+	if (IFROOT)
+		printf("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
+		       "                   possible granules= %zu (efficiency 2 = "GFORMDEF")\n",
+		       count,count_gr/(double)count,count_gr,gr_N/(double)count_gr);
 	MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
 	// free everything
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		Free_general(occup);
 		if (sm_gr) Free_general(tree_index);
 		else Free_general(dom);
@@ -1191,7 +1203,7 @@ static double PlaceGranules(void)
 		Free_general(ginZ);
 	}
 	// close granule file if needed and print info
-	if (store_grans && ringid==ADDA_ROOT) {
+	if (store_grans && IFROOT) {
 		FCloseErr(file,fname,ONE_POS);
 		printf("Granule coordinates saved to file\n");
 	}
@@ -1203,6 +1215,9 @@ static double PlaceGranules(void)
 #undef MAX_FALSE_SKIP_SMALL
 #undef MAX_GR_SET
 #undef MIN_CELL_SIZE
+#undef CHECK_CELL
+#undef CHECK_CELL_TEST
+
 //==========================================================
 
 static int FitBox(const int box)
@@ -1214,8 +1229,7 @@ static int FitBox(const int box)
 
 	if (IS_EVEN(jagged)) res=jagged*((box+jagged-1)/jagged);
 	else res=2*jagged*((box+2*jagged-1)/(2*jagged));
-	if (res>BOX_MAX) LogError(EC_ERROR,ONE_POS,
-		"Derived grid size (%d) is too large (>%d)",res,BOX_MAX);
+	if (res>BOX_MAX) LogError(ONE_POS,"Derived grid size (%d) is too large (>%d)",res,BOX_MAX);
 	return res;
 }
 
@@ -1261,17 +1275,17 @@ void InitShape(void)
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
 		if (size_given_cmd) {
-			if (boxX!=UNDEF) PrintError("Extra information is given by setting '-dpl', '-grid', "
+			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl', '-grid', "
 				"and '-%s'",sizename);
-			else if (box_det_sh) PrintError("Extra information is given by setting both '-dpl' and "
-				"'-%s', while shape '%s' sets the size of the grid",sizename,shapename);
+			else if (box_det_sh) PrintError("Too much information is given by setting both '-dpl' "
+				"and '-%s', while shape '%s' sets the size of the grid",sizename,shapename);
 		}
 		else if (size_det_sh) {
-			if (boxX!=UNDEF) PrintError("Extra information is given by setting '-dpl' and '-grid', "
-				"while shape '%s' sets the particle size",shapename);
+			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl' and "
+				"'-grid', while shape '%s' sets the particle size",shapename);
 			// currently this can't happen, but may become relevant in the future
-			else if (box_det_sh) PrintError("Extra information is given by setting '-dpl', while "
-				"shape '%s' sets both the particle size and the size of the grid",shapename);
+			else if (box_det_sh) PrintError("Too much information is given by setting '-dpl', "
+				"while shape '%s' sets both the particle size and the size of the grid",shapename);
 		}
 	}
 	/* calculate default dpl - 10*sqrt(max(|m|));
@@ -1293,8 +1307,9 @@ void InitShape(void)
 		 * from file. Each line defines ro and z coordinates of a point, the first and the last
 		 * points are connected automatically. Linear interpolation is used between the points.
 		 */
-		SPRINTZ(sh_form_str,"axisymmetric, defined by a contour in ro-z plane from file %s;"
-			" diameter:%s",shape_fname,GFORM);
+		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
+			"axisymmetric, defined by a contour in ro-z plane from file %s; diameter:%s",
+			shape_fname,GFORM);
 		InitContour(shape_fname,&zx_ratio,&n_sizeX);
 		yx_ratio=1;
 		symZ=false; // input contour is assumed asymmetric over ro-axis
@@ -1310,8 +1325,8 @@ void InitShape(void)
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		SPRINTZ(sh_form_str,"bicoated; diameter(d):%s, center-center distance R_cc/d="GFORM
-			", inner diameter d_in/d="GFORM,GFORM,diskratio,coat_ratio);
+		if (IFROOT) sprintf(sh_form_str,"bicoated; diameter(d):%s, center-center distance R_cc/d="
+			GFORM", inner diameter d_in/d="GFORM,GFORM,diskratio,coat_ratio);
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
@@ -1332,8 +1347,8 @@ void InitShape(void)
 		aspectZ2=sh_pars[4];
 		TestPositive(aspectZ2,"aspect ratio z2/x2");
 		// set descriptive string and symmetry
-		SPRINTZ(sh_form_str,"biellipsoid; size along x-axis:%s; aspect ratios: y1/x1="GFORM
-			", z1/x1="GFORM", x2/x1="GFORM", y2/x2="GFORM", z2/x2="GFORM,
+		if (IFROOT) sprintf(sh_form_str,"biellipsoid; size along x-axis:%s; aspect ratios: y1/x1="
+			GFORM", z1/x1="GFORM", x2/x1="GFORM", y2/x2="GFORM", z2/x2="GFORM,
 			GFORM,aspectY,aspectZ,aspectXs,aspectY2,aspectZ2);
 		if (aspectY!=1 || aspectY2!=1) symR=false;
 		symZ=false; // since upper and lower ellipsoids are generally different both in size and RI
@@ -1365,7 +1380,7 @@ void InitShape(void)
 	else if (shape==SH_BISPHERE) { // based on code by Jin You Lu
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
-		SPRINTZ(sh_form_str,
+		if (IFROOT) sprintf(sh_form_str,
 			"bisphere; diameter(d):%s, center-center distance R_cc/d="GFORM,GFORM,diskratio);
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
@@ -1376,7 +1391,7 @@ void InitShape(void)
 	}
 	else if (shape==SH_BOX) {
 		if (sh_Npars==0) {
-			STRCPYZ(sh_form_str,"cube; size of edge along x-axis:"GFORM);
+			if (IFROOT) strcpy(sh_form_str,"cube; size of edge along x-axis:"GFORM);
 			aspectY=aspectZ=1;
 		}
 		else { // 2 parameters are given
@@ -1384,8 +1399,8 @@ void InitShape(void)
 			TestPositive(aspectY,"aspect ratio y/x");
 			aspectZ=sh_pars[1];
 			TestPositive(aspectZ,"aspect ratio z/x");
-			SPRINTZ(sh_form_str,"rectangular parallelepiped; size along x-axis:%s, aspect ratios "
-				"y/x="GFORM", z/x="GFORM,GFORM,aspectY,aspectZ);
+			if (IFROOT) sprintf(sh_form_str,"rectangular parallelepiped; size along x-axis:%s, "
+				"aspect ratio y/x="GFORM", z/x="GFORM,GFORM,aspectY,aspectZ);
 		}
 		if (aspectY!=1) symR=false;
 		// set half-aspect ratios
@@ -1399,7 +1414,8 @@ void InitShape(void)
 	else if(shape==SH_CAPSULE) {
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"height to diameter ratio");
-		SPRINTZ(sh_form_str,"capsule; diameter(d):%s, cylinder height h/d="GFORM,GFORM,diskratio);
+		if (IFROOT) sprintf(sh_form_str,"capsule; diameter(d):%s, cylinder height h/d="GFORM,
+			GFORM,diskratio);
 		hdratio=diskratio/2;
 		volume_ratio = PI_OVER_FOUR*diskratio + PI_OVER_SIX;
 		yx_ratio=1;
@@ -1409,15 +1425,15 @@ void InitShape(void)
 	else if (shape==SH_COATED) {
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		SPRINTZ(sh_form_str,"coated sphere; diameter(d):%s, inner diameter d_in/d="GFORM,
-			GFORM,coat_ratio);
+		if (IFROOT) sprintf(sh_form_str,"coated sphere; diameter(d):%s, inner diameter d_in/d="
+			GFORM,GFORM,coat_ratio);
 		if (sh_Npars==4) {
 			coat_x=sh_pars[1];
 			coat_y=sh_pars[2];
 			coat_z=sh_pars[3];
 			if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
 				PrintErrorHelp("Inner sphere is not fully inside the outer");
-			SPRINTZ(sh_form_str+strlen(sh_form_str),
+			if (IFROOT) sprintf(sh_form_str+strlen(sh_form_str),
 				"\n       position of inner sphere center r/d= "GFORM3V,coat_x,coat_y,coat_z);
 		}
 		else coat_x=coat_y=coat_z=0; // initialize default values
@@ -1432,7 +1448,8 @@ void InitShape(void)
 	else if(shape==SH_CYLINDER) {
 		diskratio=sh_pars[0];
 		TestPositive(diskratio,"height to diameter ratio");
-		SPRINTZ(sh_form_str,"cylinder; diameter(d):%s, height h/d="GFORM,GFORM,diskratio);
+		if (IFROOT) sprintf(sh_form_str,"cylinder; diameter(d):%s, height h/d="GFORM,GFORM,
+			diskratio);
 		hdratio=diskratio/2;
 		volume_ratio=PI_OVER_FOUR*diskratio;
 		yx_ratio=1;
@@ -1476,8 +1493,8 @@ void InitShape(void)
 		 */
 		volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)
 		            /(egnu*egnu+2*tmp3);
-		SPRINTZ(sh_form_str,"egg; diameter(d):%s, epsilon="GFORM", nu="GFORM", a/d="GFORM,
-			GFORM,egeps,egnu,ad);
+		if (IFROOT) sprintf(sh_form_str,"egg; diameter(d):%s, epsilon="GFORM", nu="GFORM", a/d="
+			GFORM,GFORM,egeps,egnu,ad);
 		Nmat_need=1;
 		yx_ratio=1;
 		zx_ratio=ad*(tmp1+tmp2); // (a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)]
@@ -1487,8 +1504,8 @@ void InitShape(void)
 		TestPositive(aspectY,"aspect ratio y/x");
 		aspectZ=sh_pars[1];
 		TestPositive(aspectZ,"aspect ratio z/x");
-		SPRINTZ(sh_form_str,"ellipsoid; size along x-axis:%s, aspect ratios y/x="GFORM", z/x="
-			GFORM,GFORM,aspectY,aspectZ);
+		if (IFROOT) sprintf(sh_form_str,"ellipsoid; size along x-axis:%s, aspect ratios y/x="GFORM
+			", z/x="GFORM,GFORM,aspectY,aspectZ);
 		if (aspectY!=1) symR=false;
 		// set inverse squares of aspect ratios
 		invsqY=1/(aspectY*aspectY);
@@ -1499,7 +1516,7 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_LINE) {
-		STRCPYZ(sh_form_str,"line; length:"GFORM);
+		if (IFROOT) strcpy(sh_form_str,"line; length:"GFORM);
 		symY=symZ=symR=false;
 		n_boxY=n_boxZ=jagged;
 		yx_ratio=zx_ratio=UNDEF;
@@ -1520,35 +1537,37 @@ void InitShape(void)
 		if (h_d<=b_d) PrintErrorHelp("given RBC is not biconcave; maximum width is in the center");
 		c_d=sh_pars[2];
 		TestRangeII(c_d,"relative diameter of maximum width",0,1);
-		SPRINTZ(sh_form_str,"red blood cell; diameter(d):%s, maximum and minimum width h/d="GFORM
-			", b/d="GFORM", diameter of maximum width c/d="GFORM,GFORM,h_d,b_d,c_d);
+		if (IFROOT) sprintf(sh_form_str,"red blood cell; diameter(d):%s, maximum and minimum width "
+			"h/d="GFORM", b/d="GFORM", diameter of maximum width c/d="GFORM,GFORM,h_d,b_d,c_d);
 		// calculate shape parameters
 		h2=h_d*h_d;
 		b2=b_d*b_d;
 		c2=c_d*c_d;
 		/* P={(b/d)^2*[c^4/(h^2-b^2)-h^2]-d^2}/4; Q=(d/b)^2*(P+d^2/4)-b^2/4; R=-d^2*(P+d^2/4)/4;
 		 * S=-(2P+c^2)/h^2;  here P,Q,R,S are made dimensionless dividing by respective powers of d
-		 * Calculation is performed so that Q is well defined even for b=0.
+		 * Calculation is performed so that Q is well defined even for b=0. Parameter mamess are 
+		 * prefixed by 'rbc'.
 		 */
 		tmp1=((c2*c2/(h2-b2))-h2)/4;
-		P=b2*tmp1-0.25;
-		Q=tmp1-(b2/4);
-		R=-b2*tmp1/4;
-		S=-(2*P+c2)/h2;
+		rbcP=b2*tmp1-0.25;
+		rbcQ=tmp1-(b2/4);
+		rbcR=-b2*tmp1/4;
+		rbcS=-(2*rbcP+c2)/h2;
 		yx_ratio=1;
 		zx_ratio=h_d;
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
 	else if (shape==SH_READ) {
-		SPRINTZ(sh_form_str,"specified by file %s; size along x-axis:%s",shape_fname,GFORM);
+		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
+			"specified by file %s; size along x-axis:%s",shape_fname,GFORM);
 		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
 		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
 	}
 	else if (shape==SH_SPHERE) {
-		STRCPYZ(sh_form_str,"sphere; diameter:"GFORM);
+		if (IFROOT) strcpy(sh_form_str,"sphere; diameter:"GFORM);
 		volume_ratio=PI_OVER_SIX;
 		yx_ratio=zx_ratio=1;
 		Nmat_need=1;
@@ -1556,8 +1575,8 @@ void InitShape(void)
 	else if (shape==SH_SPHEREBOX) {
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"sphere diameter/cube edge ratio",0,1);
-		SPRINTZ(sh_form_str,"sphere in cube; size of cube edge(a):%s, diameter of sphere d/a="GFORM,
-			GFORM,coat_ratio);
+		if (IFROOT) sprintf(sh_form_str,"sphere in cube; size of cube edge(a):%s, diameter of "
+			"sphere d/a="GFORM,GFORM,coat_ratio);
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		yx_ratio=zx_ratio=1;
 		volume_ratio=1;
@@ -1596,6 +1615,7 @@ void InitShape(void)
 	 * Also (rarely) if the shape defines dimension of the computational grid or absolute size of
 	 * the particle, correct values of box_det_sh and size_det_sh in the beginning of this function.
 	 */
+	else LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
 
 	// initialize domain granulation
 	if (sh_granul) {
@@ -1616,7 +1636,7 @@ void InitShape(void)
 		}
 		else PrintError("Only %d refractive indices are given. %d are required",Nmat,Nmat_need);
 	}
-	else if (Nmat>Nmat_need) LogError(EC_INFO,ONE_POS,
+	else if (Nmat>Nmat_need) LogWarning(EC_INFO,ONE_POS,
 		"More refractive indices are given (%d) than actually used (%d)",Nmat,Nmat_need);
 	Nmat=Nmat_need;
 
@@ -1629,7 +1649,7 @@ void InitShape(void)
 
 	// determine which size to use
 	if (size_det_sh) {
-		if (size_given_cmd) LogError(EC_INFO,ONE_POS,"Particle size specified by command line "
+		if (size_given_cmd) LogWarning(EC_INFO,ONE_POS,"Particle size specified by command line "
 			"option '-%s' overrides the internal specification of the shape '%s'. The particle "
 			"will be scaled accordingly.",sizename,shapename);
 		else sizeX=n_sizeX;
@@ -1675,10 +1695,10 @@ void InitShape(void)
 		if (boxX!=UNDEF) temp=boxX;
 		else temp=n_boxX;
 		if ((boxX=FitBox(temp))!=temp) {
-			if (sizeX==UNDEF) LogError(EC_WARN,ONE_POS,"boxX has been adjusted from %i to %i. "
+			if (sizeX==UNDEF) LogWarning(EC_WARN,ONE_POS,"boxX has been adjusted from %i to %i. "
 				"Size along X-axis in the shape description is the size of new (adjusted) "
 				"computational grid.",temp,boxX);
-			else LogError(EC_WARN,ONE_POS,
+			else LogWarning(EC_WARN,ONE_POS,
 				"boxX has been adjusted from %i to %i. Size specified by the command line option "
 				"'-size' is used for the new (adjusted) computational grid.",temp,boxX);
 		}
@@ -1696,10 +1716,10 @@ void InitShape(void)
 	else {
 		temp=boxY;
 		if ((boxY=FitBox(boxY))!=temp)
-			LogError(EC_WARN,ONE_POS,"boxY has been adjusted from %i to %i",temp,boxY);
+			LogWarning(EC_WARN,ONE_POS,"boxY has been adjusted from %i to %i",temp,boxY);
 		temp=boxZ;
 		if ((boxZ=FitBox(boxZ))!=temp)
-			LogError(EC_WARN,ONE_POS,"boxZ has been adjusted from %i to %i",temp,boxZ);
+			LogWarning(EC_WARN,ONE_POS,"boxZ has been adjusted from %i to %i",temp,boxZ);
 		// this error is not duplicated in the log file since it does not yet exist
 		if (n_boxY>boxY || n_boxZ>boxZ)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
@@ -1717,9 +1737,9 @@ void InitShape(void)
 		else nTheta=721;
 	}
 	// this limitation should be removed in the future
-	if (chp_type!=CHP_NONE && (!symR || scat_grid)) LogError(EC_ERROR,ONE_POS,
-		"Currently checkpoints can be used when internal fields are calculated only once,"
-		"i.e. for a single incident polarization.");
+	if (chp_type!=CHP_NONE && (!symR || scat_grid)) LogError(ONE_POS,"Currently checkpoints can be "
+		"used when internal fields are calculated only once,i.e. for a single incident "
+		"polarization.");
 	Timing_Particle = GET_TIME() - tstart;
 }
 
@@ -1789,7 +1809,7 @@ void MakeParticle(void)
 							if (contCurRo>=contSegRoMin[ns] && contCurRo<=contSegRoMax[ns])
 								CheckContourSegment(contSeg+ns) ? largerZ++ : smallerZ++;
 						// check for consistency; if the code is perfect, this is not needed
-						if (!IS_EVEN(largerZ+smallerZ)) LogError(EC_ERROR,ALL_POS,
+						if (!IS_EVEN(largerZ+smallerZ)) LogError(ALL_POS,
 							"Point (ro,z)=("GFORMDEF","GFORMDEF") produced weird result when "
 							"checking whether it lies inside the contour. Larger than z %d "
 							"intersections, smaller - %d.",contCurRo,contCurZ,largerZ,smallerZ);
@@ -1864,7 +1884,7 @@ void MakeParticle(void)
 				else if (shape==SH_RBC) {
 					r2=xr*xr+yr*yr;
 					z2=zr*zr;
-					if (r2*r2+2*S*r2*z2+z2*z2+P*r2+Q*z2+R<=0) mat=0;
+					if (r2*r2+2*rbcS*r2*z2+z2*z2+rbcP*r2+rbcQ*z2+rbcR<=0) mat=0;
 				}
 				else if (shape==SH_SPHERE) {
 					if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;
@@ -1901,7 +1921,7 @@ void MakeParticle(void)
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	MyInnerProduct(mat_count,double_type,Nmat+1,NULL);
 	if ((nvoid_Ndip=Ndip-mat_count[Nmat])==0)
-		LogError(EC_ERROR,ONE_POS,"All dipoles of the scatterer are void");
+		LogError(ONE_POS,"All dipoles of the scatterer are void");
 	nlocalRows=3*local_nvoid_Ndip;
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
@@ -1919,7 +1939,7 @@ void MakeParticle(void)
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
-		LogError(EC_ERROR,ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
+		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
 	// initialize gridspace and dipvol
 	gridspace=lambda/dpl;
 	dipvol=gridspace*gridspace*gridspace;
@@ -1936,15 +1956,21 @@ void MakeParticle(void)
 		tgran=GET_TIME();
 		Timing_GranulComm=0;
 		// calculate number of granules
-		if (mat_count[gr_mat]==0) LogError(EC_ERROR,ONE_POS,
-			"Domain to be granulated does not contain any dipoles");
+		if (mat_count[gr_mat]==0)
+			LogError(ONE_POS,"Domain to be granulated does not contain any dipoles");
 		tmp1=gridspace/gr_d;
 		tmp2=mat_count[gr_mat]*gr_vf*SIX_OVER_PI;
 		tmp3=tmp2*tmp1*tmp1*tmp1;
-		CheckOverflow(tmp3,ONE_POS,"Make_Particle()");
+		CheckOverflow(tmp3,ONE_POS,"gr_N");
 		gr_N=(size_t)ceil(tmp3);
 		// correct granules diameter to get exact volume fraction (if volume correction is used)
-		if (volcor_used) gr_d=gridspace*pow(tmp2/gr_N,ONE_THIRD);
+		if (volcor_used) {
+			tmp1=gridspace*pow(tmp2/gr_N,ONE_THIRD);
+			tmp3=100*fabs((tmp1/gr_d)-1);
+			if (tmp3>10) LogWarning(EC_WARN,ONE_POS,"Granule size was adjusted by %.0f%% (to "
+				GFORMDEF") to satisfy volume correction",tmp3,tmp1);
+			gr_d=tmp1;
+		}
 		// actually place granules
 		mat_count[Nmat-1]=PlaceGranules();
 		// calculate exact volume fraction

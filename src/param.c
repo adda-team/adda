@@ -89,9 +89,8 @@ bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_mueller;   // Calculate and write Mueller matrix to file
 bool store_ampl;      // Write amplitude matrix to file
-int phi_int_type;     /* type of phi integration (each bit determines
-                       * whether to calculate with different multipliers)
-                       */
+	// type of phi integration (each bit determines whether to calculate with different multipliers)
+int phi_int_type;
 // used in calculator.c
 bool avg_inc_pol;                 // whether to average CC over incident polarization
 char alldir_parms[MAX_FNAME];     // name of file with alldir parameters
@@ -131,7 +130,7 @@ double gr_vf;                    // granules volume fraction
 double gr_d;                     // granules diameter
 int gr_mat;                      // domain number to granulate
 double a_eq;                     // volume-equivalent radius of the particle
-int sg_format;                   // format for saving geometry files
+enum shform sg_format;           // format for saving geometry files
 bool store_grans;                // whether to save granule positions to file
 
 // LOCAL VARIABLES
@@ -166,8 +165,8 @@ struct subopt_struct {
 	const int type;    // type of suboption
 };
 struct opt_struct {
-	const char *name;                   // name of option
-	void (*func)(int Narg,char **argv); // pointer to a function, that parse this parameter
+	const char *name;                // name of option
+	void (*func)(int Narg,char **argv); // pointer to a function, parsing this parameter
 	bool used;                       // flag to indicate, if the option was already used
 	const char *usage;               // how to use (argument list)
 	const char *help;                // help string
@@ -177,7 +176,13 @@ struct opt_struct {
 // const string for usage of ADDA
 static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
 
-// initializations of suboptions (comments to elements of subopt_struct are above)
+/* initializations of suboptions (comments to elements of subopt_struct are above);
+ * Contrary to 'options', suboptions are defined as null-terminated array, because they may be
+ * referenced not directly by their names but also as options[i].sub. In the latter case macro
+ * LENGTH can't be used to estimate the length of the array. So getting this length is at least
+ * nontrivial (e.g. can be done with some intermediate variables). So using NULL-termination seems
+ * to be the easiest.
+ */
 static const struct subopt_struct beam_opt[]={
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). "
 		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
@@ -271,9 +276,13 @@ static const struct subopt_struct shape_opt[]={
 void InitBeam(void);
 
 //========================================================================
-// prototypes of parsing functions; definitions are given below. defines are for conciseness
+/* Prototypes of parsing functions; definitions are given below. defines are for conciseness.
+ * Since we use one common prototype style for all parsing functions and many of the latter do not
+ * actually use the passed parameters, these parameters have 'unused' attribute to eliminate
+ * spurious warnings.
+ */
 #define PARSE_NAME(a) parse_##a
-#define PARSE_FUNC(a) static void PARSE_NAME(a)(int Narg,char **argv)
+#define PARSE_FUNC(a) static void PARSE_NAME(a)(int Narg ATT_UNUSED,char **argv ATT_UNUSED)
 #define PAR(a) #a,PARSE_NAME(a),false
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
@@ -543,38 +552,42 @@ static const char *OptionName(void)
 
 //============================================================
 
-void PrintErrorHelp(const char *fmt, ... )
+void PrintErrorHelp(const char * restrict fmt, ... )
 /* print anything to stderr (on root processor), then help on the arguments used, and stop;
- * assumes that all processors call it; has line wrapping
+ * assumes that all processors call it; has line wrapping.
+ * It is designed to be relatively safe (using snprintf and vsnprintf), but do not produce any
+ * additional errors in case of buffer overflows, etc. (not to distract from the main error itself).
+ * However, for uncontrolled (e.g. user-input) arguments, it is recommended to use
+ * PrintErrorHelpSafe instead.
  */
 {
 	va_list args;
-	const char *optname,*use;
-	char *pos;
-	char line[MAX_MESSAGE];
+	const char * restrict optname,* restrict use;
+	char msg[MAX_MESSAGE]="ERROR: ";
+	int shift,tmp;
 
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// produce error message
 		va_start(args,fmt);
-		strcpy(line,"ERROR: ");
-		pos=line+strlen(line);
-		pos+=vsprintf(pos,fmt,args);
-		strcpy(pos,"\n");
-		pos+=strlen(pos);
+		shift=strlen(msg);
+		VSNPRINTF_SHIFT_ROBUST(shift,tmp,msg,MAX_MESSAGE,fmt,args);
 		va_end(args);
 		// add help message
-		if (opt.l1==UNDEF)     // no option is found
-			pos+=sprintf(pos,"Usage: %s %s\n"
-			                 "Type '%s -h' for help\n",exename,exeusage,exename);
+		if (opt.l1==UNDEF) { // no option is found
+			SNPRINTF_SHIFT_ROBUST(shift,tmp,msg,MAX_MESSAGE,"\n"
+				"Usage: %s %s\n"
+				"Type '%s -h' for help\n",exename,exeusage,exename);
+		}
 		else { // at least option is found
 			if (opt.l2==UNDEF) use=options[opt.l1].usage;
 			else use=options[opt.l1].sub[opt.l2].usage;
 			optname=OptionName();
-			pos+=sprintf(pos,"Usage: -%s %s\n"
-			                 "Type '%s -h %s' for details\n",optname,use,exename,optname);
+			SNPRINTF_SHIFT_ROBUST(shift,tmp,msg,MAX_MESSAGE,"\n"
+				"Usage: -%s %s\n"
+				"Type '%s -h %s' for details\n",optname,use,exename,optname);
 		}
-		WrapLines(line);
-		fprintf(stderr,"%s",line);
+		WrapLines(msg);
+		fprintf(stderr,"%s",msg);
 		fflush(stderr);
 	}
 	// wait for root to generate an error message
@@ -584,7 +597,7 @@ void PrintErrorHelp(const char *fmt, ... )
 
 //============================================================
 
-void PrintErrorHelpSafe(const char *fmt, ... )
+static void ATT_NORETURN ATT_PRINTF(1,2) PrintErrorHelpSafe(const char * restrict fmt, ... )
 /* print anything to stderr (on root processor), then help on the arguments used, and stop;
  * assumes that all processors call it; same as PrintErrorHelp but uses no internal buffers to be
  * safe for any input parameters, which may come from a command line, at a cost of lacking line
@@ -592,9 +605,9 @@ void PrintErrorHelpSafe(const char *fmt, ... )
  */
 {
 	va_list args;
-	const char *optname,*use;
+	const char * restrict optname,* restrict use;
 
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// produce error message
 		va_start(args,fmt);
 		fprintf(stderr,"ERROR: ");
@@ -660,7 +673,7 @@ INLINE void TestNarg_sub(const int Narg)
 
 //============================================================
 
-static void NotSupported(const char *type,const char *given)
+static void ATT_NORETURN NotSupported(const char * restrict type,const char * restrict given)
 /* print error message that "type 'given' is not supported"
  * type should start with a capital letter
  */
@@ -670,7 +683,7 @@ static void NotSupported(const char *type,const char *given)
 
 //============================================================
 
-INLINE void TestStrLength(const char *str,const unsigned int size)
+INLINE void TestStrLength(const char * restrict str,const unsigned int size)
 /* check if string fits in buffer of size 'size', otherwise produces error message
  * 'opt' is command line option that checks its argument
  */
@@ -682,7 +695,7 @@ INLINE void TestStrLength(const char *str,const unsigned int size)
 
 //============================================================
 
-INLINE void ScanfDoubleError(const char *str,double *res)
+INLINE void ScanfDoubleError(const char * restrict str,double *res)
 // scanf an option argument and checks for errors
 {
 	if (sscanf(str,"%lf",res)!=1) PrintErrorHelpSafe(
@@ -691,7 +704,7 @@ INLINE void ScanfDoubleError(const char *str,double *res)
 
 //============================================================
 
-INLINE void ScanfIntError(const char *str,int *res)
+INLINE void ScanfIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
 	double tmp;
@@ -706,7 +719,7 @@ INLINE void ScanfIntError(const char *str,int *res)
 
 //============================================================
 
-INLINE bool IsOption(const char *str)
+INLINE bool IsOption(const char * restrict str)
 /* checks if string is an option. First should be '-' and then letter (any case);
  * it enables use of negative numbers as sub-parameters
  */
@@ -732,7 +745,7 @@ static int TimeField(const char c)
 
 //============================================================
 
-static int ScanTime(const char *str)
+static int ScanTime(const char * restrict str)
 // scans time in seconds from a string "%d[d,D[%d]][h,H[%d]][m,M[%d]][s,S]
 {
 #define TIME_N_TYPES 4 // not so easy to change
@@ -755,7 +768,7 @@ static int ScanTime(const char *str)
 
 //============================================================
 
-static void PrintTime(char *s,const time_t *time_ptr)
+static void PrintTime(char * restrict s,const time_t *time_ptr)
 {
 	struct tm *t;
 
@@ -915,7 +928,7 @@ PARSE_FUNC(h)
 
 	if (Narg>2) NargError(Narg,"not more than 2");
 	// do all output on root processor
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		found=false;
 		if (Narg>=1) {
 			for(i=0;i<LENGTH(options);i++) if (strcmp(argv[1],options[i].name)==0) {
@@ -1102,7 +1115,7 @@ PARSE_FUNC(prognose)
 {
 	prognosis=true;
 	strcpy(run_name,"test");
-	LogError(EC_WARN,ONE_POS,
+	LogWarning(EC_WARN,ONE_POS,
 		"Command line option '-prognose' is deprecated. Use '-prognosis' instead");
 }
 PARSE_FUNC(prognosis)
@@ -1272,7 +1285,7 @@ PARSE_FUNC(V)
 	size_t num;
 	int bits;
 
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// compiler & version (works only for selected compilers)
 		// Intel
 #if defined(__ICC) || defined(__INTEL_COMPILER)
@@ -1404,7 +1417,7 @@ PARSE_FUNC(yz)
 // end of parsing functions
 //=============================================================
 
-static FILEHANDLE CreateLockFile(const char *fname)
+static FILEHANDLE CreateLockFile(const char * restrict fname)
 // create lock file; works only if USE_LOCK is enabled
 {
 #ifdef USE_LOCK
@@ -1416,8 +1429,7 @@ static FILEHANDLE CreateLockFile(const char *fname)
 	while ((fd=CreateFile(fname,GENERIC_WRITE,FILE_SHARE_WRITE,NULL,CREATE_NEW,
 		FILE_ATTRIBUTE_NORMAL,NULL))==INVALID_HANDLE_VALUE) {
 		Sleep(LOCK_WAIT*1000);
-		if (i++ == MAX_LOCK_WAIT_CYCLES)
-			LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
+		if (i++ == MAX_LOCK_WAIT_CYCLES) LogError(ONE_POS,"Lock file %s permanently exists",fname);
 	}
 #	elif defined(POSIX)
 #		ifdef LOCK_FOR_NFS
@@ -1427,8 +1439,7 @@ static FILEHANDLE CreateLockFile(const char *fname)
 	i=0;
 	while ((fd=open(fname,O_WRONLY | O_CREAT | O_EXCL,0666))==-1) {
 		sleep(LOCK_WAIT);
-		if (i++ == MAX_LOCK_WAIT_CYCLES)
-			LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
+		if (i++ == MAX_LOCK_WAIT_CYCLES) LogError(ONE_POS,"Lock file %s permanently exists",fname);
 	}
 #		ifdef LOCK_FOR_NFS
 	// specify lock
@@ -1443,12 +1454,12 @@ static FILEHANDLE CreateLockFile(const char *fname)
 		if (errno==EACCES || errno==EAGAIN) {
 			sleep(LOCK_WAIT);
 			if (i++ == MAX_LOCK_WAIT_CYCLES)
-				LogError(EC_ERROR,ONE_POS,"Lock file %s permanently exists",fname);
+				LogError(ONE_POS,"Lock file %s permanently exists",fname);
 		}
 		else { // otherwise produce a message and continue
-			if (errno==EOPNOTSUPP || errno==ENOLCK) LogError(EC_WARN,ONE_POS,
+			if (errno==EOPNOTSUPP || errno==ENOLCK) LogWarning(EC_WARN,ONE_POS,
 				"Advanced file locking is not supported by the file system");
-			else LogError(EC_WARN,ONE_POS,"Unknown problem with file locking ('%s').",
+			else LogWarning(EC_WARN,ONE_POS,"Unknown problem with file locking ('%s').",
 				strerror(errno));
 			break;
 		}
@@ -1464,7 +1475,7 @@ static FILEHANDLE CreateLockFile(const char *fname)
 
 //============================================================
 
-static void RemoveLockFile(FILEHANDLE fd,const char *fname)
+static void RemoveLockFile(FILEHANDLE fd,const char * restrict fname)
 // closes and remove lock file; works only if USE_LOCK is enabled
 {
 #ifdef USE_LOCK
@@ -1647,7 +1658,7 @@ void VariablesInterconnect(void)
 			PrintError("Currently '-orient avg' can not be used with calculation of asym or Csca");
 		if (!store_mueller && store_ampl) {
 			store_ampl=false;
-			LogError(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So "
+			LogWarning(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So "
 				"switching off calculation of Mueller matrix results in no calculation of "
 				"scattering matrices at all.");
 		}
@@ -1682,7 +1693,7 @@ void VariablesInterconnect(void)
 	// scale boxes by jagged; should be completely robust to overflows
 #define JAGGED_BOX(a) if (a!=UNDEF) { \
 	if ((BOX_MAX/(size_t)jagged)<(size_t)a) \
-	LogError(EC_ERROR,ONE_POS,"Derived grid size (" #a ") is too large (>%d)",BOX_MAX); \
+		LogError(ONE_POS,"Derived grid size (" #a ") is too large (>%d)",BOX_MAX); \
 	else a*=jagged; }
 
 	if (jagged!=1) {
@@ -1737,7 +1748,7 @@ void DirectoryLog(const int argc,char **argv)
 // create input directory and start logfile
 {
 	int i,Nexp;
-	FILE *Nexpfile;
+	FILE * restrict Nexpfile;
 	char sbuffer[MAX_LINE];
 	char *ptmp,*compname;
 	FILEHANDLE lockid;
@@ -1752,7 +1763,7 @@ void DirectoryLog(const int argc,char **argv)
 	// devise directory name (for output files)
 	if (directory[0]==0) {
 		// root processor works with ExpCount
-		if (ringid==ADDA_ROOT) {
+		if (IFROOT) {
 			// lock file
 			lockid=CreateLockFile(F_EXPCOUNT_LCK);
 			// read ExpCount
@@ -1786,15 +1797,15 @@ void DirectoryLog(const int argc,char **argv)
 #endif
 	}
 	// make new directory and print info
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		MkDirErr(directory,ONE_POS);
 		printf("all data is saved in '%s'\n",directory);
 	}
 	// make logname; do it for all processors to enable additional logging in LogError
-	if (ringid==ADDA_ROOT) sprintf(logfname,"%s/"F_LOG,directory);
-	else sprintf(logfname,"%s/"F_LOG_ERR,directory,ringid);
+	if (IFROOT) SnprintfErr(ONE_POS,logfname,MAX_FNAME,"%s/"F_LOG,directory);
+	else SnprintfErr(ALL_POS,logfname,MAX_FNAME,"%s/"F_LOG_ERR,directory,ringid);
 	// start logfile
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// open logfile
 		logfile=FOpenErr(logfname,"w",ONE_POS);
 		// log version number
@@ -1835,7 +1846,7 @@ void PrintInfo(void)
 	int i;
 	char sbuffer[MAX_LINE];
 
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// print basic parameters
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",eps);
