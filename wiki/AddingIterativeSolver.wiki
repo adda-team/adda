@@ -37,10 +37,10 @@ ITER_FUNC(_name_)
 		// Performs a general iteration. As a result, current residual should be calculated.
 
 		if (xxx<EPS1) // an example for checking of convergence failure (optional)
-			LogError(EC_ERROR,ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
+			LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 #undef EPS1
 }
 }}}
