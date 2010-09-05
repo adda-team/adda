@@ -4,7 +4,7 @@
  * Descr: definitions of functions for memory allocation and freeing; also includes overflows checks
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,11 +24,12 @@
 #include <stddef.h>   // for size_t
 #include "function.h" // for function attributes
 #include "const.h"    // for enum types
+#include "io.h"       // for ERR_LOC_DECL
 
 #define MBYTE 1048576.0
 #define FFORMM "%.1f" // format for memory footprint (estimates) in MB
 // for conciseness
-#define OTHER_ARGUMENTS const enum enwho who,const char *fname,const int line,const char *name
+#define OTHER_ARGUMENTS ERR_LOC_DECL,const char *name
 
 void CheckOverflow(double size,OTHER_ARGUMENTS);
 size_t MultOverflow(size_t a,size_t b,OTHER_ARGUMENTS);
@@ -46,11 +47,11 @@ void *voidVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 // reallocate
 double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 // free
-void Free_cVector(doublecomplex *v);
-void Free_dMatrix(double **m,size_t rows);
-void Free_dVector2(double *v,size_t nl);
-void Free_iMatrix(int **m,size_t nrl,size_t nrh,size_t ncl);
-void Free_general(void *v);
+void Free_cVector(doublecomplex * restrict v);
+void Free_dMatrix(double ** restrict m,size_t rows);
+void Free_dVector2(double * restrict v,size_t nl);
+void Free_iMatrix(int ** restrict m,size_t nrl,size_t nrh,size_t ncl);
+void Free_general(void * restrict v);
 
 // macros to use for allocation and reallocation
 #define MALLOC_VECTOR(vec,type,size,who) vec=type##Vector(size,who,POSIT,#vec)

@@ -4,7 +4,7 @@
  * Descr: definitions of various structures
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -46,7 +46,7 @@ typedef struct	 // values of angles
 	double min;  // minimum; for convenience (not really needed)
 	double max;  // maximum; for convenience (not really needed)
 	size_t N;    // number of points
-	double *val; // values of points
+	double * restrict val; // values of points; restrict should be minded in the code !!!
 } angle_set;
 
 typedef struct	        // integration parameters

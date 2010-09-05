@@ -6,7 +6,7 @@
  *        Previous versions by "vesseur"
  *
  * Copyright (C) 2006,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -32,15 +32,15 @@
 #ifdef DEBUG
 
 #	include "function.h" // for function attributes
-#	define D(p) DebugPrintf(__FILE__,__LINE__,p)
-#	define D2(p,a) DebugPrintf(__FILE__,__LINE__,p,a)
-#	define D2z(p,a) if (ringid==ADDA_ROOT) DebugPrintf(__FILE__,__LINE__,p,a)
-void DebugPrintf(const char *fname,int line,const char *fmt,...) ATT_PRINTF(3,4);
-void FieldPrint(doublecomplex *x) ATT_UNUSED;
+#	include "const.h"    // for POS
+#	include "io.h"       // for
+#	define D(...) DebugPrintf(ALL_POS,__VA_ARGS__)
+#	define Dz(...) DebugPrintf(ONE_POS,__VA_ARGS__)
+void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(4,5);
+void FieldPrint(doublecomplex * restrict x) ATT_UNUSED;
 #else
-#	define D(p)
-#	define D2(p,a)
-#	define D2z(p,a)
+#	define D(...)
+#	define Dz(...)
 #endif
 
 #endif // __debug_h

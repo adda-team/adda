@@ -7,7 +7,7 @@
  *        Previous version by Michel Grimminck
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -36,8 +36,8 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in fft.c
-extern const doublecomplex *Dmatrix;
-extern doublecomplex *Xmatrix,*slices,*slices_tr;
+extern const doublecomplex * restrict Dmatrix;
+extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr;
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
 
 //============================================================
@@ -91,11 +91,11 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 
 //============================================================
 
-void MatVec (doublecomplex *argvec,    // the argument vector
-             doublecomplex *resultvec, // the result vector
-             double *inprod,           // the resulting inner product
-             const bool her,           // whether Hermitian transpose of the matrix is used
-             TIME_TYPE *comm_timing)   // this variable is incremented by communication time
+void MatVec (doublecomplex * restrict argvec,    // the argument vector
+             doublecomplex * restrict resultvec, // the result vector
+             double *inprod,         // the resulting inner product
+             const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *comm_timing) // this variable is incremented by communication time
 /* This function implements both MatVec_nim and MatVecAndInp_nim. The difference is that when we
  * want to calculate the inner product as well, we pass 'inprod' as a non-NULL pointer. if 'inprod'
  * is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards, however it is not
@@ -334,30 +334,32 @@ void MatVec (doublecomplex *argvec,    // the argument vector
 	t_FFT=t_FFTXf+t_FFTYf+t_FFTZf+t_FFTXb+t_FFTYb+t_FFTZb;
 	t_Comm=t_BTf+t_BTb+t_ipr;
 
-	PRINTBOTHZ(logfile,
-		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-		"                MatVec timing              \n"
-		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-		"Arith1 = "FFORMPT"    Arithmetics = "FFORMPT"\n"
-		"FFTXf  = "FFORMPT"    FFT         = "FFORMPT"\n"
-		"BTf    = "FFORMPT"    Comm        = "FFORMPT"\n"
-		"Arith2 = "FFORMPT"\n"
-		"FFTZf  = "FFORMPT"          Total = "FFORMPT"\n"
-		"TYZf   = "FFORMPT"\n"
-		"FFTYf  = "FFORMPT"\n"
-		"Arith3 = "FFORMPT"\n"
-		"FFTYb  = "FFORMPT"\n"
-		"TYZb   = "FFORMPT"\n"
-		"FFTZb  = "FFORMPT"\n"
-		"Arith4 = "FFORMPT"\n"
-		"BTb    = "FFORMPT"\n"
-		"FFTXb  = "FFORMPT"\n"
-		"Arith5 = "FFORMPT"\n"
-		"InProd = "FFORMPT"\n\n",
-		t_Mult1,t_Arithm,t_FFTXf,t_FFT,t_BTf,t_Comm,t_Mult2,
-		t_FFTZf,DiffSec(tvp,tvp+16),t_TYZf,t_FFTYf,t_Mult3,t_FFTYb,t_TYZb,t_FFTZb,
-		t_Mult4,t_BTb,t_FFTXb,t_Mult5,t_ipr);
-	PRINTZ("\nPrecise timing is complete. Finishing execution.\n");
+	if (IFROOT) {
+		PrintBoth(logfile,
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"                MatVec timing              \n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"Arith1 = "FFORMPT"    Arithmetics = "FFORMPT"\n"
+			"FFTXf  = "FFORMPT"    FFT         = "FFORMPT"\n"
+			"BTf    = "FFORMPT"    Comm        = "FFORMPT"\n"
+			"Arith2 = "FFORMPT"\n"
+			"FFTZf  = "FFORMPT"          Total = "FFORMPT"\n"
+			"TYZf   = "FFORMPT"\n"
+			"FFTYf  = "FFORMPT"\n"
+			"Arith3 = "FFORMPT"\n"
+			"FFTYb  = "FFORMPT"\n"
+			"TYZb   = "FFORMPT"\n"
+			"FFTZb  = "FFORMPT"\n"
+			"Arith4 = "FFORMPT"\n"
+			"BTb    = "FFORMPT"\n"
+			"FFTXb  = "FFORMPT"\n"
+			"Arith5 = "FFORMPT"\n"
+			"InProd = "FFORMPT"\n\n",
+			t_Mult1,t_Arithm,t_FFTXf,t_FFT,t_BTf,t_Comm,t_Mult2,
+			t_FFTZf,DiffSec(tvp,tvp+16),t_TYZf,t_FFTYf,t_Mult3,t_FFTYb,t_TYZb,t_FFTZb,
+			t_Mult4,t_BTb,t_FFTXb,t_Mult5,t_ipr);
+		printf("\nPrecise timing is complete. Finishing execution.\n");
+	}
 	Stop(0);
 #endif
 }

@@ -18,7 +18,7 @@
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -79,7 +79,7 @@ void InitBeam(void)
 	opt=opt_beam;
 	// beam initialization
 	if (beamtype==B_PLANE) {
-		STRCPYZ(beam_descr,"Plane wave");
+		if (IFROOT) strcpy(beam_descr,"Plane wave");
 		beam_asym=false;
 	}
 	// for now, this is all non-plane beams, but another beams may be added in the future
@@ -101,7 +101,7 @@ void InitBeam(void)
 		scale_x=1/w0;
 		scale_z=s*scale_x; // 1/(k*w0^2)
 		// beam info
-		if (ringid==ADDA_ROOT) {
+		if (IFROOT) {
 			strcpy(beam_descr,"Gaussian beam (");
 			if (beamtype==B_LMINUS) strcat(beam_descr,"L- approximation)\n");
 			else if (beamtype==B_DAVIS3) strcat(beam_descr,"3rd order approximation, by Davis)\n");
@@ -142,8 +142,8 @@ void InitBeam(void)
 
 //============================================================
 
-void GenerateB (const char which, // x - or y polarized incident light
-                doublecomplex *b) // the b vector for the incident field
+void GenerateB (const enum incpol which,   // x - or y polarized incident light
+                doublecomplex *restrict b) // the b vector for the incident field
 // generates incident beam at every dipole
 {
 	size_t i,j;
@@ -161,12 +161,11 @@ void GenerateB (const char which, // x - or y polarized incident light
 	 */
 
 	// set reference frame of the beam; ez=prop, ex - incident polarization
-	if (which=='Y') {
+	if (which==INCPOL_Y) {
 		ex=incPolY;
-		memcpy(ey,incPolX,3*sizeof(double));
-		MultScal(-1,ey,ey);
+		MultScal(-1,incPolX,ey);
 	}
-	if (which=='X') {
+	else { // which==INCPOL_X
 		ex=incPolX;
 		memcpy(ey,incPolY,3*sizeof(double));
 	}
@@ -275,8 +274,7 @@ void GenerateB (const char which, // x - or y polarized incident light
 				cScalMultRVec(ex,t1,v1);
 				cScalMultRVec(ey,t2,v2);
 				cScalMultRVec(prop,t3,v3);
-				cvAdd(v1,v2,v1);
-				cvAdd(v1,v3,v1);
+				cvAdd2Self(v1,v2,v3);
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
 		}

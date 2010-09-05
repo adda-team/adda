@@ -7,7 +7,7 @@
  *        Previous versions by Martijn Frijlink
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -40,9 +40,9 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in calculator.c
-extern double *E2_alldir,*E2_alldir_buffer;
+extern double * restrict E2_alldir,* restrict E2_alldir_buffer;
 extern const doublecomplex cc[][3];
-extern doublecomplex *expsX,*expsY,*expsZ;
+extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 // defined and initialized in GenerateB.c
 extern const double beam_center_0[3];
 // defined and initialized in param.c
@@ -117,17 +117,16 @@ void InitRotation (void)
 }
 
 //=====================================================================
-// currently not used
-static int ReadLine(FILE *,const char *,char *,const int) ATT_UNUSED;
 
-static int ReadLine(FILE *file,const char *fname, // opened file and filename
-                    char *buf,const int buf_size) // buffer for line and its size
+static int ATT_UNUSED ReadLine(FILE * restrict file, // opened file
+	const char * restrict fname,                     // ... its filename
+	char * restrict buf,const int buf_size)          // buffer for line and its size
 // reads the first uncommented line; returns 1 if EOF reached
 {
 	while (!feof(file)) {
 		fgets(buf,buf_size,file);
 		if (*buf!='#') { // if uncommented
-			if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(EC_ERROR,ONE_POS,
+			if (strstr(buf,"\n")==NULL && !feof(file)) LogError(ONE_POS,
 				"Buffer overflow while reading '%s' (size of uncommented line > %d)",
 				fname,buf_size-1);
 			else return 0; // complete line is read
@@ -139,42 +138,42 @@ static int ReadLine(FILE *file,const char *fname, // opened file and filename
 
 //=====================================================================
 
-static void ReadLineStart(FILE *file,const char *fname, // opened file and filename
-                          char *buf,const int buf_size, // buffer for line and its size
-                          const char *start)            // beginning of the line to search
+static void ReadLineStart(FILE *  restrict file,                  // opened file
+	                      const char * restrict fname,            // ... its filename
+                          char * restrict buf,const int buf_size, // buffer for line and its size
+                          const char * restrict start)            // beginning of the line to search
 // reads the first line that starts with 'start'
 {
 	while (!feof(file)) {
 		fgets(buf,buf_size,file);
 		if (strstr(buf,start)==buf) { // if correct beginning
-			if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(EC_ERROR,ONE_POS,
+			if (strstr(buf,"\n")==NULL && !feof(file)) LogError(ONE_POS,
 				"Buffer overflow while reading '%s' (size of essential line > %d)",
 				fname,buf_size-1);
 			else return; // line found and fits into buffer
 		} // finish reading unmatched line
 		else while (strstr(buf,"\n")==NULL && !feof(file)) fgets(buf,buf_size,file);
 	}
-	LogError(EC_ERROR,ONE_POS,"String '%s' is not found (in correct place) in file '%s'",
-		start,fname);
+	LogError(ONE_POS,"String '%s' is not found (in correct place) in file '%s'",start,fname);
 }
 
 //=====================================================================
 
-INLINE void ScanDouble(FILE *file,const char *fname,char *buf,const int buf_size,const char *start,
-	double *res)
+INLINE void ScanDouble(FILE * restrict file,const char * restrict fname,char * restrict buf,
+	const int buf_size,const char * restrict start,double *res)
 /* scans double value from a line starting with exactly 'start'; contains the same arguments as
  * ReadLineStart function, plus pointer to where the result should be placed
  */
 {
 	ReadLineStart(file,fname,buf,buf_size,start);
-	if (sscanf(buf+strlen(start),"%lf",res)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
+	if (sscanf(buf+strlen(start),"%lf",res)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
 }
 
 //=====================================================================
 
-INLINE void ScanInt(FILE *file,const char *fname,char *buf,const int buf_size,const char *start,
-	int *res)
+INLINE void ScanInt(FILE * restrict file,const char * restrict fname,char * restrict buf,
+	const int buf_size,const char * restrict start,int *res)
 /* scans integer value from a line starting with exactly 'start'; contains the same arguments as
  * ReadLineStart function, plus pointer to where the result should be placed
  */
@@ -182,60 +181,65 @@ INLINE void ScanInt(FILE *file,const char *fname,char *buf,const int buf_size,co
 	double tmp;
 
 	ReadLineStart(file,fname,buf,buf_size,start);
-	if (sscanf(buf+strlen(start),"%lf",&tmp)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
-	if (tmp<INT_MIN || tmp>INT_MAX) LogError(EC_ERROR,ONE_POS,
-		"Value after '%s' in file '%s' is out of integer bounds",start,fname);
-	if (sscanf(buf+strlen(start),"%d",res)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
+	if (sscanf(buf+strlen(start),"%lf",&tmp)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
+	if (tmp<INT_MIN || tmp>INT_MAX)
+		LogError(ONE_POS,"Value after '%s' in file '%s' is out of integer bounds",start,fname);
+	if (sscanf(buf+strlen(start),"%d",res)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
 }
 
 //=====================================================================
 
-INLINE void ScanSizet(FILE *file,const char *fname,char *buf,const int buf_size,const char *start,
-	size_t *res)
+INLINE void ScanSizet(FILE * restrict file,const char * restrict fname,char * restrict buf,
+	const int buf_size,const char * restrict start,size_t *res)
 /* scans large integer value from a line starting with exactly 'start'; contains the same arguments
- * as ReadLineStart function, plus pointer to where the result should be placed. Conversion from
- * (unsigned long) is needed (to remove warnings) because %z printf argument is not yet supported by
- * all target compiler environments
+ * as ReadLineStart function, plus pointer to where the result should be placed.
+ * MinGW already provides C99-compliant printf-style functions, but not yet scanf-style. So we have
+ * to use workarounds instead of straightforward "%zu" format specifier.
+ * TODO: change to %zu, when libmingwex will include scanf.
  */
-
 {
 	double tmp;
 	unsigned long res_tmp;
 
 	ReadLineStart(file,fname,buf,buf_size,start);
-	if (sscanf(buf+strlen(start),"%lf",&tmp)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
-	if (tmp<0 || tmp>SIZE_MAX) LogError(EC_ERROR,ONE_POS,
-		"Value after '%s' in file '%s' is out of size_t bounds",start,fname);
-	if (sscanf(buf+strlen(start),"%lu",&res_tmp)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
+	if (sscanf(buf+strlen(start),"%lf",&tmp)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
+	if (tmp<0 || tmp>SIZE_MAX)
+		LogError(ONE_POS,"Value after '%s' in file '%s' is out of size_t bounds",start,fname);
+	if (sscanf(buf+strlen(start),"%lu",&res_tmp)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
 	*res=(size_t)res_tmp;
 }
 
 //=====================================================================
 
-INLINE void ScanString(FILE *file,const char *fname,char *buf,const int buf_size,const char *start,
-	char *res)
+INLINE void ScanString(FILE * restrict file,const char * restrict fname,char * restrict buf,
+	const int buf_size,const char * restrict start,char * restrict res)
 /* scans string value from a line starting with exactly 'start'; contains the same arguments as
- * ReadLineStart function, plus pointer to where the result should be placed
+ * ReadLineStart function, plus pointer to where the result should be placed; the memory allocated
+ * to 'res' should be at least buf_size and independent of buf.
  */
 {
 	ReadLineStart(file,fname,buf,buf_size,start);
-	if (sscanf(buf+strlen(start),"%s",res)!=1) LogError(EC_ERROR,ONE_POS,
-		"Error reading value after '%s' in file '%s'",start,fname);
+	if (sscanf(buf+strlen(start),"%s",res)!=1)
+		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
+	/* More secure would be to put field width in format string above (like "%Ns"), however
+	 * this field width is defined by the variable buf_size. The latter can only be implemented by
+	 * a preliminary printf to get a format string.
+	 */
 }
 
 //=====================================================================
 
 static void ScanIntegrParms(
-	FILE *file,const char *fname, // opened file and filename
-	angle_set *a,                 // pointer to angle set
-	Parms_1D *b,                  // pointer to parameters of integration
-	const bool ifcos,             // if space angles equally in cos
-	char *buf,char* temp,         // 2 buffers
-	const int buf_size)           // and their size
+	FILE * restrict file,const char * restrict fname, // opened file and filename
+	angle_set *a,                                     // pointer to angle set
+	Parms_1D *b,                                      // pointer to parameters of integration
+	const bool ifcos,                                 // if space angles equally in cos
+	char * restrict buf,char*  restrict temp,         // 2 independent buffers
+	const int buf_size)                               // and their size
 // scan integration parameters for angles from file
 {
 	size_t i;
@@ -250,11 +254,11 @@ static void ScanIntegrParms(
 	ScanString(file,fname,buf,buf_size,"equiv=",temp);
 	if (strcmp(temp,"true")==0) b->equival=true;
 	else if (strcmp(temp,"false")==0) b->equival=false;
-	else LogError(EC_ERROR,ONE_POS,"Wrong argument of 'equiv' option in file %s",fname);
+	else LogError(ONE_POS,"Wrong argument of 'equiv' option in file %s",fname);
 	ScanString(file,fname,buf,buf_size,"periodic=",temp);
 	if (strcmp(temp,"true")==0) b->periodic=true;
 	else if (strcmp(temp,"false")==0) b->periodic=false;
-	else LogError(EC_ERROR,ONE_POS,"Wrong argument of 'periodic' option in file %s",fname);
+	else LogError(ONE_POS,"Wrong argument of 'periodic' option in file %s",fname);
 
 	// fill all parameters
 	if (a->min==a->max) {
@@ -263,15 +267,15 @@ static void ScanIntegrParms(
 	}
 	else {
 		// consistency check
-		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF
-			") in file %s (max must be >= min)",a->min,a->max,fname);
-		if (b->Jmax<b->Jmin) LogError(EC_ERROR,ONE_POS,
+		if (a->min>a->max) LogError(ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF") in file "
+			"%s (max must be >= min)",a->min,a->max,fname);
+		if (b->Jmax<b->Jmin) LogError(ONE_POS,
 			"Wrong Jmax (%d) in file %s; it must be >= Jmin (%d)",b->Jmax,fname,b->Jmin);
-		if (b->Jmin<1) LogError(EC_ERROR,ONE_POS,
-			"Wrong Jmin (%d) in file %s (must be >=1)",b->Jmin,fname);
-		if (b->eps<0) LogError(EC_ERROR,ONE_POS,
-			"Wrong eps ("GFORMDEF") in file %s (must be >=0)",b->eps,fname);
-		if (b->Jmax >= (int)(8*sizeof(int))) LogError(EC_ERROR,ONE_POS,
+		if (b->Jmin<1)
+			LogError(ONE_POS,"Wrong Jmin (%d) in file %s (must be >=1)",b->Jmin,fname);
+		if (b->eps<0)
+			LogError(ONE_POS,"Wrong eps ("GFORMDEF") in file %s (must be >=0)",b->eps,fname);
+		if (b->Jmax >= (int)(8*sizeof(int))) LogError(ONE_POS,
 			"Too large Jmax(%d) in file %s, it will cause integer overflow",b->Jmax,fname);
 
 		a->N=b->Grid_size=(1 << b->Jmax) + 1;
@@ -283,9 +287,9 @@ static void ScanIntegrParms(
 
 	if (ifcos) { // make equal intervals in cos(angle)
 		// consistency check
-		if (a->min<0) LogError(EC_ERROR,ONE_POS,
+		if (a->min<0) LogError(ONE_POS,
 			"Wrong min ("GFORMDEF") in file %s (must be >=0 for this angle)",a->min,fname);
-		if (a->max>180) LogError(EC_ERROR,ONE_POS,
+		if (a->max>180) LogError(ONE_POS,
 			"Wrong max ("GFORMDEF") in file %s (must be <=180 for this angle)",a->max,fname);
 		b->min=cos(Deg2Rad(a->max));
 		b->max=cos(Deg2Rad(a->min));
@@ -310,10 +314,11 @@ static void ScanIntegrParms(
 
 //=====================================================================
 
-static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file and filename
-	angle_set *a,                                               // pointers to angle set
-	char *buf,char *temp,                                       // 2 buffers
-	const int buf_size)                                         // and their size
+static enum angleset ScanAngleSet(
+	FILE * restrict file,const char * restrict fname, // opened file and filename
+	angle_set *a,                                     // pointers to angle set
+	char * restrict buf,char * restrict temp,         // 2 independent buffers
+	const int buf_size)                               // and their size
 // scan range or set of angles (theta or phi) from file (used for scat_grid)
 {
 	size_t i;
@@ -329,8 +334,8 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 	if (strcmp(temp,"range")==0) {
 		ScanDouble(file,fname,buf,buf_size,"min=",&(a->min));
 		ScanDouble(file,fname,buf,buf_size,"max=",&(a->max));
-		if (a->min>a->max) LogError(EC_ERROR,ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF
-			") in file %s (max must be >= min)",a->min,a->max,fname);
+		if (a->min>a->max) LogError(ONE_POS,"Wrong range (min="GFORMDEF", max="GFORMDEF") in file "
+			"%s (max must be >= min)",a->min,a->max,fname);
 		if (a->N==1) a->val[0]=(a->max + a->min)/2;
 		else {
 			unit = (a->max - a->min)/(a->N - 1);
@@ -342,25 +347,24 @@ static enum angleset ScanAngleSet(FILE *file,const char *fname, // opened file a
 		ReadLineStart(file,fname,buf,buf_size,"values=");
 		for (i=0;i<a->N;i++) {
 			fgets(buf,buf_size,file);
-			if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(EC_ERROR,ONE_POS,
+			if (strstr(buf,"\n")==NULL  && !feof(file)) LogError(ONE_POS,
 				"Buffer overflow while scanning lines in file '%s' (line size > %d)",
 				fname,buf_size-1);
-			if (sscanf(buf,"%lf\n",a->val+i)!=1) LogError(EC_ERROR,ONE_POS,
-				"Failed scanning values from line '%s' in file '%s'",buf,fname);
+			if (sscanf(buf,"%lf\n",a->val+i)!=1)
+				LogError(ONE_POS,"Failed scanning values from line '%s' in file '%s'",buf,fname);
 		}
 		out=AS_VALUES;
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown type '%s' in file '%s'",temp,fname);
-	// not actually reached
+	else LogError(ONE_POS,"Unknown type '%s' in file '%s'",temp,fname);
 	return out;
 }
 
 //=====================================================================
 
-void ReadAvgParms(const char *fname)
+void ReadAvgParms(const char * restrict fname)
 // read parameters of orientation averaging from a file
 {
-	FILE *input;
+	FILE * restrict input;
 	char buf[BUF_LINE],temp[BUF_LINE];
 
 	// open file
@@ -376,28 +380,25 @@ void ReadAvgParms(const char *fname)
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info to string
-	SPRINTZ(avg_string,
-		"alpha: from "GFORMDEF" to "GFORMDEF" in %lu steps\n"
-		"beta: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps (equally spaced in cosine "
+	if (IFROOT) SnprintfErr(ONE_POS,avg_string,MAX_PARAGRAPH,
+		"alpha: from "GFORMDEF" to "GFORMDEF" in %zu steps\n"
+		"beta: from "GFORMDEF" to "GFORMDEF" in (up to) %zu steps (equally spaced in cosine "
 			"values)\n"
-		"gamma: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps\n"
+		"gamma: from "GFORMDEF" to "GFORMDEF" in (up to) %zu steps\n"
 		"see file 'log_orient_avg' for details\n",
-		alpha_int.min,alpha_int.max,(unsigned long)alpha_int.N,beta_int.min,beta_int.max,
-		(unsigned long)beta_int.N,gamma_int.min,gamma_int.max,(unsigned long)gamma_int.N);
-	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is
-	 * not yet supported by all target compiler environmets
-	 */
+		alpha_int.min,alpha_int.max,alpha_int.N,beta_int.min,beta_int.max,beta_int.N,gamma_int.min,
+		gamma_int.max,gamma_int.N);
 	D("ReadAvgParms finished");
 }
 
 //=====================================================================
 
-void ReadAlldirParms(const char *fname)
+void ReadAlldirParms(const char * restrict fname)
 /* read integration parameters for asymmetry-parameter & C_sca; should not be used together with
  * orientation averaging because they use the same storage space - parms
  */
 {
-	FILE *input;
+	FILE * restrict input;
 	char buf[BUF_LINE],temp[BUF_LINE];
 
 	// open file
@@ -410,30 +411,28 @@ void ReadAlldirParms(const char *fname)
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info
-	FPRINTZ(logfile,"\n"
+	if (IFROOT) fprintf(logfile,"\n"
 		"Scattered field is calculated for all directions (for integrated scattering quantities)\n"
-		"theta: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps (equally spaced in cosine "
+		"theta: from "GFORMDEF" to "GFORMDEF" in (up to) %zu steps (equally spaced in cosine "
 			"values)\n"
-		"phi: from "GFORMDEF" to "GFORMDEF" in (up to) %lu steps\n"
+		"phi: from "GFORMDEF" to "GFORMDEF" in (up to) %zu steps\n"
 		"see files 'log_int_***' for details\n\n",
-		theta_int.min,theta_int.max,(unsigned long)theta_int.N,phi_int.min,phi_int.max,
-		(unsigned long)phi_int.N);
-	/* conversions to (unsigned long) are needed (to remove warnings) because %z printf argument is
-	 * not yet supported by all target compiler environmets
-	 */
-
+		theta_int.min,theta_int.max,theta_int.N,phi_int.min,phi_int.max,phi_int.N);
 	D("ReadAlldirParms finished");
 }
 
 //=====================================================================
 
-void ReadScatGridParms(const char *fname)
+void ReadScatGridParms(const char * restrict fname)
 // read parameters of the grid on which to calculate scattered field
 {
-	FILE *input;
+	FILE * restrict input;
 	char buf[BUF_LINE],temp[BUF_LINE];
 	enum angleset theta_type,phi_type;
 	size_t i;
+
+	// redundant initialization to remove warnings
+	theta_type=phi_type=AS_RANGE;
 
 	// open file
 	input=FOpenErr(fname,"r",ALL_POS);
@@ -456,7 +455,7 @@ void ReadScatGridParms(const char *fname)
 	}
 	else if (strcmp(temp,"pairs")==0) {
 		if (phi_integr)
-			LogError(EC_ERROR,ONE_POS,"Integration over phi can't be done with 'global_type=pairs'");
+			LogError(ONE_POS,"Integration over phi can't be done with 'global_type=pairs'");
 		angles.type = SG_PAIRS;
 		ScanSizet(input,fname,buf,BUF_LINE,"N=",&(angles.N));
 		angles.theta.N=angles.phi.N=angles.N;
@@ -468,37 +467,35 @@ void ReadScatGridParms(const char *fname)
 		ReadLineStart(input,fname,buf,BUF_LINE,"pairs=");
 		for (i=0;i<angles.N;i++) {
 			fgets(buf,BUF_LINE,input);
-			if (strstr(buf,"\n")==NULL && !feof(input)) LogError(EC_ERROR,ONE_POS,
+			if (strstr(buf,"\n")==NULL && !feof(input)) LogError(ONE_POS,
 				"Buffer overflow while scanning lines in file '%s' (line size > %d)",
 				fname,BUF_LINE-1);
-			if (sscanf(buf,"%lf %lf\n",angles.theta.val+i,angles.phi.val+i)!=2) LogError(EC_ERROR,
+			if (sscanf(buf,"%lf %lf\n",angles.theta.val+i,angles.phi.val+i)!=2) LogError(
 				ONE_POS,"Failed scanning values from line '%s' in file '%s'",buf,fname);
 		}
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown global_type '%s' in file '%s'",temp,fname);
+	else LogError(ONE_POS,"Unknown global_type '%s' in file '%s'",temp,fname);
 	// close file
 	FCloseErr(input,fname,ALL_POS);
-	/* print info; conversions to (unsigned long) are needed (to remove warnings) because %z printf
-	 * argument is not yet supported by all target compiler environmets
-	 */
-	if (ringid==ADDA_ROOT) {
+	// print info
+	if (IFROOT) {
 		fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
 		if (angles.type==SG_GRID) {
 			if (theta_type==AS_RANGE)
-				fprintf(logfile,"theta: from "GFORMDEF" to "GFORMDEF" in %lu steps\n",
-					angles.theta.min,angles.theta.max,(unsigned long)angles.theta.N);
+				fprintf(logfile,"theta: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",
+					angles.theta.min,angles.theta.max,angles.theta.N);
 			else if (theta_type==AS_VALUES)
-				fprintf(logfile,"theta: %lu given values\n",(unsigned long)angles.theta.N);
+				fprintf(logfile,"theta: %zu given values\n",angles.theta.N);
 			if (phi_type==AS_RANGE) {
-				fprintf(logfile,"phi: from "GFORMDEF" to "GFORMDEF" in %lu steps\n",
-					angles.phi.min,angles.phi.max,(unsigned long)angles.phi.N);
+				fprintf(logfile,"phi: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",
+					angles.phi.min,angles.phi.max,angles.phi.N);
 				if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
 			}
 			else if (phi_type==AS_VALUES)
-				fprintf(logfile,"phi: %lu given values\n",(unsigned long)angles.phi.N);
+				fprintf(logfile,"phi: %zu given values\n",angles.phi.N);
 		}
 		else if (angles.type==SG_PAIRS)
-			fprintf(logfile,"Total %lu given (theta,phi) pairs\n",(unsigned long)angles.N);
+			fprintf(logfile,"Total %zu given (theta,phi) pairs\n",angles.N);
 		fprintf(logfile,"\n");
 	}
 	D("ReadScatGridParms finished");
@@ -506,8 +503,8 @@ void ReadScatGridParms(const char *fname)
 
 //=====================================================================*/
 
-void CalcField (doublecomplex *ebuff, // where to write calculated scattering amplitude
-                const double *n)      // scattering direction
+void CalcField (doublecomplex * restrict ebuff, // where to write calculated scattering amplitude
+                const double * restrict n)      // scattering direction
 /* Near-optimal routine to compute the scattered fields at one specific angle (more exactly -
  * scattering amplitude); Specific optimization are possible when e.g. n[0]=0 for scattering in
  * yz-plane, however in this case it is very improbable that the routine will become a bottleneck.
@@ -527,7 +524,7 @@ void CalcField (doublecomplex *ebuff, // where to write calculated scattering am
 
 	if (ScatRelation==SQ_SO) {
 		// !!! this should never happen
-		if (anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in CalcField");
+		if (anisotropy) LogError(ONE_POS,"Incompatibility error in CalcField");
 		// calculate correction coefficient
 		if (scat_avg) na=0;
 		else na=DotProd(n,prop);
@@ -590,7 +587,7 @@ void CalcField (doublecomplex *ebuff, // where to write calculated scattering am
 	// tbuff=(I-nxn).sum=sum-n*(n.sum)
 	crDotProd(sum,n,dpr);
 	cScalMultRVec(n,dpr,tbuff);
-	cvSubtr(sum,tbuff,tbuff);
+	cvSubtrSelf(sum,tbuff);
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
 	imExp(-WaveNum*DotProd(box_origin_unif,n),a); // a=exp(-ikr0.n)
 	kkk=WaveNum*WaveNum*WaveNum;
@@ -601,7 +598,7 @@ void CalcField (doublecomplex *ebuff, // where to write calculated scattering am
 
 //=====================================================================
 
-double ExtCross(const double *incPol)
+double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
 	doublecomplex ebuff[3];
@@ -630,8 +627,8 @@ double ExtCross(const double *incPol)
 	*/
 	if (ScatRelation==SQ_FINDIP) {
 		if (dCabs_ready) sum+=dCabs;
-		else LogError(EC_ERROR,ONE_POS,"When using 'fin' scattering quantities formulation, Cabs "
-			"should be calculated before Cext");
+		else LogError(ONE_POS,"When using 'fin' scattering quantities formulation, Cabs should be "
+			"calculated before Cext");
 	}
 	return sum;
 }
@@ -693,7 +690,7 @@ double AbsCross(void)
 	}
 	else if (ScatRelation==SQ_SO) {
 		// !!! this should never happen
-		if (anisotropy) LogError(EC_ERROR,ONE_POS,"Incompatibility error in AbsCross");
+		if (anisotropy) LogError(ONE_POS,"Incompatibility error in AbsCross");
 		// calculate mult1
 		temp1=kd*kd/6;
 		temp2=FOUR_PI/dipvol;
@@ -731,7 +728,7 @@ void CalcAlldir(void)
 	// Calculate field
 	tstart = GET_TIME();
 	npoints = theta_int.N*phi_int.N;
-	PRINTZ("Calculating scattered field for the whole solid angle:\n");
+	if (IFROOT) printf("Calculating scattered field for the whole solid angle:\n");
 	for (i=0,point=0;i<theta_int.N;++i) {
 		th=Deg2Rad(theta_int.val[i]);
 		cthet=cos(th);
@@ -758,10 +755,7 @@ void CalcAlldir(void)
 			crDotProd(ebuff,incPolpar,((doublecomplex*)E2_alldir)[index+1]);
 			point++;
 			// show progress
-			if (((10*point)%npoints)<10) {
-				PRINTZ(" %d%%",100*point/npoints);
-				FFLUSHZ(stdout);
-			}
+			if (((10*point)%npoints)<10 && IFROOT) printf(" %d%%",100*point/npoints);
 		}
 	}
 	// accumulate fields
@@ -770,8 +764,7 @@ void CalcAlldir(void)
 	for (point=0;point<npoints;point++)
 		E2_alldir[point] = cAbs2(((doublecomplex*)E2_alldir)[2*point]) +
 		cAbs2(((doublecomplex*)E2_alldir)[2*point+1]);
-	PRINTZ("  done\n");
-	FFLUSHZ(stdout);
+	if (IFROOT) printf("  done\n");
 	// timing
 	Timing_EFieldAD = GET_TIME() - tstart;
 	Timing_EField += Timing_EFieldAD;
@@ -779,7 +772,7 @@ void CalcAlldir(void)
 
 //=====================================================================
 
-void CalcScatGrid(const char which)
+void CalcScatGrid(const enum incpol which)
 // calculate scattered field in many directions
 {
 	size_t i,j,n,point,index;
@@ -791,12 +784,12 @@ void CalcScatGrid(const char which)
 	// Calculate field
 	tstart = GET_TIME();
 	// choose which array to fill
-	if (which=='X') Egrid=EgridX;
-	else if (which=='Y') Egrid=EgridY;
+	if (which==INCPOL_Y) Egrid=EgridY;
+	else Egrid=EgridX; // which==INCPOL_X
 	// set type of cycling through angles
 	if (angles.type==SG_GRID) n=angles.phi.N;
-	else if (angles.type==SG_PAIRS) n=1;
-	PRINTZ("Calculating grid of scattered field:\n");
+	else n=1; // angles.type==SG_PAIRS
+	if (IFROOT) printf("Calculating grid of scattered field:\n");
 	// main cycle
 	for (i=0,point=0;i<angles.theta.N;++i) {
 		th=Deg2Rad(angles.theta.val[i]);
@@ -804,7 +797,7 @@ void CalcScatGrid(const char which)
 		sthet=sin(th);
 		for (j=0;j<n;++j) {
 			if (angles.type==SG_GRID) ph=Deg2Rad(angles.phi.val[j]);
-			else if (angles.type==SG_PAIRS) ph=Deg2Rad(angles.phi.val[i]);
+			else ph=Deg2Rad(angles.phi.val[i]); // angles.type==SG_PAIRS
 			cphi=cos(ph);
 			sphi=sin(ph);
 			// robserver = cos(theta)*prop + sin(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
@@ -824,25 +817,20 @@ void CalcScatGrid(const char which)
 			crDotProd(ebuff,incPolper,Egrid[index]);
 			crDotProd(ebuff,incPolpar,Egrid[index+1]);
 			point++;
-			// show progress
-			if (((10*point)%angles.N)<10) {
-				// the value is always from 0 to 100, so conversion to int is absolutely safe
-				PRINTZ(" %d%%",(int)(100*point/angles.N));
-				FFLUSHZ(stdout);
-			}
+			// show progress; the value is always from 0 to 100, so conversion to int is safe
+			if (((10*point)%angles.N)<10 && IFROOT) printf(" %d%%",(int)(100*point/angles.N));
 		}
 	}
 	// accumulate fields; timing
 	Accumulate((double *)Egrid,4*angles.N,Egrid_buffer,&Timing_EFieldSGComm);
-	PRINTZ("  done\n");
-	FFLUSHZ(stdout);
+	if (IFROOT) printf("  done\n");
 	Timing_EFieldSG = GET_TIME() - tstart;
 	Timing_EField += Timing_EFieldSG;
 }
 
 //=====================================================================
 
-static double CscaIntegrand(const int theta,const int phi,double *res)
+static double CscaIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating Csca
 {
 	res[0]=E2_alldir[AlldirIndex(theta,phi)];
@@ -851,14 +839,14 @@ static double CscaIntegrand(const int theta,const int phi,double *res)
 
 //=====================================================================
 
-double ScaCross(char *f_suf)
+double ScaCross(char * restrict f_suf)
 // Calculate the scattering cross section from the integral
 {
 	TIME_TYPE tstart;
 	char fname[MAX_FNAME];
 	double res;
 
-	sprintf(fname,"%s/"F_LOG_INT_CSCA "%s",directory,f_suf);
+	SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_LOG_INT_CSCA "%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,CscaIntegrand,1,&res,fname);
@@ -869,7 +857,7 @@ double ScaCross(char *f_suf)
 
 //=====================================================================
 
-static double gIntegrand(const int theta,const int phi,double *res)
+static double gIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g
 {
 	double E_square,th,ph;
@@ -885,14 +873,14 @@ static double gIntegrand(const int theta,const int phi,double *res)
 
 //=====================================================================
 
-void AsymParm(double *vec,char *f_suf)
+void AsymParm(double *vec,char * restrict f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	int comp;
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/"F_LOG_INT_ASYM "%s",directory,f_suf);
+	SnprintfErr(ONE_POS,log_int,MAX_FNAME,"%s/"F_LOG_INT_ASYM "%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gIntegrand,3,vec,log_int);
@@ -902,7 +890,7 @@ void AsymParm(double *vec,char *f_suf)
 
 //=====================================================================
 
-static double gxIntegrand(const int theta,const int phi,double *res)
+static double gxIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_x
 {
 	res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(theta_int.val[theta]))
@@ -912,13 +900,13 @@ static double gxIntegrand(const int theta,const int phi,double *res)
 
 //=====================================================================
 
-void AsymParm_x(double *vec,char *f_suf)
+void AsymParm_x(double *vec,char * restrict f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_X"%s",directory,f_suf);
+	SnprintfErr(ONE_POS,log_int,MAX_FNAME,"%s/"F_LOG_INT_ASYM F_LOG_X"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gxIntegrand,1,vec,log_int);
@@ -928,7 +916,7 @@ void AsymParm_x(double *vec,char *f_suf)
 
 //=====================================================================
 
-static double gyIntegrand(const int theta,const int phi,double *res)
+static double gyIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_y
 {
 	res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(theta_int.val[theta]))
@@ -938,13 +926,13 @@ static double gyIntegrand(const int theta,const int phi,double *res)
 
 //=====================================================================
 
-void AsymParm_y(double *vec,char *f_suf)
+void AsymParm_y(double *vec,char * restrict f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_Y"%s",directory,f_suf);
+	SnprintfErr(ONE_POS,log_int,MAX_FNAME,"%s/"F_LOG_INT_ASYM F_LOG_Y"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gyIntegrand,1,vec,log_int);
@@ -954,7 +942,7 @@ void AsymParm_y(double *vec,char *f_suf)
 
 //=====================================================================
 
-static double gzIntegrand(const int theta,const int phi,double *res)
+static double gzIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_z
 {
 	res[0]=E2_alldir[AlldirIndex(theta,phi)]*cos(Deg2Rad(theta_int.val[theta]));
@@ -963,14 +951,14 @@ static double gzIntegrand(const int theta,const int phi,double *res)
 
 //=====================================================================
 
-void AsymParm_z(double *vec,char *f_suf)
+void AsymParm_z(double *vec,char * restrict f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 
 {
 	TIME_TYPE tstart;
 	char log_int[MAX_FNAME];
 
-	sprintf(log_int,"%s/"F_LOG_INT_ASYM F_LOG_Z"%s",directory,f_suf);
+	SnprintfErr(ONE_POS,log_int,MAX_FNAME,"%s/"F_LOG_INT_ASYM F_LOG_Z"%s",directory,f_suf);
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gzIntegrand,1,vec,log_int);
@@ -980,8 +968,8 @@ void AsymParm_z(double *vec,char *f_suf)
 
 //=====================================================================
 
-void Frp_mat(double Fsca_tot[3],double *Fsca,double Finc_tot[3],double *Finc,double Frp_tot[3],
-	double *Frp)
+void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double * restrict Finc,
+	double Frp_tot[3],double * restrict Frp)
 /* Calculate the Radiation Pressure by direct calculation of the scattering force. Per dipole the
  * force of the incoming photons, the scattering force and the radiation pressure are calculated
  * as intermediate results
@@ -991,10 +979,10 @@ void Frp_mat(double Fsca_tot[3],double *Fsca,double Finc_tot[3],double *Finc,dou
 	int i;
 	size_t local_d0;
 	size_t local_nvoid_d0, local_nvoid_d1;
-	double *nvoid_array;
-	unsigned char *materialT;
-	double *rdipT;
-	doublecomplex *pT;
+	double * restrict nvoid_array;
+	unsigned char * restrict materialT;
+	double * restrict rdipT;
+	doublecomplex * restrict pT;
 	doublecomplex temp;
 	doublecomplex dummy,_E_inc;
 	double r,r2; // (squared) absolute distance
@@ -1007,7 +995,7 @@ void Frp_mat(double Fsca_tot[3],double *Fsca,double Finc_tot[3],double *Finc,dou
 	inp;     // P*_j.P_l
 
 	// check if it can work at all
-	CheckOverflow(3*nvoid_Ndip,ONE_POS,"Frp_mat()");
+	CheckOverflow(3*nvoid_Ndip,ONE_POS_FUNC);
 	// initialize
 	local_d0=boxX*boxY*local_z0;
 	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=Frp_tot[comp]=0.0;

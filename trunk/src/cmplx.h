@@ -10,6 +10,7 @@
  *        Numerical Recipes, 3rd edition.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -36,7 +37,7 @@
 // operations on complex numbers
 
 INLINE void cEqual(const doublecomplex a,doublecomplex b)
-// performs b=a
+// performs b=a; !!! pointers b and a must be different !!!
 {
 	memcpy(b,a,sizeof(doublecomplex));
 }
@@ -74,7 +75,7 @@ INLINE double cAbs(const doublecomplex a)
 //============================================================
 
 INLINE void cConj(const doublecomplex a,doublecomplex b)
-// complex conjugate; b=a*
+// complex conjugate; b=a*; b and a may coincide
 {
 	b[RE] = a[RE];
 	b[IM] = - a[IM];
@@ -83,7 +84,7 @@ INLINE void cConj(const doublecomplex a,doublecomplex b)
 //============================================================
 
 INLINE void cAdd(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// add two complex numbers; c=a+b
+// add two complex numbers; c=a+b; any two or three pointers may coincide
 {
 	c[RE] = a[RE] + b[RE];
 	c[IM] = a[IM] + b[IM];
@@ -92,7 +93,7 @@ INLINE void cAdd(const doublecomplex a,const doublecomplex b,doublecomplex c)
 //============================================================
 
 INLINE void cSubtr(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// subtract two complex numbers; c=a-b
+// subtract two complex numbers; c=a-b; any two or three pointers may coincide
 {
 	c[RE] = a[RE] - b[RE];
 	c[IM] = a[IM] - b[IM];
@@ -101,7 +102,7 @@ INLINE void cSubtr(const doublecomplex a,const doublecomplex b,doublecomplex c)
 //============================================================
 
 INLINE void cSquare(const doublecomplex a,doublecomplex b)
-// square of complex number; b=a^2
+// square of complex number; b=a^2; !!! pointers b and a must me different !!!
 {
 	b[RE]=a[RE]*a[RE] - a[IM]*a[IM];
 	b[IM]=2*a[IM]*a[RE];
@@ -110,7 +111,7 @@ INLINE void cSquare(const doublecomplex a,doublecomplex b)
 //============================================================
 
 INLINE void cMultReal(const double a,const doublecomplex b,doublecomplex c)
-// complex multiplication by real; c=ab
+// complex multiplication by real; c=ab; pointers b and c may coincide
 {
 	c[RE]=a*b[RE];
 	c[IM]=a*b[IM];
@@ -130,7 +131,7 @@ INLINE void cMult_i(doublecomplex c)
 //============================================================
 
 INLINE void cMult_i2(doublecomplex a,doublecomplex b)
-// complex multiplication by i; b=i*a; !!! b and c should be different !!!
+// complex multiplication by i; b=i*a; !!! pointers b and a must be different !!!
 {
 	b[RE]=-a[IM];
 	b[IM]=a[RE];
@@ -138,7 +139,7 @@ INLINE void cMult_i2(doublecomplex a,doublecomplex b)
 //============================================================
 
 INLINE void cMult(const doublecomplex a,const doublecomplex b,doublecomplex c)
-// complex multiplication; c=ab; !!! c should be different from a and b !!!
+// complex multiplication; c=ab; !!! pointer c must be different from a and b !!!
 {
 	c[RE]=a[RE]*b[RE] - a[IM]*b[IM];
 	c[IM]=a[IM]*b[RE] + a[RE]*b[IM];
@@ -147,7 +148,7 @@ INLINE void cMult(const doublecomplex a,const doublecomplex b,doublecomplex c)
 //============================================================
 
 INLINE void cMultSelf(doublecomplex a,const doublecomplex b)
-// complex multiplication; a*=b
+// complex multiplication; a*=b; !!! pointers a and b must be different !!!
 {
 	double tmp;
 
@@ -159,7 +160,7 @@ INLINE void cMultSelf(doublecomplex a,const doublecomplex b)
 //============================================================
 
 INLINE double cMultConRe(const doublecomplex a,const doublecomplex b)
-// complex multiplication; returns real(a*b_conjugated)
+// complex multiplication; returns real(a*b_conjugated); pointers a and b may coincide
 {
 	return (a[RE]*b[RE] + a[IM]*b[IM]);
 }
@@ -167,7 +168,7 @@ INLINE double cMultConRe(const doublecomplex a,const doublecomplex b)
 //============================================================
 
 INLINE double cMultConIm(const doublecomplex a,const doublecomplex b)
-// complex multiplication; returns imag(a*b_conjugated)
+// complex multiplication; returns imag(a*b_conjugated); pointers a and b may coincide
 {
 	return (a[IM]*b[RE] - a[RE]*b[IM]);
 }
@@ -176,7 +177,7 @@ INLINE double cMultConIm(const doublecomplex a,const doublecomplex b)
 
 INLINE void cLinComb(const doublecomplex a,const doublecomplex b,
                      const double c1,const double c2,doublecomplex c)
-// linear combination of two complex numbers; c=c1*a+c2*b
+// linear combination of two complex numbers; c=c1*a+c2*b; any two or three pointers may coincide
 {
 	c[RE]=c1*a[RE]+c2*b[RE];
 	c[IM]=c1*a[IM]+c2*b[IM];
@@ -194,7 +195,7 @@ INLINE void cInvSign(doublecomplex a)
 //============================================================
 
 INLINE void cInvSign2(const doublecomplex a,doublecomplex b)
-// change sign of complex number and store to different address; b=-a;
+// change sign of complex number and store to different address; b=-a; pointers a and b may coincide
 {
 	b[RE] = - a[RE];
 	b[IM] = - a[IM];
@@ -203,7 +204,7 @@ INLINE void cInvSign2(const doublecomplex a,doublecomplex b)
 //============================================================
 
 INLINE void cInv(const doublecomplex a,doublecomplex b)
-// complex inversion; b=1/a; designed to avoid under and overflows
+// complex inversion; b=1/a; designed to avoid under and overflows; pointers a and b may coincide
 {
 	double tmp;
 
@@ -240,7 +241,7 @@ INLINE double cInvIm(const doublecomplex a)
 
 INLINE void cDiv(const doublecomplex a,const doublecomplex b,doublecomplex c)
 /* complex division; c=a/b; designed to avoid under and overflows
- * !!! c should be different from a !!!
+ * !!! pointer c must be different from a !!!
  */
 {
 	double u,v;
@@ -262,7 +263,7 @@ INLINE void cDiv(const doublecomplex a,const doublecomplex b,doublecomplex c)
 //============================================================
 
 INLINE void cDivSelf(doublecomplex a,const doublecomplex b)
-// complex division; a/=b; designed to avoid under and overflows
+// complex division; a/=b; designed to avoid under and overflows; pointers a and b may coincide
 {
 	double u,v,w;
 
@@ -285,7 +286,7 @@ INLINE void cDivSelf(doublecomplex a,const doublecomplex b)
 
 INLINE void cSqrt(const doublecomplex a,doublecomplex b)
 /* complex square root; b=sqrt(a); designed to avoid under and overflows;
- * branch cut discontinuity is (-inf,0) - b[RE]>=0
+ * branch cut discontinuity is (-inf,0) - b[RE]>=0; pointers a and b may coincide
  */
 {
 	double u,v,w,r;
@@ -363,7 +364,7 @@ INLINE void imExp_arr(const double arg,const int size,doublecomplex *c)
 
 INLINE void cExp(const doublecomplex arg,doublecomplex c)
 /* complex exponent of complex argument c=Exp(arg); optimization is performed by compiler;
- * !!! c should be different from arg !!!
+ * !!! pointer c must be different from arg !!!
  */
 {
 	c[RE]=c[IM]=exp(arg[RE]);
@@ -389,8 +390,9 @@ INLINE void cExpSelf(doublecomplex arg)
 //============================================================
 // operations on complex vectors
 
-INLINE void cvMultScal(const double a,doublecomplex *b,doublecomplex *c)
-// multiplication of vector by real scalar; c=ab
+INLINE void cvMultScal(const double a,doublecomplex b[static restrict 3],
+	doublecomplex c[static restrict 3])
+// multiplication of vector[3] by real scalar; c=ab; !!! pointers b and c must not alias !!!
 {
 	c[0][RE] = a*b[0][RE];
 	c[0][IM] = a*b[0][IM];
@@ -401,9 +403,15 @@ INLINE void cvMultScal(const double a,doublecomplex *b,doublecomplex *c)
 }
 
 //============================================================
+/* Here and further we leave the possibility for the compiler to consider double and doublecomplex
+ * types compatible, not to require strict aliasing rule upon them. Therefore we declare double
+ * pointers as restrict wherever possible. This doesn't add any problems to the rest of the code,
+ * since no conversion between double and doublecomplex should be performed.
+ */
 
-INLINE void cScalMultRVec(const double *a,const doublecomplex b,doublecomplex *c)
-// complex scalar- real vector[3] multiplication; c=b*a
+INLINE void cScalMultRVec(const double a[static restrict 3],const doublecomplex b,
+	doublecomplex c[static restrict 3])
+// complex scalar- real vector[3] multiplication; c=b*a; !!! pointers a,b,c must not alias !!!
 {
 	c[0][RE] = b[RE]*a[0];
 	c[0][IM] = b[IM]*a[0];
@@ -415,8 +423,9 @@ INLINE void cScalMultRVec(const double *a,const doublecomplex b,doublecomplex *c
 
 //============================================================
 
-INLINE void cvMultScal_cmplx(const doublecomplex a,doublecomplex *b,doublecomplex *c)
-// multiplication of vector[3] by complex scalar; c=ab
+INLINE void cvMultScal_cmplx(const doublecomplex a,doublecomplex b[static restrict 3],
+	doublecomplex c[static restrict 3])
+// multiplication of vector[3] by complex scalar; c=ab; !!! pointers a,b,c must not alias !!!
 {
 	c[0][RE] = a[RE]*b[0][RE] - a[IM]*b[0][IM];
 	c[0][IM] = a[RE]*b[0][IM] + a[IM]*b[0][RE];
@@ -428,7 +437,7 @@ INLINE void cvMultScal_cmplx(const doublecomplex a,doublecomplex *b,doublecomple
 
 //============================================================
 
-INLINE double cvNorm2(doublecomplex *a)
+INLINE double cvNorm2(doublecomplex a[static 3])
 // square of the norm of a complex vector[3]
 {
 	return ( a[0][RE]*a[0][RE] + a[0][IM]*a[0][IM]
@@ -439,8 +448,11 @@ INLINE double cvNorm2(doublecomplex *a)
 
 //============================================================
 
-INLINE void cDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c)
-// conjugate dot product of two complex vector[3]; c=a.b = a[0]*b*[0]+...+a[2]*b*[2]*/
+INLINE void cDotProd(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	doublecomplex c)
+/* conjugate dot product of two complex vector[3]; c=a.b = a[0]*b*[0]+...+a[2]*b*[2]
+ * !!! pointers a,b,c must not alias !!!)
+ */
 {
 	c[RE] = a[0][RE]*b[0][RE] + a[0][IM]*b[0][IM]
 	      + a[1][RE]*b[1][RE] + a[1][IM]*b[1][IM]
@@ -452,8 +464,8 @@ INLINE void cDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c)
 
 //============================================================
 
-INLINE double cDotProd_Re(doublecomplex *a,doublecomplex *b)
-// real part of dot product of two complex vector[3]; c=Re(a.b)
+INLINE double cDotProd_Re(doublecomplex a[static 3],doublecomplex b[static 3])
+// real part of dot product of two complex vector[3]; c=Re(a.b); a and b may alias
 {
 	return ( a[0][RE]*b[0][RE] + a[0][IM]*b[0][IM]
 	       + a[1][RE]*b[1][RE] + a[1][IM]*b[1][IM]
@@ -462,8 +474,8 @@ INLINE double cDotProd_Re(doublecomplex *a,doublecomplex *b)
 
 //============================================================
 
-INLINE double cDotProd_Im(doublecomplex *a,doublecomplex *b)
-// imaginary part of dot product of two complex vector[3]; c=Im(a.b)
+INLINE double cDotProd_Im(doublecomplex a[static 3],doublecomplex b[static 3])
+// imaginary part of dot product of two complex vector[3]; c=Im(a.b); a and b may alias
 {
 	return ( a[0][IM]*b[0][RE] - a[0][RE]*b[0][IM]
 	       + a[1][IM]*b[1][RE] - a[1][RE]*b[1][IM]
@@ -472,8 +484,11 @@ INLINE double cDotProd_Im(doublecomplex *a,doublecomplex *b)
 
 //============================================================
 
-INLINE void cDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c)
-// dot product of two complex vector[3]; c=a.b* = a[0]*b[0]+...+a[2]*b[2]
+INLINE void cDotProd_conj(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	doublecomplex c)
+/* dot product of two complex vector[3]; c=a.b* = a[0]*b[0]+...+a[2]*b[2]
+ * !!! pointers a,b,c must not alias !!!
+ */
 {
 	c[RE] = a[0][RE]*b[0][RE] - a[0][IM]*b[0][IM]
 	      + a[1][RE]*b[1][RE] - a[1][IM]*b[1][IM]
@@ -485,8 +500,8 @@ INLINE void cDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c)
 
 //============================================================
 
-INLINE double cDotProd_conj_Re(doublecomplex *a,doublecomplex *b)
-// real part of dot product of two complex vector[3]; c=Re(a.b*)
+INLINE double cDotProd_conj_Re(doublecomplex a[static 3],doublecomplex b[static 3])
+// real part of dot product of two complex vector[3]; c=Re(a.b*); a and b may alias
 {
 	return ( a[0][RE]*b[0][RE] - a[0][IM]*b[0][IM]
 	       + a[1][RE]*b[1][RE] - a[1][IM]*b[1][IM]
@@ -495,8 +510,8 @@ INLINE double cDotProd_conj_Re(doublecomplex *a,doublecomplex *b)
 
 //============================================================
 
-INLINE double cDotProd_conj_Im(doublecomplex *a,doublecomplex *b)
-// imaginary part of dot product of two complex vector[3]; c=Im(a.b*)
+INLINE double cDotProd_conj_Im(doublecomplex a[static 3],doublecomplex b[static 3])
+// imaginary part of dot product of two complex vector[3]; c=Im(a.b*); a and b may alias
 {
 	return ( a[0][IM]*b[0][RE] + a[0][RE]*b[0][IM]
 	       + a[1][IM]*b[1][RE] + a[1][RE]*b[1][IM]
@@ -505,8 +520,11 @@ INLINE double cDotProd_conj_Im(doublecomplex *a,doublecomplex *b)
 
 //============================================================
 
-INLINE void cvAdd(doublecomplex *a,doublecomplex *b,doublecomplex *c)
-// add two complex vector[3]; c=a+b
+INLINE void cvAdd(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	doublecomplex c[static restrict 3])
+/* add two complex vector[3]; c=a+b; !!! pointers a,b,c must not alias !!!
+ * (coincidence of, e.g., a and c is logically possible but disallowed for 'restrict' optimization)
+ */
 {
 	c[0][RE] = a[0][RE] + b[0][RE];
 	c[0][IM] = a[0][IM] + b[0][IM];
@@ -518,21 +536,41 @@ INLINE void cvAdd(doublecomplex *a,doublecomplex *b,doublecomplex *c)
 
 //============================================================
 
-INLINE void cvSubtr(doublecomplex *a,doublecomplex *b,doublecomplex *c)
-// subtraction of two complex vector[3]; c=a-b
+INLINE void cvAdd2Self(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	doublecomplex c[static restrict 3])
+/* increment one complex vector[3] by sum of other two; a+=b+c;!!! pointers a,b,c must not alias !!!
+ * (coincidence of, e.g., a and b is logically possible but disallowed for 'restrict' optimization)
+ */
 {
-	c[0][RE] = a[0][RE] - b[0][RE];
-	c[0][IM] = a[0][IM] - b[0][IM];
-	c[1][RE] = a[1][RE] - b[1][RE];
-	c[1][IM] = a[1][IM] - b[1][IM];
-	c[2][RE] = a[2][RE] - b[2][RE];
-	c[2][IM] = a[2][IM] - b[2][IM];
+	a[0][RE] += b[0][RE] + c[0][RE];
+	a[0][IM] += b[0][IM] + c[0][IM];
+	a[1][RE] += b[1][RE] + c[1][RE];
+	a[1][IM] += b[1][IM] + c[1][IM];
+	a[2][RE] += b[2][RE] + c[2][RE];
+	a[2][IM] += b[2][IM] + c[2][IM];
 }
 
 //============================================================
 
-INLINE void crDotProd(doublecomplex *a,const double *b,doublecomplex c)
-// dot product of complex and real vectors[3]; c=a.b
+INLINE void cvSubtrSelf(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3])
+/* inverse sign of the complex vector[3] b and then increment by complex vector a; b=a-b
+ * rather uncommon operation that appears only in one place in the code and is subject to compiler
+ * optimization. !!! b and a must not alias !!! (and their coincidence has little sense)
+ */
+{
+	b[0][RE] = a[0][RE] - b[0][RE];
+	b[0][IM] = a[0][IM] - b[0][IM];
+	b[1][RE] = a[1][RE] - b[1][RE];
+	b[1][IM] = a[1][IM] - b[1][IM];
+	b[2][RE] = a[2][RE] - b[2][RE];
+	b[2][IM] = a[2][IM] - b[2][IM];
+}
+
+//============================================================
+
+INLINE void crDotProd(doublecomplex a[static 3],const double b[static restrict 3],
+	doublecomplex c)
+// dot product of complex and real vectors[3]; c=a.b; pointers a and c may alias, but that is weird
 {
 	c[RE] = a[0][RE]*b[0] + a[1][RE]*b[1] + a[2][RE]*b[2];
 	c[IM] = a[0][IM]*b[0] + a[1][IM]*b[1] + a[2][IM]*b[2];
@@ -540,24 +578,27 @@ INLINE void crDotProd(doublecomplex *a,const double *b,doublecomplex c)
 
 //============================================================
 
-INLINE double crDotProd_Re(doublecomplex *a,const double *b)
-// real part of dot product of complex and real vectors[3]; c=Re(a.b)
+INLINE double crDotProd_Re(doublecomplex a[static 3],const double b[static 3])
+// real part of dot product of complex and real vectors[3]; c=Re(a.b); a and b may alias
 {
 	return (a[0][RE]*b[0] + a[1][RE]*b[1] + a[2][RE]*b[2]);
 }
 
 //============================================================
 
-INLINE double crDotProd_Im(doublecomplex *a,const double *b)
-// imaginary part of dot product of complex and real vectors[3]; c=Im(a.b)
+INLINE double crDotProd_Im(doublecomplex a[static restrict 3],const double b[static restrict 3])
+// imaginary part of dot product of complex and real vectors[3]; c=Im(a.b); a and b may alias
 {
 	return (a[0][IM]*b[0] + a[1][IM]*b[1] + a[2][IM]*b[2]);
 }
 
 //============================================================
 
-INLINE void cvIncremScaled_cmplx(doublecomplex *a,const doublecomplex b,doublecomplex *c)
-// increment of complex vectors[3] by complex-scaled other vector; c+=b*a
+INLINE void cvIncremScaled_cmplx(doublecomplex a[static restrict 3],const doublecomplex b,
+	doublecomplex c[static restrict 3])
+/* increment of complex vectors[3] by complex-scaled other vector; c+=b*a;
+ * !!! pointers a,b,c must not alias !!!
+ */
 {
 	c[0][RE] += b[RE]*a[0][RE] - b[IM]*a[0][IM];
 	c[0][IM] += b[RE]*a[0][IM] + b[IM]*a[0][RE];
@@ -568,8 +609,11 @@ INLINE void cvIncremScaled_cmplx(doublecomplex *a,const doublecomplex b,doubleco
 }
 //============================================================
 
-INLINE void cvMultAdd(doublecomplex *a,const doublecomplex b,doublecomplex *c)
-// multiply complex vectors[3] with complex constant and add another vector; c=b*c+a
+INLINE void cvMultAdd(doublecomplex a[static restrict 3],const doublecomplex b,
+	doublecomplex c[static restrict 3])
+/* multiply complex vectors[3] with complex constant and add another vector; c=b*c+a
+ * !!! pointers a,b,c must not alias !!!
+ */
 {
 	double tmp;
 	tmp=c[0][RE];
@@ -585,9 +629,12 @@ INLINE void cvMultAdd(doublecomplex *a,const doublecomplex b,doublecomplex *c)
 
 //============================================================
 
-INLINE void cvLinComb1(doublecomplex *a,doublecomplex *b,
-                       const double c1,doublecomplex *c)
-// linear combination of complex vectors[3]; second coefficient is unity; c=c1*a+b
+INLINE void cvLinComb1(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	const double c1,doublecomplex c[static restrict 3])
+/* linear combination of complex vectors[3]; second coefficient is unity; c=c1*a+b
+ * !!! pointers a,b,c must not alias !!!
+ * (coincidence of, e.g., a and c is logically possible but disallowed for 'restrict' optimization)
+ */
 {
 	c[0][RE] = c1*a[0][RE] + b[0][RE];
 	c[0][IM] = c1*a[0][IM] + b[0][IM];
@@ -599,10 +646,10 @@ INLINE void cvLinComb1(doublecomplex *a,doublecomplex *b,
 
 //============================================================
 
-INLINE void cvLinComb1_cmplx(doublecomplex *a,doublecomplex *b,
-                             const doublecomplex c1,doublecomplex *c)
+INLINE void cvLinComb1_cmplx(doublecomplex a[static restrict 3],doublecomplex b[static restrict 3],
+	const doublecomplex c1,doublecomplex c[static restrict 3])
 /* linear combination of complex vectors[3] with complex coefficients;
- * second coefficient is unity; c=c1*a+b   !!! c!=a
+ * second coefficient is unity; c=c1*a+b; !!! pointers a,b,c,c1 must not alias !!!
  */
 {
 	c[0][RE] = a[0][RE]*c1[RE] - a[0][IM]*c1[IM] + b[0][RE];
@@ -615,8 +662,11 @@ INLINE void cvLinComb1_cmplx(doublecomplex *a,doublecomplex *b,
 
 //============================================================
 
-INLINE void cSymMatrVec(doublecomplex *matr,doublecomplex *vec,doublecomplex *res)
-// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+INLINE void cSymMatrVec(doublecomplex matr[static restrict 6],doublecomplex vec[static restrict 3],
+	doublecomplex res[static restrict 3])
+/* multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+ * !!! pointers matr,vec,res must not alias !!!
+ */
 {
 	res[0][RE] = matr[0][RE]*vec[0][RE] - matr[0][IM]*vec[0][IM]
 	           + matr[1][RE]*vec[1][RE] - matr[1][IM]*vec[1][IM]
@@ -643,8 +693,19 @@ INLINE void cSymMatrVec(doublecomplex *matr,doublecomplex *vec,doublecomplex *re
 //============================================================
 // operations on real vectors
 
-INLINE void MultScal(const double a,const double *b,double *c)
-// multiplication of vector by scalar; c=a*b
+INLINE void vInvSign(double a[static restrict 3])
+// inverts the sign in the double vector[3]
+{
+	a[0]=-a[0];
+	a[1]=-a[1];
+	a[2]=-a[2];
+}
+
+//============================================================
+INLINE void MultScal(const double a,const double b[static restrict 3],double c[static restrict 3])
+/* multiplication of vector by scalar; c=a*b;
+ * !!! pointers b and c must not alias !!! (for 'restrict' optimization)
+ */
 {
 	c[0]=a*b[0];
 	c[1]=a*b[1];
@@ -653,8 +714,12 @@ INLINE void MultScal(const double a,const double *b,double *c)
 
 //============================================================
 
-INLINE void vMult(const double *a,const double *b,double *c)
-// multiplication of two vectors (by elements); c[i]=a[i]*b[i]
+INLINE void vMult(const double a[static restrict 3],const double b[static restrict 3],
+	double c[static restrict 3])
+/* multiplication of two vectors (by elements); c[i]=a[i]*b[i];
+ * !!! pointers a,b,c must not alias !!!
+ * (coincidence of, e.g., a and c is logically possible but disallowed for 'restrict' optimization)
+ */
 {
 	c[0]=a[0]*b[0];
 	c[1]=a[1]*b[1];
@@ -663,17 +728,33 @@ INLINE void vMult(const double *a,const double *b,double *c)
 
 //============================================================
 
-INLINE double DotProd(const double *a,const double *b)
-// dot product of two real vectors[3]
+INLINE void vSquare(const double a[static restrict 3],double b[static restrict 3])
+/* element-wise square of a vector; b[i]=a[i]*a[i]; !!! pointers a and b must not alias !!!
+ * (coincidence of a and b is logically possible but disallowed for 'restrict' optimization)
+ */
+{
+	b[0]=a[0]*a[0];
+	b[1]=a[1]*a[1];
+	b[2]=a[2]*a[2];
+}
+
+//============================================================
+
+INLINE double DotProd(const double a[static 3],const double b[static 3])
+// dot product of two real vectors[3]; a and b may alias
 {
 	return (a[0]*b[0]+a[1]*b[1]+a[2]*b[2]);
 }
 
 //============================================================
 
-INLINE void LinComb(const double *a,const double *b,
-	const double c1,const double c2, double *c)
-// linear combination of real vectors[3]; c=c1*a+c2*b
+INLINE void LinComb(const double a[static restrict 3],const double b[static restrict 3],
+	const double c1,const double c2, double c[static restrict 3])
+/* linear combination of real vectors[3]; c=c1*a+c2*b
+ * !!! pointers a,b,c must not alias !!!
+ * (coincidence of, e.g., a and c is logically possible but disallowed for 'restrict' optimization)
+ *
+ */
 {
 	c[0]=c1*a[0]+c2*b[0];
 	c[1]=c1*a[1]+c2*b[1];
@@ -682,7 +763,7 @@ INLINE void LinComb(const double *a,const double *b,
 
 //============================================================
 
-INLINE double TrSym(const double *a)
+INLINE double TrSym(const double a[static restrict 6])
 // trace of a symmetric matrix stored as a vector of size 6
 {
 	return (a[0]+a[2]+a[5]);
@@ -690,16 +771,21 @@ INLINE double TrSym(const double *a)
 
 //============================================================
 
-INLINE double QuadForm(const double *matr,const double *vec)
-// value of a quadratic form matr (symmetric matrix stored as a vector of size 6) over a vector vec
+INLINE double QuadForm(const double matr[static 6],const double vec[static 3])
+/* value of a quadratic form matr (symmetric matrix stored as a vector of size 6) over a vector vec;
+ * matr and vec may alias
+ */
 {
 	return ( vec[0]*vec[0]*matr[0] + vec[1]*vec[1]*matr[2] + vec[2]*vec[2]*matr[5]
 	       + 2*(vec[0]*vec[1]*matr[1] + vec[0]*vec[2]*matr[3] + vec[1]*vec[2]*matr[4]) );
 }
 
 //============================================================
-INLINE void MatrVec(double matr[3][3],const double *vec, double *res)
-// multiplication of matrix[3][3] by vec[3] (all real); res=matr.vec
+INLINE void MatrVec(double matr[static restrict 3][3],const double vec[static restrict 3],
+	double res[static restrict 3])
+/* multiplication of matrix[3][3] by vec[3] (all real); res=matr.vec;
+ * !!! none of inputs may alias !!!
+ */
 {
 	res[0]=matr[0][0]*vec[0]+matr[0][1]*vec[1]+matr[0][2]*vec[2];
 	res[1]=matr[1][0]*vec[0]+matr[1][1]*vec[1]+matr[1][2]*vec[2];
@@ -708,8 +794,10 @@ INLINE void MatrVec(double matr[3][3],const double *vec, double *res)
 
 //============================================================
 
-INLINE void Permutate(double *vec,const int *ord)
-// permutate double vector vec using permutation ord
+INLINE void Permutate(double vec[static restrict 3],const int ord[static restrict 3])
+/* permutate double vector vec using permutation ord; !!! vec and ord must not alias !!!
+ * (coincidence of them is logically possible but disallowed for 'restrict' optimization)
+ */
 {
 	double buf[3];
 
@@ -721,8 +809,10 @@ INLINE void Permutate(double *vec,const int *ord)
 
 //============================================================
 
-INLINE void Permutate_i(int *vec,const int *ord)
-// permutate int vector vec using permutation ord
+INLINE void Permutate_i(int vec[static restrict 3],const int ord[static restrict 3])
+/* permutate int vector vec using permutation ord; !!! vec and ord must not alias !!!
+ * (coincidence of them is logically possible but disallowed for 'restrict' optimization)
+ */
 {
 	int buf[3];
 

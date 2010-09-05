@@ -59,13 +59,14 @@
 // defined and initialized in CalculateE.c
 extern const TIME_TYPE tstart_CE;
 // defined and initialized in calculator.c
-extern doublecomplex *rvec,*vec1,*vec2,*vec3,*Avecbuffer;
+extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
+extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in param.c
 extern const double eps;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;
-extern unsigned long TotalIter;
+extern size_t TotalIter;
 
 // LOCAL VARIABLES
 
@@ -88,7 +89,7 @@ typedef struct // data for checkpoints
 	void *ptr; // pointer to the data
 	int size;  // size of one element
 } chp_data;
-chp_data *scalars,*vectors;
+chp_data * restrict scalars,* restrict vectors;
 enum phase {
 	PHASE_VARS, // Initialization of variables, and linking them to scalars and vectors
 	PHASE_INIT, // Initialization of iterations (after loading checkpoint)
@@ -131,13 +132,18 @@ static const struct iter_params_struct params[]={
 // EXTERNAL FUNCTIONS
 
 // matvec.c
-void MatVec(doublecomplex *in,doublecomplex *out,double *inprod,bool her,TIME_TYPE *comm_timing);
+void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,
+	TIME_TYPE *comm_timing);
 
 //============================================================
 
 INLINE void SwapPointers(doublecomplex **a,doublecomplex **b)
 /* swap two pointers of (doublecomplex *) type; should work for others but will give
  * "Suspicious pointer conversion" warning.
+ * While this is a convenient function that can save some copying between memory blocks, it doesn't
+ * allow consistent usage of 'restrict' keyword for affected pointers. This may hamper some
+ * optimization. Hopefully, the most important optimizations are those in the linalg.c, which
+ * can be improved by using 'restrict' keyword in the functions themselves.
  */
 {
 	doublecomplex *tmp;
@@ -163,13 +169,13 @@ static void SaveIterChpoint(void)
 {
 	int i;
 	char fname[MAX_FNAME];
-	FILE *chp_file;
+	FILE * restrict chp_file;
 	TIME_TYPE tstart;
 
 	tstart=GET_TIME();
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		// create directory "chp_dir" if needed and open info file
-		sprintf(fname,"%s/"F_CHP_LOG,chp_dir);
+		SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_CHP_LOG,chp_dir);
 		if ((chp_file=fopen(fname,"w"))==NULL) {
 			MkDirErr(chp_dir,ONE_POS);
 			chp_file=FOpenErr(fname,"w",ONE_POS);
@@ -182,7 +188,7 @@ static void SaveIterChpoint(void)
 	// wait to ensure that directory exists
 	Synchronize();
 	// open output file; writing errors are checked only for vectors
-	sprintf(fname,"%s/"F_CHP,chp_dir,ringid);
+	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"wb",ALL_POS);
 	// write common scalars
 	fwrite(&ind_m,sizeof(int),1,chp_file);
@@ -196,22 +202,22 @@ static void SaveIterChpoint(void)
 	for (i=0;i<params[ind_m].sc_N;i++) fwrite(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// write common vectors
 	if (fwrite(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed writing to file '%s'",fname);
+		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	if (fwrite(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed writing to file '%s'",fname);
+		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	if (fwrite(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed writing to file '%s'",fname);
+		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	if (fwrite(Avecbuffer,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed writing to file '%s'",fname);
+		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// write specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
 		if (fwrite(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
-			LogError(EC_ERROR,ALL_POS,"Failed writing to file '%s'",fname);
+			LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// close file
 	FCloseErr(chp_file,fname,ALL_POS);
 	// write info to logfile after everyone is finished
 	Synchronize();
-	PRINTBOTHZ(logfile,"Checkpoint (iteration) saved\n");
+	if (IFROOT) PrintBoth(logfile,"Checkpoint (iteration) saved\n");
 	Timing_FileIO+=GET_TIME()-tstart;
 	Synchronize(); // this is to ensure that message above appears if and only if OK
 }
@@ -227,23 +233,22 @@ static void LoadIterChpoint(void)
 	int ind_m_new;
 	size_t nlocalRows_new;
 	char fname[MAX_FNAME],ch;
-	FILE *chp_file;
+	FILE * restrict chp_file;
 	TIME_TYPE tstart;
 
 	tstart=GET_TIME();
 	// open input file; reading errors are checked only for vectors
-	sprintf(fname,"%s/"F_CHP,chp_dir,ringid);
+	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"rb",ALL_POS);
 	/* check for consistency. This implies that the same index corresponds to the same iterative
 	 * solver in list params. So if the ADDA executable was changed, e.g. by adding a new iterative
 	 * solver, between writing and reading checkpoint, this test may fail.
 	 */
 	fread(&ind_m_new,sizeof(int),1,chp_file);
-	if (ind_m_new!=ind_m)
-		LogError(EC_ERROR,ALL_POS,"File '%s' is for different iterative method",fname);
+	if (ind_m_new!=ind_m) LogError(ALL_POS,"File '%s' is for different iterative method",fname);
 	fread(&nlocalRows_new,sizeof(size_t),1,chp_file);
 	if (nlocalRows_new!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"File '%s' is for different vector size",fname);
+		LogError(ALL_POS,"File '%s' is for different vector size",fname);
 	// read common scalars
 	fread(&niter,sizeof(int),1,chp_file);
 	fread(&counter,sizeof(int),1,chp_file);
@@ -255,24 +260,24 @@ static void LoadIterChpoint(void)
 		fread(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// read common vectors
 	if (fread(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed reading from file '%s'",fname);
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (fread(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed reading from file '%s'",fname);
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (fread(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed reading from file '%s'",fname);
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (fread(Avecbuffer,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(EC_ERROR,ALL_POS,"Failed reading from file '%s'",fname);
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
 		if (fread(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
-			LogError(EC_ERROR,ALL_POS,"Failed reading from file '%s'",fname);
+			LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// check if EOF reached and close file
-	if(fread(&ch,1,1,chp_file)!=0) LogError(EC_ERROR,ALL_POS,"File '%s' is too long",fname);
+	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
 	FCloseErr(chp_file,fname,ALL_POS);
 	// initialize auxiliary variables
 	epsB=eps*eps/resid_scale;
 	// print info
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		PrintBoth(logfile,"Checkpoint (iteration) loaded\n");
 		// if residual is stagnating print info about last minimum
 		if (counter!=0) fprintf(logfile,
@@ -297,19 +302,15 @@ static void ProgressReport(void)
 		counter=0;
 	}
 	else counter++;
-	if (ringid==ADDA_ROOT) {
+	if (IFROOT) {
 		err=sqrt(resid_scale*inprodRp1);
 		progr=1-err/prev_err;
 		if (counter==0) strcpy(temp,"+ ");
 		else if (progr>0) strcpy(temp,"-+");
 		else strcpy(temp,"- ");
-		sprintf(progr_string,RESID_STRING"  %s",niter,err,temp);
-		if (!orient_avg) {
-			fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
-			fflush(logfile);
-		}
+		SnprintfErr(ONE_POS,progr_string,MAX_LINE,RESID_STRING"  %s",niter,err,temp);
+		if (!orient_avg) fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
 		printf("%s\n",progr_string);
-		fflush(stdout);
 		prev_err=err;
 	}
 	niter++;
@@ -361,7 +362,7 @@ ITER_FUNC(CGNR)
 		// initialize ro_old -> ro_k-2 for next iteration
 		ro_old=ro_new;
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 
 //============================================================
@@ -387,8 +388,8 @@ ITER_FUNC(BiCG_CS)
 		nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
 		abs_ro_new=cAbs(ro_new);
 		dtmp=abs_ro_new/inprodR;
-		D2z("(rT.r)/(r.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS1L || dtmp>EPS1H) LogError(EC_ERROR,ONE_POS,
+		Dz("(rT.r)/(r.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS1L || dtmp>EPS1H) LogError(ONE_POS,
 			"BiCG_CS fails: (rT.r)/(r.r) is out of bounds ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
@@ -402,8 +403,8 @@ ITER_FUNC(BiCG_CS)
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
-		D2z("(pT.A.p)/(rT.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS2) LogError(EC_ERROR,ONE_POS,
+		Dz("(pT.A.p)/(rT.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS2) LogError(ONE_POS,
 			"BiCG_CS fails: (pT.A.p)/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 		// alpha_k=ro_k/mu_k
 		cDiv(ro_new,mu,alpha);
@@ -415,7 +416,7 @@ ITER_FUNC(BiCG_CS)
 		// initialize ro_old -> ro_k-2 for next iteration
 		cEqual(ro_new,ro_old);
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1L
 #undef EPS1H
@@ -430,10 +431,12 @@ ITER_FUNC(BiCGStab)
 #define EPS2 1E-10 // for 1/|beta_k|
 	static double denumOmega,dtmp;
 	static doublecomplex beta,ro_new,ro_old,omega,alpha,temp1,temp2;
-	static doublecomplex *v,*s,*rtilda;
+	static doublecomplex * restrict v,* restrict s,* restrict rtilda;
 
 	if (ph==PHASE_VARS) {
-		// rename some vectors
+		/* rename some vectors; this doesn't contradict with 'restrict' keyword, since new
+		 * names are not used together with old names
+		 */
 		v=vec1;
 		s=vec2;
 		rtilda=vec3;
@@ -454,8 +457,8 @@ ITER_FUNC(BiCGStab)
 		// ro_k-1=r_k-1.r~ ; check for ro_k-1!=0
 		nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
 		dtmp=cAbs(ro_new)/inprodR;
-		D2z("(r~.r)/(r.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS1) LogError(EC_ERROR,ONE_POS,
+		Dz("(r~.r)/(r.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS1) LogError(ONE_POS,
 			"BiCGStab fails: (r~.r)/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
@@ -464,8 +467,8 @@ ITER_FUNC(BiCGStab)
 			cMult(ro_old,omega,temp2);
 			// check that omega_k-1!=0
 			dtmp=cAbs(temp2)/cAbs(temp1);
-			D2z("1/|beta_k|="GFORM_DEBUG,dtmp);
-			if (dtmp<EPS2) LogError(EC_ERROR,ONE_POS,
+			Dz("1/|beta_k|="GFORM_DEBUG,dtmp);
+			if (dtmp<EPS2) LogError(ONE_POS,
 				"Bi-CGStab fails: 1/|beta_k| is too small ("GFORM_DEBUG").",dtmp);
 			cDiv(temp1,temp2,beta);
 			// p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1
@@ -502,7 +505,7 @@ ITER_FUNC(BiCGStab)
 			cEqual(ro_new,ro_old);
 		}
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1
 #undef EPS2
@@ -518,7 +521,7 @@ ITER_FUNC(QMR_CS)
 	static double c_old,c_new,omega_old,omega_new,zetaabs,dtmp1,dtmp2;
 	static doublecomplex alpha,beta,theta,eta,zeta,zetatilda,tau,tautilda;
 	static doublecomplex s_new,s_old,temp1,temp2,temp3,temp4;
-	static doublecomplex *v,*vtilda,*p_new,*p_old;
+	static doublecomplex *v,*vtilda,*p_new,*p_old; // can't be declared restrict due to SwapPointers
 
 	if (ph==PHASE_VARS) {
 		// rename some vectors
@@ -568,8 +571,8 @@ ITER_FUNC(QMR_CS)
 	else if (ph==PHASE_ITER) {
 		// check for zero or very high beta
 		dtmp1=cAbs2(beta)*resid_scale;
-		D2z("(vT.v)/(b.b)="GFORM_DEBUG,dtmp1);
-		if (dtmp1<EPS1L || dtmp1>EPS1H) LogError(EC_ERROR,ONE_POS,
+		Dz("(vT.v)/(b.b)="GFORM_DEBUG,dtmp1);
+		if (dtmp1<EPS1L || dtmp1>EPS1H) LogError(ONE_POS,
 			"QMR_CS fails: (vT.v)/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
 		MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
@@ -619,7 +622,7 @@ ITER_FUNC(QMR_CS)
 		cMult(beta,temp4,temp1);
 		cMultReal(omega_new,temp1,s_new);
 		// p_k=(-theta_k*p_k-2-eta_k*p_k-1+v_k)/zeta_k
-		if (niter==1) nMult_cmplx(p_new,v,temp4); // use explicitly that p_0=p_-1=0
+		if (niter==1) nMult_cmplx(p_new,v,temp4); // use implicitly that p_0=p_-1=0
 		else {
 			cMult(eta,temp4,temp2);
 			cInvSign(temp2); // temp2=-eta_k/zeta_k
@@ -646,7 +649,7 @@ ITER_FUNC(QMR_CS)
 		cMultReal(c_new/omega_new,tautilda,temp1);
 		nIncrem11_d_c(rvec,v,cAbs2(s_new),temp1,&inprodRp1,&Timing_OneIterComm);
 	} // end of PHASE_ITER
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 #undef EPS1L
 #undef EPS1H
@@ -666,7 +669,7 @@ ITER_FUNC(QMR_CS)
  * You may also use  values of variables, defined in the beginning of this source
  * file, especially niter, resid_scale, and epsB.
  */
-/*
+#if 0
 ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will do the rest
 // Short comment, providing full name of the iterative solver
 {
@@ -700,7 +703,7 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 		// calculated. For gathering communication time use variable Timing_OneIterComm.
 
 		if (xxx<EPS1) // an example for checking of convergence failure (optional)
-			LogError(EC_ERROR,ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
+			LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
 		// _Some_ iterative solvers contain extra checks for convergence in the _middle_ of an
 		// iteration, designed to save time of, e.g., one matrix-vector product in some cases.
@@ -716,10 +719,10 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 		// Common check for convergence at the end of an iteration should not be done here, because
 		// it is performed in the function IterativeSolver.
 	}
-	else LogError(EC_ERROR,ONE_POS,"Unknown phase of the iterative solver");
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 #undef EPS1
 }
-*/
+#endif
 //============================================================
 
 #undef ITER_FUNC
@@ -730,6 +733,9 @@ int IterativeSolver(const enum iter method_in)
 	double temp;
 	char tmp_str[MAX_LINE];
 	TIME_TYPE tstart,time_tmp;
+
+	// redundant initialization to remove warnings
+	time_tmp=0;
 
 	/* Instead of solving system (I+D.C).x=b , C - diagonal matrix with couple constants
 	 *                                         D - symmetric interaction matrix of Green's tensor
@@ -763,15 +769,11 @@ int IterativeSolver(const enum iter method_in)
 		}
 		epsB=eps*eps/resid_scale;
 		// print start values
-		if (ringid==ADDA_ROOT) {
+		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
 			sprintf(tmp_str+strlen(tmp_str),RESID_STRING"\n",0,prev_err);
-			if (!orient_avg) {
-				fprintf(logfile,"%s",tmp_str);
-				fflush(logfile);
-			}
+			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
 			printf("%s",tmp_str);
-			fflush(stdout);
 		}
 		// initialize counters
 		niter=1;
@@ -784,7 +786,7 @@ int IterativeSolver(const enum iter method_in)
 	ind_m=0;
 	while (params[ind_m].meth!=method_in) {
 		ind_m++;
-		if (ind_m>=LENGTH(params)) LogError(EC_ERROR,ONE_POS,
+		if (ind_m>=LENGTH(params)) LogError(ONE_POS,
 			"Parameters for the given iterative solver are not found in list 'params'");
 	}
 	// initialize data required for checkpoints and specific variables
@@ -804,7 +806,7 @@ int IterativeSolver(const enum iter method_in)
 	Timing_InitIter = GET_TIME() - tstart_CE;
 	Timing_IntFieldOneComm=Timing_InitIterComm;
 	// main iteration cycle
-	while (inprodR>=epsB && niter<=maxiter && counter<=params[ind_m].mc && !chp_exit) {
+	while (inprodR>epsB && niter<=maxiter && counter<=params[ind_m].mc && !chp_exit) {
 		// initialize time
 		Timing_OneIterComm=0;
 		tstart=GET_TIME();
@@ -816,7 +818,8 @@ int IterativeSolver(const enum iter method_in)
 			Timing_OneIter=GET_TIME()-tstart;
 			time_tmp=Timing_OneIterComm;
 		}
-		else Timing_OneIterComm=time_tmp; // use result from the previous iteration
+		// use result from the previous iteration (assumed to be available by this time)
+		else Timing_OneIterComm=time_tmp;
 		/* check progress; it takes negligible time by itself (O(1) operations), but may lead to
 		 * saving checkpoint. Since the latter is not relevant to the iteration itself, the
 		 * ProgressReport is called after finalizing the time of a single iteration.
@@ -826,10 +829,12 @@ int IterativeSolver(const enum iter method_in)
 	// Save checkpoint of type always
 	if (chp_type==CHP_ALWAYS && !chp_exit) SaveIterChpoint();
 	// error output
-	if (niter>maxiter) LogError(EC_ERROR,ONE_POS,
-		"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
-	else if (counter>params[ind_m].mc) LogError(EC_ERROR,ONE_POS,"Residual norm haven't decreased "
-		"for maximum allowed number of iterations (%d)",params[ind_m].mc);
+	if (inprodR>epsB) {
+		if (niter>maxiter) LogError(ONE_POS,
+			"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
+		else if (counter>params[ind_m].mc) LogError(ONE_POS,"Residual norm haven't decreased for "
+			"maximum allowed number of iterations (%d)",params[ind_m].mc);
+	}
 	// post-processing
 	if (params[ind_m].sc_N>0) Free_general(scalars);
 	if (params[ind_m].vec_N>0) Free_general(vectors);
@@ -840,5 +845,5 @@ int IterativeSolver(const enum iter method_in)
 	                               * e.g. scattered field faster.
 	                               */
 	if (chp_exit) return CHP_EXIT; // check if exiting after checkpoint
-	return niter;
+	return (niter-1); // the number of iterations elapsed
 }

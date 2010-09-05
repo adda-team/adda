@@ -26,39 +26,46 @@
 #include "function.h" // for function attributes
 #include "timing.h"   // for TIME_TYPE
 
-void nInit(doublecomplex *a);
-void nCopy(doublecomplex *a,doublecomplex *b);
-double nNorm2(doublecomplex *a,TIME_TYPE *comm_timing) ATT_PURE;
-void nDotProd(doublecomplex *a,doublecomplex *b,doublecomplex c,TIME_TYPE *comm_timing);
-void nDotProd_conj(doublecomplex *a,doublecomplex *b,doublecomplex c,TIME_TYPE *comm_timing);
-void nDotProdSelf_conj(doublecomplex *a,doublecomplex c,TIME_TYPE *comm_timing);
-void nDotProdSelf_conj_Norm2(doublecomplex *a,doublecomplex c,double *norm,TIME_TYPE *comm_timing);
-void nIncrem110_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2);
-void nIncrem011_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2);
-void nIncrem111_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2,const doublecomplex c3);
-void nIncrem01(doublecomplex *a,doublecomplex *b,const double c,double *inprod,
+void nInit(doublecomplex * restrict a);
+void nCopy(doublecomplex * restrict a,doublecomplex * restrict b);
+double nNorm2(doublecomplex * restrict a,TIME_TYPE *comm_timing);
+void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,
 	TIME_TYPE *comm_timing);
-void nIncrem10(doublecomplex *a,doublecomplex *b,const double c,double *inprod,
+void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,
 	TIME_TYPE *comm_timing);
-void nIncrem11_d_c(doublecomplex *a,doublecomplex *b,const double c1,const doublecomplex c2,
-	double *inprod,TIME_TYPE *comm_timing);
-void nIncrem01_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c,double *inprod,
+void nDotProdSelf_conj(doublecomplex * restrict a,doublecomplex c,TIME_TYPE *comm_timing);
+void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double * restrict norm,
 	TIME_TYPE *comm_timing);
-void nIncrem10_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c,double *inprod,
+void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2);
+void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2);
+void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2,
+	const doublecomplex c3);
+void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const double c,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const double c,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const double c1,
+	const doublecomplex c2,double * restrict inprod,TIME_TYPE *comm_timing);
+void nIncrem01_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nIncrem10_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,double * restrict inprod,
 	TIME_TYPE *comm_timing);
-void nLinComb_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	const doublecomplex c2,double *inprod,TIME_TYPE *comm_timing);
-void nLinComb1_cmplx(doublecomplex *a,doublecomplex *b,doublecomplex *c,const doublecomplex c1,
-	double *inprod,TIME_TYPE *comm_timing);
-void nSubtr(doublecomplex *a,doublecomplex *b,doublecomplex *c,double *inprod,
-	TIME_TYPE *comm_timing);
-void nMult_cmplx(doublecomplex *a,doublecomplex *b,const doublecomplex c);
-void nMultSelf_cmplx(doublecomplex *a,const doublecomplex c);
-void nMult_mat(doublecomplex *a,doublecomplex *b,doublecomplex c[][3]);
-void nMultSelf_mat(doublecomplex *a,doublecomplex c[][3]);
-void nConj(doublecomplex *a);
+void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	double * restrict inprod,TIME_TYPE *comm_timing);
+void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c);
+void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c);
+void nMult_mat(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex (* restrict c)[3]);
+void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3]);
+void nConj(doublecomplex * restrict a);
 
 #endif // __linalg_h

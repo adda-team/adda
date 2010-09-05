@@ -7,7 +7,7 @@
  *        slightly corrected according to the 3rd ed. of the same book.
  *
  * Copyright (C) 2007,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -78,7 +78,7 @@ void cisi(const double x,double *ci,double *si)
 			cMultSelf(h,del);
 			if (fabs(del[RE]-1)+fabs(del[IM])<=EPS) break;
 		}
-		if (i>=MAXIT) LogError(EC_ERROR,ALL_POS,
+		if (i>=MAXIT) LogError(ALL_POS,
 			"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		imExp(-t,tmp);
 		cMultSelf(h,tmp);
@@ -112,7 +112,7 @@ void cisi(const double x,double *ci,double *si)
 				if (err<EPS) break;
 				odd=!odd;
 			}
-			if (k>MAXIT) LogError(EC_ERROR,ALL_POS,
+			if (k>MAXIT) LogError(ALL_POS,
 				"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		}
 		*si=sums;

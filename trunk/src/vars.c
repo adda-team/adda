@@ -35,10 +35,10 @@ double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 double WaveNum;           // wavenumber of incident light
-double *DipoleCoord;      // vector to hold the coordinates of the dipoles
-unsigned short *position; /* position of the dipoles; in the very end of make_particle()
-                           * z-components are adjusted to be relative to the local_z0
-                           */
+double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
+unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
+                                     * z-components are adjusted to be relative to the local_z0
+                                     */
 double memory;            // total memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarization relation)
@@ -77,7 +77,7 @@ double box_origin_unif[3];    /* coordinates of the center of the first dipole i
 
 // file info
 char directory[MAX_DIRNAME]; // directory to save data in
-FILE *logfile;               // file where all the information about the run is saved
+FILE *  restrict logfile;    // file where all the information about the run is saved
 int term_width;              // width of the terminal to which ADDA produces output
 
 // refractive index
@@ -88,27 +88,29 @@ int Ncomp;                          // number of components of each refractive i
 doublecomplex ref_index[MAX_NMAT];  // a set of refractive indexes
 doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
 doublecomplex chi_inv[MAX_NMAT][3]; // normalized inverse susceptibility: = 1/(V*chi)
-unsigned char *material;            // material: index for cc
+unsigned char * restrict material;            // material: index for cc
 
 // iterative solver
 enum iter IterMethod; // iterative method to use
 int maxiter;          // maximum number of iterations
+	// the following two can't be declared restrict due to SwapPointers
 doublecomplex *xvec;  // total electric field on the dipoles
 doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
-doublecomplex *Einc;  // incident field on dipoles
+doublecomplex * restrict Einc;  // incident field on dipoles
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile
 double alph_deg, bet_deg, gam_deg; // Euler angles of particle orientation in degrees
 angle_set alpha_int;               // sets of angles
 scat_grid_angles angles;           // angle sets for scat_grid
-doublecomplex *EgridX,*EgridY;     /* E calculated on a grid for many different directions (holds
-                                    * Eper and Epar) for two incident polarizations
-                                    */
-double *Egrid_buffer;              // buffer to accumulate Egrid
+	/* E calculated on a grid for many different directions (holds Eper and Epar) for two incident
+	 * polarizations
+	 */
+doublecomplex * restrict EgridX,* restrict EgridY;
+double * restrict Egrid_buffer;    // buffer to accumulate Egrid
 
 // checkpoint
-enum chpoint chp_type;              // type of checkpoint (to save)
+enum chpoint chp_type;             // type of checkpoint (to save)
 time_t chp_time;           // time of checkpoint (in sec)
 char chp_dir[MAX_DIRNAME]; // directory name to save/load checkpoint
 

@@ -7,7 +7,7 @@
  *        Sequential version, Michel Grimminck, January 1995.
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -47,6 +47,10 @@ void PrintInfo(void);
 
 int main(int argc,char **argv)
 {
+	/* Pointer argv can be declared restrict here and in all calling functions. However, that would
+	 * be hard to verify, especially in newly-added functions for parsing command line option. Since
+	 * the optimization gain is expected to be minor, if any, we stay conservative on this issue.
+	 */
 	// Initialize error handling and line wrapping
 	logfile=NULL;
 	term_width=DEF_TERM_WIDTH;
@@ -61,6 +65,7 @@ int main(int argc,char **argv)
 	VariablesInterconnect(); // also initializes beam
 	// Initialize symmetries and box's; get number of dipoles; set some variables
 	InitShape();
+	D("Initialization of shape finished");
 	// !!! before this line errors should be printed in simple format, after - in advanced one
 	// Create directory and start logfile (print command line)
 	DirectoryLog(argc,argv);
@@ -68,6 +73,7 @@ int main(int argc,char **argv)
 	ParSetup();
 	// MakeParticle; initialize dpl and nlocalRows
 	MakeParticle();
+	D("Make particle finished");
 	// Print info to stdout and logfile
 	PrintInfo();
 	// Main calculation part
@@ -77,7 +83,7 @@ int main(int argc,char **argv)
 	// Print timing and statistics; close logfile
 	FinalStatistics();
 	// check error on stdout
-	if (ferror(stdout)) LogError(EC_WARN,ALL_POS,
+	if (ferror(stdout)) LogWarning(EC_WARN,ALL_POS,
 		"Some errors occurred while writing to stdout during the execution of ADDA");
 	// finish execution normally
 	Stop(EXIT_SUCCESS);

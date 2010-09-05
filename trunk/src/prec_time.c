@@ -4,6 +4,7 @@
  * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
  * Copyright (C) 2006,2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,8 +22,7 @@
 
 // this is to eliminate warnings about empty source file
 #include "function.h" // for function attributes
-void void_function(void) ATT_UNUSED;
-void void_function(void) {}
+void ATT_UNUSED void_function(void) {}
 
 #ifdef PRECISE_TIMING // following is only for precise timing
 
@@ -36,7 +36,7 @@ static double inv_freq;
 
 //============================================================
 
-void InitTime(SYSTEM_TIME *t)
+void InitTime(SYSTEM_TIME * restrict t)
 // set time to zero
 {
 #ifdef WINDOWS
@@ -61,7 +61,7 @@ void SetTimerFreq(void)
 
 //============================================================
 
-double TimerToSec(const SYSTEM_TIME *t)
+double TimerToSec(const SYSTEM_TIME * restrict t)
 // timer to seconds
 {
 #ifdef WINDOWS
@@ -73,7 +73,7 @@ double TimerToSec(const SYSTEM_TIME *t)
 
 //============================================================
 
-double DiffSec(const SYSTEM_TIME *t1,const SYSTEM_TIME *t2)
+double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2)
 // difference between two times in seconds
 {
 	SYSTEM_TIME res;

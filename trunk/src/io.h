@@ -4,7 +4,7 @@
  * Descr: i/o and error handling routines
  *
  * Copyright (C) 2006,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,6 +22,7 @@
 #define __io_h
 
 #include <stdio.h>    // for file
+#include <stdarg.h>   // for va_list
 #include "function.h" // for function attributes
 #include "const.h"    // for enum types
 
@@ -41,18 +42,37 @@
 #	endif
 #endif
 
-void WrapLines(char *str);
-char *WrapLinesCopy(const char *str);
-void LogError(enum ec ErrCode,enum enwho who,const char *fname,int line,
-	const char *fmt,...) ATT_PRINTF(5,6);
-void PrintError(const char *fmt, ... ) ATT_PRINTF(1,2) ATT_NORETURN;
-void LogPending(void);
-void PrintBoth(FILE *file,const char *fmt, ... ) ATT_PRINTF(2,3);
+// Common parts of function declaration and calls; they are passed to ProcessError and DebugPrintf
+#define ERR_LOC_DECL enum enwho who,const char * restrict srcfile,const int srcline
+#define ERR_LOC_CALL who,srcfile,srcline
 
-FILE *FOpenErr(const char *fname,const char *mode,enum enwho who,const char *err_fname,
-               int lineN) ATT_MALLOC;
-void FCloseErr(FILE *file,const char *fname,enum enwho who,const char *err_fname,int lineN);
-void RemoveErr(const char *fname,enum enwho who,const char *err_fname,int lineN);
-void MkDirErr(const char *dirname,enum enwho who,const char *err_fname,int lineN);
+// A way of calling snprintf and vsnprintf resistant to buffer overflows, but without errors
+#define SNPRINTF_SHIFT_ROBUST(shift,tmp,str,size,...) { \
+	tmp=snprintf(str+shift,size-shift,__VA_ARGS__); \
+	if (tmp>0) { shift+=tmp; if (shift>=size) shift=size-1; } \
+}
+#define VSNPRINTF_SHIFT_ROBUST(shift,tmp,str,size,...) { \
+	tmp=vsnprintf(str+shift,size-shift,__VA_ARGS__); \
+	if (tmp>0) { shift+=tmp; if (shift>=size) shift=size-1; } \
+}
+
+void WrapLines(char * restrict str);
+char *WrapLinesCopy(const char * restrict str);
+void LogError(ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(4,5) ATT_NORETURN;
+void LogWarning(enum ec code,ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(5,6);
+size_t SnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const char * restrict fmt,...)
+	ATT_PRINTF(6,7);
+size_t SnprintfShiftErr(ERR_LOC_DECL,const size_t shift,char * restrict str,const size_t size,
+	const char * restrict fmt,...) ATT_PRINTF(7,8);
+size_t VsnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const char * restrict fmt,
+	va_list args);
+void PrintError(const char * restrict fmt, ... ) ATT_PRINTF(1,2) ATT_NORETURN;
+void LogPending(void);
+void PrintBoth(FILE * restrict file,const char * restrict fmt, ... ) ATT_PRINTF(2,3);
+
+FILE *FOpenErr(const char * restrict fname,const char * restrict mode,ERR_LOC_DECL);
+void FCloseErr(FILE * restrict file,const char * restrict fname,ERR_LOC_DECL);
+void RemoveErr(const char * restrict fname,ERR_LOC_DECL);
+void MkDirErr(const char * restrict dirname,ERR_LOC_DECL);
 
 #endif // __io_h

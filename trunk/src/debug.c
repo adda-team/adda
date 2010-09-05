@@ -6,6 +6,7 @@
  *        Previous versions by "vesseur"
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,34 +26,38 @@
 #include "types.h"
 #include "debug.h"
 #include "const.h"
+#include "comm.h"
+#include "io.h"
+#include "vars.h"
 
 #ifdef DEBUG
 //============================================================
 
-void DebugPrintf(const char *fname,const int line,const char *fmt, ... )
+void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
 {
 	va_list args;
-	char pr_line[MAX_PARAGRAPH];
-	extern int ringid;
+	static char msg[MAX_PARAGRAPH]; // not to allocate it at every call
 
-	va_start(args, fmt);
-	sprintf(pr_line,"DEBUG: %s:%d: ",fname,line);
-	vsprintf(pr_line+strlen(pr_line),fmt,args);
-	strcat(pr_line, "\n");
-	printf("(ringID=%i) %s",ringid,pr_line);
-	fflush(stdout);
-	va_end(args);
+	if (who==ALL || IFROOT) { // controls whether output should be produced
+		va_start(args,fmt);
+		VsnprintfErr(ERR_LOC_CALL,msg,MAX_PARAGRAPH,fmt,args);
+#ifdef PARALLEL
+		if (who==ALL) printf("(ringID=%i) DEBUG: %s:%d: %s \n",ringid,srcfile,srcline,msg);
+		else
+#endif
+		printf("DEBUG: %s:%d: %s \n",srcfile,srcline,msg);
+		fflush(stdout);
+		va_end(args);
+	}
 }
 
 //=======================================================
 
-void FieldPrint (doublecomplex *x)
+void FieldPrint (doublecomplex * restrict x)
 /* print current field at certain dipole -- not used; left for deep debug; NOT ROBUST, since
  * DipoleCoord is not always available
  */
 {
-	extern FILE *logfile;
-	extern double *DipoleCoord;
 	int i=9810;
 
 	i*=3;

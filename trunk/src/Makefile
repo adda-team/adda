@@ -23,13 +23,13 @@
 # !!! This makefile accepts environmental variables CFLAGS, FFLAGS, LDFLAGS, and LDLIBS. First two
 # are passed to C and Fortran compiler respectively, and last two are passed to linker.
 # Values specified below are added to the values given by the environment.
-# These variables can also be given in the command line to make, but it will override all values 
+# These variables can also be given in the command line to make, but it will override all values
 # specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
 # with much care, including all relevant flags in the new value.
 #===================================================================================================
 
 #===================================================================================================
-# Fixed definitions for non-compilation targets 
+# Fixed definitions for non-compilation targets
 #===================================================================================================
 
 SHELL    = /bin/sh
@@ -45,26 +45,26 @@ NONTRIVIAL = all seq mpi
 #===================================================================================================
 # !!! Start of control section. Flags and options here can be modified by user. However, the default
 # set of options may work out-of-box on some systems.
-# First section contains general variables used by non-compilation targets (clean, install, etc.) 
+# First section contains general variables used by non-compilation targets (clean, install, etc.)
 #===================================================================================================
 
 # nothing here yet
 
 #===================================================================================================
-# Below are flags and options specific for compilation. If compiling with MPI support please also 
+# Below are flags and options specific for compilation. If compiling with MPI support please also
 # look at control section in file 'mpi/Makefile'.
 
-# Everything from here down to the main action part of this makefile is skipped if targets specified 
+# Everything from here down to the main action part of this makefile is skipped if targets specified
 # in the command line to this makefile do not imply compilation.
 ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),)
 #===================================================================================================
 
-# ---Optional flags--- 
+# ---Optional flags---
 # Uncomment those that you find appropriate; additional information is in specified headers.
-# One can also export environmental variable OPTIONS before executing make, or define its value in 
+# One can also export environmental variable OPTIONS before executing make, or define its value in
 # the command line of make. For instance, 'make OPTIONS=DEBUG ...' or 'make OPTIONS+=DEBUG ...'. If
-# several options need to be given, they should be given as one argument in quotes with its parts 
-# separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented 
+# several options need to be given, they should be given as one argument in quotes with its parts
+# separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS=DEBUG FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
@@ -95,8 +95,8 @@ VALID_OPTS=DEBUG FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORT
 # risk!
 #override OPTIONS += OVERRIDE_STDC_TEST
 
-# ---Compilers--- 
-# Choose one of the following. Can also be specified from command line to make (see explanation 
+# ---Compilers---
+# Choose one of the following. Can also be specified from command line to make (see explanation
 # above for OPTIONS), overriding definition below.
 # gnu - tested for gcc 3.2.3 - 4.3.2
 # intel - tested on icc 9.0 - 11.0
@@ -109,7 +109,7 @@ COMPILER = gnu
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
 # bit environment. Flags specified below are appended to the ones specified in the environment or
 # command line of make (see explanation above for OPTIONS).
-override EXTRA_CFLAGS += 
+override EXTRA_CFLAGS +=
 
 # --Warnings-- If uncommented, all warning are suppressed
 RELEASE = on
@@ -119,7 +119,7 @@ RELEASE = on
 # special global variables (first or second 2 lines), on some - FFTW3 is installed under user
 # account (next 2 lines). Under Windows it may be required to specify paths manually (last 2 lines).
 # Relative (to location of this Makefile) paths should be immediately transformed into absolute
-# ones using "$(abspath ...)". This two variables (FFTW3_INC_PATH and FFTW3_LIB_PATH) can also be 
+# ones using "$(abspath ...)". This two variables (FFTW3_INC_PATH and FFTW3_LIB_PATH) can also be
 # defined in the enviroment or in the command line of make (see explanation above for OPTIONS).
 #FFTW3_INC_PATH := $(FFTW_INC)
 #FFTW3_LIB_PATH := $(FFTW_LIB)
@@ -143,7 +143,7 @@ RELEASE = on
 CSOURCE = ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
           linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
           prec_time.c vars.c mt19937ar.c sinint.c
-# Some other fortran files may be added below
+# Fortran files are all that are present in src/fort folder, but given explicitly
 FSOURCE = d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
           drlhre.f dtrhre.f propaesplibreintadda.f
 
@@ -170,7 +170,7 @@ FWARN    = -w
 #===================================================================================================
 # Conditional variables that depend on the values of optional flags.
 #===================================================================================================
-# 
+#
 # Process OPTIONS
 # Produce warnings if any of OPTIONS are not present in VALID_OPTS list
 $(foreach var,$(filter-out $(VALID_OPTS),$(OPTIONS)),\
@@ -217,7 +217,7 @@ endif
 ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   $(info Without Fortran sources)
   CDEFS += -DNO_FORTRAN
-  FSOURCE = 
+  FSOURCE =
 endif
 ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
@@ -244,16 +244,19 @@ ifeq ($(COMPILER),gnu)
   COPT  = -std=c99 -O3 -ffast-math -funroll-loops
   FOPT  = -O
   FLIBS += -lg2c
-  CWARN = -Wall -W -pedantic -Wcast-qual -Wpointer-arith \
-          -Wwrite-strings -Wstrict-prototypes -Wno-uninitialized \
-          -Wno-unknown-pragmas -Wno-unused-parameter
+  CWARN = -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith \
+          -Wwrite-strings -Wstrict-prototypes -Wstrict-aliasing=1 -Wshadow \
+          -Wcast-align -Wnested-externs -Wcomment \
+          -Wno-unknown-pragmas
+
 else ifeq ($(COMPILER),intel)
   CC    = icc
   CF    = ifort
   COPT  = -std=c99 -O3
   FOPT  = -O3
+  FWARN += -vec-report0
   FLIBS += -lifcore
-  CWARN = -Wall -Wno-uninitialized -wd810,869,981,1418,1419,1572,2259
+  CWARN = -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the

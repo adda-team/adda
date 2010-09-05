@@ -7,6 +7,7 @@
  *        Previous versions by Alfons Hoekstra
  *
  * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -33,11 +34,11 @@
 #endif
 
 // common error check
-#define MALLOC_ERROR LogError(EC_ERROR,who,fname,line,"Could not malloc %s",name)
+#define MALLOC_ERROR LogError(ERR_LOC_CALL,"Could not malloc %s",name)
 #define CHECK_NULL(size,v) if ((size)!=0 && (v)==NULL) MALLOC_ERROR
 #define CHECK_SIZE(size,type) if ((SIZE_MAX/sizeof(type))<(size)) MALLOC_ERROR
 #define IF_FREE(v) if((v)!=NULL) free(v)
-#define OVERFLOW LogError(EC_ERROR,who,fname,line,"Integer overflow in '%s'",name);
+#define OVERFLOW LogError(ERR_LOC_CALL,"Integer overflow in '%s'",name);
 
 //============================================================
 
@@ -60,7 +61,7 @@ size_t MultOverflow(const size_t a,const size_t b,OTHER_ARGUMENTS)
 doublecomplex *complexVector(const size_t size,OTHER_ARGUMENTS)
 // allocates complex vector
 {
-	doublecomplex *v;
+	doublecomplex * restrict v;
 
 	CHECK_SIZE(size,doublecomplex);
 #ifdef FFTW3
@@ -78,7 +79,7 @@ double **doubleMatrix(const size_t rows,const size_t cols,OTHER_ARGUMENTS)
 // allocates double matrix (rows x cols)
 {
 	register size_t i;
-	double **m;
+	double ** restrict m;
 
 	CHECK_SIZE(rows,double *);
 	CHECK_SIZE(cols,double);
@@ -96,7 +97,7 @@ double **doubleMatrix(const size_t rows,const size_t cols,OTHER_ARGUMENTS)
 double *doubleVector(const size_t size,OTHER_ARGUMENTS)
 // allocates double vector
 {
-	double *v;
+	double * restrict v;
 
 	CHECK_SIZE(size,double);
 	v=(double *)malloc(size*sizeof(double));
@@ -122,7 +123,7 @@ double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS)
 double *doubleVector2(const size_t nl,const size_t nh,OTHER_ARGUMENTS)
 // allocates double vector with indices from nl to nh; all arguments must be non-negative and nh>=nl
 {
-	double *v;
+	double * restrict v;
 	size_t size;
 
 	if (nh<nl || nh-nl==SIZE_MAX) MALLOC_ERROR;
@@ -143,7 +144,7 @@ int **intMatrix(const size_t nrl,const size_t nrh,const size_t ncl,const size_t 
 {
 	register size_t i;
 	size_t rows,cols;
-	int **m;
+	int ** restrict m;
 
 	if (nrh<nrl || nrh-nrl==SIZE_MAX) MALLOC_ERROR;
 	else rows=nrh-nrl+1;
@@ -167,7 +168,7 @@ int **intMatrix(const size_t nrl,const size_t nrh,const size_t ncl,const size_t 
 int *intVector(const size_t size,OTHER_ARGUMENTS)
 // allocates integer vector
 {
-	int *v;
+	int * restrict v;
 
 	CHECK_SIZE(size,int);
 	v=(int *)malloc(size*sizeof(int));
@@ -180,7 +181,7 @@ int *intVector(const size_t size,OTHER_ARGUMENTS)
 unsigned short *ushortVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned short vector
 {
-	unsigned short *v;
+	unsigned short * restrict v;
 
 	CHECK_SIZE(size,short);
 	v=(unsigned short *)malloc(size*sizeof(short));
@@ -193,7 +194,7 @@ unsigned short *ushortVector(const size_t size,OTHER_ARGUMENTS)
 char *charVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned char vector
 {
-	char *v;
+	char * restrict v;
 
 	v=(char *)malloc(size);
 	CHECK_NULL(size,v);
@@ -205,7 +206,7 @@ char *charVector(const size_t size,OTHER_ARGUMENTS)
 unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned char vector
 {
-	unsigned char *v;
+	unsigned char * restrict v;
 
 	v=(unsigned char *)malloc(size);
 	CHECK_NULL(size,v);
@@ -217,7 +218,7 @@ unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 void *voidVector(const size_t size,OTHER_ARGUMENTS)
 // allocates void vector
 {
-	void *v;
+	void * restrict v;
 
 	v=malloc(size);
 	CHECK_NULL(size,v);
@@ -226,7 +227,7 @@ void *voidVector(const size_t size,OTHER_ARGUMENTS)
 
 //============================================================
 
-void Free_cVector (doublecomplex *v)
+void Free_cVector (doublecomplex * restrict v)
 // frees complex vector
 {
 #ifdef FFTW3
@@ -238,7 +239,7 @@ void Free_cVector (doublecomplex *v)
 
 //============================================================
 
-void Free_dMatrix(double **m,const size_t rows)
+void Free_dMatrix(double ** restrict m,const size_t rows)
 // frees double matrix (rows x cols)
 {
 	register size_t i;
@@ -249,7 +250,7 @@ void Free_dMatrix(double **m,const size_t rows)
 
 //============================================================
 
-void Free_dVector2(double *v,const size_t nl)
+void Free_dVector2(double * restrict v,const size_t nl)
 // frees double vector with indices from nl; all arguments must be non-negative
 {
 	IF_FREE(v+nl);
@@ -257,7 +258,7 @@ void Free_dVector2(double *v,const size_t nl)
 
 //============================================================
 
-void Free_iMatrix(int **m,const size_t nrl,const size_t nrh,const size_t ncl)
+void Free_iMatrix(int ** restrict m,const size_t nrl,const size_t nrh,const size_t ncl)
 // frees integer matrix with indices [nrl,nrh]x[ncl,...]; all arguments must be non-negative
 {
 	register size_t i;
@@ -268,9 +269,8 @@ void Free_iMatrix(int **m,const size_t nrl,const size_t nrh,const size_t ncl)
 
 //============================================================
 
-void Free_general(void *v)
+void Free_general(void * restrict v)
 // frees general vector; kept in a special function for future development
 {
 	IF_FREE(v);
 }
-
