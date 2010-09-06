@@ -222,6 +222,7 @@ void MuellerMatrix(void)
 
 	// redundant initialization to remove warnings
 	mueller=ampl=NULL;
+	co=si=0;
 
 	// Everything is done on ROOT only
 	if (!IFROOT) return;

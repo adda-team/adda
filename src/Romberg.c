@@ -308,7 +308,7 @@ static double InnerRomberg(const int fixed,double * restrict res,const bool onep
 	double err;
 
 	// redundant initialization to remove warnings
-	abs_err=err=0;
+	abs_err=err=int_err=0;
 
 	if (input[PHI].Grid_size==1 ||  onepoint) { // if only one point (really or assumed)
 		int_err=(*func)(fixed,0,res);
@@ -416,7 +416,7 @@ static double OuterRomberg(double * restrict res)
 	double err;
 
 	// redundant initialization to remove warnings
-	err=0;
+	err=int_err=0;
 
 	if (input[THETA].Grid_size==1) { // if only one point
 		N_eval=0;

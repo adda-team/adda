@@ -54,8 +54,10 @@
 #	endif
 #	define LOCK_WAIT 1 // in seconds
 #	define MAX_LOCK_WAIT_CYCLES 60
+#	define ONLY_FOR_LOCK
 #else
 #	define FILEHANDLE int
+#	define ONLY_FOR_LOCK ATT_UNUSED
 #endif
 
 // GLOBAL VARIABLES
@@ -350,8 +352,8 @@ static struct opt_struct options[]={
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
 	{PAR(beam),"<type> [<args>]","Sets a type of the incident beam. Four other float arguments are "
 		"relevant for all beam types except 'plane'. These are the width and x, y, z coordinates of "
-		"the center of the beam respectively (all in um). The latter three can be omitted (then "
-		"beam center is located in the origin).\n"
+		"the center of the beam respectively in the laboratory reference fram (all in um). The "
+		"latter three can be omitted (then beam center is located in the origin).\n"
 		"Default: plane",UNDEF,beam_opt},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
@@ -1348,7 +1350,9 @@ PARSE_FUNC(V)
 		printf(" (%d-bit)\n",bits);
 		// extra build flags
 		strncpy(build_opts,
-#ifdef DEBUG
+#ifdef DEBUGFULL
+		"DEBUGFULL, "
+#elif defined(DEBUG)
 		"DEBUG, "
 #endif
 #ifdef FFT_TEMPERTON
@@ -1417,7 +1421,7 @@ PARSE_FUNC(yz)
 // end of parsing functions
 //=============================================================
 
-static FILEHANDLE CreateLockFile(const char * restrict fname)
+static FILEHANDLE CreateLockFile(const char * restrict fname ONLY_FOR_LOCK)
 // create lock file; works only if USE_LOCK is enabled
 {
 #ifdef USE_LOCK
@@ -1475,7 +1479,7 @@ static FILEHANDLE CreateLockFile(const char * restrict fname)
 
 //============================================================
 
-static void RemoveLockFile(FILEHANDLE fd,const char * restrict fname)
+static void RemoveLockFile(FILEHANDLE fd ONLY_FOR_LOCK,const char * restrict fname ONLY_FOR_LOCK)
 // closes and remove lock file; works only if USE_LOCK is enabled
 {
 #ifdef USE_LOCK

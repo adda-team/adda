@@ -41,6 +41,11 @@ PROGSEQ  = adda
 PROGMPI  = adda_mpi
 # Targets implying compilation (empty one is always included)
 NONTRIVIAL = all seq mpi
+# targets implying sequential or mpi compilation. This duplicates the functionality of the target
+# designation, but is required for timely update of .lastopts
+SEQGOALS = seq all
+MPIGOALS = mpi all
+LASTOPTSFILE = .lastopts
 
 #===================================================================================================
 # !!! Start of control section. Flags and options here can be modified by user. However, the default
@@ -67,11 +72,16 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
-VALID_OPTS=DEBUG FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
+VALID_OPTS=DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
            OVERRIDE_STDC_TEST
 
-# Debug mode (debug.h).
+# Debug mode. By default, release configuration is used (no debug, no warnings, maximum
+# optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
+# optimization down to O2 (this is required to produce all possible warnings by the compiler).
+# DEBUGFULL turns off optimization completely (for more accurate debugging symbols) and turns on
+# additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
+#override OPTIONS += DEBUGFULL
 
 # Temperton FFT (fft.h).
 #override OPTIONS += FFT_TEMPERTON
@@ -110,9 +120,6 @@ COMPILER = gnu
 # bit environment. Flags specified below are appended to the ones specified in the environment or
 # command line of make (see explanation above for OPTIONS).
 override EXTRA_CFLAGS +=
-
-# --Warnings-- If uncommented, all warning are suppressed
-RELEASE = on
 
 # --FFTW3 paths--
 # Specify path to headers and libraries of FFTW3. Some systems do not need them at all, some specify
@@ -177,9 +184,20 @@ $(foreach var,$(filter-out $(VALID_OPTS),$(OPTIONS)),\
               $(warning The option '$(var)' is not recognized. Please check the spelling.))
 
 $(info --- Compilation options: ---)
-ifneq ($(filter DEBUG,$(OPTIONS)),)
+ifneq ($(filter DEBUGFULL,$(OPTIONS)),)
+  $(info Full debug mode)
+  DBGLVL = 2
+  CDEFS += -DDEBUGFULL
+  ifneq ($(filter DEBUG,$(OPTIONS)),)
+    $(warning DEBUG has no effect when DEBUGFULL is enabled)
+  endif
+else ifneq ($(filter DEBUG,$(OPTIONS)),)
   $(info Debug mode)
+  DBGLVL = 1
   CDEFS += -DDEBUG
+else
+  $(info Release mode)
+  DBGLVL = 0
 endif
 ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
   $(info Temperton FFT)
@@ -241,22 +259,26 @@ ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    = gcc
   CF    = g77
-  COPT  = -std=c99 -O3 -ffast-math -funroll-loops
+  CSTD  = -std=c99
+  CDBG  = -g
+  COPT1 = -O2
+  COPT2 = -O3 -ffast-math -funroll-loops
+  CWARN = -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
+          -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
   FOPT  = -O
   FLIBS += -lg2c
-  CWARN = -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith \
-          -Wwrite-strings -Wstrict-prototypes -Wstrict-aliasing=1 -Wshadow \
-          -Wcast-align -Wnested-externs -Wcomment \
-          -Wno-unknown-pragmas
 
 else ifeq ($(COMPILER),intel)
   CC    = icc
   CF    = ifort
-  COPT  = -std=c99 -O3
+  CSTD  = -std=c99
+  CDBG  = -g
+  COPT1 = -O2
+  COPT2 = -O3
+  CWARN = -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
   FOPT  = -O3
   FWARN += -vec-report0
   FLIBS += -lifcore
-  CWARN = -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
@@ -266,7 +288,10 @@ else ifeq ($(COMPILER),compaq)
   # You can add option '-arch host' to COPT and FOPT in this section
   CC    = cc
   CF    = f77
-  COPT  = -fast
+  #CSTD  = -std=c99
+  CDBG  = -g
+  COPT1 = -O2
+  COPT2 = -fast
   CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
   # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
@@ -277,15 +302,20 @@ else ifeq ($(COMPILER),ibm)
   # Then use '-O3 -qarch=... -qtune=...' instead
   CC      = xlc
   CF      = xlf
-  COPT    = -O3 -qcache=auto -qlanglvl=extc99
+  CSTD  = -qlanglvl=extc99
+  CDBG  = -g
+  COPT1 = -O2
+  COPT2 = -O3 -qcache=auto
   # DFREDIRECT = 2>nul -qipa=level=2 -qhot
   DEPFLAG = -qmakedep=gcc -qsyntaxonly
   CWARN   = -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
   CC    = cc
   CF    = f90
-  FOPT  = +O3  +DD64
-  COPT  =  -AC99 +O3  +DD64
+  CSTD  = -AC99
+  CDBG  = -g
+  COPT1 = +O2 +DD64
+  COPT2 = +O3 +DD64
   CWARN =
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)
@@ -300,16 +330,34 @@ ifneq ($(strip $(FSOURCE)),)
   LDLIBS += $(FLIBS)
 endif
 # if 'release' turn off warningns
-ifdef RELEASE
-  $(info All warnings are suppressed)
+ifeq ($(DBGLVL),0)
   CWARN = -w
   LDFLAGS += -w
+  COPT = $(COPT2)
+  CDBG =
+else ifeq ($(DBGLVL),1)
+  COPT = $(COPT1)
+else ifeq ($(DBGLVL),2)
+  COPT =
 endif
 # Finalize option flags (almost)
-CFLAGS += $(COPT) $(CWARN)
+CFLAGS += $(CSTD) $(CDBG) $(COPT) $(CWARN)
 FFLAGS += $(FOPT) $(FWARN)
 
 FOBJECTS = $(FSOURCE:.f=.o)
+
+ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(SEQGOALS),$(MAKECMDGOALS)),1,),1),)
+  -include $(SEQ)/$(LASTOPTSFILE)
+  ifneq ($(strip $(filter-out $(LASTOPTS),$(OPTIONS)) $(filter-out $(OPTIONS),$(LASTOPTS))),)
+    $(shell rm -f $(SEQ)/$(LASTOPTSFILE))
+  endif
+endif
+ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(MPIGOALS),$(MAKECMDGOALS)),1,),1),)
+  -include $(MPI)/$(LASTOPTSFILE)
+  ifneq ($(strip $(filter-out $(LASTOPTS),$(OPTIONS)) $(filter-out $(OPTIONS),$(LASTOPTS))),)
+    $(shell rm -f $(MPI)/$(LASTOPTSFILE))
+  endif
+endif
 
 $(info ----------------------------)
 
@@ -337,8 +385,8 @@ clean: cleanseq cleanmpi
 # Moving 'clean' commands to child makefiles is problematic due to included dependency files
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d $(LASTOPTSFILE) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d $(LASTOPTSFILE) $(PROGMPI) $(PROGMPI).exe
