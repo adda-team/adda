@@ -29,17 +29,17 @@
 # resort. This should work fine in many cases, but can be replaced by a simple assignment of MPICC.
 ifndef MPICC
   ifeq ($(shell which mpicc > /dev/null 2>&1 && echo 0),0)
-    MPICC = mpicc
+    MPICC := mpicc
   else
-    MPICC = $(CC)
+    MPICC := $(CC)
   endif
 endif
 
 # Compiler dependent options
 # These are options for a particular Alpha system
 ifeq ($(COMPILER),compaq)
-  MPICC = cc
-  LDLIBS += -lmpi -lelan
+  MPICC := cc
+  LDFLAGS += -lmpi -lelan
 endif
 
 # If the compiler is used directly, a few additional options are needed
@@ -49,7 +49,7 @@ ifeq ($(MPICC),$(CC))
   #CFLAGS += -I"C:/Program Files/MPICH2/include"
   #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
 
-  LDLIBS += -lmpi
+  LDFLAGS += -lmpi
 # If MPI compiler wrapper is used, a few environmental variables are set
 else
   # These are used by MPICH, other implementations may also need something
@@ -62,37 +62,9 @@ endif
 #===================================================================================================
 
 # Finalize flags
-CDEFS += -DADDA_MPI
-vpath %.c $(CPATH)
-vpath %.h $(HPATH)
-vpath %.f $(FPATH)
+CFLAGS += -DADDA_MPI
+PROG := $(PROGMPI)
+MYCC := $(MPICC)
+MYCF := $(CF)
 
-#===================================================================================================
-# Main action part
-#===================================================================================================
-
-.DELETE_ON_ERROR:
-
-$(PROGMPI): $(COBJECTS) $(FOBJECTS)
-	@echo "Building $@"
-	$(MPICC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
-
-$(COBJECTS): %.o: %.c %.d
-	$(MPICC) -c $(CFLAGS) $(CDEFS) $<
-
-$(FOBJECTS): %.o: %.f $(MFILES)
-	$(CF) -c $(FFLAGS) $<
-
-# Dependencies are only generated for C sources; we assume that each Fortran file is completely 
-# independent or all of them are compiled at once. 
-# Everything is recompiled when any of makefiles or .lastopts is changed
-
-$(CDEPEND): %.d: %.c $(MFILES) $(LASTOPTSFILE)
-	$(CC) $(DEPFLAG) $(CFLAGS) $(CDEFS) $< $(DFFLAG) $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
-
-$(LASTOPTSFILE):
-	echo LASTOPTS = $(OPTIONS) > $@
-
--include $(CDEPEND)
+include $(COMMONMK)
