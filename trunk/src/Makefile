@@ -32,20 +32,21 @@
 # Fixed definitions for non-compilation targets
 #===================================================================================================
 
-SHELL    = /bin/sh
+SHELL      := /bin/sh
 # Separate directories to store Makefiles and .o and .d files for sequential and MPI executables
-SEQ      = seq
-MPI      = mpi
+SEQ        := seq
+MPI        := mpi
 # Names of executables
-PROGSEQ  = adda
-PROGMPI  = adda_mpi
+PROGSEQ    := adda
+PROGMPI    := adda_mpi
 # Targets implying compilation (empty one is always included)
-NONTRIVIAL = all seq mpi
-# targets implying sequential or mpi compilation. This duplicates the functionality of the target
-# designation, but is required for timely update of .lastopts
-SEQGOALS = seq all
-MPIGOALS = mpi all
-LASTOPTSFILE = .lastopts
+NONTRIVIAL := all seq mpi
+# Files to store last-used command lines for linker, C and Fortran compilers
+LDOPTSFILE := .ldopts
+COPTSFILE  := .copts
+FOPTSFILE  := .fopts
+# Common makefile to be included from the specific makefiles for seq and mpi version
+COMMONMK   := ../common.mk
 
 #===================================================================================================
 # !!! Start of control section. Flags and options here can be modified by user. However, the default
@@ -72,8 +73,8 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
-VALID_OPTS=DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-           OVERRIDE_STDC_TEST
+VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
+              OVERRIDE_STDC_TEST
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -114,7 +115,7 @@ VALID_OPTS=DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFI
 # ibm - tested on xlc 8.0 - last tested in 2008
 # hpux - tested on ia64
 # other -
-COMPILER = gnu
+COMPILER := gnu
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
 # bit environment. Flags specified below are appended to the ones specified in the environment or
@@ -147,12 +148,12 @@ override EXTRA_CFLAGS +=
 
 # CSOURCE contains all C files in source folder, but we specify them explicitly to avoid possible
 # problems if other files somehow appear in this folder.
-CSOURCE = ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
-          linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
-          prec_time.c vars.c mt19937ar.c sinint.c
+CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
+           linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
+           prec_time.c vars.c mt19937ar.c sinint.c
 # Fortran files are all that are present in src/fort folder, but given explicitly
-FSOURCE = d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
-          drlhre.f dtrhre.f propaesplibreintadda.f
+FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
+           drlhre.f dtrhre.f propaesplibreintadda.f
 
 COBJECTS := $(CSOURCE:.c=.o)
 CDEPEND  := $(CSOURCE:.c=.d)
@@ -160,19 +161,17 @@ CDEPEND  := $(CSOURCE:.c=.d)
 
 # Path to search for source files from the child Makefiles (in child folders)
 # Those are used for vpath directives in child Makefiles
-PARENT   = ..
-FFOLDER  = fort
+PARENT   := ..
+FFOLDER  := fort
 CPATH    := $(PARENT)
 HPATH    := $(PARENT)
 FPATH    := $(PARENT)/$(FFOLDER)
 
-LDLIBS   = -lm
-DEPFLAG  = -M
-DFFLAG   = -MF # this is required
-MFILE    = Makefile # this file; child makefiles are named the same
-MFILES   := $(MFILE) ../$(MFILE)
+LDLIBS   := -lm
+DEPFLAG  := -M
+DFFLAG   := -MF # this is required
 # Fortran sources generate a lot of warnings, we do not plan to investigate them
-FWARN    = -w
+FWARN    := -w
 
 #===================================================================================================
 # Conditional variables that depend on the values of optional flags.
@@ -186,18 +185,18 @@ $(foreach var,$(filter-out $(VALID_OPTS),$(OPTIONS)),\
 $(info --- Compilation options: ---)
 ifneq ($(filter DEBUGFULL,$(OPTIONS)),)
   $(info Full debug mode)
-  DBGLVL = 2
-  CDEFS += -DDEBUGFULL
+  DBGLVL := 2
+  CDEFS  += -DDEBUGFULL
   ifneq ($(filter DEBUG,$(OPTIONS)),)
     $(warning DEBUG has no effect when DEBUGFULL is enabled)
   endif
 else ifneq ($(filter DEBUG,$(OPTIONS)),)
   $(info Debug mode)
-  DBGLVL = 1
-  CDEFS += -DDEBUG
+  DBGLVL := 1
+  CDEFS  += -DDEBUG
 else
   $(info Release mode)
-  DBGLVL = 0
+  DBGLVL := 0
 endif
 ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
   $(info Temperton FFT)
@@ -247,36 +246,34 @@ ifneq ($(strip $(EXTRA_CFLAGS)),)
   CFLAGS += $(EXTRA_CFLAGS)
 endif
 
-# adds link to fftw3 library and modifies paths when above is commented
-# compiler warnings and optimization flags;
-# when release, warning are turned off below
+# By default Fortran optimization options are the same as C, but specific options can be used for
+# some compilers below.
 FOPT = $(COPT)
 # This is for additional libraries that may be needed when using C linker on a Fortran sources
 # (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are
-# assigned for each compiler below
+# assigned for each compiler below.
 FLIBS +=
 ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
-  CC    = gcc
-  CF    = g77
-  CSTD  = -std=c99
-  CDBG  = -g
-  COPT1 = -O2
-  COPT2 = -O3 -ffast-math -funroll-loops
-  CWARN = -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-          -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
-  FOPT  = -O
+  CC    := gcc
+  CF    := g77
+  CSTD  := -std=c99
+  CDBG  := -g
+  COPT1 := -O2
+  COPT2 := -O3 -ffast-math -funroll-loops
+  CWARN := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
+           -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
+  FOPT  := -O
   FLIBS += -lg2c
 
 else ifeq ($(COMPILER),intel)
-  CC    = icc
-  CF    = ifort
-  CSTD  = -std=c99
-  CDBG  = -g
-  COPT1 = -O2
-  COPT2 = -O3
-  CWARN = -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
-  FOPT  = -O3
+  CC    := icc
+  CF    := ifort
+  CSTD  := -std=c99
+  CDBG  := -g
+  COPT1 := -O2
+  COPT2 := -O3
+  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
   FWARN += -vec-report0
   FLIBS += -lifcore
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
@@ -286,13 +283,13 @@ else ifeq ($(COMPILER),compaq)
   # undefined. If you happen to use this compiler, please report results to the authors.
   #
   # You can add option '-arch host' to COPT and FOPT in this section
-  CC    = cc
-  CF    = f77
+  CC    := cc
+  CF    := f77
   #CSTD  = -std=c99
-  CDBG  = -g
-  COPT1 = -O2
-  COPT2 = -fast
-  CWARN = -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
+  CDBG  := -g
+  COPT1 := -O2
+  COPT2 := -fast
+  CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
   # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
   # should be used. If you happen to use this compiler, please report results to the authors.
@@ -300,23 +297,23 @@ else ifeq ($(COMPILER),ibm)
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
   # machine. However, it will not work in some configurations.
   # Then use '-O3 -qarch=... -qtune=...' instead
-  CC      = xlc
-  CF      = xlf
-  CSTD  = -qlanglvl=extc99
-  CDBG  = -g
-  COPT1 = -O2
-  COPT2 = -O3 -qcache=auto
+  CC    := xlc
+  CF    := xlf
+  CSTD  := -qlanglvl=extc99
+  CDBG  := -g
+  COPT1 := -O2
+  COPT2 := -O3 -qcache=auto
   # DFREDIRECT = 2>nul -qipa=level=2 -qhot
-  DEPFLAG = -qmakedep=gcc -qsyntaxonly
-  CWARN   = -qsuppress=1506-224:1506-342:1500-036
+  DEPFLAG := -qmakedep=gcc -qsyntaxonly
+  CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
-  CC    = cc
-  CF    = f90
-  CSTD  = -AC99
-  CDBG  = -g
-  COPT1 = +O2 +DD64
-  COPT2 = +O3 +DD64
-  CWARN =
+  CC    := cc
+  CF    := f90
+  CSTD  := -AC99
+  CDBG  := -g
+  COPT1 := +O2 +DD64
+  COPT2 := +O3 +DD64
+  CWARN :=
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)
 # add here definitions corresponding to 'other' compiler, if you want to use it.
@@ -331,33 +328,21 @@ ifneq ($(strip $(FSOURCE)),)
 endif
 # if 'release' turn off warningns
 ifeq ($(DBGLVL),0)
-  CWARN = -w
+  CWARN   := -w
   LDFLAGS += -w
-  COPT = $(COPT2)
-  CDBG =
+  COPT    := $(COPT2)
+  CDBG    :=
 else ifeq ($(DBGLVL),1)
-  COPT = $(COPT1)
+  COPT := $(COPT1)
 else ifeq ($(DBGLVL),2)
-  COPT =
+  COPT :=
 endif
-# Finalize option flags (almost)
-CFLAGS += $(CSTD) $(CDBG) $(COPT) $(CWARN)
-FFLAGS += $(FOPT) $(FWARN)
+# Finalize option flags; these aggregates are used as a whole furher on
+LDFLAGS += $(LDLIBS)
+CFLAGS  += $(CSTD) $(CDBG) $(COPT) $(CWARN) $(CDEFS)
+FFLAGS  += $(FOPT) $(FWARN)
 
-FOBJECTS = $(FSOURCE:.f=.o)
-
-ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(SEQGOALS),$(MAKECMDGOALS)),1,),1),)
-  -include $(SEQ)/$(LASTOPTSFILE)
-  ifneq ($(strip $(filter-out $(LASTOPTS),$(OPTIONS)) $(filter-out $(OPTIONS),$(LASTOPTS))),)
-    $(shell rm -f $(SEQ)/$(LASTOPTSFILE))
-  endif
-endif
-ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(MPIGOALS),$(MAKECMDGOALS)),1,),1),)
-  -include $(MPI)/$(LASTOPTSFILE)
-  ifneq ($(strip $(filter-out $(LASTOPTS),$(OPTIONS)) $(filter-out $(OPTIONS),$(LASTOPTS))),)
-    $(shell rm -f $(MPI)/$(LASTOPTSFILE))
-  endif
-endif
+FOBJECTS := $(FSOURCE:.f=.o)
 
 $(info ----------------------------)
 
@@ -382,11 +367,12 @@ mpi:
 
 clean: cleanseq cleanmpi
 
-# Moving 'clean' commands to child makefiles is problematic due to included dependency files
+# 'clean' commands are exectured here to keep them simple. Child makefiles are used only for 
+# compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d $(LASTOPTSFILE) $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(LASTOPTSFILE) $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGMPI) $(PROGMPI).ex

@@ -3,8 +3,7 @@
 # $Author$
 # $Date::                            $
 #
-# Copyright (C) 2006-2008 University of Amsterdam
-# Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+# Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,36 +19,8 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
-vpath %.c $(CPATH)
-vpath %.h $(HPATH)
-vpath %.f $(FPATH)
+PROG := $(PROGSEQ)
+MYCC := $(CC)
+MYCF := $(CF)
 
-#===================================================================================================
-# Main action part
-#===================================================================================================
-
-.DELETE_ON_ERROR:
-
-$(PROGSEQ): $(COBJECTS) $(FOBJECTS) 
-	@echo "Building $@"
-	$(CC) -o $@ $(LDFLAGS) $(COBJECTS) $(FOBJECTS) $(LDLIBS)
-
-$(COBJECTS): %.o: %.c %.d
-	$(CC) -c $(CFLAGS) $(CDEFS) $<
-
-$(FOBJECTS): %.o: %.f $(MFILES)
-	$(CF) -c $(FFLAGS) $<
-
-# Dependencies are only generated for C sources; we assume that each Fortran file is completely 
-# independent or all of them are compiled at once. 
-# Everything is recompiled when any of makefiles or .lastopts is changed
-
-$(CDEPEND): %.d: %.c $(MFILES) $(LASTOPTSFILE)
-	$(CC) $(DEPFLAG) $(CFLAGS) $(CDEFS) $< $(DFFLAG) $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
-
-$(LASTOPTSFILE):
-	echo LASTOPTS = $(OPTIONS) > $@
-
--include $(CDEPEND)
+include $(COMMONMK)
