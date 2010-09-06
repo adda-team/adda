@@ -27,9 +27,9 @@
  * and convenient tool to generate such messages is used.
  */
 
-//#define DEBUG // uncomment to degug
+//#define DEBUGFULL // uncomment to degug
 
-#ifdef DEBUG
+#ifdef DEBUGFULL
 
 #	include "function.h" // for function attributes
 #	include "const.h"    // for POS

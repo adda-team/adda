@@ -1,7 +1,7 @@
 /* File: debug.c
  * $Author$
  * $Date::                            $
- * Descr: functions for printing debugging information when compiling with option -DDEBUG
+ * Descr: functions for printing debugging information when compiling with option -DDEBUGFULL
  *
  *        Previous versions by "vesseur"
  *
@@ -30,7 +30,7 @@
 #include "io.h"
 #include "vars.h"
 
-#ifdef DEBUG
+#ifdef DEBUGFULL
 //============================================================
 
 void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
@@ -66,4 +66,4 @@ void FieldPrint (doublecomplex * restrict x)
 	fprintf(logfile,"E = "CFORM3V,x[i][RE],x[i][IM],x[i+1][RE],x[i+1][IM],x[i+2][RE],x[i+2][IM]);
 }
 
-#endif // DEBUG
+#endif // DEBUGFULL

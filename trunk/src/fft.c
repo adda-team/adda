@@ -43,14 +43,17 @@
  */
 #	define PLAN_FFTW FFTW_MEASURE
 #	define PLAN_FFTW_DM FFTW_ESTIMATE
+#	define ONLY_FOR_FFTW3
+#else
+#	define ONLY_FOR_FFTW3 ATT_UNUSED
 #endif
 // for transpose YZ
 #define TR_BLOCK 64
 
 #ifdef FFT_TEMPERTON
-#define ONLY_FOR_TEMPERTON
+#	define ONLY_FOR_TEMPERTON
 #else
-#define ONLY_FOR_TEMPERTON ATT_UNUSED
+#	define ONLY_FOR_TEMPERTON ATT_UNUSED
 #endif
 
 // SEMI-GLOBAL VARIABLES
@@ -422,7 +425,7 @@ int fftFit(int x,int divis)
 
 //=============================================================
 
-static void fftInitBeforeD(const int lengthZ)
+static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 // initialize fft before initialization of Dmatrix
 {
 #ifdef FFTW3

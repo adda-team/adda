@@ -746,7 +746,7 @@ static double PlaceGranules(void)
 	 * small and large granules is largely independent (although there are some common parts, which
 	 * motivates against complete separation of them into two functions).
 	 */
-	zerofit=gX2=gY2=gZ2=locgZ2=id0=id1=jd0=jd1=kd0=kd1=indZ=locgZ=gr_locgN=0;
+	zerofit=gX2=gY2=gZ2=locgZ2=id0=id1=jd0=jd1=kd0=kd1=indZ=locgZ=gr_locgN=sx=sy=sz=0;
 	gdXh=gdYh=gdZh=0;
 	ginX=ginY=ginZ=NULL;
 	dom=NULL;
