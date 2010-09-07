@@ -7,7 +7,7 @@
 
 = Parallel implementation =
 Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in parallel on a cluster or supercomputer, using [http://www.mpi-forum.org/ MPI]. Computational grid of 1024×1024×1024 dipoles and even larger can be used.
- * Very large particle sizes can be handled. For instance, light scattering by a sphere with size parameter 320 (diameter equal to 50 wavelengths) can be accurately simulated (see [LargestSimulations Largest Simulations]).
+ * Very large particle sizes can be handled. For instance, light scattering by a sphere with size parameter 320 (diameter equal to 100 wavelengths) can be accurately simulated (see [LargestSimulations Largest Simulations]).
  * Very fine discretization can be used when high accuracy or extra reliability is required.
  * Simple sequential execution is also possible, as well as running on a multi-core processors.
 
