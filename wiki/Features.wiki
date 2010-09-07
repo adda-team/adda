@@ -53,13 +53,13 @@ Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in
 
 = Reliable =
  * Tested and trusted by the community. As of summer 2010 it is used by about 60 researchers. During 3 years up to that date about 40 journal papers, which somehow used ADDA, were published.
- * Tested by [ComparisonOtherCodes comparison with other methods and code].
- * New releases are tested against the previous ones by automatic testing suites].
- * Open development process, including [http://code.google.com/p/a-dda/issues issue tracker] and availability of the [http://code.google.com/p/a-dda/source/browse/ current source], provides additional pre-release testing.
+ * Tested by [ComparisonOtherCodes comparison with other methods and codes].
+ * New releases are tested against the previous ones by automatic testing suites.
+ * Open development process, including [http://code.google.com/p/a-dda/issues issue tracker] and availability of the [http://code.google.com/p/a-dda/source/browse/ current source], allows pre-release testing.
 
 = Actively developed =
  * Although *ADDA* is already a mature package, there are large [http://code.google.com/p/a-dda/issues plans for further development].
- * [http://code.google.com/p/a-dda/updates/list Development process] is ongoing albeit irregular. The _unofficial_ goal is to make at least one release per year.
+ * [http://code.google.com/p/a-dda/updates/list Development process] is ongoing albeit irregular. The goal is to make at least one release per year.
  * Number of [http://code.google.com/p/a-dda/people/list contributors] is slowly increasing due to the open nature of Google Code platform.
- * New contributors are welcome. In particular, there are extensive instructions, how to make simple changes to the code (e.g. [AddingShape adding new predefined shape]).
+ * New contributors are welcome! In particular, there are extensive instructions, how to make simple changes to the code (e.g. [AddingShape adding new predefined shape]).
  
