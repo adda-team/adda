@@ -1,0 +1,65 @@
+#summary How to compile ADDA
+#labels Featured
+
+<wiki:toc /> 
+
+= Introduction =
+
+The simplest way to compile *ADDA* is using the provided `Makefile`. This can be done on any system with [http://www.gnu.org/software/make/ GNU make] and C and Fortran compilers installed, which includes but not limited to almost all Unix-type systems. Position yourself in the `src/` directory of the [PackageDescription ADDA package] and type "`make seq`" or "`make mpi`" to install the sequential or MPI version respectively (on some systems, GNU `make` is available under a different name, e.g. `gmake`) . Compiled executables are then `src/seq/adda` and `src/mpi/adda_mpi` respectively. Full list of possible targets (arguments to `make`) is the following:
+
+|| `all` || The default target (if none is specified). Invokes both `seq` and `mpi`. ||
+|| `seq` || Compiles sequential executable of *ADDA*. ||
+|| `mpi` || Compiles parallel ([http://www.mpi-forum.org/ MPI]) executable of *ADDA*. ||
+|| `clean` || Removes all files produced during compilation. Invokes both `cleanseq` and `cleanmpi`. ||
+|| `cleanseq` || Removes files produced during compilation of sequential version (located in `src/seq/`). ||
+|| `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/mpi/`). ||
+
+The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover MPI version of *ADDA* requires [InstallingMPI installed MPI implementation]. Using the latter, *ADDA* can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. 
+
+*ADDA* is fully ready for 64-bit mode, which allows it to use practically unlimited memory per single process. Moreover, it will automatically compile as such in a 64-bit operating system.
+
+= Compilation options =
+
+The details of compilation are controlled by a number of options (described in a table below), which can be specified by three different methods. First, one may change or uncomment the corresponding lines in the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile], starting with "`name = ...`" or "`override name += `", where `name` is the option name. These lines are accompanied by a lot of descriptive comments. Second, these options may be set as environmental variables before executing `make`. Third, they may be given as additional command line parameters when invoking `make`, for example
+{{{
+make COMPILER=intel OPTIONS="DEBUG FFT_TEMPERTON" ...
+}}}
+Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
+
+|| *Name* || *Value* || *Description* ||
+|| `COMPILER` || one of || ||
+|| || `gnu` || [http://www.gnu.org/software/gcc/ GNU compilers]. The default value. ||
+|| || `intel` || [http://software.intel.com/en-us/intel-compilers/ Intel compilers]. Produced *ADDA* executables may be 10-20% faster compared to `gnu`, so `intel` is recommended wherever possible. Note that it is [http://software.intel.com/en-us/articles/non-commercial-software-download/ freely available for non-commercial use on Linux]. ||
+|| || `compaq` || [http://h30097.www3.hp.com/dtk/compaqc_ov.html Compaq compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
+|| || `ibm` || [http://www-142.ibm.com/software/products/us/en/subcategory/SW760 IBM compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
+|| || `hpux` || Specific options for HP-UX ia64 environment ||
+|| || `other` || Use this if none of the above works. Need manual specification of compiler flags (see below). ||
+|| `OPTIONS` || any combination of || ||
+|| || `DEBUG` || Turns on producing debug symbols (`-g`) and warnings by the compiler and slightly reduces optimization level. This option is irrelevant, if `DEBUGFULL` is used. ||
+|| || `DEBUGFULL` || Same as `DEBUG`, but turns off optimization completely and turns on additional diagnostic messages in the source code. ||
+|| || `FFT_TEMPERTON` || Uses built-in FFT routines by C. Temperton. This is recommended if you have problems installing FFTW3. ||
+|| || `PRECISE_TIMING` || Enables precise timing routines, which give extensive timing of all the computation parts of *ADDA*, useful for debugging or optimization studies. ||
+|| || `NOT_USE_LOCK` || Does not use file locking for `ExpCount` at all. Enable this flag if you get compilation errors due to unsupported operation system (e.g. issue 83) or experience permanent locks. ||
+|| || `ONLY_LOCKFILE` || Uses lock file to lock `ExpCount`, but do not additionally lock this file. Use it if you get warnings when running *ADDA* stating that your system does not support advanced file locking. This option is irrelevant for non-POSIX systems or if `NOT_USE_LOCK` is used. ||
+|| || `NO_FORTRAN` || Disables compilation of all Fortran sources. Use it only if compilation of these files causes problems. Corresponding *ADDA* features, namely integration of Green's tensor (`-int igt`), are then disabled. Also, this option is incompatible with `FFT_TEMPERTON`. ||
+|| || `OVERRIDE_STDC_TEST` || Disablse compilation errors if compiler does not declare its [http://www.open-std.org/JTC1/SC22/WG14/www/standards C99] conformance. Use it only if you are sure that compiler supports those C99 features that are essential for *ADDA*. ||
+|| `EXTRA_CFLAGS` || any || Additional flags to be passed to the C compiler. For instance, `-m32` to compile 32-bit binaries in a 64-bit environment. ||
+|| `FFTW3_INC_PATH` || path || Path to FFTW3 headers. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. || 
+|| `FFTW3_LIB_PATH` || path || Path to FFTW3 library. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. ||
+
+To use `COMPILER=other` one should manually add definitions of corresponding compiler flags to the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile], according to the pattern used for predefined compilers, after the line
+{{{
+ifeq ($(COMPILER),other)
+}}}
+If you do so, please write to the [http://groups.google.com/group/adda-discuss discussion group], so this compiler can be incorporated in future releases. Please also write to this group if you use one of the supported compilers with `OPTIONS=DEBUG` and obtain any warnings.
+
+If compilation of MPI version does not work out-of-box, you may need to modify [http://code.google.com/p/a-dda/source/browse/trunk/src/mpi/Makefile mpi/Makefile]. This may include specifying a particular compiler wrapper (setting variable `MPICC`) and paths to compiler headers and libraries. For the latter uncomment and adjust lines starting with "`CFLAGS += I`" and "`LFLAGS += L`" accordingly. Please see comments in the file for more details.
+
+When asked to repeat compilation, `make` automatically determines, which source files need to be recompiled. Apart from changes in the source files themselves the logic of `Makefile` also considers the differences in compilation options between current and previous compilation. Thus, it is not necessary to perform any cleaning between the compilations with different options.
+
+= Different platforms =
+*ADDA* is intended to be portable to as wide range of platforms as possible. There are only two operating-system-dependent aspects of *ADDA*: precise timing and file locking. Both are optional (controlled by compilation flags, see above) and should be functional on any Windows or POSIX-compliant (Unix) operating system.
+
+GNU `make` and GNU compiler collection has been ported to a wide variety of platforms (including Windows). This makes it possible to compile *ADDA* on all of these platforms exactly as described above. If for some reason it doesn't work, one may compile all source files (with maximum possible optimizations) and link them into an executable. In that case adjusting some of compilation options is possible by uncommenting defines in corresponding header files (see comments in the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile]).
+
+The compiled [PackageDescription#Windows_32-bit_executables executables for 32-bit Windows] are also [http://code.google.com/p/a-dda/downloads/list available].
