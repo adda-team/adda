@@ -269,11 +269,11 @@ ifeq ($(COMPILER),gnu)
 else ifeq ($(COMPILER),intel)
   CC    := icc
   CF    := ifort
-  CSTD  := -std=c99
+  CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
   CDBG  := -g
   COPT1 := -O2
   COPT2 := -O3
-  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259 -vec-report0
+  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259
   FWARN += -vec-report0
   FLIBS += -lifcore
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
