@@ -1113,5 +1113,5 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 
 	Free_general(materialT);
 	Free_general(rdipT);
-	Free_general(pT);
+	Free_cVector(pT);
 }

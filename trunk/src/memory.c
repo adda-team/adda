@@ -271,6 +271,7 @@ void Free_iMatrix(int ** restrict m,const size_t nrl,const size_t nrh,const size
 
 void Free_general(void * restrict v)
 // frees general vector; kept in a special function for future development
+// !!! Must not be used for complex vectors - use Free_cVector instead !!!
 {
 	IF_FREE(v);
 }
