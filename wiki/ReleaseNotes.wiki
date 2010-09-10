@@ -1,9 +1,22 @@
 #summary The history of most important changes in ADDA, grouped by releases.
 #labels Featured
 
-Here most important changes are listed grouped by releases in reverse chronological order. Full history with all hardly significant details can be found in [http://code.google.com/p/a-dda/source/browse/trunk/doc/history doc/history]. Very early history starting from 1990 is [EarlyHistory documented separately]. Packages of versions starting from 0.78.2 are listed in [http://code.google.com/p/a-dda/downloads/list Downloads], while earlier versions can be either downloaded from the [http://www.science.uva.nl/research/scs/Software/adda/history.html old ADDA history page] (0.73 - 0.78.2) or extracted from the [http://code.google.com/p/a-dda/source/browse/tags/ Subversion repository] (starting from [http://code.google.com/p/a-dda/source/browse/tags/rel_0_5 0.5]).
+Here most important changes are listed grouped by releases in reverse chronological order. Full history with all hardly significant details can be found in [http://code.google.com/p/a-dda/source/browse/trunk/doc/history doc/history]. Very early history starting from 1990 is [EarlyHistory documented separately]. Packages of versions starting from 0.78.2 are listed in [http://code.google.com/p/a-dda/downloads/list?can=1 Downloads], while earlier versions can be either downloaded from the [http://www.science.uva.nl/research/scs/Software/adda/history.html old ADDA history page] (0.73 - 0.78.2) or extracted from the [http://code.google.com/p/a-dda/source/browse/tags/ Subversion repository] (starting from [http://code.google.com/p/a-dda/source/browse/tags/rel_0_5 0.5]).
 
 <wiki:toc />
+
+=Ver. 1.0 - 10.09.10=
+ * Fabio Della Sala and Stefania D'Agostino contributed code to calculate near-field with *ADDA* ([http://code.google.com/p/a-dda/source/browse/trunk/misc/near_field misc/near_field]). Now it is included in the main package.
+ * "Integration of Green's tensor" formulation of the DDA was implemented based on the code contributed by Patrick Chaumet and Adel Rahmani (part of issue 84).
+ * New predefined shapes: `bisphere`, `bicoated`, and `biellipsoid`.
+ * New command line option `-scat_matr {muel|ampl|both|none}` to specify which scattering matrix (amplitude and/or Mueller) need to be stored to file (issue 7).
+ * Calculation of Green's tensor was accelerated by doing all 6 components at once (issue 58).
+ * The code was refactored (see [PackageDescription current state]). Makefiles were significantly improved (see [CompilingADDA compilation instructions]). In particular, issue 65 and issue 81 were fixed.
+ * [http://code.google.com/p/a-dda/ Homepage at Google Code] was completely rewritten. Now it is is the main official page of *ADDA*.
+ * Documentation was significantly reworked. Many sections of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual], not directly related to performing light scattering simulations were moved to wiki pages. A number of other [GettingStarted wiki pages] were added. `doc/faq` was moved to a wiki page [FAQ].
+ * Several bugs in granule generator were fixed (issue 108, issue 109).
+ * Fixed bug in calculation of radiative forces (r972).
+ * Minor bugs were fixed (issue 93, issue 96, issue 97, issue 107,  issue 110).
 
 =Ver. 0.79 - 29.05.09=
  * Added using SLURM job ID, when available.
