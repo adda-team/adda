@@ -340,3 +340,81 @@ Ver. 0.79 - 29.05.09
   not yet widely supported by compilers (such as inline and complex). Explicit
   support of this standard is required during compilation. Some style changes
   were done, and some work in this direction is still due.
+
+----------------------------------
+Ver. 1.0 - 10.09.2010
+
+* doc/faq has been moved to a wiki page http://code.google.com/p/a-dda/wiki/FAQ
++ Calculation of Green's tensor was accelerated by doing all 6 components at
+  once (issue 58).
++ IGT was implemented (issue 84).
++ Added information on extra build options (e.g. DEBUG) to the output of '-V'
+  command line option.
++ New shapes: bisphere, bicoated, biellipsoid.
+* The code was refactored: 1) all Fortran sources were moved to fort/;
+  2) make_mpi and make_seq were moved (renamed) to mpi/Makefile and seq/Makefile
+  respectively; 3) now compilation goes on in folders mpi/ and seq/ completely
+  independently.
++ Overall Makefiles were significantly modified: 1) targets 'all', 'cleanseq',
+  and 'cleanmpi' were added; 2) informing about compilation process was
+  implemented using $(info ...) directives; 3) most of the analysis in the
+  Makefile is now skipped for non-compilation targets (like 'clean').
++ Flag NO_FORTRAN was implemented in Makefile, which can be used to disable all
+  Fortran sources.
++ Three debug levels can now be easily specified in Makefile (issue 65). All the
+  compilation option can be specifie through the command line. And Makefile will
+  automatically determine whether recompilation is required based on the
+  differences in the final command line with which the compiler is invoked
+  (issue 81).
+* Format descriptors for output all over the code were replaced by a number of
+  string macros. Should be easier to maintain. The visible output has stayed the
+  same apart for a few minor changes.
+* Code for saving Mueller matrix and cross sections after orientation averaging
+  was moved from calculator.c to CalculateE.c.
+- Minor bugs were fixed (issue 93, issue 96, issue 97, issue 107,  issue 110).
+* Global constants MPI and ROOT were changed to ADDA_MPI and ADDA_ROOT
+  respectively (issue 86).
++ New command line option '-scat_matr {muel|ampl|both|none}' to specify which
+  scattering matrix (amplitude and/or Mueller) need to be stored to file
+  (issue 7).
++ Iterative solvers were significantly refactored to move all common parts to
+  one place. Added description of how to add a new iterative solver (issue 73).
++ Timing was slightly reworked. In particular, new timing variable was added to
+  gather total communication time for one run of the iterative solver.
++ Significant changes towards using C99 standard (issue 64).
+- Several bugs in granule generator were fixed (issue 108, issue 109).
++ Warning settings for the compiler was tightened (now it watches for unused and
+  uninitialized variables). Corresponding changes were made in the code to
+  suppress "legitimate" warnings.
++ Fabio Della Sala and Stefania D'Agostino contributed package to calculate
+  near-field with ADDA (misc/near_field).
++ Several wiki pages were added and ADDA homepage at Google Code was completely
+  rewritten.
+- Fixed bug in Frp_mat (calculation of radiative forces) - r972.
+
+Changes to the manual:
++ Section "System Requirements": Added description of the maximum number of
+  processors that can be used for a given problem and corresponding minimum
+  memory required by a single processor in a parallel mode.
++ Section "Predefined shapes": Added description of 3 new shapes.
++ Section "Partition over processors in parallel mode": Added description of the
+  dependence of parallel efficiency on the order (orientation) of the axes for
+  prolate or oblate particles.
++ Section "Mueller matrix": Added description of the difference between the
+  Mueller matrix and the Stokes phase and scattering matrices.
+- Section "Mueller matrix": Fixed typo in the last equation of this section (32)
+  - last 'cos' should be 'sin' instead (issue 87).
+* Section "Finale": Removed a paragraph, duplicating the info from Introduction.
+* Section "Command Line Options": Description of the '-shape' command line
+  option was simplified removing full list of options.
+* Sections "What's New", "Obtaining the Source Code", "Compiling and Linking",
+  "Acknowledgements", "Comparison with Other Codes", "Tutorial", "How to Modify
+  the Source Code",  and "A Brief History of Long ADDA Development" were moved
+  to the wiki pages.
++ A new section "How to Use the Manual" were added, in particular to point to
+  existing wiki pages. Some text was also added to section "Finale".
+* Section "Near-field": Added a short reference to the near_field package.
+* Section "Applicability of DDA": Added discussion of possible ways to
+  effectively simulate scattering by particles in the presence of substrate.
+* Added sections "Amplitude matrix" and "ampl" describing use of the
+  corresponding new command line option.
