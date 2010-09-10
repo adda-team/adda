@@ -3,10 +3,11 @@ all data is saved in 'run000_sphere_g16m1_5'
 lambda: 6.283185307   Dipoles/lambda: 15
 Required relative residual norm: 1e-005
 Total number of occupied dipoles: 2176
-Memory usage for MatVec matrices: 1.3 Mb
-Calculating Dmatrix......
+Memory usage for MatVec matrices: 1.3 MB
+Calculating Green's function (Dmatrix)
+Fourier transform of Dmatrix......
 Initializing FFTW3
-Total memory usage: 2.2 Mb
+Total memory usage: 2.2 MB
 
 here we go, calc Y
 
@@ -29,12 +30,12 @@ RE_013 = 3.0434605426E-003  +
 RE_014 = 1.3101400517E-003  + 
 RE_015 = 8.2588869912E-004  + 
 RE_016 = 5.0452779292E-004  + 
-RE_017 = 1.1339755199E-004  + 
-RE_018 = 9.3640503664E-005  + 
-RE_019 = 6.8748638938E-005  + 
-RE_020 = 2.2386125355E-005  + 
-RE_021 = 1.5169773128E-005  + 
-RE_022 = 3.1681577504E-006  + 
+RE_017 = 1.1339755193E-004  + 
+RE_018 = 9.3640503622E-005  + 
+RE_019 = 6.8748639218E-005  + 
+RE_020 = 2.2386124863E-005  + 
+RE_021 = 1.5169771171E-005  + 
+RE_022 = 3.1681532518E-006  + 
 Cext	= 135.0449046
 Qext	= 3.79114961
 Cabs	= -1.937494758e-016
