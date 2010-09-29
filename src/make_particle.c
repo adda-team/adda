@@ -386,11 +386,10 @@ static void ReadDipFile(const char * restrict fname)
 {
 	int x,y,z,x0,y0,z0,mat,scanned;
 	int index;
-	size_t boxXY,boxX_l;
+	size_t boxX_l;
 
 	// to remove possible overflows
 	boxX_l=(size_t)boxX;
-	boxXY=boxX_l*boxY;
 
 	mat=1;
 	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
@@ -704,7 +703,6 @@ static double PlaceGranules(void)
 {
 	int i,j,k,zerofit,last;
 	size_t n,count,count_gr,false_count,ui;
-	size_t boxXY;
 	double nd;                           // number of dipoles occupied by granules
 	int index,index1,index2;             // indices for dipole grid
 	int dom_index,dom_index1,dom_index2; // indices for auxiliary grid
@@ -767,7 +765,6 @@ static double PlaceGranules(void)
 	R=Di/2;
 	R2=R*R;
 	Di2=4*R2;
-	boxXY=boxX*(size_t)boxY;
 	// inner box
 	D("gr_N=%d, Di="GFORMDEF,gr_N,Di);
 	x0=R-0.5;

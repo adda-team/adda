@@ -54,8 +54,11 @@ void FreeGranulComm(int sm_gr);
 void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
 
 #ifdef PARALLEL
-// this functions are defined only in parallel mode
+// these functions are defined only in parallel mode
 void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char * restrict dest);
+bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,
+	TIME_TYPE *timing);
+
 /* The advantage of using this define is that compiler may remove an unnecessary test in sequential
  * mode. The define do not include common 'if', etc. to make the structure of the code (in the main
  * text) immediately visible.

@@ -37,7 +37,7 @@
 
 // defined and initialized in fft.c
 extern const doublecomplex * restrict Dmatrix;
-extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr;
+extern doublecomplex * restrict slices,* restrict slices_tr;
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
 
 //============================================================

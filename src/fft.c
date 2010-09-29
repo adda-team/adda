@@ -74,7 +74,6 @@ extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
 // used in matvec.c
 doublecomplex * restrict Dmatrix;       // holds FFT of the interaction matrix
-doublecomplex * restrict Xmatrix;       // holds input vector (on expanded grid) to matvec
 doublecomplex * restrict slices;        // used in inner cycle of matvec - holds 3 components (for fixed x)
 doublecomplex * restrict slices_tr;     // additional storage space for slices to accelerate transpose
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D

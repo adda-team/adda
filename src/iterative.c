@@ -63,6 +63,7 @@ extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in param.c
 extern const double eps;
+extern enum init_field InitField;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;
@@ -723,12 +724,125 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 #undef EPS1
 }
 #endif
-//============================================================
 
 #undef ITER_FUNC
 
+//============================================================
+
+void CalcInitField(char *descr,double zero_resid)
+/* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains
+ * the right-hand side of equations (b). At the end of this function xvec should contain initial
+ * vector for the iterative solver (x_0), rvec - corresponding residual r_0, and inprodR - the norm
+ * of the latter residual.
+ */
+{
+	if (InitField==IF_AUTO) {
+		/* This code is somewhat inelegant, but there seem to be no easy way to completely reuse
+		 * code for other cases. Moreover, this option will probably be changed afterwards.
+		 */
+		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
+		MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
+		// check which x_0 is better
+		if (zero_resid<inprodR) { // use x_0=0
+			nInit(xvec);
+			nCopy(rvec,pvec);
+			inprodR=zero_resid;
+			strcpy(descr,"x_0 = 0\n");
+		}
+		else { // use x_0=Einc
+			nCopy(xvec,pvec);
+			strcpy(descr,"x_0 = E_inc\n");
+		}
+	}
+	if (InitField==IF_ZERO) {
+		nInit(xvec); // x_0=0
+		nCopy(rvec,pvec); // r_0=b
+		inprodR=zero_resid;
+		strcpy(descr,"x_0 = 0\n");
+	}
+	else if (InitField==IF_INC) {
+		nCopy(xvec,pvec); // x_0=b
+		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
+		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
+		strcpy(descr,"x_0 = E_inc\n");
+	}
+	else if (InitField==IF_WKB) {
+		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
+			"incident direction of the incoming wave (along z-axis)");
+		doublecomplex vals[Nmat+1],tmpc;
+		int i,k; // for traversing single-axis dimensions
+		size_t dip,ind,dip_sl; // for traversing slices or up to nlocalRows
+		size_t boxX_l=(size_t)boxX; // to remove type conversion in indexing
+#define INDEX_GRID(i) (position[(i)+2]*boxXY+position[(i)+1]*boxX_l+position[i])
+		/* can be optimized by reusing material_tmp from make_particle.c or keeping the values
+		 * between the calls. But this will require usage of extra memory. So the current option
+		 * can be considered as corresponding to '-opt mem'
+		 */
+		unsigned char * restrict mat; // same as material, but defined on whole grid (local_Ndip)
+		doublecomplex * restrict arg; // argument of exponent for corrections of incident field
+#ifdef PARALLEL
+		doublecomplex * restrict bottom; // value of arg at bottom of current processor
+#endif
+		doublecomplex * restrict top; // propagating value of arg at planes between the dipoles
+
+		// define all vectors using memory assigned to Xmatrix
+		arg=Xmatrix;
+#ifdef PARALLEL
+		bottom=Xmatrix+local_Ndip;
+		top=bottom+boxXY;
+#else
+		top=Xmatrix+local_Ndip;
+#endif
+		mat=(unsigned char *)(top + boxXY);
+		// calculate function of refractive index
+		for (i=0;i<Nmat;i++) { // vals[i]=i*(ref_index[i]-1)*kd/2;
+			vals[i][IM]=(ref_index[i][RE]-1)*kd/2;
+			vals[i][RE]=-ref_index[i][IM]*kd/2;
+		}
+		vals[Nmat][RE]=vals[Nmat][IM]=0;
+		// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
+		for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;
+		for (dip=0,ind=0;dip<local_nvoid_Ndip;dip++,ind+=3)
+			mat[INDEX_GRID(ind)]=material[dip];
+		/* main part responsible for calculation of arg;
+		 * arg[i,j,k+1]=arg[i,j,k]+vals[i,j,k]+vals[i,j,k+1]
+		 * but that is done with temporary variables (not to index both k and k+1 simultaneously
+		 *
+		 * 'ind' traverses one slice, and 'dip' - all dipoles
+		 */
+		// First, calculate shifts relative to the bottom of current processor
+		for(ind=0;ind<boxXY;ind++) top[ind][RE]=top[ind][IM]=0;
+		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY)
+			for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++) {
+				cAdd(top[ind],vals[mat[dip]],arg[dip]);
+				cAdd(arg[dip],vals[mat[dip]],top[ind]);
+		}
+#ifdef PARALLEL
+		// Second, fulfill boundary by exchanging shift values at top and bottom
+		if (ExchangePhaseShifts(bottom,top,&Timing_InitIterComm))
+			// Third (if required) update shift from the obtained values on the bottom
+			for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY)
+				for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
+					cAdd(arg[dip],bottom[ind],arg[dip]);
+#endif
+		// xvec=pvec*Exp(arg), but arg is defined on a set of all (including void) dipoles
+		for (ind=0;ind<nlocalRows;ind+=3) {
+			cExp(arg[INDEX_GRID(ind)],tmpc);
+			cvMultScal_cmplx(tmpc,pvec+ind,xvec+ind);
+		}
+		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
+		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
+		strcpy(descr,"x_0 = result of WKB\n");
+	}
+}
+
+//============================================================
+
 int IterativeSolver(const enum iter method_in)
-/* choose required iterative method; do common initialization part */
+// choose required iterative method; do common initialization part
 {
 	double temp;
 	char tmp_str[MAX_LINE];
@@ -744,30 +858,16 @@ int IterativeSolver(const enum iter method_in)
 	 */
 	/* p=b=(S.Einc) is right part of the linear system; used only here. In iteration methods
 	 * themselves p is completely different vector. To avoid confusion this is done before any other
-	 * initializations, specific to iterative solvers
+	 * initializations, specific to iterative solvers.
 	 */
 	Timing_InitIterComm=0;
 	if (!load_chpoint) {
 		nMult_mat(pvec,Einc,cc_sqrt);
 		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
 		resid_scale=1/temp;
-		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-		MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
-		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-		// check which x_0 is better
-		if (temp<inprodR) { // use x_0=0
-			nInit(xvec);
-			// r=p, but faster than copy, p is not used afterwards
-			SwapPointers(&rvec,&pvec);
-			inprodR=temp;
-			strcpy(tmp_str,"x_0 = 0\n");
-		}
-		else { // use x_0=Einc
-			// x=p, but faster than copy, p is not used afterwards
-			SwapPointers(&xvec,&pvec);
-			strcpy(tmp_str,"x_0 = E_inc\n");
-		}
-		epsB=eps*eps/resid_scale;
+		epsB=eps*eps*temp;
+		// Calculate initial field
+		CalcInitField(tmp_str,temp);
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
