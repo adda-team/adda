@@ -34,6 +34,7 @@
 
 // basic variables
 extern int boxX,boxY,boxZ;
+extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 extern unsigned short * restrict position;
@@ -66,7 +67,7 @@ extern unsigned char * restrict material;
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,* restrict Einc;
+extern doublecomplex *xvec,*pvec,* restrict Einc,* restrict Xmatrix;
 
 // scattering at different angles
 extern int nTheta;

@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.0"
+#define ADDA_VERSION "1.1a1"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -270,6 +270,13 @@ enum chpoint { // types of checkpoint (to save)
 	CHP_ALWAYS   /* save checkpoint if either simulation is finished or time elapsed and calculate
 	              * all scattering quantities
                   */
+};
+
+enum init_field { // how to calculate initial field to be used in the iterative solver
+	IF_AUTO, // automatically choose from ZERO or INC (based on lower residual value)
+	IF_ZERO, // zero
+	IF_INC,  // equal to incident field
+	IF_WKB   // from WKB approximation (incident field corrected for phase shift in the particle)
 };
 
 // return values for functions

@@ -33,6 +33,7 @@
 #include "timing.h"
 #include "function.h"
 #include "parbas.h"
+#include "cmplx.h"
 
 #ifdef ADDA_MPI
 MPI_Datatype mpi_dcomplex;
@@ -500,7 +501,8 @@ void ParSetup(void)
 	}
 	local_Nz=local_z1-local_z0;
 	local_Nx=local_x1-local_x0;
-	local_Ndip=MultOverflow(boxX*(size_t)boxY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
+	boxXY=boxX*(size_t)boxY; // overflow check is covered by gridYZ above
+	local_Ndip=MultOverflow(boxXY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
 	printf("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
 }
 
@@ -601,7 +603,7 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
  * timing is incremented by the total time used
  */
 {
-#ifdef PARALLEL
+#ifdef ADDA_MPI
 	int i,unit,index;
 	size_t j;
 	MPI_Status status;
@@ -687,3 +689,41 @@ void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timin
 	(*timing)+=GET_TIME()-tstart;
 #endif
 }
+
+//============================================================
+
+#ifdef PARALLEL
+
+bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,
+	TIME_TYPE *timing)
+/* propagates slice of complex values from bottom to top. In the beginning 'top' contains phase
+ * shift over the current processor, at the end 'bottom' and 'top' contain phase shifts from the
+ * bottom of the first processor to bottom and top of the current processor.
+ * Potentially, can be optimized by some tree algorithm. However, there seem to be no ready MPI
+ * function available.
+ */
+{
+#ifdef ADDA_MPI
+	MPI_Status status;
+	TIME_TYPE tstart;
+	size_t i;
+
+#ifdef SYNCHRONIZE_TIMING
+	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
+#endif
+	tstart=GET_TIME();
+	// receive slice from previous processor and increment own slice by these values
+	if (ringid>0) { // It is important to use 0 instead of ROOT
+		MPI_Recv(bottom,2*boxXY,MPI_DOUBLE,ringid-1,0,MPI_COMM_WORLD,&status);
+		for (i=0;i<boxXY;i++) cAdd(top[i],bottom[i],top[i]);
+	}
+	// send updated slice to previous processor
+	if (ringid<(nprocs-1)) MPI_Send(top,2*boxXY,MPI_DOUBLE,ringid+1,0,MPI_COMM_WORLD);
+#ifdef SYNCHRONIZE_TIMING
+	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
+#endif
+	(*timing)+=GET_TIME()-tstart;
+	return (ringid!=0);
+#endif
+}
+#endif // PARALLEL

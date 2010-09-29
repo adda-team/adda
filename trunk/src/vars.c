@@ -30,6 +30,7 @@
 
 // basic variables
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
+size_t boxXY;             // boxX*boxY, used for indexing
 double dipvol;            // dipole volume
 double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
@@ -88,7 +89,7 @@ int Ncomp;                          // number of components of each refractive i
 doublecomplex ref_index[MAX_NMAT];  // a set of refractive indexes
 doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
 doublecomplex chi_inv[MAX_NMAT][3]; // normalized inverse susceptibility: = 1/(V*chi)
-unsigned char * restrict material;            // material: index for cc
+unsigned char * restrict material;  // material: index for cc
 
 // iterative solver
 enum iter IterMethod; // iterative method to use
@@ -96,7 +97,11 @@ int maxiter;          // maximum number of iterations
 	// the following two can't be declared restrict due to SwapPointers
 doublecomplex *xvec;  // total electric field on the dipoles
 doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
-doublecomplex * restrict Einc;  // incident field on dipoles
+doublecomplex * restrict Einc;    // incident field on dipoles
+/* holds input vector (on expanded grid) to matvec. Also used as buffer in certain algorithms, that
+ * do not call MatVec (this should be strictly ensured !!!)
+ */
+doublecomplex * restrict Xmatrix;
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile

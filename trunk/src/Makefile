@@ -375,4 +375,4 @@ cleanseq:
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGMPI) $(PROGMPI).ex
+	cd $(MPI) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGMPI) $(PROGMPI).exe

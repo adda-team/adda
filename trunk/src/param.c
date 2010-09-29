@@ -112,7 +112,8 @@ char beam_fname[MAX_FNAME];         // name of file, defining the beam
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
-double eps; // relative error to reach
+double eps;                // relative error to reach
+enum init_field InitField; // how to calculate initial field for the iterative solver
 // used in make_particle.c
 enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
@@ -303,6 +304,7 @@ PARSE_FUNC(eq_rad);
 PARSE_FUNC(granul);
 PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
+PARSE_FUNC(init_field);
 PARSE_FUNC(int);
 PARSE_FUNC(iter);
 PARSE_FUNC(jagged);
@@ -398,6 +400,12 @@ static struct opt_struct options[]={
 		"preceding dash). For some options (e.g. '-beam' or '-shape') specific help on a "
 		"particular suboption <subopt> may be shown.\n"
 		"Example: shape coated",UNDEF,NULL},
+	{PAR(init_field),"{auto|zero|inc|wkb}","Sets prescription to calculate initial (starting) "
+		"field for the iterative solver. 'zero' is a zero vector, 'inc' - equal to the incident "
+		"field, 'wkb' - from WKB approximation (incident field corrected for phase shift during "
+		"propagation in the particle), 'auto' - automatically choose from 'zero' and 'inc' based "
+		"on the lower residual value.\n"
+		"Default: auto",1,NULL},
 	{PAR(int),"{poi|fcd|fcd_st|igt [<lim> [<prec>]]|so}","Sets prescription to calculate "
 		"interaction term.\n"
 		"'so' is under development and incompatible with '-anisotr'.\n"
@@ -974,6 +982,14 @@ PARSE_FUNC(h)
 	}
 	// exit
 	Stop(EXIT_SUCCESS);
+}
+PARSE_FUNC(init_field)
+{
+	if (strcmp(argv[1],"auto")==0) InitField=IF_AUTO;
+	else if (strcmp(argv[1],"zero")==0) InitField=IF_ZERO;
+	else if (strcmp(argv[1],"inc")==0) InitField=IF_INC;
+	else if (strcmp(argv[1],"wkb")==0) InitField=IF_WKB;
+	else NotSupported("Initial field prescription",argv[1]);
 }
 PARSE_FUNC(int)
 {
@@ -1570,6 +1586,7 @@ void InitVariables(void)
 	Ncomp=1;
 	igt_lim=UNDEF;
 	igt_eps=UNDEF;
+	InitField=IF_AUTO;
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If you use some new variables, flags, etc. you should specify their default values here. This
 	 * value will be used if new option is not specified in the command line.
