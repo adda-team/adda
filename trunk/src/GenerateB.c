@@ -163,7 +163,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	// set reference frame of the beam; ez=prop, ex - incident polarization
 	if (which==INCPOL_Y) {
 		ex=incPolY;
-		MultScal(-1,incPolX,ey);
+		vMultScal(-1,incPolX,ey);
 	}
 	else { // which==INCPOL_X
 		ex=incPolX;

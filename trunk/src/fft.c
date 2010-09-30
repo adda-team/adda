@@ -533,13 +533,31 @@ static void fftInitAfterD(void)
 
 //============================================================
 
-static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
+INLINE bool TestTableSize(const double rn)
+// tests if rn fits into the table; if not, returns false and produces info message
+{
+	static bool warned=false;
+
+	if (rn>TAB_RMAX) {
+		if (!warned) {
+			warned=true;
+			LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), "
+				"so O(kd^2) accuracy of Green's function is not guaranteed",TAB_RMAX);
+		}
+		return false;
+	}
+	else return true;
+}
+
+//============================================================
+
+static void CalcInterTerm(const int i,const int j,const int k,doublecomplex * restrict result)
 /* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
  * (in units of d). All six components of the symmetric matrix are computed at once.
  */
 {
-	double rr,rtemp[3],qvec[3],q2[3],invr,invr3,qavec[3],av[3];
-	double rr2,kr,kr2,kr3,kd2,q4,rn;
+	double rr,qvec[3],q2[3],invr3,qavec[3],av[3];
+	double kr,kr2,kr3,kd2,q4,rn,rn2;
 	double temp,qmunu[6],qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
 	double dmunu[6]; // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 	double kfr,ci,si,ci1,si1,ci2,si2,brd,cov,siv,g0,g2;
@@ -549,29 +567,36 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
 	const bool inter_avg=true; // temporary fixed option for SO formulation
 
+// this is used for debugging, should be empty define, when not required
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
+	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
+	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
+
 	// self interaction; self term is computed in different subroutine
 	if (i==0 && j==0 && k==0) for (comp=0;comp<NDCOMP;comp++) {
 		result[comp][RE]=result[comp][IM]=0;
 		return;
 	}
-	// initialize rtemp
-	rtemp[0]=i*gridspace;
-	rtemp[1]=j*gridspace;
-	rtemp[2]=k*gridspace;
 	//====== calculate some basic constants ======
-	rr2=DotProd(rtemp,rtemp);
-	rr=sqrt(rr2);
-	rn=rr/gridspace; // normalized r
+	qvec[0]=i; // qvec is normalized below (after IGT)
+	qvec[1]=j;
+	qvec[2]=k;
+	rn2=DotProd(qvec,qvec);
+	rn=sqrt(rn2); // normalized r
 #ifndef NO_FORTRAN
 	if (IntRelation==G_IGT && (igt_lim==UNDEF || rn<=igt_lim)) { // a special case
+		double rtemp[3];
+		vMultScal(gridspace,qvec,rtemp);
 		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
+		PRINT_GVAL;
 		return;
 	}
 #endif
 	// a common part of the code ((up to FCD...), which effectively implements G_POINT_DIP
-	invr=1/rr;
-	invr3=invr*invr*invr;
-	MultScal(invr,rtemp,qvec);
+	invrn=1/rn;
+	vMultScalSelf(invrn,qvec); // finalize qvec
+	rr=rn*gridspace;
+	invr3=1/(rr*rr*rr);
 	kr=WaveNum*rr;
 	kr2=kr*kr;
 	kfr=PI*rn; // k_F*r, for FCD
@@ -631,6 +656,147 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 		}
 	}
 	//======= second order corrections ========
+	else if (IntRelation==G_IGT_SO) {
+		/* There is still some space for speed optimization here (e.g. move mu,nu-independent
+		 * operations out of the cycles over components).
+		 */
+		kd2=kd*kd;
+		if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
+			//====== G close for IGT =============
+			ivec[0]=i;
+			ivec[1]=j;
+			ivec[2]=k;
+			// transformation of negative coordinates
+			for (ic=0;ic<3;ic++) {
+				if (ivec[ic]<0) {
+					sigV[ic]=-1;
+					qvec[ic]*=-1;
+					ivec[ic]*=-1;
+				}
+				else sigV[ic]=1;
+			}
+			// transformation to case i>=j>=k>=0
+			// building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
+			if (ivec[0]>=ivec[1]) { // i>=j
+				if (ivec[0]>=ivec[2]) { // i>=k
+					ord[0]=0;
+					if (ivec[1]>=ivec[2]) { // j>=k
+						ord[1]=1;
+						ord[2]=2;
+					}
+					else {
+						ord[1]=2;
+						ord[2]=1;
+					}
+				}
+				else {
+					ord[0]=2;
+					ord[1]=0;
+					ord[2]=1;
+				}
+			}
+			else {
+				if (ivec[0]>=ivec[2]) { // i>=k
+					ord[0]=1;
+					ord[1]=0;
+					ord[2]=2;
+				}
+				else {
+					ord[2]=0;
+					if (ivec[1]>=ivec[2]) { // j>=k
+						ord[0]=1;
+						ord[1]=2;
+					}
+					else {
+						ord[0]=2;
+						ord[1]=1;
+					}
+				}
+			}
+			// change parameters according to coordinate transforms
+			Permutate(qvec,ord);
+			Permutate_i(ivec,ord);
+			// compute inverse permutation
+			memcpy(invord,ord,3*sizeof(int));
+			Permutate_i(invord,ord);
+			if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
+			// temp = kr/24; and set some indices
+			temp=kr/24;
+			ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
+			ind1=3*ind0;
+			ind2m=6*ind0;
+			// cycle over tensor components
+			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+				sig=sigV[mu]*sigV[nu]; // sign of some terms below
+				/* indexes for tables of different dimensions based on transformed indices mu and nu
+				 * '...munu' variables are invariant to permutations because both constituent
+				 * vectors and indices are permutated. So this variables can be used, as precomputed
+				 * above.
+				 */
+				mu1=invord[mu];
+				nu1=invord[nu];
+				/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted
+				 * differently than comp. This is {{0,1,3},{1,2,4},{3,4,5}}
+				 */
+				indmunu=mu1+nu1;
+				if (mu1==2 || nu1==2) indmunu++;
+				ind2=ind2m+indmunu;
+				ind3=3*ind2;
+				ind4=6*ind2;
+				// computing several quantities with table integrals
+				t3q=DotProd(qvec,tab3+ind1);
+				t4q=DotProd(qvec,tab4+ind3);
+				t5tr=TrSym(tab5+ind2m);
+				t6tr=TrSym(tab6+ind4);
+				//====== computing Gc0 =====
+				/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
+				 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(i+kr)/24+2*t4q+t6tr)
+				 */
+				br[RE]=sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr)+temp*qmunu[comp]*kr;
+				br[IM]=3*temp*qmunu[comp];
+				if (dmunu[comp]) {
+					br[RE]+=2*t3q+t5tr-temp*kr-tab9[ind0]/2-tab7[ind0];
+					br[IM]-=temp;
+				}
+				// br*=kd^2
+				cMultReal(kd2,br,br);
+				// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
+				br[RE]+=sig*tab2[ind2]*(3-kr2);
+				br[IM]-=sig*tab2[ind2]*3*kr;
+				if (dmunu[comp]) {
+					br[RE]+=tab1[ind0]*(kr2-1);
+					br[IM]+=tab1[ind0]*kr;
+				}
+				// Gc0=expval*br
+				cMult(expval,br,result[comp]);
+			}
+		}
+		else {
+			//====== Gfar (and part of Gmedian) for IGT =======
+			// Gf0 = Gp*(1-kd^2/24)
+			for (comp=0;comp<NDCOMP;comp++) cMultReal(1-kd2/24,result[comp],result[comp]);
+			if (kr < G_BOUND_MEDIAN) {
+				//===== G median for IGT ========
+				vSquare(qvec,q2);
+				q4=DotProd(q2,q2);
+				invrn2=invrn*invrn;
+				invrn3=invrn2*invrn;
+				invrn4=invrn2*invrn2;
+				for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+					// Gm0=expval*br*temp; temp is set anew
+					temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
+					if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
+					temp*=7*invrn4/64;
+					br[RE]=-1;
+					br[IM]=kr;
+					cMultReal(temp,br,Gm0);
+					cMultSelf(Gm0,expval);
+					// result = Gf + Gm0 + [ Gm1 ]
+					cAdd(Gm0,result[comp],result[comp]);
+				}
+			}
+		}
+	}
 	else if (IntRelation==G_SO) {
 		/* There is still some space for speed optimization here (e.g. move mu,nu-independent
 		 * operations out of the cycles over components). But now extra time is equivalent to 2-3
@@ -652,12 +818,8 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 				else qamunu[comp]+=qvec[nu]*prop[mu];
 			}
 		}
-		if (kr*rn < G_BOUND_CLOSE) {
+		if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
 			//====== G close =============
-			// check if inside the table bounds; needed to recompute to make an integer comparison
-			if ((i*i+j*j+k*k) > TAB_RMAX*TAB_RMAX)
-				LogError(ALL_POS,"Not enough table size (available only up to R/d=%d)",TAB_RMAX);
-
 			// av is copy of propagation vector
 			if (!inter_avg) memcpy(av,prop,3*sizeof(double));
 			ivec[0]=i;
@@ -673,15 +835,12 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 				}
 				else sigV[ic]=1;
 			}
-			i=ivec[0];
-			j=ivec[1];
-			k=ivec[2];
 			// transformation to case i>=j>=k>=0
 			// building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
-			if (i>=j) {
-				if (i>=k) {
+			if (ivec[0]>=ivec[1]) { // i>=j
+				if (ivec[0]>=ivec[2]) { // i>=k
 					ord[0]=0;
-					if (j>=k) {
+					if (ivec[1]>=ivec[2]) { // j>=k
 						ord[1]=1;
 						ord[2]=2;
 					}
@@ -697,14 +856,14 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 				}
 			}
 			else {
-				if (i>=k) {
+				if (ivec[0]>=ivec[2]) { // i>=k
 					ord[0]=1;
 					ord[1]=0;
 					ord[2]=2;
 				}
 				else {
 					ord[2]=0;
-					if (j>=k) {
+					if (ivec[1]>=ivec[2]) { // j>=k
 						ord[0]=1;
 						ord[1]=2;
 					}
@@ -718,16 +877,15 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 			Permutate(qvec,ord);
 			if (!inter_avg) Permutate(av,ord);
 			Permutate_i(ivec,ord);
-			i=ivec[0];
-			j=ivec[1];
-			k=ivec[2];
 			// compute inverse permutation
 			memcpy(invord,ord,3*sizeof(int));
 			Permutate_i(invord,ord);
 			if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-			// temp = kr/24
+			// temp = kr/24; and set some indices
 			temp=kr/24;
-			// cycle over tensor components
+			ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
+			ind1=3*ind0;
+			ind2m=6*ind0;			// cycle over tensor components
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
 				sig=sigV[mu]*sigV[nu]; // sign of some terms below
 				/* indexes for tables of different dimensions based on transformed indices mu and nu
@@ -742,10 +900,6 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 				 */
 				indmunu=mu1+nu1;
 				if (mu1==2 || nu1==2) indmunu++;
-
-				ind0=tab_index[i][j]+k;
-				ind1=3*ind0;
-				ind2m=6*ind0;
 				ind2=ind2m+indmunu;
 				ind3=3*ind2;
 				ind4=6*ind2;
@@ -868,7 +1022,6 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 				//===== G median ========
 				vSquare(qvec,q2);
 				q4=DotProd(q2,q2);
-				invrn=1/rn;
 				invrn2=invrn*invrn;
 				invrn3=invrn2*invrn;
 				invrn4=invrn2*invrn2;
@@ -900,7 +1053,9 @@ static void CalcInterTerm(int i,int j,int k,doublecomplex * restrict result)
 			}
 		}
 	}
+	PRINT_GVAL;
 }
+#undef PRINT_GVAL
 
 //============================================================
 
