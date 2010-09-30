@@ -1988,7 +1988,7 @@ void MakeParticle(void)
 	for (dip=0;dip<local_Ndip;dip++) if (material_tmp[dip]<Nmat) {
 		material[index]=material_tmp[dip];
 		// DipoleCoord=gridspace*DipoleCoord_tmp
-		MultScal(gridspace,DipoleCoord_tmp+3*dip,DipoleCoord+3*index);
+		vMultScal(gridspace,DipoleCoord_tmp+3*dip,DipoleCoord+3*index);
 		memcpy(position+3*index,position_tmp+3*dip,3*sizeof(short int));
 		index++;
 	}

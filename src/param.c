@@ -406,7 +406,7 @@ static struct opt_struct options[]={
 		"propagation in the particle), 'auto' - automatically choose from 'zero' and 'inc' based "
 		"on the lower residual value.\n"
 		"Default: auto",1,NULL},
-	{PAR(int),"{poi|fcd|fcd_st|igt [<lim> [<prec>]]|so}","Sets prescription to calculate "
+	{PAR(int),"{poi|fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|so}","Sets prescription to calculate "
 		"interaction term.\n"
 		"'so' is under development and incompatible with '-anisotr'.\n"
 		"'fcd' requires dpl to be larger than 2.\n"
@@ -415,8 +415,10 @@ static struct opt_struct options[]={
 		"error of the integration, i.e. epsilon=10^(-<prec>) (default: same as argument of '-eps' "
 		"command line option).\n"
 #ifdef NO_FORTRAN
-		"'igt' relies on Fortran sources that were disabled at compile time.\n"
+		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
+		"'igt_so' is approximate evaluation of IGT using series expansion up to second order of "
+		"kd. Should be almost as accurate as full IGT but almost as fast as 'poi'.\n"
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
@@ -1015,6 +1017,7 @@ PARSE_FUNC(int)
 			}
 		}
 	}
+	else if (strcmp(argv[1],"igt_so")==0) IntRelation=G_IGT_SO;
 	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
 	else NotSupported("Interaction term prescription",argv[1]);
 	if (Narg>1 && strcmp(argv[1],"igt")!=0)
@@ -1981,6 +1984,8 @@ void PrintInfo(void)
 			if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
 			else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 		}
+		else if (IntRelation==G_IGT_SO)
+			fprintf(logfile,"'Integrated Green's tensor (approximation O(kd^2))'\n");
 		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
 		// log FFT method
 		fprintf(logfile,"FFT algorithm: ");

@@ -702,14 +702,24 @@ INLINE void vInvSign(double a[static restrict 3])
 }
 
 //============================================================
-INLINE void MultScal(const double a,const double b[static restrict 3],double c[static restrict 3])
-/* multiplication of vector by scalar; c=a*b;
+
+INLINE void vMultScal(const double a,const double b[static restrict 3],double c[static restrict 3])
+/* multiplication of real vector by scalar; c=a*b;
  * !!! pointers b and c must not alias !!! (for 'restrict' optimization)
  */
 {
 	c[0]=a*b[0];
 	c[1]=a*b[1];
 	c[2]=a*b[2];
+}
+
+//============================================================
+INLINE void vMultScalSelf(const double a,double b[static restrict 3])
+// multiplication of real vector by scalar; b*=a;
+{
+	b[0]*=a;
+	b[1]*=a;
+	b[2]*=a;
 }
 
 //============================================================

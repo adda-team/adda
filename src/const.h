@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1a1"
+#define ADDA_VERSION "1.1a2"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -185,6 +185,7 @@ enum inter { // how to calculate interaction term
 	G_FCD,       // Filtered Green's tensor (Filtered Coupled Dipoles)
 	G_FCD_ST,    // quasi-static version of FCD
 	G_IGT,       // (direct) integration of Green's tensor
+	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
 	G_SO         // Second Order formulation
 };
 

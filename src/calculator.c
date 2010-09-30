@@ -530,7 +530,7 @@ static void FreeEverything(void)
  * actually allocated.
  */
 {
-	if (IntRelation == G_SO) FreeTables();
+	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
 	Free_FFT_Dmat();
 	Free_cVector(xvec);
 	Free_cVector(rvec);
@@ -619,7 +619,7 @@ void Calculator (void)
 	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;
 	// read tables if needed
-	if (IntRelation == G_SO) ReadTables();
+	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
 	// initialize D matrix (for matrix-vector multiplication)
 	D("InitDmatrix started");
 	InitDmatrix();
