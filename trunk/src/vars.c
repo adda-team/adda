@@ -42,7 +42,7 @@ unsigned short * restrict position; /* position of the dipoles; in the very end 
                                      */
 double memory;            // total memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
-enum pol PolRelation;     // type of formula for self-term (polarization relation)
+enum pol PolRelation;     // type of formula for self-term (polarizability relation)
 enum beam  beamtype;      // type of incident beam
 
 // symmetries

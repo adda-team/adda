@@ -96,15 +96,18 @@ extern void SaveMuellerAndCS(double * restrict in);
 //============================================================
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex *res)
+/* hard to maintain. It is better to separate different polarizability relations to make the
+ * resulting expressions more understandable.
+ */
 {
 	doublecomplex coup_con[3];
 	doublecomplex tempa,tempb,cm,m2,t1;
-	double temp,b1,b2,b3;
+	double temp,b1,b2,b3,ka,kd2;
 	int i,imax,j; // counters: i is for 'asym', j is for 'anysotropy'
 	double S,prop2[3];
 	int asym; // whether polarizability is asymmetric (for isotropic m)
 	const double *incPol;
-	bool pol_avg=true; // temporary fixed value for SO polarization
+	bool pol_avg=true; // temporary fixed value for SO polarizability
 
 	// redundant initialization to remove warnings
 	b1=b2=b3=S=0;
@@ -155,18 +158,32 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			}
 			cEqual(coup_con[j],cm);
 			for (i=0;i<imax;i++) {
-				// RR correction
-				t1[RE]=0.0;
-				t1[IM]=2*kd*kd*kd/3; // t1=2/3*i*kd^3
-				// plus more advanced corrections
-				if (PolRelation==POL_FCD) // t1+=((4/3)kd^2+(2/3pi)*log((pi-kd)/(pi+kd))*kd^3)
-					t1[RE]+=2*ONE_THIRD*kd*kd*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
-				else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
-					if (PolRelation!=POL_LDR) S=prop2[i];
-					t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd*kd; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
-					t1[IM]+=(b2+b3*S)*m2[IM]*kd*kd;
+				if (PolRelation==POL_LAK) { // t1=(8pi/3)[(1-ika)exp(ika)-1]
+					ka=LAK_C*kd; // a - radius of volume-equivalent (to cube with size d) sphere
+					imExp(ka,tempa);
+					tempb[RE]=1;
+					tempb[IM]=-ka;
+					cMult(tempa,tempb,t1);
+					t1[RE]-=1;
+					cMultReal(2*FOUR_PI_OVER_THREE,t1,t1);
 				}
-				// CC[i]=cm/(1-(cm/V)*t1)
+				else { // other formulations are extensions of RR
+					// RR correction
+					kd2=kd*kd;
+					t1[RE]=0.0;
+					t1[IM]=2*kd2*kd/3; // t1=2/3*i*kd^3
+					// plus more advanced corrections
+					if (PolRelation==POL_DGF) t1[RE]+=DGF_B1*kd2;
+					else if (PolRelation==POL_FCD) // t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+						t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
+					if (PolRelation==POL_IGT_SO) t1[RE]+=SO_B1*kd2;
+					else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
+						if (PolRelation!=POL_LDR) S=prop2[i];
+						t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
+						t1[IM]+=(b2+b3*S)*m2[IM]*kd2;
+					}
+				}
+				// CC[i]=cm/(1-(cm/V)*t1); t1 is the M-term
 				cMultReal(1.0/dipvol,t1,t1);
 				cMultSelf(t1,cm);
 				t1[RE]=1-t1[RE];

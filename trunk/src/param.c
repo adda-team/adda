@@ -406,19 +406,20 @@ static struct opt_struct options[]={
 		"propagation in the particle), 'auto' - automatically choose from 'zero' and 'inc' based "
 		"on the lower residual value.\n"
 		"Default: auto",1,NULL},
-	{PAR(int),"{poi|fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|so}","Sets prescription to calculate "
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}","Sets prescription to calculate "
 		"interaction term.\n"
-		"'so' is under development and incompatible with '-anisotr'.\n"
-		"'fcd' requires dpl to be larger than 2.\n"
-		"Parameters of 'igt' are: <lim> - maximum distance (in dipole sizes), for which "
-		"integration is used, (default: infinity); <prec> - minus decimal logarithm of relative "
-		"error of the integration, i.e. epsilon=10^(-<prec>) (default: same as argument of '-eps' "
-		"command line option).\n"
+		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2. 'fcd_st' is static "
+		"(long-wavelength limit) version of FCD.\n"
+		"Parameters of 'igt' - Integration of Green's Tensor - are: <lim> - maximum distance (in "
+		"dipole sizes), for which integration is used, (default: infinity); <prec> - minus decimal "
+		"logarithm of relative error of the integration, i.e. epsilon=10^(-<prec>) (default: same "
+		"as argument of '-eps' command line option).\n"
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
-		"'igt_so' is approximate evaluation of IGT using series expansion up to second order of "
-		"kd. Should be almost as accurate as full IGT but almost as fast as 'poi'.\n"
+		"'igt_so' is approximate evaluation of IGT using second order of kd approximation. 'poi' "
+		"is the simplest one - interaction between point dipoles. 'so' is under development and "
+		"incompatible with '-anisotr'.\n"
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
@@ -470,10 +471,16 @@ static struct opt_struct options[]={
 		"cos(2*phi), sin(2*phi), cos(4*phi), and sin(4*phi) respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cm|rrc|ldr [avgpol]|cldr|so|fcd}","Type of polarization prescription. An optional "
-		"flag 'avg' can be added for LDR - it specifies that LDR polarizability should be "
-		"averaged over incident polarizations. 'so' is under development. 'cldr' and 'so' are "
-		"incompatible with '-anisotr'. 'fcd' requires dpl to be larger than 2.\n"
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}","Type of polarizability "
+		"prescription.\n"
+		"'cldr' - Corrected LDR. 'cm' - Clausius-Mossotti. 'dgf' - Digitized Green's Function "
+		"(second order approximation to LAK). 'fcd' - Filtered Coupled Dipoles (requires dpl to be "
+		"larger than 2). 'igt_so' - Integration of Green's Tensor over a cube (second order "
+		"approximation). 'lak' - Lakhtakia - exact integration of Green's Tensor over a sphere.\n"
+		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average "
+		"polarizability over incident polarizations.\n"
+		"'rrc' - Radiative Reaction Correction (added to CM). 'so' is under development. 'cldr' "
+		"and 'so' are incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
 	{PAR(prognose),"","Deprecated command line option. Use '-prognosis' instead.",0,NULL},
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only "
@@ -485,10 +492,11 @@ static struct opt_struct options[]={
 		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
 		"                      added if '-granul' option is used).",UNDEF,NULL},
-	{PAR(scat),"{dr|fin|so}","Sets prescription to calculate scattering quantities. 'dr' is "
-		"standard formulation proposed by Draine, 'fin' is a slightly different one that is based "
-		"on a radiative correction for a finite dipole. 'so' is under development and incompatible "
-		"with '-anisotr'.\n"
+	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
+		"'dr' is standard formulation proposed by Draine, 'fin' is a slightly different one that "
+		"is based on a radiative correction for a finite dipole. 'igt_so' - second order in kd "
+		"approximation to Integration of Green's Tensor. 'so' is under development and "
+		"incompatible with '-anisotr'.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -998,8 +1006,7 @@ PARSE_FUNC(int)
 	double tmp;
 
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
-	if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
-	else if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
+	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
 	else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
 	else if (strcmp(argv[1],"igt")==0) {
 #ifdef NO_FORTRAN
@@ -1018,6 +1025,7 @@ PARSE_FUNC(int)
 		}
 	}
 	else if (strcmp(argv[1],"igt_so")==0) IntRelation=G_IGT_SO;
+	else if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
 	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
 	else NotSupported("Interaction term prescription",argv[1]);
 	if (Narg>1 && strcmp(argv[1],"igt")!=0)
@@ -1116,8 +1124,12 @@ PARSE_FUNC(phi_integr)
 PARSE_FUNC(pol)
 {
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
-	if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
-	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
+	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
+	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
+	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
+	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
+	else if (strcmp(argv[1],"lak")==0) PolRelation=POL_LAK;
 	else if (strcmp(argv[1],"ldr")==0) {
 		PolRelation=POL_LDR;
 		if (Narg==2) {
@@ -1125,10 +1137,9 @@ PARSE_FUNC(pol)
 			else PrintErrorHelpSafe("Unknown argument '%s' to '-pol ldr' option",argv[2]);
 		}
 	}
-	else if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
+	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
-	else NotSupported("Polarization relation",argv[1]);
+	else NotSupported("Polarizability relation",argv[1]);
 	if (Narg==2 && strcmp(argv[1],"ldr")!=0)
 		PrintErrorHelp("Second argument is allowed only for 'ldr'");
 }
@@ -1171,6 +1182,7 @@ PARSE_FUNC(scat)
 {
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
 	else if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
+	else if (strcmp(argv[1],"igt_so")==0) ScatRelation=SQ_IGT_SO;
 	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
@@ -1919,7 +1931,7 @@ void PrintInfo(void)
 			for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %.0f\n",i+1,mat_count[i]);
 		}
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
-		// log incident beam and polarization polarization
+		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
 		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",prop_0[0],prop_0[1],prop_0[2]);
 		fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",
@@ -1955,28 +1967,32 @@ void PrintInfo(void)
 			if (store_ampl) fprintf(logfile,"Calculating only amplitude scattering matrix\n");
 			else fprintf(logfile,"Calculating no scattering matrices\n");
 		}
-		// log Polarization relation
-		fprintf(logfile,"Polarization relation: ");
-		if (PolRelation==POL_CM) fprintf(logfile,"'Clausius-Mossotti'\n");
-		else if (PolRelation==POL_RRC) fprintf(logfile,"'Radiative Reaction Correction'\n");
+		// log polarizability relation
+		fprintf(logfile,"Polarizability relation: ");
+		if (PolRelation==POL_CLDR) fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n");
+		else if (PolRelation==POL_CM) fprintf(logfile,"'Clausius-Mossotti'\n");
+		else if (PolRelation==POL_DGF) fprintf(logfile,"'Digitized Green's Function'\n");
+		else if (PolRelation==POL_FCD) fprintf(logfile,"'Filtered Coupled Dipoles'\n");
+		else if (PolRelation==POL_IGT_SO)
+			fprintf(logfile,"'Integration of Green's Tensor (second order approximation)'\n");
+		else if (PolRelation==POL_LAK) fprintf(logfile,"'by Lakhtakia'\n");
 		else if (PolRelation==POL_LDR) {
 			fprintf(logfile,"'Lattice Dispersion Relation'");
 			if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
 			fprintf(logfile,"\n");
 		}
-		else if (PolRelation==POL_CLDR)
-			fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n");
-		else if (PolRelation==POL_FCD) fprintf(logfile,"'Filtered Coupled Dipoles'\n");
+		else if (PolRelation==POL_RRC) fprintf(logfile,"'Radiative Reaction Correction'\n");
 		else if (PolRelation==POL_SO) fprintf(logfile,"'Second Order'\n");
 		// log Scattering Quantities formulae
 		fprintf(logfile,"Scattering quantities formulae: ");
 		if (ScatRelation==SQ_DRAINE) fprintf(logfile,"'by Draine'\n");
 		else if (ScatRelation==SQ_FINDIP) fprintf(logfile,"'Finite Dipoles'\n");
+		else if (ScatRelation==SQ_IGT_SO)
+			fprintf(logfile,"'Integration of Green's Tensor (second order approximation)'\n");
 		else if (ScatRelation==SQ_SO) fprintf(logfile,"'Second Order'\n");
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");
-		if (IntRelation==G_POINT_DIP) fprintf(logfile,"'as Point dipoles'\n");
-		else if (IntRelation==G_FCD) fprintf(logfile,"'Filtered Green's tensor'\n");
+		if (IntRelation==G_FCD) fprintf(logfile,"'Filtered Green's tensor'\n");
 		else if (IntRelation==G_FCD_ST)
 			fprintf(logfile,"'Filtered Green's tensor (quasistatic)'\n");
 		else if (IntRelation==G_IGT) {
@@ -1986,6 +2002,7 @@ void PrintInfo(void)
 		}
 		else if (IntRelation==G_IGT_SO)
 			fprintf(logfile,"'Integrated Green's tensor (approximation O(kd^2))'\n");
+		else if (IntRelation==G_POINT_DIP) fprintf(logfile,"'as Point dipoles'\n");
 		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
 		// log FFT method
 		fprintf(logfile,"FFT algorithm: ");
