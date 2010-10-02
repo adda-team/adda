@@ -578,7 +578,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 		cMultSelf(a,mult_mat[material[j]]);
 		PART2
 	}
-	else if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP){
+	else if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP || ScatRelation==SQ_IGT_SO) {
 		PART1
 		PART2
 	}
@@ -591,6 +591,8 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
 	imExp(-WaveNum*DotProd(box_origin_unif,n),a); // a=exp(-ikr0.n)
 	kkk=WaveNum*WaveNum*WaveNum;
+	// the following additional multiplier implements IGT_SO
+	if (ScatRelation==SQ_IGT_SO) kkk*=(1-kd*kd/24);
 	tmp[RE]=a[IM]*kkk; // tmp=(-i*k^3)*exp(-ikr0.n)
 	tmp[IM]=-a[RE]*kkk;
 	cvMultScal_cmplx(tmp,tbuff,ebuff);
@@ -612,8 +614,10 @@ double ExtCross(const double * restrict incPol)
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
 	else { /* more general formula; normalization is done assuming the unity amplitude of the
-	        * electric field in the focal point of the beam; Currently does not comply with
-	        * ScatRelation=SO
+	        * electric field in the focal point of the beam; It does not comply with
+	        * ScatRelation: SO and IGT_SO (since the corrections used in these formulations are
+	        * derived assuming plane incident field. So, effectively, SO and IGT_SO are replaced by
+	        * DRAINE when calculating Cext for non-plane beams
 	        */
 		sum=0;
 		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
@@ -649,7 +653,8 @@ double AbsCross(void)
 	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
 
 	// Cabs = 4*pi*sum
-	if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP) {
+	// In this function IGT_SO is equivalent to DRAINE
+	if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP || ScatRelation==SQ_IGT_SO) {
 		/* code below is applicable only for diagonal (possibly anisotropic) polarizability and
 		 * should be rewritten otherwise
 		 */
@@ -669,7 +674,7 @@ double AbsCross(void)
 			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multfin[i][j]=-chi_inv[i][j][IM];
 		}
 		// main cycle
-		if (ScatRelation==SQ_DRAINE) {
+		if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_IGT_SO) {
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
@@ -973,6 +978,9 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 /* Calculate the Radiation Pressure by direct calculation of the scattering force. Per dipole the
  * force of the incoming photons, the scattering force and the radiation pressure are calculated
  * as intermediate results
+ *
+ * This should be completely rewritten to work through FFT. Moreover, it should comply with
+ * '-scat ...' command line option.
  */
 {
 	size_t j,l,lll,index,comp;
