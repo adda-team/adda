@@ -1,6 +1,6 @@
 #summary List of journal papers that make use of ADDA
 
-Below we list the papers that use results of simulations using ADDA. Those (review) papers, which only mention ADDA, are not included. If you know a paper that should be included here please leave a comment below or contact David de Kanter.
+Below we list the papers that use results of simulations using *ADDA*. Those (review) papers, which only mention *ADDA*, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter].
 
 <wiki:toc />
 
@@ -32,7 +32,7 @@ Below we list the papers that use results of simulations using ADDA. Those (revi
  # C. Selhuber-Unkel, I. Zins, O. Schubert, C. Sönnichsen, and L. B. Oddershede, “Quantitative optical trapping of single gold nanorods,” [http://dx.doi.org/10.1021/nl802053h Nano Lett. 8, 2998-3003 (2008)].
  # H. Parviainen and K. Lumme, “Scattering from rough thin films: discrete-dipole-approximation simulations,” [http://dx.doi.org/10.1364/JOSAA.25.000090 J. Opt. Soc. Am. A 25, 90-97 (2008)].
  # D. Y. Orlova, M. A. Yurkin, A. G. Hoekstra, and V. P. Maltsev, “Light scattering by neutrophils: model, simulation, and experiment,” [http://dx.doi.org/10.1117/1.2992140 J. Biomed. Opt. 13, 054057-7 (2008)].
- # K. Li, B. Cui, L. Clime, and T. Veres, “Fabrication of SERS active substrates by nanoimprint lithography,” _MRS Sympos. Proc._ *1054*, 146-151 (2008).
+ # K. Li, B. Cui, L. Clime, and T. Veres, “Fabrication of SERS active substrates by nanoimprint lithography,” [http://www.mrs.org/s_mrs/sec_subscribe.asp?CID=11325&DID=224868&action=detail MRS Sympos. Proc. 1054, 146-151 (2008)].
  # D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
  # O. Ekici, R. K. Harrison, N. J. Durr, D. S. Eversole, M. Lee, and A. Ben-Yakar, “Thermal analysis of gold nanorods heated with femtosecond laser pulses,” [http://dx.doi.org/10.1088/0022-3727/41/18/185501 J. Phys. D 41, 185501 (2008)].
  # D. J. Cho, F. Wang, X. Zhang, and Y. R. Shen, “Contribution of the electric quadrupole resonance in optical metamaterials,” [http://dx.doi.org/10.1103/PhysRevB.78.121101 Phys. Rev. B 78, 121101 (2008)].
