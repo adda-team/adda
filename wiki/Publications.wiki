@@ -1,13 +1,64 @@
 #summary List of journal papers that make use of ADDA
 
-= 2010 () =
+Below we list the papers that use results of simulations using ADDA. Those (review) papers, which only mention ADDA, are not included. If you know a paper that should be included here please leave a comment below or contact David de Kanter.
 
-= 2009 () =
+<wiki:toc />
 
-= 2008 () =
+= 2010 (9) =
+ # L. Bi, P. Yang, G. W. Kattawar, Y. Hu, and B. A. Baum, “Diffraction and external reflection by dielectric faceted particles,” [http://dx.doi.org/10.1016/j.jqsrt.2010.02.007 J. Quant. Spectrosc. Radiat. Transfer (In Press, Corrected Proof)].
+ # S. D’Agostino and F. D. Sala, “Active role of oxide layers on the polarization of plasmonic nanostructures,” [http://dx.doi.org/10.1021/nn1007918 ACS Nano 4, 4117-4125 (2010)].
+ # M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585-15 (2010)].
+ # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
+ # M. A. Yurkin, M. Min, and A. G. Hoekstra, “Application of the discrete dipole approximation to very large refractive indices: Filtered coupled dipoles revived,” [http://dx.doi.org/10.1103/PhysRevE.82.036703 Phys. Rev. E 82, 036703-12 (2010)].
+ # C. Yuen, W. Zheng, and Z. Huang, “Optimization of extinction efficiency of gold-coated polystyrene bead substrates improves surface-enhanced Raman scattering effects by post-growth microwave heating treatment,” [http://dx.doi.org/10.1002/jrs.2464 J. Raman Spectrosc. 41, 374-380 (2010)].
+ # F. Teschl, W. L. Randeu, and R. Teschl, “Microwave scattering from ice crystals: how much parameters can differ from equal volume spheres,” [http://dx.doi.org/10.5194/adgeo-25-127-2010 Adv. Geosci. 25, 127-133 (2010)].
+ # Z. Meng, P. Yang, G. W. Kattawar, L. Bi, K. Liou, and I. Laszlo, “Single-scattering properties of tri-axial ellipsoidal mineral dust aerosols: A database for application to radiative transfer calculations,” [http://dx.doi.org/10.1016/j.jaerosci.2010.02.008 J. Aeros. Sci. 41, 501-512 (2010)].
+ # K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681-5690 (2010)].
 
-= 2007 () =
+= 2009 (9) =
+ # F. Teschl, W. L. Randeu, and R. Teschl, “Single scattering from frozen hydrometeors at microwave frequencies,” [http://dx.doi.org/10.1016/j.atmosres.2009.09.001 Atmos. Res. 94, 564-578 (2009)].
+ # J. M. Richardson, J. C. Aldridge, A. B. Milstein, and J. J. Lacirignola, “Aerosol elastic scatter signatures in the near- and mid-wave IR spectral regions,” [http://dx.doi.org/10.1117/12.819165 SPIE Proc. 7323, 73230Q-9 (2009)].
+ # J. McDonald, A. Golden, and S. G. Jennings, “OpenDDA: a novel high-performance computational framework for the discrete dipole approximation,” [http://dx.doi.org/10.1177/1094342008097914 Int. J. High Perf. Comp. Appl. 23, 42-61 (2009)].
+ # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114-126 (2009)].
+ # D. I. Strokotov, M. A. Yurkin, K. V. Gilev, D. R. van Bockstaele, A. G. Hoekstra, N. B. Rubtsov, and V. P. Maltsev, “Is there a difference between T- and B-lymphocyte morphology?,” [http://dx.doi.org/10.1117/1.3275471 J. Biomed. Opt. 14, 064036-12 (2009)].
+ # V. Schmidt and T. Wriedt, “T-matrix method for biaxial anisotropic particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.025 J. Quant. Spectrosc. Radiat. Transfer 110, 1392-1397 (2009)].
+ # A. V. Priezzhev, S. Y. Nikitin, and A. E. Lugovtsov, “Ray-wave approximation for the calculation of laser light scattering by transparent dielectric particles, mimicking red blood cells or their aggregates,” [http://dx.doi.org/10.1016/j.jqsrt.2009.02.027 J. Quant. Spectrosc. Radiat. Transfer 110, 1535-1544 (2009)].
+ # H. Lindqvist, K. Muinonen, and T. Nousiainen, “Light scattering by coated Gaussian and aggregate particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.015 J. Quant. Spectrosc. Radiat. Transfer 110, 1398-1410 (2009)].
+ # S. D'Agostino, P. P. Pompa, R. Chiuri, R. J. Phaneuf, D. G. Britti, R. Rinaldi, R. Cingolani, and F. Della Sala, “Enhanced fluorescence by metal nanospheres on metal substrates,” [http://dx.doi.org/10.1364/OL.34.002381 Opt. Lett. 34, 2381-2383 (2009)].
 
-= 2006 () =
+= 2008 (9) =
+ # J. Alegret, T. Rindzevicius, T. Pakizeh, Y. Alaverdyan, L. Gunnarsson, and M. Käll, “Plasmonic properties of silver trimers with trigonal symmetry fabricated by electron-beam lithography,” [http://dx.doi.org/10.1021/jp804505k J. Phys. Chem. C 112, 14313-14317 (2008)].
+ # A. E. Lugovtsov, S. Y. Nikitin, and A. V. Priezzhev, “Ray-wave approximation for calculating laser radiation scattering by a transparent dielectric spheroidal particle,” [http://dx.doi.org/10.1070/QE2008v038n06ABEH013941 Quant. Electron. 38, 606-611 (2008)].
+ # C. Selhuber-Unkel, I. Zins, O. Schubert, C. Sönnichsen, and L. B. Oddershede, “Quantitative optical trapping of single gold nanorods,” [http://dx.doi.org/10.1021/nl802053h Nano Lett. 8, 2998-3003 (2008)].
+ # H. Parviainen and K. Lumme, “Scattering from rough thin films: discrete-dipole-approximation simulations,” [http://dx.doi.org/10.1364/JOSAA.25.000090 J. Opt. Soc. Am. A 25, 90-97 (2008)].
+ # D. Y. Orlova, M. A. Yurkin, A. G. Hoekstra, and V. P. Maltsev, “Light scattering by neutrophils: model, simulation, and experiment,” [http://dx.doi.org/10.1117/1.2992140 J. Biomed. Opt. 13, 054057-7 (2008)].
+ # K. Li, B. Cui, L. Clime, and T. Veres, “Fabrication of SERS active substrates by nanoimprint lithography,” _MRS Sympos. Proc._ *1054*, 146-151 (2008).
+ # D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
+ # O. Ekici, R. K. Harrison, N. J. Durr, D. S. Eversole, M. Lee, and A. Ben-Yakar, “Thermal analysis of gold nanorods heated with femtosecond laser pulses,” [http://dx.doi.org/10.1088/0022-3727/41/18/185501 J. Phys. D 41, 185501 (2008)].
+ # D. J. Cho, F. Wang, X. Zhang, and Y. R. Shen, “Contribution of the electric quadrupole resonance in optical metamaterials,” [http://dx.doi.org/10.1103/PhysRevB.78.121101 Phys. Rev. B 78, 121101 (2008)].
 
-= Before public release () =
+= 2007 (5) =
+ # M. A. Yurkin and A. G. Hoekstra, “The discrete dipole approximation: an overview and recent developments,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.034 J. Quant. Spectrosc. Radiat. Transfer 106, 558-589 (2007)].
+ # M. A. Yurkin, A. G. Hoekstra, R. S. Brock, and J. Q. Lu, “Systematic comparison of the discrete dipole approximation and the finite difference time domain method for large dielectric scatterers,” [http://dx.doi.org/10.1364/OE.15.017902 Opt. Express 15, 17902-17911 (2007)].
+ # M. A. Yurkin, K. A. Semyanov, V. P. Maltsev, and A. G. Hoekstra, “Discrimination of granulocyte subtypes from light scattering: theoretical analysis using a granulated sphere model,” [http://dx.doi.org/10.1364/OE.15.016561 Opt. Express 15, 16561-16580 (2007)].
+ # M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approximation for simulation of light scattering by particles much larger than the wavelength,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.033 J. Quant. Spectrosc. Radiat. Transfer 106, 546-557 (2007)].
+ # A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
+
+= 2006 (3) =
+ # I. V. Kolesnikova, S. V. Potapov, M. A. Yurkin, A. G. Hoekstra, V. P. Maltsev, and K. A. Semyanov, “Determination of volume, shape and refractive index of individual blood platelets,” [http://dx.doi.org/10.1016/j.jqsrt.2006.02.050 J. Quant. Spectrosc. Radiat. Transfer 102, 37-45 (2006)].
+ # M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “Convergence of the discrete dipole approximation. II. An extrapolation technique to increase the accuracy,” [http://dx.doi.org/10.1364/JOSAA.23.002592 J. Opt. Soc. Am. A 23, 2592-2601 (2006)].
+ # M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “Convergence of the discrete dipole approximation. I. Theoretical analysis,” [http://dx.doi.org/10.1364/JOSAA.23.002578 J. Opt. Soc. Am. A 23, 2578-2591 (2006)].
+
+= 2005 and earlier (11) =
+Those papers used [EarlyHistory earlier version of the code] before the public release of *ADDA*.
+ # M. A. Yurkin, K. A. Semyanov, P. A. Tarasov, A. V. Chernyshev, A. G. Hoekstra, and V. P. Maltsev, “Experimental and theoretical study of light scattering by individual mature red blood cells with scanning flow cytometry and discrete dipole approximation,” [http://dx.doi.org/10.1364/AO.44.005249 Appl. Opt. 44, 5249-5256 (2005)].
+ # A. G. Hoekstra, M. Frijlink, L. B. F. M. Waters, and P. M. A. Sloot, “Radiation forces in the discrete-dipole approximation,” [http://dx.doi.org/10.1364/JOSAA.18.001944 J. Opt. Soc. Am. A 18, 1944-1953 (2001)].
+ # A. G. Hoekstra, J. Rahola, and P. M. A. Sloot, “Accuracy of internal fields in volume integral equation simulations of light scattering,” [http://dx.doi.org/10.1364/AO.37.008482 Appl. Opt. 37, 8482-8497 (1998)].
+ # A. G. Hoekstra, M. D. Grimminck, and P. M. A. Sloot, “Large scale simulations of elastic light scattering by a fast discrete dipole approximation,” [http://dx.doi.org/10.1142/S012918319800008X Int. J. Mod. Phys. C 9, 87-102 (1998)].
+ # A. G. Hoekstra, P. M. A. Sloot, F. van der Linden, M. van Muiswinkel, J. J. J. Vesseur, and L. O. Hertzberger, “Native and generic parallel programming environments on a transputer and a PowerPC platform,” [http://dx.doi.org/10.1002/(SICI)1096-9128(199601)8:1<19::AID-CPE193>3.0.CO;2-9 Concurrency Pract. Ex. 8, 19-46 (1996)].
+ # A. G. Hoekstra and P. M. A. Sloot, “Coupled dipole simulations of elastic light scattering on parallel systems,” [http://dx.doi.org/10.1142/S0129183195000563 Int. J. Mod. Phys. C 6, 663-679 (1995)].
+ # A. G. Hoekstra and P. M. A. Sloot, “New computational techniques to simulate light-scattering from arbitrary particles,” [http://dx.doi.org/10.1002/ppsc.19940110304 Part. Part. Sys. Charact. 11, 189-193 (1994)].
+ # P. M. A. Sloot and A. G. Hoekstra, “Light scattering simulations on a massively parallel computer at the IC3A,” _Transput. Applic._ *1*, 42-49 (1993).
+ # A. G. Hoekstra and P. M. A. Sloot, “Dipolar unit size in coupled-dipole calculations of the scattering matrix elements,” [http://dx.doi.org/10.1364/OL.18.001211 Opt. Lett. 18, 1211-1213 (1993)].
+ # P. M. A. Sloot and A. G. Hoekstra, “Implementation of a parallel conjugate gradient method for simulation of elastic light scattering,” _Comp. Phys._ *6*, 323 (1992).
+ # A. G. Hoekstra, L. O. Hertzberger, and P. M. A. Sloot, “Simulation of elastic light scattering on distributed memory machines,” _Bull. Am. Phys. Soc._ *36*, 1798 (1991).
