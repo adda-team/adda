@@ -1,6 +1,6 @@
 #summary List of journal papers that make use of ADDA
 
-Below we list the papers that use results of simulations using *ADDA*. Those (review) papers, which only mention *ADDA*, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter].
+Below we list journal papers that use results of simulations using *ADDA*. Those (review) papers, which only mention *ADDA*, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter].
 
 <wiki:toc />
 
@@ -15,25 +15,25 @@ Below we list the papers that use results of simulations using *ADDA*. Those (re
  # Z. Meng, P. Yang, G. W. Kattawar, L. Bi, K. Liou, and I. Laszlo, “Single-scattering properties of tri-axial ellipsoidal mineral dust aerosols: A database for application to radiative transfer calculations,” [http://dx.doi.org/10.1016/j.jaerosci.2010.02.008 J. Aeros. Sci. 41, 501-512 (2010)].
  # K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681-5690 (2010)].
 
-= 2009 (9) =
+= 2009 (11) =
  # F. Teschl, W. L. Randeu, and R. Teschl, “Single scattering from frozen hydrometeors at microwave frequencies,” [http://dx.doi.org/10.1016/j.atmosres.2009.09.001 Atmos. Res. 94, 564-578 (2009)].
- # J. M. Richardson, J. C. Aldridge, A. B. Milstein, and J. J. Lacirignola, “Aerosol elastic scatter signatures in the near- and mid-wave IR spectral regions,” [http://dx.doi.org/10.1117/12.819165 SPIE Proc. 7323, 73230Q-9 (2009)].
+ # A. Penttilä and K. Lumme, “The effect of the properties of porous media on light scattering,” [http://dx.doi.org/10.1016/j.jqsrt.2009.05.009 J. Quant. Spectrosc. Radiat. Transfer 110, 1993-2001 (2009)].
  # J. McDonald, A. Golden, and S. G. Jennings, “OpenDDA: a novel high-performance computational framework for the discrete dipole approximation,” [http://dx.doi.org/10.1177/1094342008097914 Int. J. High Perf. Comp. Appl. 23, 42-61 (2009)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114-126 (2009)].
+ # J. Tyynelä, T. Nousiainen, S. Göke, and K. Muinonen, “Modeling C-band single scattering properties of hydrometeors using discrete-dipole approximation and T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2009.02.020 J. Quant. Spectrosc. Radiat. Transfer 110, 1654-1664 (2009)].
  # D. I. Strokotov, M. A. Yurkin, K. V. Gilev, D. R. van Bockstaele, A. G. Hoekstra, N. B. Rubtsov, and V. P. Maltsev, “Is there a difference between T- and B-lymphocyte morphology?,” [http://dx.doi.org/10.1117/1.3275471 J. Biomed. Opt. 14, 064036-12 (2009)].
  # V. Schmidt and T. Wriedt, “T-matrix method for biaxial anisotropic particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.025 J. Quant. Spectrosc. Radiat. Transfer 110, 1392-1397 (2009)].
  # A. V. Priezzhev, S. Y. Nikitin, and A. E. Lugovtsov, “Ray-wave approximation for the calculation of laser light scattering by transparent dielectric particles, mimicking red blood cells or their aggregates,” [http://dx.doi.org/10.1016/j.jqsrt.2009.02.027 J. Quant. Spectrosc. Radiat. Transfer 110, 1535-1544 (2009)].
  # H. Lindqvist, K. Muinonen, and T. Nousiainen, “Light scattering by coated Gaussian and aggregate particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.015 J. Quant. Spectrosc. Radiat. Transfer 110, 1398-1410 (2009)].
+ # Y. Grynko and S. Pulbere, “Discrete dipole approximation simulations of light reflection from flat non-transparent particles with rough surfaces,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.028 J. Quant. Spectrosc. Radiat. Transfer 110, 1382-1391 (2009)].
  # S. D'Agostino, P. P. Pompa, R. Chiuri, R. J. Phaneuf, D. G. Britti, R. Rinaldi, R. Cingolani, and F. Della Sala, “Enhanced fluorescence by metal nanospheres on metal substrates,” [http://dx.doi.org/10.1364/OL.34.002381 Opt. Lett. 34, 2381-2383 (2009)].
 
-= 2008 (9) =
+= 2008 (7) =
  # J. Alegret, T. Rindzevicius, T. Pakizeh, Y. Alaverdyan, L. Gunnarsson, and M. Käll, “Plasmonic properties of silver trimers with trigonal symmetry fabricated by electron-beam lithography,” [http://dx.doi.org/10.1021/jp804505k J. Phys. Chem. C 112, 14313-14317 (2008)].
  # A. E. Lugovtsov, S. Y. Nikitin, and A. V. Priezzhev, “Ray-wave approximation for calculating laser radiation scattering by a transparent dielectric spheroidal particle,” [http://dx.doi.org/10.1070/QE2008v038n06ABEH013941 Quant. Electron. 38, 606-611 (2008)].
  # C. Selhuber-Unkel, I. Zins, O. Schubert, C. Sönnichsen, and L. B. Oddershede, “Quantitative optical trapping of single gold nanorods,” [http://dx.doi.org/10.1021/nl802053h Nano Lett. 8, 2998-3003 (2008)].
  # H. Parviainen and K. Lumme, “Scattering from rough thin films: discrete-dipole-approximation simulations,” [http://dx.doi.org/10.1364/JOSAA.25.000090 J. Opt. Soc. Am. A 25, 90-97 (2008)].
  # D. Y. Orlova, M. A. Yurkin, A. G. Hoekstra, and V. P. Maltsev, “Light scattering by neutrophils: model, simulation, and experiment,” [http://dx.doi.org/10.1117/1.2992140 J. Biomed. Opt. 13, 054057-7 (2008)].
- # K. Li, B. Cui, L. Clime, and T. Veres, “Fabrication of SERS active substrates by nanoimprint lithography,” [http://www.mrs.org/s_mrs/sec_subscribe.asp?CID=11325&DID=224868&action=detail MRS Sympos. Proc. 1054, 146-151 (2008)].
- # D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
  # O. Ekici, R. K. Harrison, N. J. Durr, D. S. Eversole, M. Lee, and A. Ben-Yakar, “Thermal analysis of gold nanorods heated with femtosecond laser pulses,” [http://dx.doi.org/10.1088/0022-3727/41/18/185501 J. Phys. D 41, 185501 (2008)].
  # D. J. Cho, F. Wang, X. Zhang, and Y. R. Shen, “Contribution of the electric quadrupole resonance in optical metamaterials,” [http://dx.doi.org/10.1103/PhysRevB.78.121101 Phys. Rev. B 78, 121101 (2008)].
 
