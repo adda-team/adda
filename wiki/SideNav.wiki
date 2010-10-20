@@ -21,4 +21,5 @@
    * [AddingCommandLineOption Adding a command line option]
    * [AddingIterativeSolver Adding an iterative solver]
  * [Acknowledgements Acknowledgements]
+ * [Publications Papers that use ADDA]
  * [EarlyHistory Early history of ADDA development]
