@@ -421,7 +421,7 @@ static struct opt_struct options[]={
 		"is the simplest one - interaction between point dipoles. 'so' is under development and "
 		"incompatible with '-anisotr'.\n"
 		"Default: poi",UNDEF,NULL},
-	{PAR(iter),"{cgnr|bicg|bicgstab|qmr}","Sets the iterative solver.\n"
+	{PAR(iter),"{bicg|bicgstab|cgnr|qmr}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 		/* TO ADD NEW ITERATIVE SOLVER
 		 * add the short name, used to define the new iterative solver in the command line, to the
@@ -1033,9 +1033,9 @@ PARSE_FUNC(int)
 }
 PARSE_FUNC(iter)
 {
-	if (strcmp(argv[1],"cgnr")==0) IterMethod=IT_CGNR;
-	else if (strcmp(argv[1],"bicg")==0) IterMethod=IT_BICG_CS;
+	if (strcmp(argv[1],"bicg")==0) IterMethod=IT_BICG_CS;
 	else if (strcmp(argv[1],"bicgstab")==0) IterMethod=IT_BICGSTAB;
+	else if (strcmp(argv[1],"cgnr")==0) IterMethod=IT_CGNR;
 	else if (strcmp(argv[1],"qmr")==0) IterMethod=IT_QMR_CS;
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
@@ -1974,7 +1974,7 @@ void PrintInfo(void)
 		else if (PolRelation==POL_DGF) fprintf(logfile,"'Digitized Green's Function'\n");
 		else if (PolRelation==POL_FCD) fprintf(logfile,"'Filtered Coupled Dipoles'\n");
 		else if (PolRelation==POL_IGT_SO)
-			fprintf(logfile,"'Integration of Green's Tensor (second order approximation)'\n");
+			fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n");
 		else if (PolRelation==POL_LAK) fprintf(logfile,"'by Lakhtakia'\n");
 		else if (PolRelation==POL_LDR) {
 			fprintf(logfile,"'Lattice Dispersion Relation'");
@@ -1988,7 +1988,7 @@ void PrintInfo(void)
 		if (ScatRelation==SQ_DRAINE) fprintf(logfile,"'by Draine'\n");
 		else if (ScatRelation==SQ_FINDIP) fprintf(logfile,"'Finite Dipoles'\n");
 		else if (ScatRelation==SQ_IGT_SO)
-			fprintf(logfile,"'Integration of Green's Tensor (second order approximation)'\n");
+			fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n");
 		else if (ScatRelation==SQ_SO) fprintf(logfile,"'Second Order'\n");
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");
@@ -2001,7 +2001,7 @@ void PrintInfo(void)
 			else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 		}
 		else if (IntRelation==G_IGT_SO)
-			fprintf(logfile,"'Integrated Green's tensor (approximation O(kd^2))'\n");
+			fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n");
 		else if (IntRelation==G_POINT_DIP) fprintf(logfile,"'as Point dipoles'\n");
 		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
 		// log FFT method
@@ -2013,9 +2013,9 @@ void PrintInfo(void)
 #endif
 		// log Iterative Method
 		fprintf(logfile,"Iterative Method: ");
-		if (IterMethod==IT_CGNR) fprintf(logfile,"CGNR\n");
-		else if (IterMethod==IT_BICG_CS) fprintf(logfile,"Bi-CG (complex symmetric)\n");
+		if (IterMethod==IT_BICG_CS) fprintf(logfile,"Bi-CG (complex symmetric)\n");
 		else if (IterMethod==IT_BICGSTAB) fprintf(logfile,"Bi-CG Stabilized\n");
+		else if (IterMethod==IT_CGNR) fprintf(logfile,"CGNR\n");
 		else if (IterMethod==IT_QMR_CS) fprintf(logfile,"QMR (complex symmetric)\n");
 		/* TO ADD NEW ITERATIVE SOLVER
 		 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
