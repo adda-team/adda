@@ -117,9 +117,9 @@ ITER_FUNC(QMR_CS);
  */
 
 static const struct iter_params_struct params[]={
-	{IT_CGNR,10,1,0,CGNR},
 	{IT_BICG_CS,50000,1,0,BiCG_CS},
 	{IT_BICGSTAB,30000,3,3,BiCGStab},
+	{IT_CGNR,10,1,0,CGNR},
 	{IT_QMR_CS,50000,8,3,QMR_CS}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * Add its parameters to this list in the alphabetical order. The parameters, in order of
@@ -330,44 +330,6 @@ static void ProgressReport(void)
 
 //============================================================
 
-ITER_FUNC(CGNR)
-// Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm
-{
-	static double alpha, denumeratorAlpha;
-	static double beta,ro_new,ro_old;
-
-	if (ph==PHASE_VARS) {
-		scalars[0].ptr=&ro_old;
-		scalars[0].size=sizeof(double);
-	}
-	else if (ph==PHASE_INIT); // no specific initialization required
-	else if (ph==PHASE_ITER) {
-		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
-		if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterComm);
-		else {
-			// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
-			MatVec(rvec,Avecbuffer,&ro_new,true,&Timing_OneIterComm);
-			// beta_k-1=ro_k-1/ro_k-2
-			beta=ro_new/ro_old;
-			// p_k=beta_k-1*p_k-1+AH.r_k-1
-			nIncrem10(pvec,Avecbuffer,beta,NULL,&Timing_OneIterComm);
-		}
-		// alpha_k=ro_k-1/|A.p_k|^2
-		// Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterComm);
-		alpha=ro_new/denumeratorAlpha;
-		// x_k=x_k-1+alpha_k*p_k
-		nIncrem01(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
-		// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
-		nIncrem01(rvec,Avecbuffer,-alpha,&inprodRp1,&Timing_OneIterComm);
-		// initialize ro_old -> ro_k-2 for next iteration
-		ro_old=ro_new;
-	}
-	else LogError(ONE_POS,"Unknown phase of the iterative solver");
-}
-
-//============================================================
-
 ITER_FUNC(BiCG_CS)
 // Bi-Conjugate Gradient for Complex Symmetric systems
 {
@@ -510,6 +472,44 @@ ITER_FUNC(BiCGStab)
 }
 #undef EPS1
 #undef EPS2
+
+//============================================================
+
+ITER_FUNC(CGNR)
+// Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm
+{
+	static double alpha, denumeratorAlpha;
+	static double beta,ro_new,ro_old;
+
+	if (ph==PHASE_VARS) {
+		scalars[0].ptr=&ro_old;
+		scalars[0].size=sizeof(double);
+	}
+	else if (ph==PHASE_INIT); // no specific initialization required
+	else if (ph==PHASE_ITER) {
+		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
+		if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterComm);
+		else {
+			// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
+			MatVec(rvec,Avecbuffer,&ro_new,true,&Timing_OneIterComm);
+			// beta_k-1=ro_k-1/ro_k-2
+			beta=ro_new/ro_old;
+			// p_k=beta_k-1*p_k-1+AH.r_k-1
+			nIncrem10(pvec,Avecbuffer,beta,NULL,&Timing_OneIterComm);
+		}
+		// alpha_k=ro_k-1/|A.p_k|^2
+		// Avecbuffer=A.p_k
+		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterComm);
+		alpha=ro_new/denumeratorAlpha;
+		// x_k=x_k-1+alpha_k*p_k
+		nIncrem01(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
+		// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
+		nIncrem01(rvec,Avecbuffer,-alpha,&inprodRp1,&Timing_OneIterComm);
+		// initialize ro_old -> ro_k-2 for next iteration
+		ro_old=ro_new;
+	}
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
+}
 
 //============================================================
 

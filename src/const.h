@@ -215,9 +215,9 @@ enum inter { // how to calculate interaction term
 #define G_BOUND_MEDIAN 1 // k*R < GB_MEDIAN => 'median'
 
 enum iter { // iterative methods
-	IT_CGNR,     // Conjugate Gradient for Normalized equations minimizing Residual norm
 	IT_BICG_CS,  // Bi-Conjugate Gradient for Complex-Symmetric matrices
 	IT_BICGSTAB, // Bi-Conjugate Gradient Stabilized
+	IT_CGNR,     // Conjugate Gradient for Normalized equations minimizing Residual norm
 	IT_QMR_CS    // Quasi-minimal residual for Complex-Symmetric matrices
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add an identifier starting with 'IT_' and a descriptive comment to this list in the
