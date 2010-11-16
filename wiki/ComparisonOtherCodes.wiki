@@ -44,7 +44,7 @@ The main conclusion is summarized in the following figure, where a ratio of comp
 
 = Comparison with the null-field method with discrete sources =
 
-Schmidt and Wriedt [[#References 3]] extended the null-field method with discrete sources ([http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM_DS]) to anisotropic scatterers and verified their code by comparison with *ADDA* and DDSCAT. The following figure shows one particular example for ellipsoid with semi-axes _ka_=2, _kb_=3, _kc_=4 (_k_ is the wavenumber) and refractive index _m,,x,,_=1.5, _m,,y,,_=_m,,z,,_=1.1. Incident wave propagates along the _z_-axis and _S_,,11,, is calculated in _xz_-plane. NFM-DS data was provided by Vladimir Schmidt. *ADDA* 0.79 was run with the following command line.
+Schmidt and Wriedt [[#References 3]] extended the null-field method with discrete sources ([http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]) to anisotropic scatterers and verified their code by comparison with *ADDA* and DDSCAT. The following figure shows one particular example for ellipsoid with semi-axes _ka_=2, _kb_=3, _kc_=4 (_k_ is the wavenumber) and refractive index _m,,x,,_=1.5, _m,,y,,_=_m,,z,,_=1.1. Incident wave propagates along the _z_-axis and _S_,,11,, is calculated in _xz_-plane. NFM-DS data was provided by Vladimir Schmidt. *ADDA* 0.79 was run with the following command line.
 {{{
 adda -size 4 -shape ellipsoid 1.5 2 -m 1.5 0 1.1 0 1.1 0 -anisotr -orient 90 0 0
 }}}
