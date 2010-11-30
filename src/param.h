@@ -22,6 +22,7 @@
 #define __param_h
 
 #include "function.h" // needed for INLINE and function attributes
+#include <limits.h> // for INT_MIN and INT_MAX
 
 typedef struct {
 	int l1; // first level index
@@ -101,11 +102,34 @@ INLINE void TestRangeNN(const double val,const char * restrict name,const double
 
 //============================================================
 
+INLINE void ConvertToInteger(double val,const char * restrict name,int *res)
+/* converts val to res, but first checks if val is really an integer and in the bounds, otherwise
+ * produces an error message
+ */
+{
+	if (val != floor(val))
+		PrintErrorHelp("Illegal %s ("GFORMDEF"), must be an integer",name,val);
+	if (val<INT_MIN || val>INT_MAX)
+		PrintErrorHelp("Illegal %s ("GFORMDEF"), must be inside integer bounds",name,val);
+	*res=(int)val;
+}
+
+//============================================================
+
 INLINE void TestRange_i(const int val,const char * restrict name,const int min,const int max)
 // checks if val (int) is in interval [min,max], otherwise produces error message
 {
 	if (val<min || val>max)
 		PrintErrorHelp("Illegal %s (%d), must belong to the interval [%d,%d]",name,val,min,max);
+}
+
+//============================================================
+
+INLINE void TestGreaterThan_i(const int val,const char * restrict name,const int min)
+// checks if val (int) is greater than min, otherwise produces error message
+{
+	if (val<=min)
+		PrintErrorHelp("Illegal %s (%d), must be greater than %d",name,val,min);
 }
 
 #endif // __param_h

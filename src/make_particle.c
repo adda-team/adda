@@ -110,11 +110,12 @@ static enum shform read_format; // format of dipole file, which is read
 static char linebuf[BUF_LINE];  // buffer for reading lines from dipole file
 double cX,cY,cZ;                // center for DipoleCoord, it is sometimes used in PlaceGranules
 // shape parameters
-static double coat_ratio,coat_x,coat_y,coat_z,coat_r2;
+static double coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps,egz0; // for egg
 static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
+static double rc_2,ri_2,prx0,prang; // for prism
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo, contCurZ, contRoSqMin;
@@ -699,7 +700,6 @@ static double PlaceGranules(void)
  * Currently it is not working with jagged. That should be improved, by rewriting the jagged
  * calculation throughout the program
  */
-
 {
 	int i,j,k,zerofit,last;
 	size_t n,count,count_gr,false_count,ui;
@@ -1239,11 +1239,8 @@ void InitShape(void)
 {
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
-	double h_d,b_d,c_d,h2,b2,c2;
-	double yx_ratio,zx_ratio,tmp1,tmp2,tmp3;
-	double diskratio,aspectY,aspectZ,aspectY2,aspectZ2,aspectXs;
-	double aspectY2sc,aspectZ2sc,invmaxX;
-	double ad,ct,ct2; // cos(theta0) and its square
+	double yx_ratio,zx_ratio;
+	double tmp1,tmp2;
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
 	bool dpl_def_used;       // if default dpl is used for grid initialization
@@ -1317,6 +1314,8 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if(shape==SH_BICOATED) { // based on code by Jin You Lu
+		double diskratio,coat_ratio;
+
 		diskratio=sh_pars[0];
 		coat_ratio=sh_pars[1];
 		coat_r2=0.25*coat_ratio*coat_ratio;
@@ -1333,6 +1332,8 @@ void InitShape(void)
 		Nmat_need=2;
 	}
 	else if (shape==SH_BIELLIPSOID) { // based on code by Alexander Moskalensky
+		double aspectY,aspectZ,aspectY2,aspectZ2,aspectXs,aspectY2sc,aspectZ2sc,invmaxX;
+
 		aspectY=sh_pars[0];
 		TestPositive(aspectY,"aspect ratio y1/x1");
 		aspectZ=sh_pars[1];
@@ -1375,6 +1376,8 @@ void InitShape(void)
 		Nmat_need=2;
 	}
 	else if (shape==SH_BISPHERE) { // based on code by Jin You Lu
+		double diskratio;
+
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
 		if (IFROOT) sprintf(sh_form_str,
@@ -1387,6 +1390,8 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_BOX) {
+		double aspectY,aspectZ;
+
 		if (sh_Npars==0) {
 			if (IFROOT) strcpy(sh_form_str,"cube; size of edge along x-axis:"GFORM);
 			aspectY=aspectZ=1;
@@ -1409,6 +1414,8 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if(shape==SH_CAPSULE) {
+		double diskratio;
+
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"height to diameter ratio");
 		if (IFROOT) sprintf(sh_form_str,"capsule; diameter(d):%s, cylinder height h/d="GFORM,
@@ -1420,6 +1427,8 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_COATED) {
+		double coat_ratio;
+
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
 		if (IFROOT) sprintf(sh_form_str,"coated sphere; diameter(d):%s, inner diameter d_in/d="
@@ -1443,6 +1452,8 @@ void InitShape(void)
 		Nmat_need=2;
 	}
 	else if(shape==SH_CYLINDER) {
+		double diskratio;
+
 		diskratio=sh_pars[0];
 		TestPositive(diskratio,"height to diameter ratio");
 		if (IFROOT) sprintf(sh_form_str,"cylinder; diameter(d):%s, height h/d="GFORM,GFORM,
@@ -1460,6 +1471,9 @@ void InitShape(void)
 		 * Carr A.K., Carter C.C., Han T.S., and Thomas M.E. "Shape characteristics of biological
 		 * spores", paper 6954-31 to be presented at "SPIE Defence + Security", March 2008
 		 */
+		double ad,tmp3;
+		double ct,ct2; // cos(theta0) and its square
+
 		egeps=sh_pars[0];
 		TestRangeNI(egeps,"egg parameter epsilon",0,1);
 		egnu=sh_pars[1];
@@ -1497,6 +1511,8 @@ void InitShape(void)
 		zx_ratio=ad*(tmp1+tmp2); // (a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)]
 	}
 	else if (shape==SH_ELLIPSOID) {
+		double aspectY,aspectZ;
+
 		aspectY=sh_pars[0];
 		TestPositive(aspectY,"aspect ratio y/x");
 		aspectZ=sh_pars[1];
@@ -1520,6 +1536,49 @@ void InitShape(void)
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
+	else if(shape==SH_PRISM) {
+		double Dx,Dy; // grid sizes along x and y (in units of a - side length)
+		double Ri,Rc; // radii of inscribed and circumscribed circles (in units of a)
+		double sx;    // distance between center of circles and center of Dx (in units of a)
+		double diskratio; // ratio of height to Dx
+		int Nsides; // number of sides
+
+		ConvertToInteger(sh_pars[0],"number of sides",&Nsides);
+		TestGreaterThan_i(Nsides,"number of sides",2);
+		diskratio=sh_pars[1];
+		TestPositive(diskratio,"height to x-size ratio");
+		prang=PI/Nsides;
+		Rc=0.5/sin(prang);
+		Ri=Rc*cos(prang);
+		/* define grid sizes along x and y, shift of the center along x, and symmetries. In this
+		 * calculation we assume a=1.
+		 */
+		if (Nsides&1) { // N=2k+1
+			Dx=Rc+Ri;
+			symX=symR=false;
+			sx=(Rc-Ri)/2;
+			Dy=2*Rc*sin((Nsides-1)*prang/2);
+		}
+		else { // N=2k
+			Dx=2*Ri;
+			sx=0;
+			if (Nsides&2) { // N=4k+2
+				Dy=2*Rc;
+				symR=false;
+			}
+			else Dy=Dx; // N=4k
+		}
+		if (IFROOT) sprintf(sh_form_str,"%d-sided regular prism; size along x-axis (Dx):%s, height "
+			"h/Dx="GFORM", base side a/Dx="GFORM,Nsides,GFORM,diskratio,1/Dx);
+		prx0=sx/Dx;
+		yx_ratio=Dy/Dx;
+		zx_ratio=diskratio;
+		hdratio=zx_ratio/2;
+		rc_2=Rc*Rc/(Dx*Dx);
+		ri_2=Ri*Ri/(Dx*Dx);
+		volume_ratio=hdratio*Nsides*Ri/(Dx*Dx);
+		Nmat_need=1;
+	}
 	else if(shape==SH_RBC) {
 		/* three-parameter shape; developed by K.A.Semyanov,P.A.Tarasov,P.A.Avrorov
 		 * based on work by P.W.Kuchel and E.D.Fackerell, "Parametric-equation representation
@@ -1527,6 +1586,8 @@ void InitShape(void)
 		 * ro^4+2S*ro^2*z^2+z^4+P*ro^2+Q*z^2+R=0, ro^2=x^2+y^2, P,Q,R,S are determined by d,h,b,c
 		 * given in the command line.
 		 */
+		double h_d,b_d,c_d,h2,b2,c2;
+
 		h_d=sh_pars[0];
 		TestPositive(h_d,"ratio of maximum width to diameter");
 		b_d=sh_pars[1];
@@ -1542,7 +1603,7 @@ void InitShape(void)
 		c2=c_d*c_d;
 		/* P={(b/d)^2*[c^4/(h^2-b^2)-h^2]-d^2}/4; Q=(d/b)^2*(P+d^2/4)-b^2/4; R=-d^2*(P+d^2/4)/4;
 		 * S=-(2P+c^2)/h^2;  here P,Q,R,S are made dimensionless dividing by respective powers of d
-		 * Calculation is performed so that Q is well defined even for b=0. Parameter mamess are 
+		 * Calculation is performed so that Q is well defined even for b=0. Parameter names are
 		 * prefixed by 'rbc'.
 		 */
 		tmp1=((c2*c2/(h2-b2))-h2)/4;
@@ -1570,6 +1631,8 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_SPHEREBOX) {
+		double coat_ratio;
+
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"sphere diameter/cube edge ratio",0,1);
 		if (IFROOT) sprintf(sh_form_str,"sphere in cube; size of cube edge(a):%s, diameter of "
@@ -1748,7 +1811,7 @@ void MakeParticle(void)
 	int i,j,k,ns;
 	size_t index,dip,nlocalRows_tmp;
 	double tmp1,tmp2,tmp3;
-	double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2,zshift;
+	double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2,zshift,xshift;
 	double jcX,jcY,jcZ; // center for jagged
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
@@ -1877,6 +1940,21 @@ void MakeParticle(void)
 				}
 				else if (shape==SH_LINE) {
 					if (yj==0 && zj==0) mat=0;
+				}
+				else if (shape==SH_PRISM) {
+					xshift=xr-prx0;
+					r2=xshift*xshift+yr*yr;
+					if(r2<=rc_2 && fabs(zr)<=hdratio) {
+						if (r2<=ri_2) mat=0;
+						/* this can be optimized considering special cases for small N. For larger
+						 * N the relevant fraction of dipoles decrease as N^-2, so this part is less
+						 * problematic.
+						 */
+						else {
+							tmp1=cos(fmod(fabs(atan2(yr,xshift))+prang,2*prang)-prang);
+							if (tmp1*tmp1*r2<=ri_2) mat=0;
+						}
+					}
 				}
 				else if (shape==SH_RBC) {
 					r2=xr*xr+yr*yr;
