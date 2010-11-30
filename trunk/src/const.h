@@ -23,7 +23,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1a3"
+#define ADDA_VERSION "1.1a4"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -151,7 +151,7 @@ enum sh { // shape types
 	SH_EGG,          // egg
 	SH_ELLIPSOID,    // general ellipsoid
 	SH_LINE,         // line with width of one dipole
-	SH_PRISMA,       // prisma (triangular) -- not operational
+	SH_PRISM,        // right rectangular prism
 	SH_RBC,          // Red Blood Cell
 	SH_READ,         // read from file
 	SH_SDISK_ROT,    // disc cut of a sphere -- not operational

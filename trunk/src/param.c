@@ -242,6 +242,12 @@ static const struct subopt_struct shape_opt[]={
 		"scaling factor. Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
+	{"prism","<N> <h/Dx>","Homogeneous right N-sided prism with height (length along the z-axis) h "
+		"based on a regular polygon with N sides of size 'a'. The polygon is oriented so that "
+		"positive x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon "
+		"along the x-axis, equal to 2Ri and Rc+Ri for even and odd N respectively. "
+		"Rc=a/[2sin(pi/N)] and Ri=Rc*cos(pi/N) are radii of circumscribed and inscribed circles "
+		"respectively.",2,SH_PRISM},
 	{"rbc","<h/d> <b/d> <c/d>","Red Blood Cell, an axisymmetric (over z-axis) biconcave "
 		"homogeneous particle, which is characterized by diameter d, maximum and minimum width h, "
 		"b, and diameter at the position of the maximum width c. The surface is described by "
@@ -249,8 +255,8 @@ static const struct subopt_struct shape_opt[]={
 		"described parameters.",3,SH_RBC},
 	{"read","<filename>","Read a particle geometry from file <filename>",FNAME_ARG,SH_READ},
 	{"sphere","","Homogeneous sphere",0,SH_SPHERE},
-	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",
-	1,SH_SPHEREBOX},
+	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",1,
+		SH_SPHEREBOX},
 	/* TO ADD NEW SHAPE
 	 * add a row to this list in alphabetical order. It contains:
 	 * shape name (used in command line), usage string, help string, possible number of float
@@ -731,10 +737,14 @@ INLINE void ScanfIntError(const char * restrict str,int *res)
 
 	if (sscanf(str,"%lf",&tmp)!=1) PrintErrorHelpSafe(
 		"Non-numeric argument (%s) is given to the option '-%s'",str,OptionName());
+	/* The following can be rewritten by call to ConvertToInteger(), but it is complicated due to
+	 * presence of OptionName
+	 */
+	if (tmp != floor(tmp)) PrintErrorHelpSafe(
+		"Argument value (%s) of the option '-%s' is not an integer",str,OptionName());
 	if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelpSafe(
 		"Argument value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
-	if (sscanf(str,"%d",res)!=1)
-		PrintErrorHelpSafe("Error reading argument (%s) of the option '-%s'",str,OptionName());
+	*res=(int)tmp;
 }
 
 //============================================================
