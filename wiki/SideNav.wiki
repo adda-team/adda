@@ -22,4 +22,5 @@
    * [AddingIterativeSolver Adding an iterative solver]
  * [Acknowledgements Acknowledgements]
  * [Publications Papers that use ADDA]
+ * [Awards Awards]
  * [EarlyHistory Early history of ADDA development]
