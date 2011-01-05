@@ -36,6 +36,15 @@
 #include "io.h"
 #include "function.h"
 
+#ifdef OPENCL
+#include <CL/cl.h>
+#include "clFFT.h" //nearly unmodified APPLE FFT header file
+#include "oclvars.h"
+clFFT_Plan clplanX, clplanY, clplanZ;     
+extern cl_mem bufXmatrix, bufmaterial, bufposition, bufcc_sqrt, bufargvec, bufresultvec, bufslices, bufslices_tr, bufDmatrix;
+#endif
+
+
 #ifdef FFTW3
 #	include <fftw3.h>
 /* define level of planning for usual and Dmatrix (DM) FFT: FFTW_ESTIMATE (heuristics),
@@ -1284,6 +1293,169 @@ void InitDmatrix(void)
 	if (IFROOT) printf("\n");
 	time1=GET_TIME();
 	Timing_Dm_Init=time1-start;
+
+#ifdef OPENCL
+// create all Buffers needed on Device in MatVec
+
+    bufXmatrix = clCreateBuffer( context, CL_MEM_READ_WRITE, local_Nsmall*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufXmatrix");
+    bufmaterial = clCreateBuffer( context, CL_MEM_READ_WRITE, local_nvoid_Ndip, NULL, &err);
+    checkErr(err, "error creating bufmaterial");
+    bufposition = clCreateBuffer( context, CL_MEM_READ_WRITE, local_nvoid_Ndip*2*3, NULL, &err);
+    checkErr(err, "error creating bufposition");
+    bufcc_sqrt = clCreateBuffer( context, CL_MEM_READ_WRITE, MAX_NMAT*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufcc_sqrt");
+    bufargvec = clCreateBuffer( context, CL_MEM_READ_WRITE, local_nvoid_Ndip*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufargvec");
+    bufresultvec = clCreateBuffer( context, CL_MEM_READ_WRITE, local_nvoid_Ndip*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufresultvec");
+    bufslices_tr = clCreateBuffer( context, CL_MEM_READ_WRITE, gridYZ*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufslices_tr");
+    bufslices = clCreateBuffer( context, CL_MEM_READ_WRITE, gridYZ*3*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufslices");
+    bufDmatrix = clCreateBuffer( context, CL_MEM_READ_WRITE, NDCOMP*local_Nx*DsizeYZ*2*sizeof(double), NULL, &err);
+    checkErr(err, "error creating bufDmatrix");
+
+// setting kernel arguments since they are allways the same
+    // for Arith1
+    err = clSetKernelArg( clarith1, 0, sizeof(cl_mem), &bufmaterial);
+    checkErr(err, "set kernelargs at 0 of clarith1");
+    err = clSetKernelArg( clarith1, 1, sizeof(cl_mem), &bufposition);
+    checkErr(err, "set kernelargs at 1 of clarith1");
+    err = clSetKernelArg( clarith1, 2, sizeof(cl_mem), &bufcc_sqrt);
+    checkErr(err, "set kernelargs at 3 of clarith1");
+    err = clSetKernelArg( clarith1, 3, sizeof(cl_mem), &bufargvec);
+    checkErr(err, "set kernelargs at 3 of clarith1");
+    err = clSetKernelArg( clarith1, 4, sizeof(cl_mem), &bufXmatrix);
+    checkErr(err, "set kernelargs at 4 of clarith1");
+    err = clSetKernelArg( clarith1, 5, sizeof(cl_long), &local_Nsmall);
+    checkErr(err, "set kernelargs at 5 of clarith1");
+    err = clSetKernelArg( clarith1, 6, sizeof(cl_long), &smallY);
+    checkErr(err, "set kernelargs at 6 of clarith1");
+    err = clSetKernelArg( clarith1, 7, sizeof(cl_long), &gridX);
+    checkErr(err, "set kernelargs at 7 of clarith1");
+    //for arith2
+    err = clSetKernelArg( clarith2, 0, sizeof(cl_mem), &bufXmatrix);
+    checkErr(err,"set kernelargs at 0 of arith2");
+    err = clSetKernelArg( clarith2, 1, sizeof(cl_mem), &bufslices);
+    checkErr(err,"set kernelargs at 1 of arith2");
+    err = clSetKernelArg( clarith2, 2, sizeof(cl_long), &gridZ);
+    checkErr(err,"set kernelargs at 2 of arith2");
+    err = clSetKernelArg( clarith2, 3, sizeof(cl_long), &smallY);
+    checkErr(err,"set kernelargs at 3 of arith2");
+    err = clSetKernelArg( clarith2, 4, sizeof(cl_long), &gridX);
+    checkErr(err,"set kernelargs at 4 of arith2");
+    err = clSetKernelArg( clarith2, 5, sizeof(cl_long), &gridYZ);
+    checkErr(err,"set kernelargs at 5 of arith2");
+    err = clSetKernelArg( clarith2, 6, sizeof(cl_long), &local_Nsmall);
+    checkErr(err,"set kernelargs at 6 of arith2");
+
+    //for arith3
+    err = clSetKernelArg( clarith3, 0, sizeof(cl_mem), &bufslices_tr);
+    checkErr(err,"set kernelargs at 0 of arith3");
+    err = clSetKernelArg( clarith3, 1, sizeof(cl_mem), &bufDmatrix);
+    checkErr(err,"set kernelargs at 1 of arith3");
+    err = clSetKernelArg( clarith3, 2, sizeof(cl_long), &local_x0);
+    checkErr(err,"set kernelargs at 2 of arith3");
+    err = clSetKernelArg( clarith3, 3, sizeof(cl_long), &smallY);
+    checkErr(err,"set kernelargs at 3 of arith3");
+    err = clSetKernelArg( clarith3, 4, sizeof(cl_long), &smallZ);
+    checkErr(err,"set kernelargs at 4 of arith3");
+    err = clSetKernelArg( clarith3, 5, sizeof(cl_long), &gridX);
+    checkErr(err,"set kernelargs at 5 of arith3");
+    err = clSetKernelArg( clarith3, 6, sizeof(cl_long), &DsizeY);
+    checkErr(err,"set kernelargs at 6 of arith3");
+    err = clSetKernelArg( clarith3, 7, sizeof(cl_long), &DsizeZ);
+    checkErr(err,"set kernelargs at 7 of arith3");
+    //for arith4
+    err = clSetKernelArg( clarith4, 0, sizeof(cl_mem), &bufXmatrix);
+    checkErr(err,"set kernelargs at 0 of arith4");
+    err = clSetKernelArg( clarith4, 1, sizeof(cl_mem), &bufslices);
+    checkErr(err,"set kernelargs at 1 of arith4");
+    err = clSetKernelArg( clarith4, 2, sizeof(cl_long), &gridZ);
+    checkErr(err,"set kernelargs at 2 of arith4");
+    err = clSetKernelArg( clarith4, 3, sizeof(cl_long), &smallY);
+    checkErr(err,"set kernelargs at 3 of arith4");
+    err = clSetKernelArg( clarith4, 4, sizeof(cl_long), &gridX);
+    checkErr(err,"set kernelargs at 4 of arith4");
+    err = clSetKernelArg( clarith4, 5, sizeof(cl_long), &gridYZ);
+    checkErr(err,"set kernelargs at 5 of arith4");
+    err = clSetKernelArg( clarith4, 6, sizeof(cl_long), &local_Nsmall);
+    checkErr(err,"set kernelargs at 6 of arith4");
+    //for arith5
+    err = clSetKernelArg( clarith5, 0, sizeof(cl_mem), &bufmaterial);
+    checkErr(err, "set kernelargs at 0 of clarith5");
+    err = clSetKernelArg( clarith5, 1, sizeof(cl_mem), &bufposition);
+    checkErr(err, "set kernelargs at 1 of clarith5");
+    err = clSetKernelArg( clarith5, 2, sizeof(cl_mem), &bufcc_sqrt);
+    checkErr(err, "set kernelargs at 3 of clarith5");
+    err = clSetKernelArg( clarith5, 3, sizeof(cl_mem), &bufargvec);
+    checkErr(err, "set kernelargs at 3 of clarith5");
+    err = clSetKernelArg( clarith5, 4, sizeof(cl_mem), &bufXmatrix);
+    checkErr(err, "set kernelargs at 4 of clarith5");
+    err = clSetKernelArg( clarith5, 5, sizeof(cl_long), &local_Nsmall);
+    checkErr(err, "set kernelargs at 5 of clarith5");
+    err = clSetKernelArg( clarith5, 6, sizeof(cl_long), &smallY);
+    checkErr(err, "set kernelargs at 6 of clarith5");
+    err = clSetKernelArg( clarith5, 7, sizeof(cl_long), &gridX);
+    checkErr(err, "set kernelargs at 7 of clarith5");
+    err = clSetKernelArg( clarith5, 8, sizeof(cl_mem), &bufresultvec);
+    checkErr(err, "set kernelargs at 8 of clarith5");
+    //for transpose 
+    err = clSetKernelArg( cltransposef, 0, sizeof(cl_mem), &bufslices);
+    checkErr(err, "set kernelargs at 0 of cltransposef");
+    err = clSetKernelArg( cltransposef, 1, sizeof(cl_mem), &bufslices_tr);
+    checkErr(err, "set kernelargs at 1 of cltransposef");
+    err = clSetKernelArg( cltransposef, 2, sizeof(cl_long), &gridZ);
+    checkErr(err, "set kernelargs at 2 of cltransposef");
+    err = clSetKernelArg( cltransposef, 3, sizeof(cl_long), &gridY);
+    checkErr(err, "set kernelargs at 3 of cltransposef");
+    
+    err = clSetKernelArg( cltransposeb, 0, sizeof(cl_mem), &bufslices_tr);
+    checkErr(err, "set kernelargs at 0 of cltransposeb");
+    err = clSetKernelArg( cltransposeb, 1, sizeof(cl_mem), &bufslices);
+    checkErr(err, "set kernelargs at 1 of cltransposeb");
+    err = clSetKernelArg( cltransposeb, 2, sizeof(cl_long), &gridY);
+    checkErr(err, "set kernelargs at 2 of cltransposeb");
+    err = clSetKernelArg( cltransposeb, 3, sizeof(cl_long), &gridZ);
+    checkErr(err, "set kernelargs at 3 of cltransposeb");
+    //faster kernel for transpose with caching follows soon
+    
+    
+   
+
+//write for MatVec constant buffers to Device
+    err = clEnqueueWriteBuffer( command_queue, bufmaterial, CL_TRUE, 0, local_nvoid_Ndip, material, 0, NULL, NULL);
+    checkErr(err, "writing material to device memory");
+    err = clEnqueueWriteBuffer( command_queue, bufposition, CL_TRUE, 0, local_nvoid_Ndip*2*3, position, 0, NULL, NULL);
+    checkErr(err, "writing position to device memory");
+
+
+    err = clEnqueueWriteBuffer( command_queue, bufDmatrix, CL_TRUE, 0, NDCOMP*local_Nx*DsizeYZ*2*sizeof(double) , Dmatrix, 0, NULL, NULL);
+    checkErr(err, "writing Dmatrix to device memory");
+    printf("creating plan for clFFTs... \n");
+    clFFT_Dim3 xdimen;
+    xdimen.x=(int)gridX;
+    xdimen.y=1;
+    xdimen.z=1;
+    clplanX=clFFT_CreatePlan(context,xdimen, clFFT_2D, clFFT_InterleavedComplexFormat, &err);
+    checkErr(err, "creating fftX plan");
+    clFFT_Dim3 ydimen;
+    ydimen.x=(int)gridY;
+    ydimen.y=1;
+    ydimen.z=1;
+    clplanY=clFFT_CreatePlan(context,ydimen, clFFT_1D, clFFT_InterleavedComplexFormat, &err);
+    checkErr(err, "creating fftY plan");
+    clFFT_Dim3 zdimen;
+    zdimen.x=(int)gridZ;
+    zdimen.y=1;
+    zdimen.z=1;
+    clplanZ=clFFT_CreatePlan(context,zdimen, clFFT_1D, clFFT_InterleavedComplexFormat, &err);
+    checkErr(err, "creating fftZ plan");
+#endif
+
+
+
 #ifdef PRECISE_TIMING
 	GetTime(tvp+12);
 	// analyze and print precise timing information
@@ -1325,6 +1497,38 @@ void InitDmatrix(void)
 }
 
 //============================================================
+#ifdef OPENCL
+//definition here since all sizes are known
+void clfftX(const clFFT_Direction dir)
+{
+    
+    err = clFFT_ExecuteInterleaved(command_queue, clplanX, (int)3*local_Nz*smallY, dir ,bufXmatrix, bufXmatrix,0, NULL, NULL);
+    clFinish(command_queue);
+    checkErr(err, "executing clFFTX");
+}
+void clfftY(const clFFT_Direction dir)
+{
+    
+    err = clFFT_ExecuteInterleaved(command_queue, clplanY, (int)6*smallZ, dir ,bufslices_tr, bufslices_tr ,0, NULL, NULL);
+    clFinish(command_queue);
+    checkErr(err, "executing clFFTY");
+}
+void clfftZ(const clFFT_Direction dir)
+{
+    
+    err = clFFT_ExecuteInterleaved(command_queue, clplanZ, (int)3*gridY, dir ,bufslices, bufslices,0, NULL, NULL);
+    clFinish(command_queue);
+    checkErr(err, "executing clFFTZ");
+}
+
+
+
+
+#endif
+
+
+
+
 
 void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)

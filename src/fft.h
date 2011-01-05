@@ -51,4 +51,10 @@ void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
 
+#ifdef OPENCL
+void clfftX(const clFFT_Direction);
+void clfftY(const clFFT_Direction);
+void clfftZ(const clFFT_Direction);
+#endif
+
 #endif // __fft_h

@@ -21,6 +21,7 @@
 
 PROG := $(PROGSEQ)
 MYCC := $(CC)
+MYADDACOMP := $(CC)
 MYCF := $(CF)
 
 include $(COMMONMK)

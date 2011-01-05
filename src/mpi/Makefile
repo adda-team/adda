@@ -65,6 +65,7 @@ endif
 CFLAGS += -DADDA_MPI
 PROG := $(PROGMPI)
 MYCC := $(MPICC)
+MYADDACOMP := $(MPICC)
 MYCF := $(CF)
 
 include $(COMMONMK)

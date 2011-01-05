@@ -37,6 +37,7 @@ ifneq ($(call READ_FILE,$(FOPTSFILE)),$(FCMD))
 endif
 
 vpath %.c $(CPATH)
+vpath %.cpp $(CPPPATH)
 vpath %.h $(HPATH)
 vpath %.f $(FPATH)
 
@@ -46,9 +47,9 @@ vpath %.f $(FPATH)
 
 .DELETE_ON_ERROR:
 
-$(PROG): $(COBJECTS) $(FOBJECTS) $(LDOPTSFILE)
+$(PROG): $(COBJECTS) $(FOBJECTS) $(LDOPTSFILE) $(CPPOBJECTS)
 	@echo "Building $@"
-	$(MYCC) -o $@ $(COBJECTS) $(FOBJECTS) $(LDFLAGS)
+	$(MYADDACOMP) -o $@ $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDFLAGS)
 
 $(COBJECTS): %.o: %.c %.d
 	$(MYCC) -c $(CFLAGS) $<
