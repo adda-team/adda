@@ -40,3 +40,6 @@ It is defined as in Bohren & Huffman "Absorption and scattering of Light by Smal
 The most general solution is freely available software [http://albin.abo.fi/~jkniivil/litebil/ LiteBil]. It allows both quick testing of shape files produced by ADDA or other software, and producing nice pictures for publication.
 
 There are also tools developed by Roman Schuh, which are available upon request. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/c715bd07cc9274d8# this discussion] for details.
+
+== How to calculate the wavelength spectrum of extinction/scattering/etc. using ADDA? ==
+Currently there is no automatic way to do it, although we plan to implement it (issue 35). Currently one may either perform separate simulation for each value of wavelength, or semi-automate this process by some kind of script or wrapper. The latter options are discussed in comments to issue 35.
