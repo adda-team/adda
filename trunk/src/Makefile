@@ -36,11 +36,13 @@ SHELL      := /bin/sh
 # Separate directories to store Makefiles and .o and .d files for sequential and MPI executables
 SEQ        := seq
 MPI        := mpi
+OCL        := ocl
 # Names of executables
 PROGSEQ    := adda
 PROGMPI    := adda_mpi
+PROGOCL     := adda_ocl
 # Targets implying compilation (empty one is always included)
-NONTRIVIAL := all seq mpi
+NONTRIVIAL := all seq mpi ocl
 # Files to store last-used command lines for linker, C and Fortran compilers
 LDOPTSFILE := .ldopts
 COPTSFILE  := .copts
@@ -163,9 +165,11 @@ CDEPEND  := $(CSOURCE:.c=.d)
 # Those are used for vpath directives in child Makefiles
 PARENT   := ..
 FFOLDER  := fort
+CPPFOLDER:= 
 CPATH    := $(PARENT)
 HPATH    := $(PARENT)
 FPATH    := $(PARENT)/$(FFOLDER)
+CPPPATH  := $(PARENT)/$(CPPFOLDER)
 
 LDLIBS   := -lm
 DEPFLAG  := -M
@@ -256,6 +260,7 @@ FLIBS +=
 ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    := gcc
+  CCPP  := g++
   CF    := g77
   CSTD  := -std=c99
   CDBG  := -g
@@ -353,9 +358,9 @@ endif
 #===================================================================================================
 
 .EXPORT_ALL_VARIABLES:
-.PHONY: seq mpi all clean cleanseq cleanmpi
+.PHONY: seq mpi all clean cleanseq cleanmpi ocl
 
-all: seq mpi
+all: seq mpi ocl
 
 seq:
 	@echo "Compiling sequential version of ADDA"
@@ -365,7 +370,12 @@ mpi:
 	@echo "Compiling MPI version of ADDA"
 	$(MAKE) -C $(MPI)
 
-clean: cleanseq cleanmpi
+ocl:
+	@echo "Compiling OpenCL version of ADDA"
+	$(MAKE) -C $(OCL)
+
+
+clean: cleanseq cleanmpi cleanocl
 
 # 'clean' commands are exectured here to keep them simple. Child makefiles are used only for 
 # compilation and thus contain quite heavy processing.
@@ -376,3 +386,7 @@ cleanseq:
 cleanmpi:
 	@echo "Removing MPI compiled files"
 	cd $(MPI) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGMPI) $(PROGMPI).exe
+
+cleanocl:
+	@echo "Removing OpenCL compiled files"
+	cd $(OCL) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGOCL) $(PROGOCL).exe

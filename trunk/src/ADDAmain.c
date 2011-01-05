@@ -29,6 +29,11 @@
 #include "debug.h"
 #include "io.h"
 
+#ifdef OPENCL
+#include <CL/cl.h>
+#include "oclvars.h"
+#endif
+
 // EXTERNAL FUNCTIONS
 
 // calculator.c
@@ -77,6 +82,9 @@ int main(int argc,char **argv)
 	// Print info to stdout and logfile
 	PrintInfo();
 	// Main calculation part
+#ifdef OPENCL
+    oclinit();
+#endif
 	D("Calculator started");
 	Calculator();
 	D("Calculator finished");
@@ -86,6 +94,9 @@ int main(int argc,char **argv)
 	if (ferror(stdout)) LogWarning(EC_WARN,ALL_POS,
 		"Some errors occurred while writing to stdout during the execution of ADDA");
 	// finish execution normally
+#ifdef OPENCL
+    oclunload();
+#endif
 	Stop(EXIT_SUCCESS);
 	// never actually reached; just to make the compiler happy
 	return 0;
