@@ -434,7 +434,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
     
     err = clEnqueueWriteBuffer( command_queue, bufresultvec, CL_TRUE, 0, local_nvoid_Ndip*3*2*sizeof(double), resultvec, 0, NULL, NULL);
-    checkErr(err, "reading resultvec from device memory");
+    checkErr(err, "writing resultvec to device memory");
 
     err = clEnqueueNDRangeKernel( command_queue, clarith5, 1, NULL, &local_nvoid_Ndip, NULL, 0,  NULL, NULL);
     checkErr(err, "Enqueueing kernel clarith5");
@@ -442,7 +442,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
     
     if (ipr)
     {
-        cl_mem bufinproduct = clCreateBuffer( context, CL_MEM_READ_WRITE, sizeof(double), NULL, &err);
+        cl_mem bufinproduct = clCreateBuffer( context, CL_MEM_READ_WRITE, sizeof(double)*local_nvoid_Ndip, NULL, &err);
         checkErr(err, "error creating bufinproduct");
         err = clSetKernelArg( clinprod, 0, sizeof(cl_mem), &bufinproduct);
         checkErr(err, "set kernelargs at 0 of clinprod");
@@ -450,6 +450,13 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
         checkErr(err, "set kernelargs at 1 of clinprod");
         err = clEnqueueNDRangeKernel( command_queue, clinprod, 1, NULL, &local_nvoid_Ndip, NULL, 0,  NULL, NULL);
         checkErr(err, "Enqueueing kernel clinprod");
+        double *inprodhlp = malloc(local_nvoid_Ndip*sizeof(double));
+        err = clEnqueueReadBuffer( command_queue, bufinproduct, CL_TRUE, 0, sizeof(double)*local_nvoid_Ndip, inprodhlp, 0, NULL, NULL);
+        checkErr(err, "reading inprodhlp from device memory");
+        //sum up on the CPU after calculating the norm on GPU
+        for (int j=0;j<local_nvoid_Ndip;j++)
+            *inprod+=inprodhlp[j];
+        free(inprodhlp);
     }
     if (her)
     {

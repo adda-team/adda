@@ -1,4 +1,4 @@
-/* File: oclgetdev.c
+/* File: oclkernels.cl
  * $Author: yurkin $
  * $Date:: 2010-09-30 19:52:58 +0200 #$
  * Descr: Kernel File for OpenCL kernels.
@@ -295,7 +295,7 @@ __kernel void arith5(
 __kernel void inpr(__global double *inprod, __global double2 *resultvec)
 {
     __private size_t id = get_global_id(0);
-    *inprod+=cvNorm2(resultvec+(id*3));
+    inprod[id]=cvNorm2(resultvec+(id*3));
 }
 
 
