@@ -10,11 +10,14 @@ The simplest way to compile *ADDA* is using the provided `Makefile`. This can be
 || `all` || The default target (if none is specified). Invokes both `seq` and `mpi`. ||
 || `seq` || Compiles sequential executable of *ADDA*. ||
 || `mpi` || Compiles parallel ([http://www.mpi-forum.org/ MPI]) executable of *ADDA*. ||
+|| `ocl` || Compiles OpenCL (GPU accelerated) executeable of *ADDA* ||
 || `clean` || Removes all files produced during compilation. Invokes both `cleanseq` and `cleanmpi`. ||
 || `cleanseq` || Removes files produced during compilation of sequential version (located in `src/seq/`). ||
-|| `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/mpi/`). ||
+|| `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/ocl/`). ||
+|| `cleanocl` || Removes files produced during compilation of OpenCL version (located in `src/ocl/`). ||
 
-The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover MPI version of *ADDA* requires [InstallingMPI installed MPI implementation]. Using the latter, *ADDA* can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. 
+
+The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover MPI version of *ADDA* requires [InstallingMPI installed MPI implementation]. Using the latter, *ADDA* can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. The OpenCL version of *ADDA* is for calculating on graphic cards (GPUs). It requires OpenCL to be installed properly and a C++ Compiler. 
 
 *ADDA* is fully ready for 64-bit mode, which allows it to use practically unlimited memory per single process. Moreover, it will automatically compile as such in a 64-bit operating system.
 
