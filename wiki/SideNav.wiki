@@ -15,6 +15,7 @@
    * [CompilingADDA Compiling ADDA]
    * [InstallingFFTW3 Installing FFTW 3]
    * [InstallingMPI Installing MPI]
+   * [OpenCL Use of OpenCL in ADDA]
  * Adding new code
    * [AddingShape Adding a predefined shape]
    * [AddingBeam Adding a predefined beam type]

@@ -13,7 +13,7 @@ The simplest way to compile *ADDA* is using the provided `Makefile`. This can be
 || `ocl` || Compiles OpenCL (GPU accelerated) executeable of *ADDA* ||
 || `clean` || Removes all files produced during compilation. Invokes both `cleanseq` and `cleanmpi`. ||
 || `cleanseq` || Removes files produced during compilation of sequential version (located in `src/seq/`). ||
-|| `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/ocl/`). ||
+|| `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/mpi/`). ||
 || `cleanocl` || Removes files produced during compilation of OpenCL version (located in `src/ocl/`). ||
 
 
