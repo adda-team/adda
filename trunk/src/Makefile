@@ -261,7 +261,7 @@ ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    := gcc
   CCPP  := g++
-  CF    := gfortran
+  CF    := g77
   CSTD  := -std=c99
   CDBG  := -g
   COPT1 := -O2
@@ -269,7 +269,7 @@ ifeq ($(COMPILER),gnu)
   CWARN := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
            -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
   FOPT  := -O
-  FLIBS += -lgfortran
+  FLIBS += -lg2c
 
 else ifeq ($(COMPILER),intel)
   CC    := icc
