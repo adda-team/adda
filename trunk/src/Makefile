@@ -165,7 +165,7 @@ CDEPEND  := $(CSOURCE:.c=.d)
 # Those are used for vpath directives in child Makefiles
 PARENT   := ..
 FFOLDER  := fort
-CPPFOLDER:= 
+CPPFOLDER:= cpp
 CPATH    := $(PARENT)
 HPATH    := $(PARENT)
 FPATH    := $(PARENT)/$(FFOLDER)
@@ -261,7 +261,7 @@ ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC    := gcc
   CCPP  := g++
-  CF    := g77
+  CF    := gfortran
   CSTD  := -std=c99
   CDBG  := -g
   COPT1 := -O2
@@ -269,7 +269,7 @@ ifeq ($(COMPILER),gnu)
   CWARN := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
            -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
   FOPT  := -O
-  FLIBS += -lg2c
+  FLIBS += -lgfortran
 
 else ifeq ($(COMPILER),intel)
   CC    := icc

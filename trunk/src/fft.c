@@ -38,7 +38,7 @@
 
 #ifdef OPENCL
 #include <CL/cl.h>
-#include "clFFT.h" //nearly unmodified APPLE FFT header file
+#include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #include "oclvars.h"
 clFFT_Plan clplanX, clplanY, clplanZ;     
 extern cl_mem bufXmatrix, bufmaterial, bufposition, bufcc_sqrt, bufargvec, bufresultvec, bufslices, bufslices_tr, bufDmatrix;

@@ -21,7 +21,7 @@
 
 #include<stdio.h>
 #include<CL/cl.h>
-#include "clFFT.h"
+#include "cpp/clFFT.h"
 
 cl_int err; //initialize error code variable for OpenCL
 cl_device_id device_id; //create device and platform variables 
