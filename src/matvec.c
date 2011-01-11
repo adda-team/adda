@@ -34,7 +34,7 @@
 #include "io.h"
 #ifdef OPENCL
 #include <CL/cl.h>
-#include "clFFT.h"
+#include "cpp/clFFT.h"
 #include "oclvars.h"
 #endif
 

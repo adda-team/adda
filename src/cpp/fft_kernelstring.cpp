@@ -1,25 +1,3 @@
-/* File: fft_kernelstring.cpp
- * $Author: yurkin $
- * $Date:: 2010-09-30 19:52:58 +0200 #$
- * Descr: concatenation of strings to get the final FFT Kernel
- *        modified for use under Linux in double precision by Marcus Huntemann
- *        Original is licensed by Apple Inc. (See Disclaimer below)
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
- * This file is part of ADDA.
- *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with ADDA. If not, see
- * <http://www.gnu.org/licenses/>.
- */
 //
 // File:       fft_kernelstring.cpp
 //
@@ -66,6 +44,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+// Note: some changes were made compared to the original Apple FFT
+// - Changed floats to doubles
+// - replaced native_* by * for double precision calculations.
+//
 
 #include <stdio.h>
 #include <stdlib.h>

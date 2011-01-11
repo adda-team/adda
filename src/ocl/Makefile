@@ -31,7 +31,7 @@ MYCF := $(CF)
 CFLAGS += -DOPENCL
 
 CPPSRCS = fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
-CPPHEADERS = procs.h fft_internal.h fft_base_kernels.h clFFT.h
+CPPHEADERS = fft_internal.h fft_base_kernels.h clFFT.h
 CPPFLAGS = -Wall -Werror -O3
 CPPOBJECTS += fft_execute.o fft_setup.o fft_kernelstring.o
 
