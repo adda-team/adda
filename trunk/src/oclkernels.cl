@@ -23,7 +23,6 @@
 
 #ifdef AMD
 #pragma OPENCL EXTENSION cl_amd_fp64 : enable
-#pragma OPENCL EXTENSION cl_amd_printf : enable
 #else
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #endif

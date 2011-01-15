@@ -23,7 +23,7 @@
 #include <string.h>
 #include <CL/cl.h>
 
-cl_int GetDevice(cl_platform_id* used_platform_id, cl_device_id* device_id, cl_int devtype)
+cl_int GetDevice(cl_platform_id* used_platform_id, cl_device_id* device_id, cl_int* platformname,cl_int devtype)
 {
     cl_int err;
     cl_uint num_of_platforms;
@@ -66,8 +66,12 @@ cl_int GetDevice(cl_platform_id* used_platform_id, cl_device_id* device_id, cl_i
                              );
         if (err==CL_SUCCESS)
         {
-               *used_platform_id = platform_id[i];
-               break; 
+			if (strcmp(pname,"ATI Stream")==0)
+				*platformname=1;
+			if (strcmp(pname,"NVIDIA CUDA")==0)
+				*platformname=0;
+			*used_platform_id = platform_id[i];
+			break; 
         }
     }
     free(platform_id);

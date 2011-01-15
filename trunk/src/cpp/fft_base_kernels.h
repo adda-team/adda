@@ -57,7 +57,12 @@
 using namespace std;
 
 static string baseKernels = string(
+							
+						"#ifdef AMD\n"
+                          "#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n"
+						"#else\n"
                           "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
+						"#endif\n"
                        //   "#ifndef M_PI\n"
 					//	  "#define M_PI 0x1.921fb54442d18p+1\n"
 					//	  "#endif\n"
