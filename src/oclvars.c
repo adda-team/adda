@@ -26,9 +26,8 @@
 cl_int err; //initialize error code variable for OpenCL
 cl_device_id device_id; //create device and platform variables 
 cl_platform_id used_platform_id;
-
+cl_int platformname;
 cl_int devtype=CL_DEVICE_TYPE_GPU; //set preffered device type
-//char * coptions="-DAMD"; //for AMD GPUs
 char * coptions="";
 
 cl_context context;
@@ -42,9 +41,13 @@ cl_mem bufXmatrix, bufmaterial, bufposition, bufcc_sqrt, bufargvec, bufresultvec
 
 void oclinit(void)
 {
+	//getting the first OpenCL device which is a GPU
+	//platformname returns 0 for NVIDIA and 1 for AMD used for compiler options
+	//and conditional kernels
     err = GetDevice(
             &used_platform_id,
             &device_id,
+			&platformname,
             devtype
             );
     checkErr(err, "No Valid prefered OpenCL device found");
@@ -88,6 +91,12 @@ void oclinit(void)
             );
 
     checkErr(err, "building program");
+
+	if (platformname==1)
+		coptions="-DAMD -cl-mad-enable"; //for AMD GPUs
+	if (platformname==0)
+		coptions="-cl-mad-enable"; //for NVIDIA GPUs
+
     if (clBuildProgram(program, 0, NULL, coptions, NULL, NULL) != CL_SUCCESS)
     {
         printf("Error building program\n");
