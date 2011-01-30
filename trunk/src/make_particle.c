@@ -23,7 +23,7 @@
  *        Shape 'axisymmetric' is based on the code by Konstantin Gilev
  *
  * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2009-2011 Institute of Chemical Kinetics and Combustion & University of Amsterdam
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -1243,7 +1243,7 @@ void InitShape(void)
 	double tmp1,tmp2;
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
-	bool dpl_def_used;       // if default dpl is used for grid initialization
+	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
 	bool box_det_sh;         // if boxX is determined by shape itself
 	bool size_det_sh;        // if size is determined by shape itself
 	bool size_given_cmd;     // if size is given in the command line
@@ -1291,7 +1291,6 @@ void InitShape(void)
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
 	dpl_def=10*sqrt(tmp2);
-	dpl_def_used=false;
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -1688,12 +1687,7 @@ void InitShape(void)
 	}
 	// check if enough refractive indices or extra
 	if (Nmat<Nmat_need) {
-		if (prognosis) {
-			if (dpl_def_used) PrintError("Given number of refractive indices (%d) is less "
-				"than number of domains (%d). Since computational grid is initialized based on "
-				"the default dpl, it may change depending on the actual refractive indices.",
-				Nmat,Nmat_need);
-		}
+		if (prognosis) small_Nmat=Nmat;
 		else PrintError("Only %d refractive indices are given. %d are required",Nmat,Nmat_need);
 	}
 	else if (Nmat>Nmat_need) LogWarning(EC_INFO,ONE_POS,
@@ -1740,7 +1734,10 @@ void InitShape(void)
 				 */
 				temp=(int)ceil(sizeX*dpl_def/lambda);
 				boxX=FitBox(MAX(temp,MIN_AUTO_GRID));
-				dpl_def_used=true;
+				if (small_Nmat!=UNDEF) PrintError("Given number of refractive indices (%d) is less "
+					"than number of domains (%d). Since computational grid is initialized based on "
+					"the default dpl, it may change depending on the actual refractive indices.",
+					small_Nmat,Nmat_need);
 			}
 			else { // if dpl is given in the command line; then believe it
 				boxX=FitBox((int)ceil(sizeX*dpl/lambda));
