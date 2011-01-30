@@ -1232,6 +1232,21 @@ static int FitBox(const int box)
 
 //==========================================================
 
+static int FitBox_yz(const double size)
+/* given the size of the particle in y or z direction (in units of dipoles), finds the grid size,
+ * which would satisfy the FitBox function and so that all dipole centers would fall into the
+ * particle (and increasing the number further will produce only the void dipoles).
+ */
+{
+	int res;
+
+	if (IS_EVEN(jagged)) res=jagged*(int)floor((size+jagged)/jagged);
+	else res=2*jagged*(int)floor((size+jagged)/(2*jagged));
+	return res;
+}
+
+//==========================================================
+
 void InitShape(void)
 /* perform of initialization of symmetries and boxY, boxZ. Estimate the volume of the particle, when
  * not discretized. Check whether enough refractive indices are specified.
@@ -1763,8 +1778,8 @@ void InitShape(void)
 			PrintError("Particle (boxX=%d) does not fit into specified boxX=%d",n_boxX,boxX);
 	}
 	// if shape is determined by ratios, calculate proposed grid sizes along y and z axes
-	if (yx_ratio!=UNDEF) n_boxY=(int)ceil(yx_ratio*boxX);
-	if (zx_ratio!=UNDEF) n_boxZ=(int)ceil(zx_ratio*boxX);
+	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX);
+	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX);
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
 		boxY=FitBox(n_boxY);
