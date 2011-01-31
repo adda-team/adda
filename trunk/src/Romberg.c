@@ -1,5 +1,4 @@
 /* FILE : Romberg.c
- * $Author$
  * $Date::                            $
  * Descr: routines for 1D and 2D Romberg integration
  *
@@ -21,10 +20,7 @@
  *        They must be set outside of the Romberg routine. All the routines normalize the result on
  *        the interval width, i.e. actually averaging takes place.
  *
- *        Different implementation of Romberg integration was first coded by Martin Frijlink
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

@@ -1,9 +1,6 @@
 /* File: GenerateB.c
- * $Author$
  * $Date::                            $
  * Descr: generate a incident beam
- *
- *        Plane wave by Alfons Hoekstra, others were first implemented by Michel Grimminck.
  *
  *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere
  *        arbitrary located in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,
@@ -17,8 +14,7 @@
  *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

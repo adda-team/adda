@@ -1,9 +1,8 @@
 /* File: os.h
- * $Author$
  * $Date::                            $
  * Descr: determines which operation system is used
  *
- * Copyright (C) 2006-2008 University of Amsterdam
+ * Copyright (C) 2006-2008 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

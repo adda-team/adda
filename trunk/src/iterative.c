@@ -1,5 +1,4 @@
 /* File: iterative.c
- * $Author$
  * $Date::                            $
  * Descr: a few iterative techniques to solve DDA equations; currently CGNR,BiCGStab,BiCG-CS,QMR-CS
  *        are implemented
@@ -15,8 +14,6 @@
  *        Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex", IEEE
  *        Transactions on Magnetics, 26(2):706-708, 1990.
  *
- *        CGNR was first implemented by Alfons Hoekstra.
- *
  *        The linear system is composed so that diagonal terms are equal to 1, therefore use of
  *        Jacobi preconditioners does not have any effect.
  *
@@ -24,8 +21,7 @@
  *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
  *        BiCGStab.
  *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

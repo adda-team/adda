@@ -1,9 +1,8 @@
 # Common part of makefiles for different versions of ADDA package
 # All options are defined in Makefile and specific makefiles
-# $Author: yurkin $
-# $Date:: 2010-09-06 18:17:09 +0700 #$
+# $Date::                            $
 #
-# Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+# Copyright (C) 2010-2011 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

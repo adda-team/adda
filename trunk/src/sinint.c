@@ -1,13 +1,11 @@
 /* File: sinint.c
- * $Author$
  * $Date::                            $
  * Descr: function for calculating sine and cosine integrals
  *
  *        It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was
  *        slightly corrected according to the 3rd ed. of the same book.
  *
- * Copyright (C) 2007,2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2007-2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
