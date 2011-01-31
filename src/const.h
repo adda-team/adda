@@ -1,11 +1,9 @@
 /* File: const.h
- * $Author$
  * $Date::                            $
  * Descr: all the constants used by ADDA code, including enum constants, also defines some
  *        useful macros
  *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

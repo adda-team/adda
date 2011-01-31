@@ -1,13 +1,9 @@
 /* File: memory.c
- * $Author$
  * $Date::                            $
  * Descr: allocation and freeing of different vectors and matrices; checks for 'out of memory';
  *       resistant to 0 sizes in allocation and NULL in freeing
  *
- *        Previous versions by Alfons Hoekstra
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2008,2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

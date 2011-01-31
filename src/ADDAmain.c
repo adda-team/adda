@@ -1,13 +1,8 @@
 /* File: ADDAmain.c
- * $Author$
  * $Date::                            $
  * Descr: main; all the work is done in other modules.
  *
- *        Previous versions were developed by Alfons Hoekstra.
- *        Sequential version, Michel Grimminck, January 1995.
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

@@ -1,10 +1,8 @@
 /* File: timing.h
- * $Author$
  * $Date::                            $
  * Descr: definitions for usual timing; should be completely portable
  *
- * Copyright (C) 2006,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006,2008-2009 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

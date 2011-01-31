@@ -1,10 +1,8 @@
 /* File: parbas.h
- * $Author$
  * $Date::                            $
  * Descr: parallel basics; includes necessary headers and checks version of the standard.
  *
- * Copyright (C) 2007,2008 University of Amsterdam
- * Copyright (C) 2009 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2007-2009 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

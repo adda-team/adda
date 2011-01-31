@@ -1,18 +1,11 @@
  /* File: CalculateE.c
- * $Author$
  * $Date::                            $
  * Descr: the module to calculate the E field and all scattering quantities
  *
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- *        January 2004 : include module to compute full Mueller Matrix over full space angle, not
- *        very efficient, must be improved (A. Hoekstra)
- *
- *        Previous versions by Alfons Hoekstra
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

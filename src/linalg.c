@@ -1,5 +1,4 @@
 /* File: linalg.c
- * $Author$
  * $Date::                            $
  * Descr: different linear algebra operations for use with iterative solvers; highly specialized
  *
@@ -9,8 +8,7 @@
  *        Common feature of many functions is accepting timing argument. If it is not NULL, it is
  *        incremented by the time used for communication.
  *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2008,2010 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

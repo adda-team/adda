@@ -1,11 +1,9 @@
 # Makefile for ocl version of ADDA package
 # All options are defined in Makefile
-# $Author: yurkin $
-# $Date:: 2008-11-25 12:52:28 +0600 #$
+# $Date::                            $
 #
-# Copyright (C) 2006-2008 University of Amsterdam
-# This file is part of ADDA. Modified Makefile for OpenCL
-#
+# Copyright (C) 2010-2011 ADDA contributors
+# This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the 
 # terms of the GNU General Public License as published by the Free Software 

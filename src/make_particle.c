@@ -1,29 +1,9 @@
 /* File: make_particlce.c
- * $Author$
  * $Date::                            $
  * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
  *        file; includes granule generator
  *
- *        Up to 2004 it was maintained by Alfons Hoekstra.
- *        -----------------------------------------------------------
- *        rewritten,
- *        Michel Grimminck 1995
- *        -----------------------------------------------------------
- *        included ellipsoidal particle for work with Victor Babenko
- *        September 2002
- *        -----------------------------------------------------------
- *        included many more new particles:
- *        leucocyte, stick, rotatable oblate spheroid, lymphocyte,
- *        rotatable RBC, etc etc etc
- *        December 2003 - February 2004, by Konstantin Semyanov
- *          (not used now)
- *        -----------------------------------------------------------
- *        Shapes 'capsule' and 'egg' are implemented by Daniel Hahn and Richard Joseph.
- *        -----------------------------------------------------------
- *        Shape 'axisymmetric' is based on the code by Konstantin Gilev
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009-2011 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

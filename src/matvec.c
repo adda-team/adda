@@ -1,13 +1,9 @@
 /* File: matvec.c
- * $Author$
  * $Date::                            $
  * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k,
  *        using a FFT based convolution algorithm
  *
- *        Previous version by Michel Grimminck
- *
- * Copyright (C) 2006-2008 University of Amsterdam
- * Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

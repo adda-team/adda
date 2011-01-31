@@ -1,11 +1,9 @@
 # Main makefile for ADDA package
 # Requires GNU make to execute. Actual compiling goes in folders 'seq' and 'mpi' for sequential and
 # parallel (MPI) version respectively
-# $Author$
 # $Date::                            $
 #
-# Copyright (C) 2006-2008 University of Amsterdam
-# Copyright (C) 2009,2010 Institute of Chemical Kinetics and Combustion & University of Amsterdam
+# Copyright (C) 2006-2011 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -377,7 +375,7 @@ ocl:
 
 clean: cleanseq cleanmpi cleanocl
 
-# 'clean' commands are exectured here to keep them simple. Child makefiles are used only for 
+# 'clean' commands are executed here to keep them simple. Child makefiles are used only for
 # compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
