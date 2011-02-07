@@ -1,30 +1,30 @@
-#summary Overview of *ADDA* OpenCL implementation and installation notes.
+#summary Overview of ADDA OpenCL implementation and installation notes.
 
 [http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly
 parallel devices like graphic cards (GPUs) and mutlicore CPUs. The
 implementation is experimental and just works on high end Nvidia GPUs 
 (Geforce GTX 260/Tesla C1060 and newer) at the present state. AMD GPUs will be suported soon.
 
-
 = Setup of the environment =
 
-On the Ubuntu Linux operating system, there is a PPA with the recent device drivers of AMD/Nvida
+On the Ubuntu Linux operating system, there is a PPA with the recent device drivers of AMD/Nvidia
 {{{
 ppa:ubuntu-x-swat/x-updates 
 }}}
 for details about handling PPAs just read the [https://help.launchpad.net/Packaging/PPA PPA help page].
 
 == Nvida GPUs ==
-The easiest way to set up an working OpenCL environment, is to install a
-recent Nvida device driver and their GPU computing toolkit. In the Ubuntu 10.10 
-operating system, the OpenCL environment should be already set up by just installing the Nvidia device driver from the repository.
+
+The easiest way to set up a working OpenCL environment is to install a
+recent [http://www.nvidia.com/page/drivers.html Nvidia device driver] and their [http://developer.nvidia.com/object/gpucomputing.html GPU computing toolkit]. The latter is named "CUDA Toolkit" but it contains OpenCL components.
+
+In the Ubuntu 10.10 operating system, the OpenCL environment should be already set up by just installing the Nvidia device driver from the repository.
 
 == AMD GPUs ==
+
 The [http://developer.amd.com/gpu/ATIStreamSDK/Pages/default.aspx AMD Stream-SDK] need to be installed and the _fglrx_ driver (the proprietary AMD driver) There are [http://forums.amd.com/forum/messageview.cfm?catid=390&threadid=125792 Debian packages] available to reduce the installation effort of OpenCL on Debian based Linux distributions.
 
-
 = Implementation =
+
 In general the whole matrix-vector multiplication is done on the GPU. It is currently in an early state and just tested on the Linux operating system.
 For details and benchmarks see [http://www.iup.uni-bremen.de/iuppage/psa/documents/huntemann11.pdf the report of the OpenCL implementation]
-
-
