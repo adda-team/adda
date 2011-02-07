@@ -5,6 +5,7 @@ All places in the code, where something should be added, are commented. These co
  * Add information about the new iterative solver in the file [http://code.google.com/p/a-dda/source/browse/trunk/src/param.c param.c].
    * Add a short name of the iterative solver, to be used in the command line, to the list inside `{...}` on the line starting with `PAR(iter)` in the constant array `options`. 
    * Add one line to the else-if sequence in the function `PARSE_FUNC(iter)`.
+   * If the iterative solver requires computation of the norm of the matrix-vector product together with the product itself (during the call to `MatVec` function), then update the assignment of `ipr_required` in function `VariablesInterconnect` accordingly.
    * Add one line to the relevant else-if sequence in the function `PrintInfo`.
  * Main part of the code should be added to [http://code.google.com/p/a-dda/source/browse/trunk/src/iterative.c iterative.c].
    * Add a function prototype `ITER_FUNC(_name_);`  to the existing list of prototypes. `ITER_FUNC(…)` is a macro for conciseness.
