@@ -18,9 +18,9 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
-PROG := $(PROGSEQ)
-MYCC := $(CC)
-MYADDACOMP := $(CC)
-MYCF := $(CF)
+PROG   := $(PROGSEQ)
+MYCC   := $(CC)
+MYCF   := $(CF)
+MYCCPP := $(CCPP)
 
 include $(COMMONMK)

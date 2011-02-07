@@ -28,10 +28,9 @@
 #include "linalg.h"
 #include "function.h"
 #include "io.h"
+
 #ifdef OPENCL
-#include <CL/cl.h>
-#include "cpp/clFFT.h"
-#include "oclvars.h"
+#	include "oclcore.h"
 #endif
 
 // SEMI-GLOBAL VARIABLES
@@ -40,7 +39,6 @@
 extern const doublecomplex * restrict Dmatrix;
 extern doublecomplex * restrict slices,* restrict slices_tr;
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
-
 
 //============================================================
 
@@ -105,13 +103,16 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
  * it is ignored.
  */
 {
-	size_t i,j;
+	size_t j,x;
+	bool ipr,transposed;
+	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
+#ifndef OPENCL // these variables are not needed for OpenCL
+	size_t i;
 	doublecomplex fmat[6],xv[3],yv[3];
 	doublecomplex temp;
-	size_t index,x,y,z,Xcomp;
-	bool ipr,transposed;
+	size_t index,y,z,Xcomp;
 	unsigned char mat;
-	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
+#endif
 #ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[18];
 	SYSTEM_TIME Timing_FFTXf,Timing_FFTYf,Timing_FFTZf,Timing_FFTXb,Timing_FFTYb,Timing_FFTZb,
@@ -143,7 +144,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
-
+	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
 #ifdef PRECISE_TIMING
 	InitTime(&Timing_FFTYf);
 	InitTime(&Timing_FFTZf);
@@ -158,54 +159,47 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	// FFT_matvec code
 	if (ipr) *inprod = 0.0;
-
 #ifdef OPENCL
-    //needed for Arith3 but declared here since Arith3 is called inside a loop
-    const size_t gwsclarith3[2]={gridZ,gridY}; 
-    const long ndcomp=NDCOMP;
-    const char transp=(char)transposed;
-    const char redfft=(char)reduced_FFT; //littel workaround for kernel cannot take bool arguments
-    err = clSetKernelArg( clarith3, 10, sizeof(char), &transp);
-    checkErr(err,"set kernelargs at 10 of arith3");
-    err = clSetKernelArg( clarith3, 8, sizeof(cl_long), &ndcomp);
-    checkErr(err,"set kernelargs at 8 of arith3");
-    err = clSetKernelArg( clarith3, 9, sizeof(char), &redfft);
-    checkErr(err,"set kernelargs at 9 of arith3");
-    //for arith2 and arith4
-    const size_t gwsarith24[2]={boxY_st,boxZ_st};
+	// needed for Arith3 but declared here since Arith3 is called inside a loop
+	const size_t gwsclarith3[2]={gridZ,gridY};
+	const long ndcomp=NDCOMP;
+	const char transp=(char)transposed;
+	const char redfft=(char)reduced_FFT; //little workaround for kernel cannot take bool arguments
+	cl_int err; // error code
 
-    //for Transpose
-    const size_t enqtglobalzy[2]={gridZ, gridY};
-    const size_t enqtglobalyz[2]={gridY, gridZ};
-    
-    
-    //write into buffers eg upload to device
-    err = clEnqueueWriteBuffer( command_queue, bufcc_sqrt, CL_TRUE, 0, MAX_NMAT*3*2*sizeof(double), cc_sqrt, 0, NULL, NULL);
-    checkErr(err, "writing cc_sqrt to device memory");
-    err = clEnqueueWriteBuffer( command_queue, bufargvec, CL_TRUE, 0, local_nvoid_Ndip*3*2*sizeof(double), argvec, 0, NULL, NULL);
-    checkErr(err, "writing argvec to device memory");
+	err=clSetKernelArg(clarith3,10,sizeof(char),&transp);
+	checkErr(err,"set kernelargs at 10 of arith3");
+	err=clSetKernelArg(clarith3,8,sizeof(cl_long),&ndcomp);
+	checkErr(err,"set kernelargs at 8 of arith3");
+	err=clSetKernelArg(clarith3,9,sizeof(char),&redfft);
+	checkErr(err,"set kernelargs at 9 of arith3");
+	// for arith2 and arith4
+	const size_t gwsarith24[2]={boxY_st,boxZ_st};
+	const size_t slicesize=gridYZ*3;
+	// write into buffers eg upload to device
+	err=clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,MAX_NMAT*3*2*sizeof(double),cc_sqrt,
+		0,NULL,NULL);
+	checkErr(err,"writing cc_sqrt to device memory");
+	err=clEnqueueWriteBuffer(command_queue,bufargvec,CL_TRUE,0,
+		local_nvoid_Ndip*3*2*sizeof(double),argvec,0,NULL,NULL);
+	checkErr(err,"writing argvec to device memory");
 
-    size_t xmsize=local_Nsmall*3;
-    //printf("Dmatrix: %li\n",NDCOMP*local_Nx*DsizeYZ);
-    if (her)
-    {
-        err = clSetKernelArg( clnConj, 0, sizeof(cl_mem), &bufargvec);
-        checkErr(err, "set kernelargs at 0 of clnConj");
-        err = clEnqueueNDRangeKernel( command_queue, clnConj, 1, NULL, &local_Nsmall, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clnConj");
-    }
-    //setting (buf)Xmatrix with zeros (on device)
-    err = clSetKernelArg( clzero, 0, sizeof(cl_mem), &bufXmatrix);
-    checkErr(err, "set kenelargs at 0 of clzero");
-    err = clEnqueueNDRangeKernel( command_queue, clzero, 1, NULL, &xmsize, NULL, 0,  NULL, NULL);
-    checkErr(err, "Enqueueing kernel clzero");
-    
-    err = clEnqueueNDRangeKernel( command_queue, clarith1, 1, NULL, &local_nvoid_Ndip, NULL, 0,  NULL, NULL);
-    checkErr(err, "Enqueueing kernel clarith1");
-    clFinish(command_queue); //wait till kernel executions are finished
-
-   
-    
+	size_t xmsize=local_Nsmall*3;
+	// printf("Dmatrix: %li\n",NDCOMP*local_Nx*DsizeYZ);
+	if (her) {
+		err=clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec);
+		checkErr(err,"set kernelargs at 0 of clnConj");
+		err=clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clnConj");
+	}
+	// setting (buf)Xmatrix with zeros (on device)
+	err=clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix);
+	checkErr(err,"set kernelargs at 0 of clzero");
+	err=clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL);
+	checkErr(err,"Enqueueing kernel clzero");
+	err=clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL);
+	checkErr(err,"Enqueueing kernel clarith1");
+	clFinish(command_queue); //wait till kernel executions are finished
 #else
 	// fill Xmatrix with 0.0
 	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i][RE]=Xmatrix[i][IM]=0.0;
@@ -226,13 +220,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+1);
 	Elapsed(tvp,tvp+1,&Timing_Mult1);
 #endif
-
-#ifdef OPENCL
-    clfftX(FFT_FORWARD);
-#else
-	// FFT X on host
+	// FFT X
 	fftX(FFT_FORWARD); // fftX Xmatrix
-#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 	Elapsed(tvp+1,tvp+2,&Timing_FFTXf);
@@ -243,29 +232,20 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
 #endif
 	// following is done by slices
-#ifdef OPENCL
-
-    size_t slicesize=gridYZ*3;
-#endif
 	for(x=local_x0;x<local_x1;x++) {
 #ifdef PRECISE_TIMING
 		GetTime(tvp+4);
 #endif
-
 #ifdef OPENCL
-        err = clSetKernelArg( clarith2, 7, sizeof(cl_long), &x);
-        checkErr(err,"set kernelargs at 7 of clarith2");
-		
-        err = clSetKernelArg( clzero, 0, sizeof(cl_mem), &bufslices);
-        checkErr(err, "set kenelargs at 0 of clzero");
-        err = clEnqueueNDRangeKernel( command_queue, clzero, 1, NULL, &slicesize, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clzero");
-        
-        err = clEnqueueNDRangeKernel( command_queue, clarith2, 2, NULL, gwsarith24, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clarith2");
-        clFinish(command_queue);
-        
-//
+		err=clSetKernelArg(clarith2,7,sizeof(cl_long),&x);
+		checkErr(err,"set kernelargs at 7 of clarith2");
+		err=clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices);
+		checkErr(err,"set kernelargs at 0 of clzero");
+		err=clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clzero");
+		err=clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clarith2");
+		clFinish(command_queue);
 #else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i][RE]=slices[i][IM]=0.0;
@@ -278,58 +258,36 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 				cEqual(Xmatrix[j+Xcomp*local_Nsmall],slices[i+Xcomp*gridYZ]);
 		}
 #endif
-
 #ifdef PRECISE_TIMING
 		GetTime(tvp+5);
 		ElapsedInc(tvp+4,tvp+5,&Timing_Mult2);
 #endif
-#ifdef OPENCL
-        clfftZ(FFT_FORWARD);
-#else
-		// fftZ&Y
+		// FFT z&y
 		fftZ(FFT_FORWARD); // fftZ slices
-#endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+6);
 		ElapsedInc(tvp+5,tvp+6,&Timing_FFTZf);
 #endif
-#ifdef OPENCL    
-
-
-        err = clEnqueueNDRangeKernel( command_queue, cltransposef, 2, NULL, enqtglobalzy, NULL , 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel cltranspose");
-        clFinish(command_queue);
-
-
-#else//
-        TransposeYZ(FFT_FORWARD);
-#endif
-#ifdef PRECISE_TIMING//
+		TransposeYZ(FFT_FORWARD);
+#ifdef PRECISE_TIMING
 		GetTime(tvp+7);
 		ElapsedInc(tvp+6,tvp+7,&Timing_TYZf);
-#endif//
-
-#ifdef OPENCL
-        clfftY(FFT_FORWARD);
-#else
-		fftY(FFT_FORWARD); // fftY slices_tr
 #endif
+		fftY(FFT_FORWARD); // fftY slices_tr
 #ifdef PRECISE_TIMING//
 		GetTime(tvp+8);
 		ElapsedInc(tvp+7,tvp+8,&Timing_FFTYf);
 #endif//
-//arith3+timing on Device
 #ifdef OPENCL
-        err = clSetKernelArg( clarith3, 11, sizeof(cl_long), &x);
-        checkErr(err,"set kernelargs at 11 of arith3");
-        
-        //enqueing kernel for arith3
-        err = clEnqueueNDRangeKernel( command_queue, clarith3, 2, NULL, &gwsclarith3, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clarith3");
-        clFinish(command_queue); //wait till kernel executions are finished
-
-#else //
-        // arith3+timing on host
+		// arith3 on Device
+		err=clSetKernelArg(clarith3,11,sizeof(cl_long),&x);
+		checkErr(err,"set kernelargs at 11 of arith3");
+		// enqueueing kernel for arith3
+		err=clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clarith3");
+		clFinish(command_queue); //wait till kernel executions are finished
+#else
+		// arith3 on host
 		// do the product D~*X~ 
 		for(z=0;z<gridZ;z++) for(y=0;y<gridY;y++) {
 			i=IndexSliceZY(y,z);
@@ -357,47 +315,33 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef PRECISE_TIMING
 		GetTime(tvp+9);
 		ElapsedInc(tvp+8,tvp+9,&Timing_Mult3);
-#endif//
-		// fft_invY&Z
-#ifdef OPENCL
-        clfftY(FFT_BACKWARD);
-#else
-		fftY(FFT_BACKWARD); // fftY slices_tr
 #endif
+		// inverse FFT y&z
+		fftY(FFT_BACKWARD); // fftY slices_tr
 #ifdef PRECISE_TIMING //       
 		GetTime(tvp+10);
 		ElapsedInc(tvp+9,tvp+10,&Timing_FFTYb);
-#endif //
-#ifdef OPENCL
-        err = clEnqueueNDRangeKernel( command_queue, cltransposeb, 2, NULL, enqtglobalyz, 0, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel cltranspose");
-        clFinish(command_queue);
-#else
-		TransposeYZ(FFT_BACKWARD);
 #endif
+		TransposeYZ(FFT_BACKWARD);
 #ifdef PRECISE_TIMING//
 		GetTime(tvp+11);
 		ElapsedInc(tvp+10,tvp+11,&Timing_TYZb);
-#endif//
-#ifdef OPENCL
-        clfftZ(FFT_BACKWARD);
-#else
-		fftZ(FFT_BACKWARD); // fftZ slices
 #endif
+		fftZ(FFT_BACKWARD); // fftZ slices
 #ifdef PRECISE_TIMING
 		GetTime(tvp+12);
 		ElapsedInc(tvp+11,tvp+12,&Timing_FFTZb);
-#endif//
+#endif
 #ifdef OPENCL
-        err = clSetKernelArg( clarith4, 7, sizeof(cl_long), &x);
-        checkErr(err,"set kernelargs at 7 of arith4");
- //       err = clEnqueueWriteBuffer( command_queue, bufslices, CL_TRUE, 0, gridYZ*3*8*2, slices, 0, NULL, NULL);
-        checkErr(err, "Writing bufslices to device memory");
-        err = clEnqueueNDRangeKernel( command_queue, clarith4, 2, NULL, gwsarith24, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clarith4");
-        clFinish(command_queue);
+		err=clSetKernelArg(clarith4,7,sizeof(cl_long),&x);
+		checkErr(err,"set kernelargs at 7 of arith4");
+		// err = clEnqueueWriteBuffer( command_queue, bufslices, CL_TRUE, 0, gridYZ*3*8*2, slices, 0, NULL, NULL);
+		// checkErr(err, "Writing bufslices to device memory");
+		err=clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clarith4");
+		clFinish(command_queue);
 #else
-        //arith4 on host
+		//arith4 on host
 		// copy slice back to Xmatrix
 		for(y=0;y<boxY_st;y++) for(z=0;z<boxZ_st;z++) {
 			i=IndexSliceYZ(y,z);
@@ -405,7 +349,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			for (Xcomp=0;Xcomp<3;Xcomp++)
 				cEqual(slices[i+Xcomp*gridYZ],Xmatrix[j+Xcomp*local_Nsmall]);
 		}
-#endif//
+#endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+13);
 		ElapsedInc(tvp+12,tvp+13,&Timing_Mult4);
@@ -417,58 +361,42 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+14);
 	Elapsed(tvp+13,tvp+14,&Timing_BTb);
 #endif
-#ifdef OPENCL
-    clfftX(FFT_BACKWARD);
-#else
 	fftX(FFT_BACKWARD); // fftX Xmatrix
-#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+15);
 	Elapsed(tvp+14,tvp+15,&Timing_FFTXb);
 #endif
-
 #ifdef OPENCL
-    
-    err = clEnqueueWriteBuffer( command_queue, bufresultvec, CL_TRUE, 0, local_nvoid_Ndip*3*2*sizeof(double), resultvec, 0, NULL, NULL);
-    checkErr(err, "writing resultvec to device memory");
-
-    err = clEnqueueNDRangeKernel( command_queue, clarith5, 1, NULL, &local_nvoid_Ndip, NULL, 0,  NULL, NULL);
-    checkErr(err, "Enqueueing kernel clarith5");
-    clFinish(command_queue);
-    
-    if (ipr)
-    {
-        cl_mem bufinproduct = clCreateBuffer( context, CL_MEM_READ_WRITE, sizeof(double)*local_nvoid_Ndip, NULL, &err);
-        checkErr(err, "error creating bufinproduct");
-        err = clSetKernelArg( clinprod, 0, sizeof(cl_mem), &bufinproduct);
-        checkErr(err, "set kernelargs at 0 of clinprod");
-        err = clSetKernelArg( clinprod, 1, sizeof(cl_mem), &bufresultvec);
-        checkErr(err, "set kernelargs at 1 of clinprod");
-        err = clEnqueueNDRangeKernel( command_queue, clinprod, 1, NULL, &local_nvoid_Ndip, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clinprod");
-        double *inprodhlp = malloc(local_nvoid_Ndip*sizeof(double));
-        err = clEnqueueReadBuffer( command_queue, bufinproduct, CL_TRUE, 0, sizeof(double)*local_nvoid_Ndip, inprodhlp, 0, NULL, NULL);
-        checkErr(err, "reading inprodhlp from device memory");
-        //sum up on the CPU after calculating the norm on GPU
-        for (int j=0;j<local_nvoid_Ndip;j++)
-            *inprod+=inprodhlp[j];
-        free(inprodhlp);
-    }
-    if (her)
-    {
-        err = clSetKernelArg( clnConj, 0, sizeof(cl_mem), &bufresultvec);
-        checkErr(err, "set kernelargs at 0 of clnConj");
-        err = clEnqueueNDRangeKernel( command_queue, clnConj, 1, NULL, &local_Nsmall, NULL, 0,  NULL, NULL);
-        checkErr(err, "Enqueueing kernel clnConj");
-    }
-
-    clFinish(command_queue);
-    
-    err = clEnqueueReadBuffer( command_queue, bufresultvec, CL_TRUE, 0, local_nvoid_Ndip*3*2*sizeof(double), resultvec, 0, NULL, NULL);
-    checkErr(err, "reading resultvec from device memory");
-
-
-
+	err=clEnqueueWriteBuffer(command_queue,bufresultvec,CL_TRUE,0,
+		local_nvoid_Ndip*3*2*sizeof(double),resultvec,0,NULL,NULL);
+	checkErr(err,"writing resultvec to device memory");
+	err=clEnqueueNDRangeKernel(command_queue,clarith5,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL);
+	checkErr(err,"Enqueueing kernel clarith5");
+	clFinish(command_queue);
+	if (ipr) {
+		/* calculating inner product in OpenCL is more complicated than usually. The norm for each
+		 * element is calculated inside GPU, but the sum is taken by CPU afterwards. Hence,
+		 * additional large buffers are required. Potentially, this can be optimized.
+		 */
+		err=clEnqueueNDRangeKernel(command_queue,clinprod,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,
+			NULL);
+		checkErr(err,"Enqueueing kernel clinprod");
+		err=clEnqueueReadBuffer(command_queue,bufinproduct,CL_TRUE,0,
+			sizeof(double)*local_nvoid_Ndip,inprodhlp,0,NULL,NULL);
+		checkErr(err,"reading inprodhlp from device memory");
+		// sum up on the CPU after calculating the norm on GPU
+		for (j=0;j<local_nvoid_Ndip;j++) *inprod+=inprodhlp[j];
+	}
+	if (her) {
+		err=clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec);
+		checkErr(err,"set kernelargs at 0 of clnConj");
+		err=clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL);
+		checkErr(err,"Enqueueing kernel clnConj");
+	}
+	clFinish(command_queue);
+	err=clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,
+		local_nvoid_Ndip*3*2*sizeof(double),resultvec,0,NULL,NULL);
+	checkErr(err,"reading resultvec from device memory");
 #else
 	// fill resultvec
 	for (i=0;i<local_nvoid_Ndip;i++) {
@@ -487,7 +415,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		nConj(argvec); // conjugate back argvec, so it remains unchanged after MatVec
 	}
 #endif
-
 #ifdef PRECISE_TIMING
 	GetTime(tvp+16);
 	Elapsed(tvp+15,tvp+16,&Timing_Mult5);
@@ -497,7 +424,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+17);
 	Elapsed(tvp+16,tvp+17,&Timing_ipr);
 
-	SetTimerFreq();
 	t_Mult1=TimerToSec(&Timing_Mult1);
 	t_Mult2=TimerToSec(&Timing_Mult2);
 	t_Mult3=TimerToSec(&Timing_Mult3);

@@ -36,7 +36,9 @@
 #	error Tempertron FFT is implemented in Fortran, hence is incompatible with NO_FORTRAN option
 #endif
 
-// direction of FFT and transpose; complies with FFTW3 definition
+/* direction of FFT and transpose;
+ * complies with definitions of FFTW3, TempertonFFT, and Apple OpenCL FFT
+ */
 #define FFT_FORWARD -1
 #define FFT_BACKWARD 1
 
@@ -48,11 +50,5 @@ void InitDmatrix(void);
 void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
-
-#ifdef OPENCL
-void clfftX(const clFFT_Direction);
-void clfftY(const clFFT_Direction);
-void clfftZ(const clFFT_Direction);
-#endif
 
 #endif // __fft_h

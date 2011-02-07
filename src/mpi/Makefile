@@ -61,9 +61,9 @@ endif
 
 # Finalize flags
 CFLAGS += -DADDA_MPI
-PROG := $(PROGMPI)
-MYCC := $(MPICC)
-MYADDACOMP := $(MPICC)
-MYCF := $(CF)
+PROG   := $(PROGMPI)
+MYCC   := $(MPICC)
+MYCF   := $(CF)
+MYCCPP := $(CCPP)
 
 include $(COMMONMK)

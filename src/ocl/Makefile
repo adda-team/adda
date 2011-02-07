@@ -19,29 +19,15 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
+CFLAGS    += -DOPENCL
+LDFLAGS   += -lOpenCL
+CSOURCE   += oclcore.c
+CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
 
-
-PROG := $(PROGOCL)
-MYADDACOMP := $(CCPP)
-MYCC := $(CC)
-MYCF := $(CF)
-
-CFLAGS += -DOPENCL
-
-CPPSRCS = fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
-CPPHEADERS = fft_internal.h fft_base_kernels.h clFFT.h
-CPPFLAGS = -Wall -Werror -O3
-CPPOBJECTS += fft_execute.o fft_setup.o fft_kernelstring.o
-
-COBJECTS+= oclerrfunc.o oclgetdev.o oclvars.o
-CDEPEND+= oclerrfunc.d oclgetdev.d oclvars.d
-
-LDFLAGS += -lOpenCL
+PROG   := $(PROGOCL)
+MYCC   := $(CC)
+MYCF   := $(CF)
+MYCCPP := $(CCPP)
 
 
 include $(COMMONMK)
-
-#CPP source files of APPLE FFT
-$(CPPOBJECTS): %.o: %.cpp
-	$(CCPP) -c $(CPPFLAGS) $<
-

@@ -24,11 +24,6 @@
 #include "debug.h"
 #include "io.h"
 
-#ifdef OPENCL
-#include <CL/cl.h>
-#include "oclvars.h"
-#endif
-
 // EXTERNAL FUNCTIONS
 
 // calculator.c
@@ -42,6 +37,12 @@ void ParseParameters(int argc,char **argv);
 void VariablesInterconnect(void);
 void DirectoryLog(int argc,char **argv);
 void PrintInfo(void);
+
+#ifdef OPENCL // this should probably be moved to calculator
+// oclcore.c
+void oclinit(void);
+void oclunload(void);
+#endif
 
 //============================================================
 
@@ -78,7 +79,7 @@ int main(int argc,char **argv)
 	PrintInfo();
 	// Main calculation part
 #ifdef OPENCL
-    oclinit();
+	oclinit();
 #endif
 	D("Calculator started");
 	Calculator();
@@ -90,7 +91,7 @@ int main(int argc,char **argv)
 		"Some errors occurred while writing to stdout during the execution of ADDA");
 	// finish execution normally
 #ifdef OPENCL
-    oclunload();
+	oclunload();
 #endif
 	Stop(EXIT_SUCCESS);
 	// never actually reached; just to make the compiler happy

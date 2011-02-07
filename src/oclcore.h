@@ -1,6 +1,6 @@
-/* File: oclgetdev.h
+/* File: oclcore.h
  * $Date::                            $
- * Descr: function to get an OpenCL device
+ * Descr: all common OpenCL variables and functions
  *
  * Copyright (C) 2010-2011 ADDA contributors
  * This file is part of ADDA.
@@ -17,7 +17,20 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __oclgetdev_h
-#define __oclgetdev_h
-cl_int GetDevice(cl_platform_id *used_platform_id ,cl_device_id *device_id ,cl_int devtype);
-#endif
+#ifndef __oclvars_h
+#define __oclvars_h
+
+#include <CL/cl.h>
+
+// global OCL variables; names should not interfere with other parts of the code
+extern cl_context context;
+extern cl_command_queue command_queue;
+extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith4,clarith5,clnConj,clinprod,cltransposef,
+	cltransposeb;
+extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,
+	bufslices_tr,bufDmatrix,bufinproduct;
+extern double *inprodhlp;
+
+void checkErr(cl_int err,const char * name);
+
+#endif // __oclvars_h

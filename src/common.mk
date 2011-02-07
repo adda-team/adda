@@ -18,10 +18,28 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
+# define objects and dependencies
+COBJECTS   := $(CSOURCE:.c=.o)
+CDEPEND    := $(CSOURCE:.c=.d)
+FOBJECTS   := $(FSOURCE:.f=.o)
+CPPOBJECTS := $(CPPSOURCE:.cpp=.o)
+
+# if Fortran sources are used, Fortran libraries are added
+ifneq ($(strip $(FSOURCE)),)
+  LDLIBS += $(FLIBS)
+endif
+# if C++ sources are used, C++ libraries are added
+ifneq ($(strip $(CPPSOURCE)),)
+  LDLIBS += $(CPPLIBS)
+endif
+# finalize LDFLAGS, the rest was done in the main Makefile
+LDFLAGS  += $(LDLIBS)
+
 # The following are used to track whether recompilation of corresponding parts is required
-LDCMD := $(MYCC) $(LDFLAGS)
-CCMD  := $(MYCC) $(CFLAGS)
-FCMD  := $(MYCF) $(FFLAGS)
+LDCMD  := $(MYCC) $(LDFLAGS)
+CCMD   := $(MYCC) $(CFLAGS)
+FCMD   := $(MYCF) $(FFLAGS)
+CPPCMD := $(MYCCPP) $(CPPFLAGS)
 
 READ_FILE = $(shell if [ -f $(1) ]; then cat $(1); fi)
 
@@ -46,9 +64,10 @@ vpath %.f $(FPATH)
 
 .DELETE_ON_ERROR:
 
-$(PROG): $(COBJECTS) $(FOBJECTS) $(LDOPTSFILE) $(CPPOBJECTS)
+# C linker is used, while Fortran and C++ is handled by addition of libraries for linking
+$(PROG): $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDOPTSFILE)
 	@echo "Building $@"
-	$(MYADDACOMP) -o $@ $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDFLAGS)
+	$(MYCC) -o $@ $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDFLAGS)
 
 $(COBJECTS): %.o: %.c %.d
 	$(MYCC) -c $(CFLAGS) $<
@@ -56,8 +75,11 @@ $(COBJECTS): %.o: %.c %.d
 $(FOBJECTS): %.o: %.f $(FOPTSFILE)
 	$(MYCF) -c $(FFLAGS) $<
 
-# Dependencies are only generated for C sources; we assume that each Fortran file is completely 
-# independent or all of them are compiled at once. 
+$(CPPOBJECTS): %.o: %.cpp $(CPPOPTSFILE)
+	$(MYCCPP) -c $(CPPFLAGS) $<
+
+# Dependencies are only generated for C sources; we assume that each Fortran or C++ file is 
+# completely independent or all of the files from dependent set are compiled at once. 
 
 $(CDEPEND): %.d: %.c $(COPTSFILE)
 	$(MYCC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
@@ -76,5 +98,8 @@ $(FOPTSFILE):
 	@echo Fortran sources need to be recompiled
 	echo -n "$(FCMD)" > $@
 
+$(CPPOPTSFILE):
+	@echo C++ sources need to be recompiled
+	echo -n "$(CPPCMD)" > $@
 
 -include $(CDEPEND)

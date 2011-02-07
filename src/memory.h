@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of functions for memory allocation and freeing; also includes overflows checks
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -23,6 +23,7 @@
 #include "function.h" // for function attributes
 #include "const.h"    // for enum types
 #include "io.h"       // for ERR_LOC_DECL
+#include "types.h"    // for doublecomplex
 
 #define MBYTE 1048576.0
 #define FFORMM "%.1f" // format for memory footprint (estimates) in MB
