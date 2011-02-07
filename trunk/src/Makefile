@@ -1,6 +1,6 @@
 # Main makefile for ADDA package
-# Requires GNU make to execute. Actual compiling goes in folders 'seq' and 'mpi' for sequential and
-# parallel (MPI) version respectively
+# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl' 
+# for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
 # Copyright (C) 2006-2011 ADDA contributors
@@ -38,15 +38,18 @@ OCL        := ocl
 # Names of executables
 PROGSEQ    := adda
 PROGMPI    := adda_mpi
-PROGOCL     := adda_ocl
+PROGOCL    := adda_ocl
 # Targets implying compilation (empty one is always included)
 NONTRIVIAL := all seq mpi ocl
 # Files to store last-used command lines for linker, C and Fortran compilers
-LDOPTSFILE := .ldopts
-COPTSFILE  := .copts
-FOPTSFILE  := .fopts
+LDOPTSFILE  := .ldopts
+COPTSFILE   := .copts
+CPPOPTSFILE := .cppopts
+FOPTSFILE   := .fopts
+# this is to simplify cleaning commands
+OPTSFILES   := $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(CPPOPTSFILE)
 # Common makefile to be included from the specific makefiles for seq and mpi version
-COMMONMK   := ../common.mk
+COMMONMK    := ../common.mk
 
 #===================================================================================================
 # !!! Start of control section. Flags and options here can be modified by user. However, the default
@@ -146,34 +149,36 @@ override EXTRA_CFLAGS +=
 # Unconditional variables
 #===================================================================================================
 
-# CSOURCE contains all C files in source folder, but we specify them explicitly to avoid possible
-# problems if other files somehow appear in this folder.
+# C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
            linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
            prec_time.c vars.c mt19937ar.c sinint.c
-# Fortran files are all that are present in src/fort folder, but given explicitly
+# Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
+# C++ files are located in src/cpp folder, other files may be added below
+CPPSOURCE := 
 
-COBJECTS := $(CSOURCE:.c=.o)
-CDEPEND  := $(CSOURCE:.c=.d)
-# FOBJECTS is defined after all additions to FSOURCE
+# All object files and dependencies are defined in common.mk after the source lists are finalized
 
 # Path to search for source files from the child Makefiles (in child folders)
 # Those are used for vpath directives in child Makefiles
-PARENT   := ..
-FFOLDER  := fort
-CPPFOLDER:= cpp
-CPATH    := $(PARENT)
-HPATH    := $(PARENT)
-FPATH    := $(PARENT)/$(FFOLDER)
-CPPPATH  := $(PARENT)/$(CPPFOLDER)
+PARENT    := ..
+FFOLDER   := fort
+CPPFOLDER := cpp
+CPATH     := $(PARENT)
+HPATH     := $(PARENT)
+FPATH     := $(PARENT)/$(FFOLDER)
+CPPPATH   := $(PARENT)/$(CPPFOLDER)
 
-LDLIBS   := -lm
-DEPFLAG  := -M
-DFFLAG   := -MF # this is required
-# Fortran sources generate a lot of warnings, we do not plan to investigate them
-FWARN    := -w
+LDLIBS    := -lm
+DEPFLAG   := -M
+DFFLAG    := -MF # this is required
+# Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
+FWARN     := -w
+# for now we will look at C++ warnings
+#CPPWARN   := -w
+CPPWARN := -Wall
 
 #===================================================================================================
 # Conditional variables that depend on the values of optional flags.
@@ -248,27 +253,32 @@ ifneq ($(strip $(EXTRA_CFLAGS)),)
   CFLAGS += $(EXTRA_CFLAGS)
 endif
 
-# By default Fortran optimization options are the same as C, but specific options can be used for
-# some compilers below.
-FOPT = $(COPT)
-# This is for additional libraries that may be needed when using C linker on a Fortran sources
-# (using Fortran compiler may also cause some problems, i.e. for MPI mode). Particular values are
-# assigned for each compiler below.
-FLIBS +=
+# By default Fortran anc C++ optimization options are the same as C, but specific options can be 
+# used for some compilers below.
+FOPT   = $(COPT)
+CPPOPT = $(COPT)
+# This is for additional libraries that may be needed when using C linker on Fortran or C++ sources
+# (using Fortran or C++ linker may also cause some problems, i.e. for MPI mode). Particular values 
+# are assigned for each compiler below.
+FLIBS   +=
+CPPLIBS +=
 ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
-  CC    := gcc
-  CCPP  := g++
-  CF    := g77
-  CSTD  := -std=c99
-  CDBG  := -g
-  COPT1 := -O2
-  COPT2 := -O3 -ffast-math -funroll-loops
-  CWARN := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-           -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas
-  FOPT  := -O
-  FLIBS += -lg2c
+  CC      := gcc
+  CSTD    := -std=c99
+  CDBG    := -g
+  COPT1   := -O2
+  COPT2   := -O3 -ffast-math -funroll-loops
+  CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings \
+            -Wstrict-prototypes -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs \
+            -Wcomment -Wno-unknown-pragmas
 
+  CF      := g77
+  FOPT    := -O
+  FLIBS   += -lg2c
+
+  CCPP    := g++
+  CPPLIBS := -lstdc++
 else ifeq ($(COMPILER),intel)
   CC    := icc
   CF    := ifort
@@ -325,10 +335,6 @@ else
 endif
 $(info Compiler set '$(COMPILER)')
 
-# if Fortran sources are used, Fortran libraries are added
-ifneq ($(strip $(FSOURCE)),)
-  LDLIBS += $(FLIBS)
-endif
 # if 'release' turn off warningns
 ifeq ($(DBGLVL),0)
   CWARN   := -w
@@ -341,11 +347,10 @@ else ifeq ($(DBGLVL),2)
   COPT :=
 endif
 # Finalize option flags; these aggregates are used as a whole furher on
-LDFLAGS += $(LDLIBS)
-CFLAGS  += $(CSTD) $(CDBG) $(COPT) $(CWARN) $(CDEFS)
-FFLAGS  += $(FOPT) $(FWARN)
-
-FOBJECTS := $(FSOURCE:.f=.o)
+# LDFLAGS is finalized in common.mk
+CFLAGS   += $(CSTD) $(CDBG) $(COPT) $(CWARN) $(CDEFS)
+FFLAGS   += $(FOPT) $(FWARN)
+CPPFLAGS += $(CPPOPT) $(CPPWARN)
 
 $(info ----------------------------)
 
@@ -379,12 +384,12 @@ clean: cleanseq cleanmpi cleanocl
 # compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
 
 cleanocl:
 	@echo "Removing OpenCL compiled files"
-	cd $(OCL) && rm -f *.o *.d $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(PROGOCL) $(PROGOCL).exe
+	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe

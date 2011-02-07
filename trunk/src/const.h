@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1a5"
+#define ADDA_VERSION "1.1a6"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -102,7 +102,7 @@
 #define MAX_TMP_FNAME_SH  15 // maximum length of names of temporary files (short)
 #define MAX_SYSTEM_CALL   10 // maximum string length of system call (itself)
 #define MAX_WORD          10 // maximum length of a short word
-#define MAX_LINE          50 // maximum length of a line
+#define MAX_LINE         100 // maximum length of a line
 	// size of buffer for reading lines (longer lines are handled robustly)
 #define BUF_LINE      150
 #define MAX_PARAGRAPH 600 // maximum length of a paragraph (few lines)

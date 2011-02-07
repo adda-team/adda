@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -64,6 +64,9 @@ bool beam_asym;    // whether the beam center is shifted relative to the origin
 bool sh_granul;    // whether to fill one domain with granules
 bool anisotropy;   // whether the scattering medium is anisotropic
 bool save_memory;  // whether to sacrifice some speed for memory
+bool ipr_required; /* whether inner product in MatVec will be used by iterative solver
+                    * (causes additional initialization, e.g., for OpenCL)
+                    */
 
 // 3D vectors (in particle reference frame)
 double prop[3];               // incident direction (in particle reference frame)

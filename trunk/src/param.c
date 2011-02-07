@@ -3,7 +3,7 @@
  * Descr: initialization, parsing and handling of input parameters; also printout general
  *        information; contains file locking routines
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -1370,7 +1370,10 @@ PARSE_FUNC(V)
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
 		printf("ADDA v."ADDA_VERSION"\n");
-#ifdef ADDA_MPI
+#ifdef OPENCL
+		// TODO. Specify a version of OpenCL used, may be check for conformance somewhere
+		printf("OpenCL (GPU-accelerated) version\n");
+#elif defined(ADDA_MPI)
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
 #else
@@ -1778,6 +1781,12 @@ void VariablesInterconnect(void)
 		 */
 		if (prop[2]!=1 && sym_type==SYM_AUTO) sym_type=SYM_NO;
 	}
+	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * add the new iterative solver to the above line, if it requires inner product calculation
+	 * during matrix-vector multiplication (i.e. calls MatVec function with non-NULL third argument)
+	 */
+
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If a new command line option may potentially conflict or interact with other options, add
 	 * here code to implement corresponding tests or cross-dependence.

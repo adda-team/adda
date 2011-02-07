@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -46,7 +46,7 @@ extern bool symX,symY,symZ,symR;
 
 // flags
 extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
-            load_chpoint,beam_asym,anisotropy,save_memory;
+	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required;
 // 3D vectors
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
