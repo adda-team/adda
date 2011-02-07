@@ -167,12 +167,16 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	const char redfft=(char)reduced_FFT; //little workaround for kernel cannot take bool arguments
 	cl_int err; // error code
 
-	err=clSetKernelArg(clarith3,10,sizeof(char),&transp);
-	checkErr(err,"set kernelargs at 10 of arith3");
+	/* following two calls to clSetKernelArg can be moved to fft.c, since the arguments are
+	 * constant. However, this requires setting auxiliary variables redfft and ndcomp as globals,
+	 * since the kernel is called below.
+	 */
 	err=clSetKernelArg(clarith3,8,sizeof(cl_long),&ndcomp);
 	checkErr(err,"set kernelargs at 8 of arith3");
 	err=clSetKernelArg(clarith3,9,sizeof(char),&redfft);
 	checkErr(err,"set kernelargs at 9 of arith3");
+	err=clSetKernelArg(clarith3,10,sizeof(char),&transp);
+	checkErr(err,"set kernelargs at 10 of arith3");
 	// for arith2 and arith4
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
