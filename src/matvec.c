@@ -162,9 +162,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 	// needed for Arith3 but declared here since Arith3 is called inside a loop
 	const size_t gwsclarith3[2]={gridZ,gridY};
-	const long ndcomp=NDCOMP;
-	const char transp=(char)transposed;
-	const char redfft=(char)reduced_FFT; //little workaround for kernel cannot take bool arguments
+	const cl_long ndcomp=NDCOMP;
+	const cl_char transp=(cl_char)transposed;
+	const cl_char redfft=(cl_char)reduced_FFT; //little workaround for kernel cannot take bool arguments
 	cl_int err; // error code
 
 	/* following two calls to clSetKernelArg can be moved to fft.c, since the arguments are
@@ -173,23 +173,22 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 */
 	err=clSetKernelArg(clarith3,8,sizeof(cl_long),&ndcomp);
 	checkErr(err,"set kernelargs at 8 of arith3");
-	err=clSetKernelArg(clarith3,9,sizeof(char),&redfft);
+	err=clSetKernelArg(clarith3,9,sizeof(cl_char),&redfft);
 	checkErr(err,"set kernelargs at 9 of arith3");
-	err=clSetKernelArg(clarith3,10,sizeof(char),&transp);
+	err=clSetKernelArg(clarith3,10,sizeof(cl_char),&transp);
 	checkErr(err,"set kernelargs at 10 of arith3");
 	// for arith2 and arith4
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
 	// write into buffers eg upload to device
-	err=clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,MAX_NMAT*3*2*sizeof(double),cc_sqrt,
+	err=clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,MAX_NMAT*3*2*sizeof(cl_double),cc_sqrt,
 		0,NULL,NULL);
 	checkErr(err,"writing cc_sqrt to device memory");
 	err=clEnqueueWriteBuffer(command_queue,bufargvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(double),argvec,0,NULL,NULL);
+		local_nvoid_Ndip*3*2*sizeof(cl_double),argvec,0,NULL,NULL);
 	checkErr(err,"writing argvec to device memory");
 
 	size_t xmsize=local_Nsmall*3;
-	// printf("Dmatrix: %li\n",NDCOMP*local_Nx*DsizeYZ);
 	if (her) {
 		err=clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec);
 		checkErr(err,"set kernelargs at 0 of clnConj");
@@ -339,8 +338,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 		err=clSetKernelArg(clarith4,7,sizeof(cl_long),&x);
 		checkErr(err,"set kernelargs at 7 of arith4");
-		// err = clEnqueueWriteBuffer( command_queue, bufslices, CL_TRUE, 0, gridYZ*3*8*2, slices, 0, NULL, NULL);
-		// checkErr(err, "Writing bufslices to device memory");
 		err=clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,NULL);
 		checkErr(err,"Enqueueing kernel clarith4");
 		clFinish(command_queue);
@@ -372,7 +369,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 #ifdef OPENCL
 	err=clEnqueueWriteBuffer(command_queue,bufresultvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(double),resultvec,0,NULL,NULL);
+		local_nvoid_Ndip*3*2*sizeof(cl_double),resultvec,0,NULL,NULL);
 	checkErr(err,"writing resultvec to device memory");
 	err=clEnqueueNDRangeKernel(command_queue,clarith5,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL);
 	checkErr(err,"Enqueueing kernel clarith5");
@@ -386,7 +383,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			NULL);
 		checkErr(err,"Enqueueing kernel clinprod");
 		err=clEnqueueReadBuffer(command_queue,bufinproduct,CL_TRUE,0,
-			sizeof(double)*local_nvoid_Ndip,inprodhlp,0,NULL,NULL);
+			sizeof(cl_double)*local_nvoid_Ndip,inprodhlp,0,NULL,NULL);
 		checkErr(err,"reading inprodhlp from device memory");
 		// sum up on the CPU after calculating the norm on GPU
 		for (j=0;j<local_nvoid_Ndip;j++) *inprod+=inprodhlp[j];
@@ -399,7 +396,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	}
 	clFinish(command_queue);
 	err=clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(double),resultvec,0,NULL,NULL);
+		local_nvoid_Ndip*3*2*sizeof(cl_double),resultvec,0,NULL,NULL);
 	checkErr(err,"reading resultvec from device memory");
 #else
 	// fill resultvec

@@ -194,7 +194,7 @@ void TransposeYZ(const int direction)
 	if (direction==FFT_FORWARD)
 		err=clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL);
 	else
-		err=clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,0,0,NULL,NULL);
+		err=clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL);
 	checkErr(err,"Enqueueing kernel cltranspose");
 	clFinish(command_queue);
 #else
