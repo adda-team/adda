@@ -52,6 +52,9 @@ endif
 ifneq ($(call READ_FILE,$(FOPTSFILE)),$(FCMD))
   $(shell rm -f $(FOPTSFILE))
 endif
+ifneq ($(call READ_FILE,$(CPPOPTSFILE)),$(CPPCMD))
+  $(shell rm -f $(CPPOPTSFILE))
+endif
 
 vpath %.c $(CPATH)
 vpath %.cpp $(CPPPATH)

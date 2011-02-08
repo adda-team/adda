@@ -122,8 +122,9 @@ COMPILER := gnu
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
 # bit environment. Flags specified below are appended to the ones specified in the environment or
-# command line of make (see explanation above for OPTIONS).
-override EXTRA_CFLAGS +=
+# command line of make (see explanation above for OPTIONS). The same value is used for all 
+# programming languages to be compiled.
+override EXTRA_FLAGS +=
 
 # --FFTW3 paths--
 # Specify path to headers and libraries of FFTW3. Some systems do not need them at all, some specify
@@ -247,14 +248,17 @@ ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
 endif
-# Process EXTRA_CFLAGS
-ifneq ($(strip $(EXTRA_CFLAGS)),)
-  $(info Extra CFLAGS: '$(EXTRA_CFLAGS)')
-  CFLAGS += $(EXTRA_CFLAGS)
+# Process EXTRA_FLAGS
+ifneq ($(strip $(EXTRA_FLAGS)),)
+  $(info Extra compiler options: '$(EXTRA_FLAGS)')
+  CFLAGS   += $(EXTRA_FLAGS)
+  FFLAGS   += $(EXTRA_FLAGS)
+  CPPFLAGS += $(EXTRA_FLAGS)
 endif
 
 # By default Fortran anc C++ optimization options are the same as C, but specific options can be 
-# used for some compilers below.
+# used for some compilers below. This definition creates a permanent link, so further changes to 
+# COPT affect FOPT and CPPOPT as well.
 FOPT   = $(COPT)
 CPPOPT = $(COPT)
 # This is for additional libraries that may be needed when using C linker on Fortran or C++ sources
@@ -262,11 +266,13 @@ CPPOPT = $(COPT)
 # are assigned for each compiler below.
 FLIBS   +=
 CPPLIBS +=
+# Debugging flag is assumed the same for all compilers
+DBGFLAG := -g
+# Compiler-specific options
 ifeq ($(COMPILER),gnu)
   # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC      := gcc
   CSTD    := -std=c99
-  CDBG    := -g
   COPT1   := -O2
   COPT2   := -O3 -ffast-math -funroll-loops
   CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings \
@@ -283,7 +289,6 @@ else ifeq ($(COMPILER),intel)
   CC    := icc
   CF    := ifort
   CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
-  CDBG  := -g
   COPT1 := -O2
   COPT2 := -O3
   CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259
@@ -299,7 +304,6 @@ else ifeq ($(COMPILER),compaq)
   CC    := cc
   CF    := f77
   #CSTD  = -std=c99
-  CDBG  := -g
   COPT1 := -O2
   COPT2 := -fast
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
@@ -313,7 +317,6 @@ else ifeq ($(COMPILER),ibm)
   CC    := xlc
   CF    := xlf
   CSTD  := -qlanglvl=extc99
-  CDBG  := -g
   COPT1 := -O2
   COPT2 := -O3 -qcache=auto
   # DFREDIRECT = 2>nul -qipa=level=2 -qhot
@@ -323,7 +326,6 @@ else ifeq ($(COMPILER),hpux)
   CC    := cc
   CF    := f90
   CSTD  := -AC99
-  CDBG  := -g
   COPT1 := +O2 +DD64
   COPT2 := +O3 +DD64
   CWARN :=
@@ -337,20 +339,23 @@ $(info Compiler set '$(COMPILER)')
 
 # if 'release' turn off warningns
 ifeq ($(DBGLVL),0)
+# the following two options (-w) are assumed universal across all compilers
   CWARN   := -w
   LDFLAGS += -w
   COPT    := $(COPT2)
-  CDBG    :=
+  DBGFLAG :=
 else ifeq ($(DBGLVL),1)
   COPT := $(COPT1)
 else ifeq ($(DBGLVL),2)
-  COPT :=
+  COPT   :=
+  FOPT   :=
+  CPPOPT :=
 endif
 # Finalize option flags; these aggregates are used as a whole furher on
 # LDFLAGS is finalized in common.mk
-CFLAGS   += $(CSTD) $(CDBG) $(COPT) $(CWARN) $(CDEFS)
-FFLAGS   += $(FOPT) $(FWARN)
-CPPFLAGS += $(CPPOPT) $(CPPWARN)
+CFLAGS   += $(COPT) $(CWARN) $(DBGFLAG) $(CSTD) $(CDEFS)
+FFLAGS   += $(FOPT) $(FWARN) $(DBGFLAG)
+CPPFLAGS += $(CPPOPT) $(CPPWARN) $(DBGFLAG)
 
 $(info ----------------------------)
 
