@@ -138,14 +138,15 @@ void GetDevice(void)
 	cl_int err; // error code
 	cl_uint num_of_platforms,num_of_devices;
 	cl_platform_id *platform_id;
-	char pname[MAX_LINE];
+	char pname[MAX_LINE],devicename[MAX_LINE];
 	cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
 
 	// little trick to get just the number of the Platforms
 	err=clGetPlatformIDs(0,NULL,&num_of_platforms);
 	checkErr(err,"Get number of platforms");
 	// dynamic array of platformids creation at runtime, stored in heap
-	platform_id=(cl_platform_id *)voidVector(num_of_platforms,ALL_POS,"platform_id");
+	platform_id=(cl_platform_id *)
+		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
 	err=clGetPlatformIDs(num_of_platforms,platform_id,NULL);
 	checkErr(err,"Get platforms IDs");
 
@@ -163,7 +164,9 @@ void GetDevice(void)
 			 * to some extent, unpredictable.
 			 */
 			else platformname=PN_UNDEF;
-			printf("Found OpenCL device, based on %s.\n",pname);
+			err=clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL);
+			checkErr(err,"Get device name");
+			printf("Found OpenCL device %s, based on %s.\n",devicename,pname);
 			used_platform_id=platform_id[i];
 			break;
 		}
@@ -227,7 +230,7 @@ void oclinit(void)
 		NULL,    // length of each string
 		&err     // error code
 	);
-	checkErr(err,"building program");
+	checkErr(err,"Creating program");
 
 	if (platformname==PN_NVIDIA) strcpy(coptions,"-cl-mad-enable"); //for NVIDIA GPUs
 	else if (platformname==PN_AMD) strcpy(coptions,"-DAMD -cl-mad-enable"); //for AMD GPUs
@@ -235,16 +238,15 @@ void oclinit(void)
 
 	// special error handling to enable debugging of OpenCL kernels
 	if (clBuildProgram(program,0,NULL,coptions,NULL,NULL) != CL_SUCCESS) {
-		printf("Error building program\n");
+		printf("Error building OpenCL program\n");
 		char buffer[8192];
-		size_t length=8192;
 		clGetProgramBuildInfo(
 			program,              // valid program object
 			device_id,            // valid device_id that executable was built
 			CL_PROGRAM_BUILD_LOG, // indicate to retrieve build log
 			sizeof(buffer),       // size of the buffer to write log to
 			buffer,               // the actual buffer to write log to
-			&length);             // the actual size in bytes of data copied to buffer
+			NULL);                // the actual size in bytes of data copied to buffer
 		printf("%s\n",buffer);
 		exit(EXIT_FAILURE);
 	}
