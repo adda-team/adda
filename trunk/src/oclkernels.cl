@@ -2,7 +2,6 @@
  * $Date::                            $
  * Descr: Kernel File for OpenCL kernels.
  *        includes all subfunctions of the Matvec routine as OpenCL kernels
- *        TODO test function inpr and nConj
  *
  * Copyright (C) 2010-2011 ADDA contributors
  * This file is part of ADDA.
@@ -217,7 +216,6 @@ __kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gri
 
 	i = y*gridZ+z;
 	j = (z*smallY+y)*gridX+x;
-	//  barrier(CLK_LOCAL_MEM_FENCE);
 	for (xcomp=0;xcomp<3;xcomp++) Xmatrix[j+xcomp*local_Nsmall]=slices[i+xcomp*gridYZ];
 }
 
@@ -262,7 +260,6 @@ __kernel void transpose(__global double2 *input,__global double2 *output,long wi
 {
 	size_t idz = get_global_id(0);
 	size_t idy = get_global_id(1);
-	//    size_t k = get_global_id(2);
 	size_t wth = width*height;
 
 	for (int k=0;k<3;k++) output[idy*height+idz+k*wth]=input[idz*width+idy+k*wth];
