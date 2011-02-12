@@ -92,7 +92,7 @@
       real*8 som,field,lfie,mazdev
 
       integer iext  
-      integer imax,imay,imaz,icx,icy,icz
+      integer imax,imay,imaz,pcx,pcy,pcz
       integer imix,imiy,imiz
       real*8 rmax,rmay,rmaz,rcx,rcy,rcz
       real*8 rmix,rmiy,rmiz
@@ -182,14 +182,14 @@
        read(738)  rmiy,rmay,imiy,imay
        read(738)  rmiz,rmaz,imiz,imaz
        read(738)  rcx,rcy,rcz 
-       read(738)  icx,icy,icz
+       read(738)  pcx,pcy,pcz
        read(738)  mindist(1),mindist(2),mindist(3)
        write(*,*) 'NumDipoles=',OS
        write(*,'("X",2F12.6,2I6)')  rmix,rmax,imix,imax
        write(*,'("Y",2F12.6,2I6)')  rmiy,rmay,imiy,imay
        write(*,'("Z",2F12.6,2I6)')  rmiz,rmaz,imiz,imaz
-       write(*,*) 'center', rcx,rcy,rcz 
-       write(*,*) 'int center', icx,icy,icz
+       write(*,*) 'domain center', rcx,rcy,rcz 
+       write(*,*) 'particle center', pcx/2.d0,pcy/2.d0,pcz/2.d0
        write(*,'("MD", 3F12.6)')  mindist(1),mindist(2),mindist(3)
        DX(1)=MINDIST(1)*1000
        DX(2)=MINDIST(2)*1000
@@ -343,7 +343,7 @@
 
            if (debug.ge.1.and.iext.ge.1) then
 !               use AKD in nm because DX is in nm
-            call testbeam(1.d0*icx,1.d0*icy,1.d0*icz,debug,
+            call testbeam(rcx,rcy,rcz,debug,
      &                   POS,OS,INCBEAM,dir,pol,AKD,DX)  
            else 
             if (debug.ge.1.and.iext.eq.0) then
@@ -380,7 +380,7 @@
 
           if (debug.ge.3) 
      &  call  checksymm(imix,imax,imiy,imay,imiz,imaz,
-     &                       icx,rcx,icy,rcy,icz,rcz,OS,CXPOL,POS)   
+     &                       pcx,pcy,pcz,OS,CXPOL,POS)   
 
          endif  ! master
 
@@ -542,7 +542,7 @@
 
            if (eincflag.eq.1) then
               call calcbeam(xu,yv,zw,DX,
-     &           1.d0*icx,1.d0*icy,1.d0*icz,dir,pol,AKD,EE)
+     &           rcx,rcy,rcz,dir,pol,AKD,EE)
               FINALEM(1)=FINALEM(1)+EE(1)
               FINALEM(2)=FINALEM(2)+EE(2)
               FINALEM(3)=FINALEM(3)+EE(3)
