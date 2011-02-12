@@ -60,8 +60,8 @@
          integer MAXOS,j,i
          real*8 mindist(3),dist(3)
          integer*8 sumx,sumy,sumz
-         real*8 rcx,rcy,rcz
-         integer icx,icy,icz     
+         real*8 rcx,rcy,rcz ! center of the computational domain (in 'target' reference frame)
+         integer pcx,pcy,pcz ! 2*symmetry center of the particle (in 'target' reference frame)
          real*8 diffx,diffy,diffz,DX(3),bxx,byy,bzz,mad
          integer iosb,iosf,iext,ierr
          integer*8 mem,amem
@@ -263,22 +263,27 @@
          write(*,'(A,2F15.8,2I6)') ' Dimension Y',rmiy,rmay,imiy,imay
          write(*,'(A,2F15.8,2I6)') ' Dimension Z',rmiz,rmaz,imiz,imaz
 !          baricenter
-         rcx=1.d0*sumx/OS                                                                                  
-         rcy=1.d0*sumy/OS                                                                                                
-         rcz=1.d0*sumz/OS  
-         icx=sumx/OS 
-         icy=sumy/OS
-         icz=sumz/OS
-!        
-         rcx= ((imax-imix)*1.d0)/2.d0!-0.5d0
-         rcy= ((imay-imiy)*1.d0)/2.d0!-0.5d0
-         rcz= ((imaz-imiz)*1.d0)/2.d0!-0.5d0
-         icx=floor(rcx)
-         icy=floor(rcy)
-         icz=floor(rcz)
+!         rcx=1.d0*sumx/OS                                                                                  
+!         rcy=1.d0*sumy/OS                                                                                                
+!         rcz=1.d0*sumz/OS  
+!         icx=sumx/OS 
+!         icy=sumy/OS
+!         icz=sumz/OS
+!        These are exact coordinates of the origing of the particle reference frame (used in 
+!        DipPol) relative to the 'target' reference frame for any possible situation. I.e. it
+!        is more general than the formula used before.
+         rcx=(rmax*imix-rmix*imax)/(rmax-rmix)
+         rcy=(rmay*imiy-rmiy*imay)/(rmay-rmiy)
+         rcz=(rmaz*imiz-rmiz*imaz)/(rmaz-rmiz)
+!        These are two times exact coordinates of the particle symmetry center (assuming it exists), 
+!        which is used in symmetry-testing functions. We use double the value to keep it integer and 
+!        avoid potential problems during rounding.
+         pcx= imax+imix
+         pcy= imay+imiy
+         pcz= imaz+imiz
 
-         write(*,'(A,3F10.5)') ' center xyz',rcx,rcy,rcz
-         write(*,*) 'int center xyz',icx,icy,icz
+         write(*,'(A,3F10.5)') 'domain center xyz',rcx,rcy,rcz
+         write(*,*) 'particle center xyz',pcx/2.d0,pcy/2.d0,pcz/2.d0
 
 !         write(*,*) ((imax-imix)+2)/2+0.5d0
 !         write(*,*) ((imay-imiy)+2)/2+0.5d0
@@ -296,7 +301,7 @@
          write(738)  rmiy,rmay,imiy,imay
          write(738)  rmiz,rmaz,imiz,imaz
          write(738)  rcx,rcy,rcz
-         write(738)  icx,icy,icz
+         write(738)  pcx,pcy,pcz
          write(738)  mindist(1),mindist(2),mindist(3)
          write(738) (CXPOL(i,1),i=1,OS)
          write(738) (CXPOL(i,2),i=1,OS)
@@ -348,9 +353,9 @@
 !          bxx=(POS(i,1)-((imax-imix)+2)/2+0.5d0)*DX(1)
 !          byy=(POS(i,2)-((imay-imiy)+2)/2+0.5d0)*DX(2)
 !          bzz=(POS(i,3)-((imaz-imiz)+2)/2+0.5d0)*DX(3)
-          bxx=(POS(i,1)-icx-0.5d0)*DX(1)                                                                                                
-          byy=(POS(i,2)-icy-0.5d0)*DX(2)      
-          bzz=(POS(i,3)-icz-0.5d0)*DX(3) 
+          bxx=(POS(i,1)-rcx)*DX(1)                                                                                                
+          byy=(POS(i,2)-rcy)*DX(2)      
+          bzz=(POS(i,3)-rcz)*DX(3) 
           diffx=dabs(bxx-RPOS(i,1))
           diffy=dabs(byy-RPOS(i,2))
           diffz=dabs(bzz-RPOS(i,3))

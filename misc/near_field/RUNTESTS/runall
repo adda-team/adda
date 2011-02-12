@@ -1,4 +1,4 @@
-#/bin/ksh
+#!/bin/bash
 
 if [ -z "${ADDABIN}" ]; then
  export ADDABIN=../../../src/adda

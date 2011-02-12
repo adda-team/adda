@@ -1,15 +1,14 @@
 !*********************************************************************
       subroutine checksymm(imix,imax,imiy,imay,imiz,imaz,
-     &                     icx,rcx,icy,rcy,icz,rcz,OS,CXPOL,POS)
+     &                     pcx,pcy,pcz,OS,CXPOL,POS)
       implicit none
 !********************************************************************
 !      prepare array and check symmetry planes for dipoles
-!      for dipoles ic/rc are related to the computational box
-!      for fields  ic/rc are related to theshoul 
+!      here dipole polarization is checked for symmetry
+!      thus the input parameters refer to the particle (set of dipoles) 
 !............param............................
       integer    imix,imax,imiy,imay,imiz,imaz
-      integer    icx,icy,icz
-      real*8     rcx,rcy,rcz
+      integer    pcx,pcy,pcz
       integer    OS
       complex*16 CXPOL(OS,3)
       real*8     POS(OS,3)    
@@ -32,7 +31,7 @@
      &                          cdabs(CXPOL(i,3))**2)    *1.d18    
       enddo
       call  checkplanes(DIPMAT,imix,imax,imiy,imay,imiz,imaz,
-     &                         icx,rcx,icy,rcy,icz,rcz)
+     &                         pcx,pcy,pcz)
       deallocate(DIPMAT)        
       write(*,*) '} Checking Dipole Symmetry '     
       end subroutine 
@@ -40,37 +39,37 @@
 !****************************************************
 !*****************************************************
        subroutine checkplanes(MAT,imix,imax,imiy,imay,imiz,imaz,
-     &                        icx,rcx,icy,rcy,icz,rcz)
+     &                        pcx,pcy,pcz)
        implicit none
        real*8 compare
        external compare
 !****************************************************8
 !     CHECK for symmetry planes:
-!      for dipoles ic/rc are related to the computational box                                                                              
-!      for field ic/rc are related to the targer and 
-!          not to the whole region 
+!      for dipoles imix-imaz refer to the particle (set of dipoles)
+!      for fields imix-imaz refer to the domain in which they are calculated 
+!      pcx-pcz always refer to the particle center (doubled) 
 !.............param...............
        integer imix,imax,imiy,imay,imiz,imaz 
        real*8 MAT(imix:imax,imiy:imay,imiz:imaz)
-       integer    icx,icy,icz
-       real*8     rcx,rcy,rcz
+       integer    pcx,pcy,pcz
 !............local...............
        real*8 mazdev,tmpval
        integer ix,iy,iz,d1,d2,d3,off 
+       integer icx,icy,icz
 !----------- info --------------------
 ! pari:  [0....14][15   29]
-! rcx:           14.5
+! pcx/2:         14.5
 ! icx:           14
 !        d1=15   d2=16 =>  d3=15  off=1
 !
 ! dispari: [0....14][15][17....30]
-! rcx                15
-! icx                15
+! pcx/2:             15
+! icx:               15
 !         d1=16      d2=16> d3=16 off=0
 !--------------------------------------
       write(*,*) ' CHECKING DIP SYMMETRY X -> -X' 
-      off=0
-      if ((rcx-icx*1.d0).gt.0.4d0) off=1
+      icx=pcx/2;
+      off=pcx-2*icx;
       mazdev=0.d0
       d1=icx-imix
       d2=imax-(icx+off)
@@ -94,8 +93,8 @@
       endif
 !--------------------check symm---------------------------
       write(*,*) ' CHECKING DIP SYMMETRY Y -> -Y' 
-      off=0
-      if ((rcy-icy*1.d0).gt.0.4d0) off=1
+      icy=pcy/2;
+      off=pcy-2*icy;
       mazdev=0.d0
       d1=icy-imiy
       d2=imay-(icy+off)
@@ -117,8 +116,8 @@
       endif  
 !--------------------check symm---------------------------
       write(*,*) ' CHECKING DIP SYMMETRY Z -> -Z' 
-      off=0
-      if ((rcz-icz*1.d0).gt.0.4d0) off=1
+      icz=pcz/2;
+      off=pcz-2*icz;
       mazdev=0.d0
       d1=icz-imiz
       d2=imaz-(icz+off)
@@ -146,7 +145,7 @@
 !************************************************************
 !************************************************************
 
-       subroutine testbeam(ricx,ricy,ricz,debug,
+       subroutine testbeam(rcx,rcy,rcz,debug,
      &                     POS,OS,INCBEAM,dir,pol,AKD,DX) 
        implicit none
        external comparec
@@ -154,7 +153,7 @@
 !...............param...............   
 !       integer    imax,imix,imay,imiy,imaz,imiz
        integer    debug
-       real*8     ricx,ricy,ricz
+       real*8     rcx,rcy,rcz
        integer    OS
        real*8     POS(OS,3)  
        complex*16 INCBEAM(OS,3)
@@ -178,11 +177,11 @@
        DO T=1,OS
     
          call calcbeam(POS(T,1),POS(T,2),POS(T,3),DX,
-     &                 ricx,ricy,ricz,dir,pol,AKD,EE)
+     &                 rcx,rcy,rcz,dir,pol,AKD,EE)
 
-       bxx=(POS(T,1)-(ricx)-0.5d0)*DX(1)
-       byy=(POS(T,2)-(ricy)-0.5d0)*DX(2)
-       bzz=(POS(T,3)-(ricz)-0.5d0)*DX(3)  
+       bxx=(POS(T,1)-rcx)*DX(1)
+       byy=(POS(T,2)-rcy)*DX(2)
+       bzz=(POS(T,3)-rcz)*DX(3)  
          if (debug.ge.3)  write(2311,'(15D12.3)')  
      &                    bxx,
      &                    byy,
@@ -204,11 +203,11 @@
 
 !***********************************************************
 !***********************************************************
-       subroutine calcbeam(x,y,z,dx,ricx,ricy,ricz,dir,pol,AKD,
+       subroutine calcbeam(x,y,z,dx,rcx,rcy,rcz,dir,pol,AKD,
      &  EE) 
        implicit none
 !...............param................        
-       real*8     ricx,ricy,ricz
+       real*8     rcx,rcy,rcz
        real*8     x,y,z 
        real*8     dir(3),pol(3)
        real*8     AKD,DX(3)
@@ -220,9 +219,9 @@
 !         bxx=(POS(T,1)-((imax-imix)+2)/2-0.5d0)*DX(1)
 !         byy=(POS(T,2)-((imay-imiy)+2)/2-0.5d0)*DX(2)
 !         bzz=(POS(T,3)-((imaz-imiz)+2)/2-0.5d0)*DX(3)
-       bxx=(x-ricx-0.5d0)*DX(1)
-       byy=(y-ricy-0.5d0)*DX(2)
-       bzz=(z-ricz-0.5d0)*DX(3)     
+       bxx=(x-rcx)*DX(1)
+       byy=(y-rcy)*DX(2)
+       bzz=(z-rcz)*DX(3)     
        mydot=bxx*dir(1)+byy*dir(2)+bzz*dir(3)
        tmp=cdexp(CXUNIT*AKD*mydot)
        EE(1)=pol(1)*tmp

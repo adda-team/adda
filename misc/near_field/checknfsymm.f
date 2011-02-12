@@ -12,7 +12,7 @@
        real*8 LAM       
 !------------------------
        integer OS
-       integer icx,icy,icz
+       integer pcx,pcy,pcz
        integer imix,imiy,imiz
        integer imax,imay,imaz
        real*8  rmax,rmay,rmaz
@@ -46,8 +46,8 @@
         read(738)  rmiy,rmay,imiy,imay
         read(738)  rmiz,rmaz,imiz,imaz
         read(738)  rcx,rcy,rcz
-        read(738)  icx,icy,icz
-        write(*,*) 'center', icx,icy,icz
+        read(738)  pcx,pcy,pcz
+        write(*,*) 'particle center', pcx/2.d0,pcy/2.d0,pcz/2.d0
         close(738)
 !-------------------------------------------------------
         write(filename_output,'(A,".DAT")')
@@ -111,7 +111,7 @@
          close(90)
 
          call  checkplanes(TOT,wimix,wimax,wimiy,wimay,wimiz,wimaz,
-     &                   icx,rcx,icy,rcy,icz,rcz)   
+     &                   pcx,pcy,pcz)   
         
          deallocate(TOT)
          write(*,*) 'Bye Bye from CheckNFSymm' 
