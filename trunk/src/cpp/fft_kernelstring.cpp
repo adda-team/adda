@@ -586,7 +586,7 @@ static void
 insertTwiddleKernel(string &kernelString, int Nr, int numIter, int Nprev, int len, int numWorkItemsPerXForm)
 {
 	int z, k;
-	int logNPrev = log2(Nprev);
+	int logNPrev = (int)log2(Nprev);
 	
 	for(z = 0; z < numIter; z++) 
 	{
@@ -692,8 +692,8 @@ static void
 insertLocalLoadIndexArithmatic(string &kernelString, int Nprev, int Nr, int numWorkItemsReq, int numWorkItemsPerXForm, int numXFormsPerWG, int offset, int midPad)
 {	
 	int Ncurr = Nprev * Nr;
-	int logNcurr = log2(Ncurr);
-	int logNprev = log2(Nprev);
+	int logNcurr = (int)log2(Ncurr);
+	int logNprev = (int)log2(Nprev);
 	int incr = (numWorkItemsReq + offset) * Nr + midPad;
 	
 	if(Ncurr < numWorkItemsPerXForm) 
@@ -982,7 +982,7 @@ createGlobalFFTKernelString(cl_fft_plan *plan, int n, int BS, cl_fft_kernel_dir 
 		int gInInc = threadsPerBlock / batchSize;
 		
 		
-		int lgStrideO = log2(strideO);
+		int lgStrideO = (int)log2(strideO);
 		int numBlocksPerXForm = strideI / batchSize;
 		int numBlocks = numBlocksPerXForm;
 		if(!vertical)
@@ -1031,7 +1031,7 @@ createGlobalFFTKernelString(cl_fft_plan *plan, int n, int BS, cl_fft_kernel_dir 
 		}
 		else 
 		{
-			int lgNumBlocksPerXForm = log2(numBlocksPerXForm);
+			int lgNumBlocksPerXForm = (int)log2(numBlocksPerXForm);
 			localString += string("bNum = groupId & ") + num2str(numBlocksPerXForm - 1) + string(";\n");
 			localString += string("xNum = groupId >> ") + num2str(lgNumBlocksPerXForm) + string(";\n");
 			localString += string("indexIn = mul24(bNum, ") + num2str(batchSize) + string(");\n");
@@ -1047,7 +1047,7 @@ createGlobalFFTKernelString(cl_fft_plan *plan, int n, int BS, cl_fft_kernel_dir 
 		}
 		
 		// Load Data
-		int lgBatchSize = log2(batchSize);
+		int lgBatchSize = (int)log2(batchSize);
 		localString += string("tid = lId;\n");
 		localString += string("i = tid & ") + num2str(batchSize - 1) + string(";\n");
 		localString += string("j = tid >> ") + num2str(lgBatchSize) + string(";\n"); 

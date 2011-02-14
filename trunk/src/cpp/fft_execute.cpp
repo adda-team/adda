@@ -140,7 +140,7 @@ clFFT_ExecuteInterleaved( cl_command_queue queue, clFFT_Plan Plan, cl_int batchS
 	
 	cl_int err;
 	size_t gWorkItems, lWorkItems;
-	int inPlaceDone;
+	int inPlaceDone=1;
 	
 	cl_int isInPlace = data_in == data_out ? 1 : 0;
 	
@@ -238,7 +238,7 @@ clFFT_ExecutePlannar( cl_command_queue queue, clFFT_Plan Plan, cl_int batchSize,
 	
 	cl_int err;
 	size_t gWorkItems, lWorkItems;
-	int inPlaceDone;
+	int inPlaceDone=1;
 	
 	cl_int isInPlace = ((data_in_real == data_out_real) && (data_in_imag == data_out_imag)) ? 1 : 0;
 	
