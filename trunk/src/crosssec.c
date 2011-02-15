@@ -894,8 +894,13 @@ void AsymParm(double *vec,char * restrict f_suf)
 static double gxIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_x
 {
-	res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(theta_int.val[theta]))
-	*cos(Deg2Rad(phi_int.val[phi]));
+	double th=theta_int.val[theta];
+
+	/* a separate case is used to avoid negligibly small non-zero results, which further cause
+	 * unusually large relative errors in integration log
+	 */
+	if (th==180) res[0]=0;
+	else res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*cos(Deg2Rad(phi_int.val[phi]));
 	return 0;
 }
 
@@ -920,8 +925,13 @@ void AsymParm_x(double *vec,char * restrict f_suf)
 static double gyIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_y
 {
-	res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(theta_int.val[theta]))
-	*sin(Deg2Rad(phi_int.val[phi]));
+	double th=theta_int.val[theta];
+
+	/* a separate case is used to avoid negligibly small non-zero results, which further cause
+	 * unusually large relative errors in integration log
+	 */
+	if (th==180) res[0]=0;
+	else res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*sin(Deg2Rad(phi_int.val[phi]));
 	return 0;
 }
 
