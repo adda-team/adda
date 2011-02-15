@@ -181,8 +181,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
 	// write into buffers eg upload to device
-	err=clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,MAX_NMAT*3*2*sizeof(cl_double),cc_sqrt,
-		0,NULL,NULL);
+	err=clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,MAX_NMAT*3*2*sizeof(cl_double),
+		cc_sqrt,0,NULL,NULL);
 	checkErr(err,"writing cc_sqrt to device memory");
 	err=clEnqueueWriteBuffer(command_queue,bufargvec,CL_TRUE,0,
 		local_nvoid_Ndip*3*2*sizeof(cl_double),argvec,0,NULL,NULL);

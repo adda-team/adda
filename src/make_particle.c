@@ -1198,14 +1198,13 @@ static double PlaceGranules(void)
 //==========================================================
 
 static int FitBox(const int box)
-/* finds the smallest value for which program would work (should be even and divide jagged);
+/* finds the smallest value for which program would work (should divide 2*jagged);
  * the limit is also checked
  */
 {
 	int res;
 
-	if (IS_EVEN(jagged)) res=jagged*((box+jagged-1)/jagged);
-	else res=2*jagged*((box+2*jagged-1)/(2*jagged));
+	res=2*jagged*((box+2*jagged-1)/(2*jagged));
 	if (res>BOX_MAX) LogError(ONE_POS,"Derived grid size (%d) is too large (>%d)",res,BOX_MAX);
 	return res;
 }
@@ -1214,15 +1213,19 @@ static int FitBox(const int box)
 
 static int FitBox_yz(const double size)
 /* given the size of the particle in y or z direction (in units of dipoles), finds the grid size,
- * which would satisfy the FitBox function and so that all dipole centers would fall into the
- * particle (and increasing the number further will produce only the void dipoles).
+ * which would satisfy the FitBox function and so that all dipole centers (more precisely, centers
+ * of J^3 dipoles) would fall into the particle (and increasing the number further will produce only
+ * the void dipoles).
+ *
+ * !!! It is still possible, however, that the shape will contain void layers of dipoles because
+ * the estimate do not take into account the details of the shape i.e. its curvature. For instance,
+ * 'adda -grid 6 -ellipsoid 1 1.5' will result in grid 6x6x10, but the layers z=0, z=10 will be
+ * void. This is because the dipole centers in this layers always have non-zero x and y coordinates
+ * (at least half-dipole in absolute value) and do not fall inside the sphere, also the points
+ * {+-4.5,0,0} do fall into it.
  */
 {
-	int res;
-
-	if (IS_EVEN(jagged)) res=jagged*(int)floor((size+jagged)/jagged);
-	else res=2*jagged*(int)floor((size+jagged)/(2*jagged));
-	return res;
+	return (2*jagged*(int)floor((size+jagged)/(2*jagged)));
 }
 
 //==========================================================
