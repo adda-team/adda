@@ -1,0 +1,101 @@
+#!/bin/bash
+# First parameter is seq (default), mpi, or ocl
+# Second (if given) specifies file with a test suite (default - "suite")
+# Look below for "!!!", which mark the places where adjustments are probably
+# need to be done
+
+#---------------- Set parameters ----------------------------------------------
+
+# Location of sample input files (not needed if all input files are already present)
+INPUTDIR="./../../input"
+# Location of binaries
+ADDASEQ="./../../src/seq/adda"
+ADDAMPI="./../../src/mpi/adda_mpi"
+ADDAOCL="./../../src/ocl/adda_ocl"
+
+MODE=${1:-seq}
+SUITEFILE=${2:-suite}
+if [ $MODE == "seq" ]; then
+  EXECREF="./adda_1.0"  # !!! This should be adjusted
+  EXECTEST=$ADDASEQ
+elif [ $MODE == "mpi" ]; then
+  # Calling mpiexec somehow breaks the redirection of suitefile to the stdin of this script
+  EXECREF="mpiexec -n 2 ./adda_mpi_1.0" # !!! This should be adjusted
+  EXECTEST="mpiexec -n 2 $ADDAMPI"
+elif [ $MODE == "ocl" ]; then
+  # Currently ocl version is compared with the sequential one
+  EXECREF=$ADDASEQ
+  EXECTEST=$ADDAOCL
+fi
+
+function mydiff {
+  # bring up diff only if files are not identical
+  if !(cmp -s $1 $2); then
+    # !!! This should be adjusted
+    # Any diff program will do here, but GUI one suits better since allows one
+    # to quickly estimate the importance of differences (e.g. when there are
+    # differences in minor digits of many numbers).
+    tortoisemerge $1 $2
+  fi
+}
+
+DIRREF=out_ref
+DIRTEST=out_test
+SOREF=stdout_ref
+SOTEST=stdout_test
+SONAME=stdout # this is name to denote 'stdout' in suite file
+
+#---------------- Prepare input files -----------------------------------------
+
+NEEDEDFILES="scat_params.dat avg_params.dat alldir_params.dat"
+NEEDEDDIRS="tables"
+
+for file in $NEEDEDFILES; do
+  if [ ! -f $file ]; then
+    cp $INPUTDIR/$file ./
+  fi
+done
+for dir in $NEEDEDDIRS; do
+  if [ ! -d $dir ]; then
+    mkdir $dir
+    cp $INPUTDIR/$dir/[!.]* $dir/ # skipps hidden files and folders, like .svn
+  fi
+done
+
+#---------------- Run comparison ----------------------------------------------
+
+while read -r cmpfiles cmdline; do
+  if [[ $cmpfiles && ( ${cmpfiles:0:1} != "#" ) ]]; then #skip blank and commented lines
+    echo $cmdline
+    #echo $cmpfiles
+    # clean up to remove warnings
+    rm -f -r $SOREF $SOTEST $DIRREF $DIRTEST
+    # reference run
+    runref="$EXECREF $cmdline -dir $DIRREF"
+    if !($runref > $SOREF); then
+      echo -e "\nERROR while running \n$runref\nsee $SOREF"
+      exit 1
+    fi
+    # test run
+    runtest="$EXECTEST $cmdline -dir $DIRTEST"
+    if !($runtest > $SOTEST); then
+      echo -e "\nERROR while running \n$runtest\nsee $SOTEST"
+      exit 1
+    fi
+    # compare produced results
+    if [ -d $DIRREF ]; then  #assumed that directories either both exist or both not
+      mv $SOREF $DIRREF/$SONAME
+      mv $SOTEST $DIRTEST/$SONAME
+      for file in ${cmpfiles//,/ }; do
+        mydiff $DIRREF/$file $DIRTEST/$file
+      done
+    else
+      if [ $cmpfiles = $SONAME ]; then
+        mydiff $SOREF $SOTEST
+      else
+        echo "When run directory is not created by ADDA, only $SONAME can be compared"
+        exit 1
+      fi
+    fi
+  fi
+done < "$SUITEFILE"

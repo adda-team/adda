@@ -17,7 +17,7 @@ theta:
 type=range
 #number of points (number of intervals + 1)
 N=91
-min=0	
+min=0
 max=180
 #lines of theta
 values=
