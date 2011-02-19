@@ -2,8 +2,7 @@
 
 [http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly
 parallel devices like graphic cards (GPUs) and mutlicore CPUs. The
-implementation is experimental and just works on high end Nvidia GPUs 
-(Geforce GTX 260/Tesla C1060 and newer) at the present state. AMD GPUs will be suported soon.
+implementation is experimental and works on high end Nvidia (Geforce GTX 260/Tesla C1060 and newer) and ATI/AMD (Radeon HD 47xx/48xx/58xx/69xx, FireStream 9250+) GPUs at the present state.
 
 = Setup of the environment =
 
