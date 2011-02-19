@@ -65,6 +65,9 @@ using namespace std;
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
 
+enum platname {PN_NVIDIA,PN_AMD,PN_UNDEF};
+extern enum platname platformname;
+
 static string 
 num2str(int num)
 {
@@ -118,7 +121,85 @@ getRadixArray(unsigned int n, unsigned int *radixArray, unsigned int *numRadices
         *numRadices = cnt;
         return;
     }
+	// FIXME: increase double precision max ffts sizes
+	// current max sizes: AMD: 512, Nvidia: 1024 (long planing phase)
+	// tested on Nvidia GTX260 and AMD Radeon 5870
+	// if AMD GPU is present, then just use radix2
+	// otherwise use AppleFFT default (up to radix16)
 
+    if (platformname==PN_AMD)
+    {
+	switch(n) 
+	{
+		case 2:
+			*numRadices = 1;
+			radixArray[0] = 2;
+			break;
+			
+		case 4:
+			*numRadices = 2;
+			radixArray[0] = 2; radixArray[1] = 2;
+			break;
+			
+		case 8:
+			*numRadices = 3;
+			radixArray[0] = 2;
+			radixArray[1] = 2;
+			radixArray[2] = 2;
+			break;
+			
+		case 16:
+			*numRadices = 4;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			break;
+			
+		case 32:
+			*numRadices = 5;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			radixArray[4] = 2;
+			break;
+			
+		case 64:
+			*numRadices = 6;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			radixArray[4] = 2; radixArray[5] = 2; 
+			break;
+			
+		case 128:
+			*numRadices = 7;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			radixArray[4] = 2; radixArray[5] = 2; 
+			radixArray[6] = 2; 
+			break;
+			
+		case 256:
+			*numRadices = 8;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			radixArray[4] = 2; radixArray[5] = 2; 
+			radixArray[6] = 2; radixArray[7] = 2; 
+			break;
+			
+		case 512:
+			*numRadices = 9;
+			radixArray[0] = 2; radixArray[1] = 2; 
+			radixArray[2] = 2; radixArray[3] = 2; 
+			radixArray[4] = 2; radixArray[5] = 2; 
+			radixArray[6] = 2; radixArray[7] = 2; 
+			radixArray[8] = 2;
+			break;			
+			
+		default:
+			*numRadices = 0;
+			return;
+	}
+    }
+    else
+    {
 	switch(n) 
 	{
 		case 2:
@@ -178,6 +259,7 @@ getRadixArray(unsigned int n, unsigned int *radixArray, unsigned int *numRadices
 			*numRadices = 0;
 			return;
 	}
+    }
 }
 
 static void
