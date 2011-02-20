@@ -24,6 +24,26 @@ LDFLAGS   += -lOpenCL
 CSOURCE   += oclcore.c
 CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
 
+# Each of the following .cl files is automatically transformed into .clstr files (located at ocl/) 
+# during compile time. The latter contain all the content of the original file as a C string, and 
+# are included in the C source files to define static strings. These strings define are further used
+# as a source to compile OpenCL kernels.
+CLSOURCE := oclkernels.cl
+# This is a weird prefix, which is required since that is how .clstr files are quoted in .d files
+CLSPREFIX  := ../$(OCL)/
+CLSTRING   := $(CLSOURCE:.cl=.clstr)
+# The list of non-existing .clstr files
+MISSINGCLS := $(filter-out $(wildcard *.clstr),$(CLSTRING))
+# This command performs transformation of source CL file into a C string. Call to sed quotes special
+# characters '#' and '\', then encloses each line in "...\n".
+CLSCOMMAND := sed -e 's/["\\]/\\&/g' -e 's/.*/"&\\n"/'
+# Non-existing .clstr should be created right now, since otherwise automatic generation of
+# dependencies will fail. The implementation is equivalent to the one used in the make pattern in
+# common.mk (which is used for updating .clstr files when necessary), but more complicated since 
+# vpath (for .cl files) and automatica pattern substitution cannot be used
+$(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(CPATH)/%.cl,$(file)) > $(file)))
+vpath %.cl $(CPATH)
+
 PROG   := $(PROGOCL)
 MYCC   := $(CC)
 MYCF   := $(CF)

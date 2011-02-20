@@ -366,7 +366,7 @@ endif
 #===================================================================================================
 
 .EXPORT_ALL_VARIABLES:
-.PHONY: seq mpi all clean cleanseq cleanmpi ocl
+.PHONY: seq mpi ocl all clean cleanseq cleanmpi cleanocl
 
 all: seq mpi ocl
 
@@ -397,4 +397,4 @@ cleanmpi:
 
 cleanocl:
 	@echo "Removing OpenCL compiled files"
-	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe
+	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr

@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: inline routines for testing of input parameters
  *
- * Copyright (C) 2006,2008,2010 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,8 +19,8 @@
 #ifndef __param_h
 #define __param_h
 
-#include "function.h" // needed for INLINE and function attributes
 #include <limits.h> // for INT_MIN and INT_MAX
+#include "function.h" // needed for INLINE and function attributes
 
 typedef struct {
 	int l1; // first level index
