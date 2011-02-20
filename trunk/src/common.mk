@@ -83,11 +83,15 @@ $(CPPOBJECTS): %.o: %.cpp $(CPPOPTSFILE)
 
 # Dependencies are only generated for C sources; we assume that each Fortran or C++ file is 
 # completely independent or all of the files from dependent set are compiled at once. 
-
 $(CDEPEND): %.d: %.c $(COPTSFILE)
 	$(MYCC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
+
+# Special rule for generation of stringified CL source. Used only for ocl. All relevant variables 
+# are defined in ocl/Makefile
+$(addprefix $(CLSPREFIX),$(CLSTRING)): $(CLSPREFIX)%.clstr:%.cl
+	$(CLSCOMMAND) $< > $@
 
 $(LDOPTSFILE):
 	@echo Linking needs to be redone

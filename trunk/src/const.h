@@ -49,7 +49,7 @@
 
 // parallel definitions
 #ifdef ADDA_MPI
-#define PARALLEL
+#	define PARALLEL
 #endif
 
 /* ringid of root processor. Using ADDA_ROOT!=0 should work, however it was not thoroughly tested.

@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <CL/cl.h>
+#include <CL/cl.h>  // !!! should it be replaced by "CL/opencl.h" ???
 #include "const.h"
 #include "memory.h"
 
@@ -57,6 +57,16 @@ enum platname platformname;
 cl_program program;
 cl_platform_id used_platform_id;
 cl_device_id device_id;
+
+// The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
+//#define READ_CL_SOURCE_AT_RUNTIME
+
+#ifndef READ_CL_SOURCE_AT_RUNTIME
+	char stringifiedSourceCL[]=
+	// the following is a pure string generated automatically from oclkernels.cl at compile time
+#	include "ocl/oclkernels.clstr"
+	;
+#endif
 
 //========================================================================
 
@@ -182,6 +192,7 @@ void oclinit(void)
 // initialize OpenCL environment
 {
 	cl_int err; // error code
+	char *cSourceString;
 
 	// getting the first OpenCL device which is a GPU
 	GetDevice();
@@ -210,19 +221,18 @@ void oclinit(void)
 	);
 	checkErr(err,"Command_queue");
 
-	/* TODO !!! It would be nice to remove the need of reading the file with kernels at runtime, but
-	 * instead read it at compile time and, e.g., set the value of some string to it. Moreover,
-	 * reading of file with fseek may have some unexpected problems on Windows (should be checked
-	 * carefully).
-	 */
-	FILE *file=fopen("oclkernels.cl","r");
+#ifdef READ_CL_SOURCE_AT_RUNTIME
+	FILE *file=fopen("oclkernels.cl","rb");
 	size_t sourceStrSize;
-	char *cSourceString;
 	fseek(file,0,SEEK_END);
 	sourceStrSize=ftell(file);
 	fseek(file,0,SEEK_SET);
 	MALLOC_VECTOR(cSourceString,char,sourceStrSize+1,ALL);
 	fread(cSourceString,sourceStrSize,1,file);
+	fclose(file);
+#else
+	cSourceString=stringifiedSourceCL;
+#endif
 	program=clCreateProgramWithSource(
 		context, // valid Context
 		1,       // number of strings in next parameter

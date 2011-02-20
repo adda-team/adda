@@ -19,10 +19,11 @@
  */
 
 #ifdef AMD
-#   pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#	pragma OPENCL EXTENSION cl_amd_fp64 : enable
 #else
-#   pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#	pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #endif
+
 /*************************************
  *  functions used in kernels        *
  *                                   *
@@ -169,7 +170,7 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long 
 	size_t ya=y;
 	size_t za=z;
 
-	//works, because of the double2 vector type
+	// works, because of the double2 vector type
 	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
 
 	if (transposed==1) { // used only for G_SO
@@ -183,7 +184,7 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long 
 	}
 	j=NDCOMP*(xa*DsizeY*DsizeZ+za*DsizeY+ya);
 
-	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f]; //maybe could be done more efficient TODO
+	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f]; // maybe could be done more efficient TODO
 
 	if (reduced_FFT==1) {
 		if (y>smallY) {
