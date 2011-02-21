@@ -20,7 +20,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <CL/cl.h>  // !!! should it be replaced by "CL/opencl.h" ???
+#ifdef __APPLE__
+#	include <OpenCL/cl.h>
+#else
+#	include <CL/cl.h>
+#endif
 #include "const.h"
 #include "memory.h"
 
@@ -32,7 +36,7 @@
 cl_context context;
 cl_command_queue command_queue;
 cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
-	cltransposeb;
+	cltransposeb,cltransposeof,cltransposeob;
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,
 	bufDmatrix,bufinproduct;
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
@@ -281,8 +285,14 @@ void oclinit(void)
 	checkErr(err,"creating kernel cltransposef");
 	cltransposeb=clCreateKernel(program,"transpose",&err);
 	checkErr(err,"creating kernel cltransposeb");
-
+	cltransposeof=clCreateKernel(program,"transposeo",&err);
+	checkErr(err,"creating kernel cltransposeof");
+	cltransposeob=clCreateKernel(program,"transposeo",&err);
+	checkErr(err,"creating kernel cltransposeob");
+#ifdef READ_CL_SOURCE_AT_RUNTIME
 	Free_general(cSourceString);
+#endif
+
 }
 
 //========================================================================
@@ -301,6 +311,8 @@ void oclunload(void)
 	clReleaseKernel(clinprod);
 	clReleaseKernel(cltransposef);
 	clReleaseKernel(cltransposeb);
+	clReleaseKernel(cltransposeof);
+	clReleaseKernel(cltransposeob);
 	clReleaseCommandQueue(command_queue);
 	clReleaseContext(context);
 }
