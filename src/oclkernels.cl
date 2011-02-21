@@ -253,7 +253,7 @@ __kernel void inpr(__global double *inprod, __global double2 *resultvec)
 }
 
 /*************************************
- * transpose kernel                  *
+ * transpose kernels                 *
  *                                   *
  *************************************/
 
@@ -264,4 +264,36 @@ __kernel void transpose(__global double2 *input,__global double2 *output,long wi
 	size_t wth = width*height;
 
 	for (int k=0;k<3;k++) output[idy*height+idz+k*wth]=input[idz*width+idy+k*wth];
+}
+
+//optimised transpose kernel with cache and
+//removed bank conflicts obtained from Nvidia SDK samples
+#define BLOCK_DIM 16
+__kernel void transposeo(
+        __global double2 *idata,
+        __global double2 *odata,
+        long width,
+        long height,
+        __local double2 *block
+    )
+{
+    // read tiles into local memory
+    unsigned int xIndex = get_global_id(0);
+    unsigned int yIndex = get_global_id(1);
+    unsigned int zIndex = get_global_id(2);
+    int htw = height*width;
+    if((xIndex < width) && (yIndex < height))
+    {
+    unsigned int index_in = yIndex * width + xIndex + htw * zIndex;
+    block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    // write transposed tile back to global memory
+    xIndex = get_group_id(1) * BLOCK_DIM + get_local_id(0);
+    yIndex = get_group_id(0) * BLOCK_DIM + get_local_id(1);
+    if((xIndex < height) && (yIndex < width))
+    {
+    unsigned int index_out = yIndex * height + xIndex + htw * zIndex;
+    odata[index_out] = block[get_local_id(0)*(BLOCK_DIM+1)+get_local_id(1)];
+    }
 }

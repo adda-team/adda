@@ -187,14 +187,18 @@ void TransposeYZ(const int direction)
  */
 {
 #ifdef OPENCL
-	const size_t enqtglobalzy[2]={gridZ,gridY};
-	const size_t enqtglobalyz[2]={gridY,gridZ};
+	const size_t enqtglobalzy[3]={gridZ,gridY,3};
+	const size_t enqtglobalyz[3]={gridY,gridZ,3};
+	const size_t tblock[3]={16,16,1};
 	cl_int err; // error code
-
+//TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or
+// 	to remove cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
 	if (direction==FFT_FORWARD)
-		err=clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL);
+		err=clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,enqtglobalzy,tblock,0,NULL,NULL);
+//		err=clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL);
 	else
-		err=clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL);
+		err=clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL);
+//		err=clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL);
 	checkErr(err,"Enqueueing kernel cltranspose");
 	clFinish(command_queue);
 #else
@@ -1519,7 +1523,33 @@ void InitDmatrix(void)
 	checkErr(err,"set kernelargs at 2 of cltransposeb");
 	err=clSetKernelArg(cltransposeb,3,sizeof(cl_long),&gridZ);
 	checkErr(err,"set kernelargs at 3 of cltransposeb");
-	// TODO !!! faster kernel for transpose with caching follows soon
+	//faster transpose kernel with cache 
+	//(maybe not faster for all sizes so keep the old kernel for special conditions)
+    err = clSetKernelArg( cltransposeof, 0, sizeof(cl_mem), &bufslices);
+    checkErr(err, "set kernelargs at 0 of cltransposeof");
+    err = clSetKernelArg( cltransposeof, 1, sizeof(cl_mem), &bufslices_tr);
+    checkErr(err, "set kernelargs at 1 of cltransposeof");
+    err = clSetKernelArg( cltransposeof, 2, sizeof(cl_long), &gridZ);
+    checkErr(err, "set kernelargs at 2 of cltransposeof");
+    err = clSetKernelArg( cltransposeof, 3, sizeof(cl_long), &gridY);
+    checkErr(err, "set kernelargs at 3 of cltransposeof");
+	//setting up local cache size as 17*16*3 elements
+	//note: a block is only 16*16, but 1*16 stride is needed
+	//to avoid bank conflicts
+    err = clSetKernelArg( cltransposeof, 4, 17*16*3*sizeof(doublecomplex), NULL);
+    checkErr(err, "set kernelargs at 4 of cltransposeof");
+
+    err = clSetKernelArg( cltransposeob, 0, sizeof(cl_mem), &bufslices_tr);
+    checkErr(err, "set kernelargs at 0 of cltransposeob");
+    err = clSetKernelArg( cltransposeob, 1, sizeof(cl_mem), &bufslices);
+    checkErr(err, "set kernelargs at 1 of cltransposeob");
+    err = clSetKernelArg( cltransposeob, 2, sizeof(cl_long), &gridY);
+    checkErr(err, "set kernelargs at 2 of cltransposeob");
+    err = clSetKernelArg( cltransposeob, 3, sizeof(cl_long), &gridZ);
+    checkErr(err, "set kernelargs at 3 of cltransposeob");
+    err = clSetKernelArg( cltransposeob, 4, 17*16*3*sizeof(doublecomplex), NULL);
+    checkErr(err, "set kernelargs at 4 of cltransposeob");
+	
 	// for inner product (only if it will be used afterwards)
 	if (ipr_required) {
 		err=clSetKernelArg(clinprod,0,sizeof(cl_mem),&bufinproduct);
