@@ -109,8 +109,8 @@ __kernel void arith1(__global unsigned char *material,__global unsigned short *p
 __kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
 	long gridX,long gridYZ,long local_Nsmall,long x)
 {
-	__private size_t z=get_global_id(0);
-	__private size_t y=get_global_id(1);
+	__private size_t y=get_global_id(0);
+	__private size_t z=get_global_id(1);
 	__private size_t i;
 	__private size_t j;
 	__private int xcomp;
@@ -209,8 +209,8 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long 
 __kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
 	long gridX,long gridYZ,long local_Nsmall,long x)
 {
-	__private size_t z =get_global_id(0);
-	__private size_t y =get_global_id(1);
+	__private size_t y =get_global_id(0);
+	__private size_t z =get_global_id(1);
 	__private size_t i;
 	__private size_t j;
 	__private int xcomp;
@@ -263,7 +263,7 @@ __kernel void transpose(__global double2 *input,__global double2 *output,long wi
 	size_t idy = get_global_id(1);
 	size_t wth = width*height;
 
-	for (int k=0;k<3;k++) output[idy*height+idz+k*wth]=input[idz*width+idy+k*wth];
+	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
 }
 
 //optimised transpose kernel with cache and
