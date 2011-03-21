@@ -4,7 +4,9 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 
 <wiki:toc />
 
-= 2011 (2) =
+= 2011 (4) =
+ # K. Muinonen and T. Pieniluoma, “Light scattering by Gaussian random ellipsoid particles: First results with discrete-dipole approximation,”[http://dx.doi.org/10.1016/j.jqsrt.2011.02.013 J. Quant. Spectrosc. Radiat. In press].
+ # Lei Bi , Ping Yang. George W. Kattawar, Yongxiang Hu, and Bryan A. Baum, “Scattering and absorption of light by ice particles: Solution by a new physical-geometric optics hybrid method,”[http://dx.doi.org/10.1016/j.jqsrt.2011.02.015 J. Quant. Spectrosc. Radiat. In press].
  # M.A. Yurkin and A.G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat. In press (2011)].
  # L. Bi, P. Yang, G. W. Kattawar, Y. Hu, and B. A. Baum, “Diffraction and external reflection by dielectric faceted particles,” [http://dx.doi.org/10.1016/j.jqsrt.2010.02.007 J. Quant. Spectrosc. Radiat. Transfer 112, 163-173 (2011)].
 
