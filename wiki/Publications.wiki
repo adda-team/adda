@@ -10,7 +10,7 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 
 
 = 2010 (10) =
- # J. Gasteiger, S. Groß, V. Freudenthaler, and M. Wiegner, “Volcanic ash from Iceland over Munich: mass concentration retrieved from ground-based remote sensing measurements,” [http://dx.doi.org/10.5194/acpd-10-267050-2010 Atmos. Chem. Phys. Discuss. 10, 26705-26750 (2010)].
+ # J. Gasteiger, S. Groß, V. Freudenthaler, and M. Wiegner, “Volcanic ash from Iceland over Munich: mass concentration retrieved from ground-based remote sensing measurements,” [http://dx.doi.org/10.5194/acpd-10-26705-2010 Atmos. Chem. Phys. Discuss. 10, 26705-26750 (2010)].
  # L.Bi, P.Yang and G.W. Kattawar,“Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. opt. 49, 4646(2010)].
  # S. D’Agostino and F. D. Sala, “Active role of oxide layers on the polarization of plasmonic nanostructures,” [http://dx.doi.org/10.1021/nn1007918 ACS Nano 4, 4117-4125 (2010)].
  # M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585-15 (2010)].
