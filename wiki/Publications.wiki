@@ -5,15 +5,15 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 <wiki:toc />
 
 = 2011 (4) =
- # K. Muinonen and T. Pieniluoma, “Light scattering by Gaussian random ellipsoid particles: First results with discrete-dipole approximation,”[http://dx.doi.org/10.1016/j.jqsrt.2011.02.013 J. Quant. Spectrosc. Radiat. In press].
- # Lei Bi , Ping Yang. George W. Kattawar, Yongxiang Hu, and Bryan A. Baum, “Scattering and absorption of light by ice particles: Solution by a new physical-geometric optics hybrid method,”[http://dx.doi.org/10.1016/j.jqsrt.2011.02.015 J. Quant. Spectrosc. Radiat. In press].
- # M.A. Yurkin and A.G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat. In press (2011)].
+ # K. Muinonen and T. Pieniluoma, “Light scattering by Gaussian random ellipsoid particles: First results with discrete-dipole approximation,” [http://dx.doi.org/10.1016/j.jqsrt.2011.02.013 J. Quant. Spectrosc. Radiat. In press].
+ # L. Bi , P. Yang. G. W. Kattawar, Y. Hu, and B. A. Baum, “Scattering and absorption of light by ice particles: Solution by a new physical-geometric optics hybrid method,” [http://dx.doi.org/10.1016/j.jqsrt.2011.02.015 J. Quant. Spectrosc. Radiat. In press].
+ # M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat. In press].
  # L. Bi, P. Yang, G. W. Kattawar, Y. Hu, and B. A. Baum, “Diffraction and external reflection by dielectric faceted particles,” [http://dx.doi.org/10.1016/j.jqsrt.2010.02.007 J. Quant. Spectrosc. Radiat. Transfer 112, 163-173 (2011)].
 
 
 = 2010 (10) =
  # J. Gasteiger, S. Groß, V. Freudenthaler, and M. Wiegner, “Volcanic ash from Iceland over Munich: mass concentration retrieved from ground-based remote sensing measurements,” [http://dx.doi.org/10.5194/acpd-10-26705-2010 Atmos. Chem. Phys. Discuss. 10, 26705-26750 (2010)].
- # L.Bi, P.Yang and G.W. Kattawar,“Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. opt. 49, 4646(2010)].
+ # L. Bi, P. Yang and G. W. Kattawar,“Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. Opt. 49, 4641-4646 (2010)].
  # S. D’Agostino and F. D. Sala, “Active role of oxide layers on the polarization of plasmonic nanostructures,” [http://dx.doi.org/10.1021/nn1007918 ACS Nano 4, 4117-4125 (2010)].
  # M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585-15 (2010)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
