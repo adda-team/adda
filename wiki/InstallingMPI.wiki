@@ -1,10 +1,37 @@
 #summary Brief overview of installation of MPI software.
 
+<wiki:toc /> 
+
 If you plan to run *ADDA* on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. <b>ADDA</b>’s usage of MPI is based on the [http://www.mpi-forum.org MPI 1.2] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by *ADDA* both during compilation and at runtime.
 
-If you plan to run a parallel version of *ADDA* on a single computer, e.g. using multicore processor, you need first to install some implementation of MPI. Installation instruction can be found in the manual of a particular MPI package. In the following we describe a single example of installation of [http://www.mcs.anl.gov/mpi/mpich/ MPICH2] package on Windows (tested for version 1.2.1p1).
+If you plan to run a parallel version of *ADDA* on a single computer, e.g. using multicore processor, you need first to install some implementation of MPI. Installation instruction can be found in the manual of a particular MPI package. In the following we briefly describe an example of installation of [http://www.mcs.anl.gov/research/projects/mpich2/ MPICH2] on Unix and Windows. MPICH2 has a lot of advanced features, like combining several single- and multi-core computers in a cluster. However, we do not discuss it here.
+
+=Unix=
+A detailed description is given in the MPICH2 [http://www.mcs.anl.gov/research/projects/mpich2/documentation/index.php?s=docs Installer's Guide], see especially Section 2.2 "From A Standing Start to Running an MPI Program". Below we summarize the most important points.
+ * [http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads Download the source code] of MPICH2 and unzip it.
+ * If you are installing MPI under a user account, choose installation directory and create it, for instance:
+{{{
+mkdir $HOME/mpich2-install
+}}}
+ * Cd into the directory with MPICH2 source (which we here use also as a build directory) and type
+{{{ 
+configure -prefix=$HOME/mpich2-install -enable-fast
+}}}
+ where `-prefix` specifies installation directory, and `-enable-fast` is recommended for production runs (at expense of some error reporting). Other useful configuration options to consider can be found in the [http://www.mcs.anl.gov/research/projects/mpich2/documentation/index.php?s=docs Installer's Guide].
+ * Type
+{{{
+make
+make install
+}}}
+ * Add corresponding `bin` directory to the `$PATH`. For example, if you are using BASH, add
+{{{
+export PATH=$HOME/mpich2-install/bin:$PATH
+}}}
+ to your `.bashrc` and relogin. Now you should be able to [CompilingADDA compile MPI-version of ADDA] using `mpicc` (automatically detected by the `Makefile`) and run it using `mpiexec`.
+
+=Windows=
  * [http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads Download the installer] of MPICH2 for your combination of Windows and hardware and install it.
- * Specify paths to `include` and `lib` subdirectories of MPICH2 directory in file `src/mpi/Makefile`, as described in [CompilingADDA]. Add `bin` subdirectory to Windows environmental variable `PATH`.
+ * Specify paths to `include` and `lib` subdirectories of MPICH2 directory in file `src/mpi/Makefile`, as described in [CompilingADDA]. This is required because Windows package of MPICH2 does not contain compiler wrapper `mpicc`. Add `bin` subdirectory to Windows environmental variable `PATH`.
  * MPICH needs user credentials to run on Windows. To remove asking for them at every MPI run, run a GUI utility `wmpiregister.exe` or type:
 {{{
 mpiexec –register
@@ -17,6 +44,4 @@ smpd -install -phrase behappy
  The (pass)phrase should be the same for all computers running in a cluster. Specifying it at this moment will stop `mpiexec` from asking for it at every run.
  * First time you run `mpiexec` you probably will be prompted by the Windows firewall, whether to allow `mpiexec` and `smpd` to access network. If you plan to run *ADDA* only on a single PC, you may block them. Otherwise, you should unblock them.
 
-MPICH2 has much more advanced features. For instance, one may combine several single- and multi-core Windows machines in a cluster. However, we do not discuss it here.
-
-*ADDA* will run on any hardware compatible with MPI, but, in principle, it may run more efficiently on hardware with shared memory address space, e.g. multi-core PCs. However, such hardware also has its drawbacks, e.g. the performance may be limited by memory access speed. A few tests performed on different computers showed that currently using two cores of a dual-core PC results in computational time from 60% to 75% of that for sequential execution on the same machine. We plan to optimize *ADDA* specifically for such hardware.
+*ADDA* will run on any hardware compatible with MPI, but, in principle, it may run more efficiently on hardware with shared memory address space, e.g. multi-core PCs. However, such hardware also has its drawbacks, e.g. the performance may be limited by memory access speed. A few tests performed on different computers showed that currently using two cores of a dual-core PC results in computational time from 60% to 75% of that for sequential execution on the same machine. We plan to optimize *ADDA* specifically for such hardware, using e.g. [http://www.openmp.org/ OpenMP].
