@@ -1,0 +1,11 @@
+#summary Setting up MinGW environment to compile ADDA on Windows
+
+<wiki:toc/>
+
+*!!! This is a stub - needs to be expanded !!!*
+
+= Basic installation =
+Here we describe the simplest way to install MinGW to be able to compile *ADDA* using provided `Makefile`.
+
+= Advanced options =
+These options may be of interest to the developers or at least those, who plan to compile *ADDA* many times with different options.
