@@ -2,7 +2,7 @@
 
 <wiki:toc /> 
 
-If you plan to run *ADDA* on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. <b>ADDA</b>’s usage of MPI is based on the [http://www.mpi-forum.org MPI 1.2] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by *ADDA* both during compilation and at runtime.
+If you plan to run *ADDA* on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. <b>ADDA</b>’s usage of MPI is based on the [http://www.mpi-forum.org MPI 2.0] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by *ADDA* both during compilation and at runtime.
 
 If you plan to run a parallel version of *ADDA* on a single computer, e.g. using multicore processor, you need first to install some implementation of MPI. Installation instruction can be found in the manual of a particular MPI package. In the following we briefly describe an example of installation of [http://www.mcs.anl.gov/research/projects/mpich2/ MPICH2] on Unix and Windows. MPICH2 has a lot of advanced features, like combining several single- and multi-core computers in a cluster. However, we do not discuss it here.
 
