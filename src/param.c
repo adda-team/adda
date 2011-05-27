@@ -1314,8 +1314,7 @@ PARSE_FUNC(V)
 		"PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\n"
 		"You should have received a copy of the GNU General Public License along with this "
 		"program. If not, see <http://www.gnu.org/licenses/>.\n";
-#define BUILD_OPTS_SIZE 100
-	char ccver_str[MAX_LINE],build_opts[BUILD_OPTS_SIZE];
+	char ccver_str[MAX_LINE];
 #if defined(__DECC)
 	char cctype;
 #elif defined(__BORLANDC__)
@@ -1376,20 +1375,31 @@ PARSE_FUNC(V)
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
+#	ifdef MPICH2
+		printf("Linked to MPICH2 version "MPICH2_VERSION"\n");
+#	elif defined(OPEN_MPI)
+		printf("Linked to OpenMPI version %d.%d.%d\n",OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,
+			OMPI_RELEASE_VERSION);
+#	endif
 #else
 		printf("Sequential version\n");
 #endif
-		printf("Built with " COMPILER " C compiler");
+		printf("Built with "COMPILER" compilers");
 #ifndef COMPILER_UNKNOWN
-		printf(", version %s",ccver_str);
+		printf(" version %s",ccver_str);
 #endif
 		// determine number of bits in size_t; not the most efficient way, but should work robustly
 		num=SIZE_MAX;
 		bits=1;
 		while(num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
+#ifdef __MINGW64_VERSION
+		printf("      using MinGW-64 environment version"__MINGW64_VERSION_STR"\n");
+#elif defined(__MINGW32_VERSION)
+		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
+#endif
 		// extra build flags
-		strncpy(build_opts,
+		const char build_opts[]=
 #ifdef DEBUGFULL
 		"DEBUGFULL, "
 #elif defined(DEBUG)
@@ -1412,10 +1422,13 @@ PARSE_FUNC(V)
 #ifdef OVERRIDE_STDC_TEST
 		"OVERRIDE_STDC_TEST, "
 #endif
-		"",BUILD_OPTS_SIZE-1);
-		if (build_opts[0]==0) strncpy(build_opts,"none",BUILD_OPTS_SIZE-1);
-		else build_opts[strlen(build_opts)-2]=0; // remove trailing comma and space
-		printf("Extra build options: %s",build_opts);
+		"";
+		printf("Extra build options: ");
+		if (build_opts[0]==0) printf("none");
+		else {
+			build_opts[strlen(build_opts)-2]=0; // remove trailing comma and space
+			printf("%s",build_opts);
+		}
 		// print copyright information
 		WrapLines(copyright);
 		printf("%s",copyright);

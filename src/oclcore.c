@@ -65,8 +65,9 @@ cl_device_id device_id;
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
 //#define READ_CL_SOURCE_AT_RUNTIME
 
+// For some reason Eclipse points out a syntax error in the following block. Just ignore it.
 #ifndef READ_CL_SOURCE_AT_RUNTIME
-	char stringifiedSourceCL[]=
+	const char stringifiedSourceCL[]=
 	// the following is a pure string generated automatically from oclkernels.cl at compile time
 #	include "ocl/oclkernels.clstr"
 	;
@@ -196,7 +197,7 @@ void oclinit(void)
 // initialize OpenCL environment
 {
 	cl_int err; // error code
-	char *cSourceString;
+	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings
 
 	// getting the first OpenCL device which is a GPU
 	GetDevice();
@@ -226,21 +227,23 @@ void oclinit(void)
 	checkErr(err,"Command_queue");
 
 #ifdef READ_CL_SOURCE_AT_RUNTIME
-	FILE *file=fopen("oclkernels.cl","rb");
 	size_t sourceStrSize;
+	char *cSourceString;
+	FILE *file=FOpenErr("oclkernels.cl","rb",ALL_POS);
 	fseek(file,0,SEEK_END);
 	sourceStrSize=ftell(file);
 	fseek(file,0,SEEK_SET);
 	MALLOC_VECTOR(cSourceString,char,sourceStrSize+1,ALL);
 	fread(cSourceString,sourceStrSize,1,file);
 	fclose(file);
+	cssPtr[0]=(const char *)cSourceString;
 #else
-	cSourceString=stringifiedSourceCL;
+	cssPtr[0]=stringifiedSourceCL;
 #endif
 	program=clCreateProgramWithSource(
 		context, // valid Context
 		1,       // number of strings in next parameter
-		(const char **)&cSourceString, // array of source strings
+		cssPtr,  // array of source strings
 		NULL,    // length of each string
 		&err     // error code
 	);

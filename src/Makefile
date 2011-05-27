@@ -1,5 +1,5 @@
 # Main makefile for ADDA package
-# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl' 
+# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl'
 # for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
@@ -18,9 +18,9 @@
 # <http://www.gnu.org/licenses/>.
 
 #===================================================================================================
-# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, LDFLAGS, and LDLIBS. First two
-# are passed to C and Fortran compiler respectively, and last two are passed to linker.
-# Values specified below are added to the values given by the environment.
+# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. 
+# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to 
+# linker. Values specified below are added to the values given by the environment.
 # These variables can also be given in the command line to make, but it will override all values
 # specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
 # with much care, including all relevant flags in the new value.
@@ -112,17 +112,23 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation
 # above for OPTIONS), overriding definition below.
-# gnu - tested for gcc 3.2.3 - 4.3.2
+# gnu - tested for gcc 3.2.3 - 4.5.2 (most recent experience only with 4.3 and newer)
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
 # hpux - tested on ia64
 # other -
+# WARNING: Currently intel compiler version 11.0 has problems with CUDA version 3.2 (Nvidia) CL
+# headers. In particular, cl_platform.h defines some parameters with __attribute__(vector...) not
+# checking for support of these attributes (against gcc version). Compiling with option '-no-gcc'
+# does not seem to work either. So the only feasible option to use icc with ocl seems to manually
+# modify this (system) header or replace them with that from AMD SDK. Hopefully, this will be fixed
+# in later versions of CUDA and/or icc.
 COMPILER := gnu
 
 # Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
 # bit environment. Flags specified below are appended to the ones specified in the environment or
-# command line of make (see explanation above for OPTIONS). The same value is used for all 
+# command line of make (see explanation above for OPTIONS). The same value is used for all
 # programming languages to be compiled.
 override EXTRA_FLAGS +=
 
@@ -158,7 +164,7 @@ CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c deb
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
 # C++ files are located in src/cpp folder, other files may be added below
-CPPSOURCE := 
+CPPSOURCE :=
 
 # All object files and dependencies are defined in common.mk after the source lists are finalized
 
@@ -256,13 +262,13 @@ ifneq ($(strip $(EXTRA_FLAGS)),)
   CPPFLAGS += $(EXTRA_FLAGS)
 endif
 
-# By default Fortran anc C++ optimization options are the same as C, but specific options can be 
-# used for some compilers below. This definition creates a permanent link, so further changes to 
+# By default Fortran anc C++ optimization options are the same as C, but specific options can be
+# used for some compilers below. This definition creates a permanent link, so further changes to
 # COPT affect FOPT and CPPOPT as well.
 FOPT   = $(COPT)
 CPPOPT = $(COPT)
 # This is for additional libraries that may be needed when using C linker on Fortran or C++ sources
-# (using Fortran or C++ linker may also cause some problems, i.e. for MPI mode). Particular values 
+# (using Fortran or C++ linker may also cause some problems, i.e. for MPI mode). Particular values
 # are assigned for each compiler below.
 FLIBS   +=
 CPPLIBS +=
@@ -270,37 +276,43 @@ CPPLIBS +=
 DBGFLAG := -g
 # Compiler-specific options
 ifeq ($(COMPILER),gnu)
-  # You can add '-march=...' or 'mcpu=...' to COPT and FOPT in this section
   CC      := gcc
   CSTD    := -std=c99
   COPT1   := -O2
   COPT2   := -O3 -ffast-math -funroll-loops
   CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings \
             -Wstrict-prototypes -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs \
-            -Wcomment -Wno-unknown-pragmas
+            -Wcomment -Wno-unknown-pragmas -Wno-overlength-strings
 
-  CF      := g77
-  FOPT    := -O
-  FLIBS   += -lg2c
+  # Use gfortran if available (GCC 4 and later), otherwise try g77
+  ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
+    CF    := gfortran
+    FLIBS += -lgfortran
+  else
+    CF    := g77
+    FLIBS += -lg2c
+  endif
 
   CCPP    := g++
   CPPLIBS := -lstdc++
 else ifeq ($(COMPILER),intel)
   CC    := icc
-  CF    := ifort
   CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
   COPT1 := -O2
   COPT2 := -O3
   CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259
+  
+  CF    := ifort
   FWARN += -vec-report0
   FLIBS += -lifcore
+  
+  CCPP  := icc
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
   # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also
-  # undefined. If you happen to use this compiler, please report results to the authors.
-  #
-  # You can add option '-arch host' to COPT and FOPT in this section
+  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results 
+  # to the authors.
   CC    := cc
   CF    := f77
   #CSTD  = -std=c99
@@ -309,7 +321,8 @@ else ifeq ($(COMPILER),compaq)
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
   # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
-  # should be used. If you happen to use this compiler, please report results to the authors.
+  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report 
+  # results to the authors. 
   #
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
   # machine. However, it will not work in some configurations.
@@ -323,6 +336,8 @@ else ifeq ($(COMPILER),ibm)
   DEPFLAG := -qmakedep=gcc -qsyntaxonly
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
+  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you 
+  # happen to use this compiler, please report results to the authors. 
   CC    := cc
   CF    := f90
   CSTD  := -AC99

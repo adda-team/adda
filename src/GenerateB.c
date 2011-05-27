@@ -14,7 +14,7 @@
  *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -35,6 +35,7 @@
 #include "const.h"
 #include "comm.h"
 #include "param.h"
+#include "io.h"
 
 
 // SEMI-GLOBAL VARIABLES
@@ -265,7 +266,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					cMultSelf(t3,t4);
 					t3[RE]-=2;
 					cMultSelf(t3,t7);
-				}
+				} else LogError(ONE_POS,"Inconsistency in beam definition"); // to remove warnings
 				// b[i]=ctemp(ex*t1+ey*t2+ez*t3)
 				cScalMultRVec(ex,t1,v1);
 				cScalMultRVec(ey,t2,v2);

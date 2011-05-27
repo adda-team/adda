@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: determines which operation system is used
  *
- * Copyright (C) 2006-2008 ADDA contributors
+ * Copyright (C) 2006-2008,2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,7 +22,7 @@
 /* If neither WINDOWS nor POSIX is found, some parts of the program, such as precise timing and
  * file locking, will fail to compile
  */
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 #	define WINDOWS
 #	include <windows.h> // all windows functions need this
 /* this list is not exhaustive. gcc always defines __POSIX__ on POSIX-compliant systems,

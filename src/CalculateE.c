@@ -5,7 +5,7 @@
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -200,9 +200,11 @@ INLINE void CloseIntegrFile(const int type,FILE * restrict file,const char * res
 
 void MuellerMatrix(void)
 {
-	FILE * restrict mueller,* restrict ampl,* restrict mueller_int,* restrict mueller_int_c2,
-		* restrict mueller_int_s2,* restrict mueller_int_c4,* restrict mueller_int_s4;
-	double * restrict cos2,* restrict sin2,* restrict cos4,* restrict sin4;
+	// redundant initializations in the following lines are against warnings
+	FILE * restrict mueller,* restrict ampl,* restrict mueller_int=NULL,
+		* restrict mueller_int_c2=NULL,* restrict mueller_int_s2=NULL,
+		* restrict mueller_int_c4=NULL,* restrict mueller_int_s4=NULL;
+	double * restrict cos2=NULL,* restrict sin2=NULL,* restrict cos4=NULL,* restrict sin4=NULL;
 	double matrix[4][4];
 	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
 	doublecomplex s1,s2,s3,s4,s10,s20,s30,s40;
