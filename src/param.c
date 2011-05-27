@@ -1321,7 +1321,7 @@ PARSE_FUNC(V)
 	int ccver;
 #endif
 	size_t num;
-	int bits;
+	int bits,len;
 
 	if (IFROOT) {
 		// compiler & version (works only for selected compilers)
@@ -1424,11 +1424,9 @@ PARSE_FUNC(V)
 #endif
 		"";
 		printf("Extra build options: ");
-		if (build_opts[0]==0) printf("none");
-		else {
-			build_opts[strlen(build_opts)-2]=0; // remove trailing comma and space
-			printf("%s",build_opts);
-		}
+		len=strlen(build_opts);
+		if (len==0) printf("none");
+		else printf("%.*s",len-2,build_opts); // trailing comma and space are omitted
 		// print copyright information
 		WrapLines(copyright);
 		printf("%s",copyright);
