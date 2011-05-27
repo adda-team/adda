@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1a6"
+#define ADDA_VERSION "1.1b1"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -46,6 +46,7 @@
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
 #define IS_EVEN(A) (((A)%2) == 0)
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
+#define STRINGIFY(A) #A
 
 // parallel definitions
 #ifdef ADDA_MPI

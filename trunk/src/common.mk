@@ -95,18 +95,18 @@ $(addprefix $(CLSPREFIX),$(CLSTRING)): $(CLSPREFIX)%.clstr:%.cl
 
 $(LDOPTSFILE):
 	@echo Linking needs to be redone
-	echo -n "$(LDCMD)" > $@
+	echo -n "$(subst ",\",$(LDCMD))" > $@
 
 $(COPTSFILE):
 	@echo C sources need to be recompiled
-	echo -n "$(CCMD)" > $@
+	echo -n "$(subst ",\",$(CCMD))" > $@
 
 $(FOPTSFILE):
 	@echo Fortran sources need to be recompiled
-	echo -n "$(FCMD)" > $@
+	echo -n "$(subst ",\",$(FCMD))" > $@
 
 $(CPPOPTSFILE):
 	@echo C++ sources need to be recompiled
-	echo -n "$(CPPCMD)" > $@
+	echo -n "$(subst ",\",$(CPPCMD))" > $@
 
 -include $(CDEPEND)

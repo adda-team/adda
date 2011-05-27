@@ -3,7 +3,7 @@
  * Descr: all the functions to calculate scattering quantities (except Mueller matrix); to read
  *        different parameters from files; and initialize orientation of the particle
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -510,7 +510,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 {
 	double kkk;
 	doublecomplex a,m2,dpr;
-	doublecomplex sum[3],tbuff[3],tmp;
+	doublecomplex sum[3],tbuff[3],tmp={0,0}; // redundant initialization to remove warnings
 	int i;
 	unsigned short ix,iy1,iy2,iz1,iz2;
 	size_t j,jjj;

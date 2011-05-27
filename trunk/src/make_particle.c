@@ -1242,8 +1242,6 @@ void InitShape(void)
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
 	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
-	bool box_det_sh;         // if boxX is determined by shape itself
-	bool size_det_sh;        // if size is determined by shape itself
 	bool size_given_cmd;     // if size is given in the command line
 	char sizename[MAX_LINE]; // type of input size, used in diagnostic messages
 	/* TO ADD NEW SHAPE
@@ -1253,33 +1251,15 @@ void InitShape(void)
 
 	tstart=GET_TIME();
 
-	box_det_sh=(shape==SH_READ);
-	size_det_sh=(shape==SH_AXISYMMETRIC);
-	/* TO ADD NEW SHAPE
-	 * If new shape defines dimension of the computational grid or absolute size of the particle,
-	 * change corresponding definition in one of two lines above. In many cases this is not
-	 * relevant.
+	/* New boxes and sizes are defined only by some shapes, hence they are set to UNDEF here and
+	 * can be tested against UNDEF afterwards.
 	 */
+	n_boxX=n_boxY=n_boxZ=UNDEF;
+	n_sizeX=UNDEF;
 
 	size_given_cmd=(sizeX!=UNDEF || a_eq!=UNDEF);
 	if (sizeX!=UNDEF) strcpy(sizename,"size");
 	else if (a_eq!=UNDEF) strcpy(sizename,"eq_rad");
-	// check for redundancy of input data
-	if (dpl!=UNDEF) {
-		if (size_given_cmd) {
-			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl', '-grid', "
-				"and '-%s'",sizename);
-			else if (box_det_sh) PrintError("Too much information is given by setting both '-dpl' "
-				"and '-%s', while shape '%s' sets the size of the grid",sizename,shapename);
-		}
-		else if (size_det_sh) {
-			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl' and "
-				"'-grid', while shape '%s' sets the particle size",shapename);
-			// currently this can't happen, but may become relevant in the future
-			else if (box_det_sh) PrintError("Too much information is given by setting '-dpl', "
-				"while shape '%s' sets both the particle size and the size of the grid",shapename);
-		}
-	}
 	/* calculate default dpl - 10*sqrt(max(|m|));
 	 * for anisotropic each component is considered separately
 	 */
@@ -1663,17 +1643,33 @@ void InitShape(void)
 	 * volume_ratio - ratio of particle volume to (boxX)^3. Initialize it if it can be calculated
 	 *                analytically or set to UNDEF otherwise. This parameter is crucial if one wants
 	 *                to initialize computational grid from '-eq_rad' and '-dpl'.
+	 * n_boxX - grid size for the particle, defined by shape; initialize only when relevant,
+	 *          e.g. for shapes such as 'read'.
 	 * n_sizeX - absolute size of the particle, defined by shape; initialize only when relevant,
 	 *           e.g. for shapes such as 'axisymmetric'.
 	 * all other auxiliary variables, which are used in shape generation (MakeParticle(), see
 	 *   below), should be defined in the beginning of this file. If you need temporary local
 	 *   variables (which are used only in this part of the code), either use 'tmp1'-'tmp3' or
 	 *   define your own (with more informative names) in the beginning of this function.
-	 * Also (rarely) if the shape defines dimension of the computational grid or absolute size of
-	 * the particle, correct values of box_det_sh and size_det_sh in the beginning of this function.
 	 */
 	else LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
 
+	// check for redundancy of input data
+	if (dpl!=UNDEF) {
+		if (size_given_cmd) {
+			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl', '-grid', "
+				"and '-%s'",sizename);
+			else if (n_boxX!=UNDEF) PrintError("Too much information is given by setting both "
+				"'-dpl' and '-%s', while shape '%s' sets the size of the grid",sizename,shapename);
+		}
+		else if (n_sizeX!=UNDEF) {
+			if (boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl' and "
+				"'-grid', while shape '%s' sets the particle size",shapename);
+			// currently this can't happen, but may become relevant in the future
+			else if (n_boxX!=UNDEF) PrintError("Too much information is given by setting '-dpl', "
+				"while shape '%s' sets both the particle size and the size of the grid",shapename);
+		}
+	}
 	// initialize domain granulation
 	if (sh_granul) {
 		symX=symY=symZ=symR=false; // no symmetry with granules
@@ -1700,7 +1696,7 @@ void InitShape(void)
 	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=true;
 
 	// determine which size to use
-	if (size_det_sh) {
+	if (n_sizeX!=UNDEF) {
 		if (size_given_cmd) LogWarning(EC_INFO,ONE_POS,"Particle size specified by command line "
 			"option '-%s' overrides the internal specification of the shape '%s'. The particle "
 			"will be scaled accordingly.",sizename,shapename);
@@ -1715,7 +1711,7 @@ void InitShape(void)
 	 *   else dpl is initialized to default (if undefined) and boxX is calculated from sizeX and dpl
 	 * else adjust boxX if needed.
 	 */
-	if (boxX==UNDEF && !box_det_sh) {
+	if (boxX==UNDEF && n_boxX==UNDEF) {
 		if (sizeX==UNDEF) {
 			// if a_eq is set, but sizeX was not initialized before - error
 			if (a_eq!=UNDEF) PrintError("Grid size can not be automatically determined from "
@@ -1748,7 +1744,7 @@ void InitShape(void)
 		 * especially when '-size' is used
 		 */
 		if (boxX!=UNDEF) temp=boxX;
-		else temp=n_boxX;
+		else temp=n_boxX; // this happens only if n_boxX!=UNDEF
 		if ((boxX=FitBox(temp))!=temp) {
 			if (sizeX==UNDEF) LogWarning(EC_WARN,ONE_POS,"boxX has been adjusted from %i to %i. "
 				"Size along X-axis in the shape description is the size of new (adjusted) "
@@ -1757,12 +1753,16 @@ void InitShape(void)
 				"boxX has been adjusted from %i to %i. Size specified by the command line option "
 				"'-size' is used for the new (adjusted) computational grid.",temp,boxX);
 		}
-		if (box_det_sh && n_boxX>boxX)
+		if (n_boxX!=UNDEF && n_boxX>boxX)
 			PrintError("Particle (boxX=%d) does not fit into specified boxX=%d",n_boxX,boxX);
 	}
-	// if shape is determined by ratios, calculate proposed grid sizes along y and z axes
+	/* If shape is determined by ratios, calculate proposed grid sizes along y and z axes.
+	 * Either ratios or n_box should necessarily be defined.
+	 */
 	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX);
+	else if (n_boxY==UNDEF) LogError(ONE_POS,"Both yx_ratio and n_boxY are undefined");
 	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX);
+	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
 		boxY=FitBox(n_boxY);

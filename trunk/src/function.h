@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: INLINE definition and function attributes
  *
- * Copyright (C) 2006,2008,2010 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,19 +22,41 @@
 // specify to inline some functions; if there are problems with compiler change to "static"
 #define INLINE static __inline
 
-// some optimization shortcuts; can be easily removed if not supported by compiler
-#ifdef __GNUC__ // this should also work with Intel
+// attribute options for GCC compilers (Intel compiler may also recognize them)
+#ifdef __GNUC__
+	// sets a macro for testing GCC version (copied from _mingw.h)
+#	ifdef __GNUC_MINOR__
+#		define GCC_PREREQ(major,minor) \
+			(__GNUC__ > (major) || (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
+#	else
+#		define GCC_PREREQ(major, minor)  0
+#	endif
+	// The following chooses between __printf__ and __gnu_printf__ attributes
+#	if GCC_PREREQ(4,4)
+		/* for newer gcc. In particular, it removes warnings about %z in printf-type functions on
+		 * Windows. Native Windows libraries do not support this format specifier, however MinGW
+		 * contains replacement functions to take care of it. So when using MinGW, system
+		 * limitations are not that relevant.
+		 */
+#		define ATT_PRINTF(a,b) __attribute__ ((__format__(__gnu_printf__,a,b)))
+#	else // for older gcc
+#		define ATT_PRINTF(a,b) __attribute__ ((__format__(__printf__,a,b)))
+#	endif
+#	if GCC_PREREQ(3,0) // pure and malloc require gcc 3.0
+#		define ATT_PURE        __attribute__ ((__pure__))
+#		define ATT_MALLOC      __attribute__ ((__malloc__))
+#	else
+#		define ATT_PURE
+#		define ATT_MALLOC
+#	endif
 #	define ATT_NORETURN    __attribute__ ((__noreturn__))
-#	define ATT_PRINTF(a,b) __attribute__ ((__format__(__printf__,a,b)))
 #	define ATT_UNUSED      __attribute__ ((__unused__))
-#	define ATT_PURE        __attribute__ ((__pure__))
-#	define ATT_MALLOC      __attribute__ ((__malloc__))
 #else
-#	define ATT_NORETURN
 #	define ATT_PRINTF(a,b)
-#	define ATT_UNUSED
 #	define ATT_PURE
 #	define ATT_MALLOC
+#	define ATT_NORETURN
+#	define ATT_UNUSED
 #endif
 
 #endif // __function_h
