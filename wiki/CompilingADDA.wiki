@@ -53,6 +53,8 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || `FFTW3_INC_PATH` || path || Path to FFTW3 headers. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. || 
 || `FFTW3_LIB_PATH` || path || Path to FFTW3 library. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. ||
 
+Although [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] contain options for several compilers, described above, the new releases are usually tested only with GNU and Intel compilers. So the options for other compilers may be outdated. If you modify these options to successfully compile the current version of *ADDA*, please communicate these modifications to the [http://groups.google.com/group/adda-discuss discussion group], so they can be incorporated in future releases.
+
 To use `COMPILER=other` one should manually add definitions of corresponding compiler flags to the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile], according to the pattern used for predefined compilers, after the line
 {{{
 ifeq ($(COMPILER),other)
