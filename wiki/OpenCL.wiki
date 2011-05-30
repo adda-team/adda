@@ -19,7 +19,7 @@ recent [http://www.nvidia.com/page/drivers.html Nvidia device driver] and their 
 
 In the Ubuntu 10.10 operating system, the OpenCL environment should be already set up by just installing the Nvidia device driver from the repository.
 
-*WARNING*: Currently Intel compiler version 11.0 has problems with OpenCL headers from CUDA version 3.2. In particular, `cl_platform.h` defines some types with `__attribute__(vector...)` not checking for support of these attributes (against `gcc` version). Compiling with option `-no-gcc` does not seem to work either. So the only feasible option to use `icc` with `make ocl` seems to manually modify this (system) header or replace them with that from AMD SDK (see below). Hopefully, this will be fixed in later versions of CUDA and/or `icc`.
+*WARNING*: Intel compiler (version 11.0) has problems with OpenCL headers from CUDA version 3.2. So to compile with Intel compiler use CUDA version 4.0 or later (or AMD SDK).
 
 == AMD GPUs ==
 
