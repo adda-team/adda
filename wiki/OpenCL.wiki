@@ -1,12 +1,16 @@
 #summary Overview of ADDA OpenCL implementation and installation notes.
 
+<wiki:toc />
+
 [http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly
 parallel devices like graphic cards (GPUs) and mutlicore CPUs. The
 implementation is experimental and works on high end Nvidia (Geforce GTX 260/Tesla C1060 and newer) and ATI/AMD (Radeon HD 47xx/48xx/58xx/69xx, FireStream 9250+) GPUs at the present state.
 
 = Setup of the environment =
 
-On the Ubuntu Linux operating system, there is a PPA with the recent device drivers of AMD/Nvidia
+The instructions below are far from being complete, they only summarize the experience we had with several systems.
+
+On the Ubuntu Linux operating system, it is sufficient to install a PPA with the recent device drivers for both AMD and Nvidia.
 {{{
 ppa:ubuntu-x-swat/x-updates 
 }}}
@@ -14,18 +18,25 @@ for details about handling PPAs just read the [https://help.launchpad.net/Packag
 
 == Nvida GPUs ==
 
-The easiest way to set up a working OpenCL environment is to install a
-recent [http://www.nvidia.com/page/drivers.html Nvidia device driver] and their [http://developer.nvidia.com/object/gpucomputing.html GPU computing toolkit]. The latter is named "CUDA Toolkit" but it contains OpenCL components.
+_On Unix_ systems packages containing Nvidia drivers are available (sometimes from non-official repositories, like [http://rpmfusion.org/ RPM Fusion]). This is the easiest way to install Nvidia drivers. Unfortunately, sometimes these packages do not contain OpenCL headers (even in the developers versions) - check with your particular package. Then you may obtain these headers from the [http://developer.nvidia.com/cuda-toolkit-sdk CUDA toolkit]. The drivers (without headers) can also be obtained directly [http://www.nvidia.com/page/drivers.html from Nvidia].
 
-In the Ubuntu 10.10 operating system, the OpenCL environment should be already set up by just installing the Nvidia device driver from the repository.
+_On Windows_ you should also install a recent [http://www.nvidia.com/page/drivers.html Nvidia device driver] and the [http://developer.nvidia.com/cuda-toolkit-sdk CUDA toolkit]. The latter provides both headers and libraries.
 
 *WARNING*: Intel compiler (version 11.0) has problems with OpenCL headers from CUDA version 3.2. So to compile with Intel compiler use CUDA version 4.0 or later (or AMD SDK).
 
 == AMD GPUs ==
 
-The [http://developer.amd.com/gpu/ATIStreamSDK/Pages/default.aspx AMD Stream-SDK] need to be installed and the _fglrx_ driver (the proprietary AMD driver) There are [http://forums.amd.com/forum/messageview.cfm?catid=390&threadid=125792 Debian packages] available to reduce the installation effort of OpenCL on Debian based Linux distributions.
+The [http://developer.amd.com/gpu/ATIStreamSDK/Pages/default.aspx AMD Stream-SDK] need to be installed and the _fglrx_ driver (the proprietary AMD driver). There are [http://forums.amd.com/forum/messageview.cfm?catid=390&threadid=125792 Debian packages] available to reduce the installation effort of OpenCL on Debian based Linux distributions.
+
+== Include and library paths ==
+
+If the package, which you installed, has not set the paths to OpenCL headers and libraries. You should either
+ * set these paths yourself:
+   * _on Unix_ add headers location to environmental variables `C_INCLUDE_PATH` and `CPLUS_INCLUDE_PATH` and libraries location - to `LD_LIBRARY_PATH`. 
+   * _on Windows_ copy contents of corresponding folders to `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment]. 
+ * or specify paths to corresponding `include` and `lib` folders in file `src/ocl/Makefile`, as described in [CompilingADDA].
 
 = Implementation =
 
-In general the whole matrix-vector multiplication is done on the GPU. It is currently in an early state and just tested on the Linux operating system.
-For details and benchmarks see [http://www.iup.uni-bremen.de/iuppage/psa/documents/huntemann11.pdf the report of the OpenCL implementation]
+In general the whole matrix-vector multiplication is done on the GPU.
+For details and benchmarks see [http://www.iup.uni-bremen.de/iuppage/psa/documents/huntemann11.pdf the report of the OpenCL implementation].
