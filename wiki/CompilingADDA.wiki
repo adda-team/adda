@@ -63,6 +63,8 @@ If you do so, please write to the [http://groups.google.com/group/adda-discuss d
 
 If compilation of MPI version does not work out-of-box, you may need to modify [http://code.google.com/p/a-dda/source/browse/trunk/src/mpi/Makefile mpi/Makefile]. This may include specifying a particular compiler wrapper (setting variable `MPICC`) and paths to compiler headers and libraries. For the latter uncomment and adjust lines starting with "`CFLAGS += I`" and "`LFLAGS += L`" accordingly. Please see comments in the file for more details.
 
+If compilation of OpenCL version does not work out-of-box, you may need to modify [http://code.google.com/p/a-dda/source/browse/trunk/src/ocl/Makefile ocl/Makefile] to explicitly specify paths to headers and libraries. For this uncomment and adjust lines starting with "`CFLAGS += I`" and "`LFLAGS += L`" accordingly. Please see comments in the file for more details.
+
 When asked to repeat compilation, `make` automatically determines, which source files need to be recompiled. Apart from changes in the source files themselves the logic of `Makefile` also considers the differences in compilation options between current and previous compilation. Thus, it is not necessary to perform any cleaning between the compilations with different options.
 
 = Different platforms =
