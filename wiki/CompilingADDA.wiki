@@ -35,7 +35,7 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || *Name* || *Value* || *Description* ||
 || `COMPILER` || one of || ||
 || || `gnu` || [http://www.gnu.org/software/gcc/ GNU compilers]. The default value. ||
-|| || `intel` || [http://software.intel.com/en-us/intel-compilers/ Intel compilers]. Produced *ADDA* executables may be 10-20% faster compared to `gnu` on Intel processors, so `intel` is recommended wherever possible. Note that it is [http://software.intel.com/en-us/articles/non-commercial-software-download/ freely available for non-commercial use on Linux]. ||
+|| || `intel` || [http://software.intel.com/en-us/intel-compilers/ Intel compilers]. ||
 || || `compaq` || [http://h30097.www3.hp.com/dtk/compaqc_ov.html Compaq compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
 || || `ibm` || [http://www-142.ibm.com/software/products/us/en/subcategory/SW760 IBM compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
 || || `hpux` || Specific options for HP-UX ia64 environment ||
