@@ -231,6 +231,9 @@ static const struct subopt_struct shape_opt[]={
 		"parallelepiped with edges x,y,z.",UNDEF,SH_BOX},
 	{"capsule","<h/d>","Homogeneous capsule (cylinder with half-spherical end caps) with cylinder "
 		"height h and diameter d (its axis of symmetry coincides with the z-axis).",1,SH_CAPSULE},
+	{"chebyshev","<eps> <n>","Axisymmetric Chebyshev particle of amplitude eps and order n, "
+		"r=r_0[1+eps*cos(n*theta)]. eps is a real number, such that |eps|<=1, while n is a natural "
+		"number",2,SH_CHEBYSHEV},
 	{"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has "
 		"a diameter d (first domain). The included sphere has a diameter d_in (optional position "
 		"of the center: x,y,z).",UNDEF,SH_COATED},

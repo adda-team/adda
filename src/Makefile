@@ -119,7 +119,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # hpux - tested on ia64
 # other -
 # WARNING: Currently intel compiler version 11.0 has problems with CUDA version 3.2 (Nvidia) CL
-# headers. In particular, cl_platform.h defines some parameters with __attribute__(vector...) not
+# headers. In particular, cl_platform.h defines some types with __attribute__(vector...) not
 # checking for support of these attributes (against gcc version). Compiling with option '-no-gcc'
 # does not seem to work either. So the only feasible option to use icc with ocl seems to manually
 # modify this (system) header or replace them with that from AMD SDK. Hopefully, this will be fixed
@@ -159,7 +159,7 @@ override EXTRA_FLAGS +=
 # C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
            linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
-           prec_time.c vars.c mt19937ar.c sinint.c
+           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
@@ -183,9 +183,6 @@ DEPFLAG   := -M
 DFFLAG    := -MF # this is required
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
-# for now we will look at C++ warnings
-#CPPWARN   := -w
-CPPWARN := -Wall
 
 #===================================================================================================
 # Conditional variables that depend on the values of optional flags.
@@ -295,18 +292,22 @@ ifeq ($(COMPILER),gnu)
 
   CCPP    := g++
   CPPLIBS := -lstdc++
+  # for now we do not want to investigate C++ warnings (since these sources are planned to be 
+  # replaced by more advanced routines), so we consider the following combination thorough enough
+  CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
   CC    := icc
   CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
   COPT1 := -O2
   COPT2 := -O3
-  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1572,2259
+  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1498,1572,2259
   
   CF    := ifort
   FWARN += -vec-report0
   FLIBS += -lifcore
   
   CCPP  := icc
+  CPPWARN := -Wall -Wcheck -diag-disable 279
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
@@ -356,6 +357,7 @@ $(info Compiler set '$(COMPILER)')
 ifeq ($(DBGLVL),0)
 # the following two options (-w) are assumed universal across all compilers
   CWARN   := -w
+  CPPWARN := -w
   LDFLAGS += -w
   COPT    := $(COPT2)
   DBGFLAG :=

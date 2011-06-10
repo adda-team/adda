@@ -59,6 +59,7 @@
 #include <assert.h>
 #include "fft_internal.h"
 #include "clFFT.h"
+#include "../function.h"
 
 using namespace std;
 
@@ -741,7 +742,8 @@ insertLocalStores(string &kernelString, int numIter, int Nr, int numWorkItemsPer
 }
 
 static void 
-insertLocalLoads(string &kernelString, int n, int Nr, int Nrn, int Nprev, int Ncurr, int numWorkItemsPerXForm, int numWorkItemsReq, int offset, string &comp)
+insertLocalLoads(string &kernelString, int n, int Nr, int Nrn, int Nprev, int Ncurr ATT_UNUSED,
+	int numWorkItemsPerXForm, int numWorkItemsReq, int offset, string &comp)
 {
 	int numWorkItemsReqN = n / Nrn;										
 	int interBlockHNum = max( Nprev / numWorkItemsPerXForm, 1 );			
