@@ -40,6 +40,7 @@ extern const doublecomplex * restrict Dmatrix;
 extern doublecomplex * restrict slices,* restrict slices_tr;
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
 
+#ifndef OPENCL // the following inline functions are not used in OCL mode
 //============================================================
 
 INLINE size_t IndexSliceZY(const size_t y,const size_t z)
@@ -88,6 +89,7 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
+#endif
 
 //============================================================
 

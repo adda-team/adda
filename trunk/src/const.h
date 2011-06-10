@@ -145,6 +145,7 @@ enum sh { // shape types
 	SH_BISPHERE,     // two spheres
 	SH_BOX,          // box (may be rectangular)
 	SH_CAPSULE,      // capsule
+	SH_CHEBYSHEV,    // Chebyshev particle (axisymmetric)
 	SH_COATED,       // coated sphere
 	SH_CYLINDER,     // cylinder
 	SH_EGG,          // egg

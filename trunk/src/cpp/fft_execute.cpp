@@ -47,6 +47,7 @@
 
 #include "fft_internal.h"
 #include "clFFT.h"
+#include "../function.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -131,7 +132,8 @@ getKernelWorkDimensions(cl_fft_plan *plan, cl_fft_kernel_info *kernelInfo, cl_in
 cl_int 
 clFFT_ExecuteInterleaved( cl_command_queue queue, clFFT_Plan Plan, cl_int batchSize, clFFT_Direction dir, 
 						 cl_mem data_in, cl_mem data_out, 
-						 cl_int num_events, cl_event *event_list, cl_event *event )
+						 cl_int num_events ATT_UNUSED, cl_event *event_list ATT_UNUSED,
+						 cl_event *event ATT_UNUSED)
 {	
 	int s;
 	cl_fft_plan *plan = (cl_fft_plan *) Plan;
@@ -228,7 +230,8 @@ clFFT_ExecuteInterleaved( cl_command_queue queue, clFFT_Plan Plan, cl_int batchS
 cl_int 
 clFFT_ExecutePlannar( cl_command_queue queue, clFFT_Plan Plan, cl_int batchSize, clFFT_Direction dir, 
 					  cl_mem data_in_real, cl_mem data_in_imag, cl_mem data_out_real, cl_mem data_out_imag,
-					  cl_int num_events, cl_event *event_list, cl_event *event)
+					  cl_int num_events ATT_UNUSED, cl_event *event_list ATT_UNUSED,
+					  cl_event *event ATT_UNUSED)
 {	
 	int s;
 	cl_fft_plan *plan = (cl_fft_plan *) Plan;

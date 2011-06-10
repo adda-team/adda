@@ -88,14 +88,18 @@ static int minX,minY,minZ;      // minimum values of dipole positions in dipole 
 static FILE * restrict dipfile; // handle of dipole file
 static enum shform read_format; // format of dipole file, which is read
 static char linebuf[BUF_LINE];  // buffer for reading lines from dipole file
-double cX,cY,cZ;                // center for DipoleCoord, it is sometimes used in PlaceGranules
+static double cX,cY,cZ;         // center for DipoleCoord, it is sometimes used in PlaceGranules
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
-static double ad2,egnu,egeps,egz0; // for egg
+static double ad2,egnu,egeps; // for egg
+static double chebeps,r0_2; // for Chebyshev
+static int chebn; // for Chebyshev
 static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
+static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
+static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (in units of Dx)
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
-static double rc_2,ri_2,prx0,prang; // for prism
+static double prang; // for prism
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo, contCurZ, contRoSqMin;
@@ -113,6 +117,7 @@ struct segment {
 	double add;            // only for single; ro[i](1-slope);
 };
 struct segment * restrict contSeg;
+
 /* TO ADD NEW SHAPE
  * Add here all internal variables (aspect ratios, etc.), which you initialize in InitShape()
  * and use in MakeParticle() afterwards. If you need local, intermediate variables, put them into
@@ -124,6 +129,11 @@ struct segment * restrict contSeg;
 static unsigned char * restrict material_tmp;
 static double * restrict DipoleCoord_tmp;
 static unsigned short * restrict position_tmp;
+
+// EXTERNAL FUNCTIONS
+
+// chebyshev.c
+void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,double *vr);
 
 //============================================================
 
@@ -1238,7 +1248,7 @@ void InitShape(void)
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
 	double yx_ratio,zx_ratio;
-	double tmp1,tmp2;
+	double tmp1,tmp2,tmp3;
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
 	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
@@ -1403,6 +1413,33 @@ void InitShape(void)
 		zx_ratio=diskratio+1;
 		Nmat_need=1;
 	}
+	else if(shape==SH_CHEBYSHEV) {
+		double Dx,Dz; // grid sizes along x and z (in units of scale parameter r0)
+		double Ri,Rc; // radii of inscribed and circumscribed spheres (in units of r0)
+		double sz;    // coordinate of center of Dz relative to sphere origin (in units of r0)
+		double ae;    // |eps|
+
+		chebeps=sh_pars[0];
+		TestRangeII(chebeps,"height to diameter ratio",-1,1);
+		chebn=sh_pars[1];
+		ConvertToInteger(sh_pars[1],"number of sides",&chebn);
+		TestPositive_i(chebn,"order n");
+		Ri=1-fabs(chebeps);
+		Rc=1+fabs(chebeps);
+		ChebyshevParams(chebeps,chebn,&Dx,&Dz,&sz,&volume_ratio);
+		if (IFROOT) sprintf(sh_form_str,"axisymmetric chebyshev particle; size along x-axis (Dx):"
+			"%s, amplitude eps="GFORM", order n=%d, initial radius r0/Dx="GFORM,GFORM,chebeps,
+			chebn,1/Dx);
+		yx_ratio=1;
+		zx_ratio=Dz/Dx;
+		symZ=(sz!=0);
+		zcenter=-sz/Dx;
+		r0_2=1/(Dx*Dx);
+		ae=fabs(chebeps);
+		rc_2=(1+ae)*(1+ae)*r0_2;
+		ri_2=(1-ae)*(1-ae)*r0_2;
+		Nmat_need=1;
+	}
 	else if (shape==SH_COATED) {
 		double coat_ratio;
 
@@ -1448,7 +1485,7 @@ void InitShape(void)
 		 * Carr A.K., Carter C.C., Han T.S., and Thomas M.E. "Shape characteristics of biological
 		 * spores", paper 6954-31 to be presented at "SPIE Defence + Security", March 2008
 		 */
-		double ad,tmp3;
+		double ad;
 		double ct,ct2; // cos(theta0) and its square
 
 		egeps=sh_pars[0];
@@ -1475,7 +1512,7 @@ void InitShape(void)
 		 * overflow even faster. It is used to shift coordinates from the computational reference
 		 * frame (centered at z0) to the natural one
 		 */
-		egz0=-ad*egnu*(tmp1*tmp1*tmp2*tmp2)/(tmp1+tmp2);
+		zcenter=ad*egnu*(tmp1*tmp1*tmp2*tmp2)/(tmp1+tmp2);
 		/* (V/d^3)=(4*pi/3)*(a/d)^3*{[2(1-eps)-nu]/sqrt(eps+nu)+[2(1-eps)+nu]/sqrt(eps-nu)}/
 		 *        /[nu^2+4(1-eps)]
 		 */
@@ -1547,7 +1584,7 @@ void InitShape(void)
 		}
 		if (IFROOT) sprintf(sh_form_str,"%d-sided regular prism; size along x-axis (Dx):%s, height "
 			"h/Dx="GFORM", base side a/Dx="GFORM,Nsides,GFORM,diskratio,1/Dx);
-		prx0=sx/Dx;
+		xcenter=sx/Dx;
 		yx_ratio=Dy/Dx;
 		zx_ratio=diskratio;
 		hdratio=zx_ratio/2;
@@ -1806,7 +1843,7 @@ void MakeParticle(void)
 	int i,j,k,ns;
 	size_t index,dip,nlocalRows_tmp;
 	double tmp1,tmp2,tmp3;
-	double xr,yr,zr,xcoat,ycoat,zcoat,r2,z2,zshift,xshift;
+	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	double jcX,jcY,jcZ; // center for jagged
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
@@ -1912,6 +1949,19 @@ void MakeParticle(void)
 						if (tmp1<=0 || tmp1*tmp1+r2<=0.25) mat=0;
 					}
 				}
+				else if (shape==SH_CHEBYSHEV) {
+					ro2=xr*xr+yr*yr;
+					zshift=zr-zcenter;
+					r2=ro2+zshift*zshift;
+					if (r2<=ri_2) mat=0;
+					else if (r2<=rc_2) {
+						/* This can be optimized using Chebyshev polynomials, but would probably be
+						 * efficient only for relatively small n.
+						 */
+						tmp1=1+chebeps*cos(chebn*atan2(sqrt(ro2),zshift));
+						if (r2 <= r0_2*tmp1*tmp1) mat=0;
+					}
+				}
 				else if (shape==SH_COATED) {
 					if (xr*xr+yr*yr+zr*zr<=0.25) { // first test to skip some dipoles immediately)
 						xcoat=xr-coat_x;
@@ -1926,7 +1976,7 @@ void MakeParticle(void)
 				}
 				else if (shape==SH_EGG) {
 					r2=xr*xr+yr*yr;
-					zshift=zr+egz0;
+					zshift=zr-zcenter;
 					z2=zshift*zshift;
 					if (r2+egeps*z2+egnu*zshift*sqrt(r2+z2)<=ad2) mat=0;
 				}
@@ -1937,7 +1987,7 @@ void MakeParticle(void)
 					if (yj==0 && zj==0) mat=0;
 				}
 				else if (shape==SH_PRISM) {
-					xshift=xr-prx0;
+					xshift=xr-xcenter;
 					r2=xshift*xshift+yr*yr;
 					if(r2<=rc_2 && fabs(zr)<=hdratio) {
 						if (r2<=ri_2) mat=0;

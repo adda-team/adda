@@ -37,6 +37,9 @@
 		 * Windows. Native Windows libraries do not support this format specifier, however MinGW
 		 * contains replacement functions to take care of it. So when using MinGW, system
 		 * limitations are not that relevant.
+		 * This causes certain problems with icc 12.0. It claims to support gcc 4.5 but does not
+		 * recognize this format. However, this is dealt with disabling corresponding warning in
+		 * Makefile.
 		 */
 #		define ATT_PRINTF(a,b) __attribute__ ((__format__(__gnu_printf__,a,b)))
 #	else // for older gcc

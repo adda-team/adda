@@ -17,7 +17,21 @@
 # You should have received a copy of the GNU General Public License along with 
 # ADDA. If not, see <http://www.gnu.org/licenses/>.
 
-# !!! This file do not have any options designed to be changed by ADDA user
+#===================================================================================================
+# !!! Start of control section. Flags and options here are designed to be modified by user to choose
+# particular options for compilation. However, the default set of options may work out-of-box on
+# some systems.
+#===================================================================================================
+
+# Depending on a particular OpenCL installation one may need to manually specify paths to 
+# corresponding headers and libraries. Path should be absolute or relative to the location of this 
+# Makefile.
+#CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
+#LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
+
+#===================================================================================================
+# !!! End of control section. Everything below is not designed to be modified by user
+#===================================================================================================
 
 CFLAGS    += -DOPENCL
 LDFLAGS   += -lOpenCL
@@ -40,7 +54,7 @@ CLSCOMMAND := sed -e 's/["\\]/\\&/g' -e 's/.*/"&\\n"/'
 # Non-existing .clstr should be created right now, since otherwise automatic generation of
 # dependencies will fail. The implementation is equivalent to the one used in the make pattern in
 # common.mk (which is used for updating .clstr files when necessary), but more complicated since 
-# vpath (for .cl files) and automatica pattern substitution cannot be used
+# vpath (for .cl files) and automatic pattern substitution cannot be used
 $(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(CPATH)/%.cl,$(file)) > $(file)))
 vpath %.cl $(CPATH)
 
