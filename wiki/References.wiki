@@ -12,28 +12,42 @@ M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: 
 == OpenCL (GPU-accelerated) version ==
 M. Huntemannn, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. In press].
 
+== Different implemented DDA formulations ==
+=== Filtered coupled dipoles (FCD) ===
+ * N. B. Piller and O. J. F. Martin, “Increasing the performance of the coupled-dipole approximation: A spectral approach,” [http://dx.doi.org/10.1109/8.718567 IEEE Trans. Antennas Propag. 46, 1126-1137 (1998)].
+ * M. A. Yurkin, M. Min, and A. G. Hoekstra, “Application of the discrete dipole approximation to very large refractive indices: Filtered coupled dipoles revived,” [http://dx.doi.org/10.1103/PhysRevE.82.036703 Phys. Rev. E 82, 036703-12 (2010)].
+
+=== Integration of Green's tensor (IGT) ===
+P. C. Chaumet, A. Sentenac, and A. Rahmani, “Coupled dipole method for scatterers with large permittivity,” [http://dx.doi.org/10.1103/PhysRevE.70.036606 Phys. Rev. E 70, 036606 (2004)].
+
 == Particles much larger than the wavelength ==
 M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approximation for simulation of light scattering by particles much larger than the wavelength,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.033 J. Quant. Spectrosc. Radiat. Transfer 106, 546-557 (2007)].
 
 == Gold nanoparticles ==
 M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585-15 (2010)].
 
-== Extreme refractive indices and the FCD formulation ==
-M. A. Yurkin, M. Min, and A. G. Hoekstra, “Application of the discrete dipole approximation to very large refractive indices: Filtered coupled dipoles revived,” [http://dx.doi.org/10.1103/PhysRevE.82.036703 Phys. Rev. E 82, 036703-12 (2010)].
+== Shapes ==
+=== Egg ===
+D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W-10 (2008)].
+ 
+=== Red blood cell (RBC) ===
+M. A. Yurkin, “Discrete dipole simulations of light scattering by blood cells,” [http://www.science.uva.nl/research/scs/papers/archive/Yurkin2007c.pdf PhD thesis, University of Amsterdam (2007)].
 
-== Granulated particles ==
+=== Granule generator ===
 M. A. Yurkin, K. A. Semyanov, V. P. Maltsev, and A. G. Hoekstra, “Discrimination of granulocyte subtypes from light scattering: theoretical analysis using a granulated sphere model,” [http://dx.doi.org/10.1364/OE.15.016561 Opt. Express 15, 16561-16580 (2007)].
 
-== Radiation forces ==
+== Calculated quantities ==
+=== Radiation forces ===
 A. G. Hoekstra, M. Frijlink, L. B. F. M. Waters, and P. M. A. Sloot, “Radiation forces in the discrete-dipole approximation,” [http://dx.doi.org/10.1364/JOSAA.18.001944 J. Opt. Soc. Am. A 18, 1944-1953 (2001)].
 
-== Internal fields ==
+=== Internal fields ===
 A. G. Hoekstra, J. Rahola, and P. M. A. Sloot, “Accuracy of internal fields in volume integral equation simulations of light scattering,” [http://dx.doi.org/10.1364/AO.37.008482 Appl. Opt. 37, 8482-8497 (1998)].
 
-== Comparison with other DDA codes ==
+== Comparisons ==
+=== with other DDA codes ===
 A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
  
-== Comparison with other light-scattering methods ==
+=== with other light-scattering methods ===
  * M. A. Yurkin, A. G. Hoekstra, R. S. Brock, and J. Q. Lu, “Systematic comparison of the discrete dipole approximation and the finite difference time domain method for large dielectric scatterers,” [http://dx.doi.org/10.1364/OE.15.017902 Opt. Express 15, 17902-17911 (2007)].
  * K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681-5690 (2010)].
 
