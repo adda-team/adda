@@ -7,21 +7,23 @@
    * [ComparisonOtherCodes Comparison with other codes]
    * [LargestSimulations Largest simulations]
  * Description of the code
-   * [PackageDescription Description of the packages]<wiki:comment> 
+   * [PackageDescription Description of the packages]<wiki:comment>    
    * [CodeDesign General design of the code]
-   * [CodeStyleGuide Style guide for the code]
-</wiki:comment>
+   * [CodeStyleGuide Style guide for the code]</wiki:comment>
+   * [EarlyHistory Early history of ADDA development]
  * Compiling and linking
    * [CompilingADDA Compiling ADDA]
    * [InstallingFFTW3 Installing FFTW 3]
    * [InstallingMPI Installing MPI]
    * [OpenCL Use of OpenCL in ADDA]
+   * [InstallingMinGW Installing MinGW]
  * Adding new code
    * [AddingShape Adding a predefined shape]
    * [AddingBeam Adding a predefined beam type]
    * [AddingCommandLineOption Adding a command line option]
    * [AddingIterativeSolver Adding an iterative solver]
+ * Publications
+   * [Publications Papers that use ADDA]
+   * [Awards Awards]
+   * [References References]
  * [Acknowledgements Acknowledgements]
- * [Publications Papers that use ADDA]
- * [Awards Awards]
- * [EarlyHistory Early history of ADDA development]
