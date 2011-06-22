@@ -5,7 +5,7 @@ This list is far from being complete, therefore please send your questions to [m
 
 <wiki:toc />
 
-== I have found a bug in ADDA. What should I do? ==
+== I have found a bug in *ADDA*. What should I do? ==
   * Make sure you are using the latest version of *ADDA*. If you modified the code yourself, try the original release.
   * Look at the list of known bugs at the [http://code.google.com/p/a-dda/issues/list?q=type=Defect issue tracker], maybe your bug is already known.
   * Try to understand how exactly the bug occurs, write down the sequence of actions that lead to it.
@@ -36,10 +36,10 @@ To produce a shape file you can use any programming language/software. Clearly, 
 == How is the Mueller matrix, produced by *ADDA*, defined and/or normalized? ==
 It is defined as in Bohren & Huffman "Absorption and scattering of Light by Small Particles" (1983), and it is not normalized. Some other codes may compute Stokes scattering matrix, which is normalized so that 1,1-element is equal to 1 after averaging over the whole solid angle. This matrix should be multiplied by _πC_,,sca,,/_λ_^2^ to get Mueller matrix. _C_,,sca,, is the scattering cross section for unpolarized light, equal to average of scattering cross sections for any two perpendicular incident polarizations.
 
-== How to visualize shape files of ADDA? ==
+== How to visualize shape files of *ADDA*? ==
 The most general solution is freely available software [http://albin.abo.fi/~jkniivil/litebil/ LiteBil]. It allows both quick testing of shape files produced by ADDA or other software, and producing nice pictures for publication.
 
 There are also tools developed by Roman Schuh, which are available upon request. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/c715bd07cc9274d8# this discussion] for details.
 
-== How to calculate the wavelength spectrum of extinction/scattering/etc. using ADDA? ==
+== How to calculate the wavelength spectrum of extinction/scattering/etc. using *ADDA*? ==
 Currently there is no automatic way to do it, although we plan to implement it (issue 35). Currently one may either perform separate simulation for each value of wavelength, or semi-automate this process by some kind of script or wrapper. The latter options are discussed in comments to issue 35.
