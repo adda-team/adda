@@ -218,7 +218,9 @@ enum iter { // iterative methods
 	IT_BICG_CS,  // Bi-Conjugate Gradient for Complex-Symmetric matrices
 	IT_BICGSTAB, // Bi-Conjugate Gradient Stabilized
 	IT_CGNR,     // Conjugate Gradient for Normalized equations minimizing Residual norm
-	IT_QMR_CS    // Quasi-minimal residual for Complex-Symmetric matrices
+	IT_CSYM,     // Algorithm CSYM
+	IT_QMR_CS,   // Quasi-minimal residual for Complex-Symmetric matrices
+	IT_QMR_CS_2  // 2-term QMR (better roundoff properties)
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add an identifier starting with 'IT_' and a descriptive comment to this list in the
 	 * alphabetical order.

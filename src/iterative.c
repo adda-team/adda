@@ -3,17 +3,6 @@
  * Descr: a few iterative techniques to solve DDA equations; currently CGNR,BiCGStab,BiCG-CS,QMR-CS
  *        are implemented
  *
- *        CGNR and BiCGStab are based on "Templates for the Solution of Linear Systems: Building
- *        Blocks for Iterative Methods", http://www.netlib.org/templates/Templates.html .
- *
- *        BiCG-CS and QMR-CS are based on: Freund R.W. "Conjugate gradient-type methods for linear
- *        systems with complex symmetric coefficient matrices", SIAM Journal of Scientific
- *        Statistics and Computation, 13(1):425-448, 1992.
- *
- *        BiCG-CS is identical to COCG, described in: van der Vorst H.A., Melissen J.B.M. "A
- *        Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex", IEEE
- *        Transactions on Magnetics, 26(2):706-708, 1990.
- *
  *        The linear system is composed so that diagonal terms are equal to 1, therefore use of
  *        Jacobi preconditioners does not have any effect.
  *
@@ -21,7 +10,7 @@
  *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
  *        BiCGStab.
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -58,8 +47,9 @@ extern const TIME_TYPE tstart_CE;
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in param.c
-extern const double eps;
+extern const double iter_eps;
 extern enum init_field InitField;
+extern bool recalc_resid;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;
@@ -81,6 +71,8 @@ static int niter;          // iteration count
 static int counter;        // number of successive iterations without residual decrease
 static bool chp_exit;      // checkpoint occurred - exit
 static bool complete;      // complete iteration was performed (not stopped in the middle)
+// whether matrix-vector product computed during initialization can be reused at first iteration
+static bool matvec_ready;
 typedef struct // data for checkpoints
 {
 	void *ptr; // pointer to the data
@@ -102,10 +94,12 @@ struct iter_params_struct {
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
-ITER_FUNC(CGNR);
 ITER_FUNC(BiCG_CS);
 ITER_FUNC(BiCGStab);
+ITER_FUNC(CGNR);
+ITER_FUNC(CSYM);
 ITER_FUNC(QMR_CS);
+ITER_FUNC(QMR_CS_2);
 /* TO ADD NEW ITERATIVE SOLVER
  * Add the line to this list in the alphabetical order, analogous to the ones already present. The
  * variable part is the name of the function, implementing the method. The macros expands to a
@@ -116,7 +110,9 @@ static const struct iter_params_struct params[]={
 	{IT_BICG_CS,50000,1,0,BiCG_CS},
 	{IT_BICGSTAB,30000,3,3,BiCGStab},
 	{IT_CGNR,10,1,0,CGNR},
-	{IT_QMR_CS,50000,8,3,QMR_CS}
+	{IT_CSYM,10,6,2,CSYM},
+	{IT_QMR_CS,50000,8,3,QMR_CS},
+	{IT_QMR_CS_2,50000,5,2,QMR_CS_2}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * Add its parameters to this list in the alphabetical order. The parameters, in order of
 	 * appearance, are identifier (specified in const.h), maximum allowed number of iterations
@@ -154,9 +150,9 @@ INLINE void SwapPointers(doublecomplex **a,doublecomplex **b)
 
 /* Checkpoint systems saves the current state of the iterative solver to the file. By default (for
  * every iterative solver) a number of scalars and vectors are saved. The scalars include, among
- * others, inprodR. There are 4 default vectors: rvec, rvec, pvec, and Avecbuffer. If the iterative
- * solver requires any other scalars or vectors to describe its state, this information should be
- * specified in structure arrays 'scalars' and 'vectors'.
+ * others, inprodR. There are 3 default vectors: xvec, rvec, pvec (Avecbuffer is _not_ saved). If
+ * the iterative solver requires any other scalars or vectors to describe its state, this
+ * information should be specified in structure arrays 'scalars' and 'vectors'.
  */
 
 static void SaveIterChpoint(void)
@@ -203,8 +199,6 @@ static void SaveIterChpoint(void)
 	if (fwrite(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	if (fwrite(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(ALL_POS,"Failed writing to file '%s'",fname);
-	if (fwrite(Avecbuffer,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// write specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
@@ -262,8 +256,6 @@ static void LoadIterChpoint(void)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (fread(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
-	if (fread(Avecbuffer,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
-		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
 		if (fread(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
@@ -272,7 +264,7 @@ static void LoadIterChpoint(void)
 	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
 	FCloseErr(chp_file,fname,ALL_POS);
 	// initialize auxiliary variables
-	epsB=eps*eps/resid_scale;
+	epsB=iter_eps*iter_eps/resid_scale;
 	// print info
 	if (IFROOT) {
 		PrintBoth(logfile,"Checkpoint (iteration) loaded\n");
@@ -326,12 +318,36 @@ static void ProgressReport(void)
 
 //============================================================
 
-ITER_FUNC(BiCG_CS)
-// Bi-Conjugate Gradient for Complex Symmetric systems
+static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict r,
+	doublecomplex * restrict buffer,TIME_TYPE *comm_timing)
+/* Computes ||Ax-b||^2, where b=sqrt(C).Einc; buffer is used for Ax, r contains Ax-b at the end;
+ * comm_timing is incremented with communication time.
+ * If only the norm is required, the calculation can be done without using vector r, but this does
+ * not make a lot of sense, since memory is allocated anyway.
+ */
 {
-#define EPS1L 1E-10 // for (rT.r)/(r.r), low bound
-#define EPS1H 1E+10 // for (rT.r)/(r.r), high bound (indicates residual increase)
-#define EPS2  1E-10 // for (pT.A.p)/(rT.r)
+	double res;
+
+	MatVec(x,buffer,NULL,false,comm_timing);
+	nMult_mat(r,Einc,cc_sqrt);
+	nDecrem(r,buffer,&res,comm_timing);
+	return res;
+}
+
+//============================================================
+
+ITER_FUNC(BiCG_CS)
+/* Bi-Conjugate Gradient for Complex Symmetric systems
+ * based on: Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric
+ * coefficient matrices", SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
+ *
+ * it is also identical to COCG, described in: van der Vorst H.A., Melissen J.B.M.
+ * "A Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex",
+ * IEEE Transactions on Magnetics, 26(2):706-708, 1990.
+ */
+{
+#define EPS1 1E-10 // for (rT.r)/(r.r)
+#define EPS2 1E-10 // for (pT.A.p)/(rT.r)
 	static doublecomplex alpha, mu;
 	static doublecomplex beta,ro_new,ro_old,temp;
 	static double dtmp,abs_ro_new;
@@ -343,32 +359,33 @@ ITER_FUNC(BiCG_CS)
 	else if (ph==PHASE_INIT); // no specific initialization required
 	// main iteration cycle
 	else if (ph==PHASE_ITER) {
-		// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0 (and very high values as well)
+		// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
 		nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
 		abs_ro_new=cAbs(ro_new);
 		dtmp=abs_ro_new/inprodR;
-		Dz("(rT.r)/(r.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS1L || dtmp>EPS1H) LogError(ONE_POS,
-			"BiCG_CS fails: (rT.r)/(r.r) is out of bounds ("GFORM_DEBUG").",dtmp);
+		Dz("|rT.r|/(r.r)="GFORM_DEBUG,dtmp);
+		if (dtmp<EPS1) LogError(ONE_POS,
+			"BiCG_CS fails: |rT.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=ro_k-1/ro_k-2
 			cDiv(ro_new,ro_old,beta);
 			// p_k=beta_k-1*p_k-1+r_k-1
-			nIncrem10_cmplx(pvec,rvec,beta,NULL,&Timing_OneIterComm);
+			nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
 		}
 		// q_k=Avecbuffer=A.p_k
-		MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
+		if (niter==1 && matvec_ready); // do nothing, Avecbuffer is ready to use
+		else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
-		Dz("(pT.A.p)/(rT.r)="GFORM_DEBUG,dtmp);
+		Dz("|pT.A.p|/(rT.r)="GFORM_DEBUG,dtmp);
 		if (dtmp<EPS2) LogError(ONE_POS,
-			"BiCG_CS fails: (pT.A.p)/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
+			"BiCG_CS fails: |pT.A.p|/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 		// alpha_k=ro_k/mu_k
 		cDiv(ro_new,mu,alpha);
 		// x_k=x_k-1+alpha_k*p_k
-		nIncrem01_cmplx(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
+		nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
 		// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
 		cInvSign2(alpha,temp);
 		nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
@@ -377,14 +394,16 @@ ITER_FUNC(BiCG_CS)
 	} // end of PHASE_ITER
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
-#undef EPS1L
-#undef EPS1H
+#undef EPS1
 #undef EPS2
 
 //============================================================
 
 ITER_FUNC(BiCGStab)
-// Bi-Conjugate Gradient Stabilized
+/* Bi-Conjugate Gradient Stabilized
+ * based on "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
+ * http://www.netlib.org/templates/Templates.html .
+ */
 {
 #define EPS1 1E-16 // for (r~.r)/(r.r)
 #define EPS2 1E-10 // for 1/|beta_k|
@@ -404,9 +423,9 @@ ITER_FUNC(BiCGStab)
 		scalars[1].ptr=&omega;
 		scalars[2].ptr=&alpha;
 		scalars[0].size=scalars[1].size=scalars[2].size=sizeof(doublecomplex);
-		vectors[0].ptr=v;
-		vectors[1].ptr=s;
-		vectors[2].ptr=rtilda;
+		vectors[0].ptr=vec1; // v
+		vectors[1].ptr=vec2; // s
+		vectors[2].ptr=vec3; // rtilda
 		vectors[0].size=vectors[1].size=vectors[2].size=sizeof(doublecomplex);
 	}
 	else if (ph==PHASE_INIT) {
@@ -416,9 +435,9 @@ ITER_FUNC(BiCGStab)
 		// ro_k-1=r_k-1.r~ ; check for ro_k-1!=0
 		nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
 		dtmp=cAbs(ro_new)/inprodR;
-		Dz("(r~.r)/(r.r)="GFORM_DEBUG,dtmp);
+		Dz("|r~.r|/(r.r)="GFORM_DEBUG,dtmp);
 		if (dtmp<EPS1) LogError(ONE_POS,
-			"BiCGStab fails: (r~.r)/(r.r) is too small ("GFORM_DEBUG").",dtmp);
+			"BiCGStab fails: |r~.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1)
@@ -436,7 +455,8 @@ ITER_FUNC(BiCGStab)
 			nIncrem110_cmplx(pvec,v,rvec,beta,temp1);
 		}
 		// calculate v_k=A.p_k
-		MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
+		if (niter==1 && matvec_ready) nCopy(v,Avecbuffer);
+		else MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
 		// alpha_k=ro_new/(v_k.r~)
 		nDotProd(v,rtilda,temp1,&Timing_OneIterComm);
 		cDiv(ro_new,temp1,alpha);
@@ -446,7 +466,7 @@ ITER_FUNC(BiCGStab)
 		// check convergence at this step; if yes, checkpoint should not be saved afterwards
 		if (inprodRp1<epsB && chp_type!=CHP_ALWAYS) {
 			// x_k=x_k-1+alpha_k*p_k
-			nIncrem01_cmplx(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
+			nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
 			complete=false;
 		}
 		else {
@@ -472,7 +492,10 @@ ITER_FUNC(BiCGStab)
 //============================================================
 
 ITER_FUNC(CGNR)
-// Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm
+/* Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm
+ * based on "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
+ * http://www.netlib.org/templates/Templates.html .
+ */
 {
 	static double alpha, denumeratorAlpha;
 	static double beta,ro_new,ro_old;
@@ -484,6 +507,7 @@ ITER_FUNC(CGNR)
 	else if (ph==PHASE_INIT); // no specific initialization required
 	else if (ph==PHASE_ITER) {
 		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
+		// since first product is with Ah , matvec_ready can't be employed
 		if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterComm);
 		else {
 			// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
@@ -491,14 +515,14 @@ ITER_FUNC(CGNR)
 			// beta_k-1=ro_k-1/ro_k-2
 			beta=ro_new/ro_old;
 			// p_k=beta_k-1*p_k-1+AH.r_k-1
-			nIncrem10(pvec,Avecbuffer,beta,NULL,&Timing_OneIterComm);
+			nIncrem10(pvec,Avecbuffer,beta,NULL,NULL);
 		}
 		// alpha_k=ro_k-1/|A.p_k|^2
 		// Avecbuffer=A.p_k
 		MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterComm);
 		alpha=ro_new/denumeratorAlpha;
 		// x_k=x_k-1+alpha_k*p_k
-		nIncrem01(xvec,pvec,alpha,NULL,&Timing_OneIterComm);
+		nIncrem01(xvec,pvec,alpha,NULL,NULL);
 		// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
 		nIncrem01(rvec,Avecbuffer,-alpha,&inprodRp1,&Timing_OneIterComm);
 		// initialize ro_old -> ro_k-2 for next iteration
@@ -509,9 +533,148 @@ ITER_FUNC(CGNR)
 
 //============================================================
 
-ITER_FUNC(QMR_CS)
-// Quasi Minimum Residual for Complex Symmetric systems
+ITER_FUNC(CSYM)
+/* Bi-Conjugate Gradient for Complex Symmetric systems
+ * Based on A. Bunse-Gerstner and R. Stover, "On a conjugate gradient-type method for solving
+ * complex symmetric linear systems," Lin. Alg. Appl. 287, 105-123 (1999).
+ * with rearrangement of operations (MatVec is now calculated in the beginning of the iteration)
+ *
+ * Consumes one less vector than QMR-CS, because rvec does not need to be explicitly computed.
+ * The residual should always decrease and always be smaller than that of CGNR (for the same number
+ * of matrix-vector products).
+ */
 {
+	static doublecomplex alpha,gamma,invksi,theta,eta,tau,temp1,temp2,s_old,s_new;
+	static double dtmp,beta,c_old,c_new;
+		// can't be declared restrict due to SwapPointers
+	static doublecomplex *q_new,*q_old,*p_new,*p_old;
+
+	if (ph==PHASE_VARS) {
+		// rename some vectors
+		q_new=rvec;  // q_k
+		q_old=vec1;  // q_k-1
+		p_new=pvec;  // p_k-1
+		p_old=vec2;  // p_k-2
+		// initialize data structure for checkpoints
+		scalars[0].ptr=&beta;
+		scalars[1].ptr=&c_old;
+		scalars[2].ptr=&c_new;
+		scalars[3].ptr=&tau;
+		scalars[4].ptr=&s_old;
+		scalars[5].ptr=&s_new;
+		scalars[0].size=scalars[1].size=scalars[2].size=sizeof(double);
+		scalars[3].size=scalars[4].size=scalars[5].size=sizeof(doublecomplex);
+		vectors[0].ptr=vec1; // now it is q_old, but can be changed further by swapping
+		vectors[1].ptr=vec2; // now it is p_old, but can be changed further by swapping
+		vectors[0].size=vectors[1].size=sizeof(doublecomplex);
+	}
+	else if (ph==PHASE_INIT) {
+		if (load_chpoint) {
+			// change pointers names according to count parity
+			if (IS_EVEN(niter)) SwapPointers(&q_old,&q_new);
+			else SwapPointers(&p_old,&p_new);
+		}
+		else {
+			// tau_1 = ||r_0||; q_1 = r_0(*)/||r_0||; here r_0 is already stored in q_old
+			tau[RE]=sqrt(inprodR);
+			tau[IM]=0;
+			nMultSelf_conj(q_new,1/tau[RE]);
+			// c_0=1; c_-1=0; s_0=s_-1=0
+			c_new=1;
+			c_old=0;
+			s_new[RE]=s_new[IM]=s_old[RE]=s_old[IM]=0;
+		}
+	}
+	// main iteration cycle
+	else if (ph==PHASE_ITER) {
+		/* Avecbuffer = A.q_k. Since q_1 is r_0(*), mat-vec product for niter==1 is equivalent
+		 * to Ah.r_0 (as in CGNR). Thus, matvec_ready can't be employed.
+		 */
+		MatVec(q_new,Avecbuffer,NULL,false,&Timing_OneIterComm);
+		// alpha_k = q_k(T).A.q_k
+		nDotProd_conj(q_new,Avecbuffer,alpha,&Timing_OneIterComm);
+		// eta_k = c_k-2*c_k-1*beta_k + s_k-1(*)*alpha_k
+		cMultConj(alpha,s_new,eta);
+		dtmp=c_old*beta;
+		eta[RE]+=dtmp*c_new;
+		// gamma_k = c_k-1*alpha_k - c_k-2*s_k-1*beta_k
+		cLinComb(alpha,s_new,c_new,-dtmp,gamma); // reuses dtmp from previous section
+		// theta_k = s_k-2(*)*beta_k
+		cMultRealConj(beta,s_old,theta);
+		// w = Aq_k - alpha_k*q_k(*) - beta_k*q_k-1(*); w is stored in q_old
+		cInvSign2(alpha,temp1); // temp1 = -alpha_k
+			// use explicitly that q_0=0
+		if (niter==1) nLinComb1_cmplx_conj(q_old,q_new,Avecbuffer,temp1,&dtmp,&Timing_OneIterComm);
+		else nIncrem110_d_c_conj(q_old,q_new,Avecbuffer,-beta,temp1,&dtmp,&Timing_OneIterComm);
+		// beta_k+1 = ||w|| (after that beta is beta_k+1)
+		// if beta=0 this is the last iteration, following formulae work fine in this case
+		beta=sqrt(dtmp);
+		// (k-1)-th values are moved to "old", while new (k-th) values are calculated next
+		c_old=c_new;
+		cEqual(s_new,s_old);
+		dtmp=cAbs(gamma);
+		if (dtmp==0) {
+			if (beta==0) LogError(ONE_POS,"Fatal error in CSYM iterative solver. "
+				"Interaction matrix is singular"); // this should never happen
+			c_new=0;
+			s_new[RE]=1;
+			s_new[IM]=0;
+			invksi[RE]=1/beta;
+			invksi[IM]=0;
+		}
+		else {
+			// c_k = |gamma_k| / sqrt(|gamma_k|^2 + beta_k+1^2), computed to avoid overflows
+			if (dtmp<beta) {
+				dtmp=dtmp/beta;
+				c_new=dtmp/sqrt(1+dtmp*dtmp);
+			}
+			else {
+				dtmp=beta/dtmp;
+				c_new=1/sqrt(1+dtmp*dtmp);
+			}
+			// 1/ksi_k = c_k/gamma_k
+			cInv(gamma,invksi);
+			cMultReal(c_new,invksi,invksi);
+			// s_k = beta_k+1/ksi_k = beta_k+1*c_k/gamma_k
+			cMultReal(beta,invksi,s_new);
+		}
+		// p_k=(-theta_k*p_k-2-eta_k*p_k-1+q_k)/ksi_k
+		if (niter==1) nMult_cmplx(p_new,q_new,invksi); // use implicitly that p_0=p_-1=0
+		else {
+			cMult(eta,invksi,temp1);
+			cInvSign(temp1); // temp1=-eta_k/ksi_k
+			if (niter==2) // use explicitly that p_0=0
+				nLinComb_cmplx(p_old,p_new,q_new,temp1,invksi,NULL,NULL);
+			else {
+				cMult(theta,invksi,temp2);
+				cInvSign(temp2); // temp2=-theta_k/ksi_k
+				nIncrem111_cmplx(p_old,p_new,q_new,temp2,temp1,invksi);
+			}
+			SwapPointers(&p_old,&p_new);
+		}
+		// x_k=x_k-1+tau_k*c_k*p_k
+		cMultReal(c_new,tau,temp1);
+		nIncrem01_cmplx(xvec,p_new,temp1,NULL,NULL);
+		// q_k+1 = w(*)/beta_k+1; it is first stored into q_old and then swapped
+		nMultSelf_conj(q_old,1/beta);
+		SwapPointers(&q_old,&q_new);
+		// tau_k+1 = -s_k*tau_k; ||r_k|| = |tau_k+1|
+		cMultSelf(tau,s_new);
+		cInvSign(tau);
+		inprodRp1=cAbs2(tau);
+	} // end of PHASE_ITER
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
+}
+
+//============================================================
+
+ITER_FUNC(QMR_CS)
+/* Quasi Minimum Residual for Complex Symmetric systems
+ * based on: Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric
+ * coefficient matrices", SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
+ */
+{
+// !!! TODO: These bounds need to be rethought, but they are already working fine
 #define EPS1L  1E-10 // for (vT.v)/(b.b), low bound
 #define EPS1H  1E+20 // for (vT.v)/(b.b), high bound
 #define EPS2   1E-40 // for overflow of exponent number
@@ -537,9 +700,9 @@ ITER_FUNC(QMR_CS)
 		scalars[7].ptr=&s_new;
 		scalars[0].size=scalars[1].size=scalars[2].size=scalars[3].size=sizeof(double);
 		scalars[4].size=scalars[5].size=scalars[6].size=scalars[7].size=sizeof(doublecomplex);
-		vectors[0].ptr=v;
-		vectors[1].ptr=vtilda;
-		vectors[2].ptr=p_old;
+		vectors[0].ptr=vec1; // now it is v, but can be changed further by swapping
+		vectors[1].ptr=vec2; // now it is vtilda, but can be changed further by swapping
+		vectors[2].ptr=vec3; // now it is p_old, but can be changed further by swapping
 		vectors[0].size=vectors[1].size=vectors[2].size=sizeof(doublecomplex);
 	}
 	else if (ph==PHASE_INIT) {
@@ -568,16 +731,20 @@ ITER_FUNC(QMR_CS)
 	else if (ph==PHASE_ITER) {
 		// check for zero or very high beta
 		dtmp1=cAbs2(beta)*resid_scale;
-		Dz("(vT.v)/(b.b)="GFORM_DEBUG,dtmp1);
+		Dz("|vT.v|/(b.b)="GFORM_DEBUG,dtmp1);
 		if (dtmp1<EPS1L || dtmp1>EPS1H) LogError(ONE_POS,
-			"QMR_CS fails: (vT.v)/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
+			"QMR_CS fails: |vT.v|/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
-		MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
+		if (niter==1 && matvec_ready) { // uses that v_1=r_0/beta
+			cInv(beta,temp1);
+			nMultSelf_cmplx(Avecbuffer,temp1);
+		}
+		else MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
 		// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
 		cInvSign2(alpha,temp2);
 		// use explicitly that v_0=0
-		if (niter==1) nLinComb1_cmplx(vtilda,v,Avecbuffer,temp2,NULL,&Timing_OneIterComm);
+		if (niter==1) nLinComb1_cmplx(vtilda,v,Avecbuffer,temp2,NULL,NULL);
 		else {
 			cInvSign2(beta,temp1);
 			nIncrem110_cmplx(vtilda,v,Avecbuffer,temp1,temp2);
@@ -623,7 +790,7 @@ ITER_FUNC(QMR_CS)
 		else {
 			cMult(eta,temp4,temp2);
 			cInvSign(temp2); // temp2=-eta_k/zeta_k
-			if (niter==2) nLinComb_cmplx(p_old,p_new,v,temp2,temp4,NULL,&Timing_OneIterComm);
+			if (niter==2) nLinComb_cmplx(p_old,p_new,v,temp2,temp4,NULL,NULL);
 			else {
 				cMult(theta,temp4,temp1);
 				cInvSign(temp1); // temp1=-theta_k/zeta_k
@@ -637,12 +804,12 @@ ITER_FUNC(QMR_CS)
 		cMult(s_new,tautilda,temp1);
 		cInvSign2(temp1,tautilda);
 		// x_k=x_k-1+tau_k*p_k
-		nIncrem01_cmplx(xvec,p_new,tau,NULL,&Timing_OneIterComm);
+		nIncrem01_cmplx(xvec,p_new,tau,NULL,NULL);
 		// v_k+1=v~_k+1/beta_k+1
 		cInv(beta,temp1);
 		nMultSelf_cmplx(vtilda,temp1);
 		SwapPointers(&v,&vtilda); // v~ is as v_k-1 at next iteration
-		// r_k=r_k-1+(c_k*tau~_k+1/omega_k+1)*v_k+1
+		// r_k = |s_k|^2*r_k-1 + (c_k*tau~_k+1/omega_k+1)*v_k+1
 		cMultReal(c_new/omega_new,tautilda,temp1);
 		nIncrem11_d_c(rvec,v,cAbs2(s_new),temp1,&inprodRp1,&Timing_OneIterComm);
 	} // end of PHASE_ITER
@@ -650,6 +817,126 @@ ITER_FUNC(QMR_CS)
 }
 #undef EPS1L
 #undef EPS1H
+#undef EPS2
+
+//============================================================
+
+ITER_FUNC(QMR_CS_2)
+/* Quasi Minimum Residual for Complex Symmetric systems
+ * based on: R.W. Freund and N.M. Nachtigal, "An implementation of the qmr method based on coupled
+ * 2-term recurrences," SIAM J. Sci. Comp. 15, 313-337 (1994).
+ *
+ * We use recommended values of omega_k=1, which correspond to omega_k=||v_k|| used in QMR_CS above
+ */
+{
+// breakdown tests are similar to that of BiCG_CS
+#define EPS1  1E-10 // for vT.v
+#define EPS2  1E-10 // for pT.A.p
+	static double c_old,c_new,theta_old,theta_new,ro_old,ro_new,sabs2,dtmp1;
+	static doublecomplex eps,beta,delta,eta,temp1;
+	static doublecomplex * restrict v,* restrict d;
+
+	if (ph==PHASE_VARS) {
+		// rename some vectors
+		v=vec1;      // v_k and v~_k+1
+		d=vec2;      // d_k
+		// initialize data structure for checkpoints
+		scalars[0].ptr=&c_old;
+		scalars[1].ptr=&theta_old;
+		scalars[2].ptr=&ro_old;
+		scalars[3].ptr=&eps;
+		scalars[4].ptr=&eta;
+		scalars[0].size=scalars[1].size=scalars[2].size=sizeof(double);
+		scalars[3].size=scalars[4].size=sizeof(doublecomplex);
+		vectors[0].ptr=vec1; // v
+		vectors[1].ptr=vec2; // d
+		vectors[0].size=vectors[1].size=sizeof(doublecomplex);
+	}
+	else if (ph==PHASE_INIT) {
+		if (load_chpoint) {
+			// change pointers names according to count parity
+//			if (IS_EVEN(niter)) SwapPointers(&v,&vtilda);
+//			else SwapPointers(&p_old,&p_new);
+		}
+		else {
+			// ro_1=||r_0||; v~_1=r_0
+			ro_old=sqrt(inprodR);
+			nCopy(v,rvec);
+			// c_0=eps_0=1; theta_0=0; eta_0=-1
+			c_old=1;
+			eps[RE]=1;
+			eps[IM]=0;
+			theta_old=0;
+			eta[RE]=-1;
+			eta[IM]=0;
+		}
+	}
+	else if (ph==PHASE_ITER) {
+		// check for zero eps_k-1
+		//if (eps==0); // !!! TODO
+		// v_k = v~_k/ro_k; this is rearranged as compared to the original algorithm
+		// if ro_k=0 then c_k=1,v~_k=0, hence r_k-1=0 and iteration should have stopped by now
+		nMultSelf(v,1/ro_old);
+		// delta_k = v(*).v ; test it to be non zero
+		nDotProdSelf_conj(v,delta,&Timing_OneIterComm);
+		dtmp1=cAbs(delta);
+		Dz("|vT.v|="GFORM_DEBUG,dtmp1);
+		if (dtmp1<EPS1) LogError(ONE_POS,
+			"QMR_CS_2 fails: |vT.v| is too small ("GFORM_DEBUG").",dtmp1);
+		// p_k = v_k - p_k-1*ro_k*delta_k/eps_k-1
+		if (niter==1) nCopy(pvec,v); // use explicitly that p_0=0
+		else {
+			cDiv(delta,eps,temp1);
+			cMultReal(-ro_old,temp1,temp1);
+			nIncrem10_cmplx(pvec,v,temp1,NULL,NULL);
+		}
+		// A.p_k
+		if (niter==1 && matvec_ready) { // uses that p_1=v_1=r_0/ro_1
+			nMultSelf(Avecbuffer,1/ro_old);
+		}
+		else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
+		// eps_k = p_k(*).(A.p_k); beta_k = eps_k/delta_k
+		nDotProd_conj(pvec,Avecbuffer,eps,&Timing_OneIterComm);
+		cDiv(eps,delta,beta);
+		Dz("|pT.A.p|="GFORM_DEBUG,cAbs(eps));
+		if (dtmp1<EPS1) LogError(ONE_POS,
+			"QMR_CS_2 fails: |pT.A.p| is too small ("GFORM_DEBUG").",dtmp1);
+		// v~_k+1 = A.p_k - beta_k*v_k; stored in the same vector v
+		cInvSign2(beta,temp1);
+		nIncrem10_cmplx(v,Avecbuffer,temp1,&dtmp1,&Timing_OneIterComm);
+		ro_new=sqrt(dtmp1); // ro_k+1 = ||v~_k+1||
+		// theta_k = ro_k+1/(c_k-1*|beta_k|);
+		theta_new=ro_new/(c_old*cAbs(beta));
+		// c_k = 1/sqrt(1+theta_k^2), |s_k|^2 = 1-c_k^2
+		dtmp1=theta_new*theta_new;
+		c_new=1/sqrt(1+dtmp1);
+		sabs2=dtmp1/(1+dtmp1);
+		// eta_k = -eta_k-1*ro_k*c_k^2/(beta_k*c_k-1^2)
+		cDiv(eta,beta,temp1);
+		dtmp1=c_new/c_old;
+		cMultReal(-ro_old*dtmp1*dtmp1,temp1,eta);
+		// d_k = p_k*eta_k + d_k-1*(theta_k-1*c_k)^2
+		if (niter==1) nMult_cmplx(d,pvec,eta); // use explicitly that d_0=0
+		else {
+			dtmp1=theta_old*c_new;
+			nIncrem11_d_c(d,pvec,dtmp1*dtmp1,eta,NULL,NULL);
+		}
+		// x_k = x_k-1 + d_k
+		nIncrem(xvec,d,NULL,NULL);
+		/* The following formula to update residual was not given in the original publication, so
+		 * we derived it ourselves;
+		 * r_k = (1-c_k^2)*r_k-1 - eta_k*v~_k+1
+		 */
+		cInvSign2(eta,temp1);
+		nIncrem11_d_c(rvec,v,sabs2,temp1,&inprodRp1,&Timing_OneIterComm);
+		// update variables for next iteration
+		ro_old=ro_new;
+		theta_old=theta_new;
+		c_old=c_new;
+	} // end of PHASE_ITER
+	else LogError(ONE_POS,"Unknown phase of the iterative solver");
+}
+#undef EPS1
 #undef EPS2
 
 //============================================================
@@ -745,6 +1032,7 @@ void CalcInitField(char *descr,double zero_resid)
 			nCopy(rvec,pvec);
 			inprodR=zero_resid;
 			strcpy(descr,"x_0 = 0\n");
+			matvec_ready=true; // here Avecbuffer = A.r_0
 		}
 		else { // use x_0=Einc
 			nCopy(xvec,pvec);
@@ -857,11 +1145,12 @@ int IterativeSolver(const enum iter method_in)
 	 * initializations, specific to iterative solvers.
 	 */
 	Timing_InitIterComm=0;
+	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
 		nMult_mat(pvec,Einc,cc_sqrt);
 		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
 		resid_scale=1/temp;
-		epsB=eps*eps*temp;
+		epsB=iter_eps*iter_eps*temp;
 		// Calculate initial field
 		CalcInitField(tmp_str,temp);
 		// print start values
@@ -930,6 +1219,16 @@ int IterativeSolver(const enum iter method_in)
 			"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
 		else if (counter>params[ind_m].mc) LogError(ONE_POS,"Residual norm haven't decreased for "
 			"maximum allowed number of iterations (%d)",params[ind_m].mc);
+	}
+	if (recalc_resid) { // compute and print final residual norm
+		inprodR=ResidualNorm2(xvec,rvec,Avecbuffer,&Timing_IntFieldOneComm);
+		if (IFROOT) {
+			temp=sqrt(resid_scale*inprodR);
+			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",
+				temp);
+			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
+			printf("%s",tmp_str);
+		}
 	}
 	// post-processing
 	if (params[ind_m].sc_N>0) Free_general(scalars);

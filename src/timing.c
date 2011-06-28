@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: basic timing and statistics routines
  *
- * Copyright (C) 2006,2008-2010 ADDA contributors
+ * Copyright (C) 2006,2008-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -37,27 +37,36 @@ TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total a
           Timing_IntField,Timing_IntFieldOne, // for internal fields: total & one calculation
           Timing_ScatQuan;                    // for integral scattering quantities
 size_t TotalEFieldPlane; // total number of planes for scattered field calculations
+
 // used in calculator.c
 TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
 size_t TotalEval;      // total number of orientation evaluations
+
 // used in comm.c
 TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
+
 // used in crosssec.c
 // total time for all_dir and scat_grid calculations
 TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & comm
           Timing_EFieldSG,Timing_EFieldSGComm,  // time for scat_dir: total & comm
           Timing_ScatQuanComm;                  // time for comm of scat.quantities
+
+// used in fft.c
+TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
+          Timing_Dm_Init;  // for building Dmatrix
+
 // used in iterative.c
 TIME_TYPE Timing_OneIter,Timing_OneIterComm,    // for one iteration: total & comm
           Timing_InitIter,Timing_InitIterComm,  // for initialization of iterations: total & comm
           Timing_IntFieldOneComm;               // comm for one calculation of the internal fields
 size_t TotalIter;                               // total number of iterations performed
-// used in fft.c
-TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
-          Timing_Dm_Init;  // for building Dmatrix
+
 // used in make_particle.c
 TIME_TYPE Timing_Particle,                 // for particle construction
           Timing_Granul,Timing_GranulComm; // for granule generation: total & comm
+
+// used in matvec.c
+size_t TotalMatVec; // total number of matrix-vector products
 
 #define FFORMT "%.4f" // format for timing results
 
@@ -78,7 +87,7 @@ void StartTime(void)
 void InitTiming(void)
 // init timing variables and counters
 {
-	TotalIter=TotalEval=TotalEFieldPlane=0;
+	TotalIter=TotalMatVec=TotalEval=TotalEFieldPlane=0;
 	Timing_EField=Timing_FileIO=Timing_IntField=Timing_ScatQuan=Timing_Integration=0;
 	Timing_ScatQuanComm=Timing_InitDmComm=0;
 }
@@ -107,8 +116,9 @@ void FinalStatistics(void)
 				"Total number of single particle evaluations: %zu\n",TotalEval);
 			fprintf(logfile,
 				"Total number of iterations: %zu\n"
+				"Total number of matrix-vector products: %zu\n"
 				"Total planes of E field calculation (each %d points): %zu\n\n",
-				TotalIter,nTheta,TotalEFieldPlane);
+				TotalIter,TotalMatVec,nTheta,TotalEFieldPlane);
 		}
 		fprintf(logfile,
 			"Total wall time:     %.0f\n",difftime(wt_end,wt_start));
