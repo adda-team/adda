@@ -40,6 +40,9 @@ extern const doublecomplex * restrict Dmatrix;
 extern doublecomplex * restrict slices,* restrict slices_tr;
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
 
+// defined and initialized in timing.c
+extern size_t TotalMatVec;
+
 #ifndef OPENCL // the following inline functions are not used in OCL mode
 //============================================================
 
@@ -476,4 +479,5 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	}
 	Stop(0);
 #endif
+	TotalMatVec++;
 }

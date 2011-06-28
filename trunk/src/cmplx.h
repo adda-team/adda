@@ -114,6 +114,14 @@ INLINE void cMultReal(const double a,const doublecomplex b,doublecomplex c)
 	c[RE]=a*b[RE];
 	c[IM]=a*b[IM];
 }
+//============================================================
+
+INLINE void cMultRealConj(const double a,const doublecomplex b,doublecomplex c)
+// conjugation with complex multiplication by real; c=ab(*); pointers b and c may coincide
+{
+	c[RE]=a*b[RE];
+	c[IM]=-a*b[IM];
+}
 
 //============================================================
 
@@ -153,6 +161,15 @@ INLINE void cMultSelf(doublecomplex a,const doublecomplex b)
 	tmp=a[RE];
 	a[RE]=a[RE]*b[RE] - a[IM]*b[IM];
 	a[IM]=a[IM]*b[RE] + tmp*b[IM];
+}
+
+//============================================================
+
+INLINE void cMultConj(const doublecomplex a,const doublecomplex b,doublecomplex c)
+// complex multiplication by conjugate; c=a*b(*); !!! pointer c must be different from a and b !!!
+{
+	c[RE]=a[RE]*b[RE] + a[IM]*b[IM];
+	c[IM]=a[IM]*b[RE] - a[RE]*b[IM];
 }
 
 //============================================================

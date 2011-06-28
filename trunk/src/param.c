@@ -110,8 +110,9 @@ char beam_fname[MAX_FNAME];         // name of file, defining the beam
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
-double eps;                // relative error to reach
+double iter_eps;           // relative error to reach
 enum init_field InitField; // how to calculate initial field for the iterative solver
+bool recalc_resid;         // whether to recalculate residual at the end of iterative solver
 // used in make_particle.c
 enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
@@ -328,6 +329,7 @@ PARSE_FUNC(pol);
 PARSE_FUNC(prognose);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
+PARSE_FUNC(recalc_resid);
 PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
 PARSE_FUNC(scat_grid_inp);
@@ -428,7 +430,7 @@ static struct opt_struct options[]={
 		"is the simplest one - interaction between point dipoles. 'so' is under development and "
 		"incompatible with '-anisotr'.\n"
 		"Default: poi",UNDEF,NULL},
-	{PAR(iter),"{bicg|bicgstab|cgnr|qmr}","Sets the iterative solver.\n"
+	{PAR(iter),"{bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 		/* TO ADD NEW ITERATIVE SOLVER
 		 * add the short name, used to define the new iterative solver in the command line, to the
@@ -495,6 +497,7 @@ static struct opt_struct options[]={
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. "
 		"Normalization (to the unity vector) is performed automatically.\n"
 		"Default: 0 0 1",3,NULL},
+	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
@@ -918,7 +921,7 @@ PARSE_FUNC(eps)
 
 	ScanfDoubleError(argv[1],&tmp);
 	TestPositive(tmp,"eps exponent");
-	eps=pow(10,-tmp);
+	iter_eps=pow(10,-tmp);
 }
 PARSE_FUNC(eq_rad)
 {
@@ -1047,7 +1050,9 @@ PARSE_FUNC(iter)
 	if (strcmp(argv[1],"bicg")==0) IterMethod=IT_BICG_CS;
 	else if (strcmp(argv[1],"bicgstab")==0) IterMethod=IT_BICGSTAB;
 	else if (strcmp(argv[1],"cgnr")==0) IterMethod=IT_CGNR;
+	else if (strcmp(argv[1],"csym")==0) IterMethod=IT_CSYM;
 	else if (strcmp(argv[1],"qmr")==0) IterMethod=IT_QMR_CS;
+	else if (strcmp(argv[1],"qmr2")==0) IterMethod=IT_QMR_CS_2;
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
 	 * already present. The variable parts of the line are its name used in command line and its
@@ -1179,6 +1184,10 @@ PARSE_FUNC(prop)
 	prop_0[0]*=tmp;
 	prop_0[1]*=tmp;
 	prop_0[2]*=tmp;
+}
+PARSE_FUNC(recalc_resid)
+{
+	recalc_resid=true;
 }
 PARSE_FUNC(save_geom)
 {
@@ -1572,7 +1581,7 @@ void InitVariables(void)
 	dpl=UNDEF;
 	strcpy(run_name,"run");
 	nTheta=UNDEF;
-	eps=1E-5;
+	iter_eps=1E-5;
 	shape=SH_SPHERE;
 	strcpy(shapename,"sphere");
 	store_int_field=false;
@@ -1625,6 +1634,7 @@ void InitVariables(void)
 	igt_lim=UNDEF;
 	igt_eps=UNDEF;
 	InitField=IF_AUTO;
+	recalc_resid=false;
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If you use some new variables, flags, etc. you should specify their default values here. This
 	 * value will be used if new option is not specified in the command line.
@@ -1701,7 +1711,7 @@ void VariablesInterconnect(void)
 	if (store_scat_grid || phi_integr) scat_grid = true;
 	else yzplane = true;
 	// if not initialized before, IGT precision is set to that of the iterative solver
-	if (igt_eps==UNDEF) igt_eps=eps;
+	if (igt_eps==UNDEF) igt_eps=iter_eps;
 	// parameter incompatibilities
 	if (orient_avg) {
 		if (prop_0[2]!=1) PrintError("'-prop' and '-orient avg' can not be used together");
@@ -1914,7 +1924,7 @@ void PrintInfo(void)
 	if (IFROOT) {
 		// print basic parameters
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
-		printf("Required relative residual norm: "GFORMDEF"\n",eps);
+		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
@@ -1953,7 +1963,7 @@ void PrintInfo(void)
 		}
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
-		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",eps);
+		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		fprintf(logfile,"Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
 		if (Nmat>1) {
 			fprintf(logfile,"  per domain: 1. %.0f\n",mat_count[0]);
@@ -2045,7 +2055,9 @@ void PrintInfo(void)
 		if (IterMethod==IT_BICG_CS) fprintf(logfile,"Bi-CG (complex symmetric)\n");
 		else if (IterMethod==IT_BICGSTAB) fprintf(logfile,"Bi-CG Stabilized\n");
 		else if (IterMethod==IT_CGNR) fprintf(logfile,"CGNR\n");
+		else if (IterMethod==IT_CSYM) fprintf(logfile,"CSYM\n");
 		else if (IterMethod==IT_QMR_CS) fprintf(logfile,"QMR (complex symmetric)\n");
+		else if (IterMethod==IT_QMR_CS_2) fprintf(logfile,"2-term QMR (complex symmetric)\n");
 		/* TO ADD NEW ITERATIVE SOLVER
 		 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
 		 * already present. The variable parts of the line are descriptor of the iterative solver,

@@ -420,6 +420,13 @@ static void AllocateEverything(void)
 		}
 		memory+=3*tmp;
 	}
+	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
+		if (!prognosis) {
+			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
+			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
+		}
+		memory+=2*tmp;
+	}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * If the new iterative solver requires any extra vectors (additionally to the default ones),
 	 * i.e. number vec_N in corresponding element of structure array params in iterative.c is
@@ -558,6 +565,10 @@ static void FreeEverything(void)
 		Free_cVector(vec1);
 		Free_cVector(vec2);
 		Free_cVector(vec3);
+	}
+	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
+		Free_cVector(vec1);
+		Free_cVector(vec2);
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * If the new iterative solver requires any extra vectors (so that they were allocated in

@@ -8,7 +8,7 @@
  *        Common feature of many functions is accepting timing argument. If it is not NULL, it is
  *        incremented by the time used for communication.
  *
- * Copyright (C) 2006-2008,2010 ADDA contributors
+ * Copyright (C) 2006-2008,2010-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -46,7 +46,8 @@
 void nInit(doublecomplex * restrict a)
 // initialize vector a with null values
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 #pragma loop count (100000)
 #pragma ivdep
 	for (i=0;i<n;i++) a[i][RE]=a[i][IM]=0;
@@ -55,7 +56,7 @@ void nInit(doublecomplex * restrict a)
 //============================================================
 
 void nCopy(doublecomplex * restrict a,doublecomplex * restrict b)
-// copy vector b to a; !!! they must not alias !!!
+// copy vector b to a (a=b); !!! they must not alias !!!
 {
 	memcpy(a,b,nlocalRows*sizeof(doublecomplex));
 }
@@ -65,7 +66,8 @@ void nCopy(doublecomplex * restrict a,doublecomplex * restrict b)
 double nNorm2(doublecomplex * restrict a,TIME_TYPE *comm_timing)
 // squared norm of a large vector a
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double sum=0;
 	double inprod; // needed for MyInnerProduct, since register variable can't be dereferenced
 #pragma loop count (100000)
@@ -85,7 +87,8 @@ void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomple
  * !!! a and b must not alias !!! (to enforce use of function nNorm2 for coinciding arguments)
  */
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -108,7 +111,8 @@ void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublec
  * arguments)
  */
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -127,7 +131,8 @@ void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublec
 void nDotProdSelf_conj(doublecomplex * restrict a,doublecomplex c,TIME_TYPE *comm_timing)
 // conjugate dot product of vector on itself; c=a.a*; here the dot implies conjugation
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -150,7 +155,8 @@ void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double *
  * and its Hermitian squared norm=||a||^2
  */
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double s0=0,s1=0,s2=0;
 	double buf[3];
 
@@ -176,9 +182,10 @@ void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2)
 // a=c1*a+c2*b+c; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double tmp;
-	register double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
+	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
 
 #pragma loop count (100000)
 #pragma ivdep
@@ -195,8 +202,9 @@ void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2)
 // a+=c1*b+c2*c; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
+	register size_t i;
+	register const size_t n=nlocalRows;
+	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
 
 #pragma loop count (100000)
 #pragma ivdep
@@ -208,13 +216,50 @@ void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 
 //============================================================
 
+void nIncrem110_d_c_conj(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const double c1,const doublecomplex c2,double * restrict inprod,
+	TIME_TYPE *comm_timing)
+/* a=c1*a(*)+c2*b(*)+c; one constant is real, another - complex,
+ * vectors a and c are conjugated during the evaluation; !!! a,b,c must not alias !!!
+ */
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	// extra variable for c1 is probably redundant, but won't harm
+	register const double cd=c1,cre=c2[RE],cim=c2[IM];
+	register double sum=0;
+
+	if (inprod==NULL) {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] = cd*a[i][RE] + cre*b[i][RE] + cim*b[i][IM] + c[i][RE]; // a=c1*a(*)+c2*b(*)+c
+			a[i][IM] = -cd*a[i][IM] + cim*b[i][RE] - cre*b[i][IM] + c[i][IM];
+		}
+	}
+	else {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] = cd*a[i][RE] + cre*b[i][RE] + cim*b[i][IM] + c[i][RE]; // a=c1*a(*)+c2*b(*)+c
+			a[i][IM] = -cd*a[i][IM] + cim*b[i][RE] - cre*b[i][IM] + c[i][IM];
+			sum += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // sum=|a|^2
+		}
+		(*inprod)=sum;
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+}
+
+//============================================================
+
 void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2,const doublecomplex c3)
 // a=c1*a+c2*b+c3*c; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
+	register size_t i;
+	register const size_t n=nlocalRows;
 	register double tmp;
-	register double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM],c3re=c3[RE],c3im=c3[IM];
+	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM],c3re=c3[RE],c3im=c3[IM];
 
 #pragma loop count (100000)
 #pragma ivdep
@@ -229,12 +274,76 @@ void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 
 //============================================================
 
+void nIncrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,
+	TIME_TYPE *comm_timing)
+// a+=b, inprod=|a|^2; !!! a and b must not alias !!!
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register double sum=0;
+
+	if (inprod==NULL) {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] += b[i][RE]; // a+=b
+			a[i][IM] += b[i][IM];
+		}
+	}
+	else {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] += b[i][RE]; // a+=b
+			a[i][IM] += b[i][IM];
+			sum += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // sum=|a|^2
+		}
+		(*inprod)=sum;
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+}
+
+//============================================================
+
+void nDecrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,
+	TIME_TYPE *comm_timing)
+// a-=b, inprod=|a|^2; !!! a and b must not alias !!!
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register double sum=0;
+
+	if (inprod==NULL) {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] -= b[i][RE]; // a-=b
+			a[i][IM] -= b[i][IM];
+		}
+	}
+	else {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] -= b[i][RE]; // a-=b
+			a[i][IM] -= b[i][IM];
+			sum += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // sum=|a|^2
+		}
+		(*inprod)=sum;
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+}
+
+//============================================================
+
 void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const double c,
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=a+c*b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double cd=c,sum=0; // extra variable for c is probably redundant, but won't harm
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cd=c; // extra variable for c is probably redundant, but won't harm
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -263,8 +372,10 @@ void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const doubl
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c*a+b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double cd=c,sum=0; // extra variable for c is probably redundant, but won't harm
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cd=c; // extra variable for c is probably redundant, but won't harm
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -295,9 +406,11 @@ void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const d
  * !!! a and b must not alias !!!
  */
 {
-	register size_t i,n=nlocalRows;
+	register const size_t n=nlocalRows;
+	register size_t i;
 	// extra variable for c1 is probably redundant, but won't harm
-	register double c1d=c1,c2re=c2[RE],c2im=c2[IM],sum=0;
+	register const double c1d=c1,c2re=c2[RE],c2im=c2[IM];
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -327,8 +440,10 @@ void nIncrem01_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=a+c*b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double cre=c[RE],cim=c[IM],sum=0;
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cre=c[RE],cim=c[IM];
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -357,8 +472,10 @@ void nIncrem10_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c*a+b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double cre=c[RE],cim=c[IM],sum=0,tmp;
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cre=c[RE],cim=c[IM];
+	register double sum=0,tmp;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -390,8 +507,10 @@ void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c1*b+c2*c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM],sum=0;
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -423,8 +542,10 @@ void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	TIME_TYPE *comm_timing)
 // a=c1*b+c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double c1re=c1[RE],c1im=c1[IM],sum=0;
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double c1re=c1[RE],c1im=c1[IM];
+	register double sum=0;
 
 	if (inprod==NULL) {
 #pragma loop count (100000)
@@ -451,11 +572,46 @@ void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 
 //============================================================
 
+void nLinComb1_cmplx_conj(doublecomplex * restrict a,doublecomplex * restrict b,
+	doublecomplex * restrict c,const doublecomplex c1,double * restrict inprod,
+	TIME_TYPE *comm_timing)
+// a=c1*b(*)+c, inprod=|a|^2; !!! a,b,c must not alias !!!
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double c1re=c1[RE],c1im=c1[IM];
+	register double sum=0;
+
+	if (inprod==NULL) {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] = c1re*b[i][RE] + c1im*b[i][IM] + c[i][RE]; // a=c1*b(*)+c
+			a[i][IM] = c1im*b[i][RE] - c1re*b[i][IM] + c[i][IM];
+		}
+	}
+	else {
+#pragma loop count (100000)
+#pragma ivdep
+		for (i=0;i<n;i++) {
+			a[i][RE] = c1re*b[i][RE] + c1im*b[i][IM] + c[i][RE]; // a=c1*b(*)+c
+			a[i][IM] = c1im*b[i][RE] - c1re*b[i][IM] + c[i][IM];
+			sum += a[i][RE]*a[i][RE] + a[i][IM]*a[i][IM]; // sum=|a|^2
+		}
+		(*inprod)=sum;
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+}
+
+
+//============================================================
+
 void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
 	double *inprod,TIME_TYPE *comm_timing)
 // a=b-c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register size_t i,n=nlocalRows;
+	register const size_t n=nlocalRows;
+	register size_t i;
 	register double sum=0;
 
 	if (inprod==NULL) {
@@ -481,17 +637,68 @@ void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex 
 
 //============================================================
 
-void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c)
-// multiply vector by a complex constant; a=c*b; !!! a and b must not alias !!!
+void nMult(doublecomplex * restrict a,doublecomplex * restrict b,const double c)
+// multiply vector by a real constant; a=c*b; !!! a and b must not alias !!!
 {
-	register size_t i,n=nlocalRows;
-	register double cre=c[RE],cim=c[IM];
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 
 #pragma loop count (100000)
 #pragma ivdep
 	for (i=0;i<n;i++) {
-		a[i][RE] = cre*b[i][RE] - cim*b[i][IM]; // a[i]=c*b[i]
+		a[i][RE] = cd*b[i][RE]; // a=c*b
+		a[i][IM] = cd*b[i][IM];
+	}
+}
+
+//============================================================
+
+void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c)
+// multiply vector by a complex constant; a=c*b; !!! a and b must not alias !!!
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cre=c[RE],cim=c[IM];
+
+#pragma loop count (100000)
+#pragma ivdep
+	for (i=0;i<n;i++) {
+		a[i][RE] = cre*b[i][RE] - cim*b[i][IM]; // a=c*b
 		a[i][IM] = cre*b[i][IM] + cim*b[i][RE];
+	}
+}
+
+//============================================================
+
+void nMultSelf(doublecomplex * restrict a,const double c)
+// multiply vector by a real constant; a*=c
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cd=c; // extra variable for c is probably redundant, but won't harm
+
+#pragma loop count (100000)
+#pragma ivdep
+	for (i=0;i<n;i++) {
+		a[i][RE] *= cd; // a*=c
+		a[i][IM] *= cd;
+	}
+}
+//============================================================
+
+void nMultSelf_conj(doublecomplex * restrict a,const double c)
+// conjugate vector and multiply it by a real constant; a=c*a(*)
+{
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cd=c; // extra variable for c is probably redundant, but won't harm
+
+#pragma loop count (100000)
+#pragma ivdep
+	for (i=0;i<n;i++) {
+		a[i][RE] *= cd; // a=c*a(*)
+		a[i][IM] *= -cd;
 	}
 }
 
@@ -500,8 +707,10 @@ void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const dou
 void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 // multiply vector by a complex constant; a*=c
 {
-	register size_t i,n=nlocalRows;
-	register double cre=c[RE],cim=c[IM],tmp;
+	register const size_t n=nlocalRows;
+	register size_t i;
+	register const double cre=c[RE],cim=c[IM];
+	register double tmp;
 
 #pragma loop count (100000)
 #pragma ivdep
@@ -520,7 +729,8 @@ void nMult_mat(doublecomplex * restrict a,doublecomplex * restrict b,
  * !!! a,b,c must not alias !!!
  */
 {
-	register size_t i,k,nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
+	register const size_t nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
+	register size_t i,k;
 	register int j;
 	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the
 	 * compiler should understand that none of the used vectors alias. Otherwise, deeper
@@ -547,7 +757,8 @@ void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
  * !!! a and c must not alias !!!
  */
 {
-	register size_t i,k,nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
+	register const size_t nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
+	register size_t i,k;
 	register int j;
 	register double tmp;
 	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the
@@ -574,7 +785,8 @@ void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
 void nConj(doublecomplex * restrict a)
 // complex conjugate of the vector
 {
-	register size_t i,n=nlocalRows;
+	register const size_t n=nlocalRows;
+	register size_t i;
 
 #pragma loop count (100000)
 #pragma ivdep
