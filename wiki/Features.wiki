@@ -49,7 +49,7 @@ Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in
  * Simulation results are saved into separate directory with automatically generated unique name. Thus, multiple parallel runs can be easily performed.
  * Many of the internally-used quantities can be saved to file to be further used by other programs. This includes particle shape, position of granules, values of incident beam and dipole polarizations at every dipole.
  * Easy to compile on almost any platform using [CompilingADDA extensive instructions].
- * Ready-to-use [PackageDescription#Windows_32-bit_executables 32-bit executables for Windows] are available.
+ * Ready-to-use [PackageDescription#Windows_executables executables for Windows] are available.
 
 = Reliable =
  * Tested and trusted by the community. As of summer 2010 it is used by about 60 researchers. During 3 years up to that date about 40 journal papers, which somehow used ADDA, were published.
