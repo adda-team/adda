@@ -22,7 +22,7 @@ make install
 [http://www.fftw.org/fftw3_doc/Installation-on-non_002dUnix-systems.html Installation of FFTW 3 on non-Unix systems] is slightly more complicated. 
 
 =Windows=
-If you just want to use Windows executables included in the [PackageDescription ADDA package], do not worry about FFTW3 at all. An appropriate DLL is included in the package.
+If you just want to use [PackageDescription#Windows_executables ADDA executables for Windows], do not worry about FFTW3 at all. An appropriate DLL is included in the corresponding package.
 
 If you want to compile *ADDA* on Windows yourself, [http://www.fftw.org/install/windows.html install FFTW3 on Windows]. Although building FFTW3 from source is possible, a recommended simpler way is the following:
  * Download a [http://www.fftw.org/install/windows.html precompiled package] (32 or 64-bit), containing DLLs and header files. It contains a lot of files, some of which are needed for compilation in, e.g., Microsoft Visual Studio. However, we discuss below compilation by GNU compilers using the [InstallingMinGW MinGW environment]. For that you need only `fftw3.h` and `libfftw3-3.dll`.
