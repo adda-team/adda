@@ -2,6 +2,8 @@
 
 <wiki:toc/>
 
+The following guidelines are bases on FFTW version 3.2.2.
+
 =Unix=
 
 The installation of [http://www.fftw.org FFTW 3] on any Unix system is straightforward and therefore is _highly recommended_, since it greatly improves the performance of *ADDA*. The easiest is to [http://www.fftw.org/fftw3_doc/Installation-on-Unix.html install FFTW 3 for the entire system], using `root` account.  However, it also can be installed under any user account as follows:
@@ -24,7 +26,7 @@ If you just want to use Windows executables included in the [PackageDescription 
 
 If you want to compile *ADDA* on Windows yourself, [http://www.fftw.org/install/windows.html install FFTW3 on Windows]. Although building FFTW3 from source is possible, a recommended simpler way is the following:
  * Download a [http://www.fftw.org/install/windows.html precompiled package] (32 or 64-bit), containing DLLs and header files. It contains a lot of files, some of which are needed for compilation in, e.g., Microsoft Visual Studio. However, we discuss below compilation by GNU compilers using the [InstallingMinGW MinGW environment]. For that you need only `fftw3.h` and `libfftw3-3.dll`.
- * Create a copy of `libfftw3-3.dll` and rename it to `libfftw3.dll.a`. On Windows Vista and newer you may instead create a symbolic link 
+ * Create a copy of `libfftw3-3.dll` and rename it to `libfftw3.dll.a`. On Windows Vista and newer you may instead create a symbolic link (administrator privileges may be required for that)
 {{{
 mklink libfftw3.dll.a libfftw3-3.dll
 }}}
