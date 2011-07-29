@@ -3,25 +3,47 @@
 <wiki:toc/>
 
 = Basic installation =
-Here we describe the simplest way to install MinGW to be able to compile *ADDA* using provided `Makefile`. The description is based on the [http://mingw.org/wiki/Getting_Started MinGW instructions]:
- * Download the latest version of the [http://sourceforge.net/projects/mingw/files/Automated%20MinGW%20Installer/mingw-get/ mingw-get] installer and extract the files to the `C:\MinGW` directory. Other paths can also be used.
+To be able to compile *ADDA* on Windows you need to install MSYS and MinGW. 
+
+[http://www.mingw.org/wiki/MSYS MSYS] is a collection of 32-bit Unix system utils, such as `make`, which work fine with both 32- and 64-bit Windows. To install it do the following (based on [http://mingw.org/wiki/Getting_Started MinGW instructions]):
+ * Download the latest version of the [http://sourceforge.net/projects/mingw/files/Automated%20MinGW%20Installer/mingw-get/ mingw-get] installer and extract the files to the `C:\MinGW` folder. Other paths can also be used.
  * Open command prompt and run
 {{{
 cd C:\MinGW\bin
-mingw-get install gcc fortran c++ msys-base
+mingw-get install msys-base
 }}}
- * Add `C:\MinGW\bin` and `C:\MinGW\MSYS\1.0\bin` to Windows environmental variable `PATH`. This will give you direct access to `gcc` and `make`.
+ * Add `C:\MinGW\MSYS\1.0\bin` to Windows environmental variable `PATH`.
 
-Now you are ready to compile *ADDA*. The only drawback of the concise procedure, described above, is that one need to manually  specify include and library paths for external packages, such as [InstallingFFTW3 FFTW 3], in makefiles.
- 
+Unfortunately the original [http://www.mingw.org MinGW project] currently targets only 32-bit Windows. Therefore installation instructions for 32- and 64-bit are different.
+
+  == 32-bit Windows ==
+  Continuing along the [http://mingw.org/wiki/Getting_Started MinGW instructions] use the `mingw-get` described above:
+   * Open command prompt and run
+{{{
+cd C:\MinGW\bin
+mingw-get install gcc fortran c++
+}}}
+   * Add `C:\MinGW\bin` and to Windows environmental variable `PATH`.
+
+  == 64-bit Windows ==
+  A 64-bit alternative to the MinGW is [http://mingw-w64.sourceforge.net/ MinGW-w64 project]. To make installation easier it is recommended to use [http://tdm-gcc.tdragon.net/ TDM-GCC interface]. You need only to download and run an [http://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/tdm-gcc-webdl.exe/download installer] and specify the packages, you want to install. The default installation includes `gcc`, `g++`, and `gdb`. You need to also to check "Components -> gcc -> Fortran" to install `gfortran`. The installer will take care of everything else, including modification of `PATH` environmental variable. By default, the installation directory is `C:\MinGW64`.
+
+Now you are ready to compile *ADDA*. The only drawback of the concise procedure, described above, is that you need to manually specify include and library paths for external packages, such as [InstallingFFTW3 FFTW 3], in makefiles.
+
 = Advanced options =
 These options may be of interest to developers or to those, who plan to compile *ADDA* many times with different options. These steps should be performed after the basic steps, described above.
 
 To avoid need to manually  specify include and library paths for external packages in makefiles, do the following (based on [http://www.mingw.org/wiki/SpecsFileHOWTO MinGW instructions]): 
  * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], or [OpenCL OpenCL]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
- * Look for file `specs` in folder `C:\MinGW\lib\gcc\mingw32\<gcc-version>\specs`, where `<gcc-version>` is the version of the `gcc` installed. If it does not exist, execute
+ * Locate the library folder of your gcc installation, its path (`<gcclib-path>`) should be one of the following
 {{{
-gcc -dumpspecs > C:/MinGW/lib/gcc/mingw32/<gcc-version>/specs
+C:/MinGW/lib/gcc/mingw32/<gcc-version>
+C:/MinGW64/lib/gcc/x86_64-w64-mingw32/<gcc-version>
+}}}
+ for 32- and 64-bit installations (described above), respectively. Here `<gcc-version>` is the installed version of `gcc`, e.g., `4.5.2`.
+ * Look for file `specs` in folder `<gcclib-path>`. If it does not exist, execute
+{{{
+gcc -dumpspecs > <gcclib-path>/specs
 }}}
  * Modify `specs` file:
    * Add the following to the beginning:
@@ -45,13 +67,13 @@ c:/MinGW/msys/1.0/local/
 *cc1plus:
 %(local_includes)
 }}}
-   * Add `%(local_includes)` to end of definition for `link_libgcc`, changing it to, e.g.,
+   * Add `%(local_lib_search)` to end of definition for `link_libgcc`, changing it to, e.g.,
 {{{
 *link_libgcc:
 %D %(local_lib_search)
 }}}
 
-To enable debugging of *ADDA* install `gdb`
+To debug *ADDA*, `gdb` need to be installed. This is done automatically during the installation of TDM_GCC for 64-bit Windows, described above. To install `gdb` in the MinGW environment for 32-bit Windows, run  
 {{{
 mingw-get gdb
 }}}
