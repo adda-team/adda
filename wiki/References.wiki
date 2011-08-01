@@ -6,11 +6,11 @@ Development of *ADDA* is mostly performed in the framework of scientific project
 
 = General description =
 
-M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat. In press].
+M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat. 112, 2234-2247 (2011)].
 
 = Specific aspects =
 == OpenCL (GPU-accelerated) version ==
-M. Huntemannn, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. In press].
+M. Huntemann, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. In press].
 
 == Different implemented DDA formulations ==
 === Filtered coupled dipoles (FCD) ===
