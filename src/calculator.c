@@ -65,7 +65,6 @@ int ** restrict tab_index; // matrix for indexing of table arrays
 // used in crosssec.c
 double * restrict E2_alldir; // square of E, calculated for alldir
 double * restrict E2_alldir_buffer; // buffer to accumulate E2_alldir
-doublecomplex cc[MAX_NMAT][3]; // couple constants
 	// arrays of exponents along 3 axes (for calc_field)
 doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 // used in iterative.c
@@ -190,14 +189,14 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],
-			coup_con[0][IM],coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
+//		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],
+//			coup_con[0][IM],coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
 	}
 	else {
 		cEqual(coup_con[0],coup_con[1]);
 		cEqual(coup_con[0],coup_con[2]);
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",
-				coup_con[0][RE],coup_con[0][IM]);
+//		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",
+//				coup_con[0][RE],coup_con[0][IM]);
 	}
 	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
@@ -209,10 +208,16 @@ static void InitCC(const enum incpol which)
 {
 	int i,j;
 	doublecomplex chi;
+	doublecomplex cc[3]; // couple constant
+	size_t dip;
 
+	// !!! TODO: this probably needs optimization
+	for (dip=0;dip<local_nvoid_Ndip;dip++) {
+		// !!! TODO: anisotropy is not considered yet
+		CoupleConstant(refind+dip,which,cc);
+		cSqrt(cc[0],cc_sqrt[dip]);
+	}
 	for(i=0;i<Nmat;i++) {
-		CoupleConstant(ref_index+Ncomp*i,which,cc[i]);
-		for(j=0;j<3;j++) cSqrt(cc[i][j],cc_sqrt[i][j]);
 		// chi_inv=1/(V*chi)=4*PI/(V(m^2-1)); for anisotropic - by components
 		for (j=0;j<Ncomp;j++) {
 			cSquare(ref_index[Ncomp*i+j],chi);
@@ -398,6 +403,9 @@ static void AllocateEverything(void)
 	 * afterwards. So we do not implement these extra tests for now.
 	 */
 	// allocate all the memory
+	if (!prognosis) MALLOC_VECTOR(cc_sqrt,complex,local_nvoid_Ndip,ALL);
+	memory+=sizeof(doublecomplex)*(double)local_nvoid_Ndip;
+
 	tmp=sizeof(doublecomplex)*(double)nlocalRows;
 	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
 		MALLOC_VECTOR(xvec,complex,nlocalRows,ALL);
@@ -552,6 +560,7 @@ static void FreeEverything(void)
 {
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
 	Free_FFT_Dmat();
+	Free_cVector(cc_sqrt);
 	Free_cVector(xvec);
 	Free_cVector(rvec);
 	Free_cVector(pvec);
@@ -606,10 +615,11 @@ static void FreeEverything(void)
 		Free_general(Egrid_buffer);
 #endif
 	}
-	// these 3 were allocated in MakeParticle
+	// these 4 were allocated in MakeParticle
 	Free_general(DipoleCoord);
 	Free_general(position);
 	Free_general(material);
+	Free_cVector(refind);
 
 	if (orient_avg) {
 		if (IFROOT) {

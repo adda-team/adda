@@ -329,7 +329,7 @@ static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict 
 	double res;
 
 	MatVec(x,buffer,NULL,false,comm_timing);
-	nMult_mat(r,Einc,cc_sqrt);
+	nMult_dip(r,Einc,cc_sqrt);
 	nDecrem(r,buffer,&res,comm_timing);
 	return res;
 }
@@ -1140,7 +1140,7 @@ int IterativeSolver(const enum iter method_in)
 	Timing_InitIterComm=0;
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
-		nMult_mat(pvec,Einc,cc_sqrt);
+		nMult_dip(pvec,Einc,cc_sqrt);
 		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
 		resid_scale=1/temp;
 		epsB=iter_eps*iter_eps*temp;
@@ -1229,7 +1229,7 @@ int IterativeSolver(const enum iter method_in)
 	/* x is a solution of a modified system, not exactly internal field; should not be used further
 	 * except for adaptive technique (as starting vector for next system)
 	 */
-	nMult_mat(pvec,xvec,cc_sqrt); /* p is now vector of polarizations. Can be used to calculate
+	nMult_dip(pvec,xvec,cc_sqrt); /* p is now vector of polarizations. Can be used to calculate
 	                               * e.g. scattered field faster.
 	                               */
 	if (chp_exit) return CHP_EXIT; // check if exiting after checkpoint

@@ -36,6 +36,8 @@ extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 extern unsigned short * restrict position;
+extern doublecomplex * restrict refind;
+extern doublecomplex * restrict cc_sqrt;
 extern double memory;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
@@ -58,7 +60,6 @@ extern int term_width;
 // refractive index
 extern int Nmat,Ncomp;
 extern doublecomplex ref_index[MAX_NMAT];
-extern doublecomplex cc_sqrt[MAX_NMAT][3];
 extern doublecomplex chi_inv[MAX_NMAT][3];
 extern unsigned char * restrict material;
 

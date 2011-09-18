@@ -116,7 +116,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	doublecomplex fmat[6],xv[3],yv[3];
 	doublecomplex temp;
 	size_t index,y,z,Xcomp;
-	unsigned char mat;
 #endif
 #ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[18];
@@ -218,10 +217,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	for (i=0;i<local_nvoid_Ndip;i++) {
 		// fill grid with argvec*sqrt_cc
 		j=3*i;
-		mat=material[i];
 		index=IndexXmatrix(position[j],position[j+1],position[j+2]);
 		for (Xcomp=0;Xcomp<3;Xcomp++) // Xmat=cc_sqrt*argvec
-			cMult(cc_sqrt[mat][Xcomp],argvec[j+Xcomp],Xmatrix[index+Xcomp*local_Nsmall]);
+			cMult(cc_sqrt[i],argvec[j+Xcomp],Xmatrix[index+Xcomp*local_Nsmall]);
 	}
 #endif
 #ifdef PRECISE_TIMING
@@ -407,10 +405,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	// fill resultvec
 	for (i=0;i<local_nvoid_Ndip;i++) {
 		j=3*i;
-		mat=material[i];
 		index=IndexXmatrix(position[j],position[j+1],position[j+2]);
 		for (Xcomp=0;Xcomp<3;Xcomp++) {
-			cMult(cc_sqrt[mat][Xcomp],Xmatrix[index+Xcomp*local_Nsmall],temp);
+			cMult(cc_sqrt[i],Xmatrix[index+Xcomp*local_Nsmall],temp);
 			cAdd(argvec[j+Xcomp],temp,resultvec[j+Xcomp]); // result=argvec+cc_sqrt*Xmat
 		}
 		// norm is unaffected by conjugation, hence can be computed here

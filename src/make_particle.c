@@ -127,8 +127,6 @@ struct segment * restrict contSeg;
 
 // temporary arrays before their real counterparts are allocated
 static unsigned char * restrict material_tmp;
-static double * restrict DipoleCoord_tmp;
-static unsigned short * restrict position_tmp;
 
 // EXTERNAL FUNCTIONS
 
@@ -1837,18 +1835,175 @@ void InitShape(void)
 
 //==========================================================
 
+INLINE bool EdgeIn(int i,int j,double nv[8],double res[3])
+/* Finds intersection of plane n.r=1 with edges unit cube. Coordinates of the cube vertices are
+ * given by static array v below. n is provided by its scalar products with v - by vector nv.
+ * i and j are indices of adjacent vertices, defining the edge. Returns true if intersection is
+ * inside the edge. Then (only if true) coordinates of the intersection are stored in res.
+ */
+{
+	static const double v[8][3]={{0,0,0},{1,0,0},{0,1,0},{0,0,1},{1,0,1},{1,1,0},{0,1,1},{1,1,1}};
+	bool cond;
+	double t;
+
+	if (nv[i]==nv[j]) cond=false;
+	else {
+		t=(1-nv[i])/(nv[j]-nv[i]);
+		cond=(t>=0 && t<=1);
+		if (cond) LinComb(v[i],v[j],1-t,t,res);
+	}
+	return cond;
+}
+
+//==========================================================
+
+double CubePlaneSection(double a,double b,double c,double R)
+/* Calculates volume fraction of unit cube [0,1]x[0,1]x[0,1] between the origin and the plane
+ * ax+by+cz=1. It is assumed that a,b,c>=0. The general formula is:
+ * [1 - f(a) - f(b) - f(c) + f(a+b) + f(a+c) + f(b+c) - f(a+b+c)]/(6abc), where
+ * f(a)= 0 for a>=1 and (1-a)^3 otherwise.
+ * The function optimizes the formula for speed and takes care of coefficients close to zero
+ * R is used only for correction
+ */
+{
+	double tmp,res;
+	double umb,umc; // 1-b and 1-c
+
+	if (a+b+c<=1) return 1;
+	// sort a,b,c in ascending order (a<=b<=c)
+	if (a>b) {
+		if (a>c) {
+			tmp=c;
+			c=a;
+			if (b>tmp) a=tmp;
+			else {
+				a=b;
+				b=tmp;
+			}
+		}
+		else {
+			tmp=a;
+			a=b;
+			b=tmp;
+		}
+	}
+	else if (b>c) {
+		tmp=c;
+		c=b;
+		if (a>tmp) {
+			b=a;
+			a=tmp;
+		}
+		else b=tmp;
+	}
+	//
+	if (a>=1) res=1/(3*a*b);
+	// below a<1
+	else if (b>=1) res=(1-a+ONE_THIRD*a*a)/b;
+	else { // below b<1
+		umb=1-b;
+		umc=1-c;
+		if (umb<=a) { // 1-b<=a  <=>  a+b>=1
+			res=3*a*(1-a+ONE_THIRD*a*a)-umb*umb*umb;
+			if (umc>0) res-=umc*umc*umc; // c<1, then 1-c<=1-b<=a
+			res/=3*a*b;
+		}
+		// below a+b<1
+		else if (c>=1) res=2-a-b;
+		// below c<1
+		else if (umc<=a) res=2-a-b-(umc*umc*umc)/(3*a*b); // 1-c<=a (<=b)  <=>  a+c>=1
+		// below a+c<1
+		else if (umc<=b) { // b+c>=1
+			tmp=b-umc; // 0<=b+c-1<=b
+			res=2*c-(tmp*tmp+a*tmp+ONE_THIRD*a*a)/b;
+		}
+		else { // b+c<1
+			tmp=a+b-umc; // 0<=a+b+c-1<=a<=b, negative case is considered in the beginning
+			res=2*c-(tmp*tmp*tmp)/(3*a*b);
+		}
+	}
+	double vf=res/(2*c);
+	/* determine all intersections;
+	 * based on http://cococubed.asu.edu/code_pages/raybox.shtml by F.X.Timmes
+	 */
+	double nv[8]={0,a,b,c,a+c,a+b,b+c,a+b+c};
+	double p[6][3];
+	int vN=0;
+	if (EdgeIn(0,1,nv,p[vN]) || EdgeIn(1,4,nv,p[vN]) || EdgeIn(4,7,nv,p[vN])) vN++; // 0->1->4->7
+	if (EdgeIn(1,5,nv,p[vN])) vN++; // 1->5
+	if (EdgeIn(0,2,nv,p[vN]) || EdgeIn(2,5,nv,p[vN]) || EdgeIn(5,7,nv,p[vN])) vN++; // 0->2->5->7
+	if (EdgeIn(2,6,nv,p[vN])) vN++; // 2->6
+	if (EdgeIn(0,3,nv,p[vN]) || EdgeIn(3,6,nv,p[vN]) || EdgeIn(6,7,nv,p[vN])) vN++; // 0->3->6->7
+	if (EdgeIn(3,4,nv,p[vN])) vN++; // 3->4
+	// now vN is the number of vertices
+	/* compute moment of inertia of the polygon (<r^2>*S) respective to the axis defined by n
+	 * formula is based on http://en.wikipedia.org/wiki/List_of_moments_of_inertia with correction,
+	 * so that the sum includes i=N as well
+	 */
+	double rc[3]={a,b,c};
+	vMultScalSelf(1/(a*a+b*b+c*c),rc); // rc=n/|n|^2
+	int i,j;
+	for (i=0;i<vN;i++) for(j=0;j<3;j++) p[i][j]-=rc[j]; // shift vertices vectors into a plane
+	double iner=0;
+	for (i=0,j=1;i<vN;i++,j++) { // main sum for inertia moment
+		if (j==vN) j=0; // cycle for the last vertex
+		iner+=AbsOutProd(p[i],p[j])*(DotProd(p[i],p[i])+DotProd(p[i],p[j])+DotProd(p[j],p[j]));
+	} // inertia moment is iner/12
+	// this formula is based on expression for height between tangent plane and sphere, as r^2/2*R
+	return vf-iner/(24*R);
+}
+
+//==========================================================
+
+double CubeSphereSection(const double x,const double y,const double z,const double r2,
+	const double R2,const double d)
+/* Calculates volume fraction of cube with side d: [0,d]x[0,d]x[0,d] with a sphere of radius R,
+ * centered at (-x,-y,-z). r2=x^2+y^2+z^2, R2=R^2. It is assumed that x,y,z>=0 and R2>r2,
+ * i.e. basic preliminary tests has been done and symmetries - used.
+ *
+ * Currently uses an approximate formula based on replacing sphere with a plane.
+ */
+{
+	double a,b,c; // plane equation: ax+by+cz=d
+	double tmp;
+
+	// builds a plane through intersection of sphere with coordinate axes (a=d/x0,b=d/y0,c=d/z0)
+//	tmp=R2-r2;
+//	a=d*(sqrt(tmp+x*x)+x)/tmp;
+//	b=d*(sqrt(tmp+y*y)+y)/tmp;
+//	c=d*(sqrt(tmp+z*z)+z)/tmp;
+//	return CubePlaneSection(a,b,c);
+	// builds a plane tangential to sphere and perpendicular to (x,y,z)
+	if (r2==0) a=b=c=d/sqrt(3*R2); // may happen for very small grid sizes
+	else {
+		tmp=d/(sqrt(r2*R2)-r2);
+		a=tmp*x;
+		b=tmp*y;
+		c=tmp*z;
+	}
+	return CubePlaneSection(a,b,c,sqrt(R2)/d);
+}
+
+//==========================================================
+
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, gridspace
 {
 	int i,j,k,ns;
 	size_t index,dip,nlocalRows_tmp;
 	double tmp1,tmp2,tmp3;
+	doublecomplex temp1,temp2,temp3;
 	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	double jcX,jcY,jcZ; // center for jagged
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
 	int xj,yj,zj;
 	int mat;
+	double dh=1.0/(2*boxX); // half of dipole, divided by grid size
+	double vf;   // volume fraction of a boundary dipole
+	double nvol; // total volume of non-void dipoles (corrected for volume fraction) in dipoles
+	static double * restrict DipoleCoord_tmp,* restrict volfrac_tmp;
+	static unsigned short * restrict position_tmp;
 	unsigned short us_tmp;
 	TIME_TYPE tstart,tgran;
 	/* TO ADD NEW SHAPE
@@ -1871,6 +2026,8 @@ void MakeParticle(void)
 	MALLOC_VECTOR(material_tmp,uchar,local_Ndip,ALL);
 	MALLOC_VECTOR(DipoleCoord_tmp,double,nlocalRows_tmp,ALL);
 	MALLOC_VECTOR(position_tmp,ushort,nlocalRows_tmp,ALL);
+	MALLOC_VECTOR(volfrac_tmp,double,local_Ndip,ALL);
+	// !!! TODO: instead of volfrac, one should use the coefficients of the tangent plane
 
 	for(k=local_z0;k<local_z1_coer;k++)
 		for(j=0;j<boxY;j++)
@@ -1890,6 +2047,7 @@ void MakeParticle(void)
 				zr=(zj+jcZ)/(boxX);
 
 				mat=Nmat; // corresponds to void
+				vf=1;
 
 				if (shape==SH_AXISYMMETRIC) {
 					r2=xr*xr+yr*yr;
@@ -2007,7 +2165,14 @@ void MakeParticle(void)
 					if (r2*r2+2*rbcS*r2*z2+z2*z2+rbcP*r2+rbcQ*z2+rbcR<=0) mat=0;
 				}
 				else if (shape==SH_SPHERE) {
-					if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;
+					tmp1=2*dh*(fabs(xr)+fabs(yr)+fabs(zr));
+					r2=xr*xr+yr*yr+zr*zr-tmp1+3*dh*dh; // distance squared to the closest corner
+					if (r2<0.25) {
+						mat=0;
+						if (r2+2*tmp1>0.25) {
+							vf=CubeSphereSection(fabs(xr)-dh,fabs(yr)-dh,fabs(zr)-dh,r2,0.25,2*dh);
+						}
+					}
 				}
 				else if (shape==SH_SPHEREBOX) {
 					if (xr*xr+yr*yr+zr*zr<=coat_r2) mat=1;
@@ -2032,6 +2197,7 @@ void MakeParticle(void)
 				DipoleCoord_tmp[3*index+1]=j-cY;
 				DipoleCoord_tmp[3*index+2]=k-cZ;
 				material_tmp[index]=(unsigned char)mat;
+				volfrac_tmp[index]=vf;
 				index++;
 			} // End box loop
 	if (shape==SH_READ) ReadDipFile(shape_fname);
@@ -2065,12 +2231,6 @@ void MakeParticle(void)
 	dipvol=gridspace*gridspace*gridspace;
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl;
-	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can
-	 * in several cases be slightly different from the one given by '-eq_rad' option.
-	 */
-	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip,ONE_THIRD)*gridspace;
-	ka_eq = WaveNum*a_eq;
-	inv_G = 1/(PI*a_eq*a_eq);
 	// granulate one domain, if needed
 	if (sh_granul) {
 		tgran=GET_TIME();
@@ -2104,21 +2264,49 @@ void MakeParticle(void)
 	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
 	MALLOC_VECTOR(DipoleCoord,double,nlocalRows,ALL);
 	MALLOC_VECTOR(position,ushort,nlocalRows,ALL);
+	MALLOC_VECTOR(refind,complex,local_nvoid_Ndip,ALL);
 
-	memory+=(3*(sizeof(short int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
-	// copy nontrivial part of arrays
+	memory+=(3*sizeof(short int)+4*sizeof(double)+sizeof(char))*local_nvoid_Ndip;
+	// copy nontrivial part of arrays and compute (effective) refractive index
 	index=0;
+	nvol=0;
 	for (dip=0;dip<local_Ndip;dip++) if (material_tmp[dip]<Nmat) {
-		material[index]=material_tmp[dip];
+		mat=material[index]=material_tmp[dip];
 		// DipoleCoord=gridspace*DipoleCoord_tmp
 		vMultScal(gridspace,DipoleCoord_tmp+3*dip,DipoleCoord+3*index);
 		memcpy(position+3*index,position_tmp+3*dip,3*sizeof(short int));
+		// !!! TODO: this is currently incompatible with anisotropy
+		vf=volfrac_tmp[dip];
+		nvol+=vf;
+		if (vf==1) cEqual(ref_index[mat],refind[index]);
+		else {
+			cSquare(ref_index[mat],temp1);
+			cEqual(temp1,temp2);
+			temp2[RE]-=1;
+			cEqual(temp1,temp3);
+			temp3[RE]+=2;
+			cDiv(temp2,temp3,temp1);
+			cMultReal(vf,temp1,temp1); // temp1=x=vf*(m^2-1)/(m^2+2)
+			cMultReal(2,temp1,temp2);
+			temp2[RE]+=1;
+			cInvSign2(temp1,temp3);
+			temp3[RE]+=1;
+			cDiv(temp2,temp3,temp1); // temp1=(1+2x)/(1-x)
+			cSqrt(temp1,refind[index]);
+		}
 		index++;
 	}
+	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can
+	 * in several cases be slightly different from the one given by '-eq_rad' option.
+	 */
+	a_eq = pow(THREE_OVER_FOUR_PI*nvol,ONE_THIRD)*gridspace;
+	ka_eq = WaveNum*a_eq;
+	inv_G = 1/(PI*a_eq*a_eq);
 	// free temporary memory
 	Free_general(material_tmp);
 	Free_general(DipoleCoord_tmp);
 	Free_general(position_tmp);
+	Free_general(volfrac_tmp);
 	if (shape==SH_AXISYMMETRIC) {
 		for (ns=0;ns<contNseg;ns++) FreeContourSegment(contSeg+ns);
 		Free_general(contSegRoMin);

@@ -720,6 +720,34 @@ void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 		a[i][IM] = cre*a[i][IM] + cim*tmp;
 	}
 }
+//============================================================
+
+void nMult_dip(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c)
+/* multiply by a function of dipole number; a[3*i+j]=c[i]*b[3*i+j]
+ * !!! a,b,c must not alias !!!
+ */
+{
+	register const size_t nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
+	register size_t i,k;
+	register int j;
+	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the
+	 * compiler should understand that none of the used vectors alias. Otherwise, deeper
+	 * optimization should be used.
+	 */
+	doublecomplex val;
+
+#pragma loop count (100000)
+#pragma ivdep
+	for (i=0,k=0;i<nd;i++) {
+		val[RE]=c[i][RE];
+		val[IM]=c[i][IM];
+		for (j=0;j<3;j++) { // we assume that compiler will unroll this loop
+			a[k][RE] = val[RE]*b[k][RE] - val[IM]*b[k][IM];
+			a[k][IM] = val[RE]*b[k][IM] + val[IM]*b[k][RE];
+			k++;
+		}
+	}
+}
 
 //============================================================
 

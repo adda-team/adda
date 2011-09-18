@@ -773,6 +773,21 @@ INLINE double DotProd(const double a[static 3],const double b[static 3])
 
 //============================================================
 
+INLINE double AbsOutProd(const double a[static restrict 3],const double b[static restrict 3])
+/* norm of outer product of two real vectors[3] (area of the corresponding parallelogram)
+ * !!! pointers a and b must not alias !!! (does not make sense to be the same)
+ */
+{
+	double x,y,z;
+	x=a[1]*b[2]-a[2]*b[1];
+	y=a[2]*b[0]-a[0]*b[2];
+	z=a[0]*b[1]-a[1]*b[0];
+
+	return sqrt(x*x+y*y+z*z);
+}
+
+//============================================================
+
 INLINE void LinComb(const double a[static restrict 3],const double b[static restrict 3],
 	const double c1,const double c2, double c[static restrict 3])
 /* linear combination of real vectors[3]; c=c1*a+c2*b
