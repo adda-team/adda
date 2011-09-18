@@ -38,6 +38,8 @@ double * restrict DipoleCoord;      // vector to hold the coordinates of the dip
 unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
                                      * z-components are adjusted to be relative to the local_z0
                                      */
+doublecomplex * restrict refind;    // stores (effective) refractive index of each dipole
+doublecomplex * restrict cc_sqrt;   // sqrt of couple constants (for each dipole)
 double memory;            // total memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarizability relation)
@@ -88,7 +90,6 @@ int Nmat;                           /* number of different domains (for each eit
                                      */
 int Ncomp;                          // number of components of each refractive index (1 or 3)
 doublecomplex ref_index[MAX_NMAT];  // a set of refractive indexes
-doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
 doublecomplex chi_inv[MAX_NMAT][3]; // normalized inverse susceptibility: = 1/(V*chi)
 unsigned char * restrict material;  // material: index for cc
 

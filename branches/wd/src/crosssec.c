@@ -37,7 +37,6 @@
 
 // defined and initialized in calculator.c
 extern double * restrict E2_alldir,* restrict E2_alldir_buffer;
-extern const doublecomplex cc[][3];
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 // defined and initialized in GenerateB.c
 extern const double beam_center_0[3];
@@ -642,9 +641,9 @@ double AbsCross(void)
 	int i,j;
 	unsigned char mat;
 	double sum,temp1,temp2;
-	doublecomplex m2;
+	doublecomplex m2,tmp;
 	double *m; // not doublecomplex=double[2] to allow assignment to it
-	double multdr[MAX_NMAT][3];  // multiplier for draine formulation
+	double multdr;  // multiplier for draine formulation
 	double multfin[MAX_NMAT][3]; // multiplier for finite dipoles
 	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
 
@@ -655,12 +654,6 @@ double AbsCross(void)
 		 * should be rewritten otherwise
 		 */
 
-		/* based on Eq.(35) from Yurkin and Hoekstra, "The discrete dipole approximation: an
-		 * overview and recent developments," JQSRT 106:558-589 (2007).
-		 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
-		 */
-		temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-		for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cInvIm(cc[i][j])-temp1;
 		if (ScatRelation==SQ_FINDIP) {
 			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
 			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
@@ -671,10 +664,16 @@ double AbsCross(void)
 		}
 		// main cycle
 		if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_IGT_SO) {
+			/* based on Eq.(35) from Yurkin and Hoekstra, "The discrete dipole approximation: an
+			 * overview and recent developments," JQSRT 106:558-589 (2007).
+			 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
+			 */
+			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
-				mat=material[dip];
+				cSquare(cc_sqrt[dip],tmp);
+				multdr=-cInvIm(tmp)-temp1;
 				index=3*dip;
-				for(i=0;i<3;i++) sum+=multdr[mat][i]*cAbs2(pvec[index+i]);
+				for(i=0;i<3;i++) sum+=multdr*cAbs2(pvec[index+i]);
 			}
 		}
 		else if (ScatRelation==SQ_FINDIP) {
@@ -684,7 +683,8 @@ double AbsCross(void)
 				for(i=0;i<3;i++) {
 					temp1=cAbs2(pvec[index+i]);
 					sum+=multfin[mat][i]*temp1;
-					dCabs+=(multfin[mat][i]-multdr[mat][i])*temp1;
+					// !!! TODO: the following should be updated with new multdr
+					// dCabs+=(multfin[mat][i]-multdr[mat][i])*temp1;
 				}
 			}
 		}

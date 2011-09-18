@@ -1604,7 +1604,7 @@ void InitVariables(void)
 	chp_type=CHP_NONE;
 	orient_avg=false;
 	alph_deg=bet_deg=gam_deg=0.0;
-	volcor=true;
+	volcor=false; // !!! TODO: temporary hack
 	reduced_FFT=true;
 	save_geom=false;
 	save_geom_fname[0]=0;
