@@ -853,12 +853,7 @@ ITER_FUNC(QMR_CS_2)
 		vectors[0].size=vectors[1].size=sizeof(doublecomplex);
 	}
 	else if (ph==PHASE_INIT) {
-		if (load_chpoint) {
-			// change pointers names according to count parity
-//			if (IS_EVEN(niter)) SwapPointers(&v,&vtilda);
-//			else SwapPointers(&p_old,&p_new);
-		}
-		else {
+		if (!load_chpoint) {
 			// ro_1=||r_0||; v~_1=r_0
 			ro_old=sqrt(inprodR);
 			nCopy(v,rvec);
@@ -872,8 +867,6 @@ ITER_FUNC(QMR_CS_2)
 		}
 	}
 	else if (ph==PHASE_ITER) {
-		// check for zero eps_k-1
-		//if (eps==0); // !!! TODO
 		// v_k = v~_k/ro_k; this is rearranged as compared to the original algorithm
 		// if ro_k=0 then c_k=1,v~_k=0, hence r_k-1=0 and iteration should have stopped by now
 		nMultSelf(v,1/ro_old);
