@@ -10,7 +10,7 @@ M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: 
 
 = Specific aspects =
 == OpenCL (GPU-accelerated) version ==
-M. Huntemann, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. In press].
+M. Huntemann, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)].
 
 == Different implemented DDA formulations ==
 === Filtered coupled dipoles (FCD) ===
