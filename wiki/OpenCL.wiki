@@ -39,4 +39,4 @@ If the package, which you installed, has not set the paths to OpenCL headers and
 = Implementation =
 
 In general the whole matrix-vector multiplication is done on the GPU.
-For details and benchmarks see [http://www.iup.uni-bremen.de/iuppage/psa/documents/huntemann11.pdf the report of the OpenCL implementation].
+For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)].
