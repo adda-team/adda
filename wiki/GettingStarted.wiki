@@ -10,3 +10,10 @@ After that you may immediately proceed to the hands-on [Tutorial] and make a few
 If you need any help with *ADDA* or have a question, not included in the [FAQ], please [mailto:adda-discuss@googlegroups.com write] to the [http://groups.google.com/group/adda-discuss discussion group]. Moreover, you are encouraged to use [http://code.google.com/p/a-dda/issues/list issue tracker] both to report bugs and to propose new features, improvements, etc. You can also star existing issues to influence their priorities (Google account is required for the latter).
 
 The side bar to the left lists all available wiki pages. In addition to those mentioned above, there are [ReleaseNotes release notes], [ComparisonOtherCodes comparison with other codes], [LargestSimulations collection of largest simulations], [Acknowledgements acknowledgements], and [EarlyHistory early history of ADDA]. There are also detailed instructions, how to add new code to *ADDA*, including new [AddingShape shape], [AddingBeam beam type], [AddingCommandLineOption command line option], and [AddingIterativeSolver iterative solver]. We also maintain a [Publications list of papers that use ADDA] and a comprehensive [References list of references, relevant to different parts of ADDA].
+
+*ADDA* is an open-source project which development relies on the community around it. There are many ways to help:
+ * Using *ADDA* and advocating its use through publications and conference presentations.
+ * Active participation in the [http://groups.google.com/group/adda-discuss discussion group], in particular, sharing your experience with other users.
+ * Commenting and improving [http://code.google.com/p/a-dda/w/list wiki pages] and other documentation.
+ * Locating bugs and proposing new features for *ADDA*, using the [http://code.google.com/p/a-dda/issues/list issue tracker].
+ * [InstructionCommitters Contributing] and improving the source code.
