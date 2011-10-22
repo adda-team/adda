@@ -27,7 +27,7 @@ svn diff > patchfile
 }}}
  * Submit `patchfile` as a comment (attachment) to the issue, which it addresses. If you have added new files to the source, include these files as well.
 
-Developers will evaluate the patch and, if considered suitable, apply it. Your contribution will be acknowledged by comments in the code and at [Acknowledgments].
+Developers will evaluate the patch and, if considered suitable, apply it. Your contribution will be acknowledged by comments in the code and at [Acknowledgements].
 
 = Becoming an official contributor =
 
