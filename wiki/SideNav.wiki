@@ -1,8 +1,8 @@
  * [GettingStarted Getting started]
  * [FAQ Frequently asked questions]
- * [Features Features]
+ * [Features]
  * [ReleaseNotes Release notes] 
- * [Tutorial Tutorial]
+ * [Tutorial]
  * Simulation results
    * [ComparisonOtherCodes Comparison with other codes]
    * [LargestSimulations Largest simulations]
@@ -18,12 +18,13 @@
    * [OpenCL Use of OpenCL in ADDA]
    * [InstallingMinGW Installing MinGW]
  * Adding new code
+   * [InstructionCommitters Instruction for committers]
    * [AddingShape Adding a predefined shape]
    * [AddingBeam Adding a predefined beam type]
    * [AddingCommandLineOption Adding a command line option]
    * [AddingIterativeSolver Adding an iterative solver]
  * Publications
    * [Publications Papers that use ADDA]
-   * [Awards Awards]
-   * [References References]
- * [Acknowledgements Acknowledgements]
+   * [Awards]
+   * [References]
+ * [Acknowledgements]
