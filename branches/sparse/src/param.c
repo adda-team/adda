@@ -71,8 +71,10 @@ extern const char beam_descr[];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char sh_form_str[];
+#ifndef ADDA_SPARSE
 extern const int gr_N;
 extern const double gr_vf_real;
+#endif //ADDA_SPARSE
 extern const double mat_count[];
 
 // used in CalculateE.c
@@ -1930,10 +1932,12 @@ void PrintInfo(void)
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
 		fprintf(logfile,sh_form_str,sizeX);
+#ifndef ADDA_SPARSE		
 		if (sh_granul) fprintf(logfile,
 			"\n  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF,
 			gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
+#endif //ADDA_SPARSE			
 		fprintf(logfile,"\nbox dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");

@@ -407,6 +407,14 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(Avecbuffer,complex,nlocalRows,ALL);
 	}
 	memory+=5*tmp;
+#ifdef ADDA_SPARSE
+#ifdef PARALLEL
+	if (!prognosis) {
+		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);		
+	}
+	memory+=3*nvoid_Ndip*sizeof(*arg_full);
+#endif	
+#endif //ADDA_SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
 	 * for any new iterative solver, based on the information contained in structure array 'params'
 	 * in file iterative.c. However, this requires different order of function calls to extract this
@@ -433,9 +441,11 @@ static void AllocateEverything(void)
 	 * non-zero, then change the above condition to allocate memory for these vectors. Variable
 	 * memory should be incremented to reflect the total allocated memory.
 	 */
+#ifndef ADDA_SPARSE
 	MALLOC_VECTOR(expsX,complex,boxX,ALL);
 	MALLOC_VECTOR(expsY,complex,boxY,ALL);
 	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
+#endif //ADDA_SPARSE	
 	if (yzplane) {
 		tmp=2*(double)nTheta;
 		if (!prognosis) {
@@ -551,12 +561,20 @@ static void FreeEverything(void)
  */
 {
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
+#ifndef ADDA_SPARSE	
 	Free_FFT_Dmat();
+#endif //ADDA_SPARSE
 	Free_cVector(xvec);
 	Free_cVector(rvec);
 	Free_cVector(pvec);
 	Free_cVector(Einc);
 	Free_cVector(Avecbuffer);
+#ifdef ADDA_SPARSE
+#ifdef PARALLEL
+	Free_cVector(arg_full);
+#endif	
+#endif //ADDA_SPARSE
+	
 	/* The following can be automated to some extent, either using the information from structure
 	 * array 'params' in iterative.c or checking each vector for being NULL. However, it will anyway
 	 * require manual editing if additional (e.g. fourth) vector will be added.
@@ -575,9 +593,11 @@ static void FreeEverything(void)
 	 * function AllocateEverything() above), then this condition (immediately above) should be
 	 * changed to perform freeing of these vectors.
 	 */
+#ifndef ADDA_SPARSE	 
 	Free_cVector(expsX);
 	Free_cVector(expsY);
 	Free_cVector(expsZ);
+#endif //ADDA_SPARSE	
 	if (yzplane) {
 		Free_cVector(EplaneX);
 		Free_cVector(EplaneY);
@@ -610,6 +630,10 @@ static void FreeEverything(void)
 	Free_general(DipoleCoord);
 	Free_general(position);
 	Free_general(material);
+#ifdef ADDA_SPARSE
+	Free_general(position_full);
+	Free_general(material_full);
+#endif //ADDA_SPARSE
 
 	if (orient_avg) {
 		if (IFROOT) {
@@ -632,22 +656,24 @@ void Calculator (void)
 {
 	char fname[MAX_FNAME];
 
-	// initialize variables
+	// initialize variables	
 	if (nTheta!=0) {
 		dtheta_deg = 180.0 / ((double)(nTheta-1));
 		dtheta_rad = Deg2Rad(dtheta_deg);
 		block_theta= 16*(size_t)nTheta;
 		// if not enough symmetry, calculate for +- theta (for one plane)
 		if (!(symY || orient_avg)) nTheta=2*(nTheta-1);
-	}
-	else dtheta_deg=dtheta_rad=block_theta=0;
+	}	
+	else dtheta_deg=dtheta_rad=block_theta=0;	
 	finish_avg=false;
 	// read tables if needed
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
-	// initialize D matrix (for matrix-vector multiplication)
+#ifndef ADDA_SPARSE	
+	// initialize D matrix (for matrix-vector multiplication)	
 	D("InitDmatrix started");
 	InitDmatrix();
 	D("InitDmatrix finished");
+#endif //ADDA_SPARSE
 	// allocate most (that is not already allocated; perform memory analysis
 	AllocateEverything();
 	// finish initialization

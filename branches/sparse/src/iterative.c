@@ -1017,6 +1017,7 @@ void CalcInitField(char *descr,double zero_resid)
 		 * code for other cases. Moreover, this option will probably be changed afterwards.
 		 */
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
+		
 		MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		// check which x_0 is better
@@ -1045,6 +1046,7 @@ void CalcInitField(char *descr,double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		strcpy(descr,"x_0 = E_inc\n");
 	}
+#ifndef ADDA_SPARSE	//currently no support for WKB in sparse mode
 	else if (InitField==IF_WKB) {
 		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
 			"incident direction of the incoming wave (along z-axis)");
@@ -1114,6 +1116,7 @@ void CalcInitField(char *descr,double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		strcpy(descr,"x_0 = result of WKB\n");
 	}
+#endif //ADDA_SPARSE	
 }
 
 //============================================================
@@ -1140,11 +1143,13 @@ int IterativeSolver(const enum iter method_in)
 	Timing_InitIterComm=0;
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
-		nMult_mat(pvec,Einc,cc_sqrt);
-		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
+	
+		nMult_mat(pvec,Einc,cc_sqrt);		
+		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0	
 		resid_scale=1/temp;
 		epsB=iter_eps*iter_eps*temp;
-		// Calculate initial field
+		
+		// Calculate initial field			
 		CalcInitField(tmp_str,temp);
 		// print start values
 		if (IFROOT) {

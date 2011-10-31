@@ -34,8 +34,10 @@ typedef enum {char_type,int_type,double_type,cmplx_type} var_type;
 
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
+#ifndef ADDA_SPARSE
 void BlockTranspose(doublecomplex * restrict X,TIME_TYPE *timing);
 void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ);
+#endif //ADDA_SPARSE
 void AccumulateMax(double *data,double *max);
 void Accumulate(double * restrict data,size_t size,double * restrict buffer,TIME_TYPE *timing);
 void MyInnerProduct(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
@@ -45,11 +47,20 @@ void ParSetup(void);
 void MyBcast(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
 void BcastOrient(int *i,int *j,int *k);
 // used by granule generator
+#ifndef ADDA_SPARSE
 void SetGranulComm(double z0,double z1,double gdZ,int gZ,size_t gXY,size_t buf_size,int *lz0,
                    int *lz1,int sm_gr);
 void CollectDomainGranul(unsigned char * restrict dom,size_t gXY,int lz0,int locgZ,TIME_TYPE *timing);
 void FreeGranulComm(int sm_gr);
+#endif //ADDA_SPARSE
 void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
+
+#ifdef ADDA_SPARSE
+void InitArraySync(void);
+void SyncPosition(int * restrict pos);
+void SyncMaterial(unsigned char * restrict mat);
+void SyncArgvec(doublecomplex * restrict av);
+#endif //ADDA_SPARSE
 
 #ifdef PARALLEL
 // these functions are defined only in parallel mode

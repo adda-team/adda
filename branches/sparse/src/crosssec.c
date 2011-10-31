@@ -517,6 +517,10 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	double temp, na;
 	doublecomplex mult_mat[MAX_NMAT];
 	const bool scat_avg=true; // temporary fixed option for SO formulation
+	bool forw = (n[0]==0.0 && n[1]==0.0 && n[2]==1.0);
+#ifdef ADDA_SPARSE
+	doublecomplex expX, expY, expZ;
+#endif
 
 	if (ScatRelation==SQ_SO) {
 		// !!! this should never happen
@@ -534,9 +538,11 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	}
 	for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
 	// prepare values of exponents, along each of the coordinates
+#ifndef ADDA_SPARSE	
 	imExp_arr(-kd*n[0],boxX,expsX);
 	imExp_arr(-kd*n[1],boxY,expsY);
 	imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
+#endif //ADDA_SPARSE
 	/* not to double the code in the source we use two temporary defines,since the following 'if'
 	 * cases differ only by one line of code; (taking 'if' inside the cycle will affect performance)
 	 */
@@ -547,6 +553,8 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	 * using some kind of plans, i.e. by preliminary analyzing the position of the real dipoles on
 	 * the grid.
 	 */
+
+#ifndef ADDA_SPARSE
 #define PART1\
 	iy1=iz1=UNDEF;\
 	for (j=0;j<local_nvoid_Ndip;++j) {\
@@ -562,6 +570,26 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			cMult(expsY[iy2],expsZ[iz2],tmp);\
 		}\
 		cMult(tmp,expsX[ix],a);
+#else //sparse mode
+#define PART1\
+	iy1=iz1=UNDEF;\
+	for (j=0;j<local_nvoid_Ndip;++j) {\
+		jjj=3*j;\
+		/* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */\
+		ix=position[jjj];\
+		iy2=position[jjj+1];\
+		iz2=position[jjj+2];\
+		/* the second part is very improbable, but needed for robustness */\
+		if (iy2!=iy1 || iz2!=iz1) {\
+			iy1=iy2;\
+			iz1=iz2;\
+			imExp(-kd*n[1]*iy2,expY);\
+			imExp(-kd*n[2]*iz2,expZ);\
+			cMult(expY,expZ,tmp);\
+		}\
+		imExp(-kd*n[0]*ix,expX);\
+		cMult(tmp,expX,a);
+#endif //ADDA_SPARSE
 #define PART2\
 	/* sum(P*exp(-ik*r.n)) */\
 		for(i=0;i<3;i++) {\
@@ -569,6 +597,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];\
 		}\
 	} /* end for j */
+	
 	if (ScatRelation==SQ_SO) {
 		PART1
 		cMultSelf(a,mult_mat[material[j]]);
@@ -580,6 +609,11 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	}
 #undef PART1
 #undef PART2
+
+	if (forw) {
+		D("sum: %f+%fi %f+%fi %f+%fi\n", sum[0][RE], sum[0][IM], sum[1][RE], sum[1][IM], sum[2][RE], sum[2][IM]);
+	}
+
 	// tbuff=(I-nxn).sum=sum-n*(n.sum)
 	crDotProd(sum,n,dpr);
 	cScalMultRVec(n,dpr,tbuff);
@@ -591,7 +625,8 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	if (ScatRelation==SQ_IGT_SO) kkk*=(1-kd*kd/24);
 	tmp[RE]=a[IM]*kkk; // tmp=(-i*k^3)*exp(-ikr0.n)
 	tmp[IM]=-a[RE]*kkk;
-	cvMultScal_cmplx(tmp,tbuff,ebuff);
+	cvMultScal_cmplx(tmp,tbuff,ebuff);	
+
 }
 
 //=====================================================================
@@ -606,6 +641,7 @@ double ExtCross(const double * restrict incPol)
 	if (beamtype==B_PLANE) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
+		D("CExt-sum: %f", sum);
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
@@ -616,7 +652,7 @@ double ExtCross(const double * restrict incPol)
 	        * DRAINE when calculating Cext for non-plane beams
 	        */
 		sum=0;
-		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
+		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}		
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI*WaveNum;
 	}
@@ -991,7 +1027,9 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 {
 	size_t j,l,lll,index,comp;
 	int i;
+#ifndef ADDA_SPARSE	
 	size_t local_d0;
+#endif //ADDA_SPARSE
 	size_t local_nvoid_d0, local_nvoid_d1;
 	double * restrict nvoid_array;
 	unsigned char * restrict materialT;
@@ -1011,7 +1049,9 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 	// check if it can work at all
 	CheckOverflow(3*nvoid_Ndip,ONE_POS_FUNC);
 	// initialize
+#ifndef ADDA_SPARSE	
 	local_d0=boxX*boxY*local_z0;
+#endif //ADDA_SPARSE	
 	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=Frp_tot[comp]=0.0;
 	// Convert internal fields to dipole moments; Calculate incoming force per dipole
 	for (j=0;j<local_nvoid_Ndip;++j) {

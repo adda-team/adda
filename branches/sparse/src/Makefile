@@ -1,4 +1,4 @@
-# Main makefile for ADDA package
+   # Main makefile for ADDA package
 # Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl'
 # for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
@@ -77,7 +77,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              OVERRIDE_STDC_TEST
+              OVERRIDE_STDC_TEST SPARSE
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -157,9 +157,9 @@ override EXTRA_FLAGS +=
 #===================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
+CSOURCE := ADDAmain.c calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
            linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
-           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c
+           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
@@ -250,6 +250,12 @@ endif
 ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
+endif
+ifneq ($(filter SPARSE,$(OPTIONS)),)
+  CSOURCE := ADDAmain.c calculator.c make_particle_s.c CalculateE.c GenerateB.c debug.c timing.c \
+           linalg.c iterative.c memory.c comm.c matvec.c param.c crosssec.c Romberg.c io.c \
+           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
+  CDEFS += -DADDA_SPARSE
 endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)

@@ -35,9 +35,15 @@ double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 double WaveNum;           // wavenumber of incident light
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
+#ifndef ADDA_SPARSE
 unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
                                      * z-components are adjusted to be relative to the local_z0
                                      */
+#else
+int * restrict position;   // no reason to restrict this to short in sparse mode
+//in sparse mode, all coordinates must be available to each process
+int * restrict position_full;  
+#endif //ADDA_SPARSE                                     
 double memory;            // total memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarizability relation)
@@ -91,6 +97,9 @@ doublecomplex ref_index[MAX_NMAT];  // a set of refractive indexes
 doublecomplex cc_sqrt[MAX_NMAT][3]; // sqrt of couple constants
 doublecomplex chi_inv[MAX_NMAT][3]; // normalized inverse susceptibility: = 1/(V*chi)
 unsigned char * restrict material;  // material: index for cc
+#ifdef ADDA_SPARSE
+unsigned char * restrict material_full;
+#endif
 
 // iterative solver
 enum iter IterMethod; // iterative method to use
@@ -99,10 +108,15 @@ int maxiter;          // maximum number of iterations
 doublecomplex *xvec;  // total electric field on the dipoles
 doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
 doublecomplex * restrict Einc;    // incident field on dipoles
+#ifndef ADDA_SPARSE
 /* holds input vector (on expanded grid) to matvec. Also used as buffer in certain algorithms, that
  * do not call MatVec (this should be strictly ensured !!!)
  */
 doublecomplex * restrict Xmatrix;
+#endif //ADDA_SPARSE
+#ifdef ADDA_SPARSE
+doublecomplex * restrict arg_full;
+#endif //ADDA_SPARSE
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile
@@ -120,6 +134,7 @@ enum chpoint chp_type;             // type of checkpoint (to save)
 time_t chp_time;           // time of checkpoint (in sec)
 char chp_dir[MAX_DIRNAME]; // directory name to save/load checkpoint
 
+#ifndef ADDA_SPARSE
 // auxiliary grids and their partition over processors
 size_t gridX,gridY,gridZ;          /* sizes of the 'matrix' X, size_t - to remove type conversions
                                     * we assume that 'int' is enough for it, but this declaration is
@@ -128,8 +143,16 @@ size_t gridX,gridY,gridZ;          /* sizes of the 'matrix' X, size_t - to remov
 size_t gridYZ;                     // gridY*gridZ
 size_t smallY,smallZ;              // the size of the reduced matrix X
 size_t local_Nsmall;               // number of  points of expanded grid per one processor
+#endif //ADDA_SPARSE
+
 int nprocs;                        // total number of processes
 int ringid;                        // ID of current process
+
+#ifndef ADDA_SPARSE 
+//These variables are not needed in sparse mode.
+//While they could, in principle, be left defined, they are disabled in sparse mode
+//so that attempting to use them (invalidly) will cause compilation errors.
+  
 int local_z0,local_z1;             // starting and ending z for current processor
 size_t local_Nz;                   // number of z layers (based on the division of smallZ)
 int local_Nz_unif;                 /* number of z layers (distance between max and min values),
@@ -140,6 +163,14 @@ int local_z1_coer;                 // ending z, coerced to be not greater than b
 size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor and number of x
                                     * layers (based on the division of smallX)
                                     */
+#endif //ADDA_SPARSE
+
+#ifdef ADDA_SPARSE
+double local_f0, local_f1;
+size_t local_d0, local_d1;
+#endif
+
+
 size_t local_Ndip;                 // number of local total dipoles
 size_t local_nvoid_Ndip;           // number of local and ...
 double nvoid_Ndip;                 // ... total non-void dipoles

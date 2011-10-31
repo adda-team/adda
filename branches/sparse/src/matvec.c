@@ -28,6 +28,8 @@
 #include "linalg.h"
 #include "function.h"
 #include "io.h"
+#include "interaction.h"
+#include "debug.h"
 
 #ifdef OPENCL
 #	include "oclcore.h"
@@ -43,7 +45,8 @@ extern const size_t DsizeY,DsizeZ,DsizeYZ;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
 
-#ifndef OPENCL // the following inline functions are not used in OCL mode
+#ifndef ADDA_SPARSE
+#ifndef OPENCL // the following inline functions are not used in OCL or sparse mode
 //============================================================
 
 INLINE size_t IndexSliceZY(const size_t y,const size_t z)
@@ -92,10 +95,12 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
-#endif
+#endif //OCL
+#endif //ADDA_SPARSE
 
 //============================================================
 
+#ifndef ADDA_SPARSE
 void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
@@ -481,3 +486,125 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	TotalMatVec++;
 }
+
+#else //ADDA_SPARSE is defined
+
+inline static void AijProd(doublecomplex * restrict argvec, 
+                           doublecomplex * restrict resultvec,
+                           const int i, const int j)
+{	
+	static doublecomplex tmp1, argX, argY, argZ, resX, resY, resZ;
+	static doublecomplex iterm[6];
+	const unsigned int i3 = 3*i, j3 = 3*j;
+
+	cMult(argvec[j3],cc_sqrt[material_full[j]][0],argX);
+	cMult(argvec[j3+1],cc_sqrt[material_full[j]][1],argY);
+	cMult(argvec[j3+2],cc_sqrt[material_full[j]][2],argZ);
+	
+	//D("%d %d %d %d %d %d %d %d", i, j, position[3*i], position[3*i+1], position[3*i+2], position[3*j], position[3*j+1], position[3*j+2]);
+	CalcInterTerm(position[i3]-position_full[j3], position[i3+1]-position_full[j3+1], 
+	              position[i3+2]-position_full[j3+2], iterm);
+	
+	cMult(argX,iterm[0],resX);
+	cMult(argY,iterm[1],tmp1);
+	cAdd(resX,tmp1,resX);
+	cMult(argZ,iterm[2],tmp1);
+	cAdd(resX,tmp1,resX);
+	
+	cMult(argX,iterm[1],resY);
+	cMult(argY,iterm[3],tmp1);
+	cAdd(resY,tmp1,resY);
+	cMult(argZ,iterm[4],tmp1);
+	cAdd(resY,tmp1,resY);
+	
+	cMult(argX,iterm[2],resZ);
+	cMult(argY,iterm[4],tmp1);
+	cAdd(resZ,tmp1,resZ);
+	cMult(argZ,iterm[5],tmp1);
+	cAdd(resZ,tmp1,resZ);
+	
+	cMult(resX,cc_sqrt[material[i]][0],argX);
+	cAdd(argX,resultvec[i3],resultvec[i3]);
+	cMult(resY,cc_sqrt[material[i]][1],argY);
+	cAdd(argY,resultvec[i3+1],resultvec[i3+1]);
+	cMult(resZ,cc_sqrt[material[i]][2],argZ);
+	cAdd(argZ,resultvec[i3+2],resultvec[i3+2]);
+}
+
+/* 
+The sparse MatVec is implemented completely separately from the non-sparse version.
+Although there is some code duplication, this probably makes the both versions easier
+to maintain.
+*/
+
+void MatVec (doublecomplex * restrict argvec,    // the argument vector
+             doublecomplex * restrict resultvec, // the result vector
+             double *inprod,         // the resulting inner product
+             const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *comm_timing) // this variable is incremented by communication time
+{	
+	const bool ipr = (inprod != NULL);
+
+	if (her) {
+		for (unsigned int j=0; j<nlocalRows; j++) {
+			argvec[j][IM] = -argvec[j][IM];		 
+		}
+	}	
+#ifdef PARALLEL	
+	SyncArgvec(argvec);
+#else
+	arg_full = argvec;	
+#endif	
+
+	/*
+	printf("%u: nvoid_Ndip: %d\n", ringid, (int)nvoid_Ndip);	
+	for (unsigned int i=0; i<3*(int)nvoid_Ndip; i++)
+		printf("%u: %.4f+%.4fi ", i, arg_full[i][RE], arg_full[i][IM]);
+	printf("\n");
+	*/	
+	
+	for (unsigned int i=0; i<local_nvoid_Ndip; i++) {
+		const unsigned int i3 = 3*i;		
+		resultvec[i3][RE]=resultvec[i3][IM]=0.0;
+		resultvec[i3+1][RE]=resultvec[i3+1][IM]=0.0;
+		resultvec[i3+2][RE]=resultvec[i3+2][IM]=0.0;
+		for (unsigned int j=0; j<local_d0+i; j++) {			
+			AijProd(arg_full, resultvec, i, j);
+		}		
+		for (unsigned int j=local_d0+i+1; j<(unsigned int)nvoid_Ndip; j++) {
+			AijProd(arg_full, resultvec, i, j);
+		}
+	}
+	
+	/*
+	printf("%u: local_nvoid_Ndip: %d\n", ringid, (int)local_nvoid_Ndip);	
+	for (unsigned int i=0; i<3*(int)local_nvoid_Ndip; i++)
+		printf("%u: %.4f+%.4fi ", i, resultvec[i][RE], resultvec[i][IM]);
+	printf("\n");
+	*/
+	
+	const int local_c0 = 3*local_d0;
+	for (unsigned int i=0; i<nlocalRows; i++) {
+		cSubtr(arg_full[local_c0+i], resultvec[i], resultvec[i]);		 
+	}
+	
+	if (her) {
+		for (unsigned int i=0; i<nlocalRows; i++) {
+			resultvec[i][IM] = -resultvec[i][IM];
+			argvec[i][IM] = -argvec[i][IM];		
+		}
+	}	
+		
+	if (ipr) {
+		*inprod = 0.0;
+		for (unsigned int i=0; i<nlocalRows; i++) {
+			*inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];		 
+		}
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+	
+	TotalMatVec++;
+	
+}
+
+#endif //ADDA_SPARSE
