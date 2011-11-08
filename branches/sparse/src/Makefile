@@ -157,8 +157,8 @@ override EXTRA_FLAGS +=
 #===================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
-           linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
+CSOURCE := ADDAmain.c calculator.c CalculateE.c GenerateB.c debug.c timing.c \
+           linalg.c iterative.c memory.c comm.c matvec.c param.c crosssec.c Romberg.c io.c \
            prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
@@ -252,11 +252,16 @@ ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   CDEFS += -DOVERRIDE_STDC_TEST
 endif
 ifneq ($(filter SPARSE,$(OPTIONS)),)
-  CSOURCE := ADDAmain.c calculator.c make_particle_s.c CalculateE.c GenerateB.c debug.c timing.c \
-           linalg.c iterative.c memory.c comm.c matvec.c param.c crosssec.c Romberg.c io.c \
-           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
+  CSOURCE += make_particle_s.c
   CDEFS += -DADDA_SPARSE
+else
+  CSOURCE += fft.c make_particle.c
 endif
+ifneq ($(filter USE_SSE3,$(OPTIONS)),)
+  CDEFS += -DUSE_SSE3
+  CFLAGS += -msse3
+endif
+
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)
   $(info Extra compiler options: '$(EXTRA_FLAGS)')

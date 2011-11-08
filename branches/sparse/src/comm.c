@@ -60,12 +60,12 @@ static void * restrict gr_comm_buf;         // buffer for MPI transfers
 #endif //ADDA_SPARSE
 
 #ifdef ADDA_SPARSE
-static int * proc_mem_position;
-static int * proc_mem_material;
-static int * proc_mem_argvec; 
-static int * proc_disp_position;
-static int * proc_disp_material;
-static int * proc_disp_argvec; 
+int * proc_mem_position;
+int * proc_mem_material;
+int * proc_mem_argvec; 
+int * proc_disp_position;
+int * proc_disp_material;
+int * proc_disp_argvec; 
 #endif
 
 // First several functions are defined only in parallel mode
@@ -84,40 +84,6 @@ static void RecoverCommandLine(int *argc_p,char ***argv_p)
 	}
 	(*argc_p)-=j;
 }
-//============================================================
-
-#ifndef ADDA_SPARSE
-INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
-// index block; used in BlockTranspose
-{
-	return((z*lengthY+y)*gridX+x);
-}
-#endif //ADDA_SPARSE
-
-//============================================================
-
-#ifndef ADDA_SPARSE
-INLINE int CalcPartner(const int tran)
-/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
- * different implementations are possible; the only requirements are
- * 1) f(tran,f(tran,ringid))=ringid
- * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
- * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
- */
-{
-	int part;
-
-	if (ringid==0) part=tran;
-	else if (ringid==tran) part=0;
-	else {
-		part=2*tran-ringid;
-		if (part<=0) part+=Ntrans;
-		else if (part>Ntrans) part-=Ntrans;
-	}
-	return part;
-}
-#endif //ADDA_SPARSE
-
 //============================================================
 
 void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char * restrict dest)
@@ -152,6 +118,39 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 	// close destination file
 	FCloseErr(out,fname_out,ONE_POS);
 }
+
+//============================================================
+
+#ifndef ADDA_SPARSE
+INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
+// index block; used in BlockTranspose
+{
+	return((z*lengthY+y)*gridX+x);
+}
+
+//============================================================
+
+INLINE int CalcPartner(const int tran)
+/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
+ * different implementations are possible; the only requirements are
+ * 1) f(tran,f(tran,ringid))=ringid
+ * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
+ * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
+ */
+{
+	int part;
+
+	if (ringid==0) part=tran;
+	else if (ringid==tran) part=0;
+	else {
+		part=2*tran-ringid;
+		if (part<=0) part+=Ntrans;
+		else if (part>Ntrans) part-=Ntrans;
+	}
+	return part;
+}
+#endif //ADDA_SPARSE
+
 #endif
 
 //============================================================
@@ -198,10 +197,10 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	nprocs=1;
 	ringid=ADDA_ROOT;
 #endif
+#ifndef ADDA_SPARSE	 
 	/* check if weird number of processors is specified; called even in sequential mode to
 	 * initialize weird_nprocs
 	 */
-#ifndef ADDA_SPARSE	 
 	CheckNprocs();
 #endif //ADDA_SPARSE
 }
@@ -378,115 +377,11 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 
 //============================================================
 
-#ifndef ADDA_SPARSE
-void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
- *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
- */
-{
-#ifdef ADDA_MPI
-	TIME_TYPE tstart;
-	size_t bufsize,msize,posit,step,y,z;
-	int transmission,part,Xpos,Xcomp;
-	MPI_Status status;
-
-	// redundant initialization to remove warnings
-	tstart=0;
-
-	if (timing!=NULL) {
-#ifdef SYNCHRONIZE_TIMING
-		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
-#endif
-		tstart=GET_TIME();
-	}
-	step=2*local_Nx;
-	msize=local_Nx*sizeof(doublecomplex);
-	bufsize=6*local_Nz*smallY*local_Nx;
-
-	for(transmission=1;transmission<=Ntrans;transmission++) {
-		// if part==nprocs then skip this transmission
-		if ((part=CalcPartner(transmission))!=nprocs) {
-			posit=0;
-			Xpos=local_Nx*part;
-			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
-				memcpy(BT_buffer+posit,X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),msize);
-				posit+=step;
-			}
-
-			MPI_Sendrecv(BT_buffer, bufsize, MPI_DOUBLE, part, 0,
-				BT_rbuffer, bufsize, MPI_DOUBLE, part, 0,
-				MPI_COMM_WORLD,&status);
-
-			posit=0;
-			Xpos=local_Nx*part;
-			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
-				memcpy(X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),BT_rbuffer+posit,msize);
-				posit+=step;
-			}
-		}
-	}
-	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
-#endif
-}
-#endif //ADDA_SPARSE
-
-//============================================================
-
-#ifndef ADDA_SPARSE
-void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,
-	const size_t lengthZ UOIP)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
- * It can be updated to accept timing argument for generality. But, since this is a specialized
- * function, we keep the timing variable hard-wired in the code.
- */
-{
-#ifdef ADDA_MPI
-	TIME_TYPE tstart;
-	size_t bufsize,msize,posit,step,y,z;
-	int transmission,part,Xpos;
-	MPI_Status status;
-
-#ifdef SYNCHRONIZE_TIMING
-	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
-#endif
-	tstart=GET_TIME();
-	step=2*local_Nx;
-	msize=local_Nx*sizeof(doublecomplex);
-	bufsize = 2*lengthZ*lengthY*local_Nx;
-
-	for(transmission=1;transmission<=Ntrans;transmission++) {
-		if ((part=CalcPartner(transmission))!=nprocs) {
-			posit=0;
-			Xpos=local_Nx*part;
-			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
-				memcpy(BT_buffer+posit,X+IndexBlock(Xpos,y,z,lengthY),msize);
-				posit+=step;
-			}
-
-			MPI_Sendrecv(BT_buffer,bufsize,MPI_DOUBLE,part,0,
-				BT_rbuffer,bufsize,MPI_DOUBLE,part,0,
-				MPI_COMM_WORLD,&status);
-
-			posit=0;
-			Xpos=local_Nx*part;
-			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
-				memcpy(X+IndexBlock(Xpos,y,z,lengthY),BT_rbuffer+posit,msize);
-				posit+=step;
-			}
-		}
-	}
-	Timing_InitDmComm += GET_TIME() - tstart;
-#endif
-}
-#endif //ADDA_SPARSE
-
-//============================================================
-
 void ParSetup(void)
 // initialize common parameters; need to do in the beginning to enable call to MakeParticle
 {
 
-#ifndef ADDA_SPARSE
+#ifndef ADDA_SPARSE //this function should still exist in sparse mode
 
 #ifdef PARALLEL
 	int unitZ,unitX;
@@ -546,35 +441,6 @@ void ParSetup(void)
 }
 
 //============================================================
-#ifdef ADDA_SPARSE
-void InitArraySync() {
-#ifdef ADDA_MPI
-	//TODO: actually free these somewhere
-	MALLOC_VECTOR(proc_mem_position,int,nprocs,ALL);
-	MALLOC_VECTOR(proc_mem_material,int,nprocs,ALL);
-	MALLOC_VECTOR(proc_mem_argvec,int,nprocs,ALL);
-	MALLOC_VECTOR(proc_disp_position,int,nprocs,ALL);
-	MALLOC_VECTOR(proc_disp_material,int,nprocs,ALL);
-	MALLOC_VECTOR(proc_disp_argvec,int,nprocs,ALL);
-
-	proc_mem_position[ringid] = 3*local_nvoid_Ndip;
-	proc_mem_material[ringid] = local_nvoid_Ndip;
-	proc_mem_argvec[ringid] = 3*local_nvoid_Ndip*2;
-	proc_disp_position[ringid] = 3*local_d0;
-	proc_disp_material[ringid] = local_d0;
-	proc_disp_argvec[ringid] = 3*local_d0*2;	
-	
-	AllGather(proc_mem_position+ringid,proc_mem_position,int_type,1);
-	AllGather(proc_mem_material+ringid,proc_mem_material,int_type,1);
-	AllGather(proc_mem_argvec+ringid,proc_mem_argvec,int_type,1);
-	AllGather(proc_disp_position+ringid,proc_disp_position,int_type,1);
-	AllGather(proc_disp_material+ringid,proc_disp_material,int_type,1);
-	AllGather(proc_disp_argvec+ringid,proc_disp_argvec,int_type,1);
-#endif			
-}
-#endif //ADDA_SPARSE
-
-//============================================================
 
 void AllGather(void * restrict x_from UOIP,void * restrict x_to UOIP,const var_type type UOIP,
 	size_t n_elem UOIP)
@@ -599,46 +465,108 @@ void AllGather(void * restrict x_from UOIP,void * restrict x_to UOIP,const var_t
 
 //============================================================
 
-#ifdef ADDA_SPARSE
-void SyncPosition(int * restrict pos)
+#ifndef ADDA_SPARSE //functions exclusive to FFT mode
+
+void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
+ *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
+ */
 {
-#ifdef ADDA_MPI	
-	const MPI_Datatype mes_type = MPI_INT;
-	MPI_Allgatherv(pos + 3*local_d0, proc_mem_position[ringid], mes_type,
-						pos, proc_mem_position, proc_disp_position, mes_type, MPI_COMM_WORLD);				
+#ifdef ADDA_MPI
+	TIME_TYPE tstart;
+	size_t bufsize,msize,posit,step,y,z;
+	int transmission,part,Xpos,Xcomp;
+	MPI_Status status;
+
+	// redundant initialization to remove warnings
+	tstart=0;
+
+	if (timing!=NULL) {
+#ifdef SYNCHRONIZE_TIMING
+		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
+#endif
+		tstart=GET_TIME();
+	}
+	step=2*local_Nx;
+	msize=local_Nx*sizeof(doublecomplex);
+	bufsize=6*local_Nz*smallY*local_Nx;
+
+	for(transmission=1;transmission<=Ntrans;transmission++) {
+		// if part==nprocs then skip this transmission
+		if ((part=CalcPartner(transmission))!=nprocs) {
+			posit=0;
+			Xpos=local_Nx*part;
+			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
+				memcpy(BT_buffer+posit,X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),msize);
+				posit+=step;
+			}
+
+			MPI_Sendrecv(BT_buffer, bufsize, MPI_DOUBLE, part, 0,
+				BT_rbuffer, bufsize, MPI_DOUBLE, part, 0,
+				MPI_COMM_WORLD,&status);
+
+			posit=0;
+			Xpos=local_Nx*part;
+			for(Xcomp=0;Xcomp<3;Xcomp++) for(z=0;z<local_Nz;z++) for(y=0;y<smallY;y++) {
+				memcpy(X+Xcomp*local_Nsmall+IndexBlock(Xpos,y,z,smallY),BT_rbuffer+posit,msize);
+				posit+=step;
+			}
+		}
+	}
+	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
-#endif
 
 //============================================================
 
-#ifdef ADDA_SPARSE
-void SyncMaterial(unsigned char * restrict mat)
+void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,
+	const size_t lengthZ UOIP)
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
+ * It can be updated to accept timing argument for generality. But, since this is a specialized
+ * function, we keep the timing variable hard-wired in the code.
+ */
 {
-#ifdef ADDA_MPI	
-	const MPI_Datatype mes_type = MPI_CHAR;
-	MPI_Allgatherv(mat + local_d0, proc_mem_material[ringid], mes_type,
-						mat, proc_mem_material, proc_disp_material, mes_type, MPI_COMM_WORLD);				
+#ifdef ADDA_MPI
+	TIME_TYPE tstart;
+	size_t bufsize,msize,posit,step,y,z;
+	int transmission,part,Xpos;
+	MPI_Status status;
+
+#ifdef SYNCHRONIZE_TIMING
+	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
+#endif
+	tstart=GET_TIME();
+	step=2*local_Nx;
+	msize=local_Nx*sizeof(doublecomplex);
+	bufsize = 2*lengthZ*lengthY*local_Nx;
+
+	for(transmission=1;transmission<=Ntrans;transmission++) {
+		if ((part=CalcPartner(transmission))!=nprocs) {
+			posit=0;
+			Xpos=local_Nx*part;
+			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
+				memcpy(BT_buffer+posit,X+IndexBlock(Xpos,y,z,lengthY),msize);
+				posit+=step;
+			}
+
+			MPI_Sendrecv(BT_buffer,bufsize,MPI_DOUBLE,part,0,
+				BT_rbuffer,bufsize,MPI_DOUBLE,part,0,
+				MPI_COMM_WORLD,&status);
+
+			posit=0;
+			Xpos=local_Nx*part;
+			for(z=0;z<lengthZ;z++) for(y=0;y<lengthY;y++) {
+				memcpy(X+IndexBlock(Xpos,y,z,lengthY),BT_rbuffer+posit,msize);
+				posit+=step;
+			}
+		}
+	}
+	Timing_InitDmComm += GET_TIME() - tstart;
 #endif
 }
-#endif
 
 //============================================================
 
-#ifdef ADDA_SPARSE
-void SyncArgvec(doublecomplex * restrict av)
-{
-#ifdef ADDA_MPI	
-	const MPI_Datatype mes_type = MPI_DOUBLE;
-	MPI_Allgatherv((double *)av, proc_mem_argvec[ringid], mes_type,
-						(double *)arg_full, proc_mem_argvec, proc_disp_argvec, mes_type, MPI_COMM_WORLD);				
-#endif
-}
-#endif
-
-//============================================================
-
-#ifndef ADDA_SPARSE
 #ifdef PARALLEL
 void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const int gZ,
 	const int id,int *lz0,int *lz1)
@@ -661,11 +589,9 @@ void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const 
 	}
 }
 #endif
-#endif //ADDA_SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
 void SetGranulComm(const double z0 UOIP,const double z1 UOIP,const double gdZ UOIP,const int gZ,
 	const size_t gXY UOIP,size_t max_gran UOIP,int *lz0,int *lz1,const int sm_gr UOIP)
 /* sets communication for granule generator; max_gran - maximum number of granules in one set
@@ -703,11 +629,9 @@ void SetGranulComm(const double z0 UOIP,const double z1 UOIP,const double gdZ UO
 	*lz1=gZ;
 #endif
 }
-#endif //ADDA_SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
 void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP,const int lz0 UOIP,
 	const int locgZ UOIP,TIME_TYPE *timing UOIP)
 /* collects the map of domain for granule generator on the root processor;
@@ -760,11 +684,9 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 	(*timing)+=GET_TIME()-tstart;
 #endif
 }
-#endif //ADDA_SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
 void FreeGranulComm(const int sm_gr UOIP)
 /* frees all additional memory used for communications of granule generator;
  * simpler if small granules
@@ -779,11 +701,9 @@ void FreeGranulComm(const int sm_gr UOIP)
 	}
 #endif
 }
-#endif //ADDA_SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
 void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timing UOIP)
 /* performs a collective AND operation on the (vector) data; timing is incremented by the total
  * time used.
@@ -804,11 +724,9 @@ void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timin
 	(*timing)+=GET_TIME()-tstart;
 #endif
 }
-#endif //ADDA_SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
 #ifdef PARALLEL
 
 bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,
@@ -844,4 +762,74 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 #endif
 }
 #endif // PARALLEL
+
 #endif //ADDA_SPARSE
+
+//============================================================
+
+#ifdef ADDA_SPARSE //functions exclusive to the sparse mode
+
+void InitArraySync() {
+#ifdef ADDA_MPI
+	//TODO: actually free these somewhere
+	MALLOC_VECTOR(proc_mem_position,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_mem_material,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_mem_argvec,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_position,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_material,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_argvec,int,nprocs,ALL);
+
+	proc_mem_position[ringid] = 3*local_nvoid_Ndip;
+	proc_mem_material[ringid] = local_nvoid_Ndip;
+	proc_mem_argvec[ringid] = 3*local_nvoid_Ndip*2; //*2 due to 2 doubles in complex
+	proc_disp_position[ringid] = 3*local_d0;
+	proc_disp_material[ringid] = local_d0;
+	proc_disp_argvec[ringid] = 3*local_d0*2;	
+	
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_position,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_material,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_argvec,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_position,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_material,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_argvec,1,MPI_INT,MPI_COMM_WORLD);
+#endif			
+}
+
+//============================================================
+
+void SyncPosition(int * restrict pos)
+{
+#ifdef ADDA_MPI	
+	static const MPI_Datatype mes_type = MPI_INT;
+	
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type,	pos, proc_mem_position, 
+	               proc_disp_position, mes_type, MPI_COMM_WORLD);
+		
+#endif
+}
+
+//============================================================
+
+void SyncMaterial(unsigned char * restrict mat)
+{
+#ifdef ADDA_MPI	
+	static const MPI_Datatype mes_type = MPI_CHAR;
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type, mat, proc_mem_material, 
+						proc_disp_material, mes_type, MPI_COMM_WORLD);				
+#endif
+}
+
+//============================================================
+
+void SyncArgvec()
+{
+#ifdef ADDA_MPI	
+	static const MPI_Datatype mes_type = MPI_DOUBLE;
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type,	(double *)arg_full, proc_mem_argvec, 
+	               proc_disp_argvec, mes_type, MPI_COMM_WORLD);
+#endif
+}
+
+#endif //ADDA_SPARSE
+
+

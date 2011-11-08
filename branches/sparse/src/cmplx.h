@@ -31,6 +31,12 @@
 #include "types.h"    // for doublecomplex
 #include "function.h" // for INLINE
 
+#ifdef USE_SSE3
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#include <pmmintrin.h>
+#endif
+
 //============================================================
 // operations on complex numbers
 
@@ -863,5 +869,26 @@ INLINE double Rad2Deg(const double rad)
 {
 	return (INV_PI_180*rad);
 }
+
+#ifdef USE_SSE3
+static inline __m128d cmul(__m128d a,__m128d b) 
+// complex multiplication
+{
+	__m128d t;
+	t = _mm_movedup_pd(a);
+	a = _mm_shuffle_pd(a,a,3);
+	t = _mm_mul_pd(b,t);
+	b = _mm_shuffle_pd(b,b,1);
+	b = _mm_mul_pd(a,b);
+	return _mm_addsub_pd(t,b);	
+}
+	
+static inline __m128d cadd(__m128d a,__m128d b) 
+// complex addition
+{
+	return _mm_add_pd(a,b);
+}
+
+#endif
 
 #endif // __cmplx_h

@@ -19,6 +19,8 @@
 #ifndef __fft_h
 #define __fft_h
 
+#ifndef ADDA_SPARSE //not needed in sparse mode
+
 /* Temperton FFT is a simple one, its source code is supplied together with ADDA. The only
  * inconvenience is that it is in Fortran (not easily incorporated into a project under Windows
  * (using any C/C++ developing tool) and should be compiled separately.
@@ -50,5 +52,7 @@ void InitDmatrix(void);
 void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
+
+#endif //ADDA_SPARSE
 
 #endif // __fft_h

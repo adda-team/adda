@@ -36,13 +36,7 @@ extern int boxX,boxY,boxZ;
 extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
-#ifndef ADDA_SPARSE
-extern unsigned short * restrict position;
-#else
-extern int * restrict position;
-extern double * restrict DipoleCoord_full;
-extern int * restrict position_full;
-#endif //ADDA_SPARSE
+
 extern double memory;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
@@ -68,20 +62,11 @@ extern doublecomplex ref_index[MAX_NMAT];
 extern doublecomplex cc_sqrt[MAX_NMAT][3];
 extern doublecomplex chi_inv[MAX_NMAT][3];
 extern unsigned char * restrict material;
-#ifdef ADDA_SPARSE
-extern unsigned char * restrict material_full;
-#endif
 
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
 extern doublecomplex *xvec,*pvec,* restrict Einc;
-#ifndef ADDA_SPARSE
-extern doublecomplex * restrict Xmatrix;
-#endif
-#ifdef ADDA_SPARSE
-extern doublecomplex * restrict arg_full;
-#endif //ADDA_SPARSE
 
 // scattering at different angles
 extern int nTheta;
@@ -96,28 +81,7 @@ extern enum chpoint chp_type;
 extern time_t chp_time;
 extern char chp_dir[];
 
-#ifndef ADDA_SPARSE
-// auxiliary grids and their partition over processors
-extern size_t gridX,gridY,gridZ;
-extern size_t gridYZ;
-extern size_t smallY,smallZ;
-extern size_t local_Nsmall;
-#endif
-
 extern int nprocs,ringid;
-
-#ifndef ADDA_SPARSE 
-//These variables are not needed in sparse mode.
-//While they could, in principle, be left defined, they are disabled in sparse mode
-//so that attempting to use them (invalidly) will cause compilation errors.  
-extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
-extern size_t local_Nz,local_x0,local_x1,local_Nx;
-#endif //ADDA_SPARSE
-
-#ifdef ADDA_SPARSE
-extern double local_f0, local_f1;
-extern size_t local_d0, local_d1;
-#endif
 
 extern size_t local_Ndip,local_nvoid_Ndip,nlocalRows;
 extern double nvoid_Ndip;
@@ -125,5 +89,33 @@ extern double nvoid_Ndip;
 // timing
 extern time_t wt_start,last_chp_wt;
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
+
+#ifndef ADDA_SPARSE //These variables are exclusive to the FFT mode
+
+extern unsigned short * restrict position;
+
+extern doublecomplex * restrict Xmatrix;
+
+// auxiliary grids and their partition over processors
+extern size_t gridX,gridY,gridZ;
+extern size_t gridYZ;
+extern size_t smallY,smallZ;
+extern size_t local_Nsmall;
+  
+extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
+extern size_t local_Nz,local_x0,local_x1,local_Nx;
+
+#else //These variables are exclusive to the sparse mode
+
+extern int * restrict position;
+extern double * restrict DipoleCoord_full;
+extern int * restrict position_full;
+extern unsigned char * restrict material_full;
+extern doublecomplex * restrict arg_full;
+
+extern double local_f0, local_f1;
+extern size_t local_d0, local_d1;
+
+#endif //ADDA_SPARSE
 
 #endif // __vars_h

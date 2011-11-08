@@ -610,10 +610,6 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 #undef PART1
 #undef PART2
 
-	if (forw) {
-		D("sum: %f+%fi %f+%fi %f+%fi\n", sum[0][RE], sum[0][IM], sum[1][RE], sum[1][IM], sum[2][RE], sum[2][IM]);
-	}
-
 	// tbuff=(I-nxn).sum=sum-n*(n.sum)
 	crDotProd(sum,n,dpr);
 	cScalMultRVec(n,dpr,tbuff);
@@ -641,7 +637,6 @@ double ExtCross(const double * restrict incPol)
 	if (beamtype==B_PLANE) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		D("CExt-sum: %f", sum);
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}

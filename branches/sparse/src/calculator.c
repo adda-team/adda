@@ -31,6 +31,7 @@
 #include "io.h"
 #include "fft.h"
 #include "timing.h"
+#include "interaction.h"
 
 // SEMI-GLOBAL VARIABLES
 
@@ -408,12 +409,10 @@ static void AllocateEverything(void)
 	}
 	memory+=5*tmp;
 #ifdef ADDA_SPARSE
-#ifdef PARALLEL
 	if (!prognosis) {
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);		
 	}
 	memory+=3*nvoid_Ndip*sizeof(*arg_full);
-#endif	
 #endif //ADDA_SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
 	 * for any new iterative solver, based on the information contained in structure array 'params'
@@ -563,17 +562,28 @@ static void FreeEverything(void)
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
 #ifndef ADDA_SPARSE	
 	Free_FFT_Dmat();
+	Free_cVector(expsX);
+	Free_cVector(expsY);
+	Free_cVector(expsZ);
+#else	
+	Free_general(position_full);
+	Free_general(material_full);
+#ifdef PARALLEL
+	Free_general(arg_full);
+	Free_general(proc_mem_position);
+	Free_general(proc_mem_material);
+	Free_general(proc_mem_argvec);
+	Free_general(proc_disp_position);
+	Free_general(proc_disp_material);
+	Free_general(proc_disp_argvec);
+#endif //PARALLEL
 #endif //ADDA_SPARSE
+
 	Free_cVector(xvec);
 	Free_cVector(rvec);
 	Free_cVector(pvec);
 	Free_cVector(Einc);
 	Free_cVector(Avecbuffer);
-#ifdef ADDA_SPARSE
-#ifdef PARALLEL
-	Free_cVector(arg_full);
-#endif	
-#endif //ADDA_SPARSE
 	
 	/* The following can be automated to some extent, either using the information from structure
 	 * array 'params' in iterative.c or checking each vector for being NULL. However, it will anyway
@@ -593,11 +603,7 @@ static void FreeEverything(void)
 	 * function AllocateEverything() above), then this condition (immediately above) should be
 	 * changed to perform freeing of these vectors.
 	 */
-#ifndef ADDA_SPARSE	 
-	Free_cVector(expsX);
-	Free_cVector(expsY);
-	Free_cVector(expsZ);
-#endif //ADDA_SPARSE	
+
 	if (yzplane) {
 		Free_cVector(EplaneX);
 		Free_cVector(EplaneY);
@@ -630,10 +636,6 @@ static void FreeEverything(void)
 	Free_general(DipoleCoord);
 	Free_general(position);
 	Free_general(material);
-#ifdef ADDA_SPARSE
-	Free_general(position_full);
-	Free_general(material_full);
-#endif //ADDA_SPARSE
 
 	if (orient_avg) {
 		if (IFROOT) {
@@ -668,12 +670,17 @@ void Calculator (void)
 	finish_avg=false;
 	// read tables if needed
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
+
+	// Do preliminary setup for MatVec
+	InitInteraction();
+
 #ifndef ADDA_SPARSE	
 	// initialize D matrix (for matrix-vector multiplication)	
 	D("InitDmatrix started");
 	InitDmatrix();
 	D("InitDmatrix finished");
 #endif //ADDA_SPARSE
+
 	// allocate most (that is not already allocated; perform memory analysis
 	AllocateEverything();
 	// finish initialization

@@ -32,6 +32,17 @@
 
 typedef enum {char_type,int_type,double_type,cmplx_type} var_type;
 
+#ifdef PARALLEL
+#ifdef ADDA_SPARSE
+extern int * proc_mem_position;
+extern int * proc_mem_material;
+extern int * proc_mem_argvec; 
+extern int * proc_disp_position;
+extern int * proc_disp_material;
+extern int * proc_disp_argvec; 
+#endif //ADDA_SPARSE
+#endif //PARALLEL
+
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
 #ifndef ADDA_SPARSE
@@ -59,7 +70,7 @@ void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
 void InitArraySync(void);
 void SyncPosition(int * restrict pos);
 void SyncMaterial(unsigned char * restrict mat);
-void SyncArgvec(doublecomplex * restrict av);
+void SyncArgvec(void);
 #endif //ADDA_SPARSE
 
 #ifdef PARALLEL

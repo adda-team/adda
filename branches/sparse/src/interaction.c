@@ -1,3 +1,22 @@
+/* FILE : interaction.c
+ * Descr: the functions used to calculate the interaction term
+ *        
+ *
+ * Copyright (C) 2006-2011 ADDA contributors
+ * This file is part of ADDA.
+ *
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+ * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with ADDA. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
 #include "cmplx.h"
 #include "const.h"
 #include "interaction.h"
@@ -18,6 +37,217 @@ extern double igt_lim, igt_eps;
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,
 	const double *relreq, double *result);
 #endif
+
+//This function pointer...
+void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex * restrict result);
+//...will point to one of the functions below
+void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result);
+void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * restrict result);
+
+#ifdef USE_SSE3
+__m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
+__m128d exptbl[361];
+#endif //USE_SSE3
+
+#define M_PI 3.14159265358979323846
+
+void InitInteraction(void) 
+/*
+	Initialize the interaction calculations
+*/
+{
+	if (IntRelation==G_POINT_DIP) {
+		CalcInterTerm = CalcInterTerm_opt;
+	} else {
+		CalcInterTerm = CalcInterTerm_complete;
+	}
+
+	#ifdef USE_SSE3
+	c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);
+	c2 = _mm_set_pd(-8.86096155697856783296e-7,-3.86632385155548605680e-9);
+	c3 = _mm_set_pd(1.74532925199432957214e-2,1.52308709893354299569e-4);
+	zo = _mm_set_pd(0.0,1.0);
+	inv_2pi = _mm_set_sd(1.0/(2*M_PI));
+	p360 = _mm_set_sd(360.0);
+	prad_to_deg = _mm_set_sd(180.0/M_PI);
+	
+	for (unsigned int i=0; i<=360; i++) {
+		double x = M_PI/180.0*(double)i; 
+		exptbl[i] = _mm_set_pd(sin(x),cos(x));	
+	}
+	#endif
+}
+
+
+#ifdef USE_SSE3
+
+static inline __m128d accImExp(double x, double c) 
+/*
+   Accelerated sin-cos (or imaginary exp) routine for use in the calculation of the 
+   interaction tensor. Returns c*exp(ix) in the resultant vector. The code is adapted
+   from the CEPHES library. The idea is that we have precalculated exp(iy) for some
+   discrete values y. Then we take the y that is nearest to our x and write
+   exp(ix)=exp(iy+(ix-iy))=exp(iy)exp(i(x-y)). We take exp(y) from the table and 
+   exp(i(x-y)) from the Taylor series. This converges very fast since |x-y| is small.    
+*/
+{
+	__m128d px = _mm_set_sd(x);
+	__m128d ipx = _mm_mul_pd(px,inv_2pi);
+	int ix = _mm_cvttsd_si32(ipx); //truncation so the function only works for 0 <= x < 2*pi*2^-31
+	ipx = _mm_cvtsi32_sd(ipx,ix);
+	ipx = _mm_mul_pd(p360,ipx);
+	px = _mm_mul_pd(prad_to_deg,px);
+	px = _mm_sub_pd(px,ipx); //this is x (deg) mod 360
+	
+	ix = _mm_cvtsd_si32(px); //the closest integer (rounded, not truncated)
+	__m128d scx = exptbl[ix]; //the tabulated value
+	
+	ipx = _mm_cvtsi32_sd(ipx,ix);
+	__m128d pz = _mm_sub_pd(ipx,px); //the residual -z=(ix-x)	
+	__m128d py = _mm_mul_pd(pz,pz);	
+	__m128d yy = _mm_shuffle_pd(py,py,0); //now (y,y)		
+	__m128d zy = _mm_shuffle_pd(yy,pz,1);	
+	
+	__m128d scz = _mm_mul_pd(c1,yy);	//taylor series approximation
+	scz = _mm_add_pd(c2,scz);
+	scz = _mm_mul_pd(yy,scz);
+	scz = _mm_add_pd(c3,scz);
+	scz = _mm_mul_pd(zy,scz);
+	scz = _mm_sub_pd(zo,scz);
+	scx = cmul(scz,scx); //multiply lookup and approximation
+  	return _mm_mul_pd(_mm_set1_pd(c),scx); 
+}
+
+void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result)
+/* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
+ * (in units of d). All six components of the symmetric matrix are computed at once.
+ * The elements in result are: [G11, G12, G13, G22, G23, G33]
+ */
+{	
+
+// this is used for debugging, should be empty define, when not required
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
+	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
+	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/ 
+	
+	double qx = i; 
+	double qy = j; 
+	double qz = k;	 
+	
+	const double rn = sqrt(qx*qx + qy*qy + qz*qz);
+		
+	const double rr=rn*gridspace;
+	const double invr3=1.0/(rr*rr*rr);
+	const double kr=WaveNum*rr;	
+	const __m128d sc = accImExp(kr,invr3);
+	
+	const double invrn = 1.0/rn;
+	qx *= invrn; qy *= invrn; qz *= invrn;
+	const double qxx=qx*qx, qxy=qx*qy, qxz=qx*qz, qyy=qy*qy, qyz=qy*qz, qzz=qz*qz;	
+	
+	const double kr2=kr*kr;	
+	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	 
+	__m128d qff, im_re;
+#define INTERACT_MUL(I)\
+   im_re = cmul(sc,im_re);\
+   _mm_store_pd(result+I,im_re);\
+	
+	const __m128d v1 = _mm_set_pd(kr,t3);
+	const __m128d v2 = _mm_set_pd(t2,t1);
+	
+	qff = _mm_set1_pd(qxx);
+	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
+	INTERACT_MUL(0)
+	
+	qff = _mm_set1_pd(qxy);
+	im_re = _mm_mul_pd(v2,qff);
+	INTERACT_MUL(1)
+	
+	qff = _mm_set1_pd(qxz);
+	im_re = _mm_mul_pd(v2,qff);
+	INTERACT_MUL(2)
+	
+	qff = _mm_set1_pd(qyy);
+	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
+	INTERACT_MUL(3)
+	
+	qff = _mm_set1_pd(qyz);
+	im_re = _mm_mul_pd(v2,qff);
+	INTERACT_MUL(4)
+	
+	qff = _mm_set1_pd(qzz);
+	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
+	INTERACT_MUL(5)	
+
+#undef INTERACT_MUL	
+	
+	PRINT_GVAL;
+}
+
+#else //not using SSE3
+
+void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result)
+/* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
+ * (in units of d). All six components of the symmetric matrix are computed at once.
+ * The elements in result are: [G11, G12, G13, G22, G23, G33]
+ */
+{	
+	double re,im;
+
+// this is used for debugging, should be empty define, when not required
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
+	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
+	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/ 
+	
+	double qx = i; 
+	double qy = j; 
+	double qz = k;	 
+	
+	const double rn = sqrt(qx*qx + qy*qy + qz*qz);
+	const double invrn = 1.0/rn;
+	qx *= invrn; qy *= invrn; qz *= invrn;
+	const double qxx=qx*qx, qxy=qx*qy, qxz=qx*qz, qyy = qy*qy, qyz=qy*qz, qzz=qz*qz;	
+	
+	const double rr=rn*gridspace;
+	const double invr3=1.0/(rr*rr*rr);
+	const double kr=WaveNum*rr;
+	const double kr2=kr*kr;	
+	
+	const double cov=cos(kr)*invr3;
+	const double siv=sin(kr)*invr3;
+	
+	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	
+#define INTERACT_MUL(I)\
+   result[I][RE] = re*cov - im*siv;\
+	result[I][IM] = re*siv + im*cov;			
+	
+	re = t1*qxx + t3;
+	im = kr + t2*qxx;
+	INTERACT_MUL(0)	
+	re = t1*qxy;
+	im = t2*qxy;
+	INTERACT_MUL(1)
+	re = t1*qxz;
+	im = t2*qxz;
+	INTERACT_MUL(2)
+	re = t1*qyy + t3;
+	im = kr + t2*qyy;
+	INTERACT_MUL(3)	
+	re = t1*qyz;
+	im = t2*qyz;
+	INTERACT_MUL(4)
+	re = t1*qzz + t3;
+	im = kr + t2*qzz;
+	INTERACT_MUL(5)
+	
+#undef INTERACT_MUL	
+	
+	PRINT_GVAL;
+}
+
+#endif //USE_SSE3
 
 // sinint.c
 void cisi(double x,double *ci,double *si);
@@ -42,22 +272,22 @@ INLINE bool TestTableSize(const double rn)
 
 //============================================================
 
-void CalcInterTerm(const int i,const int j,const int k,doublecomplex * restrict result)
+void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * restrict result)
 /* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
  * (in units of d). All six components of the symmetric matrix are computed at once.
  * The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
 {
-	double rr,qvec[3],q2[3],invr3,qavec[3],av[3];
-	double kr,kr2,kr3,kd2,q4,rn,rn2;
-	double temp,qmunu[6],qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
-	double dmunu[6]; // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
-	double kfr,ci,si,ci1,si1,ci2,si2,brd,cov,siv,g0,g2;
-	doublecomplex expval,br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
-	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
-	const bool inter_avg=true; // temporary fixed option for SO formulation
+	static double rr,qvec[3],q2[3],invr3,qavec[3],av[3];
+	static double kr,kr2,kr3,kd2,q4,rn,rn2;
+	static double temp,qmunu[6],qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
+	static double dmunu[6]; // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
+	static double kfr,ci,si,ci1,si1,ci2,si2,brd,cov,siv,g0,g2;
+	static doublecomplex expval,br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
+	static int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
+	static int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+	static double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
+	static const bool inter_avg=true; // temporary fixed option for SO formulation
 
 // this is used for debugging, should be empty define, when not required
 #define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
@@ -65,7 +295,7 @@ void CalcInterTerm(const int i,const int j,const int k,doublecomplex * restrict 
 	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/ 
 
 	// self interaction; self term is computed in different subroutine
-	if (i==0 && j==0 && k==0) for (comp=0;comp<NDCOMP;comp++) {
+	if (!(i || j || k)) for (comp=0;comp<NDCOMP;comp++) {
 		result[comp][RE]=result[comp][IM]=0;
 		return;
 	}
@@ -96,7 +326,7 @@ void CalcInterTerm(const int i,const int j,const int k,doublecomplex * restrict 
 	imExp(kr,expval);
 	cov=expval[RE];
 	siv=expval[IM];
-	cMultReal(invr3,expval,expval);
+	cMultReal(invr3,expval,expval);	
 	//====== calculate Gp ========
 	for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
 		dmunu[comp]= mu==nu ? 1 : 0;
@@ -549,5 +779,3 @@ void CalcInterTerm(const int i,const int j,const int k,doublecomplex * restrict 
 }
 
 #undef PRINT_GVAL
-
-//============================================================

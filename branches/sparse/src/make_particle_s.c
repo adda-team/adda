@@ -1,3 +1,22 @@
+/* FILE : make_particle_s.c
+ * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
+ *        file; a specialized version for the sparse mode ADDA
+ *
+ * Copyright (C) 2006-2011 ADDA contributors
+ * This file is part of ADDA.
+ *
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+ * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with ADDA. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
+
 /*
 	A version of the functions in make_particle.h designed for the data model of
 	the sparse mode of ADDA. Currently supports only reading the input from a file.
