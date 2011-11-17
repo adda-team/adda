@@ -34,7 +34,8 @@ function mydiff {
     # !!! This should be adjusted
     # Any diff program will do here, but GUI one suits better since allows one
     # to quickly estimate the importance of differences (e.g. when there are
-    # differences in minor digits of many numbers).
+    # differences in minor digits of many numbers). Options include:
+    # tortoisemerge, meld, vimdiff
     tortoisemerge $1 $2
   fi
 }

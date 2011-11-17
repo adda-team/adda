@@ -1,5 +1,5 @@
 /* FILE : chebyshev.c
- * $Date:: 2011-01-31 10:08:19 +0600 #$
+ * $Date::                            $
  * Descr: routines for determining parameters of the chebyshev particles
  *
  * Copyright (C) 2011 ADDA contributors
