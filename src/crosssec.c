@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdint.h>
 #include <limits.h>
 #include "vars.h"
 #include "cmplx.h"
@@ -989,12 +990,7 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
  * '-scat ...' command line option.
  */
 {
-	size_t j,l,lll,index,comp;
-	int i;
-	size_t local_d0;
-	size_t local_nvoid_d0, local_nvoid_d1;
-	double * restrict nvoid_array;
-	unsigned char * restrict materialT;
+	size_t j,l,lll,jjj,jjj_loc,index,comp;
 	double * restrict rdipT;
 	doublecomplex * restrict pT;
 	doublecomplex temp;
@@ -1008,12 +1004,9 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 	Pn_l,    // P*_j.n_jl
 	inp;     // P*_j.P_l
 
-	// check if it can work at all
-	CheckOverflow(3*nvoid_Ndip,ONE_POS_FUNC);
 	// initialize
-	local_d0=boxX*boxY*local_z0;
 	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=Frp_tot[comp]=0.0;
-	// Convert internal fields to dipole moments; Calculate incoming force per dipole
+	// Calculate incoming force per dipole
 	for (j=0;j<local_nvoid_Ndip;++j) {
 		dummy[RE]=dummy[IM]=0.0;
 		for (comp=0;comp<3;++comp) {
@@ -1027,33 +1020,33 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 		Finc[3*j+2] = WaveNum*dummy[IM]/2;
 		Finc_tot[2] += Finc[3*j+2];
 	}
+#ifdef PARALLEL
 	/* Because of the parallelization by row-block decomposition the distributed arrays involved
-	 * need to be gathered on each node a) material -> materialT; b) DipoleCoord -> rdipT;
-	 * c) pvec -> pT
+	 * need to be gathered on each node a) DipoleCoord -> rdipT; b) pvec -> pT.
+	 * Actually this routine is usually called for two polarizations and rdipT does not change
+	 * between the calls. So one AllGather of rdipT can be removed. Number of memory allocations can
+	 * also be reduced. But this should be replaced by Fourier anyway.
 	 */
-	// initialize local_nvoid_d0 and local_nvoid_d1
-	MALLOC_VECTOR(nvoid_array,double,nprocs,ALL);
-	nvoid_array[ringid]=local_nvoid_Ndip;
-	AllGather(nvoid_array+ringid,nvoid_array,double_type,nprocs);
-	local_nvoid_d0=0;
-	for (i=0;i<ringid;i++) local_nvoid_d0+=nvoid_array[i];
-	local_nvoid_d1=local_nvoid_d0+local_nvoid_Ndip;
-	Free_general(nvoid_array);
-	// requires a lot of additional memory
-	MALLOC_VECTOR(materialT,uchar,nvoid_Ndip,ALL);
-	MALLOC_VECTOR(rdipT,double,3*nvoid_Ndip,ALL);
-	MALLOC_VECTOR(pT,complex,3*nvoid_Ndip,ALL);
-
-	memcpy(materialT+local_nvoid_d0,material,local_nvoid_Ndip*sizeof(char));
-	memcpy(pT+3*local_nvoid_d0,pvec,3*local_nvoid_Ndip*sizeof(doublecomplex));
-	memcpy(rdipT+3*local_nvoid_d0,DipoleCoord,3*local_nvoid_Ndip*sizeof(double));
-
-	AllGather(materialT+local_nvoid_d0,materialT,char_type,local_nvoid_Ndip);
-	AllGather(pT+3*local_nvoid_d0,pT,cmplx_type,3*local_nvoid_Ndip);
-	AllGather(rdipT+3*local_nvoid_d0,rdipT,double_type,3*local_nvoid_Ndip);
+	// check if it can work at all
+	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+	// allocates a lot of additional memory
+	MALLOC_VECTOR(rdipT,double,nRows,ALL);
+	MALLOC_VECTOR(pT,complex,nRows,ALL);
+	// gathers everything
+	AllGather(DipoleCoord,rdipT,double3_type,&Timing_ScatQuanComm);
+	AllGather(pvec,pT,cmplx3_type,&Timing_ScatQuanComm);
+#else
+	pT=pvec;
+	rdipT=DipoleCoord;
+#endif
 	// Calculate scattering force per dipole
+	/* Currently, testing the correctness of the following is very hard because the original code
+	 * lacks comments. So the best we can do before rewriting it completely is to test that it
+	 * produces reasonable results for a number of test cases.
+	 */
 	for (j=local_nvoid_d0;j<local_nvoid_d1;++j) {
-		int jjj = 3*j;
+		jjj = 3*j;
+		jjj_loc=3*(j-local_nvoid_d0);
 
 		for (l=0;l<nvoid_Ndip;++l) if (j!=l) {
 			lll = 3*l;
@@ -1109,23 +1102,23 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 				// Fsca_{jl} = ...
 				cMultSelf(c1[comp],ab1);
 				cMultSelf(c2[comp],ab2);
-				Fsca[jjj-3*local_d0+comp] += (c1[comp][RE] + c2[comp][RE])/2;
+				Fsca[jjj_loc+comp] += (c1[comp][RE] + c2[comp][RE])/2;
 			}
 		} // end l-loop
 		// Concluding
 		for (comp=0;comp<3;++comp) {
-			Fsca_tot[comp] += Fsca[jjj-3*local_d0+comp];
-			Frp[jjj-3*local_d0+comp] = Finc[jjj-3*local_d0+comp] + Fsca[jjj-3*local_d0+comp];
-			Frp_tot[comp] += Frp[jjj-3*local_d0+comp];
+			Fsca_tot[comp] += Fsca[jjj_loc+comp];
+			Frp[jjj_loc+comp] = Finc[jjj_loc+comp] + Fsca[jjj_loc+comp];
+			Frp_tot[comp] += Frp[jjj_loc+comp];
 		}
 	} // end j-loop
 
 	// Accumulate the total forces on all nodes
-	MyInnerProduct(Finc_tot+2,double_type,1,&Timing_ScatQuanComm);
+	MyInnerProduct(Finc_tot,double_type,3,&Timing_ScatQuanComm);
 	MyInnerProduct(Fsca_tot,double_type,3,&Timing_ScatQuanComm);
 	MyInnerProduct(Frp_tot,double_type,3,&Timing_ScatQuanComm);
-
-	Free_general(materialT);
+#ifdef PARALLEL
 	Free_general(rdipT);
 	Free_cVector(pT);
+#endif
 }

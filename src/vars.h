@@ -88,8 +88,7 @@ extern size_t local_Nsmall;
 extern int nprocs,ringid;
 extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
 extern size_t local_Nz,local_x0,local_x1,local_Nx;
-extern size_t local_Ndip,local_nvoid_Ndip,nlocalRows;
-extern double nvoid_Ndip;
+extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid_d1,nvoid_Ndip;
 
 // timing
 extern time_t wt_start,last_chp_wt;

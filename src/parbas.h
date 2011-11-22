@@ -30,6 +30,26 @@
 #	elif (MPI_VERSION<MPI_VER_REQ) || ((MPI_VERSION==MPI_VER_REQ) && (MPI_SUBVERSION<MPI_SUBVER_REQ))
 #		error *** MPI version is too old. ***
 #	endif
+
+/* Hopefully MPI_SIZE_T will be defined in the future MPI versions. As of version 2.2 there is only
+ * MPI_AINT, which is by design similar to size_t. However, there are no guarantees of the precise
+ * correspondence. The code below is lame, but should work almost always. Another alternative is to
+ * use overloaded functions, but we want to stick with C.
+ */
+#ifndef MPI_SIZE_T
+#	include <limits.h>
+#	include <stdint.h>
+#	if (SIZE_MAX == UINT_MAX)
+#		define MPI_SIZE_T MPI_UNSIGNED
+#	elif (SIZE_MAX == ULONG_MAX)
+#		define MPI_SIZE_T MPI_UNSIGNED_LONG
+#	elif (SIZE_MAX == ULLONG_MAX)
+#		define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
+#	else
+#		error "Unknown size for size_t! Create an issue at http://code.google.com/p/a-dda/issues/"
+#	endif
 #endif
+
+#endif // ADDA_MPI
 
 #endif // __parbas_h

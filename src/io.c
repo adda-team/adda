@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: i/o routines
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <stdio.h>
 // the following is for MkDirErr
 #include "os.h"
 #ifdef POSIX
@@ -41,7 +42,7 @@ extern const char logfname[];
 
 // LOCAL VARIABLES
 
-	// error buffer for warning message generated before logfile is opened
+// error buffer for warning message generated before logfile is opened
 static char warn_buf[MAX_MESSAGE2]="";
 
 //============================================================
@@ -416,4 +417,67 @@ void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 	sprintf(sbuffer,"mkdir \"%s\"",dir);
 	if (system(sbuffer)) LogWarning(EC_WARN,ERR_LOC_CALL,"Failed to make directory '%s'",dir);
 #endif
+}
+
+//===========================================================
+
+INLINE void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
+/* skips full line in the file, starting from current position;
+ * uses buffer 'buf' with size 'buf_size'
+ */
+{
+	do fgets(buf,buf_size,file); while (strchr(buf,'\n')==NULL && !feof(file));
+}
+
+//===========================================================
+
+char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
+	char * restrict buf,const int buf_size,ERR_LOC_DECL)
+/* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname
+ * and line number to be shown in error message; uses buffer 'buf' with size 'buf_size'.
+ */
+{
+	char *res;
+
+	res=fgets(buf,buf_size,file);
+	if (res!=NULL) {
+		(*line)++;
+		if (strchr(buf,'\n')==NULL && !feof(file)) LogError(ERR_LOC_CALL,
+			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",
+			fname,*line,BUF_LINE-1);
+	}
+	return res;
+}
+
+//===========================================================
+
+void SkipNLines(FILE * restrict file,size_t n)
+// skips n lines from the file starting from current position in a file
+{
+	char buf[BUF_LINE];
+
+	while (n>0) {
+		SkipFullLine(file,buf,BUF_LINE);
+		n--;
+	}
+}
+
+//===========================================================
+
+size_t SkipComments(FILE * restrict file)
+/* skips comments (#...), all lines, starting from current position in a file.
+ * returns number of lines skipped
+ */
+{
+	int ch;
+	size_t lines=0;
+	char buf[BUF_LINE];
+
+	while ((ch=fgetc(file))=='#') {
+		SkipFullLine(file,buf,BUF_LINE);
+		lines++;
+	}
+	if (ch!=EOF) ungetc(ch,file);
+
+	return lines;
 }

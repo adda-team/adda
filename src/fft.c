@@ -695,7 +695,7 @@ static void CalcInterTerm(const int i,const int j,const int k,doublecomplex * re
 		return;
 	}
 #endif
-	// a common part of the code ((up to FCD...), which effectively implements G_POINT_DIP
+	// a common part of the code (up to FCD...), which effectively implements G_POINT_DIP
 	invrn=1/rn;
 	vMultScalSelf(invrn,qvec); // finalize qvec
 	rr=rn*gridspace;

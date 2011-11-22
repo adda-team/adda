@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: i/o and error handling routines
  *
- * Copyright (C) 2006,2008-2010
+ * Copyright (C) 2006,2008-2011
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -72,5 +72,10 @@ FILE *FOpenErr(const char * restrict fname,const char * restrict mode,ERR_LOC_DE
 void FCloseErr(FILE * restrict file,const char * restrict fname,ERR_LOC_DECL);
 void RemoveErr(const char * restrict fname,ERR_LOC_DECL);
 void MkDirErr(const char * restrict dirname,ERR_LOC_DECL);
+
+char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
+	char * restrict buf,const int buf_size,ERR_LOC_DECL);
+void SkipNLines(FILE * restrict file,size_t n);
+size_t SkipComments(FILE * restrict file);
 
 #endif // __io_h

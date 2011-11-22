@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1b1"
+#define ADDA_VERSION "1.1b2"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -38,8 +38,12 @@
 
 // basic constants
 #define UNDEF -1 // should be used only for variables, which are naturally non-negative
-	// denotes that shape accepts single filename argument; used in definitions of suboptions
-#define FNAME_ARG -2
+	// denotes that shape accepts filename arguments; used in definitions of options
+#define FNAME_ARG     -2  // single filename
+#define FNAME_ARG_2   -3  // two filenames
+#define FNAME_ARG_1_2 -4  // 1 or 2 filenames
+	// macro to test for occurrence of one of FNAME_ARG
+#define IS_FNAME_ARG(A) (((A)==FNAME_ARG) || ((A)==FNAME_ARG_2) || ((A)==FNAME_ARG_1_2))
 
 // simple functions
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
@@ -77,13 +81,6 @@
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
 
-/* determines the maximum number representable by size_t. Actually, SIZE_MAX is part of the C99
- * standard, but we leave this code to be.
- */
-#ifndef SIZE_MAX
-#define SIZE_MAX ((size_t)-1)
-#endif
-
 // sets the maximum box size; otherwise 'position' should be changed
 #define BOX_MAX USHRT_MAX
 
@@ -105,7 +102,7 @@
 #define MAX_WORD          10 // maximum length of a short word
 #define MAX_LINE         100 // maximum length of a line
 	// size of buffer for reading lines (longer lines are handled robustly)
-#define BUF_LINE      150
+#define BUF_LINE      300
 #define MAX_PARAGRAPH 600 // maximum length of a paragraph (few lines)
 
 // derived sizes
@@ -248,7 +245,8 @@ enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_LMINUS,  // 1st order description of the Gaussian beam
-	B_PLANE    // infinite plane wave
+	B_PLANE,   // infinite plane wave
+	B_READ     // read from file
 	/* TO ADD NEW BEAM
 	 * add an identifier starting with 'B_' and a descriptive comment to this list in alphabetical
 	 * order.

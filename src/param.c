@@ -23,7 +23,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include <limits.h>
+#include <stdint.h>
 #include "os.h"
 #include "io.h"
 #include "const.h"
@@ -73,7 +73,7 @@ extern const bool volcor_used;
 extern const char sh_form_str[];
 extern const int gr_N;
 extern const double gr_vf_real;
-extern const double mat_count[];
+extern const size_t mat_count[];
 
 // used in CalculateE.c
 bool store_int_field; // save full internal fields to text file
@@ -106,7 +106,8 @@ double igt_eps; // relative error of integration in IGT
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
 opt_index opt_beam;                 // option index of beam option used
-char beam_fname[MAX_FNAME];         // name of file, defining the beam
+char beam_fnameY[MAX_FNAME];        // names of files, defining the beam (for two polarizations)
+char beam_fnameX[MAX_FNAME];
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
@@ -200,6 +201,10 @@ static const struct subopt_struct beam_opt[]={
 		"parameters (all in um). By default beam center coincides with the center of the "
 		"computational box.",UNDEF,B_LMINUS},
 	{"plane","","Infinite plane wave",0,B_PLANE},
+	{"read","<filenameY> [<filenameX>]","Defined by separate files, which names are given as "
+		"arguments. Normally two files are required for Y and X polarizations respectively, but if "
+		"only Y polarization is simulated (e.g. due to symmetry) one filename is sufficient.",
+		FNAME_ARG_1_2,B_READ},
 	/* TO ADD NEW BEAM
 	 * add a row to this list in alphabetical order. It contains:
 	 * beam name (used in command line), usage string, help string, possible number of float
@@ -669,36 +674,36 @@ static void NargError(const int Narg,const char *expec)
  * information
  */
 {
-	char buf[MAX_WORD]; // not to allocate memory if needed
-
-	if (expec==NULL) {
-		if (opt.l2==UNDEF) sprintf(buf,"%d",options[opt.l1].narg);
-		else sprintf(buf,"%d",options[opt.l1].sub[opt.l2].narg);
-		expec=buf;
-	}
 	PrintErrorHelp("Illegal number of arguments (%d) to '-%s' option (%s expected)",
 		Narg,OptionName(),expec);
 }
 
 //============================================================
-// following two functions are interfaces to NargError
 
-INLINE void TestNarg(const int Narg)
-// check if Narg given to an option is correct
+INLINE void TestNarg(const int Narg,const int need)
+// check if Narg given to an option (or suboption) is correct; interface to NargError
 {
-	if (options[opt.l1].narg!=UNDEF && Narg!=options[opt.l1].narg) NargError(Narg,NULL);
-}
-
-//============================================================
-
-INLINE void TestNarg_sub(const int Narg)
-// check if Narg given to a suboption is correct
-{
-	int need;
-
-	need=options[opt.l1].sub[opt.l2].narg;
-	if (need==FNAME_ARG) need=1;
-	if (need!=UNDEF && Narg!=need) NargError(Narg,NULL);
+	if (need>=0) { // usual case
+		if (Narg!=need) {
+			char buf[MAX_WORD];
+			snprintf(buf,MAX_WORD,"%d",need);
+			NargError(Narg,buf);
+		}
+	} // otherwise special cases are considered, encoded by negative values
+	else if (need==UNDEF); // do nothing
+	else if (need==FNAME_ARG) {
+		if (Narg!=1) NargError(Narg,"1");
+	}
+	else if (need==FNAME_ARG_2) {
+		if (Narg!=2) NargError(Narg,"2");
+	}
+	else if (need==FNAME_ARG_1_2) {
+		if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
+	}
+	// rigorous test that every possible special case is taken care of
+	else PrintError("Critical error in TestNarg function (unknown argument 'need'=%d). Probably "
+		"this comes from value of 'narg' in one of static arrays, describing command line options."
+		,need);
 }
 
 //============================================================
@@ -713,19 +718,20 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 
 //============================================================
 
-INLINE void TestStrLength(const char * restrict str,const unsigned int size)
+INLINE void ScanStrError(const char * restrict str,const unsigned int size,char * restrict dest)
 /* check if string fits in buffer of size 'size', otherwise produces error message
- * 'opt' is command line option that checks its argument
+ * then content of str is copied into dest
  */
 {
 	if (strlen(str)>=size)
 		PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
 			"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
+	strcpy(dest,str);
 }
 
 //============================================================
 
-INLINE void ScanfDoubleError(const char * restrict str,double *res)
+INLINE void ScanDoubleError(const char * restrict str,double *res)
 // scanf an option argument and checks for errors
 {
 	if (sscanf(str,"%lf",res)!=1) PrintErrorHelpSafe(
@@ -734,7 +740,7 @@ INLINE void ScanfDoubleError(const char * restrict str,double *res)
 
 //============================================================
 
-INLINE void ScanfIntError(const char * restrict str,int *res)
+INLINE void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
 	double tmp;
@@ -749,6 +755,32 @@ INLINE void ScanfIntError(const char * restrict str,int *res)
 	if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelpSafe(
 		"Argument value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
 	*res=(int)tmp;
+}
+
+//============================================================
+
+INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,char * restrict fname1,
+	char * restrict fname2)
+/* If 'need' corresponds to one of FNAME_ARG, scan Narg<=2 filenames from argv into fname1 and
+ * fname2. All consistency checks are left to the caller (in particular, whether Narg corresponds
+ * to need). argv should be shifted to contain only filenames. fname2 can be NULL, but it will
+ * produce an error in combination with Narg=2)
+ *
+ * Returns whether filenames has been scanned.
+ */
+{
+	bool res=false;
+
+	if (IS_FNAME_ARG(need)) {
+		ScanStrError(argv[0],MAX_FNAME,fname1);
+		if (Narg==2) {
+			if (fname2==NULL) // consistency check e.g. for reading shape filename
+				PrintError("Failed to store the second filename in function ScanFnamesError");
+			else ScanStrError(argv[1],MAX_FNAME,fname2);
+		}
+		res=true;
+	}
+	return res;
 }
 
 //============================================================
@@ -819,8 +851,7 @@ static void PrintTime(char * restrict s,const time_t *time_ptr)
 
 PARSE_FUNC(alldir_inp)
 {
-	TestStrLength(argv[1],MAX_FNAME);
-	strcpy(alldir_parms,argv[1]);
+	ScanStrError(argv[1],MAX_FNAME,alldir_parms);
 }
 PARSE_FUNC(anisotr)
 {
@@ -835,7 +866,7 @@ PARSE_FUNC(asym)
 }
 PARSE_FUNC(beam)
 {
-	int i,j;
+	int i,j,need;
 	bool found;
 
 	Narg--;
@@ -847,8 +878,9 @@ PARSE_FUNC(beam)
 		beamtype=(enum beam)beam_opt[i].type;
 		beam_Npars=Narg;
 		opt_beam=opt;
+		need=beam_opt[i].narg;
 		// check number of arguments
-		TestNarg_sub(Narg);
+		TestNarg(Narg,need);
 		// for now, this is all non-plane beams, but another beams may be added in the future
 		if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
 			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
@@ -858,14 +890,9 @@ PARSE_FUNC(beam)
 		 * above) add a check of number of received arguments to this else-if sequence. Use
 		 * NargError function similarly as done in existing tests.
 		 */
-
-		// special cases to parse filename
-		if (beam_opt[i].narg==FNAME_ARG) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(beam_fname,argv[2]);
-		}
-		// else parse all parameters as float; their consistency is checked in InitBeam()
-		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],beam_pars+j);
+		// either parse filename or parse all parameters as float; consistency is checked later
+		if (!ScanFnamesError(Narg,need,argv+2,beam_fnameY,beam_fnameX))
+			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
 		break;
@@ -874,8 +901,7 @@ PARSE_FUNC(beam)
 }
 PARSE_FUNC(chp_dir)
 {
-	TestStrLength(argv[1],MAX_DIRNAME);
-	strcpy(chp_dir,argv[1]);
+	ScanStrError(argv[1],MAX_DIRNAME,chp_dir);
 }
 PARSE_FUNC(chp_load)
 {
@@ -907,36 +933,35 @@ PARSE_FUNC(Csca)
 }
 PARSE_FUNC(dir)
 {
-	TestStrLength(argv[1],MAX_DIRNAME);
-	strcpy(directory,argv[1]);
+	ScanStrError(argv[1],MAX_DIRNAME,directory);
 }
 PARSE_FUNC(dpl)
 {
-	ScanfDoubleError(argv[1],&dpl);
+	ScanDoubleError(argv[1],&dpl);
 	TestPositive(dpl,"dpl");
 }
 PARSE_FUNC(eps)
 {
 	double tmp;
 
-	ScanfDoubleError(argv[1],&tmp);
+	ScanDoubleError(argv[1],&tmp);
 	TestPositive(tmp,"eps exponent");
 	iter_eps=pow(10,-tmp);
 }
 PARSE_FUNC(eq_rad)
 {
-	ScanfDoubleError(argv[1],&a_eq);
+	ScanDoubleError(argv[1],&a_eq);
 	TestPositive(a_eq,"dpl");
 }
 PARSE_FUNC(granul)
 {
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
-	ScanfDoubleError(argv[1],&gr_vf);
+	ScanDoubleError(argv[1],&gr_vf);
 	TestRangeII(gr_vf,"volume fraction",0,PI_OVER_SIX);
-	ScanfDoubleError(argv[2],&gr_d);
+	ScanDoubleError(argv[2],&gr_d);
 	TestPositive(gr_d,"diameter");
 	if (Narg==3) {
-		ScanfIntError(argv[3],&gr_mat);
+		ScanIntError(argv[3],&gr_mat);
 		TestPositive_i(gr_mat,"domain number");
 	}
 	else gr_mat=1;
@@ -946,12 +971,12 @@ PARSE_FUNC(granul)
 PARSE_FUNC(grid)
 {
 	if (Narg!=1 && Narg!=3) NargError(Narg,"1 or 3");
-	ScanfIntError(argv[1],&boxX); // boxes are further multiplied by jagged if needed
+	ScanIntError(argv[1],&boxX); // boxes are further multiplied by jagged if needed
 	TestRange_i(boxX,"gridX",1,BOX_MAX);
 	if (Narg==3) {
-		ScanfIntError(argv[2],&boxY);
+		ScanIntError(argv[2],&boxY);
 		TestRange_i(boxY,"gridY",1,BOX_MAX);
-		ScanfIntError(argv[3],&boxZ);
+		ScanIntError(argv[3],&boxZ);
 		TestRange_i(boxY,"gridY",1,BOX_MAX);
 	}
 }
@@ -1029,10 +1054,10 @@ PARSE_FUNC(int)
 #endif
 		IntRelation=G_IGT;
 		if (Narg>=2) {
-			ScanfDoubleError(argv[2],&igt_lim);
+			ScanDoubleError(argv[2],&igt_lim);
 			TestNonNegative(igt_lim,"distance limit for IGT");
 			if (Narg==3) {
-				ScanfDoubleError(argv[3],&tmp);
+				ScanDoubleError(argv[3],&tmp);
 				TestPositive(tmp,"IGT precision");
 				igt_eps=pow(10,-tmp);
 			}
@@ -1062,12 +1087,12 @@ PARSE_FUNC(iter)
 }
 PARSE_FUNC(jagged)
 {
-	ScanfIntError(argv[1],&jagged);
+	ScanIntError(argv[1],&jagged);
 	TestRange_i(jagged,"jagged",1,BOX_MAX);
 }
 PARSE_FUNC(lambda)
 {
-	ScanfDoubleError(argv[1],&lambda);
+	ScanDoubleError(argv[1],&lambda);
 	TestPositive(lambda,"wavelength");
 }
 PARSE_FUNC(m)
@@ -1080,8 +1105,8 @@ PARSE_FUNC(m)
 		PrintErrorHelp("Too many materials (%d), maximum %d are supported. You may increase "
 			"parameter MAX_NMAT in const.h and recompile.",Nmat,MAX_NMAT);
 	for (i=0;i<Nmat;i++) {
-		ScanfDoubleError(argv[2*i+1],&ref_index[i][RE]);
-		ScanfDoubleError(argv[2*i+2],&ref_index[i][IM]);
+		ScanDoubleError(argv[2*i+1],&ref_index[i][RE]);
+		ScanDoubleError(argv[2*i+2],&ref_index[i][IM]);
 		if (ref_index[i][RE]==1 && ref_index[i][IM]==0)
 			PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
 				"Consider using, for instance, 1.0001 instead.",i+1);
@@ -1089,7 +1114,7 @@ PARSE_FUNC(m)
 }
 PARSE_FUNC(maxiter)
 {
-	ScanfIntError(argv[1],&maxiter);
+	ScanIntError(argv[1],&maxiter);
 	TestPositive_i(maxiter,"maximum number of iterations");
 }
 PARSE_FUNC(no_reduced_fft)
@@ -1102,7 +1127,7 @@ PARSE_FUNC(no_vol_cor)
 }
 PARSE_FUNC(ntheta)
 {
-	ScanfIntError(argv[1],&nTheta);
+	ScanIntError(argv[1],&nTheta);
 	TestPositive_i(nTheta,"number of theta intervals");
 	nTheta++;
 }
@@ -1119,22 +1144,19 @@ PARSE_FUNC(orient)
 		if (Narg>2) PrintErrorHelp(
 			"Illegal number of arguments (%d) to '-orient avg' option (0 or 1 expected)",Narg-1);
 		orient_avg=true;
-		if (Narg==2) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(avg_parms,argv[2]);
-		}
+		if (Narg==2) ScanStrError(argv[2],MAX_FNAME,avg_parms);
 	}
 	else {
 		if (Narg!=3) NargError(Narg,"3");
-		ScanfDoubleError(argv[1],&alph_deg);
-		ScanfDoubleError(argv[2],&bet_deg);
-		ScanfDoubleError(argv[3],&gam_deg);
+		ScanDoubleError(argv[1],&alph_deg);
+		ScanDoubleError(argv[2],&bet_deg);
+		ScanDoubleError(argv[3],&gam_deg);
 	}
 }
 PARSE_FUNC(phi_integr)
 {
 	phi_integr = true;
-	ScanfIntError(argv[1],&phi_int_type);
+	ScanIntError(argv[1],&phi_int_type);
 	TestRange_i(phi_int_type,"type of integration over phi",1,31);
 }
 PARSE_FUNC(pol)
@@ -1175,9 +1197,9 @@ PARSE_FUNC(prop)
 {
 	double tmp;
 
-	ScanfDoubleError(argv[1],prop_0);
-	ScanfDoubleError(argv[2],prop_0+1);
-	ScanfDoubleError(argv[3],prop_0+2);
+	ScanDoubleError(argv[1],prop_0);
+	ScanDoubleError(argv[2],prop_0+1);
+	ScanDoubleError(argv[3],prop_0+2);
 	tmp=DotProd(prop_0,prop_0);
 	if (tmp==0) PrintErrorHelp("Given propagation vector is null");
 	tmp=1/sqrt(tmp);
@@ -1193,10 +1215,7 @@ PARSE_FUNC(save_geom)
 {
 	if (Narg>1) NargError(Narg,"0 or 1");
 	save_geom=true;
-	if (Narg==1) {
-		TestStrLength(argv[1],MAX_FNAME);
-		strcpy(save_geom_fname,argv[1]);
-	}
+	if (Narg==1) ScanStrError(argv[1],MAX_FNAME,save_geom_fname);
 }
 PARSE_FUNC(scat)
 {
@@ -1208,8 +1227,7 @@ PARSE_FUNC(scat)
 }
 PARSE_FUNC(scat_grid_inp)
 {
-	TestStrLength(argv[1],MAX_FNAME);
-	strcpy(scat_grid_parms,argv[1]);
+	ScanStrError(argv[1],MAX_FNAME,scat_grid_parms);
 }
 PARSE_FUNC(scat_matr)
 {
@@ -1234,7 +1252,7 @@ PARSE_FUNC(sg_format)
 }
 PARSE_FUNC(shape)
 {
-	int i,j;
+	int i,j,need;
 	bool found;
 
 	Narg--;
@@ -1246,8 +1264,9 @@ PARSE_FUNC(shape)
 		opt.l2=i;
 		opt_sh=opt;
 		sh_Npars=Narg;
+		need=shape_opt[i].narg;
 		// check number of arguments
-		TestNarg_sub(Narg);
+		TestNarg(Narg,need);
 		if (shape==SH_COATED) {
 			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
 		}
@@ -1259,25 +1278,20 @@ PARSE_FUNC(shape)
 		 * above) add a check of number of received arguments to this else-if sequence. Use
 		 * NargError function similarly as done in existing tests.
 		*/
-
-		// special cases to parse filename
-		if (shape_opt[i].narg==FNAME_ARG) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(shape_fname,argv[2]);
-		}
-		// else parse all parameters as float; their consistency is checked in InitShape()
-		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],sh_pars+j);
+		// either parse filename or parse all parameters as float; consistency is checked later
+		if (!ScanFnamesError(Narg,need,argv+2,shape_fname,NULL))
+			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],sh_pars+j);
 		// stop search
 		found=true;
 		break;
 	}
-	if(!found) NotSupported("Shape type",argv[1]);
+	if (!found) NotSupported("Shape type",argv[1]);
 	// set shape name; takes place only if shape name was matched above
 	strcpy(shapename,argv[1]);
 }
 PARSE_FUNC(size)
 {
-	ScanfDoubleError(argv[1],&sizeX);
+	ScanDoubleError(argv[1],&sizeX);
 	TestPositive(sizeX,"particle size");
 }
 PARSE_FUNC(store_beam)
@@ -1405,7 +1419,7 @@ PARSE_FUNC(V)
 		bits=1;
 		while(num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
-#ifdef __MINGW64_VERSION
+#ifdef __MINGW64_VERSION_STR
 		printf("      using MinGW-64 environment version"__MINGW64_VERSION_STR"\n");
 #elif defined(__MINGW32_VERSION)
 		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
@@ -1675,7 +1689,7 @@ void ParseParameters(const int argc,char **argv)
 		for (j=0;j<LENGTH(options);j++) if (strcmp(argv[i],options[j].name)==0) {
 			opt.l1=j;
 			// check consistency, if enabled for this parameter
-			TestNarg(Narg);
+			TestNarg(Narg,options[j].narg);
 			// parse this parameter
 			(*options[j].func)(Narg,argv+i);
 			// check duplicate options; it is safe since at this point argv[i] is known to be normal
@@ -1925,7 +1939,7 @@ void PrintInfo(void)
 		// print basic parameters
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
-		printf("Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
+		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
@@ -1964,10 +1978,10 @@ void PrintInfo(void)
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
-		fprintf(logfile,"Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
+		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		if (Nmat>1) {
-			fprintf(logfile,"  per domain: 1. %.0f\n",mat_count[0]);
-			for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %.0f\n",i+1,mat_count[i]);
+			fprintf(logfile,"  per domain: 1. %zu\n",mat_count[0]);
+			for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %zu\n",i+1,mat_count[i]);
 		}
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization

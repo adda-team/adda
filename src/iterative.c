@@ -185,7 +185,7 @@ static void SaveIterChpoint(void)
 	chp_file=FOpenErr(fname,"wb",ALL_POS);
 	// write common scalars
 	fwrite(&ind_m,sizeof(int),1,chp_file);
-	fwrite(&nlocalRows,sizeof(size_t),1,chp_file);
+	fwrite(&local_nRows,sizeof(size_t),1,chp_file);
 	fwrite(&niter,sizeof(int),1,chp_file);
 	fwrite(&counter,sizeof(int),1,chp_file);
 	fwrite(&inprodR,sizeof(double),1,chp_file);
@@ -194,15 +194,15 @@ static void SaveIterChpoint(void)
 	// write specific scalars
 	for (i=0;i<params[ind_m].sc_N;i++) fwrite(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// write common vectors
-	if (fwrite(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
-	if (fwrite(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(rvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
-	if (fwrite(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// write specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fwrite(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
+		if (fwrite(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
 			LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// close file
 	FCloseErr(chp_file,fname,ALL_POS);
@@ -222,7 +222,7 @@ static void LoadIterChpoint(void)
 {
 	int i;
 	int ind_m_new;
-	size_t nlocalRows_new;
+	size_t local_nRows_new;
 	char fname[MAX_FNAME],ch;
 	FILE * restrict chp_file;
 	TIME_TYPE tstart;
@@ -237,8 +237,8 @@ static void LoadIterChpoint(void)
 	 */
 	fread(&ind_m_new,sizeof(int),1,chp_file);
 	if (ind_m_new!=ind_m) LogError(ALL_POS,"File '%s' is for different iterative method",fname);
-	fread(&nlocalRows_new,sizeof(size_t),1,chp_file);
-	if (nlocalRows_new!=nlocalRows)
+	fread(&local_nRows_new,sizeof(size_t),1,chp_file);
+	if (local_nRows_new!=local_nRows)
 		LogError(ALL_POS,"File '%s' is for different vector size",fname);
 	// read common scalars
 	fread(&niter,sizeof(int),1,chp_file);
@@ -250,15 +250,15 @@ static void LoadIterChpoint(void)
 	for (i=0;i<params[ind_m].sc_N;i++)
 		fread(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// read common vectors
-	if (fread(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
-	if (fread(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(rvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
-	if (fread(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fread(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
+		if (fread(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
 			LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// check if EOF reached and close file
 	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
@@ -1050,7 +1050,7 @@ void CalcInitField(char *descr,double zero_resid)
 			"incident direction of the incoming wave (along z-axis)");
 		doublecomplex vals[Nmat+1],tmpc;
 		int i,k; // for traversing single-axis dimensions
-		size_t dip,ind,dip_sl; // for traversing slices or up to nlocalRows
+		size_t dip,ind,dip_sl; // for traversing slices or up to local_nRows
 		size_t boxX_l=(size_t)boxX; // to remove type conversion in indexing
 #define INDEX_GRID(i) (position[(i)+2]*boxXY+position[(i)+1]*boxX_l+position[i])
 		/* can be optimized by reusing material_tmp from make_particle.c or keeping the values
@@ -1105,7 +1105,7 @@ void CalcInitField(char *descr,double zero_resid)
 					cAdd(arg[dip],bottom[ind],arg[dip]);
 #endif
 		// xvec=pvec*Exp(arg), but arg is defined on a set of all (including void) dipoles
-		for (ind=0;ind<nlocalRows;ind+=3) {
+		for (ind=0;ind<local_nRows;ind+=3) {
 			cExp(arg[INDEX_GRID(ind)],tmpc);
 			cvMultScal_cmplx(tmpc,pvec+ind,xvec+ind);
 		}
