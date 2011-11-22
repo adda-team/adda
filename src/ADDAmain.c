@@ -24,6 +24,24 @@
 #include "debug.h"
 #include "io.h"
 
+/* When linking both C and Fortran code under Windows, using gcc 4.6.1, EOL style in both stdout and
+ * stderr becomes that of Unix. Probably this is due to automatic change of write mode for this
+ * streams to binary by gfortran (even when Fortran code has nothing to do with i/o at all). The
+ * same may happen to stdin, but this is hard to test.
+ *
+ * This is not a big problem, but is unpleasant when doing diffs of produced stdout. So until the
+ * bug is fixed on compiler side we use two different workarounds for mingw32 and mingw64.
+ */
+#ifdef __MINGW64_VERSION_STR
+	// the simple solution of mingw32 (below) does not work here, so function calls are required
+#	include <fcntl.h> // _O_TEXT
+#	include <io.h>    // probably redundant
+#elif defined(__MINGW32_VERSION)
+#	include <fcntl.h> // _O_TEXT
+	// this definition affects mingw32 program call sequence, which sets the mode of std streams
+	unsigned int _CRT_fmode = _O_TEXT;
+#endif
+
 // EXTERNAL FUNCTIONS
 
 // calculator.c
@@ -52,6 +70,12 @@ int main(int argc,char **argv)
 	 * be hard to verify, especially in newly-added functions for parsing command line option. Since
 	 * the optimization gain is expected to be minor, if any, we stay conservative on this issue.
 	 */
+#ifdef __MINGW64_VERSION_STR
+	// this code causes warnings in combination with -std=c99, but should work fine
+	_setmode(_fileno(stdin),_O_TEXT);
+	_setmode(_fileno(stdout),_O_TEXT);
+	_setmode(_fileno(stderr),_O_TEXT);
+#endif
 	// Initialize error handling and line wrapping
 	logfile=NULL;
 	term_width=DEF_TERM_WIDTH;
