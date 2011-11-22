@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of communication global variables and routines
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -30,7 +30,7 @@
 #define UOIP ATT_UNUSED
 #endif
 
-typedef enum {char_type,int_type,double_type,cmplx_type} var_type;
+typedef enum {uchar_type,int_type,sizet_type,double_type,double3_type,cmplx_type,cmplx3_type} var_type;
 
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
@@ -39,10 +39,10 @@ void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ)
 void AccumulateMax(double *data,double *max);
 void Accumulate(double * restrict data,size_t size,double * restrict buffer,TIME_TYPE *timing);
 void MyInnerProduct(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
-void AllGather(void * restrict x_from,void * restrict x_to,var_type type,size_t n_elem);
 void InitComm(int *argc_p,char ***argv_p);
 void ParSetup(void);
-void MyBcast(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
+void SetupLocalD(void);
+void MyBcast(void * restrict data,var_type type,const size_t n_elem,TIME_TYPE *timing);
 void BcastOrient(int *i,int *j,int *k);
 // used by granule generator
 void SetGranulComm(double z0,double z1,double gdZ,int gZ,size_t gXY,size_t buf_size,int *lz0,
@@ -56,6 +56,7 @@ void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
 void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char * restrict dest);
 bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,
 	TIME_TYPE *timing);
+void AllGather(void * restrict x_from,void * restrict x_to,var_type type,TIME_TYPE *timing);
 
 /* The advantage of using this define is that compiler may remove an unnecessary test in sequential
  * mode. The define do not include common 'if', etc. to make the structure of the code (in the main

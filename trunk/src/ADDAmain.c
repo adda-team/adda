@@ -96,7 +96,7 @@ int main(int argc,char **argv)
 	DirectoryLog(argc,argv);
 	// Initialize FFT grid and its subdivision over processors
 	ParSetup();
-	// MakeParticle; initialize dpl and nlocalRows
+	// MakeParticle; initialize dpl and local_nRows
 	MakeParticle();
 	D("Make particle finished");
 	// Print info to stdout and logfile

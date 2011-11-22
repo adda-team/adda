@@ -142,8 +142,18 @@ size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor a
                                     */
 size_t local_Ndip;                 // number of local total dipoles
 size_t local_nvoid_Ndip;           // number of local and ...
-double nvoid_Ndip;                 // ... total non-void dipoles
-size_t nlocalRows;                 // number of local rows of decomposition (only real dipoles)
+size_t nvoid_Ndip;                 // ... total non-void dipoles
+size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for current processor
+/* By defining nvoid_Ndip, local_nvoid_d0, and local_nvoid_d1 as size_t we limit the possible number
+ * of dipoles in 32-bit version by 4*10^9. This can be restricting for such huge runs distributed
+ * among more than 1000 processors. But we assume that using such a large number of processor
+ * implies modern cluster and hence 64-bit compilation of ADDA. Anyway, direct test for Ndip larger
+ * than the limit is made and the meaningful error message is produced if needed.
+ *
+ * The same limitation is implied in a few other places (like number of lines in dipole file, etc.).
+ * Definitions of mat_count[] and Ndip are made as size_t due to the same reasoning.
+ */
+size_t local_nRows;                 // number of local rows of decomposition (only real dipoles)
 
 // timing
 time_t wt_start,              // starting wall time

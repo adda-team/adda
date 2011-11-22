@@ -47,7 +47,7 @@ void nInit(doublecomplex * restrict a)
 // initialize vector a with null values
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 #pragma loop count (100000)
 #pragma ivdep
 	for (i=0;i<n;i++) a[i][RE]=a[i][IM]=0;
@@ -58,7 +58,7 @@ void nInit(doublecomplex * restrict a)
 void nCopy(doublecomplex * restrict a,doublecomplex * restrict b)
 // copy vector b to a (a=b); !!! they must not alias !!!
 {
-	memcpy(a,b,nlocalRows*sizeof(doublecomplex));
+	memcpy(a,b,local_nRows*sizeof(doublecomplex));
 }
 
 //============================================================
@@ -67,7 +67,7 @@ double nNorm2(doublecomplex * restrict a,TIME_TYPE *comm_timing)
 // squared norm of a large vector a
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double sum=0;
 	double inprod; // needed for MyInnerProduct, since register variable can't be dereferenced
 #pragma loop count (100000)
@@ -88,7 +88,7 @@ void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomple
  */
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -112,7 +112,7 @@ void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublec
  */
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -132,7 +132,7 @@ void nDotProdSelf_conj(doublecomplex * restrict a,doublecomplex c,TIME_TYPE *com
 // conjugate dot product of vector on itself; c=a.a*; here the dot implies conjugation
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double cre=0,cim=0;
 
 #pragma loop count (100000)
@@ -156,7 +156,7 @@ void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double *
  */
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double s0=0,s1=0,s2=0;
 	double buf[3];
 
@@ -183,7 +183,7 @@ void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 // a=c1*a+c2*b+c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double tmp;
 	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
 
@@ -203,7 +203,7 @@ void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 // a+=c1*b+c2*c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
 
 #pragma loop count (100000)
@@ -223,7 +223,7 @@ void nIncrem110_d_c_conj(doublecomplex * restrict a,doublecomplex * restrict b,
  * vectors a and c are conjugated during the evaluation; !!! a,b,c must not alias !!!
  */
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	// extra variable for c1 is probably redundant, but won't harm
 	register const double cd=c1,cre=c2[RE],cim=c2[IM];
@@ -257,7 +257,7 @@ void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 // a=c1*a+c2*b+c3*c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register double tmp;
 	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM],c3re=c3[RE],c3im=c3[IM];
 
@@ -278,7 +278,7 @@ void nIncrem(doublecomplex * restrict a,doublecomplex * restrict b,double * rest
 	TIME_TYPE *comm_timing)
 // a+=b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register double sum=0;
 
@@ -309,7 +309,7 @@ void nDecrem(doublecomplex * restrict a,doublecomplex * restrict b,double * rest
 	TIME_TYPE *comm_timing)
 // a-=b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register double sum=0;
 
@@ -340,7 +340,7 @@ void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const doubl
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=a+c*b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 	register double sum=0;
@@ -372,7 +372,7 @@ void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const doubl
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c*a+b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 	register double sum=0;
@@ -406,7 +406,7 @@ void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const d
  * !!! a and b must not alias !!!
  */
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	// extra variable for c1 is probably redundant, but won't harm
 	register const double c1d=c1,c2re=c2[RE],c2im=c2[IM];
@@ -440,7 +440,7 @@ void nIncrem01_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=a+c*b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cre=c[RE],cim=c[IM];
 	register double sum=0;
@@ -472,7 +472,7 @@ void nIncrem10_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c*a+b, inprod=|a|^2; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cre=c[RE],cim=c[IM];
 	register double sum=0,tmp;
@@ -507,7 +507,7 @@ void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c1*b+c2*c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double c1re=c1[RE],c1im=c1[IM],c2re=c2[RE],c2im=c2[IM];
 	register double sum=0;
@@ -542,7 +542,7 @@ void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	TIME_TYPE *comm_timing)
 // a=c1*b+c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double c1re=c1[RE],c1im=c1[IM];
 	register double sum=0;
@@ -577,7 +577,7 @@ void nLinComb1_cmplx_conj(doublecomplex * restrict a,doublecomplex * restrict b,
 	TIME_TYPE *comm_timing)
 // a=c1*b(*)+c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double c1re=c1[RE],c1im=c1[IM];
 	register double sum=0;
@@ -610,7 +610,7 @@ void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex 
 	double *inprod,TIME_TYPE *comm_timing)
 // a=b-c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register double sum=0;
 
@@ -640,7 +640,7 @@ void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex 
 void nMult(doublecomplex * restrict a,doublecomplex * restrict b,const double c)
 // multiply vector by a real constant; a=c*b; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 
@@ -657,7 +657,7 @@ void nMult(doublecomplex * restrict a,doublecomplex * restrict b,const double c)
 void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c)
 // multiply vector by a complex constant; a=c*b; !!! a and b must not alias !!!
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cre=c[RE],cim=c[IM];
 
@@ -674,7 +674,7 @@ void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const dou
 void nMultSelf(doublecomplex * restrict a,const double c)
 // multiply vector by a real constant; a*=c
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 
@@ -690,7 +690,7 @@ void nMultSelf(doublecomplex * restrict a,const double c)
 void nMultSelf_conj(doublecomplex * restrict a,const double c)
 // conjugate vector and multiply it by a real constant; a=c*a(*)
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cd=c; // extra variable for c is probably redundant, but won't harm
 
@@ -707,7 +707,7 @@ void nMultSelf_conj(doublecomplex * restrict a,const double c)
 void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 // multiply vector by a complex constant; a*=c
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 	register const double cre=c[RE],cim=c[IM];
 	register double tmp;
@@ -785,7 +785,7 @@ void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
 void nConj(doublecomplex * restrict a)
 // complex conjugate of the vector
 {
-	register const size_t n=nlocalRows;
+	register const size_t n=local_nRows;
 	register size_t i;
 
 #pragma loop count (100000)

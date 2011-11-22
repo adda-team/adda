@@ -3,7 +3,7 @@
  * Descr: incorporates all parallelization related code, so most of it is directly involved in or
  *        closely related to interprocess communication
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2011 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -32,12 +32,15 @@
 #include "cmplx.h"
 
 #ifdef ADDA_MPI
-MPI_Datatype mpi_dcomplex;
+MPI_Datatype mpi_dcomplex,mpi_double3,mpi_dcomplex3;  // combined datatypes
+int *recvcounts,*displs; // arrays of size ringid required for AllGather operations
+bool displs_init=false;  // whether arrays above are initialized
 #endif
 
 /* whether a synchronize call should be performed before parallel timing. It makes communication
  * timing more accurate, but may deteriorate overall performance by introducing unnecessary
- * delays (test showed only slight difference for granule generator) */
+ * delays (test showed only slight difference for granule generator)
+ */
 #define SYNCHRONIZE_TIMING
 
 // SEMI-GLOBAL VARIABLES
@@ -136,7 +139,95 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 	// close destination file
 	FCloseErr(out,fname_out,ONE_POS);
 }
+
+//============================================================
+
+#ifdef ADDA_MPI
+static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
+/* Chooses MPI datatype corresponding to 'type'. When only copying operations are required (like
+ * cast, gather, etc.) exact correspondence is possible. But when reduce operations are used
+ * ('reduce'=true), only built-in datatypes can be directly used. In this case we emulate more
+ * complex datatypes through multiplication of double, and additional variable 'mult' is returned
+ * to account for this factor.
+ */
+{
+	MPI_Datatype res;
+
+	if (reduce) *mult=1; // default value when direct correspondence is possible
+	if (type==uchar_type) return MPI_UNSIGNED_CHAR;
+	else if (type==int_type) return MPI_INT;
+	else if (type==sizet_type) return MPI_SIZE_T;
+	else if (type==double_type) return MPI_DOUBLE;
+	else if (type==cmplx_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=2;
+		}
+		else res=mpi_dcomplex;
+	}
+	else if (type==double3_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=3;
+		}
+		else res=mpi_double3;
+	}
+	else if (type==cmplx3_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=6;
+		}
+		else res=mpi_dcomplex3;
+	}
+	else LogError(ONE_POS,"Variable type %u is not supported",type);
+
+	return res;
+}
+
+//============================================================
+
+void InitDispls(void)
+// initialize arrays recvcounts and displs once, further calls have no effect
+{
+	if (!displs_init) {
+		MALLOC_VECTOR(recvcounts,int,nprocs,ALL);
+		MALLOC_VECTOR(displs,int,nprocs,ALL);
+		// !!! TODO: check for overflow of int
+		recvcounts[ringid]=local_nvoid_Ndip;
+		displs[ringid]=local_nvoid_d0;
+		MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+		MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,displs,1,MPI_INT,MPI_COMM_WORLD);
+		displs_init=true;
+	}
+}
+
+#endif // ADDA_MPI
+
+//============================================================
+
+void AllGather(void * restrict x_from,void * restrict x_to,const var_type type,TIME_TYPE *timing)
+// Gather distributed arrays; works for all types;increments 'timing' (if not NULL) by the time used
+{
+#ifdef ADDA_MPI
+	MPI_Datatype mes_type;
+	TIME_TYPE tstart;
+
+	// redundant initialization to remove warnings
+	tstart=0;
+	if (timing!=NULL) {
+#ifdef SYNCHRONIZE_TIMING
+		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
 #endif
+		tstart=GET_TIME();
+	}
+	InitDispls(); // actually initialization is done only once
+	mes_type=MPIVarType(type,false,NULL);
+	MPI_Allgatherv(x_from,local_nvoid_Ndip,mes_type,x_to,recvcounts,displs,mes_type,MPI_COMM_WORLD);
+	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
+#endif
+}
+
+#endif // PARALLEL
 
 //============================================================
 
@@ -144,9 +235,7 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 // initialize communications in the beginning of the program
 {
 #ifdef ADDA_MPI
-	int dcmplx_blocklength[2]={1,1},ver,subver;
-	MPI_Aint dcmplx_displs[2] = {0,1};
-	MPI_Datatype dcmplx_type[2];
+	int ver,subver;
 
 	/* MPI_Init may alter argc and argv and interfere with normal parsing of command line
 	 * parameters. The way of altering is implementation depending. MPI searches for MPI parameters
@@ -165,10 +254,16 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	// initialize Ntrans
 	if (IS_EVEN(nprocs)) Ntrans=nprocs-1;
 	else Ntrans=nprocs;
-	// Create MPI-type for sending dcomplex-variables
-	dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;
-	MPI_Type_struct(2,dcmplx_blocklength,dcmplx_displs,dcmplx_type,&mpi_dcomplex);
+	// define a few derived datatypes
+	/* this is intimately tied to the type definition of doublecomplex; when switching to C99
+	 * complex datatypes, this should be replaced just by MPI_DOUBLE_COMPLEX.
+	 */
+	MPI_Type_contiguous(2,MPI_DOUBLE,&mpi_dcomplex);
 	MPI_Type_commit(&mpi_dcomplex);
+	MPI_Type_contiguous(3,MPI_DOUBLE,&mpi_double3);
+	MPI_Type_commit(&mpi_double3);
+	MPI_Type_contiguous(3,mpi_dcomplex,&mpi_dcomplex3);
+	MPI_Type_commit(&mpi_dcomplex3);
 	// check MPI version at runtime
 	MPI_Get_version(&ver,&subver);
 	if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<MPI_SUBVER_REQ))) LogError(ONE_POS,
@@ -202,6 +297,14 @@ void Stop(const int code)
 		// wait for all processors
 		fflush(stdout);
 		Synchronize();
+		// clean MPI constructs and some memory
+		MPI_Type_free(&mpi_dcomplex);
+		MPI_Type_free(&mpi_double3);
+		MPI_Type_free(&mpi_dcomplex3);
+		if (displs_init) {
+			Free_general(recvcounts);
+			Free_general(displs);
+		}
 		// finalize MPI communications
 		MPI_Finalize();
 	}
@@ -221,14 +324,13 @@ void Synchronize(void)
 
 //============================================================
 
-void MyBcast(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UOIP,
+void MyBcast(void * restrict data UOIP,const var_type type UOIP,const size_t n_elem UOIP,
 	TIME_TYPE *timing UOIP)
 /* casts values stored in '*data' from root processor to all other; works for all types; increments
  * 'timing' (if not NULL) by the time used
  */
 {
 #ifdef ADDA_MPI
-	MPI_Datatype mes_type;
 	TIME_TYPE tstart;
 
 	// redundant initialization to remove warnings
@@ -240,16 +342,7 @@ void MyBcast(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UO
 #endif
 		tstart=GET_TIME();
 	}
-	if (type==char_type) mes_type=MPI_CHAR;
-	if (type==int_type) mes_type=MPI_INT;
-	else if (type==double_type) mes_type=MPI_DOUBLE;
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-	}
-	else LogError(ONE_POS,"MyBcast: variable type %u is not supported",type);
-
-	MPI_Bcast(data,n_elem,mes_type,ADDA_ROOT,MPI_COMM_WORLD);
+	MPI_Bcast(data,n_elem,MPIVarType(type,false,NULL),ADDA_ROOT,MPI_COMM_WORLD);
 	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
@@ -257,7 +350,9 @@ void MyBcast(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UO
 //============================================================
 
 void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
-// cast current orientation angle (in orientation averaging) to all processes from root
+/* cast current orientation angle (in orientation averaging) to all processes from root.
+ * This can be done as atomic operation using some complex MPI datatype, but it is not worth it.
+ */
 {
 #ifdef ADDA_MPI
 	int buf[3];
@@ -319,9 +414,8 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
  */
 {
 #ifdef ADDA_MPI
-	size_t size;
 	MPI_Datatype mes_type;
-	void *temp;
+	int mult;
 	TIME_TYPE tstart;
 
 	// redundant initialization to remove warnings
@@ -333,25 +427,9 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 #endif
 		tstart=GET_TIME();
 	}
-	if (type==int_type) {
-		mes_type=MPI_INT;
-		size=n_elem*sizeof(int);
-	}
-	else if (type==double_type) {
-		mes_type=MPI_DOUBLE;
-		size=n_elem*sizeof(double);
-	}
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-		size=n_elem*sizeof(double);
-	}
-	else LogError(ONE_POS,"MyInnerProduct: variable type %u is not supported",type);
-
-	MALLOC_VECTOR(temp,void,size,ALL);
-	MPI_Allreduce(data,temp,n_elem,mes_type,MPI_SUM,MPI_COMM_WORLD);
-	memcpy(data,temp,size);
-	Free_general(temp);
+	mes_type=MPIVarType(type,true,&mult);
+	n_elem*=mult;
+	MPI_Allreduce(MPI_IN_PLACE,data,n_elem,mes_type,MPI_SUM,MPI_COMM_WORLD);
 	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
@@ -361,6 +439,10 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 /* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
  *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
+ *
+ *  !!! TODO: Although size_t is used for bufsize,etc., MPI functions take int as arguments. This
+ *  limits the largest possible size to some extent. Moreover, the size of int is not really well
+ *  predicted. The exact implications of this is still unclear.
  */
 {
 #ifdef ADDA_MPI
@@ -504,27 +586,20 @@ void ParSetup(void)
 
 //============================================================
 
-void AllGather(void * restrict x_from UOIP,void * restrict x_to UOIP,const var_type type UOIP,
-	size_t n_elem UOIP)
-// Gather distributed arrays; works for all types
+void SetupLocalD(void)
+// initialize local_nvoid_d0 and local_nvoid_d1
 {
 #ifdef ADDA_MPI
-	// TODO: need to be rewritten when n_elem are unequal on each processor
-	MPI_Datatype mes_type;
-
-	if (type==char_type) mes_type = MPI_CHAR;
-	else if (type==int_type) mes_type = MPI_INT;
-	else if (type==double_type) mes_type = MPI_DOUBLE;
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type = MPI_DOUBLE;
-		n_elem *= 2;
-	}
-	else LogError(ONE_POS,"AllGather: variable type %u is not supported",type);
-
-	MPI_Allgather(x_from,n_elem,mes_type,x_to,n_elem,mes_type,MPI_COMM_WORLD);
+	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior
+	 * for the ringid=0. The latter would require special additional arrangements.
+	 */
+	MPI_Scan(&local_nvoid_Ndip,&local_nvoid_d1,1,MPI_SIZE_T,MPI_SUM,MPI_COMM_WORLD);
+	local_nvoid_d0=local_nvoid_d1-local_nvoid_Ndip;
+#else
+	local_nvoid_d0=0;
+	local_nvoid_d1=local_nvoid_Ndip;
 #endif
 }
-
 
 //============================================================
 

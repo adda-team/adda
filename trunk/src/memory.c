@@ -19,6 +19,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "types.h"
 #include "memory.h"
 #include "fft.h"

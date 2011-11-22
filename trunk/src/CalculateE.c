@@ -592,14 +592,18 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			}
 		} // end of root
 		if (calc_mat_force) {
-			MALLOC_VECTOR(Fsca,double,3*local_nvoid_Ndip,ALL);
-			MALLOC_VECTOR(Finc,double,3*local_nvoid_Ndip,ALL);
-			MALLOC_VECTOR(Frp,double,3*local_nvoid_Ndip,ALL);
-			for (j=0;j<3*local_nvoid_Ndip;j++) Fsca[j]=Finc[j]=Frp[j]=0;
+			MALLOC_VECTOR(Fsca,double,local_nRows,ALL);
+			MALLOC_VECTOR(Finc,double,local_nRows,ALL);
+			MALLOC_VECTOR(Frp,double,local_nRows,ALL);
+			for (j=0;j<local_nRows;j++) Fsca[j]=Finc[j]=Frp[j]=0;
 			if (IFROOT) printf("Calculating the force per dipole\n");
 			// Calculate forces
 			Frp_mat(Fsca_tot,Fsca,Finc_tot,Finc,Frp_tot,Frp);
 			// Write Cross-Sections and Efficiencies to file
+			/* This output contains a number of redundant quantities, like Cext and Csca.g. The main
+			 * purpose of this is to use it as independent test (it can be quickly compared against
+			 * the same quantities calculated by different means).
+			 */
 			if (IFROOT) {
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
@@ -618,7 +622,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 					SnprintfErr(ONE_POS,fname_frp,MAX_FNAME,"%s/"F_FRP"%s.dat",directory,f_suf);
 					VisFrp=FOpenErr(fname_frp,"w",ONE_POS);
 					fprintf(VisFrp,"#sphere  x="GFORM"  m="CFORM"\n"
-						"#number of real dipoles  %.0f\n"
+						"#number of real dipoles  %zu\n"
 						"#Forces per dipole\n"
 						"#r.x r.y r.z F.x F.y F.z\n",
 						ka_eq,ref_index[0][RE],ref_index[0][IM],nvoid_Ndip);

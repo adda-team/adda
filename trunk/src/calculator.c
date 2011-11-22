@@ -398,13 +398,13 @@ static void AllocateEverything(void)
 	 * afterwards. So we do not implement these extra tests for now.
 	 */
 	// allocate all the memory
-	tmp=sizeof(doublecomplex)*(double)nlocalRows;
+	tmp=sizeof(doublecomplex)*(double)local_nRows;
 	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
-		MALLOC_VECTOR(xvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(rvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(pvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(Einc,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(Avecbuffer,complex,nlocalRows,ALL);
+		MALLOC_VECTOR(xvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
+		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
@@ -414,16 +414,16 @@ static void AllocateEverything(void)
 	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec3,complex,nlocalRows,ALL);
+			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
 		}
 		memory+=3*tmp;
 	}
 	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
 		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
+			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
 		}
 		memory+=2*tmp;
 	}
