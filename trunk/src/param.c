@@ -215,8 +215,9 @@ static const struct subopt_struct beam_opt[]={
 	 * {...|...|...} for multiple options of an argument. Help string should contain general
 	 * description of the beam type and its arguments. Instead of number of parameters UNDEF can be
 	 * used (if beam can accept variable number of parameters, then check it explicitly in function
-	 * PARSE_FUNC(beam) below) or FNAME_ARG (if beam accepts a single string argument with file
-	 * name). Number of parameters should not be greater than MAX_N_BEAM_PARMS (defined in const.h).
+	 * PARSE_FUNC(beam) below) or one of FNAME_ARG family (see explanation in const.h) if beam
+	 * accepts a filenames as arguments. Number of parameters should not be greater than
+	 * MAX_N_BEAM_PARMS (defined in const.h).
 	 */
 	{NULL,NULL,NULL,0,0}
 };
@@ -1734,6 +1735,7 @@ void VariablesInterconnect(void)
 		if (store_dip_pol)
 			PrintError("'-store_dip_pol' and '-orient avg' can not be used together");
 		if (store_beam) PrintError("'-store_beam' and '-orient avg' can not be used together");
+		if (beamtype==B_READ) PrintError("'-beam read' and '-orient avg' can not be used together");
 		if (scat_grid) PrintError(
 			"'-orient avg' can not be used with calculation of scattering for a grid of angles");
 		// TODO: this limitation should be removed in the future
