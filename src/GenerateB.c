@@ -54,8 +54,8 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
 char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 
 // LOCAL VARIABLES
-double s,s2;            // beam confinement factor and its square
-double scale_x,scale_z; // multipliers for scaling coordinates
+static double s,s2;            // beam confinement factor and its square
+static double scale_x,scale_z; // multipliers for scaling coordinates
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam()
  * and use in GenerateB() afterwards. If you need local, intermediate variables, put them into
