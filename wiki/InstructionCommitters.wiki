@@ -51,6 +51,11 @@ svn checkout https://a-dda.googlecode.com/svn/trunk/ adda --username <your usern
 {{{
 svn add <filename1> <filename2> ...
 }}}
+ If you add text source files (typical), also set svn properties. The default values, used throughout the *ADDA* source, can be applied as follows
+{{{
+svn propset svn:eol-style native <filename1> <filename2> ...
+svn propset svn:keywords "Author Date Id Revision" <filename1> <filename2> ...
+}}}
  * Submit the modifications back into the repository by positioning in `adda/` and typing
 {{{
 svn commit -m "<commit log message>"
