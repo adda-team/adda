@@ -4,7 +4,7 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 
 <wiki:toc />
 
-= 2011 (7) =
+= 2011 (8) =
  # K. Muinonen, J. Tyyneläa, E. Zubkoa, H. Lindqvista, A.Penttiläa and G. Videen, "Polarization of light backscattered by small particles," [http://dx.doi.org/10.1016/j.jqsrt.2011.06.009 J. of Quant. Spectrosc.  Radiat. 112  2193–2212 (2011)]
  # E. Shaviv, O. Schubert, M. Alves-Santos, G. Goldoni, R. Di Felice, F. Valle, N. Del Fatti, U. Banin, and C. Snnichsen, “Absorption Properties of Metal–Semiconductor Hybrid Nanoparticles,”[http://dx.doi.org/10.1021/nn200645h ACS Nano 5, 4712–4719 (2011)]
  # S. D’Agostino, and F. Della Sala, “Silver Nanourchins in Plasmonics: Theoretical Investigation on the Optical Properties of the Branches,”[http://dx.doi.org/10.1021/jp202229y J. Phys. Chem. C 115, 11934–11940 (2011)]
