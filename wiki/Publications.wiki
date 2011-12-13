@@ -5,10 +5,10 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 <wiki:toc />
 
 = 2011 (9) =
- # F. Teschl, W.L. Randeua, R. Teschla, "Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,"[http://dx.doi.org/10.1016/j.atmosres.2011.10.004  Atmospheric research (in press) (2011)]
- # K. Muinonen, J. Tyyneläa, E. Zubkoa, H. Lindqvista, A.Penttiläa and G. Videen, "Polarization of light backscattered by small particles," [http://dx.doi.org/10.1016/j.jqsrt.2011.06.009 J. of Quant. Spectrosc.  Radiat. 112  2193–2212 (2011)]
- # E. Shaviv, O. Schubert, M. Alves-Santos, G. Goldoni, R. Di Felice, F. Valle, N. Del Fatti, U. Banin, and C. Snnichsen, “Absorption Properties of Metal–Semiconductor Hybrid Nanoparticles,”[http://dx.doi.org/10.1021/nn200645h ACS Nano 5, 4712–4719 (2011)]
- # S. D’Agostino, and F. Della Sala, “Silver Nanourchins in Plasmonics: Theoretical Investigation on the Optical Properties of the Branches,”[http://dx.doi.org/10.1021/jp202229y J. Phys. Chem. C 115, 11934–11940 (2011)]
+ # F. Teschl, W. L. Randeu, R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004  Atmosph. Res. (in press) (2011)].
+ # K. Muinonen, J. Tyynelä, E. Zubko, H. Lindqvist, A.Penttilä and G. Videen, “Polarization of light backscattered by small particles,” [http://dx.doi.org/10.1016/j.jqsrt.2011.06.009 J. Quant. Spectrosc.  Radiat. 112  2193–2212 (2011)].
+ # E. Shaviv, O. Schubert, M. Alves-Santos, G. Goldoni, R. Di Felice, F. Valle, N. Del Fatti, U. Banin, and C. Snnichsen, “Absorption properties of metal–semiconductor hybrid nanoparticles,” [http://dx.doi.org/10.1021/nn200645h ACS Nano 5, 4712–4719 (2011)].
+ # S. D’Agostino, and F. Della Sala, “Silver nanourchins in plasmonics: Theoretical investigation on the optical properties of the branches,” [http://dx.doi.org/10.1021/jp202229y J. Phys. Chem. C 115, 11934–11940 (2011)].
  # K. Muinonen and T. Pieniluoma, “Light scattering by Gaussian random ellipsoid particles: First results with discrete-dipole approximation,” [http://dx.doi.org/10.1016/j.jqsrt.2011.02.013 J. Quant. Spectrosc. Radiat. 112, 1747-1752 (2011)].
  # L. Bi , P. Yang. G. W. Kattawar, Y. Hu, and B. A. Baum, “Scattering and absorption of light by ice particles: Solution by a new physical-geometric optics hybrid method,” [http://dx.doi.org/10.1016/j.jqsrt.2011.02.015 J. Quant. Spectrosc. Radiat.  112, 1492-1508 (2011)].
  # M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: capabilities and known limitations,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.031 J. Quant. Spectrosc. Radiat.  112, 2234-2247 (2011)].
