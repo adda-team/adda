@@ -4,8 +4,16 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
 
 <wiki:toc />
 
-= 2011 (9) =
+= 2011 (17) =
  # F. Teschl, W. L. Randeu, R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004  Atmosph. Res. (in press) (2011)].
+ # D. N. Chigrin, C. Kremers, and S. V. Zhukovsky, “Plasmonic nanoparticle monomers and dimers: from nanoantennas to chiral metamaterials,” [http://dx.doi.org/10.1007/s00340-011-4733-7 Appl. Phys. B 105, 81-97 (2011)].
+ # J. Gasteiger, M. Wiegner, S. Groß, V. Freudenthaler, C. Toledano, M. Tesche, and K. Kandler, “Modelling lidar-relevant optical properties of complex mineral dust aerosols,” [http://dx.doi.org/10.1111/j.1600-0889.2011.00559.x Tellus B 63, 725-741 (2011)].
+ # K. Lumme and A. Penttilä, “Model of light scattering by dust particles in the solar system: Applications to cometary comae and planetary regoliths,” [http://dx.doi.org/10.1016/j.jqsrt.2011.01.016 J. Quant. Spectrosc. Radiat. Transfer 112, 1658-1670 (2011)].
+ # Y. Xie, P. Yang, G. W. Kattawar, B. A. Baum, and Y. Hu, “Simulation of the optical properties of plate aggregates for application to the remote sensing of cirrus clouds,” [http://dx.doi.org/10.1364/AO.50.001065 Appl. Opt. 50, 1065-1081 (2011)].
+ # V. B. Il’in and V. G. Farafonov, “Rayleigh approximation for axisymmetric scatterers,”[http://dx.doi.org/10.1364/OL.36.004080 Opt. Lett. 36, 4080-4082 (2011)].
+ # B. Yi, C. N. Hsu, P. Yang, and S.-C. Tsay, “Radiative transfer simulation of dust-like aerosols: Uncertainties from particle shape and refractive index,” [http://dx.doi.org/10.1016/j.jaerosci.2011.06.008 J. Aeros. Sci. 42, 631-644 (2011)].
+ # C. Kremers and D. N. Chigrin, “Light scattering on nanowire antennas: A semi-analytical approach,”[http://dx.doi.org/10.1016/j.photonics.2011.03.004 Photon. Nanostruct. Fundam. Applic. 9, 358-366 (2011)].
+ # M. Huntemann, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL--Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)].
  # K. Muinonen, J. Tyynelä, E. Zubko, H. Lindqvist, A.Penttilä and G. Videen, “Polarization of light backscattered by small particles,” [http://dx.doi.org/10.1016/j.jqsrt.2011.06.009 J. Quant. Spectrosc.  Radiat. 112  2193–2212 (2011)].
  # E. Shaviv, O. Schubert, M. Alves-Santos, G. Goldoni, R. Di Felice, F. Valle, N. Del Fatti, U. Banin, and C. Snnichsen, “Absorption properties of metal–semiconductor hybrid nanoparticles,” [http://dx.doi.org/10.1021/nn200645h ACS Nano 5, 4712–4719 (2011)].
  # S. D’Agostino, and F. Della Sala, “Silver nanourchins in plasmonics: Theoretical investigation on the optical properties of the branches,” [http://dx.doi.org/10.1021/jp202229y J. Phys. Chem. C 115, 11934–11940 (2011)].
