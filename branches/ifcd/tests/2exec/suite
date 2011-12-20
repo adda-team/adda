@@ -1,0 +1,211 @@
+stdout,log,CrossSec-Y,mueller
+
+stdout -h alldir_inp
+CrossSec-Y -alldir_inp adp.dat -Csca -grid 8
+
+stdout -h anisotr
+CrossSec-Y -anisotr -m 1.05 0.1 1.1 0.2 1.2 0.3 -grid 8
+
+stdout -h asym
+CrossSec-Y,log_int_asym_x-Y,log_int_asym_y-Y,log_int_asym_z-Y,CrossSec-X,log_int_asym_x-X,log_int_asym_y-X,log_int_asym_z-X -asym -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h beam
+stdout -h beam plane
+CrossSec-Y -beam plane -m 1.1 0.1 -grid 8
+stdout -h beam lminus
+CrossSec-Y -beam lminus 2 1 2 3 -m 1.1 0.1 -grid 8
+stdout -h beam davis3
+CrossSec-Y -beam davis3 2 1 2 3 -m 1.1 0.1 -grid 8
+stdout -h beam barton5
+CrossSec-Y -beam barton5 2 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h chpoint
+CrossSec-Y -chpoint 1s -eps 3 -grid 8
+stdout -h chp_type
+CrossSec-Y -chp_type normal -chpoint 1s -eps 3 -grid 8
+CrossSec-Y -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 -grid 8
+stdout -h chp_dir
+CrossSec-Y -chp_dir chp_tmp -chp_type always -eps 3 -grid 8
+stdout -h chp_load
+CrossSec-Y -chp_dir chp_tmp -chp_load -grid 8
+
+stdout -h Cpr_mat
+CrossSec-Y -Cpr_mat -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h Csca
+CrossSec-Y,log_int_Csca-Y,CrossSec-X,log_int_Csca-X -Csca -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+
+stdout -h dir
+
+stdout -h dpl
+CrossSec-Y -dpl 20 -m 1.1 0.1 -grid 8
+
+stdout -h eps
+CrossSec-Y -eps 10 -m 1.1 0.1 -grid 8
+
+stdout -h eq_rad
+CrossSec-Y -eq_rad 1 -m 1.1 0.1 -grid 8
+
+stdout -h granul
+stdout,CrossSec-Y -granul 0.2 0.5 2 -size 8 -shape coated 0.5 -m 1.05 0.05 1.1 0.1 1.2 0.2
+stdout,CrossSec-Y -granul 0.2 2 2 -size 8 -shape coated 0.5 -m 1.05 0.05 1.1 0.1 1.2 0.2
+
+stdout -h grid
+CrossSec-Y -grid 4 6 8 -m 1.1 0.1
+
+stdout -h
+stdout -h h
+
+stdout -h int
+CrossSec-Y -int poi -m 1.1 0.1 -grid 8
+CrossSec-Y -int fcd -m 1.1 0.1 -grid 8
+CrossSec-Y -int fcd_st -m 1.1 0.1 -grid 8
+CrossSec-Y -int so -m 1.1 0.1 -grid 8
+
+stdout -h iter
+CrossSec-Y -iter cgnr -m 1.1 0.1 -grid 8
+CrossSec-Y -iter bicg -m 1.1 0.1 -grid 8
+CrossSec-Y -iter bicgstab -m 1.1 0.1 -grid 8
+CrossSec-Y -iter qmr -m 1.1 0.1 -grid 8
+
+stdout -h jagged
+CrossSec-Y -jagged 2 -m 1.1 0.1 -grid 4
+
+stdout -h lambda
+CrossSec-Y -lambda 1 -m 1.1 0.1 -grid 8
+
+stdout -h m
+CrossSec-Y -m 1.2 0.2 -grid 8
+
+stdout -h maxiter
+CrossSec-Y -maxiter 5 -m 1.1 0.1 -grid 8
+
+stdout -h no_reduced_fft
+CrossSec-Y -no_reduced_fft -m 1.1 0.1 -grid 8
+
+stdout -h no_vol_cor
+CrossSec-Y -no_vol_cor -m 1.1 0.1 -grid 8
+
+stdout -h ntheta
+CrossSec-Y,mueller -ntheta 2 -m 1.1 0.1 -grid 8
+
+stdout -h opt
+CrossSec-Y -opt speed -m 1.1 0.1 -grid 8
+CrossSec-Y -opt mem -m 1.1 0.1 -grid 8
+
+stdout -h orient
+CrossSec-Y -orient 10 20 30 -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+CrossSec,log_orient_avg -orient avg -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 4
+
+stdout -h phi_integr
+CrossSec-Y,mueller_integr,mueller_integr_c2,mueller_integr_s2,mueller_integr_c4,mueller_integr_s4 -phi_integr 31 -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h pol
+CrossSec-Y -pol cm -m 1.1 0.1 -grid 8
+CrossSec-Y -pol rrc -m 1.1 0.1 -grid 8
+CrossSec-Y -pol ldr -m 1.1 0.1 -grid 8
+CrossSec-Y -pol ldr avgpol -prop 1 2 3 -m 1.1 0.1 -grid 8
+CrossSec-Y -pol cldr -prop 1 2 3 -m 1.1 0.1 -grid 8
+CrossSec-Y -pol so -prop 1 2 3 -m 1.1 0.1 -grid 8
+CrossSec-Y -pol fcd -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h prognose 
+stdout -h prognosis
+stdout -prognosis
+
+stdout -h prop
+CrossSec-Y -prop 1 2 3 -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+
+stdout -h save_geom
+coated.geom -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis
+stdout -h sg_format
+ellipsoid.geom -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text
+ellipsoid.geom -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat
+
+stdout -h scat
+CrossSec-Y -scat dr -m 1.1 0.1 -grid 8
+CrossSec-Y -scat fin -m 1.1 0.1 -grid 8
+CrossSec-Y -scat so -m 1.1 0.1 -grid 8
+
+stdout -h scat_grid_inp
+CrossSec-Y -scat_grid_inp sp.dat -m 1.1 0.1 -grid 8
+
+stdout -h scat_matr
+CrossSec-Y,mueller -scat_matr muel -m 1.1 0.1 -grid 8
+CrossSec-Y,ampl -scat_matr ampl -m 1.1 0.1 -grid 8
+CrossSec-Y,mueller,ampl -scat_matr both -m 1.1 0.1 -grid 8
+CrossSec-Y -scat_matr none -m 1.1 0.1 -grid 8
+
+stdout -h shape
+stdout -h shape axisymmetric
+CrossSec-Y -shape axisymmetric 196.txt -m 1.1 0.1 -grid 8
+stdout -h shape bicoated
+CrossSec-Y -shape bicoated 3 0.5 -m 1.1 0.1 1.2 0.2 -grid 8
+stdout -h shape biellipsoid
+CrossSec-Y -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 -m 1.1 0.1 1.2 0.2 -grid 8
+stdout -h shape bisphere
+CrossSec-Y -shape bisphere 2 -m 1.1 0.1 -grid 8
+stdout -h shape box
+CrossSec-Y -shape box -m 1.1 0.1 -grid 8
+CrossSec-Y -shape box 0.5 1.5 -m 1.1 0.1 -grid 8
+stdout -h shape capsule
+CrossSec-Y -shape capsule 1.5 -m 1.1 0.1 -grid 8
+stdout -h shape coated
+CrossSec-Y -shape coated 0.5 -m 1.1 0.1 1.2 0.2 -grid 8
+CrossSec-Y -shape coated 0.4 0.1 0.15 0.2 -m 1.1 0.1 1.2 0.2 -grid 8
+stdout -h shape cylinder
+CrossSec-Y -shape cylinder 1 -m 1.1 0.1 -grid 8
+stdout -h shape egg
+CrossSec-Y -shape egg 0.5 0.2 -m 1.1 0.1 -grid 8
+stdout -h shape ellipsoid
+CrossSec-Y -shape ellipsoid 0.5 1.5 -m 1.1 0.1 1.2 0.2 -grid 8
+stdout -h shape line
+CrossSec-Y -shape line -m 1.1 0.1 -grid 16
+stdout -h shape rbc
+CrossSec-Y -shape rbc 0.3 0.1 0.3 -m 1.1 0.1 -grid 8
+stdout -h shape read
+CrossSec-Y -shape read ellipsoid.geom -m 1.1 0.1
+CrossSec-Y -shape read ell_ddscat.geom -m 1.1 0.1
+CrossSec-Y -shape read coated.geom -m 1.1 0.1 1.2 0.2
+stdout -h shape sphere
+CrossSec-Y -shape sphere -m 1.1 0.1 -grid 8
+stdout -h shape spherebox
+CrossSec-Y -shape spherebox 0.5 -m 1.1 0.1 1.2 0.2 -grid 8
+
+stdout -h size 
+CrossSec-Y -size 8 -m 1.1 0.1 -grid 8
+
+stdout -h store_beam
+CrossSec-Y,IncBeam-Y,CrossSec-X,IncBeam-X -store_beam -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+
+stdout -h store_dip_pol
+CrossSec-Y,DipPol-Y,CrossSec-X,DipPol-X -store_dip_pol -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+
+stdout -h store_force
+CrossSec-Y,VisFrp-Y.dat,CrossSec-X,VisFrp-X.dat -store_force -Cpr_mat -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h store_grans
+granules -store_grans -granul 0.2 1 -size 4 -m 1.1 0.1 1.2 0.2 -grid 8
+
+stdout -h store_int_field
+CrossSec-Y,IntField-Y,CrossSec-X,IntField-X -store_int_field -shape ellipsoid 0.5 1.5 -m 1.1 0.1 -grid 8
+
+stdout -h store_scat_grid
+CrossSec-Y,mueller_scatgrid -store_scat_grid -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h sym 
+CrossSec-Y -sym auto -m 1.1 0.1 -grid 8
+CrossSec-Y -sym no -m 1.1 0.1 -grid 8
+CrossSec-Y -sym enf -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h test
+CrossSec-Y -test -m 1.1 0.1 -grid 8
+
+stdout -h V
+stdout -V
+
+stdout -h vec
+CrossSec-Y -vec -shape ellipsoid 0.5 1.5 -prop 1 2 3 -m 1.1 0.1 -grid 8
+
+stdout -h yz
+CrossSec-Y,mueller -yz -store_scat_grid -ntheta 2 -m 1.1 0.1 -grid 8
