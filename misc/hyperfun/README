@@ -1,0 +1,14 @@
+Creation of shape files for ADDA using Hyperfun - hyperfun.org
+
+1) Create Hyperfun input file, or use example example.hf, which describes a deformed prolate spheroid (as used in doi: 10.1111/j.1600-0889.2011.00559.x)
+2) Create WRL file, using the HyperFun Polygonizer (Windows), available from hyperfun.org
+  a) Start command prompt under Windows
+  b) Change to directory where the Hyperfun input file are
+  c) Execute Hyperfun using "PATH\hfp example.hf -wrl example.wrl -g 180"; it creates a file in the WRL format, containing a surface description of the particle; the option "-g" sets the grid density of this file
+3) Convert WRL file to OBJ file: open WRL file with Accutrans (Windows) and save it as a Wavefront OBJ file. Accutrans is available from http://www.micromouse.ca/
+4) Compile "Point in Polyhedron" from Roman Schuh (under Linux), name of executable should be "pip".
+5) Compile "calc_pip_arg.f90" (under Linux), name of executable should be "calc_pip_arg".
+6) Adjust "make_datfiles": Variable "dpl" defines the number of dipoles per wavelength, array "size_array" defines the size parameters, the files should be created for.
+7) Run "./make_datfiles" with the name of the obj-file, without suffix, as argument, for example "./make_datfiles example": This will create the files for ADDA. The shape file for size parameter 12.0, for example will be example_12.0.dat. The computation time can be very long (several days).
+
+Suggestions are welcome at josef.gasteiger@lmu.de
