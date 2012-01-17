@@ -12,6 +12,9 @@
  * Patrick C. Chaumet and Adel Rahmani contributed Fortran routines to integrate Green’s tensor.
  * Jin You Lu provided the basis of the code for the shapes `bicoated` and `bisphere`.
  * Alexander Moskalensky provided the basis of the code for the shape `biellipsoid`.
+ * Sergei Lebedev implemented shape `plate`.
+ * Roman Schuh and Thomas Wriedt contributed `misc/pip`, using the code by John Burkardt.
+ * Josef Gasteiger contributed `misc/hyperfun`.
 
 The above list doesn't include [http://code.google.com/p/a-dda/people/list current contributors].
 
