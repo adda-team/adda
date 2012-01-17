@@ -1,8 +1,9 @@
-# Bash script for generating shape file for ADDA with different number of dipoles for the different size parameters 
-# At each size parameter having same number of dipoles per wavelength
+#!/bin/bash
+# Bash script for generating shape file for ADDA with different number of dipoles for the different
+# size parameters (keeeping the same number of dipoles per wavelength - dpl).
 # It requires 
-#   a) calc_pip_arg: executable compiled from calc_pip_arg.f90
-#   b) pip: executable of "Point in Polyhedron" from Roman Schuh (University Bremen)
+#   a) calc_pip_arg: executable compiled from calc_pip_arg.f90 or included in Windows package
+#   b) pip: executable of "Point in Polyhedron" - see misc/pip
 # suggestions may be sent to josef.gasteiger@lmu.de
 
 # first argument is the filename of the OBJ file, without appendix
