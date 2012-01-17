@@ -13,7 +13,7 @@
 !  This routine is based on the ivread.f90 routine by John Burkardt (1999).         !
 !  The program converts various computer graphics files formates                    !
 !  (dxf, obj, oogl, smf, vmrl) into the .FEM format needed with TNONAXSYM.          !
-!  (Have a look at the comments in inread).                                         !
+!  (Have a look at the comments in ivread).                                         !
 !                                                                                   !
 !  But the focus of the program FEMGeo_Wr is on the wavefront .obj file format.     ! 
 !  The input .obj file should such be such that it only consists of triangular (!!) !
@@ -51,7 +51,7 @@
   real v4(3,node_max)
   real (kind = 8) vv(3,node_max)
   real (kind = 8) pp(3)
-  
+  logical inside
   
   integer, parameter :: MXNAT = 2500000
   INTEGER NAT
@@ -191,7 +191,7 @@
                pp(3)=1.1*dble(JZ)/dble(xyzscale)+dble(zmax+zmin)/2.
                call polyhedron_contains_point_3d ( node_num, face_num, &
                face_order_max, vv, face_order, face, pp, inside )
-               IF (inside == .true.) THEN
+               IF (inside .eqv. .true.) THEN
                   NAT=NAT+1
                   IXYZ(NAT,1)=JX
                   IXYZ(NAT,2)=JY

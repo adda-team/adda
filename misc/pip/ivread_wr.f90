@@ -1912,75 +1912,10 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
 !  Sort out the command line arguments.
 !
 !*thw 29.11.00!
-goto 100
-  iarg = 1
 !
-!*thw 29.11.00! 
-! call pxfgetarg ( iarg, filein_name, ilen, ierror )
-  call getarg ( iarg, filein_name, ierror )
- 
-  if ( ierror /= 0 ) then
-    write ( *, * ) ' '
-    write ( *, * ) 'COMMAND_LINE - Fatal error!'
-    write ( *, * ) '  Could not read command line argument.'
-    stop
-  end if
+! yurkin - here the code for reading the command line was removed, since it was skipped
+! anyway. It is OK since this routine is not used as an entry point.
 
-  if ( s_eqi ( filein_name, '-RN' ) ) then
-
-    reverse_normals = .true.
-    iarg = iarg + 1
-!*thw 29.11.00! 
-    call getarg ( iarg, filein_name, ierror )
- 
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'COMMAND_LINE - Fatal error!'
-      write ( *, * ) '  Could not read command line argument.'
-     stop
-  end  if
-
-  else if ( s_eqi ( filein_name, '-RF' ) ) then
-
-    reverse_faces = .true.
-    iarg = iarg + 1
-!*thw 29.11.00! 
-    call getarg ( iarg, filein_name, ierror )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'COMMAND_LINE - Fatal error!'
-      write ( *, * ) '  Could not read command line argument.'
-      stop
-    end if
-
-  end if
- 
-  iarg = iarg + 1
-
-  if ( iarg <= arg_num ) then
-!*thw 29.11.00! 
-    call getarg ( iarg, fileout_name, ierror )
- 
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'COMMAND_LINE - Fatal error!'
-      write ( *, * ) '  Could not read command line argument.'
-      stop
-    end if
-
-  else
-
-    write ( *, * ) ' '
-    write ( *, * ) 'COMMAND_LINE - Fatal error!'
-    write ( *, * ) '  Not enough arguments on the command line.'
-    write ( *, * ) '  Could not find the output file name.'
-    return
-
-  end if
-!*thw 29.11.00!
-100 continue
-!
 !  Check the input file name.
 !
   call infile ( filein_name, ierror, filein_type )
@@ -23698,11 +23633,11 @@ subroutine xgl_write ( cor3, cor3_max, cor3_normal, cor3_num, face, &
   real light_diffuse_rgb(3)
   real light_direction(3)
   real light_specular_rgb(3)
-  real material_alpha
+  real material_alpha(1)
   real material_amb_rgb(3)
   real material_diff_rgb(3)
   real material_emiss_rgb(3)
-  real material_shine
+  real material_shine(1)
   real material_spec_rgb(3)
   integer material
   integer material_num
