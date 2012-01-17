@@ -1,5 +1,7 @@
 #summary List of contributors and funding sources.
 
+<wiki:toc/>
+
 = Contributors =
  * Clive Temperton is the author of the CFFT99 Fortran routine (1980).
  * Matteo Frigo and Steven G. Johnson (fftw@fftw.org) are the authors of the FFTW 3 package, to which *ADDA* is linked.
@@ -13,8 +15,8 @@
  * Jin You Lu provided the basis of the code for the shapes `bicoated` and `bisphere`.
  * Alexander Moskalensky provided the basis of the code for the shape `biellipsoid`.
  * Sergei Lebedev implemented shape `plate`.
- * Roman Schuh and Thomas Wriedt contributed `misc/pip`, using the code by John Burkardt.
- * Josef Gasteiger contributed `misc/hyperfun`.
+ * Roman Schuh and Thomas Wriedt contributed "Point in Polyhedron" tool ([http://code.google.com/p/a-dda/source/browse/trunk/misc/pip misc/pip]), using the code by John Burkardt.
+ * Josef Gasteiger contributed tool chain to work with Hyperfun models ([http://code.google.com/p/a-dda/source/browse/trunk/misc/hyperfun misc/hyperfun]).
 
 The above list doesn't include [http://code.google.com/p/a-dda/people/list current contributors].
 
