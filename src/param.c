@@ -3,7 +3,7 @@
  * Descr: initialization, parsing and handling of input parameters; also printout general
  *        information; contains file locking routines
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -250,6 +250,9 @@ static const struct subopt_struct shape_opt[]={
 		"scaling factor. Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
+	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and "
+		"full diameter d (i.e. diameter of the constituent cylinder is d-h). Its axis of symmetry "
+		"coincides with the z-axis.",1,SH_PLATE},
 	{"prism","<N> <h/Dx>","Homogeneous right N-sided prism with height (length along the z-axis) h "
 		"based on a regular polygon with N sides of size 'a'. The polygon is oriented so that "
 		"positive x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon "

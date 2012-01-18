@@ -3,7 +3,7 @@
  * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
  *        file; includes granule generator
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -96,13 +96,13 @@ static double chebeps,r0_2; // for Chebyshev
 static int chebn; // for Chebyshev
 static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
-static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (in units of Dx)
+static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
-static double contCurRo, contCurZ, contRoSqMin;
+static double contCurRo, contCurZ;
 static int contNseg;
 struct segment {
 	bool single;           // whether segment consists of a single joint
@@ -499,7 +499,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	zmid=(zmax+zmin)/2;
 	*ratio=(zmax-zmin)*mult;
 	*shSize=2*romax;
-	contRoSqMin=romin*romin*mult*mult;
+	ri_2=romin*romin*mult*mult;
 	for (i=0;i<=nr;i++) {
 		contRo[i]*=mult;
 		contZ[i]=(contZ[i]-zmid)*mult;
@@ -1494,6 +1494,20 @@ void InitShape(void)
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
+	else if(shape==SH_PLATE) {
+		double diskratio; // ratio of height to diameter
+
+		diskratio=sh_pars[0];
+		TestRangeNI(diskratio, "height to diameter ratio",0,1);
+		if (IFROOT) sprintf(sh_form_str,"plate; full diameter(d):%s, height h/d="GFORM,GFORM,
+			diskratio);
+		volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24;
+		yx_ratio=1;
+		zx_ratio=diskratio;
+		Nmat_need=1;
+		hdratio=zx_ratio/2;
+		ri_2=(0.5-hdratio)*(0.5-hdratio);
+	}
 	else if(shape==SH_PRISM) {
 		double Dx,Dy; // grid sizes along x and y (in units of a - side length)
 		double Ri,Rc; // radii of inscribed and circumscribed circles (in units of a)
@@ -1840,10 +1854,10 @@ void MakeParticle(void)
 				mat=Nmat; // corresponds to void
 
 				if (shape==SH_AXISYMMETRIC) {
-					r2=xr*xr+yr*yr;
-					if (r2>=contRoSqMin && r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2>=ri_2 && ro2<=0.25) {
 						largerZ=smallerZ=0;
-						contCurRo=sqrt(r2);
+						contCurRo=sqrt(ro2);
 						contCurZ=zr;
 						for (ns=0;ns<contNseg;ns++)
 							if (contCurRo>=contSegRoMin[ns] && contCurRo<=contSegRoMax[ns])
@@ -1857,11 +1871,11 @@ void MakeParticle(void)
 					}
 				}
 				else if (shape==SH_BICOATED) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1*tmp1+r2<=0.25) {
-							if (tmp1*tmp1+r2<=coat_r2) mat=1;
+						if (tmp1*tmp1+ro2<=0.25) {
+							if (tmp1*tmp1+ro2<=coat_r2) mat=1;
 							else mat=0;
 						}
 					}
@@ -1881,20 +1895,20 @@ void MakeParticle(void)
 					}
 				}
 				else if (shape==SH_BISPHERE) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1*tmp1+r2<=0.25) mat=0;
+						if (tmp1*tmp1+ro2<=0.25) mat=0;
 					}
 				}
 				else if (shape==SH_BOX) {
 					if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
 				}
 				else if (shape==SH_CAPSULE) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1<=0 || tmp1*tmp1+r2<=0.25) mat=0;
+						if (tmp1<=0 || tmp1*tmp1+ro2<=0.25) mat=0;
 					}
 				}
 				else if (shape==SH_CHEBYSHEV) {
@@ -1923,10 +1937,10 @@ void MakeParticle(void)
 					if(xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
 				}
 				else if (shape==SH_EGG) {
-					r2=xr*xr+yr*yr;
+					ro2=xr*xr+yr*yr;
 					zshift=zr-zcenter;
 					z2=zshift*zshift;
-					if (r2+egeps*z2+egnu*zshift*sqrt(r2+z2)<=ad2) mat=0;
+					if (ro2+egeps*z2+egnu*zshift*sqrt(ro2+z2)<=ad2) mat=0;
 				}
 				else if (shape==SH_ELLIPSOID) {
 					if (xr*xr+yr*yr*invsqY+zr*zr*invsqZ<=0.25) mat=0;
@@ -1934,25 +1948,35 @@ void MakeParticle(void)
 				else if (shape==SH_LINE) {
 					if (yj==0 && zj==0) mat=0;
 				}
+				else if (shape==SH_PLATE) {
+					ro2=xr*xr+yr*yr;
+					if(ro2<=0.25 && fabs(zr)<=hdratio) {
+						if (ro2<=ri_2) mat=0;
+						else {
+							tmp1=sqrt(ro2)-0.5+hdratio; // ro-ri
+							if (tmp1*tmp1+zr*zr<=hdratio*hdratio) mat=0;
+						}
+					}
+				}
 				else if (shape==SH_PRISM) {
 					xshift=xr-xcenter;
-					r2=xshift*xshift+yr*yr;
-					if(r2<=rc_2 && fabs(zr)<=hdratio) {
-						if (r2<=ri_2) mat=0;
+					ro2=xshift*xshift+yr*yr;
+					if(ro2<=rc_2 && fabs(zr)<=hdratio) {
+						if (ro2<=ri_2) mat=0;
 						/* this can be optimized considering special cases for small N. For larger
 						 * N the relevant fraction of dipoles decrease as N^-2, so this part is less
 						 * problematic.
 						 */
 						else {
 							tmp1=cos(fmod(fabs(atan2(yr,xshift))+prang,2*prang)-prang);
-							if (tmp1*tmp1*r2<=ri_2) mat=0;
+							if (tmp1*tmp1*ro2<=ri_2) mat=0;
 						}
 					}
 				}
 				else if (shape==SH_RBC) {
-					r2=xr*xr+yr*yr;
+					ro2=xr*xr+yr*yr;
 					z2=zr*zr;
-					if (r2*r2+2*rbcS*r2*z2+z2*z2+rbcP*r2+rbcQ*z2+rbcR<=0) mat=0;
+					if (ro2*ro2+2*rbcS*ro2*z2+z2*z2+rbcP*ro2+rbcQ*z2+rbcR<=0) mat=0;
 				}
 				else if (shape==SH_SPHERE) {
 					if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;

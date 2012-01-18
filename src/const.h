@@ -3,7 +3,7 @@
  * Descr: all the constants used by ADDA code, including enum constants, also defines some
  *        useful macros
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -148,6 +148,7 @@ enum sh { // shape types
 	SH_EGG,          // egg
 	SH_ELLIPSOID,    // general ellipsoid
 	SH_LINE,         // line with width of one dipole
+	SH_PLATE,        // plate
 	SH_PRISM,        // right rectangular prism
 	SH_RBC,          // Red Blood Cell
 	SH_READ,         // read from file
