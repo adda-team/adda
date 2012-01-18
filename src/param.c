@@ -335,7 +335,6 @@ PARSE_FUNC(opt);
 PARSE_FUNC(orient);
 PARSE_FUNC(phi_integr);
 PARSE_FUNC(pol);
-PARSE_FUNC(prognose);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(recalc_resid);
@@ -500,7 +499,6 @@ static struct opt_struct options[]={
 		"'rrc' - Radiative Reaction Correction (added to CM). 'so' is under development. 'cldr' "
 		"and 'so' are incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
-	{PAR(prognose),"","Deprecated command line option. Use '-prognosis' instead.",0,NULL},
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only "
 		"estimate the required RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. "
@@ -1184,13 +1182,6 @@ PARSE_FUNC(pol)
 	else NotSupported("Polarizability relation",argv[1]);
 	if (Narg==2 && strcmp(argv[1],"ldr")!=0)
 		PrintErrorHelp("Second argument is allowed only for 'ldr'");
-}
-PARSE_FUNC(prognose)
-{
-	prognosis=true;
-	strcpy(run_name,"test");
-	LogWarning(EC_WARN,ONE_POS,
-		"Command line option '-prognose' is deprecated. Use '-prognosis' instead");
 }
 PARSE_FUNC(prognosis)
 {
