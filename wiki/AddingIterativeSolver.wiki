@@ -1,6 +1,6 @@
 #summary How to add code for a new iterative solver.
 
-All places in the code, where something should be added, are commented. These comments start with `TO ADD NEW ITERATIVE SOLVER` and contain detailed description; the text below is less detailed. Added code should be analogous to iterative solvers already present. The procedure is the following:
+All places in the code, where something should be added, are commented. These comments start with "`TO ADD NEW ITERATIVE SOLVER`" and contain detailed description; the text below is less detailed. Added code should be analogous to iterative solvers already present. The procedure is the following:
  * Add new iterative-solver descriptor in the file [http://code.google.com/p/a-dda/source/browse/trunk/src/const.h const.h]. Starting descriptor name with `IT_` is recommended, as well as adding a descriptive comment.
  * Add information about the new iterative solver in the file [http://code.google.com/p/a-dda/source/browse/trunk/src/param.c param.c].
    * Add a short name of the iterative solver, to be used in the command line, to the list inside `{...}` on the line starting with `PAR(iter)` in the constant array `options`. 
@@ -52,4 +52,4 @@ ITER_FUNC(_name_)
 
 Please refer to section _Iterative Solvers_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for general overview of how the iterative solvers operate inside *ADDA*.
 
-If you add a new iterative solver to *ADDA* according to the described procedure, please write to the [http://groups.google.com/group/adda-discuss discussion group], so your code can be incorporated in future releases.
+If you add a new iterative solver to *ADDA* according to the described procedure, please consider [InstructionCommitters contributing your code] to be incorporated in future releases.

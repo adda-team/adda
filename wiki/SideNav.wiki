@@ -20,6 +20,7 @@
  * Adding new code
    * [InstructionCommitters Instruction for committers]
    * [AddingShape Adding a predefined shape]
+   * [AddingShapeFileFormat Adding a format of shape file]
    * [AddingBeam Adding a predefined beam type]
    * [AddingCommandLineOption Adding a command line option]
    * [AddingIterativeSolver Adding an iterative solver]
