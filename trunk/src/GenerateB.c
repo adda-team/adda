@@ -300,8 +300,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		const int mustbe=6;
 		int scanned;
 		// skips first line with headers and any comments, if present
-		SkipNLines(file,1);
-		size_t line=SkipComments(file)+1;
+		size_t line=SkipNLines(file,1);
+		line+=SkipComments(file);
 
 		i=j=0;
 		while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
