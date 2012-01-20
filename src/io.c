@@ -451,15 +451,14 @@ char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
 
 //===========================================================
 
-void SkipNLines(FILE * restrict file,size_t n)
-// skips n lines from the file starting from current position in a file
+size_t SkipNLines(FILE * restrict file,const size_t n)
+// skips n lines from the file starting from current position in a file; returns n
 {
 	char buf[BUF_LINE];
+	size_t i;
 
-	while (n>0) {
-		SkipFullLine(file,buf,BUF_LINE);
-		n--;
-	}
+	for (i=0;i<n;i++) SkipFullLine(file,buf,BUF_LINE);
+	return n;
 }
 
 //===========================================================

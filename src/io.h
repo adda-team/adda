@@ -75,7 +75,7 @@ void MkDirErr(const char * restrict dirname,ERR_LOC_DECL);
 
 char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
 	char * restrict buf,const int buf_size,ERR_LOC_DECL);
-void SkipNLines(FILE * restrict file,size_t n);
+size_t SkipNLines(FILE * restrict file,const size_t n);
 size_t SkipComments(FILE * restrict file);
 
 #endif // __io_h

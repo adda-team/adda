@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1b3"
+#define ADDA_VERSION "1.1b4"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -357,9 +357,14 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 
 // shape formats; numbers should be nonnegative
 enum shform {
+	SF_DDSCAT6,  // DDSCAT 6 format (FRMFIL), produced by calltarget
+	SF_DDSCAT7,  // DDSCAT 7 format (FRMFIL), produced by calltarget
 	SF_TEXT,     // ADDA text format for one-domain particles
-	SF_TEXT_EXT, // ADDA text format for multi-domain particles
-	SF_DDSCAT    // DDSCAT 6.1 format (FRMFIL), produced by calltarget
+	SF_TEXT_EXT  // ADDA text format for multi-domain particles
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * add an identifier starting with 'SF_' and a descriptive comment to this list in alphabetical
+	 * order.
+	 */
 };
 
 #define POSIT __FILE__,__LINE__ // position of the error in source code

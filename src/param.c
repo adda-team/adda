@@ -507,8 +507,10 @@ static struct opt_struct options[]={
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognosis'.\n"
-		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
-		"                      added if '-granul' option is used).",UNDEF,NULL},
+		"Default: <type>.geom \n"
+		"(<type> is a first argument to the '-shape' option; '_gran' is added if '-granul' option "
+		"is used; file extension can differ depending on argument of '-sg_format' option).",
+		UNDEF,NULL},
 	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
 		"'dr' is standard formulation proposed by Draine, 'fin' is a slightly different one that "
 		"is based on a radiative correction for a finite dipole. 'igt_so' - second order in kd "
@@ -522,12 +524,16 @@ static struct opt_struct options[]={
 		"amplitude) should be saved to file. Amplitude matrix is never integrated (in combination "
 		"with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
-	{PAR(sg_format),"{text|text_ext|ddscat}","Specifies format for saving geometry files. First "
-		"two are ADDA default formats for single- and multi-domain particles respectively. 'text' "
-		"is automatically changed to 'text_ext' for multi-domain particles. DDSCAT format "
-		"corresponds to its shape option FRMFIL and output of 'calltarget' utility "
-		"(version 6.1).\n"
+	{PAR(sg_format),"{text|text_ext|ddscat6|ddscat7}","Specifies format for saving geometry files. "
+		"First two are ADDA default formats for single- and multi-domain particles respectively. "
+		"'text' is automatically changed to 'text_ext' for multi-domain particles. Two DDSCAT "
+		"formats correspond to its shape options 'FRMFIL' (version 6) and 'FROM_FILE' (version 7) "
+		"and output of 'calltarget' utility.\n"
 		"Default: text",1,NULL},
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Modify string constants after 'PAR(sg_format)': add new argument to list {...} and
+		 * add its description to the next string.
+		 */
 	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' "
 		"from file. All the parameters of predefined shapes are floats except for filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
@@ -1242,7 +1248,17 @@ PARSE_FUNC(sg_format)
 {
 	if (strcmp(argv[1],"text")==0) sg_format=SF_TEXT;
 	else if (strcmp(argv[1],"text_ext")==0) sg_format=SF_TEXT_EXT;
-	else if (strcmp(argv[1],"ddscat")==0) sg_format=SF_DDSCAT;
+	else if (strcmp(argv[1],"ddscat")==0) {
+		sg_format=SF_DDSCAT6;
+		LogWarning(EC_WARN,ONE_POS,"Argument 'ddscat' to command line option '-sg_format ...' is "
+			"deprecated. Use 'ddscat6' or 'ddscat7' instead");
+	}
+	else if (strcmp(argv[1],"ddscat6")==0) sg_format=SF_DDSCAT6;
+	else if (strcmp(argv[1],"ddscat7")==0) sg_format=SF_DDSCAT7;
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * Based on argument of command line option '-sg_format' assign value to variable 'sg_format'
+	 * (one of handles defined in const.h).
+	 */
 	else NotSupported("Geometry format",argv[1]);
 }
 PARSE_FUNC(shape)
@@ -1272,7 +1288,7 @@ PARSE_FUNC(shape)
 		 * If the shape accepts variable number of arguments (UNDEF was used in shape definition
 		 * above) add a check of number of received arguments to this else-if sequence. Use
 		 * NargError function similarly as done in existing tests.
-		*/
+		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
 		if (!ScanFnamesError(Narg,need,argv+2,shape_fname,NULL))
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],sh_pars+j);
