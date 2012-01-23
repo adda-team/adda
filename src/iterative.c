@@ -10,7 +10,7 @@
  *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
  *        BiCGStab.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -48,8 +48,8 @@ extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in param.c
 extern const double iter_eps;
-extern enum init_field InitField;
-extern bool recalc_resid;
+extern const enum init_field InitField;
+extern const bool recalc_resid;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;
@@ -283,7 +283,7 @@ static void ProgressReport(void)
 {
 	double err,progr,elapsed;
 	char progr_string[MAX_LINE];
-	char temp[5];
+	const char *temp;
 	time_t wt;
 
 	if (inprodRp1<=inprodR) {
@@ -294,9 +294,9 @@ static void ProgressReport(void)
 	if (IFROOT) {
 		err=sqrt(resid_scale*inprodRp1);
 		progr=1-err/prev_err;
-		if (counter==0) strcpy(temp,"+ ");
-		else if (progr>0) strcpy(temp,"-+");
-		else strcpy(temp,"- ");
+		if (counter==0) temp="+ ";
+		else if (progr>0) temp="-+";
+		else temp="- ";
 		SnprintfErr(ONE_POS,progr_string,MAX_LINE,RESID_STRING"  %s",niter,err,temp);
 		if (!orient_avg) fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
 		printf("%s\n",progr_string);
@@ -1005,13 +1005,16 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 
 //============================================================
 
-void CalcInitField(char *descr,double zero_resid)
+static const char *CalcInitField(double zero_resid)
 /* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains
  * the right-hand side of equations (b). At the end of this function xvec should contain initial
  * vector for the iterative solver (x_0), rvec - corresponding residual r_0, and inprodR - the norm
  * of the latter residual.
+ * Returns string containing description of the initial field used.
  */
 {
+	const char *descr;
+
 	if (InitField==IF_AUTO) {
 		/* This code is somewhat inelegant, but there seem to be no easy way to completely reuse
 		 * code for other cases. Moreover, this option will probably be changed afterwards.
@@ -1024,26 +1027,26 @@ void CalcInitField(char *descr,double zero_resid)
 			nInit(xvec);
 			nCopy(rvec,pvec);
 			inprodR=zero_resid;
-			strcpy(descr,"x_0 = 0\n");
+			descr="x_0 = 0\n";
 			matvec_ready=true; // here Avecbuffer = A.r_0
 		}
 		else { // use x_0=Einc
 			nCopy(xvec,pvec);
-			strcpy(descr,"x_0 = E_inc\n");
+			descr="x_0 = E_inc\n";
 		}
 	}
-	if (InitField==IF_ZERO) {
+	else if (InitField==IF_ZERO) {
 		nInit(xvec); // x_0=0
 		nCopy(rvec,pvec); // r_0=b
 		inprodR=zero_resid;
-		strcpy(descr,"x_0 = 0\n");
+		descr="x_0 = 0\n";
 	}
 	else if (InitField==IF_INC) {
 		nCopy(xvec,pvec); // x_0=b
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-		strcpy(descr,"x_0 = E_inc\n");
+		descr="x_0 = E_inc\n";
 	}
 	else if (InitField==IF_WKB) {
 		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
@@ -1112,8 +1115,10 @@ void CalcInitField(char *descr,double zero_resid)
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-		strcpy(descr,"x_0 = result of WKB\n");
-	}
+		descr="x_0 = result of WKB\n";
+	} // redundant test
+	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",InitField);
+	return descr;
 }
 
 //============================================================
@@ -1145,11 +1150,11 @@ int IterativeSolver(const enum iter method_in)
 		resid_scale=1/temp;
 		epsB=iter_eps*iter_eps*temp;
 		// Calculate initial field
-		CalcInitField(tmp_str,temp);
+		const char *descr=CalcInitField(temp);
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
-			sprintf(tmp_str+strlen(tmp_str),RESID_STRING"\n",0,prev_err);
+			sprintf(tmp_str,"%s"RESID_STRING"\n",descr,0,prev_err);
 			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
 			printf("%s",tmp_str);
 		}

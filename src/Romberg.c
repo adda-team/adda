@@ -20,7 +20,7 @@
  *        They must be set outside of the Romberg routine. All the routines normalize the result on
  *        the interval width, i.e. actually averaging takes place.
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -464,6 +464,12 @@ static double OuterRomberg(double * restrict res)
 
 //============================================================
 
+INLINE const char *TextTest(const bool cond)
+{
+	return cond ? "true" : "false";
+}
+//============================================================
+
 void Romberg2D(const Parms_1D parms_input[2],
 	double (*func_input)(int theta,int phi,double * restrict res),
 	const int dim_input,double * restrict res,const char * restrict fname)
@@ -474,8 +480,7 @@ void Romberg2D(const Parms_1D parms_input[2],
  */
 {
 	double error;
-	char buf1[MAX_WORD],buf2[MAX_WORD];
-	const char true_s[]="true",false_s[]="false";
+	const char *buf1,*buf2;
 	const char *se1,*se2,*sp1,*sp2;
 
 	// initialize global values
@@ -489,21 +494,17 @@ void Romberg2D(const Parms_1D parms_input[2],
 	AllocateAll(); // allocate memory
 
 	if (orient_avg) {
-		strcpy(buf1,"BETA");
-		strcpy(buf2,"GAMMA");
+		buf1="BETA";
+		buf2="GAMMA";
 	}
 	else {
-		strcpy(buf1,"THETA");
-		strcpy(buf2,"PHI");
+		buf1="THETA";
+		buf2="PHI";
 	}
-	if (input[THETA].equival) se1=true_s;
-	else se1=false_s;
-	if (input[PHI].equival) se2=true_s;
-	else se2=false_s;
-	if (input[THETA].periodic) sp1=true_s;
-	else sp1=false_s;
-	if (input[PHI].periodic) sp2=true_s;
-	else sp2=false_s;
+	se1=TextTest(input[THETA].equival);
+	se2=TextTest(input[PHI].equival);
+	sp1=TextTest(input[THETA].periodic);
+	sp2=TextTest(input[PHI].periodic);
 	// print info
 	fprintf(file,
 		"                   %4s(rad)   cos(%s)\n"

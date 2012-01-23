@@ -518,7 +518,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	double ro,z,romin,romax,zmin,zmax,mult,zmid;
 	FILE* file;
 	bool increasing;
-	char linebuf[BUF_LINE]
+	char linebuf[BUF_LINE];
 
 	D("InitContour has started");
 	// Read contour from file
@@ -1295,7 +1295,7 @@ void InitShape(void)
 	int Nmat_need,i,temp;
 	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
 	bool size_given_cmd;     // if size is given in the command line
-	char sizename[MAX_LINE]; // type of input size, used in diagnostic messages
+	const char *sizename;    // type of input size, used in diagnostic messages
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
 	 * well use 'tmp1'-'tmp3' variables defined above.
@@ -1310,8 +1310,9 @@ void InitShape(void)
 	n_sizeX=UNDEF;
 
 	size_given_cmd=(sizeX!=UNDEF || a_eq!=UNDEF);
-	if (sizeX!=UNDEF) strcpy(sizename,"size");
-	else if (a_eq!=UNDEF) strcpy(sizename,"eq_rad");
+	if (sizeX!=UNDEF) sizename="size";
+	else if (a_eq!=UNDEF) sizename="eq_rad";
+	else sizename=""; // redundant initialization to remove warnings
 	/* calculate default dpl - 10*sqrt(max(|m|));
 	 * for anisotropic each component is considered separately
 	 */
