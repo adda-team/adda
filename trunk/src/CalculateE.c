@@ -5,7 +5,7 @@
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -533,8 +533,8 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	TIME_TYPE tstart;
 	char fname_cs[MAX_FNAME],fname_frp[MAX_FNAME];
 	size_t j;
-	double const *incPol;
-	char f_suf[MAX_WORD];
+	const double *incPol;
+	const char *f_suf;
 
 	// redundant initialization to remove warnings
 	Cext=Cabs=Csca=0;
@@ -544,11 +544,11 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	tstart = GET_TIME();
 
 	if (which == INCPOL_Y) {
-		strcpy(f_suf,F_YSUF);
+		f_suf=F_YSUF;
 		incPol=incPolY;
 	}
 	else { // which == INCPOL_X
-		strcpy(f_suf,F_XSUF);
+		f_suf=F_XSUF;
 		incPol=incPolX;
 	}
 	/* order of calculations is important, when using SQ_FINDIP. Then first dCabs should be

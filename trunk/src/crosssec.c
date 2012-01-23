@@ -3,7 +3,7 @@
  * Descr: all the functions to calculate scattering quantities (except Mueller matrix); to read
  *        different parameters from files; and initialize orientation of the particle
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -841,7 +841,7 @@ static double CscaIntegrand(const int theta,const int phi,double * restrict res)
 
 //=====================================================================
 
-double ScaCross(char * restrict f_suf)
+double ScaCross(const char *f_suf)
 // Calculate the scattering cross section from the integral
 {
 	TIME_TYPE tstart;
@@ -875,7 +875,7 @@ static double gIntegrand(const int theta,const int phi,double * restrict res)
 
 //=====================================================================
 
-void AsymParm(double *vec,char * restrict f_suf)
+void AsymParm(double *vec,const char *f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	int comp;
@@ -907,7 +907,7 @@ static double gxIntegrand(const int theta,const int phi,double * restrict res)
 
 //=====================================================================
 
-void AsymParm_x(double *vec,char * restrict f_suf)
+void AsymParm_x(double *vec,const char *f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	TIME_TYPE tstart;
@@ -938,7 +938,7 @@ static double gyIntegrand(const int theta,const int phi,double * restrict res)
 
 //=====================================================================
 
-void AsymParm_y(double *vec,char * restrict f_suf)
+void AsymParm_y(double *vec,const char *f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	TIME_TYPE tstart;
@@ -963,7 +963,7 @@ static double gzIntegrand(const int theta,const int phi,double * restrict res)
 
 //=====================================================================
 
-void AsymParm_z(double *vec,char * restrict f_suf)
+void AsymParm_z(double *vec,const char *f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 
 {

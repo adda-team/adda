@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: core parts of OpenCL code
  *
- * Copyright (C) 2010-2011 ADDA contributors
+ * Copyright (C) 2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -44,7 +44,7 @@ double *inprodhlp; // extra buffer (on CPU) for calculating inner product in Mat
 // SEMI-GLOBAL VARIABLES
 
 // used in cpp/fft_setup.cpp
-char coptions[MAX_LINE]="";
+const char *coptions;
 
 // LOCAL VARIABLES
 
@@ -75,62 +75,57 @@ cl_device_id device_id;
 
 //========================================================================
 
-char *print_cl_errstring(cl_int err)
-// produced meaningful error message from the error code
+static const char *print_cl_errstring(cl_int err)
+// produces meaningful error message from the error code
 {
-	char msg[MAX_LINE];
-
 	switch (err) {
-		case CL_SUCCESS:                         return strcpy(msg,"Success!");
-		case CL_DEVICE_NOT_FOUND:                return strcpy(msg,"Device not found.");
-		case CL_DEVICE_NOT_AVAILABLE:            return strcpy(msg,"Device not available");
-		case CL_COMPILER_NOT_AVAILABLE:          return strcpy(msg,"Compiler not available");
-		case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-			return strcpy(msg,"Memory object allocation failure");
-		case CL_OUT_OF_RESOURCES:                return strcpy(msg,"Out of resources");
-		case CL_OUT_OF_HOST_MEMORY:              return strcpy(msg,"Out of host memory");
-		case CL_PROFILING_INFO_NOT_AVAILABLE:
-			return strcpy(msg,"Profiling information not available");
-		case CL_MEM_COPY_OVERLAP:                return strcpy(msg,"Memory copy overlap");
-		case CL_IMAGE_FORMAT_MISMATCH:           return strcpy(msg,"Image format mismatch");
-		case CL_IMAGE_FORMAT_NOT_SUPPORTED:      return strcpy(msg,"Image format not supported");
-		case CL_BUILD_PROGRAM_FAILURE:           return strcpy(msg,"Program build failure");
-		case CL_MAP_FAILURE:                     return strcpy(msg,"Map failure");
-		case CL_INVALID_VALUE:                   return strcpy(msg,"Invalid value");
-		case CL_INVALID_DEVICE_TYPE:             return strcpy(msg,"Invalid device type");
-		case CL_INVALID_PLATFORM:                return strcpy(msg,"Invalid platform");
-		case CL_INVALID_DEVICE:                  return strcpy(msg,"Invalid device");
-		case CL_INVALID_CONTEXT:                 return strcpy(msg,"Invalid context");
-		case CL_INVALID_QUEUE_PROPERTIES:        return strcpy(msg,"Invalid queue properties");
-		case CL_INVALID_COMMAND_QUEUE:           return strcpy(msg,"Invalid command queue");
-		case CL_INVALID_HOST_PTR:                return strcpy(msg,"Invalid host pointer");
-		case CL_INVALID_MEM_OBJECT:              return strcpy(msg,"Invalid memory object");
-		case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-			return strcpy(msg,"Invalid image format descriptor");
-		case CL_INVALID_IMAGE_SIZE:              return strcpy(msg,"Invalid image size");
-		case CL_INVALID_SAMPLER:                 return strcpy(msg,"Invalid sampler");
-		case CL_INVALID_BINARY:                  return strcpy(msg,"Invalid binary");
-		case CL_INVALID_BUILD_OPTIONS:           return strcpy(msg,"Invalid build options");
-		case CL_INVALID_PROGRAM:                 return strcpy(msg,"Invalid program");
-		case CL_INVALID_PROGRAM_EXECUTABLE:      return strcpy(msg,"Invalid program executable");
-		case CL_INVALID_KERNEL_NAME:             return strcpy(msg,"Invalid kernel name");
-		case CL_INVALID_KERNEL_DEFINITION:       return strcpy(msg,"Invalid kernel definition");
-		case CL_INVALID_KERNEL:                  return strcpy(msg,"Invalid kernel");
-		case CL_INVALID_ARG_INDEX:               return strcpy(msg,"Invalid argument index");
-		case CL_INVALID_ARG_VALUE:               return strcpy(msg,"Invalid argument value");
-		case CL_INVALID_ARG_SIZE:                return strcpy(msg,"Invalid argument size");
-		case CL_INVALID_KERNEL_ARGS:             return strcpy(msg,"Invalid kernel arguments");
-		case CL_INVALID_WORK_DIMENSION:          return strcpy(msg,"Invalid work dimension");
-		case CL_INVALID_WORK_GROUP_SIZE:         return strcpy(msg,"Invalid work group size");
-		case CL_INVALID_WORK_ITEM_SIZE:          return strcpy(msg,"Invalid work item size");
-		case CL_INVALID_GLOBAL_OFFSET:           return strcpy(msg,"Invalid global offset");
-		case CL_INVALID_EVENT_WAIT_LIST:         return strcpy(msg,"Invalid event wait list");
-		case CL_INVALID_EVENT:                   return strcpy(msg,"Invalid event");
-		case CL_INVALID_OPERATION:               return strcpy(msg,"Invalid operation");
-		case CL_INVALID_GL_OBJECT:               return strcpy(msg,"Invalid OpenGL object");
-		case CL_INVALID_BUFFER_SIZE:             return strcpy(msg,"Invalid buffer size");
-		case CL_INVALID_MIP_LEVEL:               return strcpy(msg,"Invalid mip-map level");
-		default:                                 return strcpy(msg,"Unknown");
+		case CL_SUCCESS:                         return "Success!";
+		case CL_DEVICE_NOT_FOUND:                return "Device not found.";
+		case CL_DEVICE_NOT_AVAILABLE:            return "Device not available";
+		case CL_COMPILER_NOT_AVAILABLE:          return "Compiler not available";
+		case CL_MEM_OBJECT_ALLOCATION_FAILURE:   return "Memory object allocation failure";
+		case CL_OUT_OF_RESOURCES:                return "Out of resources";
+		case CL_OUT_OF_HOST_MEMORY:              return "Out of host memory";
+		case CL_PROFILING_INFO_NOT_AVAILABLE:    return "Profiling information not available";
+		case CL_MEM_COPY_OVERLAP:                return "Memory copy overlap";
+		case CL_IMAGE_FORMAT_MISMATCH:           return "Image format mismatch";
+		case CL_IMAGE_FORMAT_NOT_SUPPORTED:      return "Image format not supported";
+		case CL_BUILD_PROGRAM_FAILURE:           return "Program build failure";
+		case CL_MAP_FAILURE:                     return "Map failure";
+		case CL_INVALID_VALUE:                   return "Invalid value";
+		case CL_INVALID_DEVICE_TYPE:             return "Invalid device type";
+		case CL_INVALID_PLATFORM:                return "Invalid platform";
+		case CL_INVALID_DEVICE:                  return "Invalid device";
+		case CL_INVALID_CONTEXT:                 return "Invalid context";
+		case CL_INVALID_QUEUE_PROPERTIES:        return "Invalid queue properties";
+		case CL_INVALID_COMMAND_QUEUE:           return "Invalid command queue";
+		case CL_INVALID_HOST_PTR:                return "Invalid host pointer";
+		case CL_INVALID_MEM_OBJECT:              return "Invalid memory object";
+		case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR: return "Invalid image format descriptor";
+		case CL_INVALID_IMAGE_SIZE:              return "Invalid image size";
+		case CL_INVALID_SAMPLER:                 return "Invalid sampler";
+		case CL_INVALID_BINARY:                  return "Invalid binary";
+		case CL_INVALID_BUILD_OPTIONS:           return "Invalid build options";
+		case CL_INVALID_PROGRAM:                 return "Invalid program";
+		case CL_INVALID_PROGRAM_EXECUTABLE:      return "Invalid program executable";
+		case CL_INVALID_KERNEL_NAME:             return "Invalid kernel name";
+		case CL_INVALID_KERNEL_DEFINITION:       return "Invalid kernel definition";
+		case CL_INVALID_KERNEL:                  return "Invalid kernel";
+		case CL_INVALID_ARG_INDEX:               return "Invalid argument index";
+		case CL_INVALID_ARG_VALUE:               return "Invalid argument value";
+		case CL_INVALID_ARG_SIZE:                return "Invalid argument size";
+		case CL_INVALID_KERNEL_ARGS:             return "Invalid kernel arguments";
+		case CL_INVALID_WORK_DIMENSION:          return "Invalid work dimension";
+		case CL_INVALID_WORK_GROUP_SIZE:         return "Invalid work group size";
+		case CL_INVALID_WORK_ITEM_SIZE:          return "Invalid work item size";
+		case CL_INVALID_GLOBAL_OFFSET:           return "Invalid global offset";
+		case CL_INVALID_EVENT_WAIT_LIST:         return "Invalid event wait list";
+		case CL_INVALID_EVENT:                   return "Invalid event";
+		case CL_INVALID_OPERATION:               return "Invalid operation";
+		case CL_INVALID_GL_OBJECT:               return "Invalid OpenGL object";
+		case CL_INVALID_BUFFER_SIZE:             return "Invalid buffer size";
+		case CL_INVALID_MIP_LEVEL:               return "Invalid mip-map level";
+		default:                                 return "Unknown";
 	}
 }
 
@@ -147,7 +142,7 @@ void checkErr(cl_int err,const char *name)
 
 //========================================================================
 
-void GetDevice(void)
+static void GetDevice(void)
 // set OpenCL device number and related variable
 {
 	cl_int err; // error code
@@ -249,9 +244,9 @@ void oclinit(void)
 	);
 	checkErr(err,"Creating program");
 
-	if (platformname==PN_NVIDIA) strcpy(coptions,"-cl-mad-enable"); //for NVIDIA GPUs
-	else if (platformname==PN_AMD) strcpy(coptions,"-DAMD -cl-mad-enable"); //for AMD GPUs
-	// no options are set for unknown OpenCL platform
+	if (platformname==PN_NVIDIA) coptions="-cl-mad-enable"; //for NVIDIA GPUs
+	else if (platformname==PN_AMD) coptions="-DAMD -cl-mad-enable"; //for AMD GPUs
+	else if (platformname==PN_UNDEF) coptions=""; // no options for unknown OpenCL platform
 
 	// special error handling to enable debugging of OpenCL kernels
 	if (clBuildProgram(program,0,NULL,coptions,NULL,NULL) != CL_SUCCESS) {
