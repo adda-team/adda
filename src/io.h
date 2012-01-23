@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: i/o and error handling routines
  *
- * Copyright (C) 2006,2008-2011
+ * Copyright (C) 2006,2008-2012
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

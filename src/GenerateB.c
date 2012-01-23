@@ -14,7 +14,7 @@
  *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
