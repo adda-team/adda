@@ -3,7 +3,7 @@
  * Descr: all the initialization is done here before actually calculating internal fields; includes
  *        calculation of couple constants
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -39,7 +39,7 @@ extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
 extern const int avg_inc_pol;
-extern const char alldir_parms[],scat_grid_parms[];
+extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Init;
 extern size_t TotalEval;

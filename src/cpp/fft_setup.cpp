@@ -74,7 +74,7 @@
 using namespace std;
 
 extern void getKernelWorkDimensions(cl_fft_plan *plan, cl_fft_kernel_info *kernelInfo, cl_int *batchSize, size_t *gWorkItems, size_t *lWorkItems);
-extern const char coptions[];
+extern const char *coptions;
 
 static void 
 getBlockConfigAndKernelString(cl_fft_plan *plan)

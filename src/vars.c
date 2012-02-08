@@ -78,9 +78,9 @@ double box_origin_unif[3];    /* coordinates of the center of the first dipole i
                                */
 
 // file info
-char directory[MAX_DIRNAME]; // directory to save data in
-FILE *  restrict logfile;    // file where all the information about the run is saved
-int term_width;              // width of the terminal to which ADDA produces output
+const char * restrict directory; // directory to save data in
+FILE *  restrict logfile;        // file where all the information about the run is saved
+int term_width;                  // width of the terminal to which ADDA produces output
 
 // refractive index
 int Nmat;                           /* number of different domains (for each either scalar or
@@ -116,9 +116,7 @@ doublecomplex * restrict EgridX,* restrict EgridY;
 double * restrict Egrid_buffer;    // buffer to accumulate Egrid
 
 // checkpoint
-enum chpoint chp_type;             // type of checkpoint (to save)
-time_t chp_time;           // time of checkpoint (in sec)
-char chp_dir[MAX_DIRNAME]; // directory name to save/load checkpoint
+enum chpoint chp_type; // type of checkpoint (to save)
 
 // auxiliary grids and their partition over processors
 size_t gridX,gridY,gridZ;          /* sizes of the 'matrix' X, size_t - to remove type conversions

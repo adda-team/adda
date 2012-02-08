@@ -43,8 +43,8 @@
 // defined and initialized in param.c
 extern const int beam_Npars;
 extern const double beam_pars[];
-extern const char beam_fnameY[];
-extern const char beam_fnameX[];
+extern const char *beam_fnameY;
+extern const char *beam_fnameX;
 extern opt_index opt_beam;
 
 
