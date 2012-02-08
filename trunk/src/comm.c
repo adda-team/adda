@@ -3,7 +3,7 @@
  * Descr: incorporates all parallelization related code, so most of it is directly involved in or
  *        closely related to interprocess communication
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -30,6 +30,7 @@
 #include "function.h"
 #include "parbas.h"
 #include "cmplx.h"
+#include "debug.h"
 
 #ifdef ADDA_MPI
 MPI_Datatype mpi_dcomplex,mpi_double3,mpi_dcomplex3;  // combined datatypes
@@ -294,9 +295,6 @@ void Stop(const int code)
 		MPI_Abort(MPI_COMM_WORLD,code);
 	}
 	else { // regular termination
-		// wait for all processors
-		fflush(stdout);
-		Synchronize();
 		// clean MPI constructs and some memory
 		MPI_Type_free(&mpi_dcomplex);
 		MPI_Type_free(&mpi_double3);
@@ -305,6 +303,9 @@ void Stop(const int code)
 			Free_general(recvcounts);
 			Free_general(displs);
 		}
+		// wait for all processors
+		fflush(stdout);
+		Synchronize();
 		// finalize MPI communications
 		MPI_Finalize();
 	}
@@ -581,7 +582,7 @@ void ParSetup(void)
 	local_Nx=local_x1-local_x0;
 	boxXY=boxX*(size_t)boxY; // overflow check is covered by gridYZ above
 	local_Ndip=MultOverflow(boxXY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
-	printf("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
+	D("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
 }
 
 //============================================================

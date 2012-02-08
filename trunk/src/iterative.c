@@ -50,6 +50,9 @@ extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict 
 extern const double iter_eps;
 extern const enum init_field InitField;
 extern const bool recalc_resid;
+extern const time_t chp_time;
+extern const char *chp_dir;
+
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;

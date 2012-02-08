@@ -51,7 +51,7 @@ extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
 // file info
-extern char directory[];
+extern const char * restrict directory;
 extern FILE * restrict logfile;
 extern int term_width;
 
@@ -77,8 +77,6 @@ extern double *Egrid_buffer;
 
 // checkpoint
 extern enum chpoint chp_type;
-extern time_t chp_time;
-extern char chp_dir[];
 
 // auxiliary grids and their partition over processors
 extern size_t gridX,gridY,gridZ;

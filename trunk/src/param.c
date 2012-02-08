@@ -93,8 +93,8 @@ bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;
 // used in calculator.c
 bool avg_inc_pol;                 // whether to average CC over incident polarization
-char alldir_parms[MAX_FNAME];     // name of file with alldir parameters
-char scat_grid_parms[MAX_FNAME];  // name of file with parameters of scattering grid
+const char *alldir_parms;         // name of file with alldir parameters
+const char *scat_grid_parms;      // name of file with parameters of scattering grid
 // used in crosssec.c
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
@@ -106,14 +106,17 @@ double igt_eps; // relative error of integration in IGT
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
 opt_index opt_beam;                 // option index of beam option used
-char beam_fnameY[MAX_FNAME];        // names of files, defining the beam (for two polarizations)
-char beam_fnameX[MAX_FNAME];
+const char *beam_fnameY;            // names of files, defining the beam (for two polarizations)
+const char *beam_fnameX;
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
 double iter_eps;           // relative error to reach
 enum init_field InitField; // how to calculate initial field for the iterative solver
 bool recalc_resid;         // whether to recalculate residual at the end of iterative solver
+time_t chp_time;           // time of checkpoint (in sec)
+char const *chp_dir;       // directory name to save/load checkpoint
+
 // used in make_particle.c
 enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
@@ -123,9 +126,9 @@ double sizeX;                    // size of particle along x-axis
 double dpl;                      // number of dipoles per lambda (wavelength)
 double lambda;                   // incident wavelength (in vacuum)
 int jagged;                      // size of big dipoles, used to construct a particle
-char shape_fname[MAX_FNAME];     // name of file, defining the shape
-char save_geom_fname[MAX_FNAME]; // geometry file name to save dipole configuration
-char shapename[MAX_LINE];        // name of the used shape
+const char *shape_fname;         // name of file, defining the shape
+const char *save_geom_fname;     // geometry file name to save dipole configuration
+const char *shapename;           // name of the used shape
 bool volcor;                     // whether to use volume correction
 bool save_geom;                  // whether to save dipole configuration in .geom file
 opt_index opt_sh;                // option index of shape option used
@@ -140,10 +143,10 @@ bool store_grans;                // whether to save granule positions to file
 
 #define GFORM_RI_DIRNAME "%.4g" // format for refractive index in directory name
 
-static char run_name[MAX_WORD];   // first part of the dir name ('run' or 'test')
-static char avg_parms[MAX_FNAME]; // name of file with orientation averaging parameters
-static char *exename;             // name of executable (adda, adda.exe, adda_mpi,...)
-static int Nmat_given;            // number of refractive indices given in the command line
+static const char *run_name;    // first part of the dir name ('run' or 'test')
+static const char *avg_parms;   // name of file with orientation averaging parameters
+static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
+static int Nmat_given;          // number of refractive indices given in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define
@@ -726,7 +729,7 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 
 //============================================================
 
-INLINE void ScanStrError(const char * restrict str,const unsigned int size,char * restrict dest)
+INLINE const char *ScanStrError(const char * restrict str,const unsigned int size)
 /* check if string fits in buffer of size 'size', otherwise produces error message
  * then content of str is copied into dest
  */
@@ -734,7 +737,7 @@ INLINE void ScanStrError(const char * restrict str,const unsigned int size,char 
 	if (strlen(str)>=size)
 		PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
 			"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
-	strcpy(dest,str);
+	return str;
 }
 
 //============================================================
@@ -767,8 +770,8 @@ INLINE void ScanIntError(const char * restrict str,int *res)
 
 //============================================================
 
-INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,char * restrict fname1,
-	char * restrict fname2)
+INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,
+	const char **fname2)
 /* If 'need' corresponds to one of FNAME_ARG, scan Narg<=2 filenames from argv into fname1 and
  * fname2. All consistency checks are left to the caller (in particular, whether Narg corresponds
  * to need). argv should be shifted to contain only filenames. fname2 can be NULL, but it will
@@ -780,11 +783,11 @@ INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,char * res
 	bool res=false;
 
 	if (IS_FNAME_ARG(need)) {
-		ScanStrError(argv[0],MAX_FNAME,fname1);
+		*fname1=ScanStrError(argv[0],MAX_FNAME);
 		if (Narg==2) {
 			if (fname2==NULL) // consistency check e.g. for reading shape filename
 				PrintError("Failed to store the second filename in function ScanFnamesError");
-			else ScanStrError(argv[1],MAX_FNAME,fname2);
+			else *fname2=ScanStrError(argv[1],MAX_FNAME);
 		}
 		res=true;
 	}
@@ -859,7 +862,7 @@ static void PrintTime(char * restrict s,const time_t *time_ptr)
 
 PARSE_FUNC(alldir_inp)
 {
-	ScanStrError(argv[1],MAX_FNAME,alldir_parms);
+	alldir_parms=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(anisotr)
 {
@@ -899,7 +902,7 @@ PARSE_FUNC(beam)
 		 * NargError function similarly as done in existing tests.
 		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
-		if (!ScanFnamesError(Narg,need,argv+2,beam_fnameY,beam_fnameX))
+		if (!ScanFnamesError(Narg,need,argv+2,&beam_fnameY,&beam_fnameX))
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
@@ -909,7 +912,7 @@ PARSE_FUNC(beam)
 }
 PARSE_FUNC(chp_dir)
 {
-	ScanStrError(argv[1],MAX_DIRNAME,chp_dir);
+	chp_dir=ScanStrError(argv[1],MAX_DIRNAME);
 }
 PARSE_FUNC(chp_load)
 {
@@ -941,7 +944,7 @@ PARSE_FUNC(Csca)
 }
 PARSE_FUNC(dir)
 {
-	ScanStrError(argv[1],MAX_DIRNAME,directory);
+	directory=ScanStrError(argv[1],MAX_DIRNAME);
 }
 PARSE_FUNC(dpl)
 {
@@ -1152,7 +1155,7 @@ PARSE_FUNC(orient)
 		if (Narg>2) PrintErrorHelp(
 			"Illegal number of arguments (%d) to '-orient avg' option (0 or 1 expected)",Narg-1);
 		orient_avg=true;
-		if (Narg==2) ScanStrError(argv[2],MAX_FNAME,avg_parms);
+		if (Narg==2) avg_parms=ScanStrError(argv[2],MAX_FNAME);
 	}
 	else {
 		if (Narg!=3) NargError(Narg,"3");
@@ -1192,7 +1195,7 @@ PARSE_FUNC(pol)
 PARSE_FUNC(prognosis)
 {
 	prognosis=true;
-	strcpy(run_name,"test");
+	run_name="test";
 }
 PARSE_FUNC(prop)
 {
@@ -1216,7 +1219,7 @@ PARSE_FUNC(save_geom)
 {
 	if (Narg>1) NargError(Narg,"0 or 1");
 	save_geom=true;
-	if (Narg==1) ScanStrError(argv[1],MAX_FNAME,save_geom_fname);
+	if (Narg==1) save_geom_fname=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(scat)
 {
@@ -1228,7 +1231,7 @@ PARSE_FUNC(scat)
 }
 PARSE_FUNC(scat_grid_inp)
 {
-	ScanStrError(argv[1],MAX_FNAME,scat_grid_parms);
+	scat_grid_parms=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(scat_matr)
 {
@@ -1290,7 +1293,7 @@ PARSE_FUNC(shape)
 		 * NargError function similarly as done in existing tests.
 		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
-		if (!ScanFnamesError(Narg,need,argv+2,shape_fname,NULL))
+		if (!ScanFnamesError(Narg,need,argv+2,&shape_fname,NULL))
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],sh_pars+j);
 		// stop search
 		found=true;
@@ -1298,7 +1301,7 @@ PARSE_FUNC(shape)
 	}
 	if (!found) NotSupported("Shape type",argv[1]);
 	// set shape name; takes place only if shape name was matched above
-	strcpy(shapename,argv[1]);
+	shapename=argv[1];
 }
 PARSE_FUNC(size)
 {
@@ -1338,7 +1341,7 @@ PARSE_FUNC(sym)
 }
 PARSE_FUNC(test)
 {
-	strcpy(run_name,"test");
+	run_name="test";
 }
 PARSE_FUNC(V)
 {
@@ -1591,7 +1594,7 @@ void InitVariables(void)
 	prop_0[0]=0; // by default beam propagates along z-axis
 	prop_0[1]=0;
 	prop_0[2]=1;
-	directory[0]=0;
+	directory="";
 	lambda=TWO_PI;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
@@ -1604,11 +1607,11 @@ void InitVariables(void)
 	sizeX=UNDEF;
 	a_eq=UNDEF;
 	dpl=UNDEF;
-	strcpy(run_name,"run");
+	run_name="run";
 	nTheta=UNDEF;
 	iter_eps=1E-5;
 	shape=SH_SPHERE;
-	strcpy(shapename,"sphere");
+	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
 	PolRelation=POL_LDR;
@@ -1621,10 +1624,10 @@ void InitVariables(void)
 	maxiter=UNDEF;
 	jagged=1;
 	beamtype=B_PLANE;
-	strcpy(alldir_parms,FD_ALLDIR_PARMS);
-	strcpy(avg_parms,FD_AVG_PARMS);
-	strcpy(scat_grid_parms,FD_SCAT_PARMS);
-	strcpy(chp_dir,FD_CHP_DIR);
+	alldir_parms=FD_ALLDIR_PARMS;
+	avg_parms=FD_AVG_PARMS;
+	scat_grid_parms=FD_SCAT_PARMS;
+	chp_dir=FD_CHP_DIR;
 	chp_time=UNDEF;
 	chp_type=CHP_NONE;
 	orient_avg=false;
@@ -1632,7 +1635,7 @@ void InitVariables(void)
 	volcor=true;
 	reduced_FFT=true;
 	save_geom=false;
-	save_geom_fname[0]=0;
+	save_geom_fname="";
 	yzplane=false;
 	all_dir=false;
 	scat_grid=false;
@@ -1850,15 +1853,10 @@ void DirectoryLog(const int argc,char **argv)
 {
 	int i,Nexp;
 	FILE * restrict Nexpfile;
-	char sbuffer[MAX_LINE];
-	char *ptmp,*compname;
+	char *compname;
 	FILEHANDLE lockid;
 #ifdef PARALLEL
-	char *ptmp2;
-#endif
-#ifdef WINDOWS // for obtaining computer name
-	TCHAR cname[MAX_COMPUTERNAME_LENGTH+1];
-	DWORD cname_size=MAX_COMPUTERNAME_LENGTH+1;
+	char *ptmp,*ptmp2;
 #endif
 
 	// devise directory name (for output files)
@@ -1882,20 +1880,24 @@ void DirectoryLog(const int argc,char **argv)
 		}
 		// cast Nexp to all processors
 		MyBcast(&Nexp,int_type,1,NULL);
-		// create directory name
-		sprintf(sbuffer,"m"GFORM_RI_DIRNAME,ref_index[0][RE]);
-		ptmp=strchr(sbuffer,'.');
-		if (ptmp!=NULL) *ptmp='_';
-		sprintf(directory,"%s%03i_%s_g%i%s",run_name,Nexp,shapename,boxX,sbuffer);
+		/* create automatic directory name
+		 * It is stored in the following buffer. MAX_LINE should be enough for auto-name, however
+		 * up to MAX_DIRNAME can be obtained from '-dir ...'. So the latter size is considered in
+		 * all relevant buffers (for filenames or messages).
+		 */
+		static char sbuffer[MAX_LINE];
+		sprintf(sbuffer,"%s%03i_%s_g%i_m"GFORM_RI_DIRNAME,run_name,Nexp,shapename,boxX,
+			ref_index[0][RE]);
 #ifdef PARALLEL
 		// add PBS, SGE or SLURM job id to the directory name if available
 		if ((ptmp=getenv("PBS_JOBID"))!=NULL || (ptmp=getenv("JOB_ID"))!=NULL
 			|| (ptmp=getenv("SLURM_JOBID"))!=NULL) {
 				// job ID is truncated at first ".", probably can happen only for PBS
 				if ((ptmp2=strchr(ptmp,'.'))!=NULL) *ptmp2=0;
-				sprintf(directory+strlen(directory),"id%s",ptmp);
+				sprintf(sbuffer+strlen(sbuffer),"_id%s",ptmp);
 		}
 #endif
+		directory=sbuffer;
 	}
 	// make new directory and print info
 	if (IFROOT) {
@@ -1913,6 +1915,8 @@ void DirectoryLog(const int argc,char **argv)
 		fprintf(logfile,"Generated by ADDA v."ADDA_VERSION"\n");
 		// get computer name
 #ifdef WINDOWS
+		TCHAR cname[MAX_COMPUTERNAME_LENGTH+1];
+		DWORD cname_size=MAX_COMPUTERNAME_LENGTH+1;
 		GetComputerName(cname,&cname_size);
 		compname=cname;
 #else // POSIX and others
@@ -1949,6 +1953,7 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
+		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
