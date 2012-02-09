@@ -1,5 +1,5 @@
-all data is saved in 'run000_sphere_g16m1_5'
-0 :  0 16 16 4096 32 
+all data is saved in 'run000_sphere_g16_m1.5'
+box dimensions: 16x16x16
 lambda: 6.283185307   Dipoles/lambda: 15
 Required relative residual norm: 1e-005
 Total number of occupied dipoles: 2176
