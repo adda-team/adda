@@ -10,14 +10,14 @@
 !  	Optics Letters Vol. 34, pp.2381 (2009)
 !----------------------------------------------------------------
 
-The NearField program allows to compute the near-field
-on an arbitrary (i.e. not related to the grid used for the dipole)
- set of points, using dipoles stored by the ADDA program
+The NearField program allows to compute the near-field on an arbitrary (i.e. not
+related to the grid used for the dipole) set of points, using dipoles stored by
+the ADDA program
 
 A) COMPILING ==================================================
 
    Edit the Makefile selecting your compiler and compiler options and type
-   "gmake"
+   "gmake" (or "make")
 
    the following binaries will be created
     "gendip"
@@ -28,8 +28,8 @@ A) COMPILING ==================================================
 
     Note that  the "nearfield"  program  is an MPI program.
     The other one are serial.
- 
-    If everything went ok, type 
+
+    If everything went ok, type
 
     "./runexample".
 
@@ -47,10 +47,11 @@ B) RUNNING TESTS ==============================================
    export ADDABIN=youraddbinary
    export MPIEXEC="MPIinvocation"
 
-   You may skip this step if default values "../../../src/adda" and
-   "mpirun -np 4" respectively fit your system.
+   You may skip this step if default values "../../src/seq/adda" (relative to
+   path of nearfield executables) and "mpiexec -n 4" respectively fit your
+   system.
 
-   Then into the directory RUNTESTS and type
+   Then cd into the directory RUNTESTS and type
 
    "./runall"
 
@@ -58,11 +59,11 @@ B) RUNNING TESTS ==============================================
    Note that by default "nearfield" will be executed with 4 MPI tasks.
 
    If all test are passed, you should not see any error message and
-   that all the numbers shown should be zero (or almost zero ,i.e. less than 1.d-6).
-   Then you  can compute the nearfield for your application safely !
+   that all the numbers shown should be zero (or almost zero ,i.e. less than
+   1.d-6). Then you can compute the nearfield for your application safely !
 
-   Otherwise try to understand what's wrong, looking
-   at the output files (*.out) in the RUNTESTS subdirectories.
+   Otherwise try to understand what's wrong, looking  at the output files
+   (*.out) in the RUNTESTS subdirectories.
 
    Note that "runall" will also run adda (version 0.78 or later)
    Thus errors can also be related to incorrect functioning of your
@@ -85,7 +86,7 @@ adda will create the additional files
 2) rename  "<type>.geom" to "target"
 
 3) run "gendip"
- 
+
    gendip requires no input. It reads
    "target" and "DipPol-Y" (and/or "DipPol-X" ) from the current directory
    and generate the  "DIPY.SAV" (and/or "DIPX.SAV") file, which is the
@@ -100,14 +101,14 @@ adda will create the additional files
 4) Then you have to specify the list of external points where the
    near-field need to be computed.
 
-    IMPORTANT: The coordinate systems used by the nearfield program is the one used
-    for the "target" file, and NOT the internal ADDA coordinate system !
-    This is mostly important when the shape for the ADDA computation
-    is read form a file.  The "target" file contains a list of
-    integers representing the dipole locations. The near-field can be computed
-    in the same coordinate system but the coordinate of the point can be
-    any real number (and outside the range of the ADDA dipoles).
-    
+    IMPORTANT: The coordinate systems used by the nearfield program is the one
+    used  for the "target" file, and NOT the internal ADDA coordinate system !
+    This is mostly important when the shape for the ADDA computation is read
+    from a file. The "target" file contains a list of integers representing the
+    dipole locations. The near-field can be computed in the same coordinate
+    system but the coordinate of the point can be any real number (and outside
+    the range of the ADDA dipoles).
+
    Three types of external list of points are supported:
 
    << 1. A cartesian plane >>
@@ -118,7 +119,7 @@ adda will create the additional files
       val, whatis
       xmin,xmax,NGPX
       ymin,ymax,NGPY
-   
+
    To generate a cartesian plane defined by
    the equation  x=val use whatis=1
    for           y=val use whatis=2
@@ -222,7 +223,8 @@ adda will create the additional files
                      thus it must be specified without filename extension
 
     -) eincflag     0 to compute the nearfield from dipoles,
-                    1 to compute the nearfield frim dipoles plus the incident field
+                    1 to compute the nearfield frim dipoles plus the incident
+                      field
 
                     If eincflag=1 an additional file "commvar" is required:
                     the format of the "commvar" file is
@@ -249,32 +251,35 @@ adda will create the additional files
 
     -) iformat      0,1,2 speficied the level of output for the fileoout
 
-                    iformat=0 : print x y z and the squared-module of the nearfield, i.e.
+                    iformat=0 : print x y z and the squared-module of the
+                    nearfield, i.e.
                     |EX|^2+|EY|^2+|EZ|^2
                     fileformat: x y z value
 
-                    iformat=1 : print in addition the components of the field, i.e.
+                    iformat=1 : print in addition the components of the field,
+                    i.e.
                     x y z value EX.r EX.i EY.r EY.i EZ.r EZ.i
 
-                    iformat=2 : print in addition the logarithm of the module, i.e.
+                    iformat=2 : print in addition the logarithm of the module,
+                    i.e.
                     x y z value log(value) EX.r EX.i EY.r EY.i EZ.r EZ.i
 
    -) debuglevel    0 (default)  1 (to check incident field)
 
-   -) calcinternal  The near field should NOT be computed on the points of the dipoles
-                    (calcinternal=0). When a plane/line/set of external points is cutting
-                    the target, the dipolar nearfield is set to 0.0 in the points
-                    which belong to the target, and it is computed only on the points
-                    outside the target. If eincflag=1 the field inside the target is thus
-                    the incident field.
-                    If calcinternal=1 the near field is computed also for points inside
-                    the target.
+   -) calcinternal  The near field should NOT be computed on the points of the
+                    dipoles (calcinternal=0). When a plane/line/set of external
+                    points is cutting the target, the dipolar nearfield is set
+                    to 0.0 in the points which belong to the target, and it is
+                    computed only on the points outside the target. If
+                    eincflag=1 the field inside the target is thus the incident
+                    field. If calcinternal=1 the near field is computed also for
+                    points inside the target.
 
-   The "nearfield" program thus reads "DIPY.SAV" (or "DIPX.SAV"), "filepoints"  
-   and will create the following file: 
- 
-      "fileout.DAT" <- main  output file  
-               
+   The "nearfield" program thus reads "DIPY.SAV" (or "DIPX.SAV"), "filepoints"
+   and will create the following file:
+
+      "fileout.DAT" <- main  output file
+
       The nearfield in "fileout.DAT" can be visulalized with
       any plotting program (e.g. Matlab, .... )
 
@@ -282,7 +287,7 @@ adda will create the additional files
  *********  Visualization on Linux/Unix X11 *********************
 
        For these architectures, two visualization programs are supported:
-           
+
        if (what.eq.2) additional files are created:
 
          "fileout.xf"      <- simple file to plot with "xfarbe"
@@ -291,7 +296,7 @@ adda will create the additional files
        "xfarbe" is a program to plot 2d arrays.
        It can be downloaded from:
        http://www.fhi-berlin.mpg.de/gnz/pub/xfarbe_doc.html
-      
+
        to visulize the a 2d colormap  type
        "xfarbe   fileout.xf"  and/or
        "xfarbe fileout_log.xf"
@@ -312,7 +317,7 @@ D) REFERENCE  ==================================
 
      If you use the nearfield program in a publication, you should cite
 
-      S. D'Agostino, P.P. Pompa, R. Chiuri, R. Phaneuf, 
-      D. G. Britti, R. Rinaldi, R. Cingolani   and F. Della Sala           
-      "Enhanced fluorescence by metal nanospheres on metal substrates"                    
-      Optics Letters Vol. 34, pp.2381 (2009)   
+      S. D'Agostino, P.P. Pompa, R. Chiuri, R. Phaneuf,
+      D. G. Britti, R. Rinaldi, R. Cingolani and F. Della Sala
+      "Enhanced fluorescence by metal nanospheres on metal substrates"
+      Optics Letters Vol. 34, pp.2381 (2009)

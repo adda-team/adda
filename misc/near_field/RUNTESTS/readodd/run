@@ -2,10 +2,9 @@
 echo '------------adda----------------'                                                                                 
 $ADDABIN -store_dip_pol -save_geom -store_beam -shape read target.in -dir . -lambda 0.500 -eps 9 -dpl 10 -m 0.5 3 -grid 7 9 11 &> adda.out
 ERR=$?
-if [ $ERR -ne 0 ]
-then
+if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
-  exit 1
+  exit $ERR
 fi
 mv read.geom target
 echo '------------gendip--------------'

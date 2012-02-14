@@ -1,11 +1,11 @@
 # Makefile for Near Field tools
 
 # ---- Intel Fortran Compiler Linux
-FC     = ifort
-FFLAGS = -warn all -O3 
-MPIFC  = mpif90
-LIBS   =
-MPILIBS= -L/opt/hpmpi/lib/linux_64 -lmpi
+#FC     = ifort
+#FFLAGS = -warn all -O3
+#MPIFC  = mpif90
+#LIBS   =
+#MPILIBS= -L/opt/hpmpi/lib/linux_64 -lmpi
 
 # ----- HP-UX
 #FC      = f90
@@ -14,12 +14,14 @@ MPILIBS= -L/opt/hpmpi/lib/linux_64 -lmpi
 #LIBS    =
 #MPILIBS =  -L/opt/mpi/lib/hpux64/ -lmpio
 
-# ---- Windows (MinGW) with MPICH
-#FC     = g95
-#FFLAGS = -O
-#MPIFC  = $(FC)
-#LIBS   =
-#MPILIBS= -L"C:/Program Files/MPICH2/lib" -I"C:/Program Files/MPICH2/include" -lfmpich2g
+# ---- GNU Fortran Compiler
+FC     = gfortran
+FFLAGS = -O3 -ffast-math -funroll-loops
+MPIFC  = $(FC)
+LIBS   =
+MPILIBS= -lfmpich2g
+# You might need something like the following on Windows (with MinGW)
+MPILIBS+=  -L"C:/Program Files/MPICH2/lib" -I"C:/Program Files/MPICH2/include"
 
 ALLPROGS = gendip genplane genline nearfield checknfsymm
 
