@@ -1,6 +1,6 @@
 #summary A brief explanation of what can be found in ADDA packages.
 
-The packages themselves can be found at [http://code.google.com/p/a-dda/downloads/list Downloads]. Alternatively, the constituent files may be extracted directly from the [http://code.google.com/p/a-dda/source/browse/trunk/ repository].
+The following description is for latest (stable) version of the released packages, which can be found at [http://code.google.com/p/a-dda/downloads/list Downloads]. Alternatively, the most recent (potentially unstable) versions of the constituent files may be extracted directly from the [http://code.google.com/p/a-dda/source/browse/trunk/ repository].
 <wiki:toc>
 
 =Source=
