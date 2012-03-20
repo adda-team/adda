@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: routines for determining parameters of the chebyshev particles
  *
- * Copyright (C) 2011 ADDA contributors
+ * Copyright (C) 2011-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-
-#include <math.h>
-#include "const.h"
+#include "const.h" // keep this first
+// project headers
 #include "io.h"
+// system headers 
+#include <math.h>
 
 // LOCAL VARIABLES
 

@@ -16,23 +16,19 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-
+#include "const.h" // keep this first
+#include "oclcore.h" // corresponding header
+// project headers
+#include "memory.h"
+// system headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __APPLE__
-#	include <OpenCL/cl.h>
-#else
-#	include <CL/cl.h>
-#endif
-#include "const.h"
-#include "memory.h"
 
 // GLOBAL VARIABLES
 /* used in fft.c and matvec.c. Some of them are used only in one file, but we do not differentiate
  * them for simplicity (to keep all extern declarations in one place)
  */
-
 cl_context context;
 cl_command_queue command_queue;
 cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,

@@ -4,7 +4,7 @@
 
  *        TODO: A lot of indirect indexing used - way to optimize.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -18,19 +18,21 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+#include "fft.h" // corresponding header
+// project headers
+#include "cmplx.h"
+#include "comm.h"
+#include "debug.h"
+#include "function.h"
+#include "io.h"
+#include "memory.h"
+#include "prec_time.h"
+#include "vars.h"
+// system headers
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "vars.h"
-#include "cmplx.h"
-#include "const.h"
-#include "comm.h"
-#include "memory.h"
-#include "debug.h"
-#include "fft.h"
-#include "prec_time.h"
-#include "io.h"
-#include "function.h"
 
 #ifdef OPENCL
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file

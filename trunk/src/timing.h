@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions for usual timing; should be completely portable
  *
- * Copyright (C) 2006,2008-2009 ADDA contributors
+ * Copyright (C) 2006,2008-2009,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,6 +19,7 @@
 #ifndef __timing_h
 #define __timing_h
 
+// project headers
 #include "parbas.h"
 
 #ifdef ADDA_MPI

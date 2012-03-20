@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of Romberg routines
  *
- * Copyright (C) 2006,2008,2010 ADDA contributors
+ * Copyright (C) 2006,2008,2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,6 +19,7 @@
 #ifndef __Romberg_h
 #define __Romberg_h
 
+// project headers
 #include "types.h" // needed for Parms_1D
 // indexes of array
 #define THETA 0

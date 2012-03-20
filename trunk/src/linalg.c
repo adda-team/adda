@@ -8,7 +8,7 @@
  *        Common feature of many functions is accepting timing argument. If it is not NULL, it is
  *        incremented by the time used for communication.
  *
- * Copyright (C) 2006-2008,2010-2011 ADDA contributors
+ * Copyright (C) 2006-2008,2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,11 +22,13 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <string.h>
-#include "vars.h"
-#include "types.h"
+#include "linalg.h" // corresponding header
+// project headers
 #include "comm.h"
-#include "linalg.h"
+#include "types.h"
+#include "vars.h"
+// system headers
+#include <string.h>
 
 /* There are several optimization ideas used in this file:
  * 1) 'restrict' keyword tells the compiler that used doublecomplex array do not alias, however it

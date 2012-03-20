@@ -19,21 +19,23 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "const.h"
 #include "comm.h"
-#include "debug.h"
 #include "crosssec.h"
-#include "Romberg.h"
+#include "debug.h"
+#include "function.h"
 #include "io.h"
-#include "vars.h"
 #include "memory.h"
 #include "linalg.h" // for nMult_mat
+#include "Romberg.h"
 #include "timing.h"
-#include "function.h"
+#include "vars.h"
+// system headers
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 // SEMI-GLOBAL VARIABLES
 

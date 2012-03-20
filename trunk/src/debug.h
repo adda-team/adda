@@ -27,8 +27,8 @@
 
 #ifdef DEBUGFULL
 
-#	include "function.h" // for function attributes
 #	include "const.h"    // for POS
+#	include "function.h" // for function attributes
 #	include "io.h"       // for
 #	define D(...) DebugPrintf(ALL_POS,__VA_ARGS__)
 #	define Dz(...) DebugPrintf(ONE_POS,__VA_ARGS__)

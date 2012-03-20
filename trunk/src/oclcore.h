@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: all common OpenCL variables and functions
  *
- * Copyright (C) 2010-2011 ADDA contributors
+ * Copyright (C) 2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,6 +20,7 @@
 #ifndef __oclvars_h
 #define __oclvars_h
 
+// system headers
 #ifdef __APPLE__
 #	include <OpenCL/cl.h>
 #else

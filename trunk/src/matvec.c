@@ -3,7 +3,7 @@
  * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k,
  *        using a FFT based convolution algorithm
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,17 +17,19 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
-#include <string.h>
-#include "vars.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "const.h"
 #include "comm.h"
 #include "fft.h"
-#include "prec_time.h"
-#include "linalg.h"
 #include "function.h"
 #include "io.h"
+#include "linalg.h"
+#include "prec_time.h"
+#include "vars.h"
+// system headers
+#include <stdio.h>
+#include <string.h>
 
 #ifdef OPENCL
 #	include "oclcore.h"

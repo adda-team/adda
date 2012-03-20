@@ -173,10 +173,6 @@ CPPSOURCE :=
 PARENT    := ..
 FFOLDER   := fort
 CPPFOLDER := cpp
-CPATH     := $(PARENT)
-HPATH     := $(PARENT)
-FPATH     := $(PARENT)/$(FFOLDER)
-CPPPATH   := $(PARENT)/$(CPPFOLDER)
 
 LDLIBS    := -lm
 DEPFLAG   := -M

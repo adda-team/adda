@@ -16,24 +16,25 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <stdio.h>
-// the following is for MkDirErr
+#include "const.h" // keep this first
+#include "io.h" // corresponding header
+// project headers
+#include "comm.h"
+#include "memory.h"
 #include "os.h"
+#include "vars.h"
+// system headers
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+// the following is for MkDirErr
 #ifdef POSIX
 #	include <sys/stat.h>
 #	include <sys/types.h>
 #endif
-
-#include "io.h"
-#include "comm.h"
-#include "const.h"
-#include "vars.h"
-#include "memory.h"
 
 // SEMI-GLOBAL VARIABLES
 

@@ -1,4 +1,4 @@
-/* File: make_particlce.c
+/* File: make_particle.c
  * $Date::                            $
  * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
  *        file; includes granule generator
@@ -17,25 +17,28 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <time.h> // for time and clock (used for random seed)
-#include <limits.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <float.h> // for DBL_MAX
-#include "vars.h"
-#include "const.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "types.h"
 #include "comm.h"
 #include "debug.h"
-#include "memory.h"
 #include "io.h"
+#include "memory.h"
 #include "param.h"
 #include "timing.h"
+#include "types.h"
+#include "vars.h"
+// 3rd party headers
 #include "mt19937ar.h"
+// system headers
+#include <float.h> // for DBL_MAX
+#include <limits.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> // for time and clock (used for random seed)
 
 // SEMI-GLOBAL VARIABLES
 

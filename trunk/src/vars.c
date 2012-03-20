@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,11 +20,7 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>  // for FILE and size_t
-#include <time.h>   // for time_t
-#include "const.h"  // for MAX_NMAT, MAX_DIRNAME
-#include "types.h"  // for doublecomplex, angle_set, scat_grid_angles
-#include "timing.h" // for TIME_TYPE
+#include "vars.h" // corresponding header
 
 // basic variables
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle

@@ -28,15 +28,16 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+// project headers
+#include "cmplx.h"
+#include "comm.h"
+#include "io.h"
+#include "param.h"
+#include "vars.h"
+// system headers
 #include <stdio.h>
 #include <string.h>
-#include "vars.h"
-#include "cmplx.h"
-#include "const.h"
-#include "comm.h"
-#include "param.h"
-#include "io.h"
-
 
 // SEMI-GLOBAL VARIABLES
 

@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of communication global variables and routines
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,6 +19,7 @@
 #ifndef __comm_h
 #define __comm_h
 
+// project headers
 #include "types.h"    // needed for doublecomplex
 #include "function.h" // for function attributes
 #include "timing.h"   // for TIME_TYPE

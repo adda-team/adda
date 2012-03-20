@@ -56,11 +56,10 @@ ifneq ($(call READ_FILE,$(CPPOPTSFILE)),$(CPPCMD))
   $(shell rm -f $(CPPOPTSFILE))
 endif
 
-vpath %.c $(CPATH)
-vpath %.cpp $(CPPPATH)
-vpath %.h $(HPATH)
-vpath %.f $(FPATH)
-
+vpath %.c $(PARENT)
+vpath %.cpp $(PARENT)/$(CPPFOLDER)
+vpath %.h $(PARENT)
+vpath %.f $(PARENT)/$(FFOLDER)
 #===================================================================================================
 # Main action part
 #===================================================================================================
