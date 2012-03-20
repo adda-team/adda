@@ -19,6 +19,10 @@
 #ifndef __crosssec_h
 #define __crosssec_h
 
+// project headers
+#include "const.h" // for enum definition
+#include "types.h" // for doublecomplex
+
 void CalcField(doublecomplex * restrict ebuff,const double * restrict n);
 void InitRotation(void);
 double ExtCross(const double * restrict incPol);

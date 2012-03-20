@@ -24,20 +24,22 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <time.h> // for time_t & time
-#include <string.h>
-#include <math.h>
-#include "vars.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "const.h"
 #include "comm.h"
-#include "linalg.h"
-#include "io.h"
-#include "timing.h"
-#include "function.h"
 #include "debug.h"
+#include "function.h"
+#include "io.h"
+#include "linalg.h"
 #include "memory.h"
+#include "timing.h"
+#include "vars.h"
+// system headers
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> // for time_t & time
 
 // SEMI-GLOBAL VARIABLES
 

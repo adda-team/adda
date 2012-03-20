@@ -17,24 +17,26 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include "os.h"
-#include "io.h"
-#include "const.h"
+#include "const.h" // keep this first
+#include "param.h" // corresponding header
+// project headers
+#include "cmplx.h"
 #include "comm.h"
-#include "vars.h"
 #include "crosssec.h"
 #include "fft.h"
-#include "param.h"
-#include "cmplx.h"
 #include "function.h"
+#include "io.h"
+#include "os.h"
 #include "parbas.h"
+#include "vars.h"
+// system headers
+#include <ctype.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 // definitions for file locking
 #ifdef USE_LOCK
@@ -256,12 +258,12 @@ static const struct subopt_struct shape_opt[]={
 	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and "
 		"full diameter d (i.e. diameter of the constituent cylinder is d-h). Its axis of symmetry "
 		"coincides with the z-axis.",1,SH_PLATE},
-	{"prism","<N> <h/Dx>","Homogeneous right N-sided prism with height (length along the z-axis) h "
-		"based on a regular polygon with N sides of size 'a'. The polygon is oriented so that "
-		"positive x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon "
-		"along the x-axis, equal to 2Ri and Rc+Ri for even and odd N respectively. "
-		"Rc=a/[2sin(pi/N)] and Ri=Rc*cos(pi/N) are radii of circumscribed and inscribed circles "
-		"respectively.",2,SH_PRISM},
+	{"prism","<n> <h/Dx>","Homogeneous right prism with height (length along the z-axis) h based "
+		"on a regular polygon with n sides of size 'a'. The polygon is oriented so that positive "
+		"x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon along "
+		"the x-axis, equal to 2Ri and Rc+Ri for even and odd n respectively. Rc=a/[2sin(pi/n)] "
+		"and Ri=Rc*cos(pi/n) are radii of circumscribed and inscribed circles respectively.",
+		2,SH_PRISM},
 	{"rbc","<h/d> <b/d> <c/d>","Red Blood Cell, an axisymmetric (over z-axis) biconcave "
 		"homogeneous particle, which is characterized by diameter d, maximum and minimum width h, "
 		"b, and diameter at the position of the maximum width c. The surface is described by "
@@ -1434,7 +1436,7 @@ PARSE_FUNC(V)
 		while(num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
 #ifdef __MINGW64_VERSION_STR
-		printf("      using MinGW-64 environment version"__MINGW64_VERSION_STR"\n");
+		printf("      using MinGW-64 environment version "__MINGW64_VERSION_STR"\n");
 #elif defined(__MINGW32_VERSION)
 		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
 #endif

@@ -35,6 +35,18 @@
           still want to try, you may enable an override in the Makefile.
 #endif
 
+/* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family 
+ * functions. For some (philosophical) reasons mingw64 developers have not implemented this behavior
+ * as the default one. So we need to set it manually.
+ * This macro should be defined before any system includes, hence inclusion of "const.h" should be 
+ * the first one in all sources. This is also convenient for testing c99 standard above. However, 
+ * there is no simple way then to test for MinGW64 at this point, since, e.g., __MINGW64_VERSION_STR 
+ * is defined by the system header (not by the compiler itself). So the code executes always.
+ * Not the most reliable way, but seems the only way to keep the following definition in one place.
+ */
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+#	define __USE_MINGW_ANSI_STDIO 1
+#endif
 
 // basic constants
 #define UNDEF -1 // should be used only for variables, which are naturally non-negative

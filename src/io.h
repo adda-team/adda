@@ -19,10 +19,12 @@
 #ifndef __io_h
 #define __io_h
 
+// project headers
+#include "const.h"    // for enum types
+#include "function.h" // for function attributes
+// system headers
 #include <stdio.h>    // for file
 #include <stdarg.h>   // for va_list
-#include "function.h" // for function attributes
-#include "const.h"    // for enum types
 
 /* File locking is made quite robust, however it is a complex operation that can cause unexpected
  * behavior (permanent locks) especially when program is terminated externally (e.g. because of MPI

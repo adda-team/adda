@@ -8,7 +8,7 @@
  *        for reliability and stability were made according to the ideas of section 5.5 of the
  *        Numerical Recipes, 3rd edition.
  *
- * Copyright (C) 2006-2008,2010 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,11 +25,13 @@
 #ifndef __cmplx_h
 #define __cmplx_h
 
-#include <string.h>   // for memcpy
-#include <math.h>     // for cos, sin
+// project headers
 #include "const.h"    // for math constants
-#include "types.h"    // for doublecomplex
 #include "function.h" // for INLINE
+#include "types.h"    // for doublecomplex
+// system headers
+#include <math.h>     // for cos, sin
+#include <string.h>   // for memcpy
 
 //============================================================
 // operations on complex numbers

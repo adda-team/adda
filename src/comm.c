@@ -17,20 +17,22 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include "vars.h"
-#include "comm.h"
-#include "const.h"
-#include "io.h"
-#include "fft.h"
-#include "memory.h"
-#include "timing.h"
-#include "function.h"
-#include "parbas.h"
+#include "const.h" // keep this first
+#include "comm.h" // corresponding header
+// project headers
 #include "cmplx.h"
 #include "debug.h"
+#include "fft.h"
+#include "function.h"
+#include "io.h"
+#include "memory.h"
+#include "parbas.h"
+#include "timing.h"
+#include "vars.h"
+// system headers
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef ADDA_MPI
 MPI_Datatype mpi_dcomplex,mpi_double3,mpi_dcomplex3;  // combined datatypes

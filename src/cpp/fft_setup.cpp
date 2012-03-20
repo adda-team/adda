@@ -50,26 +50,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <iostream>
 #include <string>
 #include <sstream>
-
-/* Microsoft native libraries do not support %z format specifier. For C code of ADDA this issue is
- * solved by specifying -std=c99. Then MinGW automatically redirects calls of printf-style functions
- * to MinGW implementations, fully conformant with C99. Since this is a C++ source, such option does
- * not seem possible. Other simple options, like defining __USE_MINGW_ANSI_STDIO=1, also do not work
- * for C++. So we perform a redirection manually. This redirection is currently required only for
- * a single fprintf call below.
- * TODO: Either switch to a different FFT library, or convert this to plain C (currently only
- * strings are used from C++)
- */
-#if defined(__MINGW32_VERSION) || defined(__MINGW32_VERSION)
-#	define MINGW_REDIRECT(A) __mingw_##A
-#else
-#	define MINGW_REDIRECT(A) A
-#endif
 
 using namespace std;
 
@@ -410,9 +393,13 @@ void clFFT_DumpPlan( clFFT_Plan Plan, FILE *file)
 	{
 		cl_int s = 1;
 		getKernelWorkDimensions(plan, kInfo, &s, &gDim, &lDim);
-		MINGW_REDIRECT(fprintf)(out,
-			"Run kernel %s with global dim = {%zd*BatchSize}, local dim={%zd}\n",
-			kInfo->kernel_name,gDim,lDim);
+		/* Casting size_t to unsigned long is the simplest portable way. While it may present some
+		 * problems on certain hardware and huge problem sizes, it is not probable in practice.
+		 * Moreover, even if it happens, it will not influence the result, only the output.
+		 */
+		fprintf(out,
+			"Run kernel %s with global dim = {%lu*BatchSize}, local dim={%lu}\n",
+			kInfo->kernel_name,(unsigned long)gDim,(unsigned long)lDim);
 		kInfo = kInfo->next;
 	}
 	fprintf(out, "%s\n", plan->kernel_string->c_str());

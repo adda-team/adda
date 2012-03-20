@@ -55,8 +55,8 @@ CLSCOMMAND := sed -e 's/["\\]/\\&/g' -e 's/.*/"&\\n"/'
 # dependencies will fail. The implementation is equivalent to the one used in the make pattern in
 # common.mk (which is used for updating .clstr files when necessary), but more complicated since 
 # vpath (for .cl files) and automatic pattern substitution cannot be used
-$(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(CPATH)/%.cl,$(file)) > $(file)))
-vpath %.cl $(CPATH)
+$(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(PARENT)/%.cl,$(file)) > $(file)))
+vpath %.cl $(PARENT)
 
 PROG   := $(PROGOCL)
 MYCC   := $(CC)

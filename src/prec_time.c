@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
- * Copyright (C) 2006,2008,2010 ADDA contributors
+ * Copyright (C) 2006,2008,2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include "prec_time.h" // here all other needed includes are added
+#include "prec_time.h" // corresponding header, there all other needed includes are added
 
 // this is to eliminate warnings about empty source file
 #include "function.h" // for function attributes

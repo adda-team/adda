@@ -34,13 +34,16 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+#include "Romberg.h" // corresponding header
+// project headers
+#include "io.h"
+#include "vars.h"
+// system headers
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "vars.h"
-#include "types.h"
-#include "const.h"
-#include "Romberg.h"
+
 #include "memory.h"
 #include "io.h"
 

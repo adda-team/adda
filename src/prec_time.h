@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of inline functions for precise timing
  *
- * Copyright (C) 2006-2008,2010 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -30,6 +30,7 @@
 
 #ifdef PRECISE_TIMING
 
+// project headers
 #include "os.h"       // for OS definitions
 #include "function.h" // for INLINE and function attributes
 

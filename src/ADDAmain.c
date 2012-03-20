@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: main; all the work is done in other modules.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "vars.h"
+// project headers
 #include "comm.h"
 #include "debug.h"
 #include "io.h"
+#include "vars.h"
+// system headers
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* When linking both C and Fortran code under Windows, using gcc 4.6.1, EOL style in both stdout and
  * stderr becomes that of Unix. Probably this is due to automatic change of write mode for this
@@ -35,7 +37,6 @@
 #ifdef __MINGW64_VERSION_STR
 	// the simple solution of mingw32 (below) does not work here, so function calls are required
 #	include <fcntl.h> // _O_TEXT
-#	include <io.h>    // probably redundant
 #elif defined(__MINGW32_VERSION)
 #	include <fcntl.h> // _O_TEXT
 	// this definition affects mingw32 program call sequence, which sets the mode of std streams
@@ -71,7 +72,6 @@ int main(int argc,char **argv)
 	 * the optimization gain is expected to be minor, if any, we stay conservative on this issue.
 	 */
 #ifdef __MINGW64_VERSION_STR
-	// this code causes warnings in combination with -std=c99, but should work fine
 	_setmode(_fileno(stdin),_O_TEXT);
 	_setmode(_fileno(stdout),_O_TEXT);
 	_setmode(_fileno(stderr),_O_TEXT);

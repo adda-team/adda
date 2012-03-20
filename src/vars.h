@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -23,12 +23,14 @@
 #ifndef __vars_h
 #define __vars_h
 
+// project headers
+#include "const.h"   // for MAX_NMAT
+#include "timing.h"  // for TIME_TYPE
+#include "types.h"   // for doublecomplex, angle_set, scat_grid_angles
+// system headers
+#include <stdbool.h> // for bool
 #include <stdio.h>   // for FILE and size_t
 #include <time.h>    // for time_t
-#include <stdbool.h> // for bool
-#include "const.h"   // for MAX_NMAT
-#include "types.h"   // for doublecomplex, angle_set, scat_grid_angles
-#include "timing.h"  // for TIME_TYPE
 
 // basic variables
 extern int boxX,boxY,boxZ;
@@ -72,8 +74,8 @@ extern int nTheta;
 extern double alph_deg, bet_deg, gam_deg;
 extern angle_set alpha_int;
 extern scat_grid_angles angles;
-extern doublecomplex *EgridX,*EgridY;
-extern double *Egrid_buffer;
+extern doublecomplex * restrict EgridX,* restrict EgridY;
+extern double * restrict Egrid_buffer;
 
 // checkpoint
 extern enum chpoint chp_type;

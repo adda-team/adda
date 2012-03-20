@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of various structures
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,8 +19,11 @@
 #ifndef __types_h
 #define __types_h
 
-#include <stdbool.h> // for bool
+// project headers
 #include "const.h"   // for enum types
+// system headers
+#include <stdbool.h> // for bool
+#include <stddef.h> // for size_t
 
 // complex numbers
 typedef double doublecomplex[2]; // complies with FFTW3 definition
