@@ -25,13 +25,15 @@ Basically, no. *ADDA* can not rigorously solve such light scattering problem. Su
 
 == Can I calculate near-field using *ADDA*? ==
 We are currently working to implement this feature in a convenient manner (issue 10). For now there are two possible workarounds:
-  * (Recommended)  You may save dipole polarizations to file by *ADDA* and then use auxiliary package `misc/near_field` (see [http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description]). For *ADDA* 0.79 the package should be [http://a-dda.googlecode.com/files/near_field_1_01.tar.gz downloaded separately], for later versions - it will be included in the main release.
+  * (Recommended)  You may save dipole polarizations to file by *ADDA* and then use auxiliary package `misc/near_field` (see [http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description]).
   * Or you may extend the computational box with "dummy" dipoles located at points where you wish to calculate near-field. Saving the internal fields by *ADDA* will then produce the desired result, but at expense of extra computational time. Please see the section _Near-field_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
 
 == How can I simulate light scattering by a particle which shape can not be described by any of the *ADDA* predefined shapes? ==
 The simplest is to specify your particle by a shape file. However, if your shape can easily be described in some parametric form and you are going to simulate a lot of particles with shapes from this class or if you think other users will probably simulate the same shapes, you are encouraged to [AddingShape implement new shape inside ADDA].
 
-To produce a shape file you can use any programming language/software. Clearly, there is demand for some graphical tool allowing one to draw a scattering object and save it to the shape file. However, we are not aware of any ready-to-use solution. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/aed1c5195eec1e5a# this discussion] for details.
+To produce a shape file you can use any programming language/software. *ADDA* contains a couple of auxiliary packages to alleviate this problem:
+  * Point-in-polyhedron (`misc/pip`, see [http://a-dda.googlecode.com/svn/trunk/misc/pip/README description]) allows transformation of [http://en.wikipedia.org/wiki/Wavefront_.obj_file .obj] format (and several other common 3D formats) into the format readable by *ADDA*.
+  * Hyperfun (`misc/hyperfun`, see [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description]) provides a toolchain for working with [http://hyperfun.org Hyperfun models].
 
 == How is the Mueller matrix, produced by *ADDA*, defined and/or normalized? ==
 It is defined as in Bohren & Huffman "Absorption and scattering of Light by Small Particles" (1983), and it is not normalized. Some other codes may compute Stokes scattering matrix, which is normalized so that 1,1-element is equal to 1 after averaging over the whole solid angle. This matrix should be multiplied by _πC_,,sca,,/_λ_^2^ to get Mueller matrix. _C_,,sca,, is the scattering cross section for unpolarized light, equal to average of scattering cross sections for any two perpendicular incident polarizations.
