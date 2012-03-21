@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __oclvars_h
-#define __oclvars_h
+#ifndef __oclcore_h
+#define __oclcore_h
 
 // system headers
 #ifdef __APPLE__
@@ -38,4 +38,4 @@ extern double *inprodhlp;
 
 void checkErr(cl_int err,const char * name);
 
-#endif // __oclvars_h
+#endif // __oclcore_h

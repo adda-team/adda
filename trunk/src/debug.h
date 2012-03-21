@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions for debug functions
  *
- * Copyright (C) 2006,2008-2010 ADDA contributors
+ * Copyright (C) 2006,2008-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -29,7 +29,8 @@
 
 #	include "const.h"    // for POS
 #	include "function.h" // for function attributes
-#	include "io.h"       // for
+#	include "io.h"       // for ERR_LOC_DECL
+#	include "types.h"    // for doublecomplex
 #	define D(...) DebugPrintf(ALL_POS,__VA_ARGS__)
 #	define Dz(...) DebugPrintf(ONE_POS,__VA_ARGS__)
 void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(4,5);

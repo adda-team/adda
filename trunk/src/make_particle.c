@@ -105,7 +105,7 @@ static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
-static double contCurRo, contCurZ;
+static double contCurRo,contCurZ;
 static int contNseg;
 struct segment {
 	bool single;           // whether segment consists of a single joint
@@ -651,7 +651,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	Free_general(contZ);
 	D("InitContour has finished");
 	D("Nseg=%d",contNseg);
-	D("minroSq="GFORM_DEBUG,contRoSqMin);
+	D("minroSq="GFORM_DEBUG,ri_2);
 }
 #undef CHUNK_SIZE
 #undef ALLOCATE_SEGMENTS
@@ -806,7 +806,7 @@ static size_t PlaceGranules(void)
 	R2=R*R;
 	Di2=4*R2;
 	// inner box
-	D("gr_N=%d, Di="GFORMDEF,gr_N,Di);
+	D("gr_N=%zu, Di="GFORMDEF,gr_N,Di);
 	x0=R-0.5;
 	x1=boxX-R-0.5;
 	y0=R-0.5;
