@@ -23,4 +23,8 @@ Finally, The DDSCAT7 shape format is readable by ADDA starting from version 1.1.
 ADDA 1.0 can read only DDSCAT6 format, so delete line 6 in obtained .dat files
 to transform it into such format.
 
-Suggestions are welcome at schuh@iwt.uni-bremen.de (Roman Schuh)
+The reference for this tool is:
+R. Schuh, "Arbitrary particle shape modeling in DDSCAT and validation of
+simulation results", in T. Wriedt & A. G. Hoekstra (Editors): Proceedings of the
+DDA - Workshop, Institut fur Werkstofftechnik, Bremen (23 March 2007), p.22-24.
+http://diogenes.iwt.uni-bremen.de/vt/laser/papers/DDA-Workshop-final-proceedings.pdf
