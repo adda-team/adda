@@ -19,6 +19,7 @@
 #include "const.h" // keep this first
 #include "oclcore.h" // corresponding header
 // project headers
+#include "debug.h"
 #include "memory.h"
 // system headers
 #include <stdio.h>
@@ -190,8 +191,10 @@ void oclinit(void)
 	cl_int err; // error code
 	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings
 
+	D("Starting OCL init");
 	// getting the first OpenCL device which is a GPU
 	GetDevice();
+	D("OCL device found");
 	/* cl_context_properties is a strange list of item:
 	 * first comes the name of the property as next element the corresponding value
 	 */
@@ -231,6 +234,7 @@ void oclinit(void)
 #else
 	cssPtr[0]=stringifiedSourceCL;
 #endif
+	D("Creating CL program");
 	program=clCreateProgramWithSource(
 		context, // valid Context
 		1,       // number of strings in next parameter
@@ -286,7 +290,7 @@ void oclinit(void)
 #ifdef READ_CL_SOURCE_AT_RUNTIME
 	Free_general(cSourceString);
 #endif
-
+	D("OCL init complete");
 }
 
 //========================================================================
