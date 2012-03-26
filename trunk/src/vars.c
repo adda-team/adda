@@ -75,7 +75,7 @@ double box_origin_unif[3];    /* coordinates of the center of the first dipole i
 
 // file info
 const char * restrict directory; // directory to save data in
-FILE *  restrict logfile;        // file where all the information about the run is saved
+FILE * restrict logfile;         // file where all the information about the run is saved
 int term_width;                  // width of the terminal to which ADDA produces output
 
 // refractive index

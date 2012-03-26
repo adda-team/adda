@@ -20,6 +20,8 @@
 #ifndef __oclcore_h
 #define __oclcore_h
 
+// project headers
+#include "io.h"
 // system headers
 #ifdef __APPLE__
 #	include <OpenCL/cl.h>
@@ -27,7 +29,7 @@
 #	include <CL/cl.h>
 #endif
 
-// global OCL variables; names should not interfere with other parts of the code
+// global OpenCL variables; names should not interfere with other parts of the code
 extern cl_context context;
 extern cl_command_queue command_queue;
 extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith4,clarith5,clnConj,clinprod,cltransposef,
@@ -36,6 +38,26 @@ extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultv
 	bufslices_tr,bufDmatrix,bufinproduct;
 extern double *inprodhlp;
 
-void checkErr(cl_int err,const char * name);
+/* checks error status of CL functions; can either be used as a wrapper that returns error status
+ * or applied to return error value. It is defined as a macro to incorporate exact position in a
+ * source file where it was called.
+ */
+#define CL_CH_ERR(a) CheckCLErr(a,ALL_POS,NULL)
+void oclinit(void);
+void oclunload(void);
+void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg);
+
+//========================================================================
+
+INLINE void CheckCLErr(const cl_int err,ERR_LOC_DECL,const char * restrict msg)
+/* Checks error code and prints error if necessary. It is an inline wrapper, so it can be called
+ * after each CL function without worrying about performance. Optional argument msg is added to the
+ * error message, if not NULL.
+ * Incorporating it into the macro CL_CH_ERR is not trivial, since the argument can be a call to
+ * the function.
+ */
+{
+	if (err != CL_SUCCESS) PrintCLErr(err,ERR_LOC_CALL,msg);
+}
 
 #endif // __oclcore_h

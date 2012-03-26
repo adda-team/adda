@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of FFT parameters and routines
  *
- * Copyright (C) 2006,2008,2010-2011 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,21 +19,8 @@
 #ifndef __fft_h
 #define __fft_h
 
-/* Temperton FFT is a simple one, its source code is supplied together with ADDA. The only
- * inconvenience is that it is in Fortran (not easily incorporated into a project under Windows
- * (using any C/C++ developing tool) and should be compiled separately.
- * FFTW3 requires separate installation of package from http://www.fftw.org, however it is highly
- * optimized to the particular hardware and is generally significantly faster. Therefore, it is the
- * default.
- */
-
-//#define FFT_TEMPERTON // uncomment to use Temperton FFT
-
 #ifndef FFT_TEMPERTON
 #	define FFTW3 // FFTW3 is default
-#elif defined(NO_FORTRAN)
-// this is checked in Makefile, but additional check is always good
-#	error Tempertron FFT is implemented in Fortran, hence is incompatible with NO_FORTRAN option
 #endif
 
 /* direction of FFT and transpose;

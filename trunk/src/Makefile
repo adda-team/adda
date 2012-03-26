@@ -3,7 +3,7 @@
 # for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
-# Copyright (C) 2006-2011 ADDA contributors
+# Copyright (C) 2006-2012 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -77,7 +77,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              OVERRIDE_STDC_TEST
+              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -102,12 +102,24 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # This features will not work if line below is uncommented.
 #override OPTIONS += NO_FORTRAN
 
+# This should be uncommented, if compiling of C++ sources cause problems. However, currently a
+# number of ADDA (optional) features rely on C++ sources, in particular: OpenCL version.
+# This features will not work if line below is uncommented.
+#override OPTIONS += NO_CPP
+
 # ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
 # at compile time (and error is produced if the test fails). However, if you believe that your
 # compiler supports all the required features (listed in const.h), but do not define itself
 # conforming to C99, you may uncomment the following option to override the test. Do it at your own
 # risk!
 #override OPTIONS += OVERRIDE_STDC_TEST
+
+# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and 
+# stores them as static string, which is compiled into the GPU code at runtime. Alternative option 
+# is to read these files at runtime. This creates hassle of keeping .cl files together with the 
+# executable, but may be a bit more robust/portable than the default approach. Uncomment the 
+# following option to enable reading of kernel sources at runtime.
+#override OPTIONS += OCL_READ_SOURCE_RUNTIME
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation
@@ -243,9 +255,18 @@ ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   CDEFS += -DNO_FORTRAN
   FSOURCE =
 endif
+ifneq ($(filter NO_CPP,$(OPTIONS)),)
+  $(info Without C++ sources)
+  CDEFS += -DNO_CPP
+  CPPSOURCE =
+endif
 ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
+endif
+ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
+  # Here only the info is printed, the main logic is in ocl/Makefile
+  $(info Read CL sources at runtime)
 endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)

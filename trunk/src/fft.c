@@ -35,6 +35,9 @@
 #include <string.h>
 
 #ifdef OPENCL
+#	ifdef NO_CPP
+#		error OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option
+#	endif
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #	include "oclcore.h"
 #endif
@@ -103,6 +106,9 @@ static fftw_plan planXf_Dm,planYf_Dm,planZf_Dm;
 static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb;
 #	endif
 #elif defined(FFT_TEMPERTON)
+#	ifdef NO_FORTRAN
+#		error Tempertron FFT is implemented in Fortran, hence is incompatible with NO_FORTRAN option
+#	endif
 #	define IFAX_SIZE 20
 // arrays for Temperton FFT
 static double * restrict trigsX,* restrict trigsY,* restrict trigsZ,* restrict work;
@@ -192,16 +198,14 @@ void TransposeYZ(const int direction)
 	const size_t enqtglobalzy[3]={gridZ,gridY,3};
 	const size_t enqtglobalyz[3]={gridY,gridZ,3};
 	const size_t tblock[3]={16,16,1};
-	cl_int err; // error code
 //TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or
 // 	to remove cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
-	if (direction==FFT_FORWARD)
-		err=clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,enqtglobalzy,tblock,0,NULL,NULL);
-//		err=clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL);
-	else
-		err=clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL);
-//		err=clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL);
-	checkErr(err,"Enqueueing kernel cltranspose");
+	if (direction==FFT_FORWARD) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
+		enqtglobalzy,tblock,0,NULL,NULL));
+//		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
+	else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,
+		NULL,NULL));
+//		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
 	clFinish(command_queue);
 #else
 	size_t y,z,Y,Z,y1,y2,z1,z2,i,j,y0,z0,Xcomp;
@@ -305,10 +309,9 @@ void fftX(const int isign)
 // FFT three components of Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
-	cl_int err=clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,isign,bufXmatrix,
-		bufXmatrix,0,NULL,NULL);
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,isign,
+		bufXmatrix,bufXmatrix,0,NULL,NULL));
 	clFinish(command_queue);
-	checkErr(err,"executing clFFTX");
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planXf);
 	else fftw_execute(planXb);
@@ -327,10 +330,9 @@ void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
-	cl_int err=clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,isign,bufslices_tr,
-		bufslices_tr,0,NULL,NULL);
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,isign,bufslices_tr,
+		bufslices_tr,0,NULL,NULL));
 	clFinish(command_queue);
-	checkErr(err,"executing clFFTY");
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planYf);
 	else fftw_execute(planYb);
@@ -348,10 +350,9 @@ void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
-	cl_int err=clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,isign,bufslices,
-		bufslices,0,NULL,NULL);
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,isign,bufslices,
+		bufslices,0,NULL,NULL));
 	clFinish(command_queue);
-	checkErr(err,"executing clFFTZ");
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planZf);
 	else fftw_execute(planZb);
@@ -535,7 +536,7 @@ static void fftInitAfterD(void)
 	xdimen.y=1;
 	xdimen.z=1;
 	clplanX=clFFT_CreatePlan(context,xdimen,clFFT_2D,clFFT_InterleavedComplexFormat,&err);
-	checkErr(err,"creating fftX plan");
+	CL_CH_ERR(err);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 #	endif
@@ -544,7 +545,7 @@ static void fftInitAfterD(void)
 	ydimen.y=1;
 	ydimen.z=1;
 	clplanY=clFFT_CreatePlan(context,ydimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
-	checkErr(err,"creating fftY plan");
+	CL_CH_ERR(err);
 	clFFT_Dim3 zdimen;
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+2);
@@ -553,7 +554,7 @@ static void fftInitAfterD(void)
 	zdimen.y=1;
 	zdimen.z=1;
 	clplanZ=clFFT_CreatePlan(context,zdimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
-	checkErr(err,"creating fftZ plan");
+	CL_CH_ERR(err);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+3);
 	// print precise timing of FFT planning
@@ -1398,178 +1399,115 @@ void InitDmatrix(void)
 	cl_int err; // error code
 	// create all Buffers needed on Device in MatVec
 	bufXmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,local_Nsmall*3*2*sizeof(double),NULL,&err);
-	checkErr(err,"error creating bufXmatrix");
+	CL_CH_ERR(err);
 	bufmaterial=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip,NULL,&err);
-	checkErr(err,"error creating bufmaterial");
+	CL_CH_ERR(err);
 	bufposition = clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*2*3,NULL,&err);
-	checkErr(err,"error creating bufposition");
+	CL_CH_ERR(err);
 	bufcc_sqrt=clCreateBuffer(context,CL_MEM_READ_WRITE,MAX_NMAT*3*2*sizeof(double),NULL,&err);
-	checkErr(err,"error creating bufcc_sqrt");
+	CL_CH_ERR(err);
 	bufargvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*3*2*sizeof(double),NULL,
 		&err);
-	checkErr(err,"error creating bufargvec");
+	CL_CH_ERR(err);
 	bufresultvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*3*2*sizeof(double),NULL,
 		&err);
-	checkErr(err,"error creating bufresultvec");
+	CL_CH_ERR(err);
 	bufslices=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*2*sizeof(double),NULL,&err);
-	checkErr(err,"error creating bufslices");
+	CL_CH_ERR(err);
 	bufslices_tr=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*2*sizeof(double),NULL,&err);
-	checkErr(err,"error creating bufslices_tr");
+	CL_CH_ERR(err);
 	bufDmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,NDCOMP*local_Nx*DsizeYZ*2*sizeof(double),
 		NULL,&err);
-	checkErr(err,"error creating bufDmatrix");
+	CL_CH_ERR(err);
 	if (ipr_required) {
 		bufinproduct=clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(double)*local_nvoid_Ndip,NULL,
 			&err);
-		checkErr(err,"error creating bufinproduct");
+		CL_CH_ERR(err);
 	}
 	// setting kernel arguments since they are always the same
 	// for Arith1
-	err=clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial);
-	checkErr(err,"set kernelargs at 0 of clarith1");
-	err=clSetKernelArg(clarith1,1,sizeof(cl_mem),&bufposition);
-	checkErr(err,"set kernelargs at 1 of clarith1");
-	err=clSetKernelArg(clarith1,2,sizeof(cl_mem),&bufcc_sqrt);
-	checkErr(err,"set kernelargs at 3 of clarith1");
-	err=clSetKernelArg(clarith1,3,sizeof(cl_mem),&bufargvec);
-	checkErr(err,"set kernelargs at 3 of clarith1");
-	err=clSetKernelArg(clarith1,4,sizeof(cl_mem),&bufXmatrix);
-	checkErr(err,"set kernelargs at 4 of clarith1");
-	err=clSetKernelArg(clarith1,5,sizeof(cl_long),&local_Nsmall);
-	checkErr(err,"set kernelargs at 5 of clarith1");
-	err=clSetKernelArg(clarith1,6,sizeof(cl_long),&smallY);
-	checkErr(err,"set kernelargs at 6 of clarith1");
-	err=clSetKernelArg(clarith1,7,sizeof(cl_long),&gridX);
-	checkErr(err,"set kernelargs at 7 of clarith1");
+	CL_CH_ERR(clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial));
+	CL_CH_ERR(clSetKernelArg(clarith1,1,sizeof(cl_mem),&bufposition));
+	CL_CH_ERR(clSetKernelArg(clarith1,2,sizeof(cl_mem),&bufcc_sqrt));
+	CL_CH_ERR(clSetKernelArg(clarith1,3,sizeof(cl_mem),&bufargvec));
+	CL_CH_ERR(clSetKernelArg(clarith1,4,sizeof(cl_mem),&bufXmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith1,5,sizeof(cl_long),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith1,6,sizeof(cl_long),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith1,7,sizeof(cl_long),&gridX));
 	// for arith2
-	err=clSetKernelArg(clarith2,0,sizeof(cl_mem),&bufXmatrix);
-	checkErr(err,"set kernelargs at 0 of arith2");
-	err=clSetKernelArg(clarith2,1,sizeof(cl_mem),&bufslices);
-	checkErr(err,"set kernelargs at 1 of arith2");
-	err=clSetKernelArg(clarith2,2,sizeof(cl_long),&gridZ);
-	checkErr(err,"set kernelargs at 2 of arith2");
-	err=clSetKernelArg(clarith2,3,sizeof(cl_long),&smallY);
-	checkErr(err,"set kernelargs at 3 of arith2");
-	err=clSetKernelArg(clarith2,4,sizeof(cl_long),&gridX);
-	checkErr(err,"set kernelargs at 4 of arith2");
-	err=clSetKernelArg(clarith2,5,sizeof(cl_long),&gridYZ);
-	checkErr(err,"set kernelargs at 5 of arith2");
-	err=clSetKernelArg(clarith2,6,sizeof(cl_long),&local_Nsmall);
-	checkErr(err,"set kernelargs at 6 of arith2");
+	CL_CH_ERR(clSetKernelArg(clarith2,0,sizeof(cl_mem),&bufXmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith2,1,sizeof(cl_mem),&bufslices));
+	CL_CH_ERR(clSetKernelArg(clarith2,2,sizeof(cl_long),&gridZ));
+	CL_CH_ERR(clSetKernelArg(clarith2,3,sizeof(cl_long),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith2,4,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith2,5,sizeof(cl_long),&gridYZ));
+	CL_CH_ERR(clSetKernelArg(clarith2,6,sizeof(cl_long),&local_Nsmall));
 	// for arith3
-	err=clSetKernelArg(clarith3,0,sizeof(cl_mem),&bufslices_tr);
-	checkErr(err,"set kernelargs at 0 of arith3");
-	err=clSetKernelArg(clarith3,1,sizeof(cl_mem),&bufDmatrix);
-	checkErr(err,"set kernelargs at 1 of arith3");
-	err=clSetKernelArg(clarith3,2,sizeof(cl_long),&local_x0);
-	checkErr(err,"set kernelargs at 2 of arith3");
-	err=clSetKernelArg(clarith3,3,sizeof(cl_long),&smallY);
-	checkErr(err,"set kernelargs at 3 of arith3");
-	err=clSetKernelArg(clarith3,4,sizeof(cl_long),&smallZ);
-	checkErr(err,"set kernelargs at 4 of arith3");
-	err=clSetKernelArg(clarith3,5,sizeof(cl_long),&gridX);
-	checkErr(err,"set kernelargs at 5 of arith3");
-	err=clSetKernelArg(clarith3,6,sizeof(cl_long),&DsizeY);
-	checkErr(err,"set kernelargs at 6 of arith3");
-	err=clSetKernelArg(clarith3,7,sizeof(cl_long),&DsizeZ);
-	checkErr(err,"set kernelargs at 7 of arith3");
+	CL_CH_ERR(clSetKernelArg(clarith3,0,sizeof(cl_mem),&bufslices_tr));
+	CL_CH_ERR(clSetKernelArg(clarith3,1,sizeof(cl_mem),&bufDmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith3,2,sizeof(cl_long),&local_x0));
+	CL_CH_ERR(clSetKernelArg(clarith3,3,sizeof(cl_long),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(cl_long),&smallZ));
+	CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(cl_long),&DsizeY));
+	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(cl_long),&DsizeZ));
 	// for arith4
-	err=clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix);
-	checkErr(err,"set kernelargs at 0 of arith4");
-	err=clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices);
-	checkErr(err,"set kernelargs at 1 of arith4");
-	err=clSetKernelArg(clarith4,2,sizeof(cl_long),&gridZ);
-	checkErr(err,"set kernelargs at 2 of arith4");
-	err=clSetKernelArg(clarith4,3,sizeof(cl_long),&smallY);
-	checkErr(err,"set kernelargs at 3 of arith4");
-	err=clSetKernelArg(clarith4,4,sizeof(cl_long),&gridX);
-	checkErr(err,"set kernelargs at 4 of arith4");
-	err=clSetKernelArg(clarith4,5,sizeof(cl_long),&gridYZ);
-	checkErr(err,"set kernelargs at 5 of arith4");
-	err=clSetKernelArg(clarith4,6,sizeof(cl_long),&local_Nsmall);
-	checkErr(err,"set kernelargs at 6 of arith4");
+	CL_CH_ERR(clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices));
+	CL_CH_ERR(clSetKernelArg(clarith4,2,sizeof(cl_long),&gridZ));
+	CL_CH_ERR(clSetKernelArg(clarith4,3,sizeof(cl_long),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith4,4,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith4,5,sizeof(cl_long),&gridYZ));
+	CL_CH_ERR(clSetKernelArg(clarith4,6,sizeof(cl_long),&local_Nsmall));
 	// for arith5
-	err=clSetKernelArg(clarith5,0,sizeof(cl_mem),&bufmaterial);
-	checkErr(err,"set kernelargs at 0 of clarith5");
-	err=clSetKernelArg(clarith5,1,sizeof(cl_mem),&bufposition);
-	checkErr(err,"set kernelargs at 1 of clarith5");
-	err=clSetKernelArg(clarith5,2,sizeof(cl_mem),&bufcc_sqrt);
-	checkErr(err,"set kernelargs at 3 of clarith5");
-	err=clSetKernelArg(clarith5,3,sizeof(cl_mem),&bufargvec);
-	checkErr(err,"set kernelargs at 3 of clarith5");
-	err=clSetKernelArg(clarith5,4,sizeof(cl_mem),&bufXmatrix);
-	checkErr(err,"set kernelargs at 4 of clarith5");
-	err=clSetKernelArg(clarith5,5,sizeof(cl_long),&local_Nsmall);
-	checkErr(err,"set kernelargs at 5 of clarith5");
-	err=clSetKernelArg(clarith5,6,sizeof(cl_long),&smallY);
-	checkErr(err,"set kernelargs at 6 of clarith5");
-	err=clSetKernelArg(clarith5,7,sizeof(cl_long),&gridX);
-	checkErr(err,"set kernelargs at 7 of clarith5");
-	err=clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec);
-	checkErr(err,"set kernelargs at 8 of clarith5");
+	CL_CH_ERR(clSetKernelArg(clarith5,0,sizeof(cl_mem),&bufmaterial));
+	CL_CH_ERR(clSetKernelArg(clarith5,1,sizeof(cl_mem),&bufposition));
+	CL_CH_ERR(clSetKernelArg(clarith5,2,sizeof(cl_mem),&bufcc_sqrt));
+	CL_CH_ERR(clSetKernelArg(clarith5,3,sizeof(cl_mem),&bufargvec));
+	CL_CH_ERR(clSetKernelArg(clarith5,4,sizeof(cl_mem),&bufXmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith5,5,sizeof(cl_long),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(cl_long),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec));
 	// for transpose forward
-	err=clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices);
-	checkErr(err, "set kernelargs at 0 of cltransposef");
-	err=clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr);
-	checkErr(err,"set kernelargs at 1 of cltransposef");
-	err=clSetKernelArg(cltransposef,2,sizeof(cl_long),&gridZ);
-	checkErr(err,"set kernelargs at 2 of cltransposef");
-	err=clSetKernelArg(cltransposef,3,sizeof(cl_long),&gridY);
-	checkErr(err,"set kernelargs at 3 of cltransposef");
+	CL_CH_ERR(clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices));
+	CL_CH_ERR(clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr));
+	CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(cl_long),&gridZ));
+	CL_CH_ERR(clSetKernelArg(cltransposef,3,sizeof(cl_long),&gridY));
 	// for transpose backward
-	err=clSetKernelArg(cltransposeb,0,sizeof(cl_mem),&bufslices_tr);
-	checkErr(err,"set kernelargs at 0 of cltransposeb");
-	err=clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices);
-	checkErr(err,"set kernelargs at 1 of cltransposeb");
-	err=clSetKernelArg(cltransposeb,2,sizeof(cl_long),&gridY);
-	checkErr(err,"set kernelargs at 2 of cltransposeb");
-	err=clSetKernelArg(cltransposeb,3,sizeof(cl_long),&gridZ);
-	checkErr(err,"set kernelargs at 3 of cltransposeb");
+	CL_CH_ERR(clSetKernelArg(cltransposeb,0,sizeof(cl_mem),&bufslices_tr));
+	CL_CH_ERR(clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices));
+	CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(cl_long),&gridY));
+	CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(cl_long),&gridZ));
 	//faster transpose kernel with cache 
 	//(maybe not faster for all sizes so keep the old kernel for special conditions)
-    err = clSetKernelArg( cltransposeof, 0, sizeof(cl_mem), &bufslices);
-    checkErr(err, "set kernelargs at 0 of cltransposeof");
-    err = clSetKernelArg( cltransposeof, 1, sizeof(cl_mem), &bufslices_tr);
-    checkErr(err, "set kernelargs at 1 of cltransposeof");
-    err = clSetKernelArg( cltransposeof, 2, sizeof(cl_long), &gridZ);
-    checkErr(err, "set kernelargs at 2 of cltransposeof");
-    err = clSetKernelArg( cltransposeof, 3, sizeof(cl_long), &gridY);
-    checkErr(err, "set kernelargs at 3 of cltransposeof");
+    CL_CH_ERR(clSetKernelArg(cltransposeof,0,sizeof(cl_mem),&bufslices));
+    CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
+    CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(cl_long),&gridZ));
+    CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(cl_long),&gridY));
 	//setting up local cache size as 17*16*3 elements
 	//note: a block is only 16*16, but 1*16 stride is needed
 	//to avoid bank conflicts
-    err = clSetKernelArg( cltransposeof, 4, 17*16*3*sizeof(doublecomplex), NULL);
-    checkErr(err, "set kernelargs at 4 of cltransposeof");
-
-    err = clSetKernelArg( cltransposeob, 0, sizeof(cl_mem), &bufslices_tr);
-    checkErr(err, "set kernelargs at 0 of cltransposeob");
-    err = clSetKernelArg( cltransposeob, 1, sizeof(cl_mem), &bufslices);
-    checkErr(err, "set kernelargs at 1 of cltransposeob");
-    err = clSetKernelArg( cltransposeob, 2, sizeof(cl_long), &gridY);
-    checkErr(err, "set kernelargs at 2 of cltransposeob");
-    err = clSetKernelArg( cltransposeob, 3, sizeof(cl_long), &gridZ);
-    checkErr(err, "set kernelargs at 3 of cltransposeob");
-    err = clSetKernelArg( cltransposeob, 4, 17*16*3*sizeof(doublecomplex), NULL);
-    checkErr(err, "set kernelargs at 4 of cltransposeob");
+    CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(cl_long),&gridY));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(cl_long),&gridZ));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
 	
 	// for inner product (only if it will be used afterwards)
 	if (ipr_required) {
-		err=clSetKernelArg(clinprod,0,sizeof(cl_mem),&bufinproduct);
-		checkErr(err,"set kernelargs at 0 of clinprod");
-		err=clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec);
-		checkErr(err,"set kernelargs at 1 of clinprod");
+		CL_CH_ERR(clSetKernelArg(clinprod,0,sizeof(cl_mem),&bufinproduct));
+		CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
 		MALLOC_VECTOR(inprodhlp,double,local_nvoid_Ndip,ALL);
 	}
 	// write for MatVec constant buffers to Device
-	err=clEnqueueWriteBuffer(command_queue,bufmaterial,CL_TRUE,0,local_nvoid_Ndip,material,0,NULL,
-		NULL);
-	checkErr(err,"writing material to device memory");
-	err=clEnqueueWriteBuffer(command_queue,bufposition,CL_TRUE,0,local_nvoid_Ndip*2*3,position,0,
-		NULL,NULL);
-	checkErr(err,"writing position to device memory");
-	err=clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,\
-		NDCOMP*local_Nx*DsizeYZ*2*sizeof(double),Dmatrix,0,NULL,NULL);
-	checkErr(err,"writing Dmatrix to device memory");
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufmaterial,CL_TRUE,0,local_nvoid_Ndip,material,0,
+		NULL,NULL));
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufposition,CL_TRUE,0,local_nvoid_Ndip*2*3,
+		position,0,NULL,NULL));
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,
+		NDCOMP*local_Nx*DsizeYZ*2*sizeof(double),Dmatrix,0,NULL,NULL));
 #endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+12);
