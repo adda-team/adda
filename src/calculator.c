@@ -34,6 +34,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef OPENCL
+#	include "oclcore.h"
+#endif
+
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in crosssec.c
@@ -626,6 +630,9 @@ static void FreeEverything(void)
 		Free_general(beta_int.val);
 		Free_general(gamma_int.val);
 	}
+#ifdef OPENCL
+	oclunload();
+#endif
 }
 
 //============================================================
@@ -635,6 +642,9 @@ void Calculator (void)
 	char fname[MAX_FNAME];
 
 	// initialize variables
+#ifdef OPENCL
+	oclinit();
+#endif
 	if (nTheta!=0) {
 		dtheta_deg = 180.0 / ((double)(nTheta-1));
 		dtheta_rad = Deg2Rad(dtheta_deg);

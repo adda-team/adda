@@ -57,12 +57,6 @@ void VariablesInterconnect(void);
 void DirectoryLog(int argc,char **argv);
 void PrintInfo(void);
 
-#ifdef OPENCL // this should probably be moved to calculator
-// oclcore.c
-void oclinit(void);
-void oclunload(void);
-#endif
-
 //============================================================
 
 int main(int argc,char **argv)
@@ -102,9 +96,6 @@ int main(int argc,char **argv)
 	// Print info to stdout and logfile
 	PrintInfo();
 	// Main calculation part
-#ifdef OPENCL
-	oclinit();
-#endif
 	D("Calculator started");
 	Calculator();
 	D("Calculator finished");
@@ -114,9 +105,6 @@ int main(int argc,char **argv)
 	if (ferror(stdout)) LogWarning(EC_WARN,ALL_POS,
 		"Some errors occurred while writing to stdout during the execution of ADDA");
 	// finish execution normally
-#ifdef OPENCL
-	oclunload();
-#endif
 	Stop(EXIT_SUCCESS);
 	// never actually reached; just to make the compiler happy
 	return 0;

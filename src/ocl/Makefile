@@ -2,7 +2,7 @@
 # All options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2010-2011 ADDA contributors
+# Copyright (C) 2010-2012 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the 
@@ -36,13 +36,22 @@
 CFLAGS    += -DOPENCL
 LDFLAGS   += -lOpenCL
 CSOURCE   += oclcore.c
-CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+ifeq ($(filter NO_CPP,$(OPTIONS)),)
+  CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+else
+  #$(error OpenCL version relies on C++ sources, hence it is incompatible with NO_CPP)
+endif
 
-# Each of the following .cl files is automatically transformed into .clstr files (located at ocl/) 
-# during compile time. The latter contain all the content of the original file as a C string, and 
-# are included in the C source files to define static strings. These strings define are further used
-# as a source to compile OpenCL kernels.
-CLSOURCE := oclkernels.cl
+ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
+  CFLAGS += -DOCL_READ_SOURCE_RUNTIME
+else
+  # Each of the following .cl files is automatically transformed into .clstr files (located at ocl/) 
+  # during compile time. The latter contain all the content of the original file as a C string, and 
+  # are included in the C source files to define static strings. These strings define are further 
+  # used as a source to compile OpenCL kernels.
+  CLSOURCE := oclkernels.cl
+endif
+
 # This is a weird prefix, which is required since that is how .clstr files are quoted in .d files
 CLSPREFIX  := ../$(OCL)/
 CLSTRING   := $(CLSOURCE:.cl=.clstr)

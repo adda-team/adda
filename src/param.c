@@ -1461,8 +1461,14 @@ PARSE_FUNC(V)
 #ifdef NO_FORTRAN
 		"NO_FORTRAN, "
 #endif
+#ifdef NO_CPP
+		"NO_CPP, "
+#endif
 #ifdef OVERRIDE_STDC_TEST
 		"OVERRIDE_STDC_TEST, "
+#endif
+#ifdef OCL_READ_SOURCE_RUNTIME
+		"OCL_READ_SOURCE_RUNTIME, "
 #endif
 		"";
 		printf("Extra build options: ");

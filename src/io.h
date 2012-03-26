@@ -43,7 +43,7 @@
 #endif
 
 // Common parts of function declaration and calls; they are passed to ProcessError and DebugPrintf
-#define ERR_LOC_DECL enum enwho who,const char * restrict srcfile,const int srcline
+#define ERR_LOC_DECL const enum enwho who,const char * restrict srcfile,const int srcline
 #define ERR_LOC_CALL who,srcfile,srcline
 
 // A way of calling snprintf and vsnprintf resistant to buffer overflows, but without errors

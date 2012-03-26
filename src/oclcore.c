@@ -21,6 +21,7 @@
 // project headers
 #include "debug.h"
 #include "memory.h"
+#include "vars.h"
 // system headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,10 +61,10 @@ cl_platform_id used_platform_id;
 cl_device_id device_id;
 
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
-//#define READ_CL_SOURCE_AT_RUNTIME
+//#define OCL_READ_SOURCE_RUNTIME
 
 // For some reason Eclipse points out a syntax error in the following block. Just ignore it.
-#ifndef READ_CL_SOURCE_AT_RUNTIME
+#ifndef OCL_READ_SOURCE_RUNTIME
 	const char stringifiedSourceCL[]=
 	// the following is a pure string generated automatically from oclkernels.cl at compile time
 #	include "ocl/oclkernels.clstr"
@@ -128,13 +129,13 @@ static const char *print_cl_errstring(cl_int err)
 
 //========================================================================
 
-void checkErr(cl_int err,const char *name)
-// checks error code and stops if necessary
+void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg)
+/* Prints explicit information about CL error.
+ * Optional argument msg is added to the error message, if not NULL.
+ */
 {
-	if (err != CL_SUCCESS) {
-		printf("ERROR: %s / Error code (%i : %s)\n",name,err,print_cl_errstring(err));
-		exit(EXIT_FAILURE);
-	}
+	if (msg==NULL) LogError(ERR_LOC_CALL,"CL error code %d: %s\n",err,print_cl_errstring(err));
+	else LogError(ERR_LOC_CALL,"%s (CL error code %d: %s\n",msg,err,print_cl_errstring(err));
 }
 
 //========================================================================
@@ -149,14 +150,17 @@ static void GetDevice(void)
 	cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
 
 	// little trick to get just the number of the Platforms
-	err=clGetPlatformIDs(0,NULL,&num_of_platforms);
-	checkErr(err,"Get number of platforms");
+	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
+	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms
+	 * with successful return status. So we additionally test it.
+	 */
+	if (num_of_platforms==0) LogError(ALL_POS,"No OpenCL platform was found");
 	// dynamic array of platformids creation at runtime, stored in heap
 	platform_id=(cl_platform_id *)
 		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
-	err=clGetPlatformIDs(num_of_platforms,platform_id,NULL);
-	checkErr(err,"Get platforms IDs");
+	CL_CH_ERR(clGetPlatformIDs(num_of_platforms,platform_id,NULL));
 
+	err=CL_SUCCESS; // this is to remove unitialized warning after the cycle
 	for (unsigned int i=0;i<num_of_platforms;i++) {
 		/* Some errors are allowed here, since some platforms/devices may be not supported.
 		 * The execution continues normally if at least one supported device is found.
@@ -171,15 +175,14 @@ static void GetDevice(void)
 			 * to some extent, unpredictable.
 			 */
 			else platformname=PN_UNDEF;
-			err=clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL);
-			checkErr(err,"Get device name");
-			printf("Found OpenCL device %s, based on %s.\n",devicename,pname);
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL));
+			PrintBoth(logfile,"Found OpenCL device %s, based on %s.\n",devicename,pname);
 			used_platform_id=platform_id[i];
 			break;
 		}
 	}
-	// if all platforms of the above cycle fail, then error is produced
-	checkErr(err,"No valid preferred OpenCL device found");
+	// if all platforms of the above cycle fail, then error is produced with the last error code
+	CheckCLErr(err,ALL_POS,"No OpenCL-compatible GPU found");
 	Free_general(platform_id);
 }
 
@@ -191,10 +194,10 @@ void oclinit(void)
 	cl_int err; // error code
 	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings
 
-	D("Starting OCL init");
+	D("Starting OpenCL init");
 	// getting the first OpenCL device which is a GPU
 	GetDevice();
-	D("OCL device found");
+	D("OpenCL device found");
 	/* cl_context_properties is a strange list of item:
 	 * first comes the name of the property as next element the corresponding value
 	 */
@@ -202,25 +205,14 @@ void oclinit(void)
 	properties[0]=CL_CONTEXT_PLATFORM;
 	properties[1]=(cl_context_properties)used_platform_id;
 	properties[2]=0; // last one must be zero
-	context=clCreateContext(
-		properties,
-		1, //number of devices to use
-		&device_id,
-		NULL, // error info as string
-		NULL, // user data
-		&err
-	);
-	checkErr(err,"Create Context");
+	context=clCreateContext(properties,1,&device_id,NULL,NULL,&err);
+	CL_CH_ERR(err);
 
-	command_queue=clCreateCommandQueue(
-		context,
-		device_id,
-		CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, // command queue properties
-		&err
-	);
-	checkErr(err,"Command_queue");
+	command_queue=
+		clCreateCommandQueue(context,device_id,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
+	CL_CH_ERR(err);
 
-#ifdef READ_CL_SOURCE_AT_RUNTIME
+#ifdef OCL_READ_SOURCE_RUNTIME
 	size_t sourceStrSize;
 	char *cSourceString;
 	FILE *file=FOpenErr("oclkernels.cl","rb",ALL_POS);
@@ -235,62 +227,50 @@ void oclinit(void)
 	cssPtr[0]=stringifiedSourceCL;
 #endif
 	D("Creating CL program");
-	program=clCreateProgramWithSource(
-		context, // valid Context
-		1,       // number of strings in next parameter
-		cssPtr,  // array of source strings
-		NULL,    // length of each string
-		&err     // error code
-	);
-	checkErr(err,"Creating program");
+	program=clCreateProgramWithSource(context,1,cssPtr,NULL,&err);
+	CL_CH_ERR(err);
 
 	if (platformname==PN_NVIDIA) coptions="-cl-mad-enable"; //for NVIDIA GPUs
 	else if (platformname==PN_AMD) coptions="-DAMD -cl-mad-enable"; //for AMD GPUs
 	else if (platformname==PN_UNDEF) coptions=""; // no options for unknown OpenCL platform
 
 	// special error handling to enable debugging of OpenCL kernels
-	if (clBuildProgram(program,0,NULL,coptions,NULL,NULL) != CL_SUCCESS) {
-		printf("Error building OpenCL program\n");
+	err=clBuildProgram(program,0,NULL,coptions,NULL,NULL);
+	if (err != CL_SUCCESS) {
 		char buffer[8192];
-		clGetProgramBuildInfo(
-			program,              // valid program object
-			device_id,            // valid device_id that executable was built
-			CL_PROGRAM_BUILD_LOG, // indicate to retrieve build log
-			sizeof(buffer),       // size of the buffer to write log to
-			buffer,               // the actual buffer to write log to
-			NULL);                // the actual size in bytes of data copied to buffer
-		printf("%s\n",buffer);
-		exit(EXIT_FAILURE);
+		clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,sizeof(buffer),buffer,NULL);                // the actual size in bytes of data copied to buffer
+		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
+		CL_CH_ERR(err);
 	}
 
 	clzero=clCreateKernel(program,"clzero",&err);
-	checkErr(err,"creating kernel clzero");
+	CL_CH_ERR(err);
 	clarith1=clCreateKernel(program,"arith1",&err);
-	checkErr(err,"creating kernel clarith1");
+	CL_CH_ERR(err);
 	clarith2=clCreateKernel(program,"arith2",&err);
-	checkErr(err,"creating kernel clartih2");
+	CL_CH_ERR(err);
 	clarith3=clCreateKernel(program,"arith3",&err);
-	checkErr(err,"creating kernel clartih3");
+	CL_CH_ERR(err);
 	clarith4=clCreateKernel(program,"arith4",&err);
-	checkErr(err,"creating kernel clarith4");
+	CL_CH_ERR(err);
 	clarith5=clCreateKernel(program,"arith5",&err);
-	checkErr(err,"creating kernel clarith5");
+	CL_CH_ERR(err);
 	clnConj=clCreateKernel(program,"nConj",&err);
-	checkErr(err,"creating kernel clnConj");
+	CL_CH_ERR(err);
 	clinprod=clCreateKernel(program,"inpr",&err);
-	checkErr(err,"creating kernel clinprod");
+	CL_CH_ERR(err);
 	cltransposef=clCreateKernel(program,"transpose",&err);
-	checkErr(err,"creating kernel cltransposef");
+	CL_CH_ERR(err);
 	cltransposeb=clCreateKernel(program,"transpose",&err);
-	checkErr(err,"creating kernel cltransposeb");
+	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
-	checkErr(err,"creating kernel cltransposeof");
+	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
-	checkErr(err,"creating kernel cltransposeob");
-#ifdef READ_CL_SOURCE_AT_RUNTIME
+	CL_CH_ERR(err);
+#ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
-	D("OCL init complete");
+	D("OpenCL init complete");
 }
 
 //========================================================================
