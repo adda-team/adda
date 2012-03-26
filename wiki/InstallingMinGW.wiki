@@ -6,7 +6,7 @@
 To be able to compile *ADDA* on Windows you need to install MSYS and MinGW. 
 
 [http://www.mingw.org/wiki/MSYS MSYS] is a collection of 32-bit Unix system utils, such as `make`, which work fine with both 32- and 64-bit Windows. To install it do the following (based on [http://mingw.org/wiki/Getting_Started MinGW instructions]):
- * Download the latest version of the [http://sourceforge.net/projects/mingw/files/Automated%20MinGW%20Installer/mingw-get/ mingw-get] installer and extract the files to the `C:\MinGW` folder. Other paths can also be used.
+ * Download the latest version of the [http://sourceforge.net/projects/mingw/files/Installer/mingw-get/ mingw-get] installer and extract the files to the `C:\MinGW` folder. Other paths can also be used.
  * Open command prompt and run
 {{{
 cd C:\MinGW\bin
