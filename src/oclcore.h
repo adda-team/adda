@@ -29,6 +29,11 @@
 #	include <CL/cl.h>
 #endif
 
+// This is redundant test for now, but may be easily updated in the future
+#ifndef CL_VERSION_1_0
+#	error "OpenCL version at least 1.0 is required"
+#endif
+
 // global OpenCL variables; names should not interfere with other parts of the code
 extern cl_context context;
 extern cl_command_queue command_queue;

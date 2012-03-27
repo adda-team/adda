@@ -3,7 +3,7 @@
  * Descr: Kernel File for OpenCL kernels.
  *        includes all subfunctions of the Matvec routine as OpenCL kernels
  *
- * Copyright (C) 2010-2011 ADDA contributors
+ * Copyright (C) 2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,11 +17,16 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#ifndef CL_VERSION_1_0
+#	error "OpenCL version at least 1.0 is required"
+#endif
 
-#ifdef AMD
-#	pragma OPENCL EXTENSION cl_amd_fp64 : enable
-#else
-#	pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#ifdef USE_DOUBLE
+#	ifdef DOUBLE_AMD
+#		pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#	else
+#		pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#	endif
 #endif
 
 /*************************************
