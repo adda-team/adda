@@ -54,11 +54,18 @@ enum platname {
 	PN_AMD,    // AMD GPU
 	PN_UNDEF   // Unknown OpenCL platform
 };
-enum platname platformname;
+enum platname platformname; // also used in cpp/fft_setup.cpp
+
 // ids of program, platform and device
-cl_program program;
-cl_platform_id used_platform_id;
-cl_device_id device_id;
+static cl_program program;
+static cl_platform_id used_platform_id;
+static cl_device_id device_id;
+
+struct string {
+	char *text; // text of string
+	size_t len; // length
+	size_t mem; // amount of allocated memory
+};
 
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
 //#define OCL_READ_SOURCE_RUNTIME
@@ -70,6 +77,42 @@ cl_device_id device_id;
 #	include "ocl/oclkernels.clstr"
 	;
 #endif
+
+//========================================================================
+
+#define STR_SIZE_STEP 100
+static struct string StrInit(void)
+// initializes string structure
+{
+	struct string str;
+	str.len=0;
+	str.mem=STR_SIZE_STEP;
+	MALLOC_VECTOR(str.text,char,str.mem,ALL);
+	str.text[0]=0;
+	return str;
+}
+
+//========================================================================
+
+static void StrCatSpace(struct string *dest,const char *src)
+/* concatenates dest string (described by structure) and src string into the dest. Additionally,
+ * space is added between the strings, if dest is originally not empty.
+ * If needed additional memory is allocated automatically.
+ */
+{
+	if (dest->len>0) {
+		dest->text[dest->len]=' ';
+		dest->len++;
+	}
+	size_t slen=strlen(src);
+	if (dest->len+slen>=dest->mem) {
+		do dest->mem+=STR_SIZE_STEP; while (dest->len+slen>=dest->mem);
+		REALLOC_VECTOR(dest->text,char,dest->mem,ALL);
+	}
+	strcpy(dest->text+dest->len,src);
+	dest->len+=slen;
+}
+#undef STR_SIZE_STEP
 
 //========================================================================
 
@@ -140,7 +183,7 @@ void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg)
 
 //========================================================================
 
-static void GetDevice(void)
+static void GetDevice(struct string *copt_ptr)
 // set OpenCL device number and related variable
 {
 	cl_int err; // error code
@@ -160,7 +203,7 @@ static void GetDevice(void)
 		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
 	CL_CH_ERR(clGetPlatformIDs(num_of_platforms,platform_id,NULL));
 
-	err=CL_SUCCESS; // this is to remove unitialized warning after the cycle
+	err=CL_SUCCESS; // this is to remove uninitialized warning after the cycle
 	for (unsigned int i=0;i<num_of_platforms;i++) {
 		/* Some errors are allowed here, since some platforms/devices may be not supported.
 		 * The execution continues normally if at least one supported device is found.
@@ -169,6 +212,7 @@ static void GetDevice(void)
 		clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME,sizeof(pname),pname,NULL);
 		err=clGetDeviceIDs(platform_id[i],devtype,1,&device_id,&num_of_devices);
 		if (err==CL_SUCCESS) {
+			used_platform_id=platform_id[i];
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
 			/* the program can potentially work with unknown compatible device, but performance is,
@@ -177,7 +221,24 @@ static void GetDevice(void)
 			else platformname=PN_UNDEF;
 			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL));
 			PrintBoth(logfile,"Found OpenCL device %s, based on %s.\n",devicename,pname);
-			used_platform_id=platform_id[i];
+#ifdef DEBUGFULL
+			char dev_vers[MAX_LINE],dr_vers[MAX_LINE];
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_VERSION,sizeof(dev_vers),dev_vers,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DRIVER_VERSION,sizeof(dr_vers),dr_vers,NULL));
+			D("Device version: %s. Driver version: %s.\n",dev_vers,dr_vers);
+#endif
+			size_t size;
+			char *dev_ext;
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS,0,NULL,&size));
+			MALLOC_VECTOR(dev_ext,char,size,ALL);
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS,size,dev_ext,NULL));
+			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
+			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
+				// fallback for old AMD GPUs
+				if (strstr(dev_ext,"cl_amd_fp64")!=NULL) StrCatSpace(copt_ptr,"-DDOUBLE_AMD");
+				else LogError(ALL_POS,"Double precision is not supported by OpenCL device");
+			}
+			Free_general(dev_ext);
 			break;
 		}
 	}
@@ -195,9 +256,9 @@ void oclinit(void)
 	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings
 
 	D("Starting OpenCL init");
+	struct string cl_opt=StrInit();
 	// getting the first OpenCL device which is a GPU
-	GetDevice();
-	D("OpenCL device found");
+	GetDevice(&cl_opt);
 	/* cl_context_properties is a strange list of item:
 	 * first comes the name of the property as next element the corresponding value
 	 */
@@ -229,17 +290,21 @@ void oclinit(void)
 	D("Creating CL program");
 	program=clCreateProgramWithSource(context,1,cssPtr,NULL,&err);
 	CL_CH_ERR(err);
-
-	if (platformname==PN_NVIDIA) coptions="-cl-mad-enable"; //for NVIDIA GPUs
-	else if (platformname==PN_AMD) coptions="-DAMD -cl-mad-enable"; //for AMD GPUs
-	else if (platformname==PN_UNDEF) coptions=""; // no options for unknown OpenCL platform
-
+	// finalize build options and point coptions (used for sharing with clFFT) to it
+	StrCatSpace(&cl_opt,"-cl-mad-enable -cl-fast-relaxed-math");
+	coptions=cl_opt.text;
+	D("Building CL program with options: '%s'",cl_opt.text);
 	// special error handling to enable debugging of OpenCL kernels
-	err=clBuildProgram(program,0,NULL,coptions,NULL,NULL);
+	err=clBuildProgram(program,0,NULL,cl_opt.text,NULL,NULL);
 	if (err != CL_SUCCESS) {
-		char buffer[8192];
-		clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,sizeof(buffer),buffer,NULL);                // the actual size in bytes of data copied to buffer
+		size_t size;
+		char *buffer;
+		CL_CH_ERR(clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,0,NULL,&size));
+		MALLOC_VECTOR(buffer,char,size,ALL);
+		CL_CH_ERR(clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,size,buffer,NULL));
+		printf("size=%zu\n",size);
 		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
+		Free_general(buffer);
 		CL_CH_ERR(err);
 	}
 
@@ -270,6 +335,7 @@ void oclinit(void)
 #ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
+	clUnloadCompiler();
 	D("OpenCL init complete");
 }
 

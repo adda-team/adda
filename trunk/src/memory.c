@@ -202,6 +202,19 @@ char *charVector(const size_t size,OTHER_ARGUMENTS)
 
 //============================================================
 
+char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS)
+// reallocates double vector ptr to a larger size
+{
+	char *v;
+
+	CHECK_SIZE(size,char);
+	v=(char *)realloc(ptr,size*sizeof(char));
+	CHECK_NULL(size,v);
+	return v;
+}
+
+//============================================================
+
 unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned char vector
 {

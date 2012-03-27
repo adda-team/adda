@@ -559,8 +559,8 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 			// add allocated memory to buf, if needed
 			if (nr >= size) {
 				size+=CHUNK_SIZE;
-				REALLOC_DVECTOR(bufRo,size,ALL);
-				REALLOC_DVECTOR(bufZ,size,ALL);
+				REALLOC_VECTOR(bufRo,double,size,ALL);
+				REALLOC_VECTOR(bufZ,double,size,ALL);
 			}
 			bufRo[nr]=ro;
 			bufZ[nr]=z;

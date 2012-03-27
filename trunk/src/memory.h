@@ -45,8 +45,9 @@ unsigned short *ushortVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 char *charVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 unsigned char *ucharVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 void *voidVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
-// reallocate
+// reallocate; only two for now, more can be easily added
 double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
+char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 // free
 void Free_cVector(doublecomplex * restrict v);
 void Free_dMatrix(double ** restrict m,size_t rows);
@@ -59,6 +60,6 @@ void Free_general(void * restrict v);
 #define MALLOC_DVECTOR2(vec,nl,nh,who) vec=doubleVector2(nl,nh,who,POSIT,#vec)
 #define MALLOC_DMATRIX(vec,rows,cols,who) vec=doubleMatrix(rows,cols,who,POSIT,#vec)
 #define MALLOC_IMATRIX(vec,nrl,nrh,ncl,nch,who) vec=intMatrix(nrl,nrh,ncl,nch,who,POSIT,#vec)
-#define REALLOC_DVECTOR(vec,size,who) vec=doubleRealloc(vec,size,who,POSIT,#vec)
+#define REALLOC_VECTOR(vec,type,size,who) vec=type##Realloc(vec,size,who,POSIT,#vec)
 
 #endif //__memory_h
