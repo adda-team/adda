@@ -41,7 +41,7 @@
 #	include <stdio.h>    // needed for definition of NULL
 #	define SYSTEM_TIME struct timeval
 #else
-#	error *** Unknown operation system. Precise timing is not supported. ***
+#	error "Unknown operation system. Precise timing is not supported."
 #endif
 
 #define FFORMPT "%.4f" // format for precise timing results

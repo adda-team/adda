@@ -26,9 +26,9 @@
 #	define MPI_SUBVER_REQ 0
 // check MPI version for conformity during compilation
 #	if !defined(MPI_VERSION) || !defined(MPI_SUBVERSION)
-#		error *** Can not determine MPI version, hence MPI is too old. ***
+#		error "Can not determine MPI version, hence MPI is too old."
 #	elif (MPI_VERSION<MPI_VER_REQ) || ((MPI_VERSION==MPI_VER_REQ) && (MPI_SUBVERSION<MPI_SUBVER_REQ))
-#		error *** MPI version is too old. ***
+#		error "MPI version is too old."
 #	endif
 
 /* Hopefully MPI_SIZE_T will be defined in the future MPI versions. As of version 2.2 there is only

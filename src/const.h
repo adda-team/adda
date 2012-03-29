@@ -30,9 +30,9 @@
  * stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
 */
 # if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
-#   error Support for C99 standard (at least many of its parts) is strongly recommended for \
-          compilation. Otherwise the compilation will may fail or produce wrong results. If you \
-          still want to try, you may enable an override in the Makefile.
+#   error "Support for C99 standard (at least many of its parts) is strongly recommended for \
+compilation. Otherwise the compilation will may fail or produce wrong results. If you still want \
+to try, you may enable an override in the Makefile."
 #endif
 
 /* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family 

@@ -36,7 +36,7 @@
 
 #ifdef OPENCL
 #	ifdef NO_CPP
-#		error OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option
+#		error "OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option"
 #	endif
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #	include "oclcore.h"
@@ -107,7 +107,7 @@ static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb;
 #	endif
 #elif defined(FFT_TEMPERTON)
 #	ifdef NO_FORTRAN
-#		error Tempertron FFT is implemented in Fortran, hence is incompatible with NO_FORTRAN option
+#		error "Tempertron FFT is implemented in Fortran, hence incompatible with NO_FORTRAN option"
 #	endif
 #	define IFAX_SIZE 20
 // arrays for Temperton FFT

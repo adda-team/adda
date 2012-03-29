@@ -38,6 +38,10 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef OPENCL
+#	include "oclcore.h"
+#endif
+
 // definitions for file locking
 #ifdef USE_LOCK
 #	ifdef WINDOWS
@@ -50,7 +54,7 @@
 #		endif
 #		define FILEHANDLE int
 #	else
-#		error *** Unknown operation system. Creation of lock files is not supported. ***
+#		error "Unknown operation system. Creation of lock files is not supported."
 #	endif
 #	define LOCK_WAIT 1 // in seconds
 #	define MAX_LOCK_WAIT_CYCLES 60
@@ -1412,8 +1416,16 @@ PARSE_FUNC(V)
 		// print version, MPI standard, type and compiler information, bit-mode
 		printf("ADDA v."ADDA_VERSION"\n");
 #ifdef OPENCL
-		// TODO. Specify a version of OpenCL used, may be check for conformance somewhere
-		printf("OpenCL (GPU-accelerated) version\n");
+#	if defined(CL_VERSION_1_2)
+#		define OCL_VERSION "1.2"
+#	elif defined(CL_VERSION_1_1)
+#		define OCL_VERSION "1.1"
+#	elif defined(CL_VERSION_1_0)
+#		define OCL_VERSION "1.0"
+#	else // this should never happen, since minimum OpenCL version is checked in oclcore.h
+#		error "OpenCL version not recognized"
+#	endif
+		printf("GPU-accelerated version conforming to OpenCL standard "OCL_VERSION"\n");
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
