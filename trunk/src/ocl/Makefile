@@ -39,7 +39,7 @@ CSOURCE   += oclcore.c
 ifeq ($(filter NO_CPP,$(OPTIONS)),)
   CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
 else
-  #$(error OpenCL version relies on C++ sources, hence it is incompatible with NO_CPP)
+  $(error OpenCL version relies on C++ sources, hence it is incompatible with NO_CPP)
 endif
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
