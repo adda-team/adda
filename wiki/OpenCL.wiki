@@ -2,31 +2,30 @@
 
 <wiki:toc />
 
-[http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly
-parallel devices like graphic cards (GPUs) and mutlicore CPUs. The
-implementation is experimental and works on high end Nvidia (Geforce GTX 260/Tesla C1060 and newer) and ATI/AMD (Radeon HD 47xx/48xx/58xx/69xx, FireStream 9250+) GPUs at the present state.
+[http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly parallel devices like graphic cards (GPUs) and mutlicore CPUs. The implementation is experimental and works on high end GPUs at current state. The main limitation is the required support of double precision floating point operations. For Nvidia this implies compute capability 1.3 or higher (e.g., Geforce GTX 260/Tesla C1060 and newer), examples from AMD (ATI) include Radeon HD 47xx/48xx/58xx/69xx and FireStream 9250+.
 
 = Setup of the environment =
 
-The instructions below are far from being complete, they only summarize the experience we had with several systems.
+== Recent GPU driver ==
 
-On the Ubuntu Linux operating system, it is sufficient to install a PPA with the recent device drivers for both AMD and Nvidia.
+There are two options:
+ * Download and install it from the corresponding vendor ([http://www.nvidia.com/page/drivers.html Nvidia] or [http://support.amd.com/us/gpudownload AMD]).
+ * On Unix systems driver packages may be available. It is recommended to use them, since they are more convenient to install and update. Also they cause less trouble with kernel updates. The drawback is a delay in updates relative to original vendor drivers. Moreover, for some systems there is no official packages, since the driver is not open-source. In this case search in non-official repositories, like [http://rpmfusion.org/ RPM Fusion]. On Ubuntu Linux the simple solution is using the [https://help.launchpad.net/Packaging/PPA PPA] as
 {{{
 ppa:ubuntu-x-swat/x-updates 
 }}}
-for details about handling PPAs just read the [https://help.launchpad.net/Packaging/PPA PPA help page].
 
-== Nvida GPUs ==
+The recent driver alone is sufficient to run *ADDA* OpenCL executables, e.g. those that are [http://code.google.com/p/a-dda/wiki/PackageDescription#Windows_executables provided for Windows].
 
-_On Unix_ systems packages containing Nvidia drivers are available (sometimes from non-official repositories, like [http://rpmfusion.org/ RPM Fusion]). This is the easiest way to install Nvidia drivers. Unfortunately, sometimes these packages do not contain OpenCL headers (even in the developers versions) - check with your particular package. Then you may obtain these headers from the [http://developer.nvidia.com/cuda-toolkit-sdk CUDA toolkit]. The drivers (without headers) can also be obtained directly [http://www.nvidia.com/page/drivers.html from Nvidia].
+== Headers and libraries ==
 
-_On Windows_ you should also install a recent [http://www.nvidia.com/page/drivers.html Nvidia device driver] and the [http://developer.nvidia.com/cuda-toolkit-sdk CUDA toolkit]. The latter provides both headers and libraries.
-
-*WARNING*: Intel compiler (version 11.0) has problems with OpenCL headers from CUDA version 3.2. So to compile with Intel compiler use CUDA version 4.0 or later (or AMD SDK).
-
-== AMD GPUs ==
-
-The [http://developer.amd.com/gpu/ATIStreamSDK/Pages/default.aspx AMD Stream-SDK] need to be installed and the _fglrx_ driver (the proprietary AMD driver). There are [http://forums.amd.com/forum/messageview.cfm?catid=390&threadid=125792 Debian packages] available to reduce the installation effort of OpenCL on Debian based Linux distributions.
+This are required to compile OpenCL version of *ADDA*. Sometimes they are supplied by the development versions of driver packages (see above). If not, there are two alternative approaches:
+ * Install full SDK from the corresponding vendor ([http://developer.nvidia.com/cuda-toolkit-sdk Nvidia CUDA toolkit] or [http://developer.amd.com/sdks/AMDAPPSDK/Pages/default.aspx AMD APP SDK]). Additionally to headers and libraries you will get some nice development tools, such as visual profiler. We have, however, encountered several problems with this approach:
+   * Intel compiler (version 11.0) has problems with OpenCL headers from CUDA toolkit 3.2. This was fixed in later versions of the toolkit.
+   * `OpenCL.lib` provided by both CUDA toolkit and AMD APP SDK on 64-bit Windows is incompatible with MinGW64. Compilation goes fine but *ADDA* breaks down as soon as it calls the first OpenCL function. This is probably due to some limitations of MinGW64 itself. Fortunately, AMD APP SDK also provides `libOpenCL.a`, which links and works fine. To compile *ADDA* on 64-bit Windows with Nvidia GPUs one should either use `libOpenCL.a` from AMD APP SDK (surprisingly, it works) or resort to a manual approach described below.
+ * Supply missing headers and/or libraries manually
+   * Since OpenCL is an open standard, the headers can be obtained from the [http://www.khronos.org/registry/cl/ official website]. Ideally, one should use the same version of OpenCL headers as that of library.
+   * Installed GPU driver always provides libraries (DLLs), which are used at runtime. On Unix systems compiler may link to this libraries directly. On Windows GCC can link to `OpenCL.dll` (located in `C:\Windows\System32`), if it is renamed to `libOpenCL.dll.a`. On 64-bit Windows it is obligatory to use 64-bit application (Windows Explorer or a file manager) to rename `OpenCL.dll` and move it to non-system folder, because Windows will supply 32-bit instead of 64-bit version of `OpenCL.dll` to any 32-bit application. 
 
 == Include and library paths ==
 
@@ -39,4 +38,6 @@ If the package, which you installed, has not set the paths to OpenCL headers and
 = Implementation =
 
 In general the whole matrix-vector multiplication is done on the GPU.
-For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)].
+For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)]. Currently, *ADDA* on high-end gaming GPUs outperform that on high-end processors at least several times (sometimes by a factor of 10 or more). And this factor is significantly limited by relatively slow double-precision computations on current gaming GPUs and very modest performance of OpenCL FFT routines (compared to sophisticated FFTW3).
+
+Also OpenCL version of *ADDA* is fully operational, there are a number of [http://code.google.com/p/a-dda/issues/list?q=label:OpenCL limitations]. In particular, the maximum problem size is limited by the available GPU memory, more specifically, by its part available to *ADDA*.
