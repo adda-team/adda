@@ -46,7 +46,7 @@
 #	elif (SIZE_MAX == ULLONG_MAX)
 #		define MPI_SIZE_T MPI_UNSIGNED_LONG_LONG
 #	else
-#		error "Unknown size for size_t! Create an issue at http://code.google.com/p/a-dda/issues/"
+#		error "No MPI alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
 #	endif
 #endif
 

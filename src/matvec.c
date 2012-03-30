@@ -169,15 +169,16 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 	// needed for Arith3 but declared here since Arith3 is called inside a loop
 	const size_t gwsclarith3[2]={gridZ,gridY};
-	const cl_long ndcomp=NDCOMP;
+	const cl_char ndcomp=NDCOMP;
+	// little workaround for kernel cannot take bool arguments
 	const cl_char transp=(cl_char)transposed;
-	const cl_char redfft=(cl_char)reduced_FFT; //little workaround for kernel cannot take bool arguments
+	const cl_char redfft=(cl_char)reduced_FFT;
 
 	/* following two calls to clSetKernelArg can be moved to fft.c, since the arguments are
 	 * constant. However, this requires setting auxiliary variables redfft and ndcomp as globals,
 	 * since the kernel is called below.
 	 */
-	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_long),&ndcomp));
+	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_char),&ndcomp));
 	CL_CH_ERR(clSetKernelArg(clarith3,9,sizeof(cl_char),&redfft));
 	CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(cl_char),&transp));
 	// for arith2 and arith4
@@ -238,7 +239,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		GetTime(tvp+4);
 #endif
 #ifdef OPENCL
-		CL_CH_ERR(clSetKernelArg(clarith2,7,sizeof(cl_long),&x));
+		CL_CH_ERR(clSetKernelArg(clarith2,7,sizeof(size_t),&x));
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,
@@ -278,7 +279,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif//
 #ifdef OPENCL
 		// arith3 on Device
-		CL_CH_ERR(clSetKernelArg(clarith3,11,sizeof(cl_long),&x));
+		CL_CH_ERR(clSetKernelArg(clarith3,11,sizeof(size_t),&x));
 		// enqueueing kernel for arith3
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,
 			NULL));
@@ -330,7 +331,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		ElapsedInc(tvp+11,tvp+12,&Timing_FFTZb);
 #endif
 #ifdef OPENCL
-		CL_CH_ERR(clSetKernelArg(clarith4,7,sizeof(cl_long),&x));
+		CL_CH_ERR(clSetKernelArg(clarith4,7,sizeof(size_t),&x));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,
 			NULL));
 		clFinish(command_queue);

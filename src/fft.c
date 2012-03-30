@@ -94,7 +94,7 @@ double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspos
 // D2 matrix and its two slices; used only temporary for InitDmatrix
 static doublecomplex * restrict slice,* restrict slice_tr,* restrict D2matrix;
 static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
-static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ; see fft.h
+static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
 static bool weird_nprocs;              // whether weird number of processors is used
 #ifdef OPENCL
 clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
@@ -197,15 +197,27 @@ void TransposeYZ(const int direction)
 #ifdef OPENCL
 	const size_t enqtglobalzy[3]={gridZ,gridY,3};
 	const size_t enqtglobalyz[3]={gridY,gridZ,3};
-	const size_t tblock[3]={16,16,1};
+	const size_t tblock[3]={16,16,1}; // this corresponds to BLOCK_DIM in oclkernels.cl
 //TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or
 // 	to remove cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
-	if (direction==FFT_FORWARD) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
-		enqtglobalzy,tblock,0,NULL,NULL));
-//		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
-	else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,
-		NULL,NULL));
-//		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
+	/* When calling kernels the working group size can't be smaller than the data size; hence cached
+	 * kernel can be used only for large enough problems. Alternative solution is to determine the
+	 * block size during ADDA runtime and pass it to kernel during its compilation. But using small
+	 * block size is not efficient anyway, so falling back to noncached kernel is logical.
+	 */
+	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
+	if (direction==FFT_FORWARD) {
+		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
+			enqtglobalzy,tblock,0,NULL,NULL));
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,
+			NULL,NULL));
+	}
+	else {
+		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,
+			enqtglobalyz,tblock,0,NULL,NULL));
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,
+			NULL,NULL));
+	}
 	clFinish(command_queue);
 #else
 	size_t y,z,Y,Z,y1,y2,z1,z2,i,j,y0,z0,Xcomp;
@@ -1431,68 +1443,68 @@ void InitDmatrix(void)
 	CL_CH_ERR(clSetKernelArg(clarith1,2,sizeof(cl_mem),&bufcc_sqrt));
 	CL_CH_ERR(clSetKernelArg(clarith1,3,sizeof(cl_mem),&bufargvec));
 	CL_CH_ERR(clSetKernelArg(clarith1,4,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith1,5,sizeof(cl_long),&local_Nsmall));
-	CL_CH_ERR(clSetKernelArg(clarith1,6,sizeof(cl_long),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith1,7,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith1,5,sizeof(size_t),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith1,6,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith1,7,sizeof(size_t),&gridX));
 	// for arith2
 	CL_CH_ERR(clSetKernelArg(clarith2,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clSetKernelArg(clarith2,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(clarith2,2,sizeof(cl_long),&gridZ));
-	CL_CH_ERR(clSetKernelArg(clarith2,3,sizeof(cl_long),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith2,4,sizeof(cl_long),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith2,5,sizeof(cl_long),&gridYZ));
-	CL_CH_ERR(clSetKernelArg(clarith2,6,sizeof(cl_long),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith2,2,sizeof(size_t),&gridZ));
+	CL_CH_ERR(clSetKernelArg(clarith2,3,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith2,4,sizeof(size_t),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith2,5,sizeof(size_t),&gridYZ));
+	CL_CH_ERR(clSetKernelArg(clarith2,6,sizeof(size_t),&local_Nsmall));
 	// for arith3
 	CL_CH_ERR(clSetKernelArg(clarith3,0,sizeof(cl_mem),&bufslices_tr));
 	CL_CH_ERR(clSetKernelArg(clarith3,1,sizeof(cl_mem),&bufDmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith3,2,sizeof(cl_long),&local_x0));
-	CL_CH_ERR(clSetKernelArg(clarith3,3,sizeof(cl_long),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(cl_long),&smallZ));
-	CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(cl_long),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(cl_long),&DsizeY));
-	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(cl_long),&DsizeZ));
+	CL_CH_ERR(clSetKernelArg(clarith3,2,sizeof(size_t),&local_x0));
+	CL_CH_ERR(clSetKernelArg(clarith3,3,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(size_t),&smallZ));
+	CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(size_t),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(size_t),&DsizeY));
+	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(size_t),&DsizeZ));
 	// for arith4
 	CL_CH_ERR(clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(clarith4,2,sizeof(cl_long),&gridZ));
-	CL_CH_ERR(clSetKernelArg(clarith4,3,sizeof(cl_long),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith4,4,sizeof(cl_long),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith4,5,sizeof(cl_long),&gridYZ));
-	CL_CH_ERR(clSetKernelArg(clarith4,6,sizeof(cl_long),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith4,2,sizeof(size_t),&gridZ));
+	CL_CH_ERR(clSetKernelArg(clarith4,3,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith4,4,sizeof(size_t),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith4,5,sizeof(size_t),&gridYZ));
+	CL_CH_ERR(clSetKernelArg(clarith4,6,sizeof(size_t),&local_Nsmall));
 	// for arith5
 	CL_CH_ERR(clSetKernelArg(clarith5,0,sizeof(cl_mem),&bufmaterial));
 	CL_CH_ERR(clSetKernelArg(clarith5,1,sizeof(cl_mem),&bufposition));
 	CL_CH_ERR(clSetKernelArg(clarith5,2,sizeof(cl_mem),&bufcc_sqrt));
 	CL_CH_ERR(clSetKernelArg(clarith5,3,sizeof(cl_mem),&bufargvec));
 	CL_CH_ERR(clSetKernelArg(clarith5,4,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith5,5,sizeof(cl_long),&local_Nsmall));
-	CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(cl_long),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(cl_long),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith5,5,sizeof(size_t),&local_Nsmall));
+	CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(size_t),&gridX));
 	CL_CH_ERR(clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec));
 	// for transpose forward
 	CL_CH_ERR(clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices));
 	CL_CH_ERR(clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr));
-	CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(cl_long),&gridZ));
-	CL_CH_ERR(clSetKernelArg(cltransposef,3,sizeof(cl_long),&gridY));
+	CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(size_t),&gridZ));
+	CL_CH_ERR(clSetKernelArg(cltransposef,3,sizeof(size_t),&gridY));
 	// for transpose backward
 	CL_CH_ERR(clSetKernelArg(cltransposeb,0,sizeof(cl_mem),&bufslices_tr));
 	CL_CH_ERR(clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(cl_long),&gridY));
-	CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(cl_long),&gridZ));
+	CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(size_t),&gridY));
+	CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(size_t),&gridZ));
 	//faster transpose kernel with cache 
 	//(maybe not faster for all sizes so keep the old kernel for special conditions)
     CL_CH_ERR(clSetKernelArg(cltransposeof,0,sizeof(cl_mem),&bufslices));
     CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
-    CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(cl_long),&gridZ));
-    CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(cl_long),&gridY));
+    CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(size_t),&gridZ));
+    CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(size_t),&gridY));
 	//setting up local cache size as 17*16*3 elements
 	//note: a block is only 16*16, but 1*16 stride is needed
 	//to avoid bank conflicts
     CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
     CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
     CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(cl_long),&gridY));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(cl_long),&gridZ));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(size_t),&gridY));
+    CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(size_t),&gridZ));
     CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
 	
 	// for inner product (only if it will be used afterwards)
