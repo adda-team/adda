@@ -292,6 +292,23 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	// finalize build options and point coptions (used for sharing with clFFT) to it
 	StrCatSpace(&cl_opt,"-cl-mad-enable -cl-fast-relaxed-math");
+	/* OpenCL standard does define size_t-analogue type to avoid confusion. But we want to use
+	 * home-made definition in OpenCL source, since size_t is used a lot in ADDA to indicate the
+	 * largest problem solvable on current hardware. Since the proper OpenCL type is chosen during
+	 * compilation of the main ADDA source, there should be no portability problems, even though the
+	 * OpenCL sources may be compiled (at ADDA runtime) on a different hardware than ADDA itself.
+	 *
+	 * In the following it is more logical to compare against CL_UINT_MAX and CL_ULONG_MAX, but at
+	 * least the latter contains typecast "(cl_ulong)" which is badly interpreted by the
+	 * preprocessor. The values used should always be the same according to OpenCL standard.
+	 */
+#if (SIZE_MAX == UINT32_MAX)
+	StrCatSpace(&cl_opt,"-DSIZET_UINT");
+#elif (SIZE_MAX == UINT64_MAX)
+	StrCatSpace(&cl_opt,"-DSIZET_ULONG");
+#else
+#	error "No OpenCL alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
+#endif
 	coptions=cl_opt.text;
 	D("Building CL program with options: '%s'",cl_opt.text);
 	// special error handling to enable debugging of OpenCL kernels

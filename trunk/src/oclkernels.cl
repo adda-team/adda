@@ -29,6 +29,15 @@
 #	endif
 #endif
 
+// defines type to work with variables defined as size_t in the main ADDA code
+#ifdef SIZET_UINT
+typedef uint in_sizet;
+#elif defined(SIZET_ULONG)
+typedef ulong in_sizet;
+#else
+#	error "size_t alternative is not defined"
+#endif
+
 /*************************************
  *  functions used in kernels        *
  *                                   *
@@ -92,18 +101,18 @@ __kernel void clzero(__global double2 *input)
 //============================================================
 
 __kernel void arith1(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt /* 15x3 */, __global double2 *argvec, __global double2 *Xmatrix,
-	long local_Nsmall,long smallY,long gridX)
+	__global double2 *cc_sqrt, __global double2 *argvec, __global double2 *Xmatrix,
+	in_sizet local_Nsmall,in_sizet smallY,in_sizet gridX)
 {
 	__private size_t id=get_global_id(0);
 	__private size_t j=3*id;
-	__private char mat=material[id];
+	__private uchar mat=material[id];
 	__private size_t index;
 	__private int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++)
-		cMult(&cc_sqrt[mat*15+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
+		cMult(&cc_sqrt[mat*3+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
 }
 
 /*************************************
@@ -111,8 +120,8 @@ __kernel void arith1(__global unsigned char *material,__global unsigned short *p
  *                                   *
  *************************************/
 
-__kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
-	long gridX,long gridYZ,long local_Nsmall,long x)
+__kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,in_sizet gridZ,
+	in_sizet smallY,in_sizet gridX,in_sizet gridYZ,in_sizet local_Nsmall,in_sizet x)
 {
 	__private size_t y=get_global_id(0);
 	__private size_t z=get_global_id(1);
@@ -157,9 +166,9 @@ void cSymMatrVec(__private double2 *matr,__private double2 *vec,__private double
 
 //============================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long local_x0,
-	long smallY,long smallZ,long gridX,long DsizeY,long DsizeZ,long NDCOMP,char reduced_FFT,
-	char transposed,long x)
+__kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,in_sizet local_x0,
+	in_sizet smallY,in_sizet smallZ,in_sizet gridX,in_sizet DsizeY,in_sizet DsizeZ,char NDCOMP,
+	char reduced_FFT,char transposed,in_sizet x)
 {
 	size_t z = get_global_id(0);
 	size_t y = get_global_id(1);
@@ -211,8 +220,8 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long 
  *                                   *
  *************************************/
 
-__kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
-	long gridX,long gridYZ,long local_Nsmall,long x)
+__kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,in_sizet gridZ,
+	in_sizet smallY,in_sizet gridX,in_sizet gridYZ,in_sizet local_Nsmall,in_sizet x)
 {
 	__private size_t y =get_global_id(0);
 	__private size_t z =get_global_id(1);
@@ -231,19 +240,19 @@ __kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gri
  *************************************/
 
 __kernel void arith5(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt,__global double2 *argvec,__global double2 *Xmatrix,long local_Nsmall,
-	long smallY,long gridX,__global double2 *resultvec)
+	__global double2 *cc_sqrt,__global double2 *argvec,__global double2 *Xmatrix,in_sizet local_Nsmall,
+	in_sizet smallY,in_sizet gridX,__global double2 *resultvec)
 {
 	__private size_t id = get_global_id(0);
 	__private size_t j=3*id;
-	__private char mat = material[id];
+	__private uchar mat = material[id];
 	__private size_t index;
 	__private double2 temp;
 	__private int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++) {
-		cMult2(&cc_sqrt[mat*15+xcomp],&Xmatrix[index+xcomp*local_Nsmall],&temp);
+		cMult2(&cc_sqrt[mat*3+xcomp],&Xmatrix[index+xcomp*local_Nsmall],&temp);
 		resultvec[j+xcomp]=argvec[j+xcomp]+temp;
 	}
 }
@@ -262,7 +271,8 @@ __kernel void inpr(__global double *inprod, __global double2 *resultvec)
  *                                   *
  *************************************/
 
-__kernel void transpose(__global double2 *input,__global double2 *output,long width,long height)
+__kernel void transpose(__global double2 *input,__global double2 *output,in_sizet width,
+	in_sizet height)
 {
 	size_t idz = get_global_id(0);
 	size_t idy = get_global_id(1);
@@ -271,34 +281,27 @@ __kernel void transpose(__global double2 *input,__global double2 *output,long wi
 	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
 }
 
-//optimised transpose kernel with cache and
-//removed bank conflicts obtained from Nvidia SDK samples
+//optimised transpose kernel with cache and removed bank conflicts obtained from Nvidia SDK samples
+// This corresponds to value of tblock in TransposeYZ() in fft.c
 #define BLOCK_DIM 16
-__kernel void transposeo(
-        __global double2 *idata,
-        __global double2 *odata,
-        long width,
-        long height,
-        __local double2 *block
-    )
+__kernel void transposeo(__global double2 *idata,__global double2 *odata,in_sizet width,
+	in_sizet height,__local double2 *block)
 {
-    // read tiles into local memory
-    unsigned int xIndex = get_global_id(0);
-    unsigned int yIndex = get_global_id(1);
-    unsigned int zIndex = get_global_id(2);
-    int htw = height*width;
-    if((xIndex < width) && (yIndex < height))
-    {
-    unsigned int index_in = yIndex * width + xIndex + htw * zIndex;
-    block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    // write transposed tile back to global memory
-    xIndex = get_group_id(1) * BLOCK_DIM + get_local_id(0);
-    yIndex = get_group_id(0) * BLOCK_DIM + get_local_id(1);
-    if((xIndex < height) && (yIndex < width))
-    {
-    unsigned int index_out = yIndex * height + xIndex + htw * zIndex;
-    odata[index_out] = block[get_local_id(0)*(BLOCK_DIM+1)+get_local_id(1)];
-    }
+	// read tiles into local memory
+	size_t xIndex = get_global_id(0);
+	size_t yIndex = get_global_id(1);
+	size_t zIndex = get_global_id(2);
+	size_t htw = height*width;
+	if ((xIndex < width) && (yIndex < height)) {
+		size_t index_in = yIndex * width + xIndex + htw * zIndex;
+		block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	// write transposed tile back to global memory
+	xIndex = get_group_id(1) * BLOCK_DIM + get_local_id(0);
+	yIndex = get_group_id(0) * BLOCK_DIM + get_local_id(1);
+	if ((xIndex < height) && (yIndex < width)) {
+		size_t index_out = yIndex * height + xIndex + htw * zIndex;
+		odata[index_out] = block[get_local_id(0)*(BLOCK_DIM+1)+get_local_id(1)];
+	}
 }
