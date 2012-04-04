@@ -544,7 +544,7 @@ static void fftInitAfterD(void)
 	GetTime(tvp);
 #	endif
 	clFFT_Dim3 xdimen;
-	xdimen.x=(int)gridX;
+	xdimen.x=(unsigned int)gridX;
 	xdimen.y=1;
 	xdimen.z=1;
 	clplanX=clFFT_CreatePlan(context,xdimen,clFFT_2D,clFFT_InterleavedComplexFormat,&err);
@@ -553,7 +553,7 @@ static void fftInitAfterD(void)
 	GetTime(tvp+1);
 #	endif
 	clFFT_Dim3 ydimen;
-	ydimen.x=(int)gridY;
+	ydimen.x=(unsigned int)gridY;
 	ydimen.y=1;
 	ydimen.z=1;
 	clplanY=clFFT_CreatePlan(context,ydimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
@@ -562,7 +562,7 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 #	endif
-	zdimen.x=(int)gridZ;
+	zdimen.x=(unsigned int)gridZ;
 	zdimen.y=1;
 	zdimen.z=1;
 	clplanZ=clFFT_CreatePlan(context,zdimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
@@ -1410,32 +1410,35 @@ void InitDmatrix(void)
 #ifdef OPENCL // perform setting up of buffers and kernels
 	cl_int err; // error code
 	// create all Buffers needed on Device in MatVec
-	bufXmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,local_Nsmall*3*2*sizeof(double),NULL,&err);
-	CL_CH_ERR(err);
-	bufmaterial=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip,NULL,&err);
-	CL_CH_ERR(err);
-	bufposition = clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*2*3,NULL,&err);
-	CL_CH_ERR(err);
-	bufcc_sqrt=clCreateBuffer(context,CL_MEM_READ_WRITE,MAX_NMAT*3*2*sizeof(double),NULL,&err);
-	CL_CH_ERR(err);
-	bufargvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*3*2*sizeof(double),NULL,
+	bufXmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL,
 		&err);
 	CL_CH_ERR(err);
-	bufresultvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*3*2*sizeof(double),NULL,
+	bufcc_sqrt=clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL,&err);
+	CL_CH_ERR(err);
+	bufargvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL,&err);
+	CL_CH_ERR(err);
+	bufresultvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL,
 		&err);
 	CL_CH_ERR(err);
-	bufslices=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*2*sizeof(double),NULL,&err);
+	bufslices=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL,&err);
 	CL_CH_ERR(err);
-	bufslices_tr=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*2*sizeof(double),NULL,&err);
-	CL_CH_ERR(err);
-	bufDmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,NDCOMP*local_Nx*DsizeYZ*2*sizeof(double),
-		NULL,&err);
+	bufslices_tr=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL,&err);
 	CL_CH_ERR(err);
 	if (ipr_required) {
-		bufinproduct=clCreateBuffer(context,CL_MEM_READ_WRITE,sizeof(double)*local_nvoid_Ndip,NULL,
+		bufinproduct=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL,
 			&err);
 		CL_CH_ERR(err);
 	}
+	// the following are constant device buffers which are initialized with host data
+	bufDmatrix=clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+		Dsize*sizeof(doublecomplex),Dmatrix,&err);
+	CL_CH_ERR(err);
+	bufmaterial=clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+		local_nvoid_Ndip*sizeof(*material),material,&err);
+	CL_CH_ERR(err);
+	bufposition = clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+		local_nRows*sizeof(*position),position,&err);
+	CL_CH_ERR(err);
 	// setting kernel arguments since they are always the same
 	// for Arith1
 	CL_CH_ERR(clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial));
@@ -1513,13 +1516,6 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
 		MALLOC_VECTOR(inprodhlp,double,local_nvoid_Ndip,ALL);
 	}
-	// write for MatVec constant buffers to Device
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufmaterial,CL_TRUE,0,local_nvoid_Ndip,material,0,
-		NULL,NULL));
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufposition,CL_TRUE,0,local_nvoid_Ndip*2*3,
-		position,0,NULL,NULL));
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,
-		NDCOMP*local_Nx*DsizeYZ*2*sizeof(double),Dmatrix,0,NULL,NULL));
 #endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+12);
@@ -1590,6 +1586,9 @@ void Free_FFT_Dmat(void)
 		clReleaseMemObject(bufinproduct);
 		Free_general(inprodhlp);
 	}
+	clFFT_DestroyPlan(clplanX);
+	clFFT_DestroyPlan(clplanY);
+	clFFT_DestroyPlan(clplanZ);
 #elif defined(FFTW3) // these plans are defined only when OpenCL is not used
 	fftw_destroy_plan(planXf);
 	fftw_destroy_plan(planXb);

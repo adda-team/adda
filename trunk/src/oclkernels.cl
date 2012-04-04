@@ -43,7 +43,7 @@ typedef ulong in_sizet;
  *                                   *
  *************************************/
 
-void cMult(__global double2 *a,__global double2 *b,__global double2 *c)
+void cMult(__constant double2 *a,__global const double2 *b,__global double2 *c)
 // complex multiplication; c=ab; !!! c should be different from a and b !!!
 {
 	(*c).s0=(*a).s0*(*b).s0 - (*a).s1*(*b).s1;
@@ -52,8 +52,8 @@ void cMult(__global double2 *a,__global double2 *b,__global double2 *c)
 
 //============================================================
 
-void cMult2(__global double2 *a,__global double2 *b,__private double2 *c)
-// complex multiplication; c=ab; !!! c should be different from a and b ! c is local here in cMult2
+void cMult2(__constant double2 *a,__global const double2 *b,double2 *c)
+// complex multiplication; c=ab; !!! c should be different from a and b !!! c is private
 {
 	(*c).s0=(*a).s0*(*b).s0 - (*a).s1*(*b).s1;
 	(*c).s1=(*a).s1*(*b).s0 + (*a).s0*(*b).s1;
@@ -61,20 +61,11 @@ void cMult2(__global double2 *a,__global double2 *b,__private double2 *c)
 
 //============================================================
 
-double cvNorm2(__global double2 *a)
+double cvNorm2(__global const double2 *a)
 // square of the norm of a complex vector[3]
 {
 	return ( a[0].s0*a[0].s0 + a[0].s1*a[0].s1 + a[1].s0*a[1].s0 + a[1].s1*a[1].s1
 		+ a[2].s0*a[2].s0 + a[2].s1*a[2].s1 );
-}
-
-//============================================================
-
-void cAdd(__global double2 *a,__private double2 *b,__global double2 *c)
-// add two complex numbers; c=a+b
-{
-	(*c).s0 = (*a).s0 + (*b).s0;
-	(*c).s1 = (*a).s1 + (*b).s1;
 }
 
 /*************************************
@@ -84,7 +75,7 @@ void cAdd(__global double2 *a,__private double2 *b,__global double2 *c)
 
 __kernel void nConj(__global double2 *a)
 {
-	__private size_t id=get_global_id(0);
+	const size_t id=get_global_id(0);
 
 	a[id].s1= -a[id].s1;
 }
@@ -93,22 +84,22 @@ __kernel void nConj(__global double2 *a)
 
 __kernel void clzero(__global double2 *input)
 {
-	__private size_t id = get_global_id(0);
+	const size_t id = get_global_id(0);
 
 	input[id] = 0.0;
 }
 
 //============================================================
 
-__kernel void arith1(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt, __global double2 *argvec, __global double2 *Xmatrix,
-	in_sizet local_Nsmall,in_sizet smallY,in_sizet gridX)
+__kernel void arith1(__global const uchar *material,__global const ushort *position,
+	__constant double2 *cc_sqrt, __global const double2 *argvec, __global double2 *Xmatrix,
+	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX)
 {
-	__private size_t id=get_global_id(0);
-	__private size_t j=3*id;
-	__private uchar mat=material[id];
-	__private size_t index;
-	__private int xcomp;
+	const size_t id=get_global_id(0);
+	const size_t j=3*id;
+	const uchar mat=material[id];
+	size_t index;
+	int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++)
@@ -120,14 +111,15 @@ __kernel void arith1(__global unsigned char *material,__global unsigned short *p
  *                                   *
  *************************************/
 
-__kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,in_sizet gridZ,
-	in_sizet smallY,in_sizet gridX,in_sizet gridYZ,in_sizet local_Nsmall,in_sizet x)
+__kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,const in_sizet gridZ,
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
+	const in_sizet x)
 {
-	__private size_t y=get_global_id(0);
-	__private size_t z=get_global_id(1);
-	__private size_t i;
-	__private size_t j;
-	__private int xcomp;
+	const size_t y=get_global_id(0);
+	const size_t z=get_global_id(1);
+	size_t i;
+	size_t j;
+	int xcomp;
 
 	i = y*gridZ+z;
 	j = (z*smallY+y)*gridX+x;
@@ -139,7 +131,7 @@ __kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,in_sizet
  *                                   *
  *************************************/
 
-void cSymMatrVec(__private double2 *matr,__private double2 *vec,__private double2 *res)
+void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 // multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
 {
 	res[0].s0 = matr[0].s0*vec[0].s0 - matr[0].s1*vec[0].s1
@@ -166,19 +158,20 @@ void cSymMatrVec(__private double2 *matr,__private double2 *vec,__private double
 
 //============================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,in_sizet local_x0,
-	in_sizet smallY,in_sizet smallZ,in_sizet gridX,in_sizet DsizeY,in_sizet DsizeZ,char NDCOMP,
-	char reduced_FFT,char transposed,in_sizet x)
+__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,
+	const in_sizet local_x0,const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,
+	const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,const char reduced_FFT,
+	const char transposed,const in_sizet x)
 {
-	size_t z = get_global_id(0);
-	size_t y = get_global_id(1);
-	size_t gridZ = get_global_size(0);
-	size_t gridY = get_global_size(1);
-	__private double2 xv[3];
-	__private double2 yv[3];
-	__private double2 fmat[6];
-	__private int Xcomp;
-	__private size_t i=z *gridY + y;// indexSliceZY
+	size_t const z = get_global_id(0);
+	size_t const y = get_global_id(1);
+	size_t const gridZ = get_global_size(0);
+	size_t const gridY = get_global_size(1);
+	double2 xv[3];
+	double2 yv[3];
+	double2 fmat[6];
+	int Xcomp;
+	const size_t i=z *gridY + y; // indexSliceZY
 	size_t j;
 	size_t xa=x;
 	size_t ya=y;
@@ -220,14 +213,15 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,in_si
  *                                   *
  *************************************/
 
-__kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,in_sizet gridZ,
-	in_sizet smallY,in_sizet gridX,in_sizet gridYZ,in_sizet local_Nsmall,in_sizet x)
+__kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,const in_sizet gridZ,
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
+	const in_sizet x)
 {
-	__private size_t y =get_global_id(0);
-	__private size_t z =get_global_id(1);
-	__private size_t i;
-	__private size_t j;
-	__private int xcomp;
+	const size_t y =get_global_id(0);
+	const size_t z =get_global_id(1);
+	size_t i;
+	size_t j;
+	int xcomp;
 
 	i = y*gridZ+z;
 	j = (z*smallY+y)*gridX+x;
@@ -239,16 +233,17 @@ __kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,in_sizet
  *                                   *
  *************************************/
 
-__kernel void arith5(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt,__global double2 *argvec,__global double2 *Xmatrix,in_sizet local_Nsmall,
-	in_sizet smallY,in_sizet gridX,__global double2 *resultvec)
+__kernel void arith5(__global const uchar *material,__global const ushort *position,
+	__constant double2 *cc_sqrt,__global const double2 *argvec,__global const double2 *Xmatrix,
+	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX,
+	__global double2 *resultvec)
 {
-	__private size_t id = get_global_id(0);
-	__private size_t j=3*id;
-	__private uchar mat = material[id];
-	__private size_t index;
-	__private double2 temp;
-	__private int xcomp;
+	const size_t id = get_global_id(0);
+	const size_t j=3*id;
+	const uchar mat = material[id];
+	size_t index;
+	double2 temp;
+	int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++) {
@@ -259,9 +254,9 @@ __kernel void arith5(__global unsigned char *material,__global unsigned short *p
 
 //============================================================
 
-__kernel void inpr(__global double *inprod, __global double2 *resultvec)
+__kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 {
-	__private size_t id = get_global_id(0);
+	const size_t id = get_global_id(0);
 
 	inprod[id]=cvNorm2(resultvec+(id*3));
 }
@@ -271,12 +266,12 @@ __kernel void inpr(__global double *inprod, __global double2 *resultvec)
  *                                   *
  *************************************/
 
-__kernel void transpose(__global double2 *input,__global double2 *output,in_sizet width,
-	in_sizet height)
+__kernel void transpose(__global const double2 *input,__global double2 *output,
+	const in_sizet width,const in_sizet height)
 {
-	size_t idz = get_global_id(0);
-	size_t idy = get_global_id(1);
-	size_t wth = width*height;
+	const size_t idz = get_global_id(0);
+	const size_t idy = get_global_id(1);
+	const size_t wth = width*height;
 
 	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
 }
@@ -284,14 +279,14 @@ __kernel void transpose(__global double2 *input,__global double2 *output,in_size
 //optimised transpose kernel with cache and removed bank conflicts obtained from Nvidia SDK samples
 // This corresponds to value of tblock in TransposeYZ() in fft.c
 #define BLOCK_DIM 16
-__kernel void transposeo(__global double2 *idata,__global double2 *odata,in_sizet width,
-	in_sizet height,__local double2 *block)
+__kernel void transposeo(__global const double2 *idata,__global double2 *odata,
+	const in_sizet width,const in_sizet height,__local double2 *block)
 {
 	// read tiles into local memory
 	size_t xIndex = get_global_id(0);
 	size_t yIndex = get_global_id(1);
-	size_t zIndex = get_global_id(2);
-	size_t htw = height*width;
+	const size_t zIndex = get_global_id(2);
+	const size_t htw = height*width;
 	if ((xIndex < width) && (yIndex < height)) {
 		size_t index_in = yIndex * width + xIndex + htw * zIndex;
 		block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];

@@ -185,20 +185,20 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
 	// write into buffers eg upload to device
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,
-		MAX_NMAT*3*2*sizeof(cl_double),cc_sqrt,0,NULL,NULL));
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(cl_double),argvec,0,NULL,NULL));
+		local_nRows*sizeof(doublecomplex),argvec,0,NULL,NULL));
 
 	size_t xmsize=local_Nsmall*3;
 	if (her) {
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,
 			NULL));
+		clFinish(command_queue);
 	}
 	// setting (buf)Xmatrix with zeros (on device)
 	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL));
+	clFinish(command_queue);
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,
 		NULL));
 	clFinish(command_queue); //wait till kernel executions are finished
@@ -242,6 +242,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clarith2,7,sizeof(size_t),&x));
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
+		clFinish(command_queue);
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,
 			NULL));
 		clFinish(command_queue);
@@ -362,8 +363,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	Elapsed(tvp+14,tvp+15,&Timing_FFTXb);
 #endif
 #ifdef OPENCL
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufresultvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(cl_double),resultvec,0,NULL,NULL));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith5,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,
 		NULL));
 	clFinish(command_queue);
@@ -374,8 +373,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		 */
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clinprod,1,NULL,&local_nvoid_Ndip,NULL,0,
 			NULL,NULL));
+		clFinish(command_queue);
 		CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinproduct,CL_TRUE,0,
-			sizeof(cl_double)*local_nvoid_Ndip,inprodhlp,0,NULL,NULL));
+			local_nvoid_Ndip*sizeof(double),inprodhlp,0,NULL,NULL));
 		// sum up on the CPU after calculating the norm on GPU
 		for (j=0;j<local_nvoid_Ndip;j++) *inprod+=inprodhlp[j];
 	}
@@ -383,10 +383,10 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,
 			NULL));
+		clFinish(command_queue);
 	}
-	clFinish(command_queue);
 	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,
-		local_nvoid_Ndip*3*2*sizeof(cl_double),resultvec,0,NULL,NULL));
+		local_nRows*sizeof(doublecomplex),resultvec,0,NULL,NULL));
 #else
 	// fill resultvec
 	for (i=0;i<local_nvoid_Ndip;i++) {

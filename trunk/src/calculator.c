@@ -232,6 +232,11 @@ static void InitCC(const enum incpol which)
 			cEqual(chi_inv[i][0],chi_inv[i][2]);
 		}
 	}
+#ifdef OPENCL
+	// this is done here, since InitCC can be run between different runs of the iterative solver
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,
+		NULL,NULL));
+#endif
 }
 
 //============================================================
