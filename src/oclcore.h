@@ -21,6 +21,7 @@
 #define __oclcore_h
 
 // project headers
+#include "function.h"
 #include "io.h"
 // system headers
 #ifdef __APPLE__
@@ -42,15 +43,20 @@ extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith4,clarith5,clnConj,cli
 extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,
 	bufslices_tr,bufDmatrix,bufinproduct;
 extern double *inprodhlp;
+extern size_t oclMem,oclMemPeak,oclMemMaxObj;
 
 /* checks error status of CL functions; can either be used as a wrapper that returns error status
  * or applied to return error value. It is defined as a macro to incorporate exact position in a
  * source file where it was called.
  */
 #define CL_CH_ERR(a) CheckCLErr(a,ALL_POS,NULL)
+#define CREATE_CL_BUFFER(buf,flags,size,ptr) buf=my_clCreateBuffer(flags,size,ptr,ALL_POS,#buf)
 void oclinit(void);
 void oclunload(void);
-void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg);
+void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg) ATT_NORETURN;
+cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_LOC_DECL,
+	const char *name);
+void my_clReleaseBuffer(cl_mem buffer);
 
 //========================================================================
 

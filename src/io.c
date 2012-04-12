@@ -47,6 +47,43 @@ extern const char logfname[];
 static char warn_buf[MAX_MESSAGE2]="";
 
 //============================================================
+/* The following two functions are based on implementations of vasprintf and asprintf from
+ * http://stackoverflow.com/a/4900830, which is also similar to the implementation from gnulib.
+ * However, explicit error checks has been added inside to avoid need to check the result, and
+ * pointer to a new string is returned instead of passing it as an argument.
+ */
+static char *dyn_vsprintf(const char *format, va_list args)
+// same as vsprintf but allocates storage for the result
+{
+	va_list copy;
+	va_copy(copy,args);
+	char *buffer=NULL; // default value to have deterministic behavior
+	int count=vsnprintf(NULL,0,format,args);
+	if (count>=0) {
+		MALLOC_VECTOR(buffer,char,count+1,ALL);
+		count=vsnprintf(buffer,count+1,format,copy);
+	}
+	va_end(args);
+	if (count<0) { // simple error handling, so it can be called from LogError, etc.
+		fprintf(stderr,"ERROR: Code %d returned by vsnprintf in '%s'",count,__func__);
+		exit(count);
+	}
+	return buffer;
+}
+
+//============================================================
+
+char *dyn_sprintf(const char *format, ...)
+// same as sprintf, but allocates storage for the result
+{
+	va_list args;
+	va_start(args, format);
+	char *res=dyn_vsprintf(format,args);
+	va_end(args);
+	return res;
+}
+
+//============================================================
 
 void WrapLines(char *restrict str)
 /* wraps long lines in a string without breaking words; it replaces a number of spaces in string by

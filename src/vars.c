@@ -35,6 +35,7 @@ unsigned short * restrict position; /* position of the dipoles; in the very end 
                                      * z-components are adjusted to be relative to the local_z0
                                      */
 double memory;            // total memory usage in bytes
+double memPeak;           // peak memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarizability relation)
 enum beam beamtype;       // type of incident beam
@@ -95,10 +96,6 @@ int maxiter;          // maximum number of iterations
 doublecomplex *xvec;  // total electric field on the dipoles
 doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
 doublecomplex * restrict Einc;    // incident field on dipoles
-/* holds input vector (on expanded grid) to matvec. Also used as buffer in certain algorithms, that
- * do not call MatVec (this should be strictly ensured !!!)
- */
-doublecomplex * restrict Xmatrix;
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile

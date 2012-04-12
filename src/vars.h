@@ -38,7 +38,7 @@ extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 extern unsigned short * restrict position;
-extern double memory;
+extern double memory,memPeak;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
 extern enum beam beamtype;
@@ -67,7 +67,7 @@ extern unsigned char * restrict material;
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,* restrict Einc,* restrict Xmatrix;
+extern doublecomplex *xvec,*pvec,* restrict Einc;
 
 // scattering at different angles
 extern int nTheta;

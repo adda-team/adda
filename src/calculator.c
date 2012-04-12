@@ -233,7 +233,9 @@ static void InitCC(const enum incpol which)
 		}
 	}
 #ifdef OPENCL
-	// this is done here, since InitCC can be run between different runs of the iterative solver
+	/* this is done here, since InitCC can be run between different runs of the iterative solver
+	 * write is blocking to ensure completion before function end
+	 */
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,
 		NULL,NULL));
 #endif
@@ -544,12 +546,17 @@ static void AllocateEverything(void)
 	 * PARALLEL: above is total; division over processors of MatVec is uniform,
 	 *           others - according to local_nvoid_Ndip
 	 */
-	memory/=MBYTE;
-	AccumulateMax(&memory,&memmax);
+	MAXIMIZE(memPeak,memory);
+	double memSum=AccumulateMax(memPeak,&memmax);
 	if (IFROOT) {
-		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memory);
+		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memSum/MBYTE);
 #ifdef PARALLEL
-		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax);
+		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax/MBYTE);
+#endif
+#ifdef OPENCL
+		PrintBoth(logfile,
+			"OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
+			oclMemPeak/MBYTE,oclMemMaxObj/MBYTE);
 #endif
 	}
 }

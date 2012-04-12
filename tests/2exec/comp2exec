@@ -110,7 +110,7 @@ function mycmp {
     if [ $MODE == "mpi_seq" ]; then
       IGNORE="$IGNORE|^(M|Total m|Maximum m)emory usage"
     elif [ $MODE == "ocl_seq" ]; then
-      IGNORE="$IGNORE|^Found OpenCL device|^Initializing (clFFT|FFTW3)|^(M|Total m)emory usage"  
+      IGNORE="$IGNORE|^Found OpenCL device|^Initializing (clFFT|FFTW3)|^(M|Total m|OpenCL m)emory usage|^Device memory"  
 	fi
     if [[ $MODE == "mpi" || $MODE == "mpi_seq" ]]; then
       CUT="^Error posting writev, " # due to typical random errors of MPICH under Windows
@@ -132,7 +132,7 @@ function mycmp {
     if [ $MODE == "mpi_seq" ]; then
       IGNORE="$IGNORE|^The program was run on: |^(M|Total m|Maximum m)emory usage"
     elif [ $MODE == "ocl_seq" ]; then
-      IGNORE="$IGNORE|^Found OpenCL device|The FFT grid is: [0-9]+x[0-9]+x[0-9]+||^(M|Total m)emory usage"  
+      IGNORE="$IGNORE|^Found OpenCL device|The FFT grid is: [0-9]+x[0-9]+x[0-9]+||^(M|Total m|OpenCL m)emory usage|^Device memory"  
     fi
     CUT="^Total wall time: "
     asmin rtol 4

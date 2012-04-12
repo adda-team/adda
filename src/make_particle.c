@@ -158,14 +158,11 @@ static void SaveGeometry(void)
 	// create save_geom_fname if not specified, by adding extension to the shapename
 	if (save_geom_fname[0]==0) {
 		const char *ext;
-		char *buf; // actual storage for save_geom_fname
 		// choose extension
 		if (sg_format==SF_TEXT || sg_format==SF_TEXT_EXT) ext="geom";
 		else if (sg_format==SF_DDSCAT6 || sg_format==SF_DDSCAT7) ext="dat";
 		else LogError(ONE_POS,"Unknown format for saved geometry file (%d)",sg_format);
-		MALLOC_VECTOR(buf,char,strlen(shapename)+strlen(ext)+2,ALL);
-		sprintf(buf,"%s.%s",shapename,ext);
-		save_geom_fname=buf;
+		save_geom_fname=dyn_sprintf("%s.%s",shapename,ext);
 	}
 	// automatically change format if needed
 	if (sg_format==SF_TEXT && Nmat>1) sg_format=SF_TEXT_EXT;
@@ -1778,10 +1775,7 @@ void InitShape(void)
 				"of domains (%d) for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
 		else Nmat_need++;
 		// update shapename; use new storage
-		char *buf;
-		MALLOC_VECTOR(buf,char,strlen(shapename)+6,ALL);
-		sprintf(buf,"%s_gran",shapename);
-		shapename=buf;
+		shapename=dyn_sprintf("%s_gran",shapename);
 	}
 	// check if enough refractive indices or extra
 	if (Nmat<Nmat_need) {
