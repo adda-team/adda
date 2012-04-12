@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1b5"
+#define ADDA_VERSION "1.1b6"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -60,6 +60,7 @@ to try, you may enable an override in the Makefile."
 // simple functions
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
+#define MAXIMIZE(A,B) {if ((A)<(B)) (A)=(B);}
 #define IS_EVEN(A) (((A)%2) == 0)
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A

@@ -376,15 +376,19 @@ void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
 
 //============================================================
 
-void AccumulateMax(double *data UOIP,double *max UOIP)
-// given a single double on each processor, accumulates their sum and maximum on root processor
+double AccumulateMax(double data UOIP,double *max UOIP)
+/* given a single double on each processor, accumulates their sum (returns) and maximum on root\
+ * processor
+ */
 {
 #ifdef ADDA_MPI
 	double buf;
 	// potentially can be optimized by combining into one operation
-	MPI_Reduce(data,&buf,1,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
-	MPI_Reduce(data,max,1,MPI_DOUBLE,MPI_MAX,ADDA_ROOT,MPI_COMM_WORLD);
-	if (IFROOT) *data=buf;
+	MPI_Reduce(&data,&buf,1,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
+	MPI_Reduce(&data,max,1,MPI_DOUBLE,MPI_MAX,ADDA_ROOT,MPI_COMM_WORLD);
+	return buf;
+#else
+	return data;
 #endif
 }
 

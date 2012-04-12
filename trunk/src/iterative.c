@@ -48,6 +48,10 @@ extern const TIME_TYPE tstart_CE;
 // defined and initialized in calculator.c
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
+// defined and initialized in fft.c
+#ifndef OPENCL
+extern doublecomplex *Xmatrix; // used as storage for arrays in WKB init field
+#endif
 // defined and initialized in param.c
 extern const double iter_eps;
 extern const enum init_field InitField;
@@ -1065,22 +1069,46 @@ static const char *CalcInitField(double zero_resid)
 		 * between the calls. But this will require usage of extra memory. So the current option
 		 * can be considered as corresponding to '-opt mem'
 		 */
-		unsigned char * restrict mat; // same as material, but defined on whole grid (local_Ndip)
-		doublecomplex * restrict arg; // argument of exponent for corrections of incident field
+		unsigned char *mat; // same as material, but defined on whole grid (local_Ndip)
+		doublecomplex *arg; // argument of exponent for corrections of incident field
 #ifdef PARALLEL
-		doublecomplex * restrict bottom; // value of arg at bottom of current processor
+		doublecomplex *bottom; // value of arg at bottom of current processor
 #endif
-		doublecomplex * restrict top; // propagating value of arg at planes between the dipoles
+		doublecomplex *top; // propagating value of arg at planes between the dipoles
 
-		// define all vectors using memory assigned to Xmatrix
+#ifdef OPENCL // Xmatrix is not used in OpenCL, hence a complicated logic to save memory if possible
+		bool a_arg=false;
+		bool a_mat=false;
+		bool a_top=false;
+		MAXIMIZE(memPeak,memory);
+		if (local_Ndip<=local_nRows) arg=Avecbuffer;
+		else {
+			MALLOC_VECTOR(arg,complex,local_Ndip,ALL);
+			memPeak+=local_Ndip*sizeof(doublecomplex);
+			a_arg=true;
+		}
+		if (local_Ndip*sizeof(char)<=sizeof(doublecomplex)*local_nRows) mat=(unsigned char *)xvec;
+		else {
+			MALLOC_VECTOR(mat,uchar,local_Ndip,ALL);
+			memPeak+=local_Ndip*sizeof(char);
+			a_mat=true;
+		}
+		if (boxXY<local_nRows) top=rvec;
+		else {
+			MALLOC_VECTOR(top,complex,boxXY,ALL);
+			memPeak+=boxXY*sizeof(doublecomplex);
+			a_top=true;
+		}
+#else // define all vectors using memory assigned to Xmatrix; kind of weird but should be OK
 		arg=Xmatrix;
-#ifdef PARALLEL
+#	ifdef PARALLEL
 		bottom=Xmatrix+local_Ndip;
 		top=bottom+boxXY;
-#else
+#	else
 		top=Xmatrix+local_Ndip;
-#endif
+#	endif
 		mat=(unsigned char *)(top + boxXY);
+#endif
 		// calculate function of refractive index
 		for (i=0;i<Nmat;i++) { // vals[i]=i*(ref_index[i]-1)*kd/2;
 			vals[i][IM]=(ref_index[i][RE]-1)*kd/2;
@@ -1117,6 +1145,11 @@ static const char *CalcInitField(double zero_resid)
 			cExp(arg[INDEX_GRID(ind)],tmpc);
 			cvMultScal_cmplx(tmpc,pvec+ind,xvec+ind);
 		}
+#ifdef OPENCL // free those buffers that were allocated
+		if (a_arg) Free_cVector(arg);
+		if (a_mat) Free_general(mat);
+		if (a_top) Free_cVector(top);
+#endif
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);

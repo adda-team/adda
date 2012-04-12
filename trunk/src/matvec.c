@@ -38,8 +38,10 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in fft.c
+#ifndef OPENCL
 extern const doublecomplex * restrict Dmatrix;
-extern doublecomplex * restrict slices,* restrict slices_tr;
+extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr;
+#endif
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
 
 // defined and initialized in timing.c
@@ -184,8 +186,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	// for arith2 and arith4
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
-	// write into buffers eg upload to device
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_TRUE,0,
+	// write into buffers eg upload to device; non-blocking
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,
 		local_nRows*sizeof(doublecomplex),argvec,0,NULL,NULL));
 
 	size_t xmsize=local_Nsmall*3;
@@ -193,12 +195,10 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,
 			NULL));
-		clFinish(command_queue);
 	}
 	// setting (buf)Xmatrix with zeros (on device)
 	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL));
-	clFinish(command_queue);
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,
 		NULL));
 	clFinish(command_queue); //wait till kernel executions are finished
@@ -223,12 +223,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	Elapsed(tvp,tvp+1,&Timing_Mult1);
 #endif
 	// FFT X
-	fftX(FFT_FORWARD); // fftX Xmatrix
+	fftX(FFT_FORWARD); // fftX (buf)Xmatrix
 #ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 	Elapsed(tvp+1,tvp+2,&Timing_FFTXf);
 #endif
+#ifdef PARALLEL
 	BlockTranspose(Xmatrix,comm_timing);
+#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+3);
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
@@ -242,7 +244,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clarith2,7,sizeof(size_t),&x));
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
-		clFinish(command_queue);
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,
 			NULL));
 		clFinish(command_queue);
@@ -263,7 +264,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		ElapsedInc(tvp+4,tvp+5,&Timing_Mult2);
 #endif
 		// FFT z&y
-		fftZ(FFT_FORWARD); // fftZ slices
+		fftZ(FFT_FORWARD); // fftZ (buf)slices
 #ifdef PRECISE_TIMING
 		GetTime(tvp+6);
 		ElapsedInc(tvp+5,tvp+6,&Timing_FFTZf);
@@ -273,7 +274,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		GetTime(tvp+7);
 		ElapsedInc(tvp+6,tvp+7,&Timing_TYZf);
 #endif
-		fftY(FFT_FORWARD); // fftY slices_tr
+		fftY(FFT_FORWARD); // fftY (buf)slices_tr
 #ifdef PRECISE_TIMING//
 		GetTime(tvp+8);
 		ElapsedInc(tvp+7,tvp+8,&Timing_FFTYf);
@@ -316,7 +317,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		ElapsedInc(tvp+8,tvp+9,&Timing_Mult3);
 #endif
 		// inverse FFT y&z
-		fftY(FFT_BACKWARD); // fftY slices_tr
+		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
 #ifdef PRECISE_TIMING //       
 		GetTime(tvp+10);
 		ElapsedInc(tvp+9,tvp+10,&Timing_FFTYb);
@@ -326,7 +327,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		GetTime(tvp+11);
 		ElapsedInc(tvp+10,tvp+11,&Timing_TYZb);
 #endif
-		fftZ(FFT_BACKWARD); // fftZ slices
+		fftZ(FFT_BACKWARD); // fftZ (buf)slices
 #ifdef PRECISE_TIMING
 		GetTime(tvp+12);
 		ElapsedInc(tvp+11,tvp+12,&Timing_FFTZb);
@@ -352,12 +353,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	} // end of loop over slices
 	// FFT-X back the result
+#ifdef PARALLEL
 	BlockTranspose(Xmatrix,comm_timing);
+#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+14);
 	Elapsed(tvp+13,tvp+14,&Timing_BTb);
 #endif
-	fftX(FFT_BACKWARD); // fftX Xmatrix
+	fftX(FFT_BACKWARD); // fftX (buf)Xmatrix
 #ifdef PRECISE_TIMING
 	GetTime(tvp+15);
 	Elapsed(tvp+14,tvp+15,&Timing_FFTXb);
@@ -365,7 +368,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith5,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,
 		NULL));
-	clFinish(command_queue);
 	if (ipr) {
 		/* calculating inner product in OpenCL is more complicated than usually. The norm for each
 		 * element is calculated inside GPU, but the sum is taken by CPU afterwards. Hence,
@@ -373,18 +375,17 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		 */
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clinprod,1,NULL,&local_nvoid_Ndip,NULL,0,
 			NULL,NULL));
-		clFinish(command_queue);
 		CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinproduct,CL_TRUE,0,
 			local_nvoid_Ndip*sizeof(double),inprodhlp,0,NULL,NULL));
-		// sum up on the CPU after calculating the norm on GPU
+		// sum up on the CPU after calculating the norm on GPU; hence the read above is blocking
 		for (j=0;j<local_nvoid_Ndip;j++) *inprod+=inprodhlp[j];
 	}
 	if (her) {
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,
 			NULL));
-		clFinish(command_queue);
 	}
+	// blocking read to finalize queue
 	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,
 		local_nRows*sizeof(doublecomplex),resultvec,0,NULL,NULL));
 #else

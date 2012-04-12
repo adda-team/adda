@@ -37,7 +37,7 @@ void Stop(int) ATT_NORETURN;
 void Synchronize(void);
 void BlockTranspose(doublecomplex * restrict X,TIME_TYPE *timing);
 void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ);
-void AccumulateMax(double *data,double *max);
+double AccumulateMax(double data,double *max);
 void Accumulate(double * restrict data,size_t size,double * restrict buffer,TIME_TYPE *timing);
 void MyInnerProduct(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
 void InitComm(int *argc_p,char ***argv_p);

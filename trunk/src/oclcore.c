@@ -38,6 +38,8 @@ cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,c
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,
 	bufDmatrix,bufinproduct;
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
+// OpenCL memory counts (current, peak, and maximum for a single object)
+size_t oclMem,oclMemPeak,oclMemMaxObj;
 
 // SEMI-GLOBAL VARIABLES
 
@@ -178,9 +180,54 @@ void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg)
  */
 {
 	if (msg==NULL) LogError(ERR_LOC_CALL,"CL error code %d: %s\n",err,print_cl_errstring(err));
-	else LogError(ERR_LOC_CALL,"%s (CL error code %d: %s\n",msg,err,print_cl_errstring(err));
+	else LogError(ERR_LOC_CALL,"%s (CL error code %d: %s)\n",msg,err,print_cl_errstring(err));
 }
 
+//========================================================================
+
+static char* ATT_MALLOC dyn_clGetPlatformInfo(cl_platform_id plat_id,cl_platform_info param_name)
+/* wrapper for clGetPlatformInfo with string return value, it automatically allocates the string to
+ * hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetPlatformInfo(plat_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetPlatformInfo(plat_id,param_name,size,res,NULL));
+	return res;
+}
+
+//========================================================================
+
+static char* ATT_MALLOC dyn_clGetDeviceInfo(cl_device_id dev_id,cl_device_info param_name)
+/* wrapper for clGetDeviceInfo with string return value, it automatically allocates the string to
+ * hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetDeviceInfo(dev_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetDeviceInfo(dev_id,param_name,size,res,NULL));
+	return res;
+}
+
+//========================================================================
+
+static char* ATT_MALLOC dyn_clGetProgramBuildInfo(cl_program prog,cl_device_id dev_id,
+	cl_program_build_info param_name)
+/* wrapper for clGetProgramBuildInfo with string return value, it automatically allocates the string
+ * to hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetProgramBuildInfo(prog,dev_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetProgramBuildInfo(prog,dev_id,param_name,size,res,NULL));
+	return res;
+}
 //========================================================================
 
 static void GetDevice(struct string *copt_ptr)
@@ -189,7 +236,6 @@ static void GetDevice(struct string *copt_ptr)
 	cl_int err; // error code
 	cl_uint num_of_platforms,num_of_devices;
 	cl_platform_id *platform_id;
-	char pname[MAX_LINE],devicename[MAX_LINE];
 	cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
 
 	// little trick to get just the number of the Platforms
@@ -207,11 +253,11 @@ static void GetDevice(struct string *copt_ptr)
 	for (unsigned int i=0;i<num_of_platforms;i++) {
 		/* Some errors are allowed here, since some platforms/devices may be not supported.
 		 * The execution continues normally if at least one supported device is found.
-		 * So errors are handled directly here, not through
+		 * So errors are handled directly here, not through standard error handler
 		 */
-		clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME,sizeof(pname),pname,NULL);
 		err=clGetDeviceIDs(platform_id[i],devtype,1,&device_id,&num_of_devices);
 		if (err==CL_SUCCESS) {
+			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
 			used_platform_id=platform_id[i];
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
@@ -219,19 +265,25 @@ static void GetDevice(struct string *copt_ptr)
 			 * to some extent, unpredictable.
 			 */
 			else platformname=PN_UNDEF;
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL));
+			char *devicename=dyn_clGetDeviceInfo(device_id,CL_DEVICE_NAME);
 			PrintBoth(logfile,"Found OpenCL device %s, based on %s.\n",devicename,pname);
+			Free_general(pname);
+			Free_general(devicename);
 #ifdef DEBUGFULL
-			char dev_vers[MAX_LINE],dr_vers[MAX_LINE];
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_VERSION,sizeof(dev_vers),dev_vers,NULL));
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DRIVER_VERSION,sizeof(dr_vers),dr_vers,NULL));
+			char *dev_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_VERSION);
+			char *dr_vers=dyn_clGetDeviceInfo(device_id,CL_DRIVER_VERSION);
 			D("Device version: %s. Driver version: %s.\n",dev_vers,dr_vers);
+			Free_general(dev_vers);
+			Free_general(dr_vers);
 #endif
-			size_t size;
-			char *dev_ext;
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS,0,NULL,&size));
-			MALLOC_VECTOR(dev_ext,char,size,ALL);
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS,size,dev_ext,NULL));
+			cl_ulong mtot,mobj;
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,
+				NULL));
+			// round numbers are expected so .0f is used, float is just for convenience
+			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",
+				mtot/MBYTE,mobj/MBYTE);
+			char *dev_ext=dyn_clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS);
 			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
 			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
 				// fallback for old AMD GPUs
@@ -268,9 +320,11 @@ void oclinit(void)
 	properties[2]=0; // last one must be zero
 	context=clCreateContext(properties,1,&device_id,NULL,NULL,&err);
 	CL_CH_ERR(err);
+	// since we use only one context the following variables are implicitly associated with it
+	oclMem=oclMemPeak=oclMemMaxObj=0;
 
-	command_queue=
-		clCreateCommandQueue(context,device_id,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
+	// for now we use in-order execution only, since it is much safer
+	command_queue=clCreateCommandQueue(context,device_id,0,&err);
 	CL_CH_ERR(err);
 
 #ifdef OCL_READ_SOURCE_RUNTIME
@@ -302,9 +356,9 @@ void oclinit(void)
 	 * least the latter contains typecast "(cl_ulong)" which is badly interpreted by the
 	 * preprocessor. The values used should always be the same according to OpenCL standard.
 	 */
-#if (SIZE_MAX == UINT32_MAX)
+#if (SIZE_MAX==UINT32_MAX)
 	StrCatSpace(&cl_opt,"-DSIZET_UINT");
-#elif (SIZE_MAX == UINT64_MAX)
+#elif (SIZE_MAX==UINT64_MAX)
 	StrCatSpace(&cl_opt,"-DSIZET_ULONG");
 #else
 #	error "No OpenCL alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
@@ -313,18 +367,12 @@ void oclinit(void)
 	D("Building CL program with options: '%s'",cl_opt.text);
 	// special error handling to enable debugging of OpenCL kernels
 	err=clBuildProgram(program,0,NULL,cl_opt.text,NULL,NULL);
-	if (err != CL_SUCCESS) {
-		size_t size;
-		char *buffer;
-		CL_CH_ERR(clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,0,NULL,&size));
-		MALLOC_VECTOR(buffer,char,size,ALL);
-		CL_CH_ERR(clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG,size,buffer,NULL));
-		printf("size=%zu\n",size);
+	if (err!=CL_SUCCESS) {
+		char *buffer=dyn_clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG);
 		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
 		Free_general(buffer);
 		CL_CH_ERR(err);
 	}
-
 	clzero=clCreateKernel(program,"clzero",&err);
 	CL_CH_ERR(err);
 	clarith1=clCreateKernel(program,"arith1",&err);
@@ -354,6 +402,43 @@ void oclinit(void)
 #endif
 	clUnloadCompiler();
 	D("OpenCL init complete");
+}
+
+//========================================================================
+
+cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_LOC_DECL,
+	const char *name)
+// wrapper to create buffer, which also adjusts memory counts and takes care of errors
+{
+	cl_mem buf=NULL; // default value to return during prognosis
+	oclMem+=size;
+	MAXIMIZE(oclMemPeak,oclMem);
+	MAXIMIZE(oclMemMaxObj,size);
+	if (!prognosis) {
+		cl_int err;
+		buf=clCreateBuffer(context,mem_flags,size,host_ptr,&err);
+		if (err!=CL_SUCCESS)
+			PrintCLErr(err,ERR_LOC_CALL,dyn_sprintf("Failed to allocate OpenCL object '%s'",name));
+	}
+	return buf;
+}
+
+//========================================================================
+
+void my_clReleaseBuffer(cl_mem buffer)
+// wrapper to release buffer and decrease memory count
+{
+	cl_uint count;
+	clGetMemObjectInfo(buffer,CL_MEM_REFERENCE_COUNT,sizeof(count),&count,NULL);
+	if (count==1) {
+		size_t size;
+		clGetMemObjectInfo(buffer,CL_MEM_SIZE,sizeof(size),&size,NULL);
+		if (oclMem<size) LogWarning(EC_WARN,ALL_POS,"Inconsistency detected in handling OpenCL "
+			"memory: remaining memory (%zu) is larger than size of the object to be freed (%zu)",
+			oclMem,size);
+		else oclMem-=size;
+	}
+	clReleaseMemObject(buffer);
 }
 
 //========================================================================

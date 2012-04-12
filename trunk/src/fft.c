@@ -81,9 +81,13 @@ extern double igt_lim, igt_eps;
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
 // used in matvec.c
-doublecomplex * restrict Dmatrix;       // holds FFT of the interaction matrix
-doublecomplex * restrict slices;        // used in inner cycle of matvec - holds 3 components (for fixed x)
-doublecomplex * restrict slices_tr;     // additional storage space for slices to accelerate transpose
+doublecomplex * restrict Dmatrix; // holds FFT of the interaction matrix
+#ifndef OPENCL
+// holds input vector (on expanded grid) to matvec, also used as storage space in iterative.c
+doublecomplex * restrict Xmatrix;
+doublecomplex * restrict slices; // used in inner cycle of matvec - holds 3 components (for fixed x)
+doublecomplex * restrict slices_tr; // additional storage space for slices to accelerate transpose
+#endif
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D
 
 // used in comm.c
@@ -318,7 +322,7 @@ static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
 //============================================================
 
 void fftX(const int isign)
-// FFT three components of Xmatrix(x) for all y,z; called from matvec
+// FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,isign,
@@ -1180,20 +1184,17 @@ static void CalcInterTerm(const int i,const int j,const int k,doublecomplex * re
 void InitDmatrix(void)
 /* Initializes the matrix D. D[i][j][k]=A[i1-i2][j1-j2][k1-k2]. Actually D=-FFT(G)/Ngrid.
  * Then -G.x=invFFT(D*FFT(x)) for practical implementation of FFT such that invFFT(FFT(x))=Ngrid*x.
- * G is exactly Green's tensor. The routine is called only once, so needs not to be very fast,
+ * G is exactly Green's tensor. The routine is called only once, so does not need to be very fast,
  * however we tried to optimize it.
  */
 {
 	int i,j,k,kcor,Dcomp;
 	size_t x,y,z,indexfrom,indexto,ind,index,Dsize,D2sizeTot;
-	double invNgrid,mem;
+	double invNgrid;
 	int nnn; // multiplier used for reduced_FFT or not reduced; 1 or 2
 	int jstart, kstart;
 	size_t lengthN;
 	TIME_TYPE start,time1;
-#ifdef PARALLEL
-	size_t bufsize;
-#endif
 #ifdef PRECISE_TIMING
 	// precise timing of the Dmatrix computation
 	SYSTEM_TIME tvp[13];
@@ -1215,6 +1216,7 @@ void InitDmatrix(void)
 	GetTime(tvp);
 #endif
 	start=GET_TIME();
+
 	// initialize sizes of D and D2 matrices
 	D2sizeX=gridX;
 	if (reduced_FFT) {
@@ -1238,17 +1240,123 @@ void InitDmatrix(void)
 	DsizeYZ=DsizeY*DsizeZ;
 	invNgrid=1.0/(gridX*((double)gridYZ));
 	local_Nsmall=(gridX/2)*(gridYZ/(2*nprocs)); // size of X vector (for 1 component)
-	/* calculate size of matvec matrices (X,D,slices,slices_tr) and BT buffers (if parallel);
-	 * uses complex expression to avoid overflows and enable prognosis for large grids
+	// potentially this may cause unnecessary error during prognosis, but makes code cleaner
+	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS_FUNC);
+	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
+	if (IFROOT) fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
+#ifdef OPENCL // perform setting up of buffers and kernels
+	/* create all Buffers needed on Device in MatVec
+	 * When prognosis, the following code just counts required memory
 	 */
-	mem = sizeof(doublecomplex)*(3*(2+(gridX/(4.0*nprocs)))*((double)gridYZ)
-		+ NDCOMP*local_Nx*((double)DsizeYZ));
+	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
+	/* The following are constant device buffers which are initialized with host data. But
+	 * bufDmatrix is initialized in the end of this function (to be compatible with prognosis. And
+	 * bufcc_sqrt is initialized in InitCC, since it may change for every run of the iterative
+	 * solver.
+	 */
+	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
+	CREATE_CL_BUFFER(bufDmatrix,CL_MEM_READ_ONLY,Dsize*sizeof(*Dmatrix),NULL);
+	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+		local_nvoid_Ndip*sizeof(*material),material);
+	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+		local_nRows*sizeof(*position),position);
+	if (ipr_required) { // for inner product (only if it will be used afterwards)
+		memory+=local_nvoid_Ndip*sizeof(double);
+		CREATE_CL_BUFFER(bufinproduct,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL);
+		if (!prognosis) {
+			MALLOC_VECTOR(inprodhlp,double,local_nvoid_Ndip,ALL);
+			CL_CH_ERR(clSetKernelArg(clinprod,0,sizeof(cl_mem),&bufinproduct));
+			CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
+		}
+	}
+	if (!prognosis) { // Setting kernel arguments which are always the same
+		// for arith1
+		CL_CH_ERR(clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial));
+		CL_CH_ERR(clSetKernelArg(clarith1,1,sizeof(cl_mem),&bufposition));
+		CL_CH_ERR(clSetKernelArg(clarith1,2,sizeof(cl_mem),&bufcc_sqrt));
+		CL_CH_ERR(clSetKernelArg(clarith1,3,sizeof(cl_mem),&bufargvec));
+		CL_CH_ERR(clSetKernelArg(clarith1,4,sizeof(cl_mem),&bufXmatrix));
+		CL_CH_ERR(clSetKernelArg(clarith1,5,sizeof(size_t),&local_Nsmall));
+		CL_CH_ERR(clSetKernelArg(clarith1,6,sizeof(size_t),&smallY));
+		CL_CH_ERR(clSetKernelArg(clarith1,7,sizeof(size_t),&gridX));
+		// for arith2
+		CL_CH_ERR(clSetKernelArg(clarith2,0,sizeof(cl_mem),&bufXmatrix));
+		CL_CH_ERR(clSetKernelArg(clarith2,1,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(clarith2,2,sizeof(size_t),&gridZ));
+		CL_CH_ERR(clSetKernelArg(clarith2,3,sizeof(size_t),&smallY));
+		CL_CH_ERR(clSetKernelArg(clarith2,4,sizeof(size_t),&gridX));
+		CL_CH_ERR(clSetKernelArg(clarith2,5,sizeof(size_t),&gridYZ));
+		CL_CH_ERR(clSetKernelArg(clarith2,6,sizeof(size_t),&local_Nsmall));
+		// for arith3
+		CL_CH_ERR(clSetKernelArg(clarith3,0,sizeof(cl_mem),&bufslices_tr));
+		CL_CH_ERR(clSetKernelArg(clarith3,1,sizeof(cl_mem),&bufDmatrix));
+		CL_CH_ERR(clSetKernelArg(clarith3,2,sizeof(size_t),&local_x0));
+		CL_CH_ERR(clSetKernelArg(clarith3,3,sizeof(size_t),&smallY));
+		CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(size_t),&smallZ));
+		CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(size_t),&gridX));
+		CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(size_t),&DsizeY));
+		CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(size_t),&DsizeZ));
+		// for arith4
+		CL_CH_ERR(clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix));
+		CL_CH_ERR(clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(clarith4,2,sizeof(size_t),&gridZ));
+		CL_CH_ERR(clSetKernelArg(clarith4,3,sizeof(size_t),&smallY));
+		CL_CH_ERR(clSetKernelArg(clarith4,4,sizeof(size_t),&gridX));
+		CL_CH_ERR(clSetKernelArg(clarith4,5,sizeof(size_t),&gridYZ));
+		CL_CH_ERR(clSetKernelArg(clarith4,6,sizeof(size_t),&local_Nsmall));
+		// for arith5
+		CL_CH_ERR(clSetKernelArg(clarith5,0,sizeof(cl_mem),&bufmaterial));
+		CL_CH_ERR(clSetKernelArg(clarith5,1,sizeof(cl_mem),&bufposition));
+		CL_CH_ERR(clSetKernelArg(clarith5,2,sizeof(cl_mem),&bufcc_sqrt));
+		CL_CH_ERR(clSetKernelArg(clarith5,3,sizeof(cl_mem),&bufargvec));
+		CL_CH_ERR(clSetKernelArg(clarith5,4,sizeof(cl_mem),&bufXmatrix));
+		CL_CH_ERR(clSetKernelArg(clarith5,5,sizeof(size_t),&local_Nsmall));
+		CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(size_t),&smallY));
+		CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(size_t),&gridX));
+		CL_CH_ERR(clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec));
+		// for transpose forward
+		CL_CH_ERR(clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr));
+		CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(size_t),&gridZ));
+		CL_CH_ERR(clSetKernelArg(cltransposef,3,sizeof(size_t),&gridY));
+		// for transpose backward
+		CL_CH_ERR(clSetKernelArg(cltransposeb,0,sizeof(cl_mem),&bufslices_tr));
+		CL_CH_ERR(clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(size_t),&gridY));
+		CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(size_t),&gridZ));
+		//faster transpose kernel with cache
+		//(maybe not faster for all sizes so keep the old kernel for special conditions)
+		CL_CH_ERR(clSetKernelArg(cltransposeof,0,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
+		CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(size_t),&gridZ));
+		CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(size_t),&gridY));
+		//setting up local cache size as 17*16*3 elements
+		//note: a block is only 16*16, but 1*16 stride is needed
+		//to avoid bank conflicts
+		CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(size_t),&gridY));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(size_t),&gridZ));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
+	}
+#endif
+	MAXIMIZE(memPeak,memory);
+	// objects which are always allocated (at least temporarily): Dmatrix,D2matrix,slice,slice_tr
+	memPeak+=sizeof(doublecomplex)*((double)Dsize+D2sizeTot+2*gridYZ);
+#ifndef OPENCL
+	// allocated memory that is used further on, not relevant for OpenCL version
+	double mem=sizeof(doublecomplex)*((double)Dsize+3*local_Nsmall+6*gridYZ);
 #ifdef PARALLEL
-	mem+=12*smallY*((double)(local_Nz*local_Nx))*sizeof(double);
+	size_t BTsize = 6*smallY*local_Nz*local_Nx; // in doubles
+	mem+=2*BTsize*sizeof(double);
 #endif
 	// printout some information
 	if (IFROOT) {
-		fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
 #ifdef PARALLEL
 		PrintBoth(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",
 			mem/MBYTE);
@@ -1257,31 +1365,26 @@ void InitDmatrix(void)
 #endif
 	}
 	memory+=mem;
-#ifdef OPENCL // additional memory for OpenCL implementation of inner product in MatVec
-	if (ipr_required) memory+=local_nvoid_Ndip*sizeof(double);
 #endif
 	if (prognosis) return;
 	// allocate memory for Dmatrix
-	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS_FUNC);
 	MALLOC_VECTOR(Dmatrix,complex,Dsize,ALL);
 	// allocate memory for D2matrix components
-	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
 	MALLOC_VECTOR(D2matrix,complex,D2sizeTot,ALL);
 	MALLOC_VECTOR(slice,complex,gridYZ,ALL);
 	MALLOC_VECTOR(slice_tr,complex,gridYZ,ALL);
 	// actually allocation of Xmatrix, slices, slices_tr is below after freeing of Dmatrix and its slice
 #ifdef PARALLEL
 	// allocate buffer for BlockTranspose_Dm
-	bufsize = 2*lengthN*D2sizeY*local_Nx;
+	size_t bufsize = 2*lengthN*D2sizeY*local_Nx;
 	MALLOC_VECTOR(BT_buffer,double,bufsize,ALL);
 	MALLOC_VECTOR(BT_rbuffer,double,bufsize,ALL);
 #endif
 	D("Initialize FFT (1st part)");
 	fftInitBeforeD(lengthN);
-
 #ifdef PRECISE_TIMING
 	GetTime(tvp+1);
-	Elapsed(tvp,tvp+1,&Timing_beg);
+	Elapsed(tvp,tvp+1,&Timing_beg); // it includes a lot of OpenCL stuff
 #endif
 	if (IFROOT) printf("Calculating Green's function (Dmatrix)\n");
 	/* Interaction matrix values are calculated all at once for performance reasons. They are stored
@@ -1313,7 +1416,7 @@ void InitDmatrix(void)
 #ifdef PRECISE_TIMING
 		GetTime(tvp+2); // same as the last before cycle
 #endif
-		// fill D2matrix with precomputed values from D2matrix
+		// fill D2matrix with precomputed values from Dmatrix
 		for (ind=0;ind<D2sizeTot;ind++) cEqual(Dmatrix[NDCOMP*ind+Dcomp],D2matrix[ind]);
 #ifdef PRECISE_TIMING
 		GetTime(tvp+3);
@@ -1395,131 +1498,27 @@ void InitDmatrix(void)
 	Free_general(BT_buffer);
 	Free_general(BT_rbuffer);
 	// allocate buffers for BlockTranspose
-	bufsize = 6*smallY*local_Nz*local_Nx; // in doubles
-	MALLOC_VECTOR(BT_buffer,double,bufsize,ALL);
-	MALLOC_VECTOR(BT_rbuffer,double,bufsize,ALL);
+	MALLOC_VECTOR(BT_buffer,double,BTsize,ALL);
+	MALLOC_VECTOR(BT_rbuffer,double,BTsize,ALL);
 #endif
+#ifdef OPENCL
+	// copy Dmatrix to OpenCL buffer, blocking to ensure completion before function end
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,Dsize*sizeof(*Dmatrix),
+		Dmatrix,0,NULL,NULL));
+	Free_cVector(Dmatrix);
+#else
 	// allocate memory for Xmatrix, slices and slices_tr - used in matvec
 	MALLOC_VECTOR(Xmatrix,complex,3*local_Nsmall,ALL);
 	MALLOC_VECTOR(slices,complex,3*gridYZ,ALL);
 	MALLOC_VECTOR(slices_tr,complex,3*gridYZ,ALL);
-
+#endif
 	if (IFROOT) printf("\n");
 	time1=GET_TIME();
 	Timing_Dm_Init=time1-start;
-#ifdef OPENCL // perform setting up of buffers and kernels
-	cl_int err; // error code
-	// create all Buffers needed on Device in MatVec
-	bufXmatrix=clCreateBuffer(context,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL,
-		&err);
-	CL_CH_ERR(err);
-	bufcc_sqrt=clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL,&err);
-	CL_CH_ERR(err);
-	bufargvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL,&err);
-	CL_CH_ERR(err);
-	bufresultvec=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL,
-		&err);
-	CL_CH_ERR(err);
-	bufslices=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL,&err);
-	CL_CH_ERR(err);
-	bufslices_tr=clCreateBuffer(context,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL,&err);
-	CL_CH_ERR(err);
-	if (ipr_required) {
-		bufinproduct=clCreateBuffer(context,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL,
-			&err);
-		CL_CH_ERR(err);
-	}
-	// the following are constant device buffers which are initialized with host data
-	bufDmatrix=clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		Dsize*sizeof(doublecomplex),Dmatrix,&err);
-	CL_CH_ERR(err);
-	bufmaterial=clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		local_nvoid_Ndip*sizeof(*material),material,&err);
-	CL_CH_ERR(err);
-	bufposition = clCreateBuffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		local_nRows*sizeof(*position),position,&err);
-	CL_CH_ERR(err);
-	// setting kernel arguments since they are always the same
-	// for Arith1
-	CL_CH_ERR(clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial));
-	CL_CH_ERR(clSetKernelArg(clarith1,1,sizeof(cl_mem),&bufposition));
-	CL_CH_ERR(clSetKernelArg(clarith1,2,sizeof(cl_mem),&bufcc_sqrt));
-	CL_CH_ERR(clSetKernelArg(clarith1,3,sizeof(cl_mem),&bufargvec));
-	CL_CH_ERR(clSetKernelArg(clarith1,4,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith1,5,sizeof(size_t),&local_Nsmall));
-	CL_CH_ERR(clSetKernelArg(clarith1,6,sizeof(size_t),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith1,7,sizeof(size_t),&gridX));
-	// for arith2
-	CL_CH_ERR(clSetKernelArg(clarith2,0,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith2,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(clarith2,2,sizeof(size_t),&gridZ));
-	CL_CH_ERR(clSetKernelArg(clarith2,3,sizeof(size_t),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith2,4,sizeof(size_t),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith2,5,sizeof(size_t),&gridYZ));
-	CL_CH_ERR(clSetKernelArg(clarith2,6,sizeof(size_t),&local_Nsmall));
-	// for arith3
-	CL_CH_ERR(clSetKernelArg(clarith3,0,sizeof(cl_mem),&bufslices_tr));
-	CL_CH_ERR(clSetKernelArg(clarith3,1,sizeof(cl_mem),&bufDmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith3,2,sizeof(size_t),&local_x0));
-	CL_CH_ERR(clSetKernelArg(clarith3,3,sizeof(size_t),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(size_t),&smallZ));
-	CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(size_t),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(size_t),&DsizeY));
-	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(size_t),&DsizeZ));
-	// for arith4
-	CL_CH_ERR(clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(clarith4,2,sizeof(size_t),&gridZ));
-	CL_CH_ERR(clSetKernelArg(clarith4,3,sizeof(size_t),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith4,4,sizeof(size_t),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith4,5,sizeof(size_t),&gridYZ));
-	CL_CH_ERR(clSetKernelArg(clarith4,6,sizeof(size_t),&local_Nsmall));
-	// for arith5
-	CL_CH_ERR(clSetKernelArg(clarith5,0,sizeof(cl_mem),&bufmaterial));
-	CL_CH_ERR(clSetKernelArg(clarith5,1,sizeof(cl_mem),&bufposition));
-	CL_CH_ERR(clSetKernelArg(clarith5,2,sizeof(cl_mem),&bufcc_sqrt));
-	CL_CH_ERR(clSetKernelArg(clarith5,3,sizeof(cl_mem),&bufargvec));
-	CL_CH_ERR(clSetKernelArg(clarith5,4,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clSetKernelArg(clarith5,5,sizeof(size_t),&local_Nsmall));
-	CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(size_t),&smallY));
-	CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(size_t),&gridX));
-	CL_CH_ERR(clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec));
-	// for transpose forward
-	CL_CH_ERR(clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr));
-	CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(size_t),&gridZ));
-	CL_CH_ERR(clSetKernelArg(cltransposef,3,sizeof(size_t),&gridY));
-	// for transpose backward
-	CL_CH_ERR(clSetKernelArg(cltransposeb,0,sizeof(cl_mem),&bufslices_tr));
-	CL_CH_ERR(clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices));
-	CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(size_t),&gridY));
-	CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(size_t),&gridZ));
-	//faster transpose kernel with cache 
-	//(maybe not faster for all sizes so keep the old kernel for special conditions)
-    CL_CH_ERR(clSetKernelArg(cltransposeof,0,sizeof(cl_mem),&bufslices));
-    CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
-    CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(size_t),&gridZ));
-    CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(size_t),&gridY));
-	//setting up local cache size as 17*16*3 elements
-	//note: a block is only 16*16, but 1*16 stride is needed
-	//to avoid bank conflicts
-    CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(size_t),&gridY));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(size_t),&gridZ));
-    CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
-	
-	// for inner product (only if it will be used afterwards)
-	if (ipr_required) {
-		CL_CH_ERR(clSetKernelArg(clinprod,0,sizeof(cl_mem),&bufinproduct));
-		CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
-		MALLOC_VECTOR(inprodhlp,double,local_nvoid_Ndip,ALL);
-	}
-#endif
+
 #ifdef PRECISE_TIMING
 	GetTime(tvp+12);
-	// time for extra initialization required for MatVec; it includes a lot of OpenCL stuff
+	// time for extra initialization required for MatVec; it includes copying Dmatrix to GPU
 	t_InitMV=DiffSec(tvp+11,tvp+12);
 	// analyze and print precise timing information
 	t_beg=TimerToSec(&Timing_beg);
@@ -1564,38 +1563,42 @@ void InitDmatrix(void)
 void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)
 {
-	Free_cVector(Dmatrix);
-	Free_cVector(Xmatrix);
-	Free_cVector(slices);
-	Free_cVector(slices_tr);
-#ifdef PARALLEL
-	Free_general(BT_buffer);
-	Free_general(BT_rbuffer);
-#endif
 #ifdef OPENCL
-	clReleaseMemObject(bufXmatrix);
-	clReleaseMemObject(bufmaterial);
-	clReleaseMemObject(bufposition);
-	clReleaseMemObject(bufcc_sqrt);
-	clReleaseMemObject(bufargvec);
-	clReleaseMemObject(bufresultvec);
-	clReleaseMemObject(bufslices);
-	clReleaseMemObject(bufslices_tr);
-	clReleaseMemObject(bufDmatrix);
+	my_clReleaseBuffer(bufXmatrix);
+	my_clReleaseBuffer(bufmaterial);
+	my_clReleaseBuffer(bufposition);
+	my_clReleaseBuffer(bufcc_sqrt);
+	my_clReleaseBuffer(bufargvec);
+	my_clReleaseBuffer(bufresultvec);
+	my_clReleaseBuffer(bufslices);
+	my_clReleaseBuffer(bufslices_tr);
+	my_clReleaseBuffer(bufDmatrix);
 	if (ipr_required) {
-		clReleaseMemObject(bufinproduct);
+		my_clReleaseBuffer(bufinproduct);
 		Free_general(inprodhlp);
 	}
 	clFFT_DestroyPlan(clplanX);
 	clFFT_DestroyPlan(clplanY);
 	clFFT_DestroyPlan(clplanZ);
-#elif defined(FFTW3) // these plans are defined only when OpenCL is not used
+	if (oclMem>0) LogWarning(EC_WARN,ALL_POS,
+		"Possible leak of OpenCL memory (size %zu bytes) detected",oclMem);
+#else
+	Free_cVector(Dmatrix);
+	Free_cVector(Xmatrix);
+	Free_cVector(slices);
+	Free_cVector(slices_tr);
+#	ifdef PARALLEL
+	Free_general(BT_buffer);
+	Free_general(BT_rbuffer);
+#	endif
+#	ifdef FFTW3 // these plans are defined only when OpenCL is not used
 	fftw_destroy_plan(planXf);
 	fftw_destroy_plan(planXb);
 	fftw_destroy_plan(planYf);
 	fftw_destroy_plan(planYb);
 	fftw_destroy_plan(planZf);
 	fftw_destroy_plan(planZb);
+#	endif
 #endif
 #ifdef FFT_TEMPERTON // these vectors are used even with OpenCL
 	Free_general(work);

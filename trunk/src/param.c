@@ -1678,6 +1678,7 @@ void InitVariables(void)
 	save_memory=false;
 	sg_format=SF_TEXT;
 	memory=0;
+	memPeak=0;
 	Ncomp=1;
 	igt_lim=UNDEF;
 	igt_eps=UNDEF;
