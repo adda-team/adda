@@ -17,9 +17,10 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#ifndef CL_VERSION_1_0
-#	error "OpenCL version at least 1.0 is required"
-#endif
+// Somehow current AMD drivers do not define CL_VERSION_1_0 when compiling OpenCL kernels
+//#ifndef CL_VERSION_1_0
+//#	error "OpenCL version at least 1.0 is required"
+//#endif
 
 #ifdef USE_DOUBLE
 #	ifdef DOUBLE_AMD
