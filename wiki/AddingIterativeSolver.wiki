@@ -50,6 +50,6 @@ ITER_FUNC(_name_)
    * Analogously update the code for freeing those vectors in the function `FreeEverything`.
 
 
-Please refer to section _Iterative Solvers_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for general overview of how the iterative solvers operate inside *ADDA*.
+Please refer to section _Iterative Solvers_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for general overview of how the iterative solvers operate inside `ADDA`.
 
-If you add a new iterative solver to *ADDA* according to the described procedure, please consider [InstructionCommitters contributing your code] to be incorporated in future releases.
+If you add a new iterative solver to `ADDA` according to the described procedure, please consider [InstructionCommitters contributing your code] to be incorporated in future releases.

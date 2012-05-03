@@ -4,7 +4,7 @@
 
 = Introduction =
 
-If you have decided to contribute your code to *ADDA*, probably you want to implement a new feature of fix a nasty bug. In that case, please first search the [http://code.google.com/p/a-dda/issues/list issue tracker] for the corresponding issue. If no suitable issue is found, submit a new one. A careful description of an issue with possible additions or changes from other developers is a key to easy incorporation of the new features into the main *ADDA* code.
+If you have decided to contribute your code to `ADDA`, probably you want to implement a new feature of fix a nasty bug. In that case, please first search the [http://code.google.com/p/a-dda/issues/list issue tracker] for the corresponding issue. If no suitable issue is found, submit a new one. A careful description of an issue with possible additions or changes from other developers is a key to easy incorporation of the new features into the main `ADDA` code.
 
 Before you contribute your code, please try to make it readable and include enough comments, so the others may understand and modify it. There are many guides on good coding practices (see, e.g., [http://www.teamten.com/lawrence/style/notes.html 1] and [http://www.ibm.com/developerworks/aix/library/au-hook_duttaC.html 2]), which to some extent contradict each other. A good idea is to adhere to the (typographic) code style, which is already used throughout the code. [http://code.google.com/p/a-dda/issues/detail?id=74 We also plan] to provide an explicit style guide.
 
@@ -14,7 +14,7 @@ Particular actions required to contribute your code depend on the size and natur
 
 = Submitting a patch =
 
-This way is recommended if your piece of code is relatively simple, addresses a particular issue, and should not interfere with other parts of *ADDA* code. The action plan is the following: 
+This way is recommended if your piece of code is relatively simple, addresses a particular issue, and should not interfere with other parts of `ADDA` code. The action plan is the following: 
  * Get the current source
 {{{
 svn checkout http://a-dda.googlecode.com/svn/trunk/ adda
@@ -31,7 +31,7 @@ Developers will evaluate the patch and, if considered suitable, apply it. Your c
 
 = Becoming an official contributor =
 
-This is recommended if you want to submit several patches or implement a complex new feature. To become *ADDA* contributor you need a Google account (you may use Gmail, or tie it to any other e-mail address) and to contact [mailto:yurkin@gmail.com Maxim Yurkin] describing your plans for new code. Please note that your account name may be visible on some *ADDA* web pages (also you can control it to some extent at [https://code.google.com/hosting/settings Google Code settings]).
+This is recommended if you want to submit several patches or implement a complex new feature. To become `ADDA` contributor you need a Google account (you may use Gmail, or tie it to any other e-mail address) and to contact [mailto:yurkin@gmail.com Maxim Yurkin] describing your plans for new code. Please note that your account name may be visible on some `ADDA` web pages (also you can control it to some extent at [https://code.google.com/hosting/settings Google Code settings]).
 
 Next, your account name will be added to the project, and will be included in the [http://code.google.com/p/a-dda/people/list people list]. Please also add a short description of yourself to the right column of this list. You will also be subscribed to the [http://groups.google.com/group/adda-develop developers mailing list] to be automatically notified of changes to the source code. Being a contributor adds some responsibility since you have access to the source code, issue tracker, and wiki pages. But do not worry - the main idea of the version control system is that anything can be undone. So you can not possibly break anything.
 
@@ -51,7 +51,7 @@ svn checkout https://a-dda.googlecode.com/svn/trunk/ adda --username <your usern
 {{{
 svn add <filename1> <filename2> ...
 }}}
- If you add text source files (typical), also set svn properties. The default values, used throughout the *ADDA* source, can be applied as follows
+ If you add text source files (typical), also set svn properties. The default values, used throughout the `ADDA` source, can be applied as follows
 {{{
 svn propset svn:eol-style native <filename1> <filename2> ...
 svn propset svn:keywords "Author Date Id Revision" <filename1> <filename2> ...
@@ -113,15 +113,15 @@ See [http://svnbook.red-bean.com/en/1.6/svn.branchmerge.html the chapter of Subv
 
 = Contributing additional tools, scripts, etc. =
 
-If you intensively use *ADDA* in your research, you probably have devised some tricks to make this process faster, more convenient, and less error-prone. Or you may have been so desperate to wait for implementation of a particular new *ADDA* feature that you devised a dirty but effective workaround. Either way, if you have something that anyhow enhances *ADDA* functionality, please consider sharing it with other users.
+If you intensively use `ADDA` in your research, you probably have devised some tricks to make this process faster, more convenient, and less error-prone. Or you may have been so desperate to wait for implementation of a particular new `ADDA` feature that you devised a dirty but effective workaround. Either way, if you have something that anyhow enhances `ADDA` functionality, please consider sharing it with other users.
 
-There is a special place in [PackageDescription ADDA package] for this purpose - [http://code.google.com/p/a-dda/source/browse/#svn%2Ftrunk%2Fmisc misc/] directory. It is distributed with *ADDA* but is not tightly integrated with the main code. The latter implies two advantages:
+There is a special place in [PackageDescription ADDA package] for this purpose - [http://code.google.com/p/a-dda/source/browse/#svn%2Ftrunk%2Fmisc misc/] directory. It is distributed with `ADDA` but is not tightly integrated with the main code. The latter implies two advantages:
  * Almost anything can be contributed: bash or python scripts, Windows `*.bat` files, source codes in C, Fortran, Matlab, Mathematica, etc., even binary executables.
- * You do not need to worry about the future *ADDA* development and backward compatibility.
+ * You do not need to worry about the future `ADDA` development and backward compatibility.
 
-Of course, the amount of potential users of your tool depends on its portability (supported operating systems and whether it requires proprietary software to run) and amount of time you invested to polish the tool and its documentation. But even if you contribute the version, which you use yourself, it may benefit other people. The tool does not need to be perfect from the beginning. Moreover, as soon as you put your tool in the *ADDA* repository other people may also improve it.
+Of course, the amount of potential users of your tool depends on its portability (supported operating systems and whether it requires proprietary software to run) and amount of time you invested to polish the tool and its documentation. But even if you contribute the version, which you use yourself, it may benefit other people. The tool does not need to be perfect from the beginning. Moreover, as soon as you put your tool in the `ADDA` repository other people may also improve it.
 
-The easiest way to contribute your tool is to give it as-is through the [http://groups.google.com/group/adda-discuss discussion group], [http://code.google.com/p/a-dda/issues/list issue tracker], or contacting [http://code.google.com/p/a-dda/people/list developers] directly. The developers will place your tool in an appropriate place inside `misc/`. We only ask that you include a short description of the tool, e.g. in a text file. Please also specify examples of usage and a particular version of *ADDA*, with which the tool was used (tested). If you have a relevant publication, in which your tool is described or used, include it in the description and ask others to cite your paper when they use your tool.
+The easiest way to contribute your tool is to give it as-is through the [http://groups.google.com/group/adda-discuss discussion group], [http://code.google.com/p/a-dda/issues/list issue tracker], or contacting [http://code.google.com/p/a-dda/people/list developers] directly. The developers will place your tool in an appropriate place inside `misc/`. We only ask that you include a short description of the tool, e.g. in a text file. Please also specify examples of usage and a particular version of `ADDA`, with which the tool was used (tested). If you have a relevant publication, in which your tool is described or used, include it in the description and ask others to cite your paper when they use your tool.
 
 However, if you can invest a little bit more time, please consider [InstructionCommitters#Becoming_an_official_contributor becoming the official contributor]. After that you can commit your tool directly and make any changes in the future. The additional effort required from you is quite small since you do not need to worry about interaction with other developers (branches, etc.). In other words, you directory inside `misc/` is like a branch itself. The procedure is similar to the one described [InstructionCommitters#Committing_minor_changes above], the only difference is that all changes are localized inside `misc/` directory.
  * Checkout the current `misc/` directory

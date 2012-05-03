@@ -3,7 +3,7 @@
 <wiki:toc/>
 
 = Basic installation =
-To be able to compile *ADDA* on Windows you need to install MSYS and MinGW. 
+To be able to compile `ADDA` on Windows you need to install MSYS and MinGW. 
 
 [http://www.mingw.org/wiki/MSYS MSYS] is a collection of 32-bit Unix system utils, such as `make`, which work fine with both 32- and 64-bit Windows. To install it do the following (based on [http://mingw.org/wiki/Getting_Started MinGW instructions]):
  * Download the latest version of the [http://sourceforge.net/projects/mingw/files/Installer/mingw-get/ mingw-get] installer and extract the files to the `C:\MinGW` folder. Other paths can also be used.
@@ -28,10 +28,10 @@ mingw-get install gcc fortran c++
   == 64-bit Windows ==
   A 64-bit alternative to the MinGW is [http://mingw-w64.sourceforge.net/ MinGW-w64 project]. To make installation easier it is recommended to use [http://tdm-gcc.tdragon.net/ TDM-GCC interface]. You need only to download and run an [http://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/tdm-gcc-webdl.exe/download installer] and specify the packages, you want to install. The default installation includes `gcc`, `g++`, and `gdb`. You need to also to check "Components -> gcc -> Fortran" to install `gfortran`. The installer will take care of everything else, including modification of `PATH` environmental variable. By default, the installation directory is `C:\MinGW64`.
 
-Now you are ready to compile *ADDA*. The only drawback of the concise procedure, described above, is that you need to manually specify include and library paths for external packages, such as [InstallingFFTW3 FFTW 3], in makefiles.
+Now you are ready to compile `ADDA`. The only drawback of the concise procedure, described above, is that you need to manually specify include and library paths for external packages, such as [InstallingFFTW3 FFTW 3], in makefiles.
 
 = Advanced options =
-These options may be of interest to developers or to those, who plan to compile *ADDA* many times with different options. These steps should be performed after the basic steps, described above.
+These options may be of interest to developers or to those, who plan to compile `ADDA` many times with different options. These steps should be performed after the basic steps, described above.
 
 To avoid need to manually  specify include and library paths for external packages in makefiles, do the following (based on [http://www.mingw.org/wiki/SpecsFileHOWTO MinGW instructions]): 
  * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], or [OpenCL OpenCL]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
@@ -73,7 +73,7 @@ c:/MinGW/msys/1.0/local/
 %D %(local_lib_search)
 }}}
 
-To debug *ADDA*, `gdb` need to be installed. This is done automatically during the installation of TDM_GCC for 64-bit Windows, described above. To install `gdb` in the MinGW environment for 32-bit Windows, run  
+To debug `ADDA`, `gdb` need to be installed. This is done automatically during the installation of TDM_GCC for 64-bit Windows, described above. To install `gdb` in the MinGW environment for 32-bit Windows, run  
 {{{
 mingw-get gdb
 }}}

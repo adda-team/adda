@@ -5,24 +5,24 @@
 
 = Introduction =
 
-The simplest way to compile *ADDA* is using the provided `Makefile`. This can be done on any system with [http://www.gnu.org/software/make/ GNU make] and C, Fortran, and C++ compilers installed, which includes but not limited to almost all Unix-type systems. Core parts of *ADDA* are written in C, while Fortran and C++ are used for relatively small parts that are not always required (see below).
+The simplest way to compile `ADDA` is using the provided `Makefile`. This can be done on any system with [http://www.gnu.org/software/make/ GNU make] and C, Fortran, and C++ compilers installed, which includes but not limited to almost all Unix-type systems. Core parts of `ADDA` are written in C, while Fortran and C++ are used for relatively small parts that are not always required (see below).
 
 Position yourself in the `src/` directory of the [PackageDescription ADDA package] and type "`make seq`", "`make mpi`", or "`make ocl`" to compile the sequential, MPI, or OpenCL version respectively (on some systems, GNU `make` is available under a different name, e.g. `gmake`) . Compiled executables are then `src/seq/adda`, `src/mpi/adda_mpi`, and `src/ocl/adda_ocl` respectively. Full list of possible targets (arguments to `make`) is the following:
 
 || `all` || The default target (if none is specified). Invokes `seq`, `mpi`, and `ocl`. ||
-|| `seq` || Compiles sequential executable of *ADDA*. ||
-|| `mpi` || Compiles parallel ([http://www.mpi-forum.org/ MPI]) executable of *ADDA*. ||
-|| `ocl` || Compiles [http://www.khronos.org/opencl/ OpenCL] (GPU accelerated) executable of *ADDA* ||
+|| `seq` || Compiles sequential executable of `ADDA`. ||
+|| `mpi` || Compiles parallel ([http://www.mpi-forum.org/ MPI]) executable of `ADDA`. ||
+|| `ocl` || Compiles [http://www.khronos.org/opencl/ OpenCL] (GPU accelerated) executable of `ADDA` ||
 || `clean` || Removes all files produced during compilation. Invokes `cleanseq`, `cleanmpi`, and `cleanocl`. ||
 || `cleanseq` || Removes files produced during compilation of sequential version (located in `src/seq/`). ||
 || `cleanmpi` || Removes files produced during compilation of MPI version (located in `src/mpi/`). ||
 || `cleanocl` || Removes files produced during compilation of OpenCL version (located in `src/ocl/`). ||
 
-The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover, MPI version of *ADDA* requires [InstallingMPI installed MPI implementation]. Using the latter, *ADDA* can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. 
+The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover, MPI version of `ADDA` requires [InstallingMPI installed MPI implementation]. Using the latter, `ADDA` can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. 
 
-The OpenCL version of *ADDA* is designed to use graphic cards (GPUs) to accelerate computations. It requires [OpenCL OpenCL to be installed properly] and a C++ compiler (for its FFT routines). The future goal is to make OpenCL version capable of running on other compatible hardware, including hybrid CPU-GPUs and [http://en.wikipedia.org/wiki/Cell_(microprocessor) Cell processors]. 
+The OpenCL version of `ADDA` is designed to use graphic cards (GPUs) to accelerate computations. It requires [OpenCL OpenCL to be installed properly] and a C++ compiler (for its FFT routines). The future goal is to make OpenCL version capable of running on other compatible hardware, including hybrid CPU-GPUs and [http://en.wikipedia.org/wiki/Cell_(microprocessor) Cell processors]. 
 
-*ADDA* is fully ready for 64-bit mode, which allows it to use practically unlimited memory per single process. Moreover, it will automatically compile as such in a 64-bit operating system.
+`ADDA` is fully ready for 64-bit mode, which allows it to use practically unlimited memory per single process. Moreover, it will automatically compile as such in a 64-bit operating system.
 
 = Compilation options =
 
@@ -44,18 +44,18 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || || `DEBUG` || Turns on producing debug symbols (`-g`) and warnings by the compiler and slightly reduces optimization level. This option is irrelevant, if `DEBUGFULL` is used. ||
 || || `DEBUGFULL` || Same as `DEBUG`, but turns off optimization completely and turns on additional diagnostic messages in the source code. ||
 || || `FFT_TEMPERTON` || Uses built-in FFT routines by C. Temperton. This is recommended if you have problems installing FFTW3. ||
-|| || `PRECISE_TIMING` || Enables precise timing routines, which give extensive timing of all the computation parts of *ADDA*, useful for debugging or optimization studies. ||
+|| || `PRECISE_TIMING` || Enables precise timing routines, which give extensive timing of all the computation parts of `ADDA`, useful for debugging or optimization studies. ||
 || || `NOT_USE_LOCK` || Does not use file locking for `ExpCount` at all. Enable this flag if you get compilation errors due to unsupported operation system (e.g. issue 83) or experience permanent locks. ||
-|| || `ONLY_LOCKFILE` || Uses lock file to lock `ExpCount`, but do not additionally lock this file. Use it if you get warnings when running *ADDA* stating that your system does not support advanced file locking. This option is irrelevant for non-POSIX systems or if `NOT_USE_LOCK` is used. ||
-|| || `NO_FORTRAN` || Disables compilation of all Fortran sources. Use it only if compilation of these files causes problems. Corresponding *ADDA* features, namely integration of Green's tensor (`-int igt`), are then disabled. Also, this option is incompatible with `FFT_TEMPERTON`. ||
+|| || `ONLY_LOCKFILE` || Uses lock file to lock `ExpCount`, but do not additionally lock this file. Use it if you get warnings when running `ADDA` stating that your system does not support advanced file locking. This option is irrelevant for non-POSIX systems or if `NOT_USE_LOCK` is used. ||
+|| || `NO_FORTRAN` || Disables compilation of all Fortran sources. Use it only if compilation of these files causes problems. Corresponding `ADDA` features, namely integration of Green's tensor (`-int igt`), are then disabled. Also, this option is incompatible with `FFT_TEMPERTON`. ||
 || || `NO_CPP` || Disables compilation of all C++ sources. Use it only if compilation of these files causes problems. Currently, it is only relevant for OpenCL version (and is incompatible with its normal compilation). ||
-|| || `OVERRIDE_STDC_TEST` || Disables compilation errors if compiler does not declare its [http://www.open-std.org/JTC1/SC22/WG14/www/standards C99] conformance. Use it only if you are sure that compiler supports those C99 features that are essential for *ADDA*. ||
-|| || `OCL_READ_SOURCE_RUNTIME` || Enables reading of OpenCL sources from file during the runtime of *ADDA*. This option is recommended if the default way (incorporating it into *ADDA* executable) is not working. The drawback is that [http://code.google.com/p/a-dda/source/browse/trunk/src/oclkernels.cl oclkernels.cl] should be moved together with executable. ||
+|| || `OVERRIDE_STDC_TEST` || Disables compilation errors if compiler does not declare its [http://www.open-std.org/JTC1/SC22/WG14/www/standards C99] conformance. Use it only if you are sure that compiler supports those C99 features that are essential for `ADDA`. ||
+|| || `OCL_READ_SOURCE_RUNTIME` || Enables reading of OpenCL sources from file during the runtime of `ADDA`. This option is recommended if the default way (incorporating it into `ADDA` executable) is not working. The drawback is that [http://code.google.com/p/a-dda/source/browse/trunk/src/oclkernels.cl oclkernels.cl] should be moved together with executable. ||
 || `EXTRA_FLAGS` || any || Additional flags to be passed to the compiler (for all languages). For instance, `-m32` to compile 32-bit binaries in a 64-bit environment. ||
 || `FFTW3_INC_PATH` || path || Path to FFTW3 headers. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. || 
 || `FFTW3_LIB_PATH` || path || Path to FFTW3 library. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. ||
 
-Although [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] contain options for several compilers, described above, the new releases are usually tested only with GNU and Intel compilers. So the options for other compilers may be outdated. If you modify these options to successfully compile the current version of *ADDA*, please communicate these modifications to the [http://groups.google.com/group/adda-discuss discussion group], so they can be incorporated in future releases.
+Although [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] contain options for several compilers, described above, the new releases are usually tested only with GNU and Intel compilers. So the options for other compilers may be outdated. If you modify these options to successfully compile the current version of `ADDA`, please communicate these modifications to the [http://groups.google.com/group/adda-discuss discussion group], so they can be incorporated in future releases.
 
 To use `COMPILER=other` one should manually add definitions of corresponding compiler flags to the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile], according to the pattern used for predefined compilers, after the line
 {{{
@@ -70,8 +70,8 @@ If compilation of OpenCL version does not work out-of-box, you may need to modif
 When asked to repeat compilation, `make` automatically determines, which source files need to be recompiled. Apart from changes in the source files themselves the logic of `Makefile` also considers the differences in compilation options between current and previous compilation. Thus, it is not necessary to perform any cleaning between the compilations with different options.
 
 = Different platforms =
-*ADDA* is intended to be portable to as wide range of platforms as possible. There are only two operating-system-dependent aspects of *ADDA*: precise timing and file locking. Both are optional (controlled by compilation flags, see above) and should be functional on any Windows or POSIX-compliant (Unix) operating system.
+`ADDA` is intended to be portable to as wide range of platforms as possible. There are only two operating-system-dependent aspects of `ADDA`: precise timing and file locking. Both are optional (controlled by compilation flags, see above) and should be functional on any Windows or POSIX-compliant (Unix) operating system.
 
-GNU `make` and GNU compiler collection has been ported to a wide variety of platforms (including Windows). This makes it possible to compile *ADDA* on all of these platforms exactly as described above. If for some reason it doesn't work, one may compile all source files (with maximum possible optimizations) and link them into an executable. In that case adjusting some of compilation options is possible by uncommenting defines in corresponding header files (see comments in the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile]).
+GNU `make` and GNU compiler collection has been ported to a wide variety of platforms (including Windows). This makes it possible to compile `ADDA` on all of these platforms exactly as described above. If for some reason it doesn't work, one may compile all source files (with maximum possible optimizations) and link them into an executable. In that case adjusting some of compilation options is possible by uncommenting defines in corresponding header files (see comments in the [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile]).
 
-If you wish to compile *ADDA* on Windows, we recommend using [http://www.mingw.org/ MinGW] (or [http://mingw-w64.sourceforge.net/ MinGW-w64]) environment and provide [InstallingMinGW detailed instructions] for that. However, a simpler option is to use precompiled [PackageDescription#Windows_executables executables for Windows], which are available for [http://code.google.com/p/a-dda/downloads/list downloading].
+If you wish to compile `ADDA` on Windows, we recommend using [http://www.mingw.org/ MinGW] (or [http://mingw-w64.sourceforge.net/ MinGW-w64]) environment and provide [InstallingMinGW detailed instructions] for that. However, a simpler option is to use precompiled [PackageDescription#Windows_executables executables for Windows], which are available for [http://code.google.com/p/a-dda/downloads/list downloading].

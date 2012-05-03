@@ -1,6 +1,6 @@
 #summary List of journal papers that make use of ADDA
 
-Below we list journal papers that use results of simulations using *ADDA*. Those (review) papers, which only mention *ADDA*, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter]. Similar list of papers with full bibliographic data can be found in [https://www.zotero.org/myurkin/items/collectionKey/QF45ITEJ/order/year Zotero library].
+Below we list journal papers that use results of simulations using `ADDA`. Those (review) papers, which only mention `ADDA`, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter]. Similar list of papers with full bibliographic data can be found in [https://www.zotero.org/myurkin/items/collectionKey/QF45ITEJ/order/year Zotero library].
 
 <wiki:toc />
 
@@ -77,7 +77,7 @@ Below we list journal papers that use results of simulations using *ADDA*. Those
  # M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “Convergence of the discrete dipole approximation. I. Theoretical analysis,” [http://dx.doi.org/10.1364/JOSAA.23.002578 J. Opt. Soc. Am. A 23, 2578-2591 (2006)].
 
 = 2005 and earlier (11) =
-Those papers used [EarlyHistory earlier version of the code] before the public release of *ADDA*.
+Those papers used [EarlyHistory earlier version of the code] before the public release of `ADDA`.
  # M. A. Yurkin, K. A. Semyanov, P. A. Tarasov, A. V. Chernyshev, A. G. Hoekstra, and V. P. Maltsev, “Experimental and theoretical study of light scattering by individual mature red blood cells with scanning flow cytometry and discrete dipole approximation,” [http://dx.doi.org/10.1364/AO.44.005249 Appl. Opt. 44, 5249-5256 (2005)].
  # A. G. Hoekstra, M. Frijlink, L. B. F. M. Waters, and P. M. A. Sloot, “Radiation forces in the discrete-dipole approximation,” [http://dx.doi.org/10.1364/JOSAA.18.001944 J. Opt. Soc. Am. A 18, 1944-1953 (2001)].
  # A. G. Hoekstra, J. Rahola, and P. M. A. Sloot, “Accuracy of internal fields in volume integral equation simulations of light scattering,” [http://dx.doi.org/10.1364/AO.37.008482 Appl. Opt. 37, 8482-8497 (1998)].

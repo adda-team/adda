@@ -15,14 +15,14 @@ There are two options:
 ppa:ubuntu-x-swat/x-updates 
 }}}
 
-The recent driver alone is sufficient to run *ADDA* OpenCL executables, e.g. those that are [http://code.google.com/p/a-dda/wiki/PackageDescription#Windows_executables provided for Windows].
+The recent driver alone is sufficient to run `ADDA` OpenCL executables, e.g. those that are [http://code.google.com/p/a-dda/wiki/PackageDescription#Windows_executables provided for Windows].
 
 == Headers and libraries ==
 
-This are required to compile OpenCL version of *ADDA*. Sometimes they are supplied by the development versions of driver packages (see above). If not, there are two alternative approaches:
+This are required to compile OpenCL version of `ADDA`. Sometimes they are supplied by the development versions of driver packages (see above). If not, there are two alternative approaches:
  * Install full SDK from the corresponding vendor ([http://developer.nvidia.com/cuda-toolkit-sdk Nvidia CUDA toolkit] or [http://developer.amd.com/sdks/AMDAPPSDK/Pages/default.aspx AMD APP SDK]). Additionally to headers and libraries you will get some nice development tools, such as visual profiler. We have, however, encountered several problems with this approach:
    * Intel compiler (version 11.0) has problems with OpenCL headers from CUDA toolkit 3.2. This was fixed in later versions of the toolkit.
-   * `OpenCL.lib` provided by both CUDA toolkit and AMD APP SDK on 64-bit Windows is incompatible with MinGW64. Compilation goes fine but *ADDA* breaks down as soon as it calls the first OpenCL function. This is probably due to some limitations of MinGW64 itself. Fortunately, AMD APP SDK also provides `libOpenCL.a`, which links and works fine. To compile *ADDA* on 64-bit Windows with Nvidia GPUs one should either use `libOpenCL.a` from AMD APP SDK (surprisingly, it works) or resort to a manual approach described below.
+   * `OpenCL.lib` provided by both CUDA toolkit and AMD APP SDK on 64-bit Windows is incompatible with MinGW64. Compilation goes fine but `ADDA` breaks down as soon as it calls the first OpenCL function. This is probably due to some limitations of MinGW64 itself. Fortunately, AMD APP SDK also provides `libOpenCL.a`, which links and works fine. To compile `ADDA` on 64-bit Windows with Nvidia GPUs one should either use `libOpenCL.a` from AMD APP SDK (surprisingly, it works) or resort to a manual approach described below.
  * Supply missing headers and/or libraries manually
    * Since OpenCL is an open standard, the headers can be obtained from the [http://www.khronos.org/registry/cl/ official website]. Ideally, one should use the same version of OpenCL headers as that of library.
    * Installed GPU driver always provides libraries (DLLs), which are used at runtime. On Unix systems compiler may link to this libraries directly. On Windows GCC can link to `OpenCL.dll` (located in `C:\Windows\System32`), if it is renamed to `libOpenCL.dll.a`. On 64-bit Windows it is obligatory to use 64-bit application (Windows Explorer or a file manager) to rename `OpenCL.dll` and move it to non-system folder, because Windows will supply 32-bit instead of 64-bit version of `OpenCL.dll` to any 32-bit application. 
@@ -38,6 +38,6 @@ If the package, which you installed, has not set the paths to OpenCL headers and
 = Implementation =
 
 In general the whole matrix-vector multiplication is done on the GPU.
-For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)]. Currently, *ADDA* on high-end gaming GPUs outperform that on high-end processors at least several times (sometimes by a factor of 10 or more). And this factor is significantly limited by relatively slow double-precision computations on current gaming GPUs and very modest performance of OpenCL FFT routines (compared to sophisticated FFTW3).
+For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)]. Currently, `ADDA` on high-end gaming GPUs outperform that on high-end processors at least several times (sometimes by a factor of 10 or more). And this factor is significantly limited by relatively slow double-precision computations on current gaming GPUs and very modest performance of OpenCL FFT routines (compared to sophisticated FFTW3).
 
-Also OpenCL version of *ADDA* is fully operational, there are a number of [http://code.google.com/p/a-dda/issues/list?q=label:OpenCL limitations]. In particular, the maximum problem size is limited by the available GPU memory, more specifically, by its part available to *ADDA*.
+Also OpenCL version of `ADDA` is fully operational, there are a number of [http://code.google.com/p/a-dda/issues/list?q=label:OpenCL limitations]. In particular, the maximum problem size is limited by the available GPU memory, more specifically, by its part available to `ADDA`.

@@ -1,12 +1,12 @@
 #summary Features of the ADDA code.
 #labels Featured
 
-*ADDA* is an open-source parallel implementation of the discrete dipole approximation, capable to simulate light scattering by particles of arbitrary shape and composition in a wide range of particle sizes.
+`ADDA` is an open-source parallel implementation of the discrete dipole approximation, capable to simulate light scattering by particles of arbitrary shape and composition in a wide range of particle sizes.
 
 <wiki:toc />
 
 = Parallel implementation =
-Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in parallel on a cluster or supercomputer, using [http://www.mpi-forum.org/ MPI]. Computational grid of 1024×1024×1024 dipoles and even larger can be used.
+Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in parallel on a cluster or supercomputer, using [http://www.mpi-forum.org/ MPI]. Computational grid of 1024×1024×1024 dipoles and even larger can be used.
  * Very large particle sizes can be handled. For instance, light scattering by a sphere with size parameter 320 (diameter equal to 100 wavelengths) can be accurately simulated (see [LargestSimulations Largest Simulations]).
  * Very fine discretization can be used when high accuracy or extra reliability is required.
  * Simple sequential execution is also possible, as well as running on a multi-core processors.
@@ -14,7 +14,7 @@ Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in
 = Arbitrary particle shape and composition =
  * 13 predefined particle shapes from a sphere to a red blood cell and two touching ellipsoids.
  * Homogeneous axisymmetric shape can be specified by an arbitrary contour in _xz_-plane.
- * Arbitrary 3D geometry can be specified by a shape file. Apart from its own format *ADDA* understands format of DDSCAT specification `FRMFIL`.
+ * Arbitrary 3D geometry can be specified by a shape file. Apart from its own format `ADDA` understands format of DDSCAT specification `FRMFIL`.
  * Any representation of the particle shape can be automatically refined, replacing each dipole by a cube _n×n×n_ of smaller dipoles.
  * Particle can be highly inhomogeneous, consisting of up to 255 homogeneous domains with different refractive indices.
  * Refractive index of each domain can be anisotropic, specified by a diagonal tensor.
@@ -52,13 +52,13 @@ Distinctive feature of *ADDA* is the ability to run a _single_ DDA simulation in
  * Ready-to-use [PackageDescription#Windows_executables executables for Windows] are available.
 
 = Reliable =
- * Tested and trusted by the community. As of summer 2010 it is used by about 60 researchers. During 3 years up to that date about 40 journal papers, which somehow used ADDA, were published.
+ * Tested and trusted by the community. As of summer 2010 it is used by about 60 researchers. During 3 years up to that date about 40 journal papers, which somehow used `ADDA`, were published.
  * Tested by [ComparisonOtherCodes comparison with other methods and codes].
  * New releases are tested against the previous ones by automatic testing suites.
  * Open development process, including [http://code.google.com/p/a-dda/issues issue tracker] and availability of the [http://code.google.com/p/a-dda/source/browse/ current source], allows pre-release testing.
 
 = Actively developed =
- * Although *ADDA* is already a mature package, there are large [http://code.google.com/p/a-dda/issues plans for further development].
+ * Although `ADDA` is already a mature package, there are large [http://code.google.com/p/a-dda/issues plans for further development].
  * [http://code.google.com/p/a-dda/updates/list Development process] is ongoing albeit irregular. The goal is to make at least one release per year.
  * Number of [http://code.google.com/p/a-dda/people/list contributors] is slowly increasing due to the open nature of Google Code platform.
  * New contributors are welcome! In particular, there are extensive instructions, how to make simple changes to the code (e.g. [AddingShape adding new predefined shape]).

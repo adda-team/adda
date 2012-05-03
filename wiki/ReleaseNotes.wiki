@@ -6,13 +6,13 @@ Here most important changes are listed grouped by releases in reverse chronologi
 <wiki:toc />
 
 =Ver. 1.0 - 10.09.10=
- * Fabio Della Sala and Stefania D'Agostino contributed code to calculate near-field with *ADDA* ([http://code.google.com/p/a-dda/source/browse/trunk/misc/near_field misc/near_field]). Now it is included in the main package.
+ * Fabio Della Sala and Stefania D'Agostino contributed code to calculate near-field with `ADDA` ([http://code.google.com/p/a-dda/source/browse/trunk/misc/near_field misc/near_field]). Now it is included in the main package.
  * "Integration of Green's tensor" formulation of the DDA was implemented based on the code contributed by Patrick Chaumet and Adel Rahmani (part of issue 84).
  * New predefined shapes: `bisphere`, `bicoated`, and `biellipsoid`.
  * New command line option `-scat_matr {muel|ampl|both|none}` to specify which scattering matrix (amplitude and/or Mueller) need to be stored to file (issue 7).
  * Calculation of Green's tensor was accelerated by doing all 6 components at once (issue 58).
  * The code was refactored (see [PackageDescription current state]). Makefiles were significantly improved (see [CompilingADDA compilation instructions]). In particular, issue 65 and issue 81 were fixed.
- * [http://code.google.com/p/a-dda/ Homepage at Google Code] was completely rewritten. Now it is is the main official page of *ADDA*.
+ * [http://code.google.com/p/a-dda/ Homepage at Google Code] was completely rewritten. Now it is is the main official page of `ADDA`.
  * Documentation was significantly reworked. Many sections of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual], not directly related to performing light scattering simulations were moved to wiki pages. A number of other [GettingStarted wiki pages] were added. `doc/faq` was moved to a wiki page [FAQ].
  * Several bugs in granule generator were fixed (issue 108, issue 109).
  * Fixed bug in calculation of radiative forces (r972).
@@ -27,11 +27,11 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Breakdown detection of iterative solvers was improved.
  * `-prognose` command line option was replaced by `-prognosis` (correct  spelling). The former is still operational but marked as deprecated.
  * The code was transformed to C99 standard without using its parts, which are not yet widely supported by compilers (such as inline and complex). Explicit support of this standard is required during compilation. Some style changes were done, and some work in this direction is still due.
- * Affiliation of one of the author (Maxim Yurkin) has changed to Institute of Chemical Kinetics & Combustion (Novosibirsk, Russia). Full name of the package was changed from *Amsterdam DDA* to *ADDA*. This does not change the global strategy of *ADDA* development.
+ * Affiliation of one of the author (Maxim Yurkin) has changed to Institute of Chemical Kinetics & Combustion (Novosibirsk, Russia). Full name of the package was changed from *Amsterdam DDA* to `ADDA`. This does not change the global strategy of `ADDA` development.
  * Code repository has been [http://a-dda.googlecode.com moved to Google Code]. Google groups [http://groups.google.com/group/adda-announce adda-announce], [http://groups.google.com/group/adda-discuss adda-discuss] and [http://groups.google.com/group/adda-develop adda-develop] were created to facilitate interaction with users. This replaces the previous mailing list.
  * Copyright was updated to [http://www.gnu.org/copyleft/gpl.html GPL 3].
  * To-do list was replaced by [http://code.google.com/p/a-dda/issues issue tracker].
- * Additions to the manual: short history of earlier *ADDA* development, description how to add new beam type and new command line options, a small summary of the comparison of the DDA with the FDTD, discussion of difference between two ways to calculate _C_,,sca,,, possibilities to improve the accuracy of these calculations, and connection between differential cross section and the Mueller matrix.
+ * Additions to the manual: short history of earlier `ADDA` development, description how to add new beam type and new command line options, a small summary of the comparison of the DDA with the FDTD, discussion of difference between two ways to calculate _C_,,sca,,, possibilities to improve the accuracy of these calculations, and connection between differential cross section and the Mueller matrix.
  * Information on how to cite the manual was added to its first page. It includes a direct link to the particular version of the manual on Google code.
  * Manual license is now explicitly set to [http://creativecommons.org/licenses/by/3.0/ Creative Commons Attribution 3.0 license].
  * Several minor bugs were fixed.
@@ -46,17 +46,17 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Filtered coupled dipoles formulation was implemented (both full and quasistatic version). New arguments `fcd` and `fcd_st` for interaction term (`-int` command line option) and `fcd` for polarization term (`-pol` command line option). It greatly improves DDA performance for large refractive indices.
  * To-do list added to the package: `doc/todo.xls` and `todo.pdf`.
  * Hands-on tutorial was added to the manual. It is based on the one carried out during the DDA Workshop in Bremen.
- * New command line option `'-opt {speed|mem}'` was added. It allows choosing whether *ADDA* will optimize itself for maximum speed or for minimum memory usage.
+ * New command line option `'-opt {speed|mem}'` was added. It allows choosing whether `ADDA` will optimize itself for maximum speed or for minimum memory usage.
  * Calculation of scattered fields is accelerated by more than 4 times (compiled with `gcc`). Thanks to R. Scott Brock for this idea. This may also significantly accelerate orientation averaging, depending on the problem.
  * New command line option `'-eq_rad <arg>'` was added, it allows one to specify volume-equivalent radius of a scatterer.
  * Shapes `box` and `spherebox` no longer depend on the second and third argument of `-grid` option.
  * Shape `box` now accepts two optional arguments: y/x and z/x aspect ratios, defining a rectangular parallelepiped.
- * Automatic line wrapping was added for most output to stdout and stderr. *ADDA* tries to get terminal width from `COLUMNS` environmental variables and, if fails, uses the default value.
+ * Automatic line wrapping was added for most output to stdout and stderr. `ADDA` tries to get terminal width from `COLUMNS` environmental variables and, if fails, uses the default value.
  * Two new shapes were added: `capsule` and `egg`. They were implemented by Daniel Hahn and Richard I. Joseph.
- * Now, if grid size is auto-initialized from default dpl, *ADDA* ensures that it is not smaller than 16.
- * Limitation on positiveness of dipole coordinates in shape file was removed. Now *ADDA* automatically determines the minimum box around the particle and centers it as usual.
+ * Now, if grid size is auto-initialized from default dpl, `ADDA` ensures that it is not smaller than 16.
+ * Limitation on positiveness of dipole coordinates in shape file was removed. Now `ADDA` automatically determines the minimum box around the particle and centers it as usual.
  * Orientation averaging was optimized. If _α_ is varied in a full range [0°,360°), only one value of _γ_ is simulated for _β_=0° and 180°, saving a few evaluations of internal fields. Thanks to Antti Penttila for this idea.
- * Limited two-way compatibility with DDSCAT 6.1 geometry format was added. *ADDA* automatically detects DDSCAT format during reading of dipole file. When saving geometry to the file, the format is determined by new command line option `'-sg_format {text|text_ext|ddscat}'`.
+ * Limited two-way compatibility with DDSCAT 6.1 geometry format was added. `ADDA` automatically detects DDSCAT format during reading of dipole file. When saving geometry to the file, the format is determined by new command line option `'-sg_format {text|text_ext|ddscat}'`.
  * Several minor bugs were fixed.
 
 =Ver. 0.77 - 05.06.07=
@@ -85,7 +85,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * New chapter in the manual to facilitate adding a new predefined shape.
  * New file `doc/faq` added for frequently asked questions.
  * New option `-store_beam` to save incident electric fields to a file.
- * Starting from this release *ADDA* executable for 32 bit Windows is available. It is compiled with MinGW and distributed with FFTW3 dynamic link libraries. Thanks to Alexander Shvalov for information on MinGW.
+ * Starting from this release `ADDA` executable for 32 bit Windows is available. It is compiled with MinGW and distributed with FFTW3 dynamic link libraries. Thanks to Alexander Shvalov for information on MinGW.
  * Added support for anisotropic refractive index (option `-anisotr`). Currently it is limited to refractive index tensors that are diagonal in the particle reference frame. Thanks to Michiel Min for fruitful discussions.
 
 =Ver. 0.75 - 24.05.06=

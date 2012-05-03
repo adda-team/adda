@@ -1,6 +1,6 @@
 #summary Hall of fame of largest simulations performed with ADDA
 
-The aim of this page is to give a feeling of how large light scattering simulations can be done using *ADDA*. Hopefully, it will also present a variety of different applications, so that each example will tell an interesting short story by itself. Complexity of the light scattering simulation with *ADDA* depends on the many (connected) factors: scatterer size parameter, required discretization or accuracy, number of the dipoles in a computational grid, convergence speed of the iterative solver, and need for repeated calculations (e.g. orientation averaging). Therefore, this page consists of several categories (nominations) with several examples in each of them.
+The aim of this page is to give a feeling of how large light scattering simulations can be done using `ADDA`. Hopefully, it will also present a variety of different applications, so that each example will tell an interesting short story by itself. Complexity of the light scattering simulation with `ADDA` depends on the many (connected) factors: scatterer size parameter, required discretization or accuracy, number of the dipoles in a computational grid, convergence speed of the iterative solver, and need for repeated calculations (e.g. orientation averaging). Therefore, this page consists of several categories (nominations) with several examples in each of them.
 
 <wiki:toc />
 
@@ -21,14 +21,14 @@ Currently there are only a very small number of examples. Users are encouraged t
 || Number of processor cores || 512 || *560* || 64 ||
 || Processor time, THz×hours || 8.8 || 1.1 || *90* ||
 || Total memory used, GB || 698 || *772* || 71 ||
-|| *ADDA* version || 0.79a2 || 0.79 || 0.75b ||
+|| `ADDA` version || 0.79a2 || 0.79 || 0.75b ||
 || Supercomputer || [http://www.bsc.es/plantillaA.php?cat_id=5 MareNostrum] || [https://subtrac.sara.nl/userdoc/wiki/lisa/description LISA] || [https://subtrac.sara.nl/userdoc/wiki/lisa/description LISA] ||
 
 _The values in bold are the largest (the hardest to reach) ones for a particular parameter among all examples_
 
 = Largest size parameter =
 == X1. Sphere with size parameter 320 and refractive index 1.05 ==
-This was a benchmark simulation, performed to test the performance and extreme capabilities of *ADDA* on [http://www.bsc.es/plantillaA.php?cat_id=5 MareNostrum]. *ADDA* was executed with a command line:
+This was a benchmark simulation, performed to test the performance and extreme capabilities of `ADDA` on [http://www.bsc.es/plantillaA.php?cat_id=5 MareNostrum]. `ADDA` was executed with a command line:
 {{{
 adda_mpi -m 1.05 0 -grid 1024 -size 640 -ntheta 1800 -iter bicgstab -eps 4
 }}} 
@@ -38,7 +38,7 @@ adda_mpi -m 1.05 0 -grid 1024 -size 640 -ntheta 1800 -iter bicgstab -eps 4
 This simulation was a part of comparison of two methods for simulation of light scattering, published in K.V. Gilev, E. Eremina, M.A. Yurkin, and V.P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681-5690 (2010)].
 
 Since both considered methods involve certain numerical errors, there was need for some reference, so that accuracy of the methods can be independently evaluated. Described simulation for very fine discretization was used as such a reference.
-*ADDA* was executed with a command line:
+`ADDA` was executed with a command line:
 {{{
 adda_mpi -lambda 0.4936 -m 1.03 0.0 -shape axisymmetric fung_100points.txt -size 7.5 -grid 1408 -scat_grid_inp scat_params_eryth.dat -yz
 }}}
@@ -46,7 +46,7 @@ Moreover, convergence of DDA results with refining discretization was studied to
 
 = Largest processor time =
 == T1. Sphere with size parameter 130 and refractive index 1.2 ==
-This simulation was performed in frame of a benchmark study: M.A. Yurkin, V.P. Maltsev, and A.G. Hoekstra, “The discrete dipole approximation for simulation of light scattering by particles much larger than the wavelength,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.033 J. Quant. Spectrosc. Radiat. Transfer 106, 546-557 (2007)]. *ADDA* was executed 25 times in a row with a command line:
+This simulation was performed in frame of a benchmark study: M.A. Yurkin, V.P. Maltsev, and A.G. Hoekstra, “The discrete dipole approximation for simulation of light scattering by particles much larger than the wavelength,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.033 J. Quant. Spectrosc. Radiat. Transfer 106, 546-557 (2007)]. `ADDA` was executed 25 times in a row with a command line:
 {{{
 adda -m 1.2 0 -size 260 -grid 512 -ntheta 1440 -iter bicgstab -chpoint 17h [-chp_load]
 }}}
