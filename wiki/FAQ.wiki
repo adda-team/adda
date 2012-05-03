@@ -5,6 +5,18 @@ This list is far from being complete, therefore please send your questions to [m
 
 <wiki:toc />
 
+= General =
+
+== I am new to `ADDA` and want to simulate ... What should I start with?  ==
+  * Read GettingStarted and other pages it links to.
+  * In particular, go through the [Tutorial Tutorial] to understand basic `ADDA` functionality.
+  * Scan through the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] to understand where to get more details if needed.
+
+== I run `ADDA` and get strange output (different from my expectations). What should I do? ==
+  * Make sure you are using the latest version of `ADDA`. Read carefully the relevant parts of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual].
+  * Check this FAQ.
+  * If that does not help, you're encouraged to send your question to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com]. Please try to make your question as specific as possible. If your question is based on a particular run, provide all relevant input and output files, at least `log`.
+
 == I have found a bug in `ADDA`. What should I do? ==
   * Make sure you are using the latest version of `ADDA`. If you modified the code yourself, try the original release.
   * Look at the list of known bugs at the [http://code.google.com/p/a-dda/issues/list?q=type=Defect issue tracker], maybe your bug is already known.
@@ -12,36 +24,38 @@ This list is far from being complete, therefore please send your questions to [m
   * Please try to localize the bug, i.e. try to remove as much command line parameters as possible without removing the bug. Also try to use default versions of input files, which you have modified.
   * [http://code.google.com/p/a-dda/issues/entry Submit your bug] to the issue tracker, including input files and `Makefile` that you used for compilation. Do not forget to include all the relevant output files, at least `log`. Please also include a brief description of your operation system and hardware. We will try to fix the bug as soon as possible.
 
-== I do not understand how to ...? I run `ADDA` and get strange output or something different from what I have expected. What should I do? ==
-  * Make sure you are using the latest version of `ADDA`. Read carefully the relevant parts of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual].
-  * Check this FAQ.
-  * If that does not help, you're encouraged to send your question to [mailto:adda-discuss@googlegroups.com adda-discuss@googlegroups.com]. Please try to make your question as specific as possible. If your question is based on a particular run, provide all relevant input and output files, at least `log`.
+= Defining scattering problem =
 
-== Can I use `ADDA` to calculate scattering by a particle near or inside the infinite plane-parallel plane substrate? =
-Basically, no. `ADDA` can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future (but there is issue 101). However, you may approach this problem using the current version of `ADDA`:
- * You may completely ignore the substrate; this may be accurate enough if particle is far from the substrate and the refractive index change between substrate and upper medium is small.
- * A little more accurate approach is to consider the "incident field" in `ADDA` as a sum of incident and reflected plane waves. The latter can be easily obtained analytically for infinite plane-parallel substrate. However, currently such incident field is not implemented, therefore it need first to be [AddingBeam coded into ADDA].
- * Another approach is to take a large computational box around the particle, and discretize the substrate that falls into it. This is rigorous in the limit of infinite size of computational box, but requires much larger computer resources than that for the initial problem. It also requires one to specify the shape files for all different sizes of the computational box. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
-
-== Can I calculate near-field using `ADDA`? ==
-We are currently working to implement this feature in a convenient manner (issue 10). For now there are two possible workarounds:
-  * (Recommended)  You may save dipole polarizations to file by `ADDA` and then use auxiliary package `misc/near_field` (see [http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description]).
-  * Or you may extend the computational box with "dummy" dipoles located at points where you wish to calculate near-field. Saving the internal fields by `ADDA` will then produce the desired result, but at expense of extra computational time. Please see the section _Near-field_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
-
-== How can I simulate light scattering by a particle which shape can not be described by any of the `ADDA` predefined shapes? ==
+== How to simulate light scattering by a particle which shape can not be described by any of the `ADDA` predefined shapes? ==
 The simplest is to specify your particle by a shape file. However, if your shape can easily be described in some parametric form and you are going to simulate a lot of particles with shapes from this class or if you think other users will probably simulate the same shapes, you are encouraged to [AddingShape implement new shape inside ADDA].
 
 To produce a shape file you can use any programming language/software. `ADDA` contains a couple of auxiliary packages to alleviate this problem:
   * Point-in-polyhedron (`misc/pip`, see [http://a-dda.googlecode.com/svn/trunk/misc/pip/README description]) allows transformation of [http://en.wikipedia.org/wiki/Wavefront_.obj_file .obj] format (and several other common 3D formats) into the format readable by `ADDA`.
   * Hyperfun (`misc/hyperfun`, see [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description]) provides a toolchain for working with [http://hyperfun.org Hyperfun models].
 
-== How is the Mueller matrix, produced by `ADDA`, defined and/or normalized? ==
-It is defined as in Bohren & Huffman "Absorption and scattering of Light by Small Particles" (1983), and it is not normalized. Some other codes may compute Stokes scattering matrix, which is normalized so that 1,1-element is equal to 1 after averaging over the whole solid angle. This matrix should be multiplied by _πC_,,sca,,/_λ_^2^ to get Mueller matrix. _C_,,sca,, is the scattering cross section for unpolarized light, equal to average of scattering cross sections for any two perpendicular incident polarizations.
-
 == How to visualize shape files of `ADDA`? ==
 The most general solution is freely available software [http://albin.abo.fi/~jkniivil/litebil/ LiteBil]. It allows both quick testing of shape files produced by `ADDA` or other software, and producing nice pictures for publication.
 
 There are also tools developed by Roman Schuh, which are available upon request. See [http://groups.google.com/group/adda-discuss/browse_thread/thread/c715bd07cc9274d8# this discussion] for details.
 
-== How to calculate the wavelength spectrum of extinction/scattering/etc. using `ADDA`? ==
+== How to simulate light scattering by a particle embedded in a homogeneous non-absorbing medium? ==
+Just apply `ADDA` to an equivalent problem of a particle in vacuum with both wavelength and particle refractive index divided by the refractive index of the medium. Most of the calculated scattering quantities can then be used without modification. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
+
+== How to calculate scattering by a particle near or inside the infinite plane-parallel plane substrate? =
+`ADDA` can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future (but there is issue 101). However, you may approach this problem using the current version of `ADDA`:
+ * You may completely ignore the substrate; this may be accurate enough if particle is far from the substrate and the refractive index change between substrate and upper medium is small.
+ * A little more accurate approach is to consider the "incident field" in `ADDA` as a sum of incident and reflected plane waves. The latter can be easily obtained analytically for infinite plane-parallel substrate. However, currently such incident field is not implemented, therefore it need first to be [AddingBeam coded into ADDA].
+ * Another approach is to take a large computational box around the particle, and discretize the substrate that falls into it. This is rigorous in the limit of infinite size of computational box, but requires much larger computer resources than that for the initial problem. It also requires one to specify the shape files for all different sizes of the computational box. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
+
+= Calculated quantities =
+
+== How is the Mueller matrix, produced by `ADDA`, defined and/or normalized? ==
+It is defined as in Bohren & Huffman "Absorption and scattering of Light by Small Particles" (1983), and it is not normalized. Some other codes may compute Stokes scattering matrix, which is normalized so that 1,1-element is equal to 1 after averaging over the whole solid angle. This matrix should be multiplied by _πC_,,sca,,/_λ_^2^ to get Mueller matrix. _C_,,sca,, is the scattering cross section for unpolarized light, equal to average of scattering cross sections for any two perpendicular incident polarizations. See section _Mueller matrix_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for more details.
+
+== How to calculate near-field using `ADDA`? ==
+We are currently working to implement this feature in a convenient manner (issue 10). For now there are two possible workarounds:
+  * (Recommended)  You may save dipole polarizations to file by `ADDA` and then use auxiliary package `misc/near_field` (see [http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description]).
+  * Or you may extend the computational box with "dummy" dipoles located at points where you wish to calculate near-field. Saving the internal fields by `ADDA` will then produce the desired result, but at expense of extra computational time. Please see the section _Near-field_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
+
+== How to calculate the wavelength spectrum of extinction/scattering/etc.? ==
 Currently there is no automatic way to do it, although we plan to implement it (issue 35). Currently one may either perform separate simulation for each value of wavelength, or semi-automate this process by some kind of script or wrapper. The latter options are discussed in comments to issue 35.
