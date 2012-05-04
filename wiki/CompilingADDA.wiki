@@ -43,7 +43,7 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || `OPTIONS` || any combination of || ||
 || || `DEBUG` || Turns on producing debug symbols (`-g`) and warnings by the compiler and slightly reduces optimization level. This option is irrelevant, if `DEBUGFULL` is used. ||
 || || `DEBUGFULL` || Same as `DEBUG`, but turns off optimization completely and turns on additional diagnostic messages in the source code. ||
-|| || `FFT_TEMPERTON` || Uses built-in FFT routines by C. Temperton. This is recommended if you have problems installing FFTW3. ||
+|| || `FFT_TEMPERTON` || Uses built-in FFT routines by C. Temperton. This is recommended if you have problems installing `FFTW3`. ||
 || || `PRECISE_TIMING` || Enables precise timing routines, which give extensive timing of all the computation parts of `ADDA`, useful for debugging or optimization studies. ||
 || || `NOT_USE_LOCK` || Does not use file locking for `ExpCount` at all. Enable this flag if you get compilation errors due to unsupported operation system (e.g. issue 83) or experience permanent locks. ||
 || || `ONLY_LOCKFILE` || Uses lock file to lock `ExpCount`, but do not additionally lock this file. Use it if you get warnings when running `ADDA` stating that your system does not support advanced file locking. This option is irrelevant for non-POSIX systems or if `NOT_USE_LOCK` is used. ||
@@ -52,8 +52,8 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || || `OVERRIDE_STDC_TEST` || Disables compilation errors if compiler does not declare its [http://www.open-std.org/JTC1/SC22/WG14/www/standards C99] conformance. Use it only if you are sure that compiler supports those C99 features that are essential for `ADDA`. ||
 || || `OCL_READ_SOURCE_RUNTIME` || Enables reading of OpenCL sources from file during the runtime of `ADDA`. This option is recommended if the default way (incorporating it into `ADDA` executable) is not working. The drawback is that [http://code.google.com/p/a-dda/source/browse/trunk/src/oclkernels.cl oclkernels.cl] should be moved together with executable. ||
 || `EXTRA_FLAGS` || any || Additional flags to be passed to the compiler (for all languages). For instance, `-m32` to compile 32-bit binaries in a 64-bit environment. ||
-|| `FFTW3_INC_PATH` || path || Path to FFTW3 headers. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. || 
-|| `FFTW3_LIB_PATH` || path || Path to FFTW3 library. May be not needed, if FFTW3 is [InstallingFFTW3 installed] on a whole system. ||
+|| `FFTW3_INC_PATH` || path || Path to `FFTW3` headers. May be not needed, if `FFTW3` is [InstallingFFTW3 installed] on a whole system. || 
+|| `FFTW3_LIB_PATH` || path || Path to `FFTW3` library. May be not needed, if `FFTW3` is [InstallingFFTW3 installed] on a whole system. ||
 
 Although [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] contain options for several compilers, described above, the new releases are usually tested only with GNU and Intel compilers. So the options for other compilers may be outdated. If you modify these options to successfully compile the current version of `ADDA`, please communicate these modifications to the [http://groups.google.com/group/adda-discuss discussion group], so they can be incorporated in future releases.
 
