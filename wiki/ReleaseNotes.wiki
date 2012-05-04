@@ -72,7 +72,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
 
 =Ver. 0.76 - 14.10.06=
 
- * Makefiles modified to include Compaq compiler. New variables added to set path for FFTW3 header and library.
+ * Makefiles modified to include Compaq compiler. New variables added to set path for `FFTW3` header and library.
  * New option `-V` added to show version, compiler used, and copyright information.
  * Robustness of memory handling improved.
  * Timing is now produced even when `-prognose` option is used. Communication times are shown only in parallel mode, they are now more accurate.
@@ -85,12 +85,12 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * New chapter in the manual to facilitate adding a new predefined shape.
  * New file `doc/faq` added for frequently asked questions.
  * New option `-store_beam` to save incident electric fields to a file.
- * Starting from this release `ADDA` executable for 32 bit Windows is available. It is compiled with MinGW and distributed with FFTW3 dynamic link libraries. Thanks to Alexander Shvalov for information on MinGW.
+ * Starting from this release `ADDA` executable for 32 bit Windows is available. It is compiled with `MinGW` and distributed with `FFTW3` dynamic link libraries. Thanks to Alexander Shvalov for information on `MinGW`.
  * Added support for anisotropic refractive index (option `-anisotr`). Currently it is limited to refractive index tensors that are diagonal in the particle reference frame. Thanks to Michiel Min for fruitful discussions.
 
 =Ver. 0.75 - 24.05.06=
  * All `system` calls were removed to improve robustness under certain MPI implementations.
- * Possible size of FFT-grid (and non-weird number of processors) has been extended to full range of FFTW. One possible divisor of either 11 or 13 has been added.
+ * Possible size of FFT-grid (and non-weird number of processors) has been extended to full range of `FFTW`. One possible divisor of either 11 or 13 has been added.
  * Robustness of makefiles with Intel compilers 8.1 and 9.0 in conjunction with MPICH has been increased.
  * Sample script for Sun Grid Engine has been added: `sample/test.sge`.
  * Different descriptions of Gaussian beam are now fully operational.
@@ -104,7 +104,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
 
 =Ver. 0.74.2 - 05.04.06=
  * Makefiles has been improved to allow simple usage of Intel compilers.
- * A section describing FFTW 3 installation has been added to the manual.
+ * A section describing `FFTW3` installation has been added to the manual.
 
 =Ver. 0.74 - 29.03.06=
  * `buggy` beam type has been removed (obsolete).

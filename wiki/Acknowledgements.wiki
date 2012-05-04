@@ -4,7 +4,7 @@
 
 = Contributors =
  * Clive Temperton is the author of the CFFT99 Fortran routine (1980).
- * Matteo Frigo and Steven G. Johnson (fftw@fftw.org) are the authors of the FFTW 3 package, to which `ADDA` is linked.
+ * Matteo Frigo and Steven G. Johnson (fftw@fftw.org) are the authors of the `FFTW3` package, to which `ADDA` is linked.
  * Makoto Matsumoto and Takuji Nishimura are the authors of the Mersenne twister random number generator.
  * Michel D. Grimminck implemented the first versions of FFT part of `ADDA` ([http://code.google.com/p/a-dda/source/browse/trunk/src/fft.c fft.c]), matrix–vector product ([http://code.google.com/p/a-dda/source/browse/trunk/src/matvec.c matvec.c]), and most of the non-standard beam types ([http://code.google.com/p/a-dda/source/browse/trunk/src/GenerateB.c GenerateB.c]). He also contributed to the particle generation routines ([http://code.google.com/p/a-dda/source/browse/trunk/src/make_particle.c make_particle.c]).
  * Martin Frijlink implemented the first versions of the MPI part of `ADDA` ([http://code.google.com/p/a-dda/source/browse/trunk/src/comm.c comm.c]), 2D Romberg integration ([http://code.google.com/p/a-dda/source/browse/trunk/src/Romberg.c Romberg.c]), and calculation of the radiation force and scattering quantities obtained by integration ([http://code.google.com/p/a-dda/source/browse/trunk/src/crosssec.c crosssec.c]).

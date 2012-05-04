@@ -44,6 +44,6 @@ We provide executables for 32-bit (IA32) and 64-bit (x86_64) Windows (the latter
 
 `adda_1.0_win32.zip`.
  * `win32/`
-   * `libfftw3-3.dll` - DLL for FFTW 3.1.2
+   * `libfftw3-3.dll` - DLL for `FFTW` 3.1.2
    * `adda.exe` - executable for sequential version of `ADDA`
    * `adda_mpi.exe` - executable for MPI version of `ADDA` 
