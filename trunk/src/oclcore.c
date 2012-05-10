@@ -40,6 +40,7 @@ cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufs
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)
 size_t oclMem,oclMemPeak,oclMemMaxObj;
+int gpuInd; // index of GPU to use (starting from 0)
 
 // SEMI-GLOBAL VARIABLES
 
@@ -236,8 +237,11 @@ static void GetDevice(struct string *copt_ptr)
 	cl_int err; // error code
 	cl_uint num_of_platforms,num_of_devices;
 	cl_platform_id *platform_id;
-	cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
+	cl_device_id *devices;
+	const cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
+	int gpuN=0;
 
+	printf("Searching for OpenCL devices\n");
 	// little trick to get just the number of the Platforms
 	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
 	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms
@@ -249,16 +253,21 @@ static void GetDevice(struct string *copt_ptr)
 		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
 	CL_CH_ERR(clGetPlatformIDs(num_of_platforms,platform_id,NULL));
 
-	err=CL_SUCCESS; // this is to remove uninitialized warning after the cycle
 	for (unsigned int i=0;i<num_of_platforms;i++) {
 		/* Some errors are allowed here, since some platforms/devices may be not supported.
-		 * The execution continues normally if at least one supported device is found.
+		 * The execution continues normally if at least one (or gpuInd+1) supported device is found.
 		 * So errors are handled directly here, not through standard error handler
 		 */
-		err=clGetDeviceIDs(platform_id[i],devtype,1,&device_id,&num_of_devices);
-		if (err==CL_SUCCESS) {
-			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
+		err=clGetDeviceIDs(platform_id[i],devtype,0,NULL,&num_of_devices);
+		if (err==CL_SUCCESS && (gpuN+=num_of_devices)>gpuInd) {
+			// choose specific device based on gpuInd
+			devices=(cl_device_id *)voidVector(num_of_devices*sizeof(device_id),ALL_POS,"devices");
+			CL_CH_ERR(clGetDeviceIDs(platform_id[i],devtype,num_of_devices,devices,NULL));
+			device_id=devices[gpuInd-gpuN+num_of_devices];
+			Free_general(devices);
+			// get platform and device name
 			used_platform_id=platform_id[i];
+			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
 			/* the program can potentially work with unknown compatible device, but performance is,
@@ -266,9 +275,10 @@ static void GetDevice(struct string *copt_ptr)
 			 */
 			else platformname=PN_UNDEF;
 			char *devicename=dyn_clGetDeviceInfo(device_id,CL_DEVICE_NAME);
-			PrintBoth(logfile,"Found OpenCL device %s, based on %s.\n",devicename,pname);
+			PrintBoth(logfile,"Using OpenCL device %s, based on %s.\n",devicename,pname);
 			Free_general(pname);
 			Free_general(devicename);
+			// get further device info
 #ifdef DEBUGFULL
 			char *dev_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_VERSION);
 			char *dr_vers=dyn_clGetDeviceInfo(device_id,CL_DRIVER_VERSION);
@@ -295,7 +305,9 @@ static void GetDevice(struct string *copt_ptr)
 		}
 	}
 	// if all platforms of the above cycle fail, then error is produced with the last error code
-	CheckCLErr(err,ALL_POS,"No OpenCL-compatible GPU found");
+	if (gpuN==0) LogError(ALL_POS,"No OpenCL-compatible GPU found");
+	else if (gpuN<=gpuInd) LogError(ALL_POS,"The specified GPU index (%d) must be less than the "
+		"total number of available GPUs (%d)",gpuInd,gpuN);
 	Free_general(platform_id);
 }
 

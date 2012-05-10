@@ -44,6 +44,7 @@ extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultv
 	bufslices_tr,bufDmatrix,bufinproduct;
 extern double *inprodhlp;
 extern size_t oclMem,oclMemPeak,oclMemMaxObj;
+extern int gpuInd;
 
 /* checks error status of CL functions; can either be used as a wrapper that returns error status
  * or applied to return error value. It is defined as a macro to incorporate exact position in a
