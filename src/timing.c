@@ -43,6 +43,9 @@ size_t TotalEFieldPlane; // total number of planes for scattered field calculati
 // used in calculator.c
 TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
 size_t TotalEval;      // total number of orientation evaluations
+#ifdef OPENCL
+TIME_TYPE Timing_OCL_Init; // for initialization of OpenCL (including building program)
+#endif
 
 // used in comm.c
 TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
@@ -136,6 +139,11 @@ void FinalStatistics(void)
 		fprintf(logfile,
 			"  Initialization time: "FFORMT"\n",TO_SEC(Timing_Init));
 		if (!prognosis) {
+#ifdef OPENCL
+			fprintf(logfile,
+				"    init OpenCL          "FFORMT"\n",TO_SEC(Timing_OCL_Init));
+
+#endif
 			fprintf(logfile,
 				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
 #ifdef PARALLEL

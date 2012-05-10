@@ -48,6 +48,9 @@ extern const int avg_inc_pol;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Init;
+#ifdef OPENCL
+extern TIME_TYPE Timing_OCL_Init;
+#endif
 extern size_t TotalEval;
 
 // used in CalculateE.c
@@ -541,8 +544,10 @@ static void AllocateEverything(void)
 	/* estimate of the memory (only the fastest scaling part):
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only
-	 *          for parallel mode
-	 * others - nvoid_Ndip*271(+144 for BiCGStab and QMR_CS)
+	 *          for parallel mode.
+	 *          For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
+	 * others - nvoid_Ndip*{271(CGNR,BiCG),367(CSYM,QMR2), or 415(BiCGStab,QMR)}
+	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform,
 	 *           others - according to local_nvoid_Ndip
 	 */
@@ -655,7 +660,9 @@ void Calculator (void)
 
 	// initialize variables
 #ifdef OPENCL
+	TIME_TYPE start_ocl_init=GET_TIME();
 	oclinit();
+	Timing_OCL_Init=GET_TIME()-start_ocl_init;
 #endif
 	if (nTheta!=0) {
 		dtheta_deg = 180.0 / ((double)(nTheta-1));

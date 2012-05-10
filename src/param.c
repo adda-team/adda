@@ -327,6 +327,9 @@ PARSE_FUNC(dir);
 PARSE_FUNC(dpl);
 PARSE_FUNC(eps);
 PARSE_FUNC(eq_rad);
+#ifdef OPENCL
+PARSE_FUNC(gpu);
+#endif
 PARSE_FUNC(granul);
 PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
@@ -408,6 +411,11 @@ static struct opt_struct options[]={
 		"be used together with '-size'. Size is defined by some shapes themselves, then this "
 		"option can be used to override the internal specification and scale the shape.\n"
 		"Default: determined by the value of '-size' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
+#ifdef OPENCL
+	{PAR(gpu),"<index>","Specifies index of GPU that should be used (starting from 0). Relevant "
+		"only for OpenCL version of ADDA, running on a system with several GPUs.\n"
+		"Default: 0",1,NULL},
+#endif
 	{PAR(granul),"<vol_frac> <diam> [<dom_number>]","Specifies that one particle domain should be "
 		"randomly filled with spherical granules with specified diameter <diam> and volume "
 		"fraction <vol_frac>. Domain number to fill is given by the last optional argument. "
@@ -970,6 +978,13 @@ PARSE_FUNC(eq_rad)
 	ScanDoubleError(argv[1],&a_eq);
 	TestPositive(a_eq,"dpl");
 }
+#ifdef OPENCL
+PARSE_FUNC(gpu)
+{
+	ScanIntError(argv[1],&gpuInd);
+	TestNonNegative_i(gpuInd,"GPU index");
+}
+#endif
 PARSE_FUNC(granul)
 {
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
@@ -1684,6 +1699,9 @@ void InitVariables(void)
 	igt_eps=UNDEF;
 	InitField=IF_AUTO;
 	recalc_resid=false;
+#ifdef OPENCL
+	gpuInd=0;
+#endif
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If you use some new variables, flags, etc. you should specify their default values here. This
 	 * value will be used if new option is not specified in the command line.
