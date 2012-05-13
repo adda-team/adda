@@ -161,7 +161,7 @@ static void SaveGeometry(void)
 		// choose extension
 		if (sg_format==SF_TEXT || sg_format==SF_TEXT_EXT) ext="geom";
 		else if (sg_format==SF_DDSCAT6 || sg_format==SF_DDSCAT7) ext="dat";
-		else LogError(ONE_POS,"Unknown format for saved geometry file (%d)",sg_format);
+		else LogError(ONE_POS,"Unknown format for saved geometry file (%d)",(int)sg_format);
 		save_geom_fname=dyn_sprintf("%s.%s",shapename,ext);
 	}
 	// automatically change format if needed

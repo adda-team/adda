@@ -57,7 +57,7 @@ static double Zfunc(double x,enum newt_func mode)
 		cn=cos(xn);
 		return (-e*n*sn*c-(1+e*cn)*s)/(2*e*n*sn*s-(1+e*(1+n*n)*cn)*c);
 	}
-	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",mode);
+	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
 //==========================================================
@@ -81,7 +81,7 @@ static double Xfunc(double x,enum newt_func mode)
 		cn=cos(xn);
 		return (e*n*cn*c-(1+e*sn)*s)/(-2*e*n*cn*s-(1+e*(1+n*n)*sn)*c);
 	}
-	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",mode);
+	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
 //==========================================================

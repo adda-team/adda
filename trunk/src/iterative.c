@@ -90,7 +90,7 @@ typedef struct // data for checkpoints
 chp_data * restrict scalars,* restrict vectors;
 enum phase {
 	PHASE_VARS, // Initialization of variables, and linking them to scalars and vectors
-	PHASE_INIT, // Initialization of iterations (after loading checkpoint)
+	PHASE_INIT, // Initialization of iterations
 	PHASE_ITER  // Each iteration
 };
 struct iter_params_struct {
@@ -100,6 +100,7 @@ struct iter_params_struct {
 	int vec_N;        // number of additional vectors to describe the state
 	void (*func)(const enum phase); // pointer to implementation of the iterative solver
 };
+static doublecomplex dumb; // dumb variable, used in workaround for issue 146
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
@@ -671,6 +672,7 @@ ITER_FUNC(CSYM)
 		cMultSelf(tau,s_new);
 		cInvSign(tau);
 		inprodRp1=cAbs2(tau);
+		cEqual(tau,dumb); // dumb statement to workaround issue 146
 	} // end of PHASE_ITER
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
@@ -735,6 +737,7 @@ ITER_FUNC(QMR_CS)
 			// c_0=c_-1=1; s_0=s_-1=0
 			c_new=c_old=1.0;
 			s_new[RE]=s_new[IM]=s_old[RE]=s_old[IM]=0.0;
+			cEqual(beta,dumb); // dumb statement to workaround issue 146
 		}
 	}
 	else if (ph==PHASE_ITER) {
@@ -873,6 +876,7 @@ ITER_FUNC(QMR_CS_2)
 			theta_old=0;
 			eta[RE]=-1;
 			eta[IM]=0;
+			cEqual(eps,dumb); // dumb statement to workaround issue 146
 		}
 	}
 	else if (ph==PHASE_ITER) {
@@ -1155,7 +1159,7 @@ static const char *CalcInitField(double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		descr="x_0 = result of WKB\n";
 	} // redundant test
-	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",InitField);
+	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
 	return descr;
 }
 
