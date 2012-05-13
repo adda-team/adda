@@ -18,8 +18,8 @@
 # <http://www.gnu.org/licenses/>.
 
 #===================================================================================================
-# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. 
-# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to 
+# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS.
+# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to
 # linker. Values specified below are added to the values given by the environment.
 # These variables can also be given in the command line to make, but it will override all values
 # specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
@@ -114,10 +114,10 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # risk!
 #override OPTIONS += OVERRIDE_STDC_TEST
 
-# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and 
-# stores them as static string, which is compiled into the GPU code at runtime. Alternative option 
-# is to read these files at runtime. This creates hassle of keeping .cl files together with the 
-# executable, but may be a bit more robust/portable than the default approach. Uncomment the 
+# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and
+# stores them as static string, which is compiled into the GPU code at runtime. Alternative option
+# is to read these files at runtime. This creates hassle of keeping .cl files together with the
+# executable, but may be a bit more robust/portable than the default approach. Uncomment the
 # following option to enable reading of kernel sources at runtime.
 #override OPTIONS += OCL_READ_SOURCE_RUNTIME
 
@@ -309,7 +309,7 @@ ifeq ($(COMPILER),gnu)
 
   CCPP    := g++
   CPPLIBS := -lstdc++
-  # for now we do not want to investigate C++ warnings (since these sources are planned to be 
+  # for now we do not want to investigate C++ warnings (since these sources are planned to be
   # replaced by more advanced routines), so we consider the following combination thorough enough
   CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
@@ -318,18 +318,20 @@ else ifeq ($(COMPILER),intel)
   COPT1 := -O2
   COPT2 := -O3
   CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1498,1572,2259
-  
+
   CF    := ifort
   FWARN += -vec-report0
   FLIBS += -lifcore
-  
-  CCPP  := icc
+
+  CCPP  := icpc
   CPPWARN := -Wall -Wcheck -diag-disable 279
+  # it seems that icpc relies on gcc stdc++ library anyway, but icc not always adds it during linking
+  CPPLIBS += -lstdc++
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
   # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also
-  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results 
+  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results
   # to the authors.
   CC    := cc
   CF    := f77
@@ -339,8 +341,8 @@ else ifeq ($(COMPILER),compaq)
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
   # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
-  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report 
-  # results to the authors. 
+  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report
+  # results to the authors.
   #
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
   # machine. However, it will not work in some configurations.
@@ -354,8 +356,8 @@ else ifeq ($(COMPILER),ibm)
   DEPFLAG := -qmakedep=gcc -qsyntaxonly
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
-  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you 
-  # happen to use this compiler, please report results to the authors. 
+  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you
+  # happen to use this compiler, please report results to the authors.
   CC    := cc
   CF    := f90
   CSTD  := -AC99
