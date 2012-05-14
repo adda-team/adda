@@ -1163,7 +1163,7 @@ static size_t PlaceGranules(void)
 		ExchangeFits(vfit,cur_Ngr,&Timing_GranulComm);
 		// fit dipole grid with successive granules
 		Nfit=n;
-		for (ig=0;ig<cur_Ngr;ig++) {
+		for (ig=0;ig<cur_Ngr && n<gr_N;ig++) {
 			if (vfit[ig]) { // a successful granule
 				n++;
 				// fill dipoles in the sphere with granule material
@@ -1188,10 +1188,9 @@ static size_t PlaceGranules(void)
 						}
 					}
 				}
-				// if the allocation was too optimistic
-				if (n>=gr_N) break;
 			}
 		}
+		cur_Ngr=ig; // this is non-trivial only if n=gr_N occurred above
 		// save correct granule positions to file
 		if (store_grans && IFROOT) for (ig=0;ig<cur_Ngr;ig++) if (vfit[ig])
 			fprintf(file,GFORM3L"\n",gridspace*(vgran[3*ig]-cX),gridspace*(vgran[3*ig+1]-cY),
