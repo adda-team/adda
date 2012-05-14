@@ -188,7 +188,7 @@ CPPFOLDER := cpp
 
 LDLIBS    := -lm
 DEPFLAG   := -M
-DFFLAG    := -MF # this is required
+DFFLAG    := >
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
 
@@ -352,7 +352,7 @@ else ifeq ($(COMPILER),ibm)
   CSTD  := -qlanglvl=extc99
   COPT1 := -O2
   COPT2 := -O3 -qcache=auto
-  # DFREDIRECT = 2>nul -qipa=level=2 -qhot
+  DFFLAG := -MF # somehow it may have problems with standard redirect (>)
   DEPFLAG := -qmakedep=gcc -qsyntaxonly
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
