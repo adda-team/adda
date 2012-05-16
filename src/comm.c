@@ -182,7 +182,7 @@ static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
 		}
 		else res=mpi_dcomplex3;
 	}
-	else LogError(ONE_POS,"Variable type %u is not supported",type);
+	else LogError(ONE_POS,"Variable type %d is not supported",(int)type);
 
 	return res;
 }
@@ -193,6 +193,8 @@ void InitDispls(void)
 // initialize arrays recvcounts and displs once, further calls have no effect
 {
 	if (!displs_init) {
+		if (nvoid_Ndip>INT_MAX) LogError(ONE_POS,
+			"int overflow in MPI function for number of non-void dipoles (%zu)",nvoid_Ndip);
 		MALLOC_VECTOR(recvcounts,int,nprocs,ALL);
 		MALLOC_VECTOR(displs,int,nprocs,ALL);
 		// !!! TODO: check for overflow of int
@@ -334,11 +336,9 @@ void MyBcast(void * restrict data UOIP,const var_type type UOIP,const size_t n_e
  */
 {
 #ifdef ADDA_MPI
-	TIME_TYPE tstart;
+	TIME_TYPE tstart=0; // redundant initialization to remove warnings
 
-	// redundant initialization to remove warnings
-	tstart=0;
-
+	if (n_elem>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n_elem);
 	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
 		MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
@@ -401,6 +401,7 @@ void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restr
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
+	if (n>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
@@ -423,11 +424,9 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 #ifdef ADDA_MPI
 	MPI_Datatype mes_type;
 	int mult;
-	TIME_TYPE tstart;
+	TIME_TYPE tstart=0; // redundant initialization to remove warnings
 
-	// redundant initialization to remove warnings
-	tstart=0;
-
+	if (n_elem>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n_elem);
 	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
 		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
@@ -470,6 +469,8 @@ void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 	step=2*local_Nx;
 	msize=local_Nx*sizeof(doublecomplex);
 	bufsize=6*local_Nz*smallY*local_Nx;
+	if (bufsize>INT_MAX)
+		LogError(ALL_POS,"int overflow in MPI function for BT buffer (%zu)",bufsize);
 
 	for(transmission=1;transmission<=Ntrans;transmission++) {
 		// if part==nprocs then skip this transmission
@@ -519,6 +520,8 @@ void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP
 	step=2*local_Nx;
 	msize=local_Nx*sizeof(doublecomplex);
 	bufsize = 2*lengthZ*lengthY*local_Nx;
+	if (bufsize>INT_MAX)
+		LogError(ALL_POS,"int overflow in MPI function for BT buffer (%zu)",bufsize);
 
 	for(transmission=1;transmission<=Ntrans;transmission++) {
 		if ((part=CalcPartner(transmission))!=nprocs) {
@@ -722,7 +725,10 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 		}
 	}
 	else if (locgZ!=0) {
-		MPI_Send(dom,unit*locgZ,MPI_UNSIGNED_CHAR,ADDA_ROOT,0,MPI_COMM_WORLD);
+		// the test here implies the test for above MPI_Recv as well
+		size_t size=(size_t)unit*(size_t)locgZ;
+		if (size>INT_MAX) LogError(ALL_POS,"int overflow in MPI function (%zu)",size);
+		MPI_Send(dom,size,MPI_UNSIGNED_CHAR,ADDA_ROOT,0,MPI_COMM_WORLD);
 	}
 	(*timing)+=GET_TIME()-tstart;
 #endif
@@ -758,6 +764,7 @@ void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timin
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
+	if (n>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
@@ -786,6 +793,7 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 	TIME_TYPE tstart;
 	size_t i;
 
+	if (2*boxXY>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",2*boxXY);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
