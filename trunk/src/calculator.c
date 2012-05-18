@@ -280,6 +280,7 @@ static void ReadTables(void)
 {
 	int i, j, ymax, Rm2, Rm2x;
 
+	TIME_TYPE tstart=GET_TIME();
 	tab1=ReadTableFile(TAB_FNAME(1),1);
 	tab2=ReadTableFile(TAB_FNAME(2),6);
 	tab3=ReadTableFile(TAB_FNAME(3),3);
@@ -290,6 +291,7 @@ static void ReadTables(void)
 	tab8=ReadTableFile(TAB_FNAME(8),6);
 	tab9=ReadTableFile(TAB_FNAME(9),1);
 	tab10=ReadTableFile(TAB_FNAME(10),6);
+	Timing_FileIO += GET_TIME() - tstart;
 
 	if (!prognosis) {
 		// allocate memory for tab_index

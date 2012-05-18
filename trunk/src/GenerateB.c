@@ -295,6 +295,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				"polarization need to be calculated");
 			fname=beam_fnameX;
 		}
+		TIME_TYPE tstart=GET_TIME();
 		FILE *file=FOpenErr(fname,"r",ALL_POS);
 		// the same format as used for saving the beam by StoreFields(...) in make_particle.c
 		const char beam_format[]="%*f %*f %*f %*f %lf %lf %lf %lf %lf %lf";
@@ -323,6 +324,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				if(i==local_nvoid_d1 && i!=nvoid_Ndip) break;
 			}
 		}
+		Timing_FileIO+=GET_TIME()-tstart;
 	}
 	/* TO ADD NEW BEAM
 	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...')
