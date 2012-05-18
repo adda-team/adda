@@ -607,6 +607,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			 * the same quantities calculated by different means).
 			 */
 			if (IFROOT) {
+				TIME_TYPE tstart_io=GET_TIME();
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
 				PrintBoth(CCfile,"\nMatrix\n"
@@ -633,6 +634,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 						Frp[3*j],Frp[3*j+1],Frp[3*j+2]);
 					FCloseErr(VisFrp,fname_frp,ONE_POS);
 				}
+				Timing_FileIO += GET_TIME() - tstart_io;
 			}
 			Free_general(Fsca);
 			Free_general(Finc);

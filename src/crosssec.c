@@ -366,6 +366,7 @@ void ReadAvgParms(const char * restrict fname)
 	FILE * restrict input;
 	char buf[BUF_LINE],temp[BUF_LINE];
 
+	TIME_TYPE tstart=GET_TIME();
 	// open file
 	input=FOpenErr(fname,"r",ALL_POS);
 	//scan file
@@ -388,6 +389,7 @@ void ReadAvgParms(const char * restrict fname)
 		alpha_int.min,alpha_int.max,alpha_int.N,beta_int.min,beta_int.max,beta_int.N,gamma_int.min,
 		gamma_int.max,gamma_int.N);
 	D("ReadAvgParms finished");
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //=====================================================================
@@ -400,6 +402,7 @@ void ReadAlldirParms(const char * restrict fname)
 	FILE * restrict input;
 	char buf[BUF_LINE],temp[BUF_LINE];
 
+	TIME_TYPE tstart=GET_TIME();
 	// open file
 	input=FOpenErr(fname,"r",ALL_POS);
 	//scan file
@@ -418,6 +421,7 @@ void ReadAlldirParms(const char * restrict fname)
 		"see files 'log_int_***' for details\n\n",
 		theta_int.min,theta_int.max,theta_int.N,phi_int.min,phi_int.max,phi_int.N);
 	D("ReadAlldirParms finished");
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //=====================================================================
@@ -430,6 +434,7 @@ void ReadScatGridParms(const char * restrict fname)
 	enum angleset theta_type,phi_type;
 	size_t i;
 
+	TIME_TYPE tstart=GET_TIME();
 	// redundant initialization to remove warnings
 	theta_type=phi_type=AS_RANGE;
 
@@ -498,6 +503,7 @@ void ReadScatGridParms(const char * restrict fname)
 		fprintf(logfile,"\n");
 	}
 	D("ReadScatGridParms finished");
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //=====================================================================*/

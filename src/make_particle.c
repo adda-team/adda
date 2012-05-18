@@ -155,6 +155,7 @@ static void SaveGeometry(void)
 	 * Each part is done in corresponding if-else-if sequence
 	 */
 
+	TIME_TYPE tstart=GET_TIME();
 	// create save_geom_fname if not specified, by adding extension to the shapename
 	if (save_geom_fname[0]==0) {
 		const char *ext;
@@ -221,6 +222,7 @@ static void SaveGeometry(void)
 	if (IFROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
 #endif
 	if (IFROOT) printf("Geometry saved to file\n");
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //===========================================================
@@ -243,6 +245,7 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 	char linebuf[BUF_LINE];
 	const char *rf_text;
 
+	TIME_TYPE tstart=GET_TIME();
 	dipfile=FOpenErr(fname,"r",ALL_POS);
 
 	// detect file format
@@ -403,6 +406,7 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 	 */
 	fseek(dipfile,0,SEEK_SET);
 	SkipNLines(dipfile,skiplines);
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //===========================================================
@@ -417,6 +421,7 @@ static void ReadDipFile(const char * restrict fname)
 	size_t boxX_l;
 	char linebuf[BUF_LINE];
 
+	TIME_TYPE tstart=GET_TIME();
 	// to remove possible overflows
 	boxX_l=(size_t)boxX;
 
@@ -449,6 +454,7 @@ static void ReadDipFile(const char * restrict fname)
 		}
 	}
 	FCloseErr(dipfile,fname,ALL_POS);
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //==========================================================
@@ -527,6 +533,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 
 	D("InitContour has started");
 	// Read contour from file
+	TIME_TYPE tstart=GET_TIME();
 	file=FOpenErr(fname,"r",ALL_POS);
 	line=SkipComments(file);
 	size=CHUNK_SIZE;
@@ -565,6 +572,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 		}
 	}
 	FCloseErr(file,fname,ALL_POS);
+	Timing_FileIO+=GET_TIME()-tstart;
 	// Check number of points read
 	if (nr<3) LogError(ONE_POS,"Contour from file %s contains less than three points",fname);
 

@@ -216,11 +216,11 @@ void FinalStatistics(void)
 			fprintf(logfile,
 				"    communication:       "FFORMT"\n",TO_SEC(Timing_ScatQuanComm));
 #endif
-			fprintf (logfile,
-				"  File I/O:            "FFORMT"\n"
-				"Integration:         "FFORMT"\n",
-				TO_SEC(Timing_FileIO),TO_SEC(Timing_Integration));
 		}
+		fprintf (logfile,
+				"File I/O:            "FFORMT"\n",TO_SEC(Timing_FileIO));
+		if (!prognosis) fprintf (logfile,
+				"Integration:         "FFORMT"\n",TO_SEC(Timing_Integration));
 		// close logfile
 		FCloseErr(logfile,F_LOG,ONE_POS);
 	}
