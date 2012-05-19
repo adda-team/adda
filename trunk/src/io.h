@@ -57,6 +57,7 @@
 }
 
 char *dyn_sprintf(const char *format, ...) ATT_PRINTF(1,2) ATT_MALLOC;
+char *rea_sprintf(char *str,const char *format, ...) ATT_PRINTF(2,3) ATT_MALLOC;
 void WrapLines(char * restrict str);
 char *WrapLinesCopy(const char * restrict str);
 void LogError(ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(4,5) ATT_NORETURN;
