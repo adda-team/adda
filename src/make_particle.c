@@ -69,7 +69,7 @@ double gridspace; // interdipole distance (dipole size)
 
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
-char sh_form_str[MAX_MESSAGE];   // string for log file with shape parameters
+const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
 size_t gr_N;                     // number of granules
 double gr_vf_real;               // actual granules volume fraction
 size_t mat_count[MAX_NMAT+1];    // number of dipoles in each domain
@@ -1320,6 +1320,7 @@ void InitShape(void)
 	 */
 	n_boxX=n_boxY=n_boxZ=UNDEF;
 	n_sizeX=UNDEF;
+	sh_form_str2=""; // this variable can be left uninitialized by some shapes
 
 	size_given_cmd=(sizeX!=UNDEF || a_eq!=UNDEF);
 	if (sizeX!=UNDEF) sizename="size";
@@ -1343,9 +1344,8 @@ void InitShape(void)
 		 * from file. Each line defines ro and z coordinates of a point, the first and the last
 		 * points are connected automatically. Linear interpolation is used between the points.
 		 */
-		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
-			"axisymmetric, defined by a contour in ro-z plane from file %s; diameter:%s",
-			shape_fname,GFORM);
+		if (IFROOT) sh_form_str1=dyn_sprintf(
+			"axisymmetric, defined by a contour in ro-z plane from file %s; diameter:",shape_fname);
 		InitContour(shape_fname,&zx_ratio,&n_sizeX);
 		yx_ratio=1;
 		symZ=false; // input contour is assumed asymmetric over ro-axis
@@ -1363,8 +1363,12 @@ void InitShape(void)
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"bicoated; diameter(d):%s, center-center distance R_cc/d="
-			GFORM", inner diameter d_in/d="GFORM,GFORM,diskratio,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="bicoated; diameter(d):";
+			sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM", inner diameter "
+				"d_in/d="GFORM,diskratio,coat_ratio);
+		}
+
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
@@ -1387,9 +1391,11 @@ void InitShape(void)
 		aspectZ2=sh_pars[4];
 		TestPositive(aspectZ2,"aspect ratio z2/x2");
 		// set descriptive string and symmetry
-		if (IFROOT) sprintf(sh_form_str,"biellipsoid; size along x-axis:%s; aspect ratios: y1/x1="
-			GFORM", z1/x1="GFORM", x2/x1="GFORM", y2/x2="GFORM", z2/x2="GFORM,
-			GFORM,aspectY,aspectZ,aspectXs,aspectY2,aspectZ2);
+		if (IFROOT) {
+			sh_form_str1="biellipsoid; size along x-axis:";
+			sh_form_str2=dyn_sprintf("; aspect ratios: y1/x1="GFORM", z1/x1="GFORM", x2/x1="GFORM
+				", y2/x2="GFORM", z2/x2="GFORM,aspectY,aspectZ,aspectXs,aspectY2,aspectZ2);
+		}
 		if (aspectY!=1 || aspectY2!=1) symR=false;
 		symZ=false; // since upper and lower ellipsoids are generally different both in size and RI
 		// set inverse squares of aspect ratios
@@ -1422,8 +1428,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,
-			"bisphere; diameter(d):%s, center-center distance R_cc/d="GFORM,GFORM,diskratio);
+		if (IFROOT) {
+			sh_form_str1="bisphere; diameter(d):";
+			sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
 		else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
@@ -1435,7 +1443,7 @@ void InitShape(void)
 		double aspectY,aspectZ;
 
 		if (sh_Npars==0) {
-			if (IFROOT) strcpy(sh_form_str,"cube; size of edge along x-axis:"GFORM);
+			if (IFROOT) sh_form_str1="cube; size of edge along x-axis:";
 			aspectY=aspectZ=1;
 		}
 		else { // 2 parameters are given
@@ -1443,8 +1451,10 @@ void InitShape(void)
 			TestPositive(aspectY,"aspect ratio y/x");
 			aspectZ=sh_pars[1];
 			TestPositive(aspectZ,"aspect ratio z/x");
-			if (IFROOT) sprintf(sh_form_str,"rectangular parallelepiped; size along x-axis:%s, "
-				"aspect ratio y/x="GFORM", z/x="GFORM,GFORM,aspectY,aspectZ);
+			if (IFROOT) {
+				sh_form_str1="rectangular parallelepiped; size along x-axis:";
+				sh_form_str2=dyn_sprintf(", aspect ratio y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+			}
 		}
 		if (aspectY!=1) symR=false;
 		// set half-aspect ratios
@@ -1460,8 +1470,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"height to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,"capsule; diameter(d):%s, cylinder height h/d="GFORM,
-			GFORM,diskratio);
+		if (IFROOT) {
+			sh_form_str1="capsule; diameter(d):";
+			sh_form_str2=dyn_sprintf(", cylinder height h/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2;
 		volume_ratio = PI_OVER_FOUR*diskratio + PI_OVER_SIX;
 		yx_ratio=1;
@@ -1479,9 +1491,11 @@ void InitShape(void)
 		ConvertToInteger(sh_pars[1],"number of sides",&chebn);
 		TestPositive_i(chebn,"order n");
 		ChebyshevParams(chebeps,chebn,&Dx,&Dz,&sz,&volume_ratio);
-		if (IFROOT) sprintf(sh_form_str,"axisymmetric chebyshev particle; size along x-axis (Dx):"
-			"%s, amplitude eps="GFORM", order n=%d, initial radius r0/Dx="GFORM,GFORM,chebeps,
-			chebn,1/Dx);
+		if (IFROOT) {
+			sh_form_str1="axisymmetric chebyshev particle; size along x-axis (Dx):";
+			sh_form_str2=dyn_sprintf(", amplitude eps="GFORM", order n=%d, initial radius r0/Dx="
+				GFORM,chebeps,chebn,1/Dx);
+		}
 		yx_ratio=1;
 		zx_ratio=Dz/Dx;
 		symZ=(sz!=0);
@@ -1494,21 +1508,25 @@ void InitShape(void)
 	}
 	else if (shape==SH_COATED) {
 		double coat_ratio;
+		char *buf=NULL; // redundant initialization to remove warnings
 
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"coated sphere; diameter(d):%s, inner diameter d_in/d="
-			GFORM,GFORM,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="coated sphere; diameter(d):";
+			buf=dyn_sprintf(", inner diameter d_in/d="GFORM,coat_ratio);
+		}
 		if (sh_Npars==4) {
 			coat_x=sh_pars[1];
 			coat_y=sh_pars[2];
 			coat_z=sh_pars[3];
 			if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
 				PrintErrorHelp("Inner sphere is not fully inside the outer");
-			if (IFROOT) sprintf(sh_form_str+strlen(sh_form_str),
-				"\n       position of inner sphere center r/d= "GFORM3V,coat_x,coat_y,coat_z);
+			if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d= "GFORM3V,
+				coat_x,coat_y,coat_z);
 		}
 		else coat_x=coat_y=coat_z=0; // initialize default values
+		if (IFROOT) sh_form_str2=buf;
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		volume_ratio=PI_OVER_SIX;
 		if (coat_x!=0) symX=symR=false;
@@ -1522,8 +1540,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestPositive(diskratio,"height to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,"cylinder; diameter(d):%s, height h/d="GFORM,GFORM,
-			diskratio);
+		if (IFROOT) {
+			sh_form_str1="cylinder; diameter(d):";
+			sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2;
 		volume_ratio=PI_OVER_FOUR*diskratio;
 		yx_ratio=1;
@@ -1570,8 +1590,10 @@ void InitShape(void)
 		 */
 		volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)
 		            /(egnu*egnu+2*tmp3);
-		if (IFROOT) sprintf(sh_form_str,"egg; diameter(d):%s, epsilon="GFORM", nu="GFORM", a/d="
-			GFORM,GFORM,egeps,egnu,ad);
+		if (IFROOT) {
+			sh_form_str1="egg; diameter(d):";
+			sh_form_str2=dyn_sprintf(", epsilon="GFORM", nu="GFORM", a/d="GFORM,egeps,egnu,ad);
+		}
 		Nmat_need=1;
 		yx_ratio=1;
 		zx_ratio=ad*(tmp1+tmp2); // (a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)]
@@ -1583,8 +1605,10 @@ void InitShape(void)
 		TestPositive(aspectY,"aspect ratio y/x");
 		aspectZ=sh_pars[1];
 		TestPositive(aspectZ,"aspect ratio z/x");
-		if (IFROOT) sprintf(sh_form_str,"ellipsoid; size along x-axis:%s, aspect ratios y/x="GFORM
-			", z/x="GFORM,GFORM,aspectY,aspectZ);
+		if (IFROOT) {
+			sh_form_str1="ellipsoid; size along x-axis:";
+			sh_form_str2=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+		}
 		if (aspectY!=1) symR=false;
 		// set inverse squares of aspect ratios
 		invsqY=1/(aspectY*aspectY);
@@ -1595,7 +1619,7 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_LINE) {
-		if (IFROOT) strcpy(sh_form_str,"line; length:"GFORM);
+		if (IFROOT) sh_form_str1="line; length:";
 		symY=symZ=symR=false;
 		n_boxY=n_boxZ=jagged;
 		yx_ratio=zx_ratio=UNDEF;
@@ -1607,8 +1631,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestRangeNI(diskratio, "height to diameter ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"plate; full diameter(d):%s, height h/d="GFORM,GFORM,
-			diskratio);
+		if (IFROOT) {
+			sh_form_str1="plate; full diameter(d):";
+			sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
+		}
 		volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24;
 		yx_ratio=1;
 		zx_ratio=diskratio;
@@ -1648,8 +1674,10 @@ void InitShape(void)
 			}
 			else Dy=Dx; // N=4k
 		}
-		if (IFROOT) sprintf(sh_form_str,"%d-sided regular prism; size along x-axis (Dx):%s, height "
-			"h/Dx="GFORM", base side a/Dx="GFORM,Nsides,GFORM,diskratio,1/Dx);
+		if (IFROOT) {
+			sh_form_str1=dyn_sprintf("%d-sided regular prism; size along x-axis (Dx):",Nsides);
+			sh_form_str2=dyn_sprintf(", height h/Dx="GFORM", base side a/Dx="GFORM,diskratio,1/Dx);
+		}
 		xcenter=sx/Dx;
 		yx_ratio=Dy/Dx;
 		zx_ratio=diskratio;
@@ -1675,8 +1703,11 @@ void InitShape(void)
 		if (h_d<=b_d) PrintErrorHelp("given RBC is not biconcave; maximum width is in the center");
 		c_d=sh_pars[2];
 		TestRangeII(c_d,"relative diameter of maximum width",0,1);
-		if (IFROOT) sprintf(sh_form_str,"red blood cell; diameter(d):%s, maximum and minimum width "
-			"h/d="GFORM", b/d="GFORM", diameter of maximum width c/d="GFORM,GFORM,h_d,b_d,c_d);
+		if (IFROOT) {
+			sh_form_str1="red blood cell; diameter(d):";
+			sh_form_str2=dyn_sprintf(", maximum and minimum width h/d="GFORM", b/d="GFORM", "
+				"diameter of maximum width c/d="GFORM,h_d,b_d,c_d);
+		}
 		// calculate shape parameters
 		h2=h_d*h_d;
 		b2=b_d*b_d;
@@ -1700,13 +1731,13 @@ void InitShape(void)
 		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
 		const char *rf_text;
 		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need,&rf_text);
-		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
-			"specified by file %s - %s; size along x-axis:%s",shape_fname,rf_text,GFORM);
+		if (IFROOT) sh_form_str1=dyn_sprintf("specified by file %s - %s; size along x-axis:",
+			shape_fname,rf_text);
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
 	}
 	else if (shape==SH_SPHERE) {
-		if (IFROOT) strcpy(sh_form_str,"sphere; diameter:"GFORM);
+		if (IFROOT) sh_form_str1="sphere; diameter:";
 		volume_ratio=PI_OVER_SIX;
 		yx_ratio=zx_ratio=1;
 		Nmat_need=1;
@@ -1716,8 +1747,10 @@ void InitShape(void)
 
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"sphere diameter/cube edge ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"sphere in cube; size of cube edge(a):%s, diameter of "
-			"sphere d/a="GFORM,GFORM,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="sphere in cube; size of cube edge(a):";
+			sh_form_str2=dyn_sprintf(", diameter of sphere d/a="GFORM,coat_ratio);
+		}
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		yx_ratio=zx_ratio=1;
 		volume_ratio=1;

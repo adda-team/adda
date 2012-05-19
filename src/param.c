@@ -76,7 +76,7 @@ extern const char avg_string[];
 extern const char beam_descr[];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
-extern const char sh_form_str[];
+extern const char *sh_form_str1,*sh_form_str2;
 extern const int gr_N;
 extern const double gr_vf_real;
 extern const size_t mat_count[];
@@ -1999,12 +1999,12 @@ void PrintInfo(void)
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
-		fprintf(logfile,sh_form_str,sizeX);
+		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
 		if (sh_granul) fprintf(logfile,
-			"\n  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
-			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF,
+			"  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
+			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",
 			gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
-		fprintf(logfile,"\nbox dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
+		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",

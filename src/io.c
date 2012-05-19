@@ -53,20 +53,26 @@ static char warn_buf[MAX_MESSAGE2]="";
  * pointer to a new string is returned instead of passing it as an argument.
  */
 static char *dyn_vsprintf(const char *format, va_list args)
-// same as vsprintf but allocates storage for the result
+/* same as vsprintf but allocates storage for the result
+ * simple error handling is used, so it can be called from LogError, etc.
+ */
 {
 	va_list copy;
 	va_copy(copy,args);
 	char *buffer=NULL; // default value to have deterministic behavior
 	int count=vsnprintf(NULL,0,format,args);
 	if (count>=0) {
-		MALLOC_VECTOR(buffer,char,count+1,ALL);
-		count=vsnprintf(buffer,count+1,format,copy);
+		buffer=(char*)malloc(((size_t)count+1)*sizeof(char));
+		if (buffer==NULL) {
+			fprintf(stderr,"ERROR: malloc failed in '%s'",__func__);
+			Stop(EXIT_FAILURE);
+		}
+		count=vsnprintf(buffer,(size_t)count+1,format,copy);
 	}
-	va_end(args);
-	if (count<0) { // simple error handling, so it can be called from LogError, etc.
+	va_end(copy);
+	if (count<0) {
 		fprintf(stderr,"ERROR: Code %d returned by vsnprintf in '%s'",count,__func__);
-		exit(count);
+		Stop(count);
 	}
 	return buffer;
 }
@@ -77,8 +83,47 @@ char *dyn_sprintf(const char *format, ...)
 // same as sprintf, but allocates storage for the result
 {
 	va_list args;
-	va_start(args, format);
+	va_start(args,format);
 	char *res=dyn_vsprintf(format,args);
+	va_end(args);
+	return res;
+}
+
+//============================================================
+// The following two functions are simple modifications of the preceding two, with reallocation
+char *rea_vsprintf(char *str,const char *format, va_list args)
+/* same as vsprintf but result is added to string str, which is reallocated on the way
+ * simple error handling is used, so it can be called from LogError, etc.
+ */{
+	va_list copy;
+	va_copy(copy,args);
+	char *buffer=NULL; // default value to have deterministic behavior
+	int count=vsnprintf(NULL,0,format,args);
+	if (count>=0) {
+		size_t len=strlen(str);
+		buffer=(char*)realloc(str,((size_t)count+len+1)*sizeof(char));
+		if (buffer==NULL) {
+			fprintf(stderr,"ERROR: realloc failed in '%s'",__func__);
+			Stop(EXIT_FAILURE);
+		}
+		count=vsnprintf(buffer+len,(size_t)count+1,format,copy);
+	}
+	va_end(copy);
+	if (count<0) { // simple error handling, so it can be called from LogError, etc.
+		fprintf(stderr,"ERROR: Code %d returned by vsnprintf in '%s'",count,__func__);
+		Stop(count);
+	}
+	return buffer;
+}
+
+//============================================================
+
+char *rea_sprintf(char *str,const char *format, ...)
+// same as sprintf, but result is added to string str, which is reallocated on the way
+{
+	va_list args;
+	va_start(args,format);
+	char *res=rea_vsprintf(str,format,args);
 	va_end(args);
 	return res;
 }

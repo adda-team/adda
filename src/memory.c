@@ -203,7 +203,7 @@ char *charVector(const size_t size,OTHER_ARGUMENTS)
 //============================================================
 
 char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS)
-// reallocates double vector ptr to a larger size
+// reallocates char vector ptr to a larger size
 {
 	char *v;
 
