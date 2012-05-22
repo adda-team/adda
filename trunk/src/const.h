@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1b7"
+#define ADDA_VERSION "1.1b8"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -144,6 +144,7 @@ to try, you may enable an override in the Makefile."
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
 #define GFORM6L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
+#define GFORM7L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
 #define GFORM10L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
 #define GFORMDEF3V "("GFORMDEF","GFORMDEF","GFORMDEF")"
 #define CFORM3V "("CFORM","CFORM","CFORM")"
@@ -319,7 +320,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define F_EXPCOUNT      "ExpCount"
 #define F_EXPCOUNT_LCK  F_EXPCOUNT ".lck"
 #define F_CS            "CrossSec"
-#define F_FRP           "VisFrp"
+#define F_FRP           "RadForce"
 #define F_INTFLD        "IntField"
 #define F_DIPPOL        "DipPol"
 #define F_BEAM          "IncBeam"
@@ -349,6 +350,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define F_AMPL          "ampl"
 #define F_AMPL_SG       "ampl_scatgrid"
 	// temporary files; used in printf with ringid as argument
+#define F_FRP_TMP       "rf%d.tmp"
 #define F_BEAM_TMP      "b%d.tmp"
 #define F_INTFLD_TMP    "f%d.tmp"
 #define F_DIPPOL_TMP    "p%d.tmp"

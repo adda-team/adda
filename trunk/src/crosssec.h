@@ -37,7 +37,7 @@ void AsymParm(double *vec,const char *f_suf);
 void AsymParm_x(double *vec,const char *f_suf);
 void AsymParm_y(double *vec,const char *f_suf);
 void AsymParm_z(double *vec,const char *f_suf);
-void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double * restrict Finc,
-	double Frp_tot[3],double * restrict Frp);
+void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 3],
+	double * restrict Frp);
 
 #endif // __crosssec_h
