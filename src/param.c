@@ -321,6 +321,7 @@ PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
 PARSE_FUNC(chp_type);
 PARSE_FUNC(chpoint);
+PARSE_FUNC(Cpr);
 PARSE_FUNC(Cpr_mat);
 PARSE_FUNC(Csca);
 PARSE_FUNC(dir);
@@ -396,7 +397,8 @@ static struct opt_struct options[]={
 		"All fields are optional, numbers are integers, 's' can be omitted, the format is not "
 		"case sensitive.\n"
 		"Examples: 12h30M, 1D10s, 3600",1,NULL},
-	{PAR(Cpr_mat),"","Calculate the total radiation force",0,NULL},
+	{PAR(Cpr),"","Calculate the total radiation force, expressed as cross section.",0,NULL},
+	{PAR(Cpr_mat),"","Deprecated command line option. Use '-Cpr' instead.",0,NULL},
 	{PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
 	{PAR(dir),"<dirname>","Sets directory for output files.\n"
 		"Default: constructed automatically",1,NULL},
@@ -563,7 +565,7 @@ static struct opt_struct options[]={
 		1,NULL},
 	{PAR(store_beam),"","Save incident beam to a file",0,NULL},
 	{PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
-	{PAR(store_force),"","Calculate the radiation force on each dipole. Requires '-Cpr_mat'",
+	{PAR(store_force),"","Calculate the radiation force on each dipole. Implies '-Cpr'",
 		0,NULL},
 	{PAR(store_grans),"","Save granule coordinates (placed by '-granul' option) to a file",0,NULL},
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
@@ -948,9 +950,14 @@ PARSE_FUNC(chpoint)
 	}
 	else if (chp_type==CHP_NONE) chp_type=CHP_NORMAL;
 }
+PARSE_FUNC(Cpr)
+{
+	calc_mat_force = true;
+}
 PARSE_FUNC(Cpr_mat)
 {
 	calc_mat_force = true;
+	LogWarning(EC_WARN,ONE_POS,"Command line option '-Cpr_mat' is deprecated. Use '-Cpr' instead");
 }
 PARSE_FUNC(Csca)
 {
@@ -1340,6 +1347,7 @@ PARSE_FUNC(store_dip_pol)
 PARSE_FUNC(store_force)
 {
 	store_force = true;
+	calc_mat_force = true;
 }
 PARSE_FUNC(store_grans)
 {
@@ -1793,6 +1801,9 @@ void VariablesInterconnect(void)
 		// TODO: this limitation should be removed in the future
 		if (all_dir)
 			PrintError("Currently '-orient avg' can not be used with calculation of asym or Csca");
+		if (calc_mat_force)
+			PrintError("Currently '-orient avg' can not be used with calculation of Cpr");
+		if (store_force) PrintError("'-store_force' and '-orient avg' can not be used together");
 		if (!store_mueller && store_ampl) {
 			store_ampl=false;
 			LogWarning(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So "
@@ -1827,6 +1838,8 @@ void VariablesInterconnect(void)
 		if (orient_avg) PrintError("Currently checkpoint is incompatible with '-orient avg'");
 	}
 	if (sizeX!=UNDEF && a_eq!=UNDEF) PrintError("'-size' and '-eq_rad' can not be used together");
+	if (calc_mat_force && beamtype!=B_PLANE)
+		PrintError("Currently radiation forces can not be calculated for non-plane incident wave");
 	// scale boxes by jagged; should be completely robust to overflows
 #define JAGGED_BOX(a) if (a!=UNDEF) { \
 	if ((BOX_MAX/(size_t)jagged)<(size_t)a) \

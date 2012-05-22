@@ -988,82 +988,84 @@ void AsymParm_z(double *vec,const char *f_suf)
 
 //=====================================================================
 
-void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double * restrict Finc,
-	double Frp_tot[3],double * restrict Frp)
-/* Calculate the Radiation Pressure by direct calculation of the scattering force. Per dipole the
- * force of the incoming photons, the scattering force and the radiation pressure are calculated
- * as intermediate results
+void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 3],
+	double * restrict Frp)
+/* Calculate the Radiation Pressure (separately incident and scattering part by direct calculation
+ * of the scattering force. The total force per dipole is calculated as intermediate results.
+ * It is saved to Frp, if the latter is not NULL.
+ * mem denotes the specific memory allocated before function call
  *
  * This should be completely rewritten to work through FFT. Moreover, it should comply with
  * '-scat ...' command line option.
  */
 {
-	size_t j,l,lll,jjj,jjj_loc,index,comp;
+	size_t j,k,jg,comp;
 	double * restrict rdipT;
 	doublecomplex * restrict pT;
 	doublecomplex temp;
-	doublecomplex dummy,_E_inc;
+	double Fsca[3],Finc[3];
+	double *vec;
 	double r,r2; // (squared) absolute distance
 	doublecomplex
 	n[3],                  // unit vector in the direction of r_{jl}; complex part is always zero
 	a,ab1,ab2,c1[3],c2[3], // see chapter ...
 	x_cg[3], // complex conjugate P*_j
-	Pn_j,    // n_jl.P_l
-	Pn_l,    // P*_j.n_jl
-	inp;     // P*_j.P_l
+	Pn_j,    // n_jk.P_k
+	Pn_k,    // P*_j.n_jk
+	inp;     // P*_j.P_k
+	size_t mem=0; // memory count
 
-	// initialize
-	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=Frp_tot[comp]=0.0;
+	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=0.0; // initialize
 	// Calculate incoming force per dipole
-	for (j=0;j<local_nvoid_Ndip;++j) {
-		dummy[RE]=dummy[IM]=0.0;
-		for (comp=0;comp<3;++comp) {
-			index = 3*j+comp;
-			// Im(P.E*inc)
-			_E_inc[RE] = Einc[index][RE];
-			_E_inc[IM] = -Einc[index][IM];
-			cMult(pvec[index],_E_inc,temp);
-			cAdd(dummy,temp,dummy);
-		}
-		Finc[3*j+2] = WaveNum*dummy[IM]/2;
-		Finc_tot[2] += Finc[3*j+2];
+	if (Frp==NULL) vec=Finc;
+	else mem+=sizeof(double)*local_nRows; // memory allocated before for Frp
+	/* The following expression F_inc=k(v)*0.5*Sum(P.Einc(*)) is valid only for the plane wave
+	 * TODO: Implement formulae for arbitrary Gaussian beams
+	 */
+	for (j=0;j<local_nRows;j+=3) {
+		if (Frp!=NULL) vec=Frp+j;
+		vMultScal(WaveNum*cDotProd_Im(pvec+j,Einc+j)/2,prop,vec);
+		vAdd(vec,Finc_tot,Finc_tot);
 	}
-#ifdef PARALLEL
+	// check if it can work at all; check is redundant for sequential mode
+	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+	#ifdef PARALLEL
 	/* Because of the parallelization by row-block decomposition the distributed arrays involved
 	 * need to be gathered on each node a) DipoleCoord -> rdipT; b) pvec -> pT.
 	 * Actually this routine is usually called for two polarizations and rdipT does not change
 	 * between the calls. So one AllGather of rdipT can be removed. Number of memory allocations can
 	 * also be reduced. But this should be replaced by Fourier anyway.
 	 */
-	// check if it can work at all
-	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
 	// allocates a lot of additional memory
 	MALLOC_VECTOR(rdipT,double,nRows,ALL);
 	MALLOC_VECTOR(pT,complex,nRows,ALL);
+	mem+=nRows*(sizeof(double)+sizeof(doublecomplex));
+	// this is approximate value, but not far
+	if (IFROOT) PrintBoth(logfile,"Additional memory usage for radiation forces (per processor): "
+		FFORMM" MB\n",mem/MBYTE);
 	// gathers everything
 	AllGather(DipoleCoord,rdipT,double3_type,&Timing_ScatQuanComm);
 	AllGather(pvec,pT,cmplx3_type,&Timing_ScatQuanComm);
 #else
 	pT=pvec;
 	rdipT=DipoleCoord;
+	if (mem!=0)
+		PrintBoth(logfile,"Additional memory usage for radiation forces: "FFORMM" MB\n",mem/MBYTE);
 #endif
 	// Calculate scattering force per dipole
 	/* Currently, testing the correctness of the following is very hard because the original code
 	 * lacks comments. So the best we can do before rewriting it completely is to test that it
 	 * produces reasonable results for a number of test cases.
 	 */
-	for (j=local_nvoid_d0;j<local_nvoid_d1;++j) {
-		jjj = 3*j;
-		jjj_loc=3*(j-local_nvoid_d0);
-
-		for (l=0;l<nvoid_Ndip;++l) if (j!=l) {
-			lll = 3*l;
+	for (j=0,jg=3*local_nvoid_d0;j<local_nRows;j+=3,jg+=3) {
+		for (comp=0;comp<3;++comp) Fsca[comp]=0;
+		for (k=0;k<nRows;k+=3) if (jg!=k) {
 			r2 = 0;
-			Pn_j[RE]=Pn_j[IM]=Pn_l[RE]=Pn_l[IM]=inp[RE]=inp[IM]=0.0;
+			Pn_j[RE]=Pn_j[IM]=Pn_k[RE]=Pn_k[IM]=inp[RE]=inp[IM]=0.0;
 			// Set distance related variables
 			for (comp=0;comp<3;++comp) {
 				n[comp][IM] = 0;
-				n[comp][RE] = rdipT[jjj+comp] - rdipT[lll+comp];
+				n[comp][RE] = rdipT[jg+comp] - rdipT[k+comp];
 				r2 += n[comp][RE]*n[comp][RE];
 			}
 			r = sqrt(r2);
@@ -1079,52 +1081,48 @@ void Frp_mat(double Fsca_tot[3],double * restrict Fsca,double Finc_tot[3],double
 			cMultSelf(ab2,a);
 			// Prepare c1 and c2
 			for (comp=0;comp<3;++comp) {
-				x_cg[comp][RE] = pT[jjj+comp][RE];
-				x_cg[comp][IM] = -pT[jjj+comp][IM];
+				x_cg[comp][RE] = pT[jg+comp][RE];
+				x_cg[comp][IM] = -pT[jg+comp][IM];
 				cMult(x_cg[comp],n[comp],temp);
 				cAdd(Pn_j,temp,Pn_j);
-				cMult(n[comp],pT[lll+comp],temp);
-				cAdd(Pn_l,temp,Pn_l);
-				cMult(x_cg[comp],pT[lll+comp],temp);
+				cMult(n[comp],pT[k+comp],temp);
+				cAdd(Pn_k,temp,Pn_k);
+				cMult(x_cg[comp],pT[k+comp],temp);
 				cAdd(inp,temp,inp);
 			}
 			for (comp=0;comp<3;++comp) {
 				// Set c1
-				cMult(Pn_j,Pn_l,temp);
+				cMult(Pn_j,Pn_k,temp);
 				cMult(n[comp],temp,c1[comp]);
 				c1[comp][RE] *= -5;
 				c1[comp][IM] *= -5;
 				cMult(inp,n[comp],temp);
 				cAdd(c1[comp],temp,c1[comp]);
-				cMult(Pn_j,pT[lll+comp],temp);
+				cMult(Pn_j,pT[k+comp],temp);
 				cAdd(c1[comp],temp,c1[comp]);
-				cMult(x_cg[comp],Pn_l,temp);
+				cMult(x_cg[comp],Pn_k,temp);
 				cAdd(c1[comp],temp,c1[comp]);
 				// Set c2
-				cMult(Pn_j,Pn_l,temp);
+				cMult(Pn_j,Pn_k,temp);
 				cMult(n[comp],temp,c2[comp]);
 				c2[comp][RE] *= -1;
 				c2[comp][IM] *= -1;
 				cMult(inp,n[comp],temp);
 				cAdd(c2[comp],temp,c2[comp]);
-				// Fsca_{jl} = ...
+				// Fsca_{jk} = ...
 				cMultSelf(c1[comp],ab1);
 				cMultSelf(c2[comp],ab2);
-				Fsca[jjj_loc+comp] += (c1[comp][RE] + c2[comp][RE])/2;
+				Fsca[comp] += (c1[comp][RE] + c2[comp][RE])/2;
 			}
-		} // end l-loop
+		} // end k-loop
 		// Concluding
-		for (comp=0;comp<3;++comp) {
-			Fsca_tot[comp] += Fsca[jjj_loc+comp];
-			Frp[jjj_loc+comp] = Finc[jjj_loc+comp] + Fsca[jjj_loc+comp];
-			Frp_tot[comp] += Frp[jjj_loc+comp];
-		}
+		vAdd(Fsca,Fsca_tot,Fsca_tot);
+		if (Frp!=NULL) vAdd(Fsca,Frp+j,Frp+j);
 	} // end j-loop
 
 	// Accumulate the total forces on all nodes
 	MyInnerProduct(Finc_tot,double_type,3,&Timing_ScatQuanComm);
 	MyInnerProduct(Fsca_tot,double_type,3,&Timing_ScatQuanComm);
-	MyInnerProduct(Frp_tot,double_type,3,&Timing_ScatQuanComm);
 #ifdef PARALLEL
 	Free_general(rdipT);
 	Free_cVector(pT);

@@ -59,7 +59,12 @@ all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
 all -h chp_load
 all -chp_dir chp_tmp -chp_load ;mgn;
 
+all -h Cpr
+all -Cpr ;sep; ;mgn;
+
+# the following is left for versions prior to 1.1
 all -h Cpr_mat
+all -Cpr_mat ;mgn;
 all -Cpr_mat ;sep; ;mgn;
 
 all -h Csca
@@ -242,7 +247,9 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mgn;
 
 all -h store_force
+# the following is left for versions prior to 1.1
 all -store_force -Cpr_mat ;sep; ;mgn;
+all -store_force ;mgn;
 
 all -h store_grans
 granules -store_grans -granul 0.2 1 -size 4 ;2mgn;

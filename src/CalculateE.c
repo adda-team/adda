@@ -516,6 +516,83 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 
 //============================================================
 
+static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
+	double * restrict realF,const char * restrict fname_preffix,const char * restrict tmpl UOIP,
+	const char * restrict field_name,const char * restrict fullname)
+/* Write any fields on each dipole to file (internal fields, incident beam, polarization, etc.).
+ * Accepts both complex and real fields. Processes the one, which is not null.
+ *
+ * All processors should write the 'field' to temporary file. These files are named by template
+ * 'tmpl' and afterwards are concatenated into the file, which name is build by adding a small
+ * suffix to 'fname_preffix'. If CE_PARPER is employed then naturally saves only once; use '-sym no'
+ * if needed. 'field_name' is used to build column labels (i.e. there is difference in the first row
+ * between different fields). 'fullname' is for standard output.
+ */
+{
+	FILE * restrict file; // file to store the fields
+	size_t j;
+	TIME_TYPE tstart;
+	char fname[MAX_FNAME],fname_sh[MAX_FNAME_SH];
+	bool cmplx_mode; // whether complex (true) or real (false) field is processed
+
+	tstart=GET_TIME();
+	// choose operational mode
+	if ((cmplxF==NULL) ^ (realF==NULL)) cmplx_mode=(realF==NULL);
+	else LogError(ONE_POS,"One field (either real or complex) must be given to StoreFields()");
+	// build file name (without directory)
+	strcpy(fname_sh,fname_preffix);
+	if (which==INCPOL_Y) strcat(fname_sh,F_YSUF);
+	else strcat(fname_sh,F_XSUF); // which==INCPOL_X
+	// choose filename for direct saving
+#ifdef PARALLEL
+	size_t shift=SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/",directory);
+	/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used,
+	 * but we do not know any other convenient way to make this function work for different file
+	 * name templates.
+	 */
+	SnprintfShiftErr(ALL_POS,shift,fname,MAX_FNAME,tmpl,ringid);
+#else
+	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/%s",directory,fname_sh);
+#endif
+	file=FOpenErr(fname,"w",ALL_POS);
+	// print head of file
+#ifdef PARALLEL
+	if (ringid==0) { // this condition can be different from being root
+#endif
+		if (cmplx_mode) fprintf(file,"x y z |%s|^2 %sx.r %sx.i %sy.r %sy.i %sz.r %sz.i\n",
+			field_name,field_name,field_name,field_name,field_name,field_name,field_name);
+		else fprintf(file,"x y z |%s|^2 %sx %sy %sz\n",field_name,field_name,field_name,field_name);
+#ifdef PARALLEL
+	} // end of if
+#endif
+	// saves fields to file
+	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",
+		DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],cvNorm2(cmplxF+j),cmplxF[j][RE],
+		cmplxF[j][IM],cmplxF[j+1][RE],cmplxF[j+1][IM],cmplxF[j+2][RE],cmplxF[j+2][IM]);
+	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",DipoleCoord[j],DipoleCoord[j+1],
+		DipoleCoord[j+2],DotProd(realF+j,realF+j),realF[j],realF[j+1],realF[j+2]);
+	FCloseErr(file,fname,ALL_POS);
+#ifdef PARALLEL
+	// wait for all processes to save their part of geometry
+	Synchronize();
+	if (IFROOT) CatNFiles(directory,tmpl,fname_sh);
+#endif
+	if (IFROOT) printf("%s saved to file\n",fullname);
+	Timing_FileIO += GET_TIME() - tstart;
+}
+
+//============================================================
+
+INLINE void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
+// transform real vector vp from particle to beam reference frame, vb and vp must not alias!!!
+{
+	vb[0]=DotProd(vp,incPolX);
+	vb[1]=DotProd(vp,incPolY);
+	vb[2]=DotProd(vp,prop);
+}
+
+//============================================================
+
 static void CalcIntegralScatQuantities(const enum incpol which)
 /* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter,
  * and force on the particle and each dipole. Cext and Cabs are averaged over orientation,
@@ -523,18 +600,16 @@ static void CalcIntegralScatQuantities(const enum incpol which)
  */
 {
 	// Scattering force, extinction force and radiation pressure per dipole
-	double * restrict Fsca,* restrict Finc,* restrict Frp;
+	double * restrict Frp;
 	double Cext,Cabs,Csca,   // Cross sections
-	dummy[3],         // asymmetry parameter*Csca
-	Fsca_tot[3],      // total scattering force
-	Finc_tot[3],      // total extinction force
-	Frp_tot[3],       // total radiation pressure
+	dummy[3],                // asymmetry parameter*Csca
+	Finc_tot[3],Fsca_tot[3], // total extinction and scattering force in particle reference frame
+	Finc_brf[3],Fsca_brf[3],Frp_brf[3], // extinction, scattering, and sum in beam reference frame
 	Cnorm,            // normalizing factor from force to cross section
 	Qnorm;            // normalizing factor from force to efficiency
-	FILE * restrict VisFrp,* restrict CCfile;
+	FILE * restrict CCfile;
 	TIME_TYPE tstart;
-	char fname_cs[MAX_FNAME],fname_frp[MAX_FNAME];
-	size_t j;
+	char fname_cs[MAX_FNAME];
 	const double *incPol;
 	const char *f_suf;
 
@@ -594,116 +669,41 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			}
 		} // end of root
 		if (calc_mat_force) {
-			MALLOC_VECTOR(Fsca,double,local_nRows,ALL);
-			MALLOC_VECTOR(Finc,double,local_nRows,ALL);
-			MALLOC_VECTOR(Frp,double,local_nRows,ALL);
-			for (j=0;j<local_nRows;j++) Fsca[j]=Finc[j]=Frp[j]=0;
 			if (IFROOT) printf("Calculating the force per dipole\n");
-			// Calculate forces
-			Frp_mat(Fsca_tot,Fsca,Finc_tot,Finc,Frp_tot,Frp);
+			if (store_force) MALLOC_VECTOR(Frp,double,local_nRows,ALL);
+			else Frp=NULL;
+			Frp_mat(Finc_tot,Fsca_tot,Frp);
 			// Write Cross-Sections and Efficiencies to file
 			/* This output contains a number of redundant quantities, like Cext and Csca.g. The main
 			 * purpose of this is to use it as independent test (it can be quickly compared against
 			 * the same quantities calculated by different means).
+			 * It also partly addresses issue 133.
 			 */
 			if (IFROOT) {
-				TIME_TYPE tstart_io=GET_TIME();
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
-				PrintBoth(CCfile,"\nMatrix\n"
-				                 "Cext\t= "GFORM"\nQext\t= "GFORM"\n"
+				ParticleToBeamRF(Finc_tot,Finc_brf);
+				ParticleToBeamRF(Fsca_tot,Fsca_brf);
+				vAdd(Finc_brf,Fsca_brf,Frp_brf);
+				PrintBoth(CCfile,"\nBased on radiation forces:\n"
+				                 "Cext.a\t= "GFORM3V"\n"
 				                 "Csca.g\t= "GFORM3V"\n"
 				                 "Cpr\t= "GFORM3V"\n"
 				                 "Qpr\t= "GFORM3V"\n",
-				                 Cnorm*Finc_tot[2],Qnorm*Finc_tot[2],
-				                 -Cnorm*Fsca_tot[0],-Cnorm*Fsca_tot[1],-Cnorm*Fsca_tot[2],
-				                 Cnorm*Frp_tot[0],Cnorm*Frp_tot[1],Cnorm*Frp_tot[2],
-				                 Qnorm*Frp_tot[0],Qnorm*Frp_tot[1],Qnorm*Frp_tot[2]);
-				if (store_force) {
-					// Write Radiation pressure per dipole to file
-					// TODO: ".dat" should be removed in the future
-					SnprintfErr(ONE_POS,fname_frp,MAX_FNAME,"%s/"F_FRP"%s.dat",directory,f_suf);
-					VisFrp=FOpenErr(fname_frp,"w",ONE_POS);
-					fprintf(VisFrp,"#sphere  x="GFORM"  m="CFORM"\n"
-						"#number of real dipoles  %zu\n"
-						"#Forces per dipole\n"
-						"#r.x r.y r.z F.x F.y F.z\n",
-						ka_eq,ref_index[0][RE],ref_index[0][IM],nvoid_Ndip);
-					for (j=0;j<local_nvoid_Ndip;++j) fprintf(VisFrp,GFORM6L"\n",
-						DipoleCoord[3*j],DipoleCoord[3*j+1],DipoleCoord[3*j+2],
-						Frp[3*j],Frp[3*j+1],Frp[3*j+2]);
-					FCloseErr(VisFrp,fname_frp,ONE_POS);
-				}
-				Timing_FileIO += GET_TIME() - tstart_io;
+				                 Cnorm*Finc_brf[0],Cnorm*Finc_brf[1],Cnorm*Finc_brf[2],
+				                 -Cnorm*Fsca_brf[0],-Cnorm*Fsca_brf[1],-Cnorm*Fsca_brf[2],
+				                 Cnorm*Frp_brf[0],Cnorm*Frp_brf[1],Cnorm*Frp_brf[2],
+				                 Qnorm*Frp_brf[0],Qnorm*Frp_brf[1],Qnorm*Frp_brf[2]);
 			}
-			Free_general(Fsca);
-			Free_general(Finc);
-			Free_general(Frp);
+			if (store_force) {
+				StoreFields(which,NULL,Frp,F_FRP,F_FRP_TMP,"F","Radiation forces");
+				Free_general(Frp);
+			}
 		}
 		if (IFROOT) FCloseErr(CCfile,fname_cs,ONE_POS);
 	}
 	D("Calculation of cross sections finished");
 	Timing_ScatQuan += GET_TIME() - tstart;
-}
-
-//============================================================
-
-static void StoreFields(const enum incpol which,doublecomplex * restrict field,
-	const char * restrict fname_preffix,const char * restrict tmpl UOIP,
-	const char * restrict field_name,const char * restrict fullname)
-/* Write any fields on each dipole to file (internal fields, incident beam, polarization, etc.).
- * All processors should write the 'field' to temporary file. These files are named by template
- * 'tmpl' and afterwards are concatenated into the file, which name is build by adding a small
- * suffix to 'fname_preffix'. If CE_PARPER is employed then naturally saves only once; use '-sym no'
- * if needed. 'field_name' is used to build column labels (i.e. there is difference in the first row
- * between different fields). 'fullname' is for standard output.
- */
-{
-	FILE * restrict file; // file to store the fields
-	size_t i,j;
-	TIME_TYPE tstart;
-	char fname[MAX_FNAME],fname_sh[MAX_FNAME_SH];
-
-	tstart=GET_TIME();
-	// build file name (without directory)
-	strcpy(fname_sh,fname_preffix);
-	if (which==INCPOL_Y) strcat(fname_sh,F_YSUF);
-	else strcat(fname_sh,F_XSUF); // which==INCPOL_X
-	// choose filename for direct saving
-#ifdef PARALLEL
-	size_t shift=SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/",directory);
-	/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used,
-	 * but we do not know any other convenient way to make this function work for different file
-	 * name templates.
-	 */
-	SnprintfShiftErr(ALL_POS,shift,fname,MAX_FNAME,tmpl,ringid);
-#else
-	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/%s",directory,fname_sh);
-#endif
-	file=FOpenErr(fname,"w",ALL_POS);
-	// print head of file
-#ifdef PARALLEL
-	if (ringid==0) { // this condition can be different from being root
-#endif
-		fprintf(file,"x y z |%s|^2 %sx.r %sx.i %sy.r %sy.i %sz.r %sz.i\n",field_name,field_name,
-			field_name,field_name,field_name,field_name,field_name);
-#ifdef PARALLEL
-	} // end of if
-#endif
-	// saves fields to file
-	for (i=0;i<local_nvoid_Ndip;++i) {
-		j=3*i;
-		fprintf(file,GFORM10L"\n",DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],cvNorm2(field+j),
-			field[j][RE],field[j][IM],field[j+1][RE],field[j+1][IM],field[j+2][RE],field[j+2][IM]);
-	}
-	FCloseErr(file,fname,ALL_POS);
-#ifdef PARALLEL
-	// wait for all processes to save their part of geometry
-	Synchronize();
-	if (IFROOT) CatNFiles(directory,tmpl,fname_sh);
-#endif
-	if (IFROOT) printf("%s saved to file\n",fullname);
-	Timing_FileIO += GET_TIME() - tstart;
 }
 
 //============================================================
@@ -714,7 +714,7 @@ static void StoreIntFields(const enum incpol which)
 	// calculate fields; e_field=P/(V*chi)=chi_inv*P; for anisotropic - by components
 	nMult_mat(xvec,pvec,chi_inv);
 	// save fields to file
-	StoreFields(which,xvec,F_INTFLD,F_INTFLD_TMP,"E","Internal fields");
+	StoreFields(which,xvec,NULL,F_INTFLD,F_INTFLD_TMP,"E","Internal fields");
 }
 
 //============================================================
@@ -730,7 +730,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// calculate the incident field Einc; vector b=Einc*cc_sqrt
 	D("Generating B");
 	GenerateB (which, Einc);
-	if (store_beam) StoreFields(which,Einc,F_BEAM,F_BEAM_TMP,"Einc","Incident beam");
+	if (store_beam) StoreFields(which,Einc,NULL,F_BEAM,F_BEAM_TMP,"Einc","Incident beam");
 	// calculate solution vector x
 	D("Iterative solver started");
 	exit_status=IterativeSolver(IterMethod);
@@ -752,7 +752,8 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 		CalcIntegralScatQuantities(which);
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
-	if (store_dip_pol) StoreFields(which,pvec,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
+	if (store_dip_pol)
+		StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
 	return 0;
 }
 
