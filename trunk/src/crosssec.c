@@ -620,14 +620,21 @@ double ExtCross(const double * restrict incPol)
 	}
 	else { /* more general formula; normalization is done assuming the unity amplitude of the
 	        * electric field in the focal point of the beam; It does not comply with
-	        * ScatRelation: SO and IGT_SO (since the corrections used in these formulations are
-	        * derived assuming plane incident field. So, effectively, SO and IGT_SO are replaced by
-	        * DRAINE when calculating Cext for non-plane beams
+	        * ScatRelation SO. So SO is, effectively, replaced by DRAINE when calculating Cext for
+	        * non-plane beams.
 	        */
 		sum=0;
 		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI*WaveNum;
+		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is
+		 * applied in CalcField() and is independent of propagation or scattering direction. Thus
+		 * it can be applied to any linear combination of plane waves, i.e. any field.
+		 *
+		 * Unfortunately, the same reasoning fails for SO of full IGT, because there the correction
+		 * factor does (slightly) depend on the propagation direction.
+		 */
+		if (ScatRelation==SQ_IGT_SO) sum*=(1-kd*kd/24);
 	}
 	/* TO ADD NEW BEAM
 	 * The formulae above works only if the amplitude of the beam is unity at the focal point.
@@ -658,7 +665,11 @@ double AbsCross(void)
 	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
 
 	// Cabs = 4*pi*sum
-	// In this function IGT_SO is equivalent to DRAINE
+	/* In this function IGT_SO is equivalent to DRAINE. It may seem more logical to make IGT_SO same
+	 * as FINDIP. However, the result is different only for LDR (and similar), for which using IGT
+	 * does not make a lot of sense anyway. Overall, peculiar details related to optical theorem
+	 * warrant a further study.
+	 */
 	if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP || ScatRelation==SQ_IGT_SO) {
 		/* code below is applicable only for diagonal (possibly anisotropic) polarizability and
 		 * should be rewritten otherwise
