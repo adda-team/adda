@@ -197,22 +197,23 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
  */
 static const struct subopt_struct beam_opt[]={
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). "
-		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
-		"optional parameters (all in um). By default beam center coincides with the center of the "
-		"computational box. This option is recommended for the description of the Gaussian beam.",
+		"The beam width is obligatory and x, y, z coordinates of the center of the beam (in "
+		"laboratory reference frame) are optional (zero, by default). All arguments are in um. "
+		"This is recommended option for simulation of the Gaussian beam.",
 		UNDEF,B_BARTON5},
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). "
-		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
-		"optional parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_DAVIS3},
-	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam "
-		"width is obligatory and x, y, z coordinates of the center of the beam are optional "
-		"parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_LMINUS},
+		"The beam width is obligatory and x, y, z coordinates of the center of the beam (in "
+		"laboratory reference frame) are optional (zero, by default). All arguments are in um.",
+		UNDEF,B_DAVIS3},
+	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width "
+		"is obligatory and x, y, z coordinates of the center of the beam (in laboratory reference "
+		"frame) are optional (zero, by default). All arguments are in um.",UNDEF,B_LMINUS},
 	{"plane","","Infinite plane wave",0,B_PLANE},
 	{"read","<filenameY> [<filenameX>]","Defined by separate files, which names are given as "
-		"arguments. Normally two files are required for Y and X polarizations respectively, but if "
-		"only Y polarization is simulated (e.g. due to symmetry) one filename is sufficient.",
+		"arguments. Normally two files are required for Y- and X-polarizations respectively, but "
+		"a single filename is sufficient if only Y-polarization is used (e.g. due to symmetry). "
+		"Incident field should be specified in a particle reference frame in the same format as "
+		"used by '-store_beam'.",
 		FNAME_ARG_1_2,B_READ},
 	/* TO ADD NEW BEAM
 	 * add a row to this list in alphabetical order. It contains:
@@ -382,10 +383,8 @@ static struct opt_struct options[]={
 		"diagonal in particle reference frame). '-m' then accepts 6 arguments per each domain. "
 		"Can not be used with CLDR polarizability and all SO formulations.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
-	{PAR(beam),"<type> [<args>]","Sets a type of the incident beam. Four other float arguments are "
-		"relevant for all beam types except 'plane'. These are the width and x, y, z coordinates of "
-		"the center of the beam respectively in the laboratory reference fram (all in um). The "
-		"latter three can be omitted (then beam center is located in the origin).\n"
+	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. "
+		"All parameters of predefined beam types (if present) are floats."
 		"Default: plane",UNDEF,beam_opt},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
@@ -438,24 +437,23 @@ static struct opt_struct options[]={
 		"Example: shape coated",UNDEF,NULL},
 	{PAR(init_field),"{auto|zero|inc|wkb}","Sets prescription to calculate initial (starting) "
 		"field for the iterative solver. 'zero' is a zero vector, 'inc' - equal to the incident "
-		"field, 'wkb' - from WKB approximation (incident field corrected for phase shift during "
-		"propagation in the particle), 'auto' - automatically choose from 'zero' and 'inc' based "
-		"on the lower residual value.\n"
+		"field, 'wkb' - from Wentzel-Kramers-Brillouin approximation, 'auto' - automatically "
+		"choose from 'zero' and 'inc' based on the lower residual value.\n"
 		"Default: auto",1,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}","Sets prescription to calculate "
-		"interaction term.\n"
-		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2. 'fcd_st' is static "
-		"(long-wavelength limit) version of FCD.\n"
-		"Parameters of 'igt' - Integration of Green's Tensor - are: <lim> - maximum distance (in "
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}",
+		"Sets prescription to calculate the interaction term.\n"
+		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
+		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
+		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in "
 		"dipole sizes), for which integration is used, (default: infinity); <prec> - minus decimal "
 		"logarithm of relative error of the integration, i.e. epsilon=10^(-<prec>) (default: same "
 		"as argument of '-eps' command line option).\n"
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
-		"'igt_so' is approximate evaluation of IGT using second order of kd approximation. 'poi' "
-		"is the simplest one - interaction between point dipoles. 'so' is under development and "
-		"incompatible with '-anisotr'.\n"
+		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
+		"'poi' - (the simplest) interaction between point dipoles.\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
@@ -507,16 +505,18 @@ static struct opt_struct options[]={
 		"cos(2*phi), sin(2*phi), cos(4*phi), and sin(4*phi) respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}","Type of polarizability "
-		"prescription.\n"
-		"'cldr' - Corrected LDR. 'cm' - Clausius-Mossotti. 'dgf' - Digitized Green's Function "
-		"(second order approximation to LAK). 'fcd' - Filtered Coupled Dipoles (requires dpl to be "
-		"larger than 2). 'igt_so' - Integration of Green's Tensor over a cube (second order "
-		"approximation). 'lak' - Lakhtakia - exact integration of Green's Tensor over a sphere.\n"
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}",
+		"Sets prescription to calculate the dipole polarizability.\n"
+		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
+		"'cm' - (the simplest) Clausius-Mossotti.\n"
+		"'dgf' - Digitized Green's Function (second order approximation to LAK).\n"
+		"'fcd' - Filtered Coupled Dipoles (requires dpl to be larger than 2).\n"
+		"'igt_so' - Integration of Green's Tensor over a cube (second order approximation).\n"
+		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average "
 		"polarizability over incident polarizations.\n"
-		"'rrc' - Radiative Reaction Correction (added to CM). 'so' is under development. 'cldr' "
-		"and 'so' are incompatible with '-anisotr'.\n"
+		"'rrc' - Radiative Reaction Correction (added to CM).\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only "
 		"estimate the required RAM. Implies '-test'.",0,NULL},
@@ -524,17 +524,17 @@ static struct opt_struct options[]={
 		"Normalization (to the unity vector) is performed automatically.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
-	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
+	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom \n"
 		"(<type> is a first argument to the '-shape' option; '_gran' is added if '-granul' option "
 		"is used; file extension can differ depending on argument of '-sg_format' option).",
 		UNDEF,NULL},
 	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
-		"'dr' is standard formulation proposed by Draine, 'fin' is a slightly different one that "
-		"is based on a radiative correction for a finite dipole. 'igt_so' - second order in kd "
-		"approximation to Integration of Green's Tensor. 'so' is under development and "
-		"incompatible with '-anisotr'.\n"
+		"'dr' - (by Draine) standard formulation for point dipoles\n"
+		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
+		"'igt_so' - second order in kd approximation to Integration of Green's Tensor.\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -553,8 +553,8 @@ static struct opt_struct options[]={
 		 * Modify string constants after 'PAR(sg_format)': add new argument to list {...} and
 		 * add its description to the next string.
 		 */
-	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' "
-		"from file. All the parameters of predefined shapes are floats except for filenames.\n"
+	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' from "
+		"file. All parameters of predefined shapes are floats except for filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
 	{PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If "
 		"default wavelength is used, this option specifies the 'size parameter' of the "
