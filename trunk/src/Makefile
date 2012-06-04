@@ -324,7 +324,7 @@ else ifeq ($(COMPILER),intel)
   FLIBS += -lifcore
 
   CCPP  := icpc
-  CPPWARN := -Wall -Wcheck -diag-disable 279
+  CPPWARN := -Wall -Wcheck -diag-disable 279,981
   # it seems that icpc relies on gcc stdc++ library anyway, but icc not always adds it during linking
   CPPLIBS += -lstdc++
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...

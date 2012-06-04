@@ -1210,19 +1210,19 @@ createGlobalFFTKernelString(cl_fft_plan *plan, int n, int BS, cl_fft_kernel_dir 
 			localString += string("lMemStore = sMem + mad24(i, ") + num2str(radix + 1) + string(", j << ") + num2str((int)log2(R1/R2)) + string(");\n");
 			localString += string("lMemLoad = sMem + mad24(tid >> ") + num2str((int)log2(radix)) + string(", ") + num2str(radix+1) + string(", tid & ") + num2str(radix-1) + string(");\n");
 			
-			for(int i = 0; i < R1/R2; i++)
-				for(int j = 0; j < R2; j++)
+			for(i = 0; i < R1/R2; i++)
+				for(j = 0; j < R2; j++)
 					localString += string("lMemStore[ ") + num2str(i + j*R1) + string("] = a[") + num2str(i*R2+j) + string("].x;\n");
 			localString += string("barrier(CLK_LOCAL_MEM_FENCE);\n");
-			for(int i = 0; i < R1; i++)
+			for(i = 0; i < R1; i++)
 				localString += string("a[") + num2str(i) + string("].x = lMemLoad[") + num2str(i*(radix+1)*(threadsPerBlock/radix)) + string("];\n");
 			localString += string("barrier(CLK_LOCAL_MEM_FENCE);\n");
 			
-			for(int i = 0; i < R1/R2; i++)
-				for(int j = 0; j < R2; j++)
+			for(i = 0; i < R1/R2; i++)
+				for(j = 0; j < R2; j++)
 					localString += string("lMemStore[ ") + num2str(i + j*R1) + string("] = a[") + num2str(i*R2+j) + string("].y;\n");
 			localString += string("barrier(CLK_LOCAL_MEM_FENCE);\n");
-			for(int i = 0; i < R1; i++)
+			for(i = 0; i < R1; i++)
 				localString += string("a[") + num2str(i) + string("].y = lMemLoad[") + num2str(i*(radix+1)*(threadsPerBlock/radix)) + string("];\n");
 			localString += string("barrier(CLK_LOCAL_MEM_FENCE);\n");
 			

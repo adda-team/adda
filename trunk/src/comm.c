@@ -396,7 +396,13 @@ double AccumulateMax(double data UOIP,double *max UOIP)
 
 void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restrict buf UOIP,
 	TIME_TYPE *timing UOIP)
-// gather and add double vector on processor root; total time is saved in timing (NOT incremented)
+/* Gather and add double vector on processor root; total time is saved in timing (NOT incremented).
+ * Passing doublecomplex vector as first argument (with appropriate cast) may cause warnings using
+ * some compilers (possible problems with strict aliasing rules. While these particular warnings can
+ * be easily fixed (e.g. by defining argument as void *), the root of the problem lies in lack of
+ * native support of complex types in MPI_Reduce. Currently this support is emulated through doubles
+ * and may potentially cause problems with aliasing.
+ */
 {
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;

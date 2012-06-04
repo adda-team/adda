@@ -325,8 +325,8 @@ void fftX(const int isign)
 // FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,isign,
-		bufXmatrix,bufXmatrix,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,
+		(clFFT_Direction)isign,bufXmatrix,bufXmatrix,0,NULL,NULL));
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planXf);
@@ -346,8 +346,8 @@ void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,isign,bufslices_tr,
-		bufslices_tr,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,(clFFT_Direction)isign,
+		bufslices_tr,bufslices_tr,0,NULL,NULL));
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planYf);
@@ -366,8 +366,8 @@ void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,isign,bufslices,
-		bufslices,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,
+		bufslices,bufslices,0,NULL,NULL));
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planZf);
