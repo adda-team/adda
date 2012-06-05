@@ -24,11 +24,11 @@ MPIPROCS=2
 MODE=${1:-seq}
 SUITEFILE=${2:-suite}
 if [ $MODE == "seq" ]; then
-  EXECREF="./adda_1.1b7"  # !!! This should be adjusted
+  EXECREF="./adda_1.0"  # !!! This should be adjusted
   EXECTEST=$ADDASEQ
   IGERRREF=1
 elif [ $MODE == "mpi" ]; then
-  EXECREF="mpiexec -n $MPIPROCS ./adda_mpi_1.1b4.exe" # !!! This should be adjusted
+  EXECREF="mpiexec -n $MPIPROCS ./adda_mpi_1.0.exe" # !!! This should be adjusted
   EXECTEST="mpiexec -n $MPIPROCS $ADDAMPI"
   IGERRREF=1
 elif [ $MODE == "mpi_seq" ]; then

@@ -27,6 +27,8 @@
 # directly to ADDA.
 
 all
+# a single relatively long run
+all -grid 32 -size 8 ;m; ;n;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
