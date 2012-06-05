@@ -5,6 +5,35 @@ Here most important changes are listed grouped by releases in reverse chronologi
 
 <wiki:toc />
 
+=Ver. 1.1 - 05.06.12=
+
+ * New [OpenCL OpenCL-based] version of `ADDA` to effectively use GPUs for simulations (issue 118).
+ * Calculation of radiation forces was largely improved, fixing several bugs. Now it is well-tested with only two remaining limitations (issue 14, issue 135). Connected changes:
+   * Output files `VisFrp-?.dat` were renamed into `RadForce-?`.
+   * Command line option `-Cpr_mat` was renamed into `-Cpr`. The former was marked deprecated. 
+ * Three new `misc/` packages. In particular, it greatly simplifies using many common 3D shape formats together with `ADDA` (issue 34).
+   * [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README hyperfun], contributed by Josef Gasteiger.
+   * [http://a-dda.googlecode.com/svn/trunk/misc/pip/README pip], contributed by Roman Schuh and Thomas Wriedt.
+   * [http://a-dda.googlecode.com/svn/trunk/misc/parse_log/README parse_log] (issue 82).
+ * Added support for `DDSCAT7` shape format, the previous one was labeled `DDSCAT6`. Command line option '`-sg_format ...`' was updated accordingly (issue 105).
+ * New predefined shapes: `chebyshev`, `plate`, and `prism`.
+ * New command line option to read incident beam from file '`-beam read <filenameY> [<filenameX>]`' (issue 2).
+ * New polarizability formulations: DGF and LAK (issue 13).
+ * New formulation IGT_SO, which is a much faster version of IGT. It applies to polarizability, interaction term, and scattering quantities (issue 84).
+ * New iterative solvers: CSYM and QMR2 (issue 24).
+ * New command line option to choose how to initialize the iterative solver: '`-init_field {auto|zero|inc|wkb}`'. First implementation of the WKB incident field is done (issue 59).
+ * New command line option `-recalc_resid` to directly recalculate residual at the end of the iterative solver (issue 25).
+ * Updated the default build platform to gcc 4 (tested with 4.5.2). Many connected changes, in particular issue 122. Speed of Windows executables increased by about 10-20%.
+ * `ADDA` executables for 64-bit Windows are now available (issue 66).
+ * Windows executables for routines from `misc/` are now available, both 32- and 64-bit (issue 104).
+ * Added automatic tests of `ADDA` executables to `/tests/2exec` (issue 6).
+ * Minor bugs were fixed (issue 123, issue 124, issue 128, issue 136, issue 139, issue 146).
+ * Minor bug in handling input shape filename was fixed (r1141).
+ * Several wiki pages were added: AddingShapeFileFormat, [Awards Awards], [InstallingMinGW InstallingMinGW], InstructionCommitters, LargestSimulations, [OpenCL OpenCL], [Publications Publications], and [References References] (issue 117).
+ * Deprecated command line option `-prognose` was finally removed.
+ * Automatic names for output directory were slightly changed (r1106).
+ * Two new development branches (try them at your own risk): weighted discretization (issue 12) and sparse (non-FFT) DDA (issue 98).
+
 =Ver. 1.0 - 10.09.10=
  * Fabio Della Sala and Stefania D'Agostino contributed code to calculate near-field with `ADDA` ([http://code.google.com/p/a-dda/source/browse/trunk/misc/near_field misc/near_field]). Now it is included in the main package.
  * "Integration of Green's tensor" formulation of the DDA was implemented based on the code contributed by Patrick Chaumet and Adel Rahmani (part of issue 84).
@@ -22,12 +51,12 @@ Here most important changes are listed grouped by releases in reverse chronologi
  * Added using SLURM job ID, when available.
  * Saving of granule coordinates to a file was implemented.
  * The code was tested for 64bit, implementing a number of corrections/improvements.
- * New shape 'axisymmetric' was added. The internals of shape generation routines were adjusted so that shape can now define the absolute size of the particle.
+ * New shape `axisymmetric` was added. The internals of shape generation routines were adjusted so that shape can now define the absolute size of the particle.
  * A new option `'-scat fin'` was implemented, which uses finite dipole correction for calculation of _C_,,abs,, and _C_,,ext,,.
  * Breakdown detection of iterative solvers was improved.
  * `-prognose` command line option was replaced by `-prognosis` (correct  spelling). The former is still operational but marked as deprecated.
  * The code was transformed to C99 standard without using its parts, which are not yet widely supported by compilers (such as inline and complex). Explicit support of this standard is required during compilation. Some style changes were done, and some work in this direction is still due.
- * Affiliation of one of the author (Maxim Yurkin) has changed to Institute of Chemical Kinetics & Combustion (Novosibirsk, Russia). Full name of the package was changed from *Amsterdam DDA* to `ADDA`. This does not change the global strategy of `ADDA` development.
+ * Affiliation of one of the author (Maxim Yurkin) has changed to Institute of Chemical Kinetics & Combustion (Novosibirsk, Russia). Full name of the package was changed from 'Amsterdam DDA' to `ADDA`. This does not change the global strategy of `ADDA` development.
  * Code repository has been [http://a-dda.googlecode.com moved to Google Code]. Google groups [http://groups.google.com/group/adda-announce adda-announce], [http://groups.google.com/group/adda-discuss adda-discuss] and [http://groups.google.com/group/adda-develop adda-develop] were created to facilitate interaction with users. This replaces the previous mailing list.
  * Copyright was updated to [http://www.gnu.org/copyleft/gpl.html GPL 3].
  * To-do list was replaced by [http://code.google.com/p/a-dda/issues issue tracker].
