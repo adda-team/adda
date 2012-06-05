@@ -6,15 +6,16 @@
 <wiki:toc />
 
 = Parallel implementation =
-Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in parallel on a cluster or supercomputer, using [http://www.mpi-forum.org/ MPI]. Computational grid of 1024×1024×1024 dipoles and even larger can be used.
+Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in parallel on a cluster or supercomputer, using [http://www.mpi-forum.org/ MPI]. Computational grid of 1024×1024×1024 dipoles (1 Gdipole) and even larger can be used.
  * Very large particle sizes can be handled. For instance, light scattering by a sphere with size parameter 320 (diameter equal to 100 wavelengths) can be accurately simulated (see [LargestSimulations Largest Simulations]).
  * Very fine discretization can be used when high accuracy or extra reliability is required.
  * Simple sequential execution is also possible, as well as running on a multi-core processors.
+ * Another option is to use [OpenCL OpenCL version of ADDA] to effectively employ modern GPUs.
 
 = Arbitrary particle shape and composition =
- * 13 predefined particle shapes from a sphere to a red blood cell and two touching ellipsoids.
+ * 16 predefined particle shapes from a sphere to a red blood cell and two touching ellipsoids.
  * Homogeneous axisymmetric shape can be specified by an arbitrary contour in _xz_-plane.
- * Arbitrary 3D geometry can be specified by a shape file. Apart from its own format `ADDA` understands format of DDSCAT specification `FRMFIL`.
+ * Arbitrary 3D geometry can be specified by a shape file. Apart from its own format `ADDA` understands format of `DDSCAT`. Also converters from common 3D shape formats are available.
  * Any representation of the particle shape can be automatically refined, replacing each dipole by a cube _n×n×n_ of smaller dipoles.
  * Particle can be highly inhomogeneous, consisting of up to 255 homogeneous domains with different refractive indices.
  * Refractive index of each domain can be anisotropic, specified by a diagonal tensor.
@@ -24,7 +25,7 @@ Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in
 = Full control over scattering geometry =
  * Orientation of the particle and/or direction of the incident beam can be varied.
  * Orientation averaging is possible (performed by an efficient algorithm based on Romberg integration).
- * Incident beam can be either a plane wave or a (tightly-focused) Gaussian beam.
+ * Incident beam can be a plane wave, a (tightly-focused) Gaussian beam, or arbitrary one read from file.
 
 = A wide variety of calculated quantities =
  * Scattering, absorption, and extinction cross sections.
@@ -36,7 +37,7 @@ Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in
 = Fast and accurate =
  * A large linear system is solved by an iterative solver. Matrix-vector product is computed using FFT-convolution method, based on the regular spacing of dipoles. Thus, simulation time is, to some extent, an order of number of dipoles.
  * By default [http://www.fftw.org/ FFTW3 package] is used to perform FFT, which automatically adapts to a particular hardware. A fall-back FFT implementation, not requiring any separate package installation, is also available.
- * Four Krylov-subspace-type iterative solvers are available, two of them directly employ the complex-symmetric structure of the interaction matrix.
+ * Six Krylov-subspace-type iterative solvers are available, four of them directly employ the complex-symmetric structure of the interaction matrix.
  * Modern DDA formulations, namely filtered coupled dipoles and integration of Green's tensor, are available. They may grossly outperform standard formulations (e.g. lattice dispersion relation) in certain cases.
  * Overall, the code is highly optimized both for speed and memory consumption. This was exemplified by [ComparisonOtherCodes#Comparison_with_other_DDA_codes comparison with other DDA codes].
  
@@ -52,14 +53,14 @@ Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in
  * Ready-to-use [PackageDescription#Windows_executables executables for Windows] are available.
 
 = Reliable =
- * Tested and trusted by the community. As of summer 2010 it is used by about 60 researchers. During 3 years up to that date about 40 journal papers, which somehow used `ADDA`, were published.
+ * Tested and trusted by the community. As of summer 2012 it is used by about 60 researchers, who published [Publications more than 70 journal papers], which somehow used `ADDA`.
  * Tested by [ComparisonOtherCodes comparison with other methods and codes].
  * New releases are tested against the previous ones by automatic testing suites.
  * Open development process, including [http://code.google.com/p/a-dda/issues issue tracker] and availability of the [http://code.google.com/p/a-dda/source/browse/ current source], allows pre-release testing.
 
 = Actively developed =
  * Although `ADDA` is already a mature package, there are large [http://code.google.com/p/a-dda/issues plans for further development].
- * [http://code.google.com/p/a-dda/updates/list Development process] is ongoing albeit irregular. The goal is to make at least one release per year.
+ * [http://code.google.com/feeds/p/a-dda/issueupdates/basic Development process] is ongoing albeit irregular. The goal is to make at least one release per year.
  * Number of [http://code.google.com/p/a-dda/people/list contributors] is slowly increasing due to the open nature of Google Code platform.
- * New contributors are welcome! In particular, there are extensive instructions, how to make simple changes to the code (e.g. [AddingShape adding new predefined shape]).
+ * New contributors are [InstructionCommitters welcome]! In particular, there are extensive instructions, how to make simple changes to the code (e.g. [AddingShape adding new predefined shape]).
  
