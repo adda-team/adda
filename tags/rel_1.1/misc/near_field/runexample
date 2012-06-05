@@ -1,0 +1,59 @@
+#!/bin/bash
+
+if [ -z "${ADDABIN}" ]; then
+  export ADDABIN=$(readlink -f ../../src/seq/adda)
+fi
+if [ ! -f "${ADDABIN}" ]; then
+  echo "ERROR: No adda binary was found, as specified by environmental variable ADDABIN='${ADDABIN}'"
+  exit 1
+fi
+if [ -z "${MPIEXEC}" ]; then
+  which mpiexec > /dev/null 2>&1 # test availability of mpiexec
+  if [ $? -eq 0 ]; then
+    export MPIEXEC="mpiexec -n 4"
+  else
+    export MPIEXEC=""
+  fi
+fi
+
+echo '------------adda----------------'
+$ADDABIN -store_dip_pol -save_geom -shape sphere -dir example -lambda 0.400 -grid 20 
+ERR=$?
+if [ $ERR -ne 0 ]; then
+  echo "ADDA returned error $ERR"
+  exit $ERR
+fi
+cd example 
+
+mv sphere.geom target
+echo '------------gendip-------------------'
+../gendip 
+
+echo '------------genplane------------'
+cat >plane_input_xy <<%EOF%
+   10.0 3
+   -10.0 30.0 80
+    10.0 30.0 80
+%EOF%
+../genplane < plane_input_xy > plane_points_xy
+cat > commvar <<%EOF%
+0.d0
+0 0 1
+0 1 0
+%EOF%
+
+echo '------------nearfield------------'
+cat >input_xy <<%EOF%
+DIPY.SAV
+400 ! lambda
+plane_points_xy
+totfield
+1 ! eincflag
+0 ! iformat
+0 ! debug
+0 ! internal points
+%EOF%
+../nearfield < input_xy 
+cd ..
+
+

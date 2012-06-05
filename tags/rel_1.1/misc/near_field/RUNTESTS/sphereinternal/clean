@@ -1,0 +1,2 @@
+#!/bin/bash
+rm -f *.out *-Y *.xf *_xy *.SAV *.DAT log mueller err.dat *target hh
