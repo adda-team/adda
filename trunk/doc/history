@@ -418,3 +418,78 @@ Changes to the manual:
   effectively simulate scattering by particles in the presence of substrate.
 * Added sections "Amplitude matrix" and "ampl" describing use of the
   corresponding new command line option.
+
+----------------------------------
+Ver. 1.1 - 05.06.2012
+
++ New OpenCL-based version of ADDA to effectively use GPUs for simulations
+  (issue 118). However, issues 144, 145 remains. Also new command line option
+  '-gpu <index>' to choose the GPU to run on. Makefiles were changed to
+  incorporate *.cpp sources.
++ Calculation of radiation forces was largely improved, fixing several bugs.
+  Now it is well-tested with only two remaining limitations (issues 14, 135).
+* Output files 'VisFrp-?.dat' were renamed into 'RadForce-?'.
+* Command line option '-Cpr_mat' was renamed into '-Cpr'. The latter was marked
+  deprecated.
++ Three new 'misc/' packages: hyperfun and pip (issue 34), parse_log (issue 82).
+  In particular, it greatly simplifies using many common 3D shape formats
+  together with ADDA.
++ Added support for DDSCAT7 shape format, the previous one was labeled DDSCAT6.
+  Command line option '-sg_format ...' was updated accordingly (issue 105).
++ When using '-shape read', recognized shape format is now saved to log.
++ New shapes: chebyshev, plate, and prism.
++ New option to read incident beam from file:
+  '-beam read <filenameY> [<filenameX>]'
++ New polarizability formulations: DGF and LAK (issue 13).
++ New formulation IGT_SO, which is a much faster version of IGT. It applies to
+  polarizability, interaction term, and scattering quantities (issue 84).
++ New iterative solvers: CSYM and QMR2 (issue 24).
++ New command line option to choose how to initialize the iterative solver:
+  '-init_field {auto|zero|inc|wkb}'. First implementation of the WKB incident
+  field is done, but it has a limitation (issue 59).
++ New command line option '-recalc_resid' to directly recalculate residual at
+  the end of the iterative solver (issue 25).
+* Updated the default build platform to gcc v.4.x (tested with 4.5.2). Many
+  connected changes, in particular issue 122.
++ 64-bit executables of ADDA for Windows are now available (issue 66).
++ Windows executables for routines from misc/ are now available (both 32- and
+  64-bit) (issue 104).
++ Added automatic tests of ADDA executables to '/tests/2exec' (issue 6).
++ Added explicit tests that arguments, which have to be passed to MPI functions
+  as int, do not exceed INT_MAX (issue 137).
+- Minor bugs were fixed (issues 123, 124, 128, 136, 139, 146).
+- Minor bug in handling input shape filename was fixed (r1141).
++ Several wiki pages were added: AddingShapeFileFormat, Awards, InstallingMinGW,
+  InstructionCommitters, LargestSimulations, OpenCL, Publications,
+  and References (issue 117).
+* Copyright information was changed to "(C) ADDA contributors". '$Auth' field
+  was removed from headers.
+* Deprecated command line option '-prognose' was finally removed.
+* Automatic names for output directory were slightly changed (r1106).
+* Minor changes in stdout and log.
++ Two new development branches - weighted discretization (issue 12) and sparse
+  (non-FFT) DDA (issue 98).
+
+Changes to the manual:
++ Added section "OpenCL (GPU) mode" describing executing of adda_ocl.
++ Section "Applicability of the DDA" was divided into two subsections:
+  "General applicability" and "Extensions of the DDA"; some text was added.
++ Section "System Requirements": Updated descripton to include new iterative
+  solvers and OpenCL mode. Two figures were combined into one.
++ Section "Construction of a dipole set": Three figures were combined into one.
++ Section "Predefined shapes": Added description of 3 new shapes
++ Section "Single orientation": Added figure describing Euler angles.
++ Section "Beam type": Added expression for beam power.
++ Section "DDA Formulation" significantly changed. Many new formulations were
+  added. All polarizability expressions were rewritten in terms of term M.
+  Difererences for Cabs between '-scat dr' and '-scat fin' are now explained in
+  more details.
++ Section "Mueller matrix" was renamed into "Mueller matrix and its derivatives"
+  and added expression for parallel and perpendicular intensities (or horizontal
+  and vertical) and backscattering cross section.
++ Completely rewritten section "Radiation forces".
++ Section "Iterative solver" significantly changed according to new features.
++ Added sections "Incident beam file" describing format of corresponding input
+  file.
++ Section "VisFrp" was renamed into "RadForce" and significantly changed.
++ Section "Geometry files": added warning about shown box size.
