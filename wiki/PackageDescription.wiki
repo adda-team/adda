@@ -4,22 +4,24 @@ The following description is for latest (stable) version of the released package
 <wiki:toc>
 
 =Source=
-`adda_1.0.zip`
+`adda_1.1.zip`
  * `doc/` – documentation
    * `copyleft` – GNU General Public License
    * `history` – complete history of `ADDA` development
    * `manual.doc` – source of the manual in MS Word format
    * `manual.pdf` – the manual in PDF format
-   * `README` – very brief description of `ADDA`
  * `input/` – default input files
    * `tables/` – 10 auxiliary files with tables of integrals
    * `alldir_params.dat` – parameters for integral scattering quantities
    * `avg_params.dat` – parameters for orientation averaging
    * `scat_params.dat` – parameters for grid of scattering angles
  * `misc/` – additional files, relatively independent from the main part of `ADDA`
+   * `hyperfun/` - tool chain to create shape files for `ADDA` using Hyperfun ([http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description])
    * `near_field/` - package to calculate near field using internal fields produced by `ADDA` ([http://a-dda.googlecode.com/svn/trunk/misc/near_field/nearfield_manual.txt description])
+   * `parse_log/` - Mathematica package for parsing `ADDA` log files ([http://a-dda.googlecode.com/svn/trunk/misc/parse_log/README description])
+   * `pip/` - package "Point in Polyhedron" to transform `.obj` files into shape format readable by `ADDA` ([http://a-dda.googlecode.com/svn/trunk/misc/pip/README description])
  * `sample/` – sample output and other files
-   * `run000_sphere_g16m1_5/` – sample output directory
+   * `run000_sphere_g16_m1.5/` – sample output directory
      * `log` - log of sample simulation
      * `mueller` - sample angle-resolved Mueller matrix
      * `CrossSec-Y` - sample cross sections
@@ -27,23 +29,52 @@ The following description is for latest (stable) version of the released package
    * `test.sge` – sample SGE script for MPI system
    * `stdout` – standard output of a sample simulation
  * `src/` - source files and makefiles
+   * `cpp/` - C++ sources
+     * `clFFT.h`, `fft_base_kernels.h`, `fft_execute.cpp`, `fft_internal.h`, `fft_kernelstring.cpp`, `fft_setup.cpp` - source and header files for Apple clFFT 
    * `fort/` - Fortran sources
      * `cfft99D.f` - source file for Temperton FFT 
      * `propaesplibreintadda.f`, `d07hre.f`, `d09hre.f`, `d113re.f`, `d132re.f`, `dadhre.f`, `dchhre.f`, `dcuhre.f`, `dfshre.f`, `dinhre.f`, `drlhre.f`, `dtrhre.f` - subroutine to compute IGT and auxiliary numerical routines.
-   * `seq/` - holds all files, produced during compilation of sequential version of `ADDA`
-     * `Makefile` - makefile for sequential version (called from the main `Makefile`)
    * `mpi/` - holds all files, produced during compilation of MPI version of `ADDA`
      * `Makefile` - makefile for MPI version (called from the main `Makefile`)
+   * `ocl/` - holds all files, produced during compilation of OpenCL version of `ADDA`
+     * `Makefile` - makefile for OpenCL version (called from the main `Makefile`)
+   * `seq/` - holds all files, produced during compilation of sequential version of `ADDA`
+     * `Makefile` - makefile for sequential version (called from the main `Makefile`)
    * `Makefile` – main makefile
    * `common.mk` - common part of child makefiles, including all compilation directives.
-   * `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `cmplx.h`, `const.h`, `crosssec.c/h`, `comm.c/h`, `debug.c/h`, `fft.c`, `function.h`, `GenerateB.c`, `io.c/h`, `iterative.c`, `make_particle.c`, `matvec.c`, `memory.c/h`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of `ADDA`
+   * `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `chebyshev.c`, `cmplx.h`, `comm.c/h`, `const.h`, `crosssec.c/h`, `debug.c/h`, `fft.c/h`, `function.h`, `GenerateB.c`, `io.c/h`, `iterative.c`, `linalg.c/h`, `make_particle.c`, `matvec.c`, `memory.c/h`, `oclcore.c/h`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of `ADDA`
+   * `oclkernels.cl` - OpenCL kernels for corresponding version of `ADDA`
    * `mt19937ar.c/h` – source and header files for Mersenne twister random generator
+ * `tests/` - automatic tools to test `ADDA` executables
+   * `2exec/` - extensive test of two `ADDA` executables (in terms of output) against each other
+     * `comp2exec` - main script to run the test
+     * `diff_numeric.awk` - script to compare two files with given numerical tolerance
+     * `suite` - the default test suite
+     * ... - many sample input files to be used in tests
 
 =Windows executables=
-We provide executables for 32-bit (IA32) and 64-bit (x86_64) Windows (the latter will be deployed starting from version 1.1). They should be downloaded together with the source package (in particular, the latter contains sample input files).
+We provide executables for 32-bit (IA32) and 64-bit (x86_64) Windows. They should be downloaded together with the source package (in particular, the latter contains sample input files).
 
-`adda_1.0_win32.zip`.
+`adda_1.1_win32.zip`.
  * `win32/`
-   * `libfftw3-3.dll` - DLL for `FFTW` 3.1.2
-   * `adda.exe` - executable for sequential version of `ADDA`
-   * `adda_mpi.exe` - executable for MPI version of `ADDA` 
+   * `misc/` - executables for miscellaneous packages
+     * ...
+   * `adda.exe` - executable of sequential version of `ADDA`
+   * `adda_mpi.exe` - executable of MPI version of `ADDA` 
+   * `adda_ocl.exe` - executable of OpenCL version of `ADDA` 
+   * `libfftw3-3.dll` - DLL for `FFTW` 3.3
+   * `libgcc_s_dw2-1.dll`, `libgfortran-3.dll`, `libquadmath-0.dll` -  DLLs for Fortran parts of `ADDA` and `misc/` packages
+   * `libstdc++-6.dll` - DLL for C++ parts of `ADDA` (only `adda_ocl`)
+   * `README` - short description of the package
+
+`adda_1.1_win64.zip`.
+ * `win64/`
+   * `misc/` - executables for miscellaneous packages
+     * ...
+   * `adda.exe` - executable of sequential version of `ADDA`
+   * `adda_mpi.exe` - executable of MPI version of `ADDA` 
+   * `adda_ocl.exe` - executable of OpenCL version of `ADDA` 
+   * `libfftw3-3.dll` - DLL for `FFTW` 3.3
+   * `libgfortran_64-3.dll`, `libquadmath_64-0.dll` -  DLLs for Fortran parts of `ADDA` and `misc/` packages
+   * `libgcc_s_sjlj_64-1.dll`, `libstdc++_64-6.dll` - DLLs for C++ parts of `ADDA` (only `adda_ocl`)
+   * `README` - short description of the package
