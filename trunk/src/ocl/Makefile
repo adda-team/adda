@@ -32,9 +32,12 @@
 #===================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user
 #===================================================================================================
+#if clAmdFft (external library) should be used, oteherwise appleFFT is used
+#CFLAGS    += -DAMDFFT
+#LDFLAGS   += -lclAmdFft 
 
-CFLAGS    += -DOPENCL
-LDFLAGS   += -lOpenCL
+CFLAGS    += -DOPENCL 
+LDFLAGS   += -lOpenCL 
 CSOURCE   += oclcore.c
 ifeq ($(filter NO_CPP,$(OPTIONS)),)
   CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp

@@ -35,10 +35,14 @@
 #include <string.h>
 
 #ifdef OPENCL
-#	ifdef NO_CPP
-#		error "OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option"
+#	ifdef AMDFFT
+#		include<clAmdFft.h> //external library from AMD
+#	else
+#		include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
+#		ifdef NO_CPP
+#			error "OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option"
+#		endif
 #	endif
-#	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #	include "oclcore.h"
 #endif
 /* standard FFT routines (FFTW3 of FFT_TEMPERTON) are required even when OpenCL is used, since
@@ -101,7 +105,11 @@ static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
 static bool weird_nprocs;              // whether weird number of processors is used
 #ifdef OPENCL
-clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
+	#ifdef AMDFFT
+	clAmdFftPlanHandle clplanX,clplanY,clplanZ;
+	#else
+	clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
+	#endif
 #endif
 #ifdef FFTW3
 // FFTW3 plans: f - FFT_FORWARD; b - FFT_BACKWARD
@@ -210,6 +218,8 @@ void TransposeYZ(const int direction)
 	 * block size is not efficient anyway, so falling back to noncached kernel is logical.
 	 */
 	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
+	cached&=(gridZ%16==0&&gridY%16==0);
+	
 	if (direction==FFT_FORWARD) {
 		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
 			enqtglobalzy,tblock,0,NULL,NULL));
@@ -325,8 +335,13 @@ void fftX(const int isign)
 // FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
+#	ifdef AMDFFT
+	CL_CH_ERR(clAmdFftEnqueueTransform( clplanX, (int)isign, 1, &command_queue, 0, 
+		NULL, NULL, &bufXmatrix, NULL, NULL));
+#	else
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,
 		(clFFT_Direction)isign,bufXmatrix,bufXmatrix,0,NULL,NULL));
+#	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planXf);
@@ -346,8 +361,13 @@ void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
+#	ifdef AMDFFT
+	CL_CH_ERR(clAmdFftEnqueueTransform( clplanY, (int)isign, 1, &command_queue, 0, NULL, NULL, 
+		&bufslices_tr, NULL, NULL));
+#	else
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,(clFFT_Direction)isign,
 		bufslices_tr,bufslices_tr,0,NULL,NULL));
+#	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planYf);
@@ -366,8 +386,13 @@ void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
+#	ifdef AMDFFT
+	CL_CH_ERR(clAmdFftEnqueueTransform( clplanZ, (int)isign, 1, &command_queue, 0, NULL, NULL, 
+		&bufslices, NULL, NULL));
+#	else
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,
 		bufslices,bufslices,0,NULL,NULL));
+#	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planZf);
@@ -480,6 +505,10 @@ int fftFit(int x,int divis)
 	else while (true) {
 		y=x;
 		while (y%2==0) y/=2; // here OpenCL ends
+#ifdef AMDFFT
+		while (y%3==0) y/=3;
+		while (y%5==0) y/=5; // here AMDFFT ends
+#endif
 #ifndef OPENCL
 		while (y%3==0) y/=3;
 		while (y%5==0) y/=5; // here Temperton FFT ends
@@ -547,30 +576,57 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GetTime(tvp);
 #	endif
+#	ifdef AMDFFT
+	size_t xdimen[3]={(unsigned int)gridX,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanX, context, CLFFT_1D, xdimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX, (int)(3*local_Nz*smallY)));
+	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanX, CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanX, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftBakePlan(clplanX,1,&command_queue,NULL,NULL));
+#	else
 	clFFT_Dim3 xdimen;
 	xdimen.x=(unsigned int)gridX;
 	xdimen.y=1;
 	xdimen.z=1;
 	clplanX=clFFT_CreatePlan(context,xdimen,clFFT_2D,clFFT_InterleavedComplexFormat,&err);
 	CL_CH_ERR(err);
+#	endif
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 #	endif
+#	ifdef AMDFFT
+	size_t ydimen[3]={(unsigned int)gridY,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanY, context, CLFFT_1D, ydimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY, (int)6*smallZ));
+	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanY, CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanY, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftBakePlan(clplanY,1,&command_queue,NULL,NULL));
+#	else
 	clFFT_Dim3 ydimen;
 	ydimen.x=(unsigned int)gridY;
 	ydimen.y=1;
 	ydimen.z=1;
 	clplanY=clFFT_CreatePlan(context,ydimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
 	CL_CH_ERR(err);
-	clFFT_Dim3 zdimen;
+#	endif
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 #	endif
+#	ifdef AMDFFT
+	size_t zdimen[3]={(unsigned int)gridZ,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanZ, context, CLFFT_1D, zdimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ, (int)3*gridY));
+	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanZ, CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanZ, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
+#	else
+	clFFT_Dim3 zdimen;
 	zdimen.x=(unsigned int)gridZ;
 	zdimen.y=1;
 	zdimen.z=1;
 	clplanZ=clFFT_CreatePlan(context,zdimen,clFFT_1D,clFFT_InterleavedComplexFormat,&err);
 	CL_CH_ERR(err);
+#	endif
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+3);
 	// print precise timing of FFT planning
@@ -1577,9 +1633,13 @@ void Free_FFT_Dmat(void)
 		my_clReleaseBuffer(bufinproduct);
 		Free_general(inprodhlp);
 	}
+#	ifdef AMDFFT
+	clAmdFftTeardown();
+#	else
 	clFFT_DestroyPlan(clplanX);
 	clFFT_DestroyPlan(clplanY);
 	clFFT_DestroyPlan(clplanZ);
+#	endif
 	if (oclMem>0) LogWarning(EC_WARN,ALL_POS,
 		"Possible leak of OpenCL memory (size %zu bytes) detected",oclMem);
 #else
