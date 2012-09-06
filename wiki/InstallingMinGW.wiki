@@ -77,3 +77,49 @@ To debug `ADDA`, `gdb` need to be installed. This is done automatically during t
 {{{
 mingw-get gdb
 }}}
+
+=Multilib configuration on Windows=
+Below we describe additional steps to set up the environment on 64-bit Windows 7, which allows convenient building of both 32- and 64-bit `ADDA` executables. We also outline installation of [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], and [OpenCL OpenCL] slightly differently than given in separate wiki pages. Such complicated environment is needed exclusively for producing Windows binaries for `ADDA` releases from a single machine.
+ * Create folder `C:\MinGW\MSYS\1.0\local\lib32` (additionally to `lib` and `include`, which were already created above).
+
+ * [http://www.fftw.org/install/windows.html Download] 32- and 64-bit Windows packages of FFTW3. Then do the following, using 64-bit file manager with administrative privileges. 
+  * Extract `fftw3.h` from any of the packages and move it to `C:\MinGW\MSYS\1.0\local\include`.
+  * Extract `libfftw3-3.dll` from 32-bit package and move it to `C:\Windows\SysWOW64`.
+  * Extract `libfftw3-3.dll` from 64-bit package and move it to `C:\Windows\System32`.
+
+ * [http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads Download] both 32- and 64-bit Windows installers of MPICH2. First, install 32-bit version, then - 64-bit one. Then follow [InstallingMPI#Windows the standard steps] to set up `spmd` and `PATH` for the 64-bit version. It seems that both versions of `MPICH2` coexist fine together. Moreover, 32-bit `adda_mpi` works fine with 64-bit `mpiexec` and `smpd`. The only problem is that `MPICH2` headers slightly differ between the two packages. It is not clear, whether this difference is significant, so below we substitute proper headers for each compilation mode.
+
+ * Create folder `C:\MinGW\MSYS\1.0\local\include\CL` and [http://www.khronos.org/registry/cl/ download] into it OpenCL headers (`*.h`) of the version, supported by GPU drivers (e.g., version 1.1 for Nvidia drivers 301.42).
+
+ * Create symbolic links (with administrative privileges):
+{{{
+cd C:\MinGW\MSYS\1.0\local
+mklink lib32\libfftw3.dll.a C:\Windows\SysWOW64\libfftw3-3.dll
+mklink lib\libfftw3.dll.a C:\Windows\System32\libfftw3-3.dll
+mklink /D include\mpich2 "C:\Program Files\MPICH2\include"
+mklink /D include\mpich2_32 "C:\Program Files (x86)\MPICH2\include"
+mklink /D lib\mpich2 "C:\Program Files\MPICH2\lib"
+mklink /D lib32\mpich2 "C:\Program Files (x86)\MPICH2\lib"
+mklink lib32\libOpenCL.dll.a C:\Windows\SysWOW64\OpenCL.dll
+mklink lib\libOpenCL.dll.a C:\Windows\System32\OpenCL.dll
+}}}
+
+ * Additionally to modification of file `specs`, described in previous section, change the added head of this file to 
+{{{
+*local_prefix:
+c:/MinGW/msys/1.0/local/
+
+*local_incl:
+%(local_prefix)include
+
+*local_includes:
+-I%(local_incl) -I%(local_incl)/mpich2%{m32:_32}
+
+*local_lib:
+%(local_prefix)lib%{m32:32}
+
+*local_lib_search:
+-L%(local_lib) -L%(local_lib)/mpich2
+}}}
+
+After the above setup, 64-bit version of `ADDA` can be compiled by running `make ...` out of box. For 32-bit version, add `EXTRA_FLAGS=-m32` to the invocation of `make`.
