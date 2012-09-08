@@ -138,10 +138,11 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # in later versions of CUDA and/or icc.
 COMPILER := gnu
 
-# Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
-# bit environment. Flags specified below are appended to the ones specified in the environment or
-# command line of make (see explanation above for OPTIONS). The same value is used for all
-# programming languages to be compiled.
+# Additional options for compiler. Flags specified below are appended to the ones specified in the
+# environment or command line of make (see explanation above for OPTIONS). The same value is used 
+# for all programming languages to be compiled and for linker.
+# In particular, "-m32" may be used to force 32 bit compilation in 64 bit environment. However, it
+# also requires proper libraries (especially, external ones, like FFTW3 or MPI) to be supplied.
 override EXTRA_FLAGS +=
 
 # --FFTW3 paths--
@@ -274,6 +275,7 @@ ifneq ($(strip $(EXTRA_FLAGS)),)
   CFLAGS   += $(EXTRA_FLAGS)
   FFLAGS   += $(EXTRA_FLAGS)
   CPPFLAGS += $(EXTRA_FLAGS)
+  LDFLAGS  += $(EXTRA_FLAGS)
 endif
 
 # By default Fortran anc C++ optimization options are the same as C, but specific options can be
@@ -425,12 +427,12 @@ clean: cleanseq cleanmpi cleanocl
 # compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
 
 cleanocl:
 	@echo "Removing OpenCL compiled files"
-	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr
+	cd $(OCL) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr

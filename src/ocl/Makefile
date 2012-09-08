@@ -55,6 +55,12 @@ else
   CLSOURCE := oclkernels.cl
 endif
 
+# This fix is to disable linker warnings when linking against 32-bit OpenCL.dll on 64-bit Windows.
+# The issue appeared with Nvidia library supplied with driver 301.42
+ifneq ($(filter -m32,$(LDFLAGS)),)
+  LDFLAGS += -Wl,--enable-stdcall-fixup
+endif
+
 # This is a weird prefix, which is required since that is how .clstr files are quoted in .d files
 CLSPREFIX  := ../$(OCL)/
 CLSTRING   := $(CLSOURCE:.cl=.clstr)
