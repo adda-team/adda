@@ -4,8 +4,14 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2012 (2) =
+= 2012 (8) =
  # F. Teschl, W. L. Randeu, R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004  Atmosph. Res. (in press) (2012)].
+ # M. Zimmermann, A. Tausendfreund, S. Patzelt, G. Goch, S. Kieß, M. Z. Shaikh, M. Gregoire, and S. Simon, “In-process measuring procedure for sub-100 nm structures,” [http://dx.doi.org/10.2351/1.4719936 J. Laser Appl. 24, 042010 (2012)].
+ # J. Kalkman, A. V. Bykov, G. J. Streekstra, and T. G. van Leeuwen, “Multiple scattering effects in Doppler optical coherence tomography of flowing blood,” [http://dx.doi.org/10.1088/0031-9155/57/7/1907 Phys. Med. Biol. 57, 1907–1917 (2012)].
+ # X. Zhang, D. J. Gray, Y. Huot, Y. You, and L. Bi, “Comparison of optically derived particle size distributions: scattering over the full angular range versus diffraction at near forward angles,” [http://dx.doi.org/10.1364/AO.51.005085 Appl. Opt. 51, 5085–5099 (2012)].
+ # C. Liu, L. Bi, R. L. Panetta, P. Yang, and M. A. Yurkin, “Comparison between the pseudo-spectral time domain method and the discrete dipole approximation for light scattering simulations,” [http://dx.doi.org/10.1364/OE.20.016763 Opt. Express 20, 16763–16776 (2012)].
+ # P. Zijlstra, P. M. R. Paulo, and M. Orrit, “Optical detection of single non-absorbing molecules using the surface plasmon resonance of a gold nanorod,” [http://dx.doi.org/10.1038/nnano.2012.51 Nature Nanotechnology 7, 379–382 (2012)].
+ # H. Ma, P. M. Bendix, and L. B. Oddershede, “Large-scale orientation dependent heating from a single irradiated gold nanorod,” [http://dx.doi.org/10.1021/nl3010918 Nano Lett. 12, 3954–3960 (2012)].
  # X. Liu, S. Ding, L. Bi, and P. Yang, “On the use of scattering kernels to calculate ice cloud bulk optical properties,” [http://dx.doi.org/10.1175/JTECH-D-11-00034.1 J. Atmos. Oceanic Technol. 29, 50–63 (2012)].
 
 = 2011 (21) =
@@ -31,8 +37,9 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
  # J. Gasteiger, S. Groß, V. Freudenthaler, and M. Wiegner, “Volcanic ash from Iceland over Munich: mass concentration retrieved from ground-based remote sensing measurements,” [http://dx.doi.org/10.5194/acp-11-2209-2011 Atmos. Chem. Phys. 11, 2209-2223 (2011)].
  # L. Bi, P. Yang, G. W. Kattawar, Y. Hu, and B. A. Baum, “Diffraction and external reflection by dielectric faceted particles,” [http://dx.doi.org/10.1016/j.jqsrt.2010.02.007 J. Quant. Spectrosc. Radiat. Transfer 112, 163-173 (2011)].
 
-= 2010 (9) =
- # L. Bi, P. Yang and G. W. Kattawar,“Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. Opt. 49, 4641-4646 (2010)].
+= 2010 (10) =
+ # R. K. Harrison and A. Ben-Yakar, “Role of near-field enhancement in plasmonic laser nanoablation using gold nanorods on a silicon substrate,” [http://dx.doi.org/10.1364/OE.18.022556 Opt. Express 18, 22556–22571 (2010)].
+ # L. Bi, P. Yang and G. W. Kattawar, “Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. Opt. 49, 4641-4646 (2010)].
  # S. D’Agostino and F. D. Sala, “Active role of oxide layers on the polarization of plasmonic nanostructures,” [http://dx.doi.org/10.1021/nn1007918 ACS Nano 4, 4117-4125 (2010)].
  # M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585-15 (2010)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
