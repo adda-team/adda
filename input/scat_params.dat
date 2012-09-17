@@ -44,7 +44,6 @@ phi_integr:
 #   more precisely: max=45;Jmax=3;equiv=false
 #   then discard values of some Mueller matrix elements integrated with 
 #     cos/sin multipliers (those that should be =0).
-# xz - symmetry plane: min=-90;max=90;Jmax=5;equiv=false
 min=0
 max=360
 Jmin=2
