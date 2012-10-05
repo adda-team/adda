@@ -27,6 +27,9 @@ M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approxim
 M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585 (2010)].
 
 == Shapes ==
+=== Сhebyshev particle ===
+K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
+
 === Egg ===
 D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
  
@@ -50,6 +53,7 @@ A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rah
 === with other light-scattering methods ===
  * M. A. Yurkin, A. G. Hoekstra, R. S. Brock, and J. Q. Lu, “Systematic comparison of the discrete dipole approximation and the finite difference time domain method for large dielectric scatterers,” [http://dx.doi.org/10.1364/OE.15.017902 Opt. Express 15, 17902–17911 (2007)].
  * K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681–5690 (2010)].
+ * C. Liu, L. Bi, R. L. Panetta, P. Yang, and M. A. Yurkin, “Comparison between the pseudo-spectral time domain method and the discrete dipole approximation for light scattering simulations,” [http://dx.doi.org/10.1364/OE.20.016763 Opt. Express 20, 16763–16776 (2012)].
 
 = Additional packages =
 == hyperfun ==
@@ -70,3 +74,6 @@ M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “Convergence of the discrete 
 
 == Extrapolation technique ==
 M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “Convergence of the discrete dipole approximation. II. An extrapolation technique to increase the accuracy,” [http://dx.doi.org/10.1364/JOSAA.23.002592 J. Opt. Soc. Am. A 23, 2592–2601 (2006)].
+
+== Symmetry tests for the DDA results ==
+K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
