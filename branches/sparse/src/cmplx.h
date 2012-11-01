@@ -889,6 +889,6 @@ static inline __m128d cadd(__m128d a,__m128d b)
 	return _mm_add_pd(a,b);
 }
 
-#endif
+#endif //USE_SSE3
 
 #endif // __cmplx_h
