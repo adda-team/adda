@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: core parts of OpenCL code
  *
- * Copyright (C) 2010-2011 ADDA contributors
+ * Copyright (C) 2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,23 +16,21 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-
+#include "const.h" // keep this first
+#include "oclcore.h" // corresponding header
+// project headers
+#include "debug.h"
+#include "memory.h"
+#include "vars.h"
+// system headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __APPLE__
-#	include <OpenCL/cl.h>
-#else
-#	include <CL/cl.h>
-#endif
-#include "const.h"
-#include "memory.h"
 
 // GLOBAL VARIABLES
 /* used in fft.c and matvec.c. Some of them are used only in one file, but we do not differentiate
  * them for simplicity (to keep all extern declarations in one place)
  */
-
 cl_context context;
 cl_command_queue command_queue;
 cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
@@ -40,11 +38,14 @@ cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,c
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,
 	bufDmatrix,bufinproduct;
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
+// OpenCL memory counts (current, peak, and maximum for a single object)
+size_t oclMem,oclMemPeak,oclMemMaxObj;
+int gpuInd; // index of GPU to use (starting from 0)
 
 // SEMI-GLOBAL VARIABLES
 
 // used in cpp/fft_setup.cpp
-char coptions[MAX_LINE]="";
+const char *coptions;
 
 // LOCAL VARIABLES
 
@@ -56,17 +57,24 @@ enum platname {
 	PN_AMD,    // AMD GPU
 	PN_UNDEF   // Unknown OpenCL platform
 };
-enum platname platformname;
+enum platname platformname; // also used in cpp/fft_setup.cpp
+
 // ids of program, platform and device
-cl_program program;
-cl_platform_id used_platform_id;
-cl_device_id device_id;
+static cl_program program;
+static cl_platform_id used_platform_id;
+static cl_device_id device_id;
+
+struct string {
+	char *text; // text of string
+	size_t len; // length
+	size_t mem; // amount of allocated memory
+};
 
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
-//#define READ_CL_SOURCE_AT_RUNTIME
+//#define OCL_READ_SOURCE_RUNTIME
 
 // For some reason Eclipse points out a syntax error in the following block. Just ignore it.
-#ifndef READ_CL_SOURCE_AT_RUNTIME
+#ifndef OCL_READ_SOURCE_RUNTIME
 	const char stringifiedSourceCL[]=
 	// the following is a pure string generated automatically from oclkernels.cl at compile time
 #	include "ocl/oclkernels.clstr"
@@ -75,119 +83,231 @@ cl_device_id device_id;
 
 //========================================================================
 
-char *print_cl_errstring(cl_int err)
-// produced meaningful error message from the error code
+#define STR_SIZE_STEP 100
+static struct string StrInit(void)
+// initializes string structure
 {
-	char msg[MAX_LINE];
+	struct string str;
+	str.len=0;
+	str.mem=STR_SIZE_STEP;
+	MALLOC_VECTOR(str.text,char,str.mem,ALL);
+	str.text[0]=0;
+	return str;
+}
 
+//========================================================================
+
+static void StrCatSpace(struct string *dest,const char *src)
+/* concatenates dest string (described by structure) and src string into the dest. Additionally,
+ * space is added between the strings, if dest is originally not empty.
+ * If needed additional memory is allocated automatically.
+ */
+{
+	if (dest->len>0) {
+		dest->text[dest->len]=' ';
+		dest->len++;
+	}
+	size_t slen=strlen(src);
+	if (dest->len+slen>=dest->mem) {
+		do dest->mem+=STR_SIZE_STEP; while (dest->len+slen>=dest->mem);
+		REALLOC_VECTOR(dest->text,char,dest->mem,ALL);
+	}
+	strcpy(dest->text+dest->len,src);
+	dest->len+=slen;
+}
+#undef STR_SIZE_STEP
+
+//========================================================================
+
+static const char *print_cl_errstring(cl_int err)
+// produces meaningful error message from the error code
+{
 	switch (err) {
-		case CL_SUCCESS:                         return strcpy(msg,"Success!");
-		case CL_DEVICE_NOT_FOUND:                return strcpy(msg,"Device not found.");
-		case CL_DEVICE_NOT_AVAILABLE:            return strcpy(msg,"Device not available");
-		case CL_COMPILER_NOT_AVAILABLE:          return strcpy(msg,"Compiler not available");
-		case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-			return strcpy(msg,"Memory object allocation failure");
-		case CL_OUT_OF_RESOURCES:                return strcpy(msg,"Out of resources");
-		case CL_OUT_OF_HOST_MEMORY:              return strcpy(msg,"Out of host memory");
-		case CL_PROFILING_INFO_NOT_AVAILABLE:
-			return strcpy(msg,"Profiling information not available");
-		case CL_MEM_COPY_OVERLAP:                return strcpy(msg,"Memory copy overlap");
-		case CL_IMAGE_FORMAT_MISMATCH:           return strcpy(msg,"Image format mismatch");
-		case CL_IMAGE_FORMAT_NOT_SUPPORTED:      return strcpy(msg,"Image format not supported");
-		case CL_BUILD_PROGRAM_FAILURE:           return strcpy(msg,"Program build failure");
-		case CL_MAP_FAILURE:                     return strcpy(msg,"Map failure");
-		case CL_INVALID_VALUE:                   return strcpy(msg,"Invalid value");
-		case CL_INVALID_DEVICE_TYPE:             return strcpy(msg,"Invalid device type");
-		case CL_INVALID_PLATFORM:                return strcpy(msg,"Invalid platform");
-		case CL_INVALID_DEVICE:                  return strcpy(msg,"Invalid device");
-		case CL_INVALID_CONTEXT:                 return strcpy(msg,"Invalid context");
-		case CL_INVALID_QUEUE_PROPERTIES:        return strcpy(msg,"Invalid queue properties");
-		case CL_INVALID_COMMAND_QUEUE:           return strcpy(msg,"Invalid command queue");
-		case CL_INVALID_HOST_PTR:                return strcpy(msg,"Invalid host pointer");
-		case CL_INVALID_MEM_OBJECT:              return strcpy(msg,"Invalid memory object");
-		case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-			return strcpy(msg,"Invalid image format descriptor");
-		case CL_INVALID_IMAGE_SIZE:              return strcpy(msg,"Invalid image size");
-		case CL_INVALID_SAMPLER:                 return strcpy(msg,"Invalid sampler");
-		case CL_INVALID_BINARY:                  return strcpy(msg,"Invalid binary");
-		case CL_INVALID_BUILD_OPTIONS:           return strcpy(msg,"Invalid build options");
-		case CL_INVALID_PROGRAM:                 return strcpy(msg,"Invalid program");
-		case CL_INVALID_PROGRAM_EXECUTABLE:      return strcpy(msg,"Invalid program executable");
-		case CL_INVALID_KERNEL_NAME:             return strcpy(msg,"Invalid kernel name");
-		case CL_INVALID_KERNEL_DEFINITION:       return strcpy(msg,"Invalid kernel definition");
-		case CL_INVALID_KERNEL:                  return strcpy(msg,"Invalid kernel");
-		case CL_INVALID_ARG_INDEX:               return strcpy(msg,"Invalid argument index");
-		case CL_INVALID_ARG_VALUE:               return strcpy(msg,"Invalid argument value");
-		case CL_INVALID_ARG_SIZE:                return strcpy(msg,"Invalid argument size");
-		case CL_INVALID_KERNEL_ARGS:             return strcpy(msg,"Invalid kernel arguments");
-		case CL_INVALID_WORK_DIMENSION:          return strcpy(msg,"Invalid work dimension");
-		case CL_INVALID_WORK_GROUP_SIZE:         return strcpy(msg,"Invalid work group size");
-		case CL_INVALID_WORK_ITEM_SIZE:          return strcpy(msg,"Invalid work item size");
-		case CL_INVALID_GLOBAL_OFFSET:           return strcpy(msg,"Invalid global offset");
-		case CL_INVALID_EVENT_WAIT_LIST:         return strcpy(msg,"Invalid event wait list");
-		case CL_INVALID_EVENT:                   return strcpy(msg,"Invalid event");
-		case CL_INVALID_OPERATION:               return strcpy(msg,"Invalid operation");
-		case CL_INVALID_GL_OBJECT:               return strcpy(msg,"Invalid OpenGL object");
-		case CL_INVALID_BUFFER_SIZE:             return strcpy(msg,"Invalid buffer size");
-		case CL_INVALID_MIP_LEVEL:               return strcpy(msg,"Invalid mip-map level");
-		default:                                 return strcpy(msg,"Unknown");
+		case CL_SUCCESS:                         return "Success!";
+		case CL_DEVICE_NOT_FOUND:                return "Device not found.";
+		case CL_DEVICE_NOT_AVAILABLE:            return "Device not available";
+		case CL_COMPILER_NOT_AVAILABLE:          return "Compiler not available";
+		case CL_MEM_OBJECT_ALLOCATION_FAILURE:   return "Memory object allocation failure";
+		case CL_OUT_OF_RESOURCES:                return "Out of resources";
+		case CL_OUT_OF_HOST_MEMORY:              return "Out of host memory";
+		case CL_PROFILING_INFO_NOT_AVAILABLE:    return "Profiling information not available";
+		case CL_MEM_COPY_OVERLAP:                return "Memory copy overlap";
+		case CL_IMAGE_FORMAT_MISMATCH:           return "Image format mismatch";
+		case CL_IMAGE_FORMAT_NOT_SUPPORTED:      return "Image format not supported";
+		case CL_BUILD_PROGRAM_FAILURE:           return "Program build failure";
+		case CL_MAP_FAILURE:                     return "Map failure";
+		case CL_INVALID_VALUE:                   return "Invalid value";
+		case CL_INVALID_DEVICE_TYPE:             return "Invalid device type";
+		case CL_INVALID_PLATFORM:                return "Invalid platform";
+		case CL_INVALID_DEVICE:                  return "Invalid device";
+		case CL_INVALID_CONTEXT:                 return "Invalid context";
+		case CL_INVALID_QUEUE_PROPERTIES:        return "Invalid queue properties";
+		case CL_INVALID_COMMAND_QUEUE:           return "Invalid command queue";
+		case CL_INVALID_HOST_PTR:                return "Invalid host pointer";
+		case CL_INVALID_MEM_OBJECT:              return "Invalid memory object";
+		case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR: return "Invalid image format descriptor";
+		case CL_INVALID_IMAGE_SIZE:              return "Invalid image size";
+		case CL_INVALID_SAMPLER:                 return "Invalid sampler";
+		case CL_INVALID_BINARY:                  return "Invalid binary";
+		case CL_INVALID_BUILD_OPTIONS:           return "Invalid build options";
+		case CL_INVALID_PROGRAM:                 return "Invalid program";
+		case CL_INVALID_PROGRAM_EXECUTABLE:      return "Invalid program executable";
+		case CL_INVALID_KERNEL_NAME:             return "Invalid kernel name";
+		case CL_INVALID_KERNEL_DEFINITION:       return "Invalid kernel definition";
+		case CL_INVALID_KERNEL:                  return "Invalid kernel";
+		case CL_INVALID_ARG_INDEX:               return "Invalid argument index";
+		case CL_INVALID_ARG_VALUE:               return "Invalid argument value";
+		case CL_INVALID_ARG_SIZE:                return "Invalid argument size";
+		case CL_INVALID_KERNEL_ARGS:             return "Invalid kernel arguments";
+		case CL_INVALID_WORK_DIMENSION:          return "Invalid work dimension";
+		case CL_INVALID_WORK_GROUP_SIZE:         return "Invalid work group size";
+		case CL_INVALID_WORK_ITEM_SIZE:          return "Invalid work item size";
+		case CL_INVALID_GLOBAL_OFFSET:           return "Invalid global offset";
+		case CL_INVALID_EVENT_WAIT_LIST:         return "Invalid event wait list";
+		case CL_INVALID_EVENT:                   return "Invalid event";
+		case CL_INVALID_OPERATION:               return "Invalid operation";
+		case CL_INVALID_GL_OBJECT:               return "Invalid OpenGL object";
+		case CL_INVALID_BUFFER_SIZE:             return "Invalid buffer size";
+		case CL_INVALID_MIP_LEVEL:               return "Invalid mip-map level";
+		default:                                 return "Unknown";
 	}
 }
 
 //========================================================================
 
-void checkErr(cl_int err,const char *name)
-// checks error code and stops if necessary
+void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg)
+/* Prints explicit information about CL error.
+ * Optional argument msg is added to the error message, if not NULL.
+ */
 {
-	if (err != CL_SUCCESS) {
-		printf("ERROR: %s / Error code (%i : %s)\n",name,err,print_cl_errstring(err));
-		exit(EXIT_FAILURE);
-	}
+	if (msg==NULL) LogError(ERR_LOC_CALL,"CL error code %d: %s\n",err,print_cl_errstring(err));
+	else LogError(ERR_LOC_CALL,"%s (CL error code %d: %s)\n",msg,err,print_cl_errstring(err));
 }
 
 //========================================================================
 
-void GetDevice(void)
+static char* ATT_MALLOC dyn_clGetPlatformInfo(cl_platform_id plat_id,cl_platform_info param_name)
+/* wrapper for clGetPlatformInfo with string return value, it automatically allocates the string to
+ * hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetPlatformInfo(plat_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetPlatformInfo(plat_id,param_name,size,res,NULL));
+	return res;
+}
+
+//========================================================================
+
+static char* ATT_MALLOC dyn_clGetDeviceInfo(cl_device_id dev_id,cl_device_info param_name)
+/* wrapper for clGetDeviceInfo with string return value, it automatically allocates the string to
+ * hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetDeviceInfo(dev_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetDeviceInfo(dev_id,param_name,size,res,NULL));
+	return res;
+}
+
+//========================================================================
+
+static char* ATT_MALLOC dyn_clGetProgramBuildInfo(cl_program prog,cl_device_id dev_id,
+	cl_program_build_info param_name)
+/* wrapper for clGetProgramBuildInfo with string return value, it automatically allocates the string
+ * to hold the result and returns it to the caller. All error checks are performed inside.
+ */
+{
+	size_t size;
+	char *res;
+	CL_CH_ERR(clGetProgramBuildInfo(prog,dev_id,param_name,0,NULL,&size));
+	MALLOC_VECTOR(res,char,size,ALL);
+	CL_CH_ERR(clGetProgramBuildInfo(prog,dev_id,param_name,size,res,NULL));
+	return res;
+}
+//========================================================================
+
+static void GetDevice(struct string *copt_ptr)
 // set OpenCL device number and related variable
 {
 	cl_int err; // error code
 	cl_uint num_of_platforms,num_of_devices;
 	cl_platform_id *platform_id;
-	char pname[MAX_LINE],devicename[MAX_LINE];
-	cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
+	cl_device_id *devices;
+	const cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
+	int gpuN=0;
 
+	printf("Searching for OpenCL devices\n");
 	// little trick to get just the number of the Platforms
-	err=clGetPlatformIDs(0,NULL,&num_of_platforms);
-	checkErr(err,"Get number of platforms");
+	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
+	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms
+	 * with successful return status. So we additionally test it.
+	 */
+	if (num_of_platforms==0) LogError(ALL_POS,"No OpenCL platform was found");
 	// dynamic array of platformids creation at runtime, stored in heap
 	platform_id=(cl_platform_id *)
 		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
-	err=clGetPlatformIDs(num_of_platforms,platform_id,NULL);
-	checkErr(err,"Get platforms IDs");
+	CL_CH_ERR(clGetPlatformIDs(num_of_platforms,platform_id,NULL));
 
 	for (unsigned int i=0;i<num_of_platforms;i++) {
 		/* Some errors are allowed here, since some platforms/devices may be not supported.
-		 * The execution continues normally if at least one supported device is found.
-		 * So errors are handled directly here, not through
+		 * The execution continues normally if at least one (or gpuInd+1) supported device is found.
+		 * So errors are handled directly here, not through standard error handler
 		 */
-		clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME,sizeof(pname),pname,NULL);
-		err=clGetDeviceIDs(platform_id[i],devtype,1,&device_id,&num_of_devices);
-		if (err==CL_SUCCESS) {
+		err=clGetDeviceIDs(platform_id[i],devtype,0,NULL,&num_of_devices);
+		if (err==CL_SUCCESS && (gpuN+=num_of_devices)>gpuInd) {
+			// choose specific device based on gpuInd
+			devices=(cl_device_id *)voidVector(num_of_devices*sizeof(device_id),ALL_POS,"devices");
+			CL_CH_ERR(clGetDeviceIDs(platform_id[i],devtype,num_of_devices,devices,NULL));
+			device_id=devices[gpuInd-gpuN+num_of_devices];
+			Free_general(devices);
+			// get platform and device name
+			used_platform_id=platform_id[i];
+			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
 			/* the program can potentially work with unknown compatible device, but performance is,
 			 * to some extent, unpredictable.
 			 */
 			else platformname=PN_UNDEF;
-			err=clGetDeviceInfo(device_id,CL_DEVICE_NAME,sizeof(devicename),devicename,NULL);
-			checkErr(err,"Get device name");
-			printf("Found OpenCL device %s, based on %s.\n",devicename,pname);
-			used_platform_id=platform_id[i];
+			char *devicename=dyn_clGetDeviceInfo(device_id,CL_DEVICE_NAME);
+			PrintBoth(logfile,"Using OpenCL device %s, based on %s.\n",devicename,pname);
+			Free_general(pname);
+			Free_general(devicename);
+			// get further device info
+#ifdef DEBUGFULL
+			char *dev_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_VERSION);
+			char *dr_vers=dyn_clGetDeviceInfo(device_id,CL_DRIVER_VERSION);
+			D("Device version: %s. Driver version: %s.\n",dev_vers,dr_vers);
+			Free_general(dev_vers);
+			Free_general(dr_vers);
+#endif
+			cl_ulong mtot,mobj;
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,
+				NULL));
+			// round numbers are expected so .0f is used, float is just for convenience
+			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",
+				mtot/MBYTE,mobj/MBYTE);
+			char *dev_ext=dyn_clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS);
+			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
+			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
+				// fallback for old AMD GPUs
+				if (strstr(dev_ext,"cl_amd_fp64")!=NULL) StrCatSpace(copt_ptr,"-DDOUBLE_AMD");
+				else LogError(ALL_POS,"Double precision is not supported by OpenCL device");
+			}
+			Free_general(dev_ext);
 			break;
 		}
 	}
-	// if all platforms of the above cycle fail, then error is produced
-	checkErr(err,"No valid preferred OpenCL device found");
+	// if all platforms of the above cycle fail, then error is produced with the last error code
+	if (gpuN==0) LogError(ALL_POS,"No OpenCL-compatible GPU found");
+	else if (gpuN<=gpuInd) LogError(ALL_POS,"The specified GPU index (%d) must be less than the "
+		"total number of available GPUs (%d)",gpuInd,gpuN);
 	Free_general(platform_id);
 }
 
@@ -199,8 +319,10 @@ void oclinit(void)
 	cl_int err; // error code
 	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings
 
+	D("Starting OpenCL init");
+	struct string cl_opt=StrInit();
 	// getting the first OpenCL device which is a GPU
-	GetDevice();
+	GetDevice(&cl_opt);
 	/* cl_context_properties is a strange list of item:
 	 * first comes the name of the property as next element the corresponding value
 	 */
@@ -208,25 +330,16 @@ void oclinit(void)
 	properties[0]=CL_CONTEXT_PLATFORM;
 	properties[1]=(cl_context_properties)used_platform_id;
 	properties[2]=0; // last one must be zero
-	context=clCreateContext(
-		properties,
-		1, //number of devices to use
-		&device_id,
-		NULL, // error info as string
-		NULL, // user data
-		&err
-	);
-	checkErr(err,"Create Context");
+	context=clCreateContext(properties,1,&device_id,NULL,NULL,&err);
+	CL_CH_ERR(err);
+	// since we use only one context the following variables are implicitly associated with it
+	oclMem=oclMemPeak=oclMemMaxObj=0;
 
-	command_queue=clCreateCommandQueue(
-		context,
-		device_id,
-		CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, // command queue properties
-		&err
-	);
-	checkErr(err,"Command_queue");
+	// for now we use in-order execution only, since it is much safer
+	command_queue=clCreateCommandQueue(context,device_id,0,&err);
+	CL_CH_ERR(err);
 
-#ifdef READ_CL_SOURCE_AT_RUNTIME
+#ifdef OCL_READ_SOURCE_RUNTIME
 	size_t sourceStrSize;
 	char *cSourceString;
 	FILE *file=FOpenErr("oclkernels.cl","rb",ALL_POS);
@@ -240,62 +353,104 @@ void oclinit(void)
 #else
 	cssPtr[0]=stringifiedSourceCL;
 #endif
-	program=clCreateProgramWithSource(
-		context, // valid Context
-		1,       // number of strings in next parameter
-		cssPtr,  // array of source strings
-		NULL,    // length of each string
-		&err     // error code
-	);
-	checkErr(err,"Creating program");
-
-	if (platformname==PN_NVIDIA) strcpy(coptions,"-cl-mad-enable"); //for NVIDIA GPUs
-	else if (platformname==PN_AMD) strcpy(coptions,"-DAMD -cl-mad-enable"); //for AMD GPUs
-	// no options are set for unknown OpenCL platform
-
+	D("Creating CL program");
+	program=clCreateProgramWithSource(context,1,cssPtr,NULL,&err);
+	CL_CH_ERR(err);
+	// finalize build options and point coptions (used for sharing with clFFT) to it
+	StrCatSpace(&cl_opt,"-cl-mad-enable -cl-fast-relaxed-math");
+	/* OpenCL standard does define size_t-analogue type to avoid confusion. But we want to use
+	 * home-made definition in OpenCL source, since size_t is used a lot in ADDA to indicate the
+	 * largest problem solvable on current hardware. Since the proper OpenCL type is chosen during
+	 * compilation of the main ADDA source, there should be no portability problems, even though the
+	 * OpenCL sources may be compiled (at ADDA runtime) on a different hardware than ADDA itself.
+	 *
+	 * In the following it is more logical to compare against CL_UINT_MAX and CL_ULONG_MAX, but at
+	 * least the latter contains typecast "(cl_ulong)" which is badly interpreted by the
+	 * preprocessor. The values used should always be the same according to OpenCL standard.
+	 */
+#if (SIZE_MAX==UINT32_MAX)
+	StrCatSpace(&cl_opt,"-DSIZET_UINT");
+#elif (SIZE_MAX==UINT64_MAX)
+	StrCatSpace(&cl_opt,"-DSIZET_ULONG");
+#else
+#	error "No OpenCL alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
+#endif
+	coptions=cl_opt.text;
+	D("Building CL program with options: '%s'",cl_opt.text);
 	// special error handling to enable debugging of OpenCL kernels
-	if (clBuildProgram(program,0,NULL,coptions,NULL,NULL) != CL_SUCCESS) {
-		printf("Error building OpenCL program\n");
-		char buffer[8192];
-		clGetProgramBuildInfo(
-			program,              // valid program object
-			device_id,            // valid device_id that executable was built
-			CL_PROGRAM_BUILD_LOG, // indicate to retrieve build log
-			sizeof(buffer),       // size of the buffer to write log to
-			buffer,               // the actual buffer to write log to
-			NULL);                // the actual size in bytes of data copied to buffer
-		printf("%s\n",buffer);
-		exit(EXIT_FAILURE);
+	err=clBuildProgram(program,0,NULL,cl_opt.text,NULL,NULL);
+	if (err!=CL_SUCCESS) {
+		char *buffer=dyn_clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG);
+		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
+		Free_general(buffer);
+		CL_CH_ERR(err);
 	}
-
 	clzero=clCreateKernel(program,"clzero",&err);
-	checkErr(err,"creating kernel clzero");
+	CL_CH_ERR(err);
 	clarith1=clCreateKernel(program,"arith1",&err);
-	checkErr(err,"creating kernel clarith1");
+	CL_CH_ERR(err);
 	clarith2=clCreateKernel(program,"arith2",&err);
-	checkErr(err,"creating kernel clartih2");
+	CL_CH_ERR(err);
 	clarith3=clCreateKernel(program,"arith3",&err);
-	checkErr(err,"creating kernel clartih3");
+	CL_CH_ERR(err);
 	clarith4=clCreateKernel(program,"arith4",&err);
-	checkErr(err,"creating kernel clarith4");
+	CL_CH_ERR(err);
 	clarith5=clCreateKernel(program,"arith5",&err);
-	checkErr(err,"creating kernel clarith5");
+	CL_CH_ERR(err);
 	clnConj=clCreateKernel(program,"nConj",&err);
-	checkErr(err,"creating kernel clnConj");
+	CL_CH_ERR(err);
 	clinprod=clCreateKernel(program,"inpr",&err);
-	checkErr(err,"creating kernel clinprod");
+	CL_CH_ERR(err);
 	cltransposef=clCreateKernel(program,"transpose",&err);
-	checkErr(err,"creating kernel cltransposef");
+	CL_CH_ERR(err);
 	cltransposeb=clCreateKernel(program,"transpose",&err);
-	checkErr(err,"creating kernel cltransposeb");
+	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
-	checkErr(err,"creating kernel cltransposeof");
+	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
-	checkErr(err,"creating kernel cltransposeob");
-#ifdef READ_CL_SOURCE_AT_RUNTIME
+	CL_CH_ERR(err);
+#ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
+	clUnloadCompiler();
+	D("OpenCL init complete");
+}
 
+//========================================================================
+
+cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_LOC_DECL,
+	const char *name)
+// wrapper to create buffer, which also adjusts memory counts and takes care of errors
+{
+	cl_mem buf=NULL; // default value to return during prognosis
+	oclMem+=size;
+	MAXIMIZE(oclMemPeak,oclMem);
+	MAXIMIZE(oclMemMaxObj,size);
+	if (!prognosis) {
+		cl_int err;
+		buf=clCreateBuffer(context,mem_flags,size,host_ptr,&err);
+		if (err!=CL_SUCCESS)
+			PrintCLErr(err,ERR_LOC_CALL,dyn_sprintf("Failed to allocate OpenCL object '%s'",name));
+	}
+	return buf;
+}
+
+//========================================================================
+
+void my_clReleaseBuffer(cl_mem buffer)
+// wrapper to release buffer and decrease memory count
+{
+	cl_uint count;
+	clGetMemObjectInfo(buffer,CL_MEM_REFERENCE_COUNT,sizeof(count),&count,NULL);
+	if (count==1) {
+		size_t size;
+		clGetMemObjectInfo(buffer,CL_MEM_SIZE,sizeof(size),&size,NULL);
+		if (oclMem<size) LogWarning(EC_WARN,ALL_POS,"Inconsistency detected in handling OpenCL "
+			"memory: remaining memory (%zu) is larger than size of the object to be freed (%zu)",
+			oclMem,size);
+		else oclMem-=size;
+	}
+	clReleaseMemObject(buffer);
 }
 
 //========================================================================

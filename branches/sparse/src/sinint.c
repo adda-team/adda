@@ -5,7 +5,7 @@
  *        It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was
  *        slightly corrected according to the 3rd ed. of the same book.
  *
- * Copyright (C) 2007-2010 ADDA contributors
+ * Copyright (C) 2007-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,11 +19,13 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <math.h>
-#include <float.h> // for DBL_MIN and DBL_MAX
-#include "const.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
 #include "io.h"
+// system headers
+#include <float.h> // for DBL_MIN and DBL_MAX
+#include <math.h>
 
 #define EPS DBL_EPSILON // Relative error, or absolute error near a zero of Ci(x)
 #define MAXIT 100       // Maximum number of iterations allowed

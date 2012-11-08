@@ -3,7 +3,7 @@
  * Descr: Kernel File for OpenCL kernels.
  *        includes all subfunctions of the Matvec routine as OpenCL kernels
  *
- * Copyright (C) 2010-2011 ADDA contributors
+ * Copyright (C) 2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,11 +17,26 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+// Somehow current AMD drivers do not define CL_VERSION_1_0 when compiling OpenCL kernels
+//#ifndef CL_VERSION_1_0
+//#	error "OpenCL version at least 1.0 is required"
+//#endif
 
-#ifdef AMD
-#	pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#ifdef USE_DOUBLE
+#	ifdef DOUBLE_AMD
+#		pragma OPENCL EXTENSION cl_amd_fp64 : enable
+#	else
+#		pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#	endif
+#endif
+
+// defines type to work with variables defined as size_t in the main ADDA code
+#ifdef SIZET_UINT
+typedef uint in_sizet;
+#elif defined(SIZET_ULONG)
+typedef ulong in_sizet;
 #else
-#	pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#	error "size_t alternative is not defined"
 #endif
 
 /*************************************
@@ -29,7 +44,7 @@
  *                                   *
  *************************************/
 
-void cMult(__global double2 *a,__global double2 *b,__global double2 *c)
+void cMult(__constant double2 *a,__global const double2 *b,__global double2 *c)
 // complex multiplication; c=ab; !!! c should be different from a and b !!!
 {
 	(*c).s0=(*a).s0*(*b).s0 - (*a).s1*(*b).s1;
@@ -38,8 +53,8 @@ void cMult(__global double2 *a,__global double2 *b,__global double2 *c)
 
 //============================================================
 
-void cMult2(__global double2 *a,__global double2 *b,__private double2 *c)
-// complex multiplication; c=ab; !!! c should be different from a and b ! c is local here in cMult2
+void cMult2(__constant double2 *a,__global const double2 *b,double2 *c)
+// complex multiplication; c=ab; !!! c should be different from a and b !!! c is private
 {
 	(*c).s0=(*a).s0*(*b).s0 - (*a).s1*(*b).s1;
 	(*c).s1=(*a).s1*(*b).s0 + (*a).s0*(*b).s1;
@@ -47,20 +62,11 @@ void cMult2(__global double2 *a,__global double2 *b,__private double2 *c)
 
 //============================================================
 
-double cvNorm2(__global double2 *a)
+double cvNorm2(__global const double2 *a)
 // square of the norm of a complex vector[3]
 {
 	return ( a[0].s0*a[0].s0 + a[0].s1*a[0].s1 + a[1].s0*a[1].s0 + a[1].s1*a[1].s1
 		+ a[2].s0*a[2].s0 + a[2].s1*a[2].s1 );
-}
-
-//============================================================
-
-void cAdd(__global double2 *a,__private double2 *b,__global double2 *c)
-// add two complex numbers; c=a+b
-{
-	(*c).s0 = (*a).s0 + (*b).s0;
-	(*c).s1 = (*a).s1 + (*b).s1;
 }
 
 /*************************************
@@ -70,7 +76,7 @@ void cAdd(__global double2 *a,__private double2 *b,__global double2 *c)
 
 __kernel void nConj(__global double2 *a)
 {
-	__private size_t id=get_global_id(0);
+	const size_t id=get_global_id(0);
 
 	a[id].s1= -a[id].s1;
 }
@@ -79,26 +85,26 @@ __kernel void nConj(__global double2 *a)
 
 __kernel void clzero(__global double2 *input)
 {
-	__private size_t id = get_global_id(0);
+	const size_t id = get_global_id(0);
 
 	input[id] = 0.0;
 }
 
 //============================================================
 
-__kernel void arith1(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt /* 15x3 */, __global double2 *argvec, __global double2 *Xmatrix,
-	long local_Nsmall,long smallY,long gridX)
+__kernel void arith1(__global const uchar *material,__global const ushort *position,
+	__constant double2 *cc_sqrt, __global const double2 *argvec, __global double2 *Xmatrix,
+	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX)
 {
-	__private size_t id=get_global_id(0);
-	__private size_t j=3*id;
-	__private char mat=material[id];
-	__private size_t index;
-	__private int xcomp;
+	const size_t id=get_global_id(0);
+	const size_t j=3*id;
+	const uchar mat=material[id];
+	size_t index;
+	int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++)
-		cMult(&cc_sqrt[mat*15+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
+		cMult(&cc_sqrt[mat*3+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
 }
 
 /*************************************
@@ -106,14 +112,15 @@ __kernel void arith1(__global unsigned char *material,__global unsigned short *p
  *                                   *
  *************************************/
 
-__kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
-	long gridX,long gridYZ,long local_Nsmall,long x)
+__kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,const in_sizet gridZ,
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
+	const in_sizet x)
 {
-	__private size_t y=get_global_id(0);
-	__private size_t z=get_global_id(1);
-	__private size_t i;
-	__private size_t j;
-	__private int xcomp;
+	const size_t y=get_global_id(0);
+	const size_t z=get_global_id(1);
+	size_t i;
+	size_t j;
+	int xcomp;
 
 	i = y*gridZ+z;
 	j = (z*smallY+y)*gridX+x;
@@ -125,7 +132,7 @@ __kernel void arith2(__global double2 *Xmatrix,__global double2 *slices,long gri
  *                                   *
  *************************************/
 
-void cSymMatrVec(__private double2 *matr,__private double2 *vec,__private double2 *res)
+void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 // multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
 {
 	res[0].s0 = matr[0].s0*vec[0].s0 - matr[0].s1*vec[0].s1
@@ -152,19 +159,20 @@ void cSymMatrVec(__private double2 *matr,__private double2 *vec,__private double
 
 //============================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long local_x0,
-	long smallY,long smallZ,long gridX,long DsizeY,long DsizeZ,long NDCOMP,char reduced_FFT,
-	char transposed,long x)
+__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,
+	const in_sizet local_x0,const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,
+	const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,const char reduced_FFT,
+	const char transposed,const in_sizet x)
 {
-	size_t z = get_global_id(0);
-	size_t y = get_global_id(1);
-	size_t gridZ = get_global_size(0);
-	size_t gridY = get_global_size(1);
-	__private double2 xv[3];
-	__private double2 yv[3];
-	__private double2 fmat[6];
-	__private int Xcomp;
-	__private size_t i=z *gridY + y;// indexSliceZY
+	size_t const z = get_global_id(0);
+	size_t const y = get_global_id(1);
+	size_t const gridZ = get_global_size(0);
+	size_t const gridY = get_global_size(1);
+	double2 xv[3];
+	double2 yv[3];
+	double2 fmat[6];
+	int Xcomp;
+	const size_t i=z *gridY + y; // indexSliceZY
 	size_t j;
 	size_t xa=x;
 	size_t ya=y;
@@ -206,14 +214,15 @@ __kernel void arith3(__global double2 *slices_tr,__global double2 *Dmatrix,long 
  *                                   *
  *************************************/
 
-__kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gridZ,long smallY,
-	long gridX,long gridYZ,long local_Nsmall,long x)
+__kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,const in_sizet gridZ,
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
+	const in_sizet x)
 {
-	__private size_t y =get_global_id(0);
-	__private size_t z =get_global_id(1);
-	__private size_t i;
-	__private size_t j;
-	__private int xcomp;
+	const size_t y =get_global_id(0);
+	const size_t z =get_global_id(1);
+	size_t i;
+	size_t j;
+	int xcomp;
 
 	i = y*gridZ+z;
 	j = (z*smallY+y)*gridX+x;
@@ -225,29 +234,30 @@ __kernel void arith4(__global double2 *Xmatrix,__global double2 *slices,long gri
  *                                   *
  *************************************/
 
-__kernel void arith5(__global unsigned char *material,__global unsigned short *position,
-	__global double2 *cc_sqrt,__global double2 *argvec,__global double2 *Xmatrix,long local_Nsmall,
-	long smallY,long gridX,__global double2 *resultvec)
+__kernel void arith5(__global const uchar *material,__global const ushort *position,
+	__constant double2 *cc_sqrt,__global const double2 *argvec,__global const double2 *Xmatrix,
+	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX,
+	__global double2 *resultvec)
 {
-	__private size_t id = get_global_id(0);
-	__private size_t j=3*id;
-	__private char mat = material[id];
-	__private size_t index;
-	__private double2 temp;
-	__private int xcomp;
+	const size_t id = get_global_id(0);
+	const size_t j=3*id;
+	const uchar mat = material[id];
+	size_t index;
+	double2 temp;
+	int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
 	for (xcomp=0;xcomp<3;xcomp++) {
-		cMult2(&cc_sqrt[mat*15+xcomp],&Xmatrix[index+xcomp*local_Nsmall],&temp);
+		cMult2(&cc_sqrt[mat*3+xcomp],&Xmatrix[index+xcomp*local_Nsmall],&temp);
 		resultvec[j+xcomp]=argvec[j+xcomp]+temp;
 	}
 }
 
 //============================================================
 
-__kernel void inpr(__global double *inprod, __global double2 *resultvec)
+__kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 {
-	__private size_t id = get_global_id(0);
+	const size_t id = get_global_id(0);
 
 	inprod[id]=cvNorm2(resultvec+(id*3));
 }
@@ -257,43 +267,37 @@ __kernel void inpr(__global double *inprod, __global double2 *resultvec)
  *                                   *
  *************************************/
 
-__kernel void transpose(__global double2 *input,__global double2 *output,long width,long height)
+__kernel void transpose(__global const double2 *input,__global double2 *output,
+	const in_sizet width,const in_sizet height)
 {
-	size_t idz = get_global_id(0);
-	size_t idy = get_global_id(1);
-	size_t wth = width*height;
+	const size_t idz = get_global_id(0);
+	const size_t idy = get_global_id(1);
+	const size_t wth = width*height;
 
 	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
 }
 
-//optimised transpose kernel with cache and
-//removed bank conflicts obtained from Nvidia SDK samples
+//optimised transpose kernel with cache and removed bank conflicts obtained from Nvidia SDK samples
+// This corresponds to value of tblock in TransposeYZ() in fft.c
 #define BLOCK_DIM 16
-__kernel void transposeo(
-        __global double2 *idata,
-        __global double2 *odata,
-        long width,
-        long height,
-        __local double2 *block
-    )
+__kernel void transposeo(__global const double2 *idata,__global double2 *odata,
+	const in_sizet width,const in_sizet height,__local double2 *block)
 {
-    // read tiles into local memory
-    unsigned int xIndex = get_global_id(0);
-    unsigned int yIndex = get_global_id(1);
-    unsigned int zIndex = get_global_id(2);
-    int htw = height*width;
-    if((xIndex < width) && (yIndex < height))
-    {
-    unsigned int index_in = yIndex * width + xIndex + htw * zIndex;
-    block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    // write transposed tile back to global memory
-    xIndex = get_group_id(1) * BLOCK_DIM + get_local_id(0);
-    yIndex = get_group_id(0) * BLOCK_DIM + get_local_id(1);
-    if((xIndex < height) && (yIndex < width))
-    {
-    unsigned int index_out = yIndex * height + xIndex + htw * zIndex;
-    odata[index_out] = block[get_local_id(0)*(BLOCK_DIM+1)+get_local_id(1)];
-    }
+	// read tiles into local memory
+	size_t xIndex = get_global_id(0);
+	size_t yIndex = get_global_id(1);
+	const size_t zIndex = get_global_id(2);
+	const size_t htw = height*width;
+	if ((xIndex < width) && (yIndex < height)) {
+		size_t index_in = yIndex * width + xIndex + htw * zIndex;
+		block[get_local_id(1)*(BLOCK_DIM+1)+get_local_id(0)] = idata[index_in];
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	// write transposed tile back to global memory
+	xIndex = get_group_id(1) * BLOCK_DIM + get_local_id(0);
+	yIndex = get_group_id(0) * BLOCK_DIM + get_local_id(1);
+	if ((xIndex < height) && (yIndex < width)) {
+		size_t index_out = yIndex * height + xIndex + htw * zIndex;
+		odata[index_out] = block[get_local_id(0)*(BLOCK_DIM+1)+get_local_id(1)];
+	}
 }

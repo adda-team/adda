@@ -10,7 +10,7 @@
  *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
  *        BiCGStab.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,20 +24,22 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <time.h> // for time_t & time
-#include <string.h>
-#include <math.h>
-#include "vars.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "const.h"
 #include "comm.h"
-#include "linalg.h"
-#include "io.h"
-#include "timing.h"
-#include "function.h"
 #include "debug.h"
+#include "function.h"
+#include "io.h"
+#include "linalg.h"
 #include "memory.h"
+#include "timing.h"
+#include "vars.h"
+// system headers
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> // for time_t & time
 
 // SEMI-GLOBAL VARIABLES
 
@@ -46,10 +48,17 @@ extern const TIME_TYPE tstart_CE;
 // defined and initialized in calculator.c
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
+// defined and initialized in fft.c
+#ifndef OPENCL
+extern doublecomplex * restrict Xmatrix; // used as storage for arrays in WKB init field
+#endif
 // defined and initialized in param.c
 extern const double iter_eps;
-extern enum init_field InitField;
-extern bool recalc_resid;
+extern const enum init_field InitField;
+extern const bool recalc_resid;
+extern const time_t chp_time;
+extern const char *chp_dir;
+
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
 	Timing_IntFieldOneComm;
@@ -81,7 +90,7 @@ typedef struct // data for checkpoints
 chp_data * restrict scalars,* restrict vectors;
 enum phase {
 	PHASE_VARS, // Initialization of variables, and linking them to scalars and vectors
-	PHASE_INIT, // Initialization of iterations (after loading checkpoint)
+	PHASE_INIT, // Initialization of iterations
 	PHASE_ITER  // Each iteration
 };
 struct iter_params_struct {
@@ -91,6 +100,7 @@ struct iter_params_struct {
 	int vec_N;        // number of additional vectors to describe the state
 	void (*func)(const enum phase); // pointer to implementation of the iterative solver
 };
+static doublecomplex dumb; // dumb variable, used in workaround for issue 146
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
@@ -185,7 +195,7 @@ static void SaveIterChpoint(void)
 	chp_file=FOpenErr(fname,"wb",ALL_POS);
 	// write common scalars
 	fwrite(&ind_m,sizeof(int),1,chp_file);
-	fwrite(&nlocalRows,sizeof(size_t),1,chp_file);
+	fwrite(&local_nRows,sizeof(size_t),1,chp_file);
 	fwrite(&niter,sizeof(int),1,chp_file);
 	fwrite(&counter,sizeof(int),1,chp_file);
 	fwrite(&inprodR,sizeof(double),1,chp_file);
@@ -194,15 +204,15 @@ static void SaveIterChpoint(void)
 	// write specific scalars
 	for (i=0;i<params[ind_m].sc_N;i++) fwrite(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// write common vectors
-	if (fwrite(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
-	if (fwrite(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(rvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
-	if (fwrite(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fwrite(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// write specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fwrite(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
+		if (fwrite(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
 			LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// close file
 	FCloseErr(chp_file,fname,ALL_POS);
@@ -222,7 +232,7 @@ static void LoadIterChpoint(void)
 {
 	int i;
 	int ind_m_new;
-	size_t nlocalRows_new;
+	size_t local_nRows_new;
 	char fname[MAX_FNAME],ch;
 	FILE * restrict chp_file;
 	TIME_TYPE tstart;
@@ -237,8 +247,8 @@ static void LoadIterChpoint(void)
 	 */
 	fread(&ind_m_new,sizeof(int),1,chp_file);
 	if (ind_m_new!=ind_m) LogError(ALL_POS,"File '%s' is for different iterative method",fname);
-	fread(&nlocalRows_new,sizeof(size_t),1,chp_file);
-	if (nlocalRows_new!=nlocalRows)
+	fread(&local_nRows_new,sizeof(size_t),1,chp_file);
+	if (local_nRows_new!=local_nRows)
 		LogError(ALL_POS,"File '%s' is for different vector size",fname);
 	// read common scalars
 	fread(&niter,sizeof(int),1,chp_file);
@@ -250,15 +260,15 @@ static void LoadIterChpoint(void)
 	for (i=0;i<params[ind_m].sc_N;i++)
 		fread(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// read common vectors
-	if (fread(xvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
-	if (fread(rvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(rvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
-	if (fread(pvec,sizeof(doublecomplex),nlocalRows,chp_file)!=nlocalRows)
+	if (fread(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific vectors
 	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fread(vectors[i].ptr,vectors[i].size,nlocalRows,chp_file)!=nlocalRows)
+		if (fread(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
 			LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// check if EOF reached and close file
 	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
@@ -283,7 +293,7 @@ static void ProgressReport(void)
 {
 	double err,progr,elapsed;
 	char progr_string[MAX_LINE];
-	char temp[5];
+	const char *temp;
 	time_t wt;
 
 	if (inprodRp1<=inprodR) {
@@ -294,9 +304,9 @@ static void ProgressReport(void)
 	if (IFROOT) {
 		err=sqrt(resid_scale*inprodRp1);
 		progr=1-err/prev_err;
-		if (counter==0) strcpy(temp,"+ ");
-		else if (progr>0) strcpy(temp,"-+");
-		else strcpy(temp,"- ");
+		if (counter==0) temp="+ ";
+		else if (progr>0) temp="-+";
+		else temp="- ";
 		SnprintfErr(ONE_POS,progr_string,MAX_LINE,RESID_STRING"  %s",niter,err,temp);
 		if (!orient_avg) fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
 		printf("%s\n",progr_string);
@@ -662,6 +672,7 @@ ITER_FUNC(CSYM)
 		cMultSelf(tau,s_new);
 		cInvSign(tau);
 		inprodRp1=cAbs2(tau);
+		cEqual(tau,dumb); // dumb statement to workaround issue 146
 	} // end of PHASE_ITER
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
@@ -726,6 +737,7 @@ ITER_FUNC(QMR_CS)
 			// c_0=c_-1=1; s_0=s_-1=0
 			c_new=c_old=1.0;
 			s_new[RE]=s_new[IM]=s_old[RE]=s_old[IM]=0.0;
+			cEqual(beta,dumb); // dumb statement to workaround issue 146
 		}
 	}
 	else if (ph==PHASE_ITER) {
@@ -864,6 +876,7 @@ ITER_FUNC(QMR_CS_2)
 			theta_old=0;
 			eta[RE]=-1;
 			eta[IM]=0;
+			cEqual(eps,dumb); // dumb statement to workaround issue 146
 		}
 	}
 	else if (ph==PHASE_ITER) {
@@ -1005,13 +1018,16 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 
 //============================================================
 
-void CalcInitField(char *descr,double zero_resid)
+static const char *CalcInitField(double zero_resid)
 /* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains
  * the right-hand side of equations (b). At the end of this function xvec should contain initial
  * vector for the iterative solver (x_0), rvec - corresponding residual r_0, and inprodR - the norm
  * of the latter residual.
+ * Returns string containing description of the initial field used.
  */
 {
+	const char *descr;
+
 	if (InitField==IF_AUTO) {
 		/* This code is somewhat inelegant, but there seem to be no easy way to completely reuse
 		 * code for other cases. Moreover, this option will probably be changed afterwards.
@@ -1025,26 +1041,26 @@ void CalcInitField(char *descr,double zero_resid)
 			nInit(xvec);
 			nCopy(rvec,pvec);
 			inprodR=zero_resid;
-			strcpy(descr,"x_0 = 0\n");
+			descr="x_0 = 0\n";
 			matvec_ready=true; // here Avecbuffer = A.r_0
 		}
 		else { // use x_0=Einc
 			nCopy(xvec,pvec);
-			strcpy(descr,"x_0 = E_inc\n");
+			descr="x_0 = E_inc\n";
 		}
 	}
-	if (InitField==IF_ZERO) {
+	else if (InitField==IF_ZERO) {
 		nInit(xvec); // x_0=0
 		nCopy(rvec,pvec); // r_0=b
 		inprodR=zero_resid;
-		strcpy(descr,"x_0 = 0\n");
+		descr="x_0 = 0\n";
 	}
 	else if (InitField==IF_INC) {
 		nCopy(xvec,pvec); // x_0=b
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-		strcpy(descr,"x_0 = E_inc\n");
+		descr="x_0 = E_inc\n";
 	}
 #ifndef ADDA_SPARSE	//currently no support for WKB in sparse mode
 	else if (InitField==IF_WKB) {
@@ -1052,29 +1068,53 @@ void CalcInitField(char *descr,double zero_resid)
 			"incident direction of the incoming wave (along z-axis)");
 		doublecomplex vals[Nmat+1],tmpc;
 		int i,k; // for traversing single-axis dimensions
-		size_t dip,ind,dip_sl; // for traversing slices or up to nlocalRows
+		size_t dip,ind,dip_sl; // for traversing slices or up to local_nRows
 		size_t boxX_l=(size_t)boxX; // to remove type conversion in indexing
 #define INDEX_GRID(i) (position[(i)+2]*boxXY+position[(i)+1]*boxX_l+position[i])
 		/* can be optimized by reusing material_tmp from make_particle.c or keeping the values
 		 * between the calls. But this will require usage of extra memory. So the current option
 		 * can be considered as corresponding to '-opt mem'
 		 */
-		unsigned char * restrict mat; // same as material, but defined on whole grid (local_Ndip)
-		doublecomplex * restrict arg; // argument of exponent for corrections of incident field
+		unsigned char *mat; // same as material, but defined on whole grid (local_Ndip)
+		doublecomplex *arg; // argument of exponent for corrections of incident field
 #ifdef PARALLEL
-		doublecomplex * restrict bottom; // value of arg at bottom of current processor
+		doublecomplex *bottom; // value of arg at bottom of current processor
 #endif
-		doublecomplex * restrict top; // propagating value of arg at planes between the dipoles
+		doublecomplex *top; // propagating value of arg at planes between the dipoles
 
-		// define all vectors using memory assigned to Xmatrix
+#ifdef OPENCL // Xmatrix is not used in OpenCL, hence a complicated logic to save memory if possible
+		bool a_arg=false;
+		bool a_mat=false;
+		bool a_top=false;
+		MAXIMIZE(memPeak,memory);
+		if (local_Ndip<=local_nRows) arg=Avecbuffer;
+		else {
+			MALLOC_VECTOR(arg,complex,local_Ndip,ALL);
+			memPeak+=local_Ndip*sizeof(doublecomplex);
+			a_arg=true;
+		}
+		if (local_Ndip*sizeof(char)<=sizeof(doublecomplex)*local_nRows) mat=(unsigned char *)xvec;
+		else {
+			MALLOC_VECTOR(mat,uchar,local_Ndip,ALL);
+			memPeak+=local_Ndip*sizeof(char);
+			a_mat=true;
+		}
+		if (boxXY<local_nRows) top=rvec;
+		else {
+			MALLOC_VECTOR(top,complex,boxXY,ALL);
+			memPeak+=boxXY*sizeof(doublecomplex);
+			a_top=true;
+		}
+#else // define all vectors using memory assigned to Xmatrix; kind of weird but should be OK
 		arg=Xmatrix;
-#ifdef PARALLEL
+#	ifdef PARALLEL
 		bottom=Xmatrix+local_Ndip;
 		top=bottom+boxXY;
-#else
+#	else
 		top=Xmatrix+local_Ndip;
-#endif
+#	endif
 		mat=(unsigned char *)(top + boxXY);
+#endif
 		// calculate function of refractive index
 		for (i=0;i<Nmat;i++) { // vals[i]=i*(ref_index[i]-1)*kd/2;
 			vals[i][IM]=(ref_index[i][RE]-1)*kd/2;
@@ -1107,16 +1147,23 @@ void CalcInitField(char *descr,double zero_resid)
 					cAdd(arg[dip],bottom[ind],arg[dip]);
 #endif
 		// xvec=pvec*Exp(arg), but arg is defined on a set of all (including void) dipoles
-		for (ind=0;ind<nlocalRows;ind+=3) {
+		for (ind=0;ind<local_nRows;ind+=3) {
 			cExp(arg[INDEX_GRID(ind)],tmpc);
 			cvMultScal_cmplx(tmpc,pvec+ind,xvec+ind);
 		}
+#ifdef OPENCL // free those buffers that were allocated
+		if (a_arg) Free_cVector(arg);
+		if (a_mat) Free_general(mat);
+		if (a_top) Free_cVector(top);
+#endif
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-		strcpy(descr,"x_0 = result of WKB\n");
-	}
+		descr="x_0 = result of WKB\n";
+	} // redundant test
 #endif //ADDA_SPARSE	
+	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
+	return descr;
 }
 
 //============================================================
@@ -1150,11 +1197,11 @@ int IterativeSolver(const enum iter method_in)
 		epsB=iter_eps*iter_eps*temp;
 		
 		// Calculate initial field			
-		CalcInitField(tmp_str,temp);
+		const char *descr=CalcInitField(temp);
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
-			sprintf(tmp_str+strlen(tmp_str),RESID_STRING"\n",0,prev_err);
+			sprintf(tmp_str,"%s"RESID_STRING"\n",descr,0,prev_err);
 			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
 			printf("%s",tmp_str);
 		}
@@ -1172,6 +1219,7 @@ int IterativeSolver(const enum iter method_in)
 		if (ind_m>=LENGTH(params)) LogError(ONE_POS,
 			"Parameters for the given iterative solver are not found in list 'params'");
 	}
+		
 	// initialize data required for checkpoints and specific variables
 	chp_exit=false;
 	complete=true;

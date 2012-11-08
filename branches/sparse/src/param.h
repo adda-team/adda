@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: inline routines for testing of input parameters
  *
- * Copyright (C) 2006,2008,2010-2011 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,8 +19,11 @@
 #ifndef __param_h
 #define __param_h
 
-#include <limits.h> // for INT_MIN and INT_MAX
+// project headers
 #include "function.h" // needed for INLINE and function attributes
+// system headers
+#include <limits.h> // for INT_MIN and INT_MAX
+#include <math.h>
 
 typedef struct {
 	int l1; // first level index
@@ -42,7 +45,7 @@ INLINE void TestPositive(const double val,const char * restrict name)
 //============================================================
 
 INLINE void TestNonNegative(const double val,const char * restrict name)
-// check if val is positive, otherwise produces error message
+// check if val is nonnegative, otherwise produces error message
 {
 	if (val<0) PrintErrorHelp("Illegal %s ("GFORMDEF"), must be nonnegative",name,val);
 }
@@ -53,6 +56,14 @@ INLINE void TestPositive_i(const int val,const char * restrict name)
 // check if val (int) is positive, otherwise produces error message
 {
 	if (val<=0) PrintErrorHelp("Illegal %s (%d), must be positive",name,val);
+}
+
+//============================================================
+
+INLINE void TestNonNegative_i(const int val,const char * restrict name)
+// check if val (int) is nonnegative, otherwise produces error message
+{
+	if (val<0) PrintErrorHelp("Illegal %s (%d), must be nonnegative",name,val);
 }
 
 //============================================================

@@ -2,7 +2,7 @@
  * Descr: the functions used to calculate the interaction term
  *        
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -86,7 +86,7 @@ static inline __m128d accImExp(double x, double c)
    Accelerated sin-cos (or imaginary exp) routine for use in the calculation of the 
    interaction tensor. Returns c*exp(ix) in the resultant vector. The code is adapted
    from the CEPHES library. The idea is that we have precalculated exp(iy) for some
-   discrete values y. Then we take the y that is nearest to our x and write
+   discrete values of y. Then we take the y that is nearest to our x and write
    exp(ix)=exp(iy+(ix-iy))=exp(iy)exp(i(x-y)). We take exp(y) from the table and 
    exp(i(x-y)) from the Taylor series. This converges very fast since |x-y| is small.    
 */

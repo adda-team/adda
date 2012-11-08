@@ -3,7 +3,7 @@
  * Descr: incorporates all parallelization related code, so most of it is directly involved in or
  *        closely related to interprocess communication
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,27 +17,33 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+#include "comm.h" // corresponding header
+// project headers
+#include "cmplx.h"
+#include "debug.h"
+#include "fft.h"
+#include "function.h"
+#include "io.h"
+#include "memory.h"
+#include "parbas.h"
+#include "timing.h"
+#include "vars.h"
+// system headers
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "vars.h"
-#include "comm.h"
-#include "const.h"
-#include "io.h"
-#include "fft.h"
-#include "memory.h"
-#include "timing.h"
-#include "function.h"
-#include "parbas.h"
-#include "cmplx.h"
 
 #ifdef ADDA_MPI
-MPI_Datatype mpi_dcomplex;
+MPI_Datatype mpi_dcomplex,mpi_double3,mpi_dcomplex3;  // combined datatypes
+int *recvcounts,*displs; // arrays of size ringid required for AllGather operations
+bool displs_init=false;  // whether arrays above are initialized
 #endif
 
 /* whether a synchronize call should be performed before parallel timing. It makes communication
  * timing more accurate, but may deteriorate overall performance by introducing unnecessary
- * delays (test showed only slight difference for granule generator) */
+ * delays (test showed only slight difference for granule generator)
+ */
 #define SYNCHRONIZE_TIMING
 
 // SEMI-GLOBAL VARIABLES
@@ -51,22 +57,21 @@ extern TIME_TYPE Timing_InitDmComm;
 
 #ifdef PARALLEL
 
-#ifndef ADDA_SPARSE
 static int Ntrans;         // number of transmissions; used in CalcPartner
+#ifndef ADDA_SPARSE
 static int * restrict gr_comm_size;  // sizes of transmissions for granule generator communications
 static int * restrict gr_comm_overl; // shows whether two sequential transmissions overlap
 static unsigned char * restrict gr_comm_ob; // buffer for overlaps
 static void * restrict gr_comm_buf;         // buffer for MPI transfers
-#endif //ADDA_SPARSE
-
-#ifdef ADDA_SPARSE
+#else //ADDA_SPARSE
 int * proc_mem_position;
 int * proc_mem_material;
 int * proc_mem_argvec; 
 int * proc_disp_position;
 int * proc_disp_material;
 int * proc_disp_argvec; 
-#endif
+#endif //ADDA_SPARSE
+
 
 // First several functions are defined only in parallel mode
 //===========================================
@@ -84,6 +89,37 @@ static void RecoverCommandLine(int *argc_p,char ***argv_p)
 	}
 	(*argc_p)-=j;
 }
+//============================================================
+
+#ifndef ADDA_SPARSE
+INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
+// index block; used in BlockTranspose
+{
+	return((z*lengthY+y)*gridX+x);
+}
+
+//============================================================
+
+INLINE int CalcPartner(const int tran)
+/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
+ * different implementations are possible; the only requirements are
+ * 1) f(tran,f(tran,ringid))=ringid
+ * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
+ * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
+ */
+{
+	int part;
+
+	if (ringid==0) part=tran;
+	else if (ringid==tran) part=0;
+	else {
+		part=2*tran-ringid;
+		if (part<=0) part+=Ntrans;
+		else if (part>Ntrans) part-=Ntrans;
+	}
+	return part;
+}
+#endif //ADDA_SPARSE
 //============================================================
 
 void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char * restrict dest)
@@ -121,37 +157,94 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 
 //============================================================
 
-#ifndef ADDA_SPARSE
-INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
-// index block; used in BlockTranspose
+#ifdef ADDA_MPI
+static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
+/* Chooses MPI datatype corresponding to 'type'. When only copying operations are required (like
+ * cast, gather, etc.) exact correspondence is possible. But when reduce operations are used
+ * ('reduce'=true), only built-in datatypes can be directly used. In this case we emulate more
+ * complex datatypes through multiplication of double, and additional variable 'mult' is returned
+ * to account for this factor.
+ */
 {
-	return((z*lengthY+y)*gridX+x);
+	MPI_Datatype res;
+
+	if (reduce) *mult=1; // default value when direct correspondence is possible
+	if (type==uchar_type) return MPI_UNSIGNED_CHAR;
+	else if (type==int_type) return MPI_INT;
+	else if (type==sizet_type) return MPI_SIZE_T;
+	else if (type==double_type) return MPI_DOUBLE;
+	else if (type==cmplx_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=2;
+		}
+		else res=mpi_dcomplex;
+	}
+	else if (type==double3_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=3;
+		}
+		else res=mpi_double3;
+	}
+	else if (type==cmplx3_type) {
+		if (reduce) {
+			res=MPI_DOUBLE;
+			*mult=6;
+		}
+		else res=mpi_dcomplex3;
+	}
+	else LogError(ONE_POS,"Variable type %d is not supported",(int)type);
+
+	return res;
 }
 
 //============================================================
 
-INLINE int CalcPartner(const int tran)
-/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
- * different implementations are possible; the only requirements are
- * 1) f(tran,f(tran,ringid))=ringid
- * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
- * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
- */
+void InitDispls(void)
+// initialize arrays recvcounts and displs once, further calls have no effect
 {
-	int part;
-
-	if (ringid==0) part=tran;
-	else if (ringid==tran) part=0;
-	else {
-		part=2*tran-ringid;
-		if (part<=0) part+=Ntrans;
-		else if (part>Ntrans) part-=Ntrans;
+	if (!displs_init) {
+		if (nvoid_Ndip>INT_MAX) LogError(ONE_POS,
+			"int overflow in MPI function for number of non-void dipoles (%zu)",nvoid_Ndip);
+		MALLOC_VECTOR(recvcounts,int,nprocs,ALL);
+		MALLOC_VECTOR(displs,int,nprocs,ALL);
+		// !!! TODO: check for overflow of int
+		recvcounts[ringid]=local_nvoid_Ndip;
+		displs[ringid]=local_nvoid_d0;
+		MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+		MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,displs,1,MPI_INT,MPI_COMM_WORLD);
+		displs_init=true;
 	}
-	return part;
 }
-#endif //ADDA_SPARSE
 
+#endif // ADDA_MPI
+
+//============================================================
+
+void AllGather(void * restrict x_from,void * restrict x_to,const var_type type,TIME_TYPE *timing)
+// Gather distributed arrays; works for all types;increments 'timing' (if not NULL) by the time used
+{
+#ifdef ADDA_MPI
+	MPI_Datatype mes_type;
+	TIME_TYPE tstart;
+
+	// redundant initialization to remove warnings
+	tstart=0;
+	if (timing!=NULL) {
+#ifdef SYNCHRONIZE_TIMING
+		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
 #endif
+		tstart=GET_TIME();
+	}
+	InitDispls(); // actually initialization is done only once
+	mes_type=MPIVarType(type,false,NULL);
+	MPI_Allgatherv(x_from,local_nvoid_Ndip,mes_type,x_to,recvcounts,displs,mes_type,MPI_COMM_WORLD);
+	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
+#endif
+}
+
+#endif // PARALLEL
 
 //============================================================
 
@@ -159,9 +252,7 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 // initialize communications in the beginning of the program
 {
 #ifdef ADDA_MPI
-	int dcmplx_blocklength[2]={1,1},ver,subver;
-	MPI_Aint dcmplx_displs[2] = {0,1};
-	MPI_Datatype dcmplx_type[2];
+	int ver,subver;
 
 	/* MPI_Init may alter argc and argv and interfere with normal parsing of command line
 	 * parameters. The way of altering is implementation depending. MPI searches for MPI parameters
@@ -177,15 +268,19 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	// initialize ringid and nprocs
 	MPI_Comm_rank(MPI_COMM_WORLD,&ringid);
 	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-#ifndef ADDA_SPARSE
 	// initialize Ntrans
-	if (IS_EVEN(nprocs)) Ntrans=nprocs-1;	
+	if (IS_EVEN(nprocs)) Ntrans=nprocs-1;
 	else Ntrans=nprocs;
-#endif	
-	// Create MPI-type for sending dcomplex-variables
-	dcmplx_type[0] = MPI_DOUBLE; dcmplx_type[1] = MPI_DOUBLE;
-	MPI_Type_struct(2,dcmplx_blocklength,dcmplx_displs,dcmplx_type,&mpi_dcomplex);
+	// define a few derived datatypes
+	/* this is intimately tied to the type definition of doublecomplex; when switching to C99
+	 * complex datatypes, this should be replaced just by MPI_DOUBLE_COMPLEX.
+	 */
+	MPI_Type_contiguous(2,MPI_DOUBLE,&mpi_dcomplex);
 	MPI_Type_commit(&mpi_dcomplex);
+	MPI_Type_contiguous(3,MPI_DOUBLE,&mpi_double3);
+	MPI_Type_commit(&mpi_double3);
+	MPI_Type_contiguous(3,mpi_dcomplex,&mpi_dcomplex3);
+	MPI_Type_commit(&mpi_dcomplex3);
 	// check MPI version at runtime
 	MPI_Get_version(&ver,&subver);
 	if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<MPI_SUBVER_REQ))) LogError(ONE_POS,
@@ -197,7 +292,8 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	nprocs=1;
 	ringid=ADDA_ROOT;
 #endif
-#ifndef ADDA_SPARSE	 
+
+#ifndef ADDA_SPARSE //CheckNprocs does not exist in sparse mode
 	/* check if weird number of processors is specified; called even in sequential mode to
 	 * initialize weird_nprocs
 	 */
@@ -218,6 +314,14 @@ void Stop(const int code)
 		MPI_Abort(MPI_COMM_WORLD,code);
 	}
 	else { // regular termination
+		// clean MPI constructs and some memory
+		MPI_Type_free(&mpi_dcomplex);
+		MPI_Type_free(&mpi_double3);
+		MPI_Type_free(&mpi_dcomplex3);
+		if (displs_init) {
+			Free_general(recvcounts);
+			Free_general(displs);
+		}
 		// wait for all processors
 		fflush(stdout);
 		Synchronize();
@@ -240,35 +344,23 @@ void Synchronize(void)
 
 //============================================================
 
-void MyBcast(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UOIP,
+void MyBcast(void * restrict data UOIP,const var_type type UOIP,const size_t n_elem UOIP,
 	TIME_TYPE *timing UOIP)
 /* casts values stored in '*data' from root processor to all other; works for all types; increments
  * 'timing' (if not NULL) by the time used
  */
 {
 #ifdef ADDA_MPI
-	MPI_Datatype mes_type;
-	TIME_TYPE tstart;
+	TIME_TYPE tstart=0; // redundant initialization to remove warnings
 
-	// redundant initialization to remove warnings
-	tstart=0;
-
+	if (n_elem>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n_elem);
 	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
 		MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
 		tstart=GET_TIME();
 	}
-	if (type==char_type) mes_type=MPI_CHAR;
-	if (type==int_type) mes_type=MPI_INT;
-	else if (type==double_type) mes_type=MPI_DOUBLE;
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-	}
-	else LogError(ONE_POS,"MyBcast: variable type %u is not supported",type);
-
-	MPI_Bcast(data,n_elem,mes_type,ADDA_ROOT,MPI_COMM_WORLD);
+	MPI_Bcast(data,n_elem,MPIVarType(type,false,NULL),ADDA_ROOT,MPI_COMM_WORLD);
 	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
@@ -276,7 +368,9 @@ void MyBcast(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UO
 //============================================================
 
 void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
-// cast current orientation angle (in orientation averaging) to all processes from root
+/* cast current orientation angle (in orientation averaging) to all processes from root.
+ * This can be done as atomic operation using some complex MPI datatype, but it is not worth it.
+ */
 {
 #ifdef ADDA_MPI
 	int buf[3];
@@ -297,15 +391,19 @@ void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
 
 //============================================================
 
-void AccumulateMax(double *data UOIP,double *max UOIP)
-// given a single double on each processor, accumulates their sum and maximum on root processor
+double AccumulateMax(double data UOIP,double *max UOIP)
+/* given a single double on each processor, accumulates their sum (returns) and maximum on root\
+ * processor
+ */
 {
 #ifdef ADDA_MPI
 	double buf;
 	// potentially can be optimized by combining into one operation
-	MPI_Reduce(data,&buf,1,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
-	MPI_Reduce(data,max,1,MPI_DOUBLE,MPI_MAX,ADDA_ROOT,MPI_COMM_WORLD);
-	if (IFROOT) *data=buf;
+	MPI_Reduce(&data,&buf,1,MPI_DOUBLE,MPI_SUM,ADDA_ROOT,MPI_COMM_WORLD);
+	MPI_Reduce(&data,max,1,MPI_DOUBLE,MPI_MAX,ADDA_ROOT,MPI_COMM_WORLD);
+	return buf;
+#else
+	return data;
 #endif
 }
 
@@ -313,11 +411,18 @@ void AccumulateMax(double *data UOIP,double *max UOIP)
 
 void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restrict buf UOIP,
 	TIME_TYPE *timing UOIP)
-// gather and add double vector on processor root; total time is saved in timing (NOT incremented)
+/* Gather and add double vector on processor root; total time is saved in timing (NOT incremented).
+ * Passing doublecomplex vector as first argument (with appropriate cast) may cause warnings using
+ * some compilers (possible problems with strict aliasing rules. While these particular warnings can
+ * be easily fixed (e.g. by defining argument as void *), the root of the problem lies in lack of
+ * native support of complex types in MPI_Reduce. Currently this support is emulated through doubles
+ * and may potentially cause problems with aliasing.
+ */
 {
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
+	if (n>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
@@ -338,39 +443,20 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
  */
 {
 #ifdef ADDA_MPI
-	size_t size;
 	MPI_Datatype mes_type;
-	void *temp;
-	TIME_TYPE tstart;
+	int mult;
+	TIME_TYPE tstart=0; // redundant initialization to remove warnings
 
-	// redundant initialization to remove warnings
-	tstart=0;
-
+	if (n_elem>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n_elem);
 	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
 		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
 #endif
 		tstart=GET_TIME();
 	}
-	if (type==int_type) {
-		mes_type=MPI_INT;
-		size=n_elem*sizeof(int);
-	}
-	else if (type==double_type) {
-		mes_type=MPI_DOUBLE;
-		size=n_elem*sizeof(double);
-	}
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type=MPI_DOUBLE;
-		n_elem*=2;
-		size=n_elem*sizeof(double);
-	}
-	else LogError(ONE_POS,"MyInnerProduct: variable type %u is not supported",type);
-
-	MALLOC_VECTOR(temp,void,size,ALL);
-	MPI_Allreduce(data,temp,n_elem,mes_type,MPI_SUM,MPI_COMM_WORLD);
-	memcpy(data,temp,size);
-	Free_general(temp);
+	mes_type=MPIVarType(type,true,&mult);
+	n_elem*=mult;
+	MPI_Allreduce(MPI_IN_PLACE,data,n_elem,mes_type,MPI_SUM,MPI_COMM_WORLD);
 	if (timing!=NULL) (*timing)+=GET_TIME()-tstart;
 #endif
 }
@@ -381,13 +467,12 @@ void ParSetup(void)
 // initialize common parameters; need to do in the beginning to enable call to MakeParticle
 {
 
-#ifndef ADDA_SPARSE //this function should still exist in sparse mode
+#ifndef ADDA_SPARSE //FFT mode initialization
 
 #ifdef PARALLEL
 	int unitZ,unitX;
 #endif
-
-	// calculate size of 3D grid	
+	// calculate size of 3D grid
 	gridX=fftFit(2*boxX,nprocs);
 	gridY=fftFit(2*boxY,1);
 	gridZ=fftFit(2*boxZ,2*nprocs);
@@ -398,10 +483,8 @@ void ParSetup(void)
 	 * except for XY values, used in granule generator
 	 */
 	gridYZ=MultOverflow(gridY,gridZ,ALL_POS,"gridYZ");
-
 #ifdef PARALLEL
 	unitZ=smallZ/nprocs; // this should always be an exact division
-	
 	local_z0=ringid*unitZ;
 	local_z1=(ringid+1)*unitZ;
 	if (local_z1 > boxZ) local_z1_coer=boxZ;
@@ -415,8 +498,7 @@ void ParSetup(void)
 	local_z1_coer=boxZ;
 	local_x0=0;
 	local_x1=gridX;
-#endif //PARALLEL
-
+#endif
 	if (local_z1_coer<=local_z0) {
 		LogWarning(EC_INFO,ALL_POS,"No real dipoles are assigned");
 		local_z1_coer=local_z0;
@@ -425,9 +507,10 @@ void ParSetup(void)
 	local_Nx=local_x1-local_x0;
 	boxXY=boxX*(size_t)boxY; // overflow check is covered by gridYZ above
 	local_Ndip=MultOverflow(boxXY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
-	printf("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
+	D("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
+	
+#else //sparse mode initialization (completely different from FFT mode)
 
-#else //sparse mode
 #ifdef PARALLEL
 	double unit_f=1.0/nprocs;
 	//making sure that the first local_f0 and last local_f1 are 0.0 and 1.0
@@ -437,39 +520,48 @@ void ParSetup(void)
 	local_f0 = 0.0;
 	local_f1 = 1.0;
 #endif //PARALLEL
+
 #endif //ADDA_SPARSE
 }
 
 //============================================================
 
-void AllGather(void * restrict x_from UOIP,void * restrict x_to UOIP,const var_type type UOIP,
-	size_t n_elem UOIP)
-// Gather distributed arrays; works for all types
+void SetupLocalD(void)
+// initialize local_nvoid_d0 and local_nvoid_d1
 {
+#ifndef ADDA_SPARSE //FFT mode
+ 
 #ifdef ADDA_MPI
-	// TODO: need to be rewritten when n_elem are unequal on each processor
-	MPI_Datatype mes_type;
-
-	if (type==char_type) mes_type = MPI_CHAR;
-	else if (type==int_type) mes_type = MPI_INT;
-	else if (type==double_type) mes_type = MPI_DOUBLE;
-	else if (type==cmplx_type) { // this is intimately tied to the type definition of doublecomplex
-		mes_type = MPI_DOUBLE;
-		n_elem *= 2;
-	}
-	else LogError(ONE_POS,"AllGather: variable type %u is not supported",type);
-
-	MPI_Allgather(x_from,n_elem,mes_type,x_to,n_elem,mes_type,MPI_COMM_WORLD);
+	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior
+	 * for the ringid=0. The latter would require special additional arrangements.
+	 */
+	MPI_Scan(&local_nvoid_Ndip,&local_nvoid_d1,1,MPI_SIZE_T,MPI_SUM,MPI_COMM_WORLD);
+	local_nvoid_d0=local_nvoid_d1-local_nvoid_Ndip;
+#else
+	local_nvoid_d0=0;
+	local_nvoid_d1=local_nvoid_Ndip;
 #endif
+
+#else // sparse mode
+
+	D("%d", (int)nvoid_Ndip);
+	local_nvoid_d0 = local_f0*nvoid_Ndip;
+	local_nvoid_d1 = local_f1*nvoid_Ndip;
+
+#endif //ADDA_SPARSE
 }
 
 //============================================================
 
-#ifndef ADDA_SPARSE //functions exclusive to FFT mode
+#ifndef ADDA_SPARSE
 
 void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 /* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
  *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
+ *
+ *  !!! TODO: Although size_t is used for bufsize,etc., MPI functions take int as arguments. This
+ *  limits the largest possible size to some extent. Moreover, the size of int is not really well
+ *  predicted. The exact implications of this is still unclear.
  */
 {
 #ifdef ADDA_MPI
@@ -490,6 +582,8 @@ void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 	step=2*local_Nx;
 	msize=local_Nx*sizeof(doublecomplex);
 	bufsize=6*local_Nz*smallY*local_Nx;
+	if (bufsize>INT_MAX)
+		LogError(ALL_POS,"int overflow in MPI function for BT buffer (%zu)",bufsize);
 
 	for(transmission=1;transmission<=Ntrans;transmission++) {
 		// if part==nprocs then skip this transmission
@@ -539,6 +633,8 @@ void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP
 	step=2*local_Nx;
 	msize=local_Nx*sizeof(doublecomplex);
 	bufsize = 2*lengthZ*lengthY*local_Nx;
+	if (bufsize>INT_MAX)
+		LogError(ALL_POS,"int overflow in MPI function for BT buffer (%zu)",bufsize);
 
 	for(transmission=1;transmission<=Ntrans;transmission++) {
 		if ((part=CalcPartner(transmission))!=nprocs) {
@@ -679,7 +775,10 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 		}
 	}
 	else if (locgZ!=0) {
-		MPI_Send(dom,unit*locgZ,MPI_UNSIGNED_CHAR,ADDA_ROOT,0,MPI_COMM_WORLD);
+		// the test here implies the test for above MPI_Recv as well
+		size_t size=(size_t)unit*(size_t)locgZ;
+		if (size>INT_MAX) LogError(ALL_POS,"int overflow in MPI function (%zu)",size);
+		MPI_Send(dom,size,MPI_UNSIGNED_CHAR,ADDA_ROOT,0,MPI_COMM_WORLD);
 	}
 	(*timing)+=GET_TIME()-tstart;
 #endif
@@ -715,6 +814,7 @@ void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timin
 #ifdef ADDA_MPI
 	TIME_TYPE tstart;
 
+	if (n>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
@@ -743,6 +843,7 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 	TIME_TYPE tstart;
 	size_t i;
 
+	if (2*boxXY>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",2*boxXY);
 #ifdef SYNCHRONIZE_TIMING
 	MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
@@ -761,6 +862,7 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 	return (ringid!=0);
 #endif
 }
+
 #endif // PARALLEL
 
 #endif //ADDA_SPARSE
@@ -770,8 +872,7 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 #ifdef ADDA_SPARSE //functions exclusive to the sparse mode
 
 void InitArraySync() {
-#ifdef ADDA_MPI
-	//TODO: actually free these somewhere
+#ifdef ADDA_MPI	
 	MALLOC_VECTOR(proc_mem_position,int,nprocs,ALL);
 	MALLOC_VECTOR(proc_mem_material,int,nprocs,ALL);
 	MALLOC_VECTOR(proc_mem_argvec,int,nprocs,ALL);
@@ -782,9 +883,9 @@ void InitArraySync() {
 	proc_mem_position[ringid] = 3*local_nvoid_Ndip;
 	proc_mem_material[ringid] = local_nvoid_Ndip;
 	proc_mem_argvec[ringid] = 3*local_nvoid_Ndip*2; //*2 due to 2 doubles in complex
-	proc_disp_position[ringid] = 3*local_d0;
-	proc_disp_material[ringid] = local_d0;
-	proc_disp_argvec[ringid] = 3*local_d0*2;	
+	proc_disp_position[ringid] = 3*local_nvoid_d0;
+	proc_disp_material[ringid] = local_nvoid_d0;
+	proc_disp_argvec[ringid] = 3*local_nvoid_d0*2;	
 	
 	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_position,1,MPI_INT,MPI_COMM_WORLD);
 	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_material,1,MPI_INT,MPI_COMM_WORLD);
@@ -831,5 +932,3 @@ void SyncArgvec()
 }
 
 #endif //ADDA_SPARSE
-
-

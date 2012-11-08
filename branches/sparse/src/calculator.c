@@ -3,7 +3,7 @@
  * Descr: all the initialization is done here before actually calculating internal fields; includes
  *        calculation of couple constants
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,21 +17,27 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+// project headers
+#include "cmplx.h"
+#include "comm.h"
+#include "crosssec.h"
+#include "debug.h"
+#include "fft.h"
+#include "interaction.h"
+#include "io.h"
+#include "memory.h"
+#include "Romberg.h"
+#include "timing.h"
+#include "vars.h"
+// system headers
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "vars.h"
-#include "cmplx.h"
-#include "Romberg.h"
-#include "const.h"
-#include "comm.h"
-#include "debug.h"
-#include "memory.h"
-#include "crosssec.h"
-#include "io.h"
-#include "fft.h"
-#include "timing.h"
-#include "interaction.h"
+
+#ifdef OPENCL
+#	include "oclcore.h"
+#endif
 
 // SEMI-GLOBAL VARIABLES
 
@@ -40,9 +46,12 @@ extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
 extern const int avg_inc_pol;
-extern const char alldir_parms[],scat_grid_parms[];
+extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Init;
+#ifdef OPENCL
+extern TIME_TYPE Timing_OCL_Init;
+#endif
 extern size_t TotalEval;
 
 // used in CalculateE.c
@@ -227,6 +236,13 @@ static void InitCC(const enum incpol which)
 			cEqual(chi_inv[i][0],chi_inv[i][2]);
 		}
 	}
+#ifdef OPENCL
+	/* this is done here, since InitCC can be run between different runs of the iterative solver
+	 * write is blocking to ensure completion before function end
+	 */
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,
+		NULL,NULL));
+#endif
 }
 
 //============================================================
@@ -265,6 +281,7 @@ static void ReadTables(void)
 {
 	int i, j, ymax, Rm2, Rm2x;
 
+	TIME_TYPE tstart=GET_TIME();
 	tab1=ReadTableFile(TAB_FNAME(1),1);
 	tab2=ReadTableFile(TAB_FNAME(2),6);
 	tab3=ReadTableFile(TAB_FNAME(3),3);
@@ -275,6 +292,7 @@ static void ReadTables(void)
 	tab8=ReadTableFile(TAB_FNAME(8),6);
 	tab9=ReadTableFile(TAB_FNAME(9),1);
 	tab10=ReadTableFile(TAB_FNAME(10),6);
+	Timing_FileIO += GET_TIME() - tstart;
 
 	if (!prognosis) {
 		// allocate memory for tab_index
@@ -399,13 +417,13 @@ static void AllocateEverything(void)
 	 * afterwards. So we do not implement these extra tests for now.
 	 */
 	// allocate all the memory
-	tmp=sizeof(doublecomplex)*(double)nlocalRows;
+	tmp=sizeof(doublecomplex)*(double)local_nRows;
 	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
-		MALLOC_VECTOR(xvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(rvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(pvec,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(Einc,complex,nlocalRows,ALL);
-		MALLOC_VECTOR(Avecbuffer,complex,nlocalRows,ALL);
+		MALLOC_VECTOR(xvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
+		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
+		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
 #ifdef ADDA_SPARSE
@@ -421,16 +439,16 @@ static void AllocateEverything(void)
 	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec3,complex,nlocalRows,ALL);
+			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
 		}
 		memory+=3*tmp;
 	}
 	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
 		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,nlocalRows,ALL);
-			MALLOC_VECTOR(vec2,complex,nlocalRows,ALL);
+			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
 		}
 		memory+=2*tmp;
 	}
@@ -537,17 +555,24 @@ static void AllocateEverything(void)
 	/* estimate of the memory (only the fastest scaling part):
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only
-	 *          for parallel mode
-	 * others - nvoid_Ndip*271(+144 for BiCGStab and QMR_CS)
+	 *          for parallel mode.
+	 *          For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
+	 * others - nvoid_Ndip*{271(CGNR,BiCG),367(CSYM,QMR2), or 415(BiCGStab,QMR)}
+	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform,
 	 *           others - according to local_nvoid_Ndip
 	 */
-	memory/=MBYTE;
-	AccumulateMax(&memory,&memmax);
+	MAXIMIZE(memPeak,memory);
+	double memSum=AccumulateMax(memPeak,&memmax);
 	if (IFROOT) {
-		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memory);
+		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memSum/MBYTE);
 #ifdef PARALLEL
-		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax);
+		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax/MBYTE);
+#endif
+#ifdef OPENCL
+		PrintBoth(logfile,
+			"OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
+			oclMemPeak/MBYTE,oclMemMaxObj/MBYTE);
 #endif
 	}
 }
@@ -650,6 +675,9 @@ static void FreeEverything(void)
 		Free_general(beta_int.val);
 		Free_general(gamma_int.val);
 	}
+#ifdef OPENCL
+	oclunload();
+#endif
 }
 
 //============================================================
@@ -659,6 +687,11 @@ void Calculator (void)
 	char fname[MAX_FNAME];
 
 	// initialize variables	
+#ifdef OPENCL
+	TIME_TYPE start_ocl_init=GET_TIME();
+	oclinit();
+	Timing_OCL_Init=GET_TIME()-start_ocl_init;
+#endif
 	if (nTheta!=0) {
 		dtheta_deg = 180.0 / ((double)(nTheta-1));
 		dtheta_rad = Deg2Rad(dtheta_deg);

@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: i/o and error handling routines
  *
- * Copyright (C) 2006,2008-2010
+ * Copyright (C) 2006,2008-2012
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,10 +19,12 @@
 #ifndef __io_h
 #define __io_h
 
+// project headers
+#include "const.h"    // for enum types
+#include "function.h" // for function attributes
+// system headers
 #include <stdio.h>    // for file
 #include <stdarg.h>   // for va_list
-#include "function.h" // for function attributes
-#include "const.h"    // for enum types
 
 /* File locking is made quite robust, however it is a complex operation that can cause unexpected
  * behavior (permanent locks) especially when program is terminated externally (e.g. because of MPI
@@ -41,7 +43,7 @@
 #endif
 
 // Common parts of function declaration and calls; they are passed to ProcessError and DebugPrintf
-#define ERR_LOC_DECL enum enwho who,const char * restrict srcfile,const int srcline
+#define ERR_LOC_DECL const enum enwho who,const char * restrict srcfile,const int srcline
 #define ERR_LOC_CALL who,srcfile,srcline
 
 // A way of calling snprintf and vsnprintf resistant to buffer overflows, but without errors
@@ -54,6 +56,8 @@
 	if (tmp>0) { shift+=tmp; if (shift>=size) shift=size-1; } \
 }
 
+char *dyn_sprintf(const char *format, ...) ATT_PRINTF(1,2) ATT_MALLOC;
+char *rea_sprintf(char *str,const char *format, ...) ATT_PRINTF(2,3) ATT_MALLOC;
 void WrapLines(char * restrict str);
 char *WrapLinesCopy(const char * restrict str);
 void LogError(ERR_LOC_DECL,const char * restrict fmt,...) ATT_PRINTF(4,5) ATT_NORETURN;
@@ -72,5 +76,10 @@ FILE *FOpenErr(const char * restrict fname,const char * restrict mode,ERR_LOC_DE
 void FCloseErr(FILE * restrict file,const char * restrict fname,ERR_LOC_DECL);
 void RemoveErr(const char * restrict fname,ERR_LOC_DECL);
 void MkDirErr(const char * restrict dirname,ERR_LOC_DECL);
+
+char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
+	char * restrict buf,const int buf_size,ERR_LOC_DECL);
+size_t SkipNLines(FILE * restrict file,const size_t n);
+size_t SkipComments(FILE * restrict file);
 
 #endif // __io_h

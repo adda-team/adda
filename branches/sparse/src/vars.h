@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -23,12 +23,14 @@
 #ifndef __vars_h
 #define __vars_h
 
+// project headers
+#include "const.h"   // for MAX_NMAT
+#include "timing.h"  // for TIME_TYPE
+#include "types.h"   // for doublecomplex, angle_set, scat_grid_angles
+// system headers
+#include <stdbool.h> // for bool
 #include <stdio.h>   // for FILE and size_t
 #include <time.h>    // for time_t
-#include <stdbool.h> // for bool
-#include "const.h"   // for MAX_NMAT
-#include "types.h"   // for doublecomplex, angle_set, scat_grid_angles
-#include "timing.h"  // for TIME_TYPE
 
 // basic variables
 
@@ -37,7 +39,7 @@ extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 
-extern double memory;
+extern double memory,memPeak;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
 extern enum beam beamtype;
@@ -52,7 +54,7 @@ extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
 // file info
-extern char directory[];
+extern const char * restrict directory;
 extern FILE * restrict logfile;
 extern int term_width;
 
@@ -73,18 +75,15 @@ extern int nTheta;
 extern double alph_deg, bet_deg, gam_deg;
 extern angle_set alpha_int;
 extern scat_grid_angles angles;
-extern doublecomplex *EgridX,*EgridY;
-extern double *Egrid_buffer;
+extern doublecomplex * restrict EgridX,* restrict EgridY;
+extern double * restrict Egrid_buffer;
 
 // checkpoint
 extern enum chpoint chp_type;
-extern time_t chp_time;
-extern char chp_dir[];
 
 extern int nprocs,ringid;
 
-extern size_t local_Ndip,local_nvoid_Ndip,nlocalRows;
-extern double nvoid_Ndip;
+extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid_d1,nvoid_Ndip;
 
 // timing
 extern time_t wt_start,last_chp_wt;
@@ -114,7 +113,6 @@ extern unsigned char * restrict material_full;
 extern doublecomplex * restrict arg_full;
 
 extern double local_f0, local_f1;
-extern size_t local_d0, local_d1;
 
 #endif //ADDA_SPARSE
 

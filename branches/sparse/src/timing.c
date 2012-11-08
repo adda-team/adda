@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: basic timing and statistics routines
  *
- * Copyright (C) 2006,2008-2011 ADDA contributors
+ * Copyright (C) 2006,2008-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
-#include <time.h>
-#include "vars.h"
+#include "const.h" // keep this first
+#include "timing.h" // corresponding header
+// project headers
 #include "comm.h"
-#include "const.h"
 #include "io.h"
-#include "timing.h"
+#include "vars.h"
+// system headers
+#include <time.h>
+#include <stdio.h>
 
 #ifdef ADDA_MPI
 #	define TO_SEC(p) (p)
@@ -41,6 +43,9 @@ size_t TotalEFieldPlane; // total number of planes for scattered field calculati
 // used in calculator.c
 TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
 size_t TotalEval;      // total number of orientation evaluations
+#ifdef OPENCL
+TIME_TYPE Timing_OCL_Init; // for initialization of OpenCL (including building program)
+#endif
 
 // used in comm.c
 TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
@@ -137,6 +142,11 @@ void FinalStatistics(void)
 		fprintf(logfile,
 			"  Initialization time: "FFORMT"\n",TO_SEC(Timing_Init));
 		if (!prognosis) {
+#ifdef OPENCL
+			fprintf(logfile,
+				"    init OpenCL          "FFORMT"\n",TO_SEC(Timing_OCL_Init));
+
+#endif
 			fprintf(logfile,
 				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
 #ifdef PARALLEL
@@ -209,11 +219,11 @@ void FinalStatistics(void)
 			fprintf(logfile,
 				"    communication:       "FFORMT"\n",TO_SEC(Timing_ScatQuanComm));
 #endif
-			fprintf (logfile,
-				"  File I/O:            "FFORMT"\n"
-				"Integration:         "FFORMT"\n",
-				TO_SEC(Timing_FileIO),TO_SEC(Timing_Integration));
 		}
+		fprintf (logfile,
+				"File I/O:            "FFORMT"\n",TO_SEC(Timing_FileIO));
+		if (!prognosis) fprintf (logfile,
+				"Integration:         "FFORMT"\n",TO_SEC(Timing_Integration));
 		// close logfile
 		FCloseErr(logfile,F_LOG,ONE_POS);
 	}

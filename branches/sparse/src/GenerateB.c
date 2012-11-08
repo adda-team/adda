@@ -14,7 +14,7 @@
  *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
  *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -28,33 +28,35 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#include "const.h" // keep this first
+// project headers
+#include "cmplx.h"
+#include "comm.h"
+#include "io.h"
+#include "param.h"
+#include "vars.h"
+// system headers
 #include <stdio.h>
 #include <string.h>
-#include "vars.h"
-#include "cmplx.h"
-#include "const.h"
-#include "comm.h"
-#include "param.h"
-#include "io.h"
-
 
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in param.c
 extern const int beam_Npars;
 extern const double beam_pars[];
-extern const char beam_fname[];
+extern const char *beam_fnameY;
+extern const char *beam_fnameX;
 extern opt_index opt_beam;
 
 
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
 // used in param.c
-char beam_descr[MAX_PARAGRAPH]; // string for log file with beam parameters
+char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 
 // LOCAL VARIABLES
-double s,s2;            // beam confinement factor and its square
-double scale_x,scale_z; // multipliers for scaling coordinates
+static double s,s2;            // beam confinement factor and its square
+static double scale_x,scale_z; // multipliers for scaling coordinates
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam()
  * and use in GenerateB() afterwards. If you need local, intermediate variables, put them into
@@ -76,7 +78,7 @@ void InitBeam(void)
 	opt=opt_beam;
 	// beam initialization
 	if (beamtype==B_PLANE) {
-		if (IFROOT) strcpy(beam_descr,"Plane wave");
+		if (IFROOT) strcpy(beam_descr,"plane wave");
 		beam_asym=false;
 	}
 	// for now, this is all non-plane beams, but another beams may be added in the future
@@ -106,11 +108,19 @@ void InitBeam(void)
 				strcat(beam_descr,"5th order approximation, by Barton)\n");
 			sprintf(beam_descr+strlen(beam_descr),
 				"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
-			if (beam_asym)
-				sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,
+			if (beam_asym) sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,
 					beam_center_0[0],beam_center_0[1],beam_center_0[2]);
 			else strcat(beam_descr,"\tCenter is in the origin");
 		}
+	}
+	else if (beamtype==B_READ) {
+		// the safest is to assume cancellation of all symmetries
+		symX=symY=symZ=symR=false;
+		if (IFROOT) {
+			if (beam_Npars==1) sprintf(beam_descr,"specified by file '%s'",beam_fnameY);
+			else sprintf(beam_descr,"specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
+		}
+		// we do not define beam_asym here, because beam_center is not defined anyway
 	}
 	/* TO ADD NEW BEAM
 	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...') should be
@@ -192,7 +202,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			cExpSelf(t2);
 			cMult(t1,t2,psi0);
 			cInvSign(psi0);
-			// ctemp=exp(ik*z*scale_z)*psi0
+			// ctemp=exp(ik*z0)*psi0, z0 - non-scaled coordinate (z/scale_z)
 			imExp(WaveNum*z/scale_z,ctemp);
 			cMultSelf(ctemp,psi0);
 			if (beamtype==B_LMINUS) {
@@ -275,6 +285,46 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
 		}
+	}
+	else if (beamtype==B_READ) {
+		char linebuf[BUF_LINE];
+		const char *fname;
+		if (which==INCPOL_Y) fname=beam_fnameY;
+		else { // which==INCPOL_X
+			if (beam_Npars==1) LogError(ONE_POS,"Only one beam file is specified, while X "
+				"polarization need to be calculated");
+			fname=beam_fnameX;
+		}
+		TIME_TYPE tstart=GET_TIME();
+		FILE *file=FOpenErr(fname,"r",ALL_POS);
+		// the same format as used for saving the beam by StoreFields(...) in make_particle.c
+		const char beam_format[]="%*f %*f %*f %*f %lf %lf %lf %lf %lf %lf";
+		const int mustbe=6;
+		int scanned;
+		// skips first line with headers and any comments, if present
+		size_t line=SkipNLines(file,1);
+		line+=SkipComments(file);
+
+		i=j=0;
+		while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+			// scan numbers in a line
+			scanned=sscanf(linebuf,beam_format,&(b[j][RE]),&(b[j][IM]),&(b[j+1][RE]),&(b[j+1][IM]),
+				&(b[j+2][RE]),&(b[j+2][IM]));
+			if (scanned!=EOF) { // if sscanf returns EOF, that is a blank line -> just skip
+				if (scanned!=mustbe) // this in most cases indicates wrong format
+					LogError(ALL_POS,"Error occurred during scanning of line %zu from beam file %s",
+						line,fname);
+				if (i==nvoid_Ndip) LogError(ALL_POS,"Beam file %s contains more data rows than "
+					"number of dipoles (%zu) in the particle",fname,nvoid_Ndip);
+				if (i>=local_nvoid_d0) j+=3;
+				i++;
+				/* all processors stop reading file as soon as possible, but the last processor
+				 * reads one more line to test (above) for extra strings in the file
+				 */
+				if(i==local_nvoid_d1 && i!=nvoid_Ndip) break;
+			}
+		}
+		Timing_FileIO+=GET_TIME()-tstart;
 	}
 	/* TO ADD NEW BEAM
 	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...')

@@ -2,7 +2,7 @@
 # Most options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2006-2011 ADDA contributors
+# Copyright (C) 2006-2012 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,8 +22,8 @@
 # some systems.
 #===================================================================================================
 
-# Heurestics to determine if MPI wrapper is available. If $(MPICC) is defined it is used as is. 
-# Otherwise we try to locate 'mpicc' wrapper through system call, and reverse to $(CC) as the last 
+# Heurestics to determine if MPI wrapper is available. If $(MPICC) is defined it is used as is.
+# Otherwise we try to locate 'mpicc' wrapper through system call, and reverse to $(CC) as the last
 # resort. This should work fine in many cases, but can be replaced by a simple assignment of MPICC.
 ifndef MPICC
   ifeq ($(shell which mpicc > /dev/null 2>&1 && echo 0),0)
@@ -48,11 +48,13 @@ ifeq ($(MPICC),$(CC))
   #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
 
   LDFLAGS += -lmpi
-# If MPI compiler wrapper is used, a few environmental variables are set
+# If MPI compiler wrapper is used, environmental variables are set to define C compiler and linker
 else
-  # These are used by MPICH, other implementations may also need something
+  # for MPICH
   export MPICH_CC = $(CC)
   export MPICH_CLINKER = $(CC)
+  # for OpenMPI
+  export OMPI_CC = $(CC)
 endif
 
 #===================================================================================================

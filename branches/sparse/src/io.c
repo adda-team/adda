@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: i/o routines
  *
- * Copyright (C) 2006-2010 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,23 +16,25 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <stdarg.h>
-#include <errno.h>
-// the following is for MkDirErr
+#include "const.h" // keep this first
+#include "io.h" // corresponding header
+// project headers
+#include "comm.h"
+#include "memory.h"
 #include "os.h"
+#include "vars.h"
+// system headers
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+// the following is for MkDirErr
 #ifdef POSIX
 #	include <sys/stat.h>
 #	include <sys/types.h>
 #endif
-
-#include "io.h"
-#include "comm.h"
-#include "const.h"
-#include "vars.h"
-#include "memory.h"
 
 // SEMI-GLOBAL VARIABLES
 
@@ -41,8 +43,90 @@ extern const char logfname[];
 
 // LOCAL VARIABLES
 
-	// error buffer for warning message generated before logfile is opened
+// error buffer for warning message generated before logfile is opened
 static char warn_buf[MAX_MESSAGE2]="";
+
+//============================================================
+/* The following two functions are based on implementations of vasprintf and asprintf from
+ * http://stackoverflow.com/a/4900830, which is also similar to the implementation from gnulib.
+ * However, explicit error checks has been added inside to avoid need to check the result, and
+ * pointer to a new string is returned instead of passing it as an argument.
+ */
+static char *dyn_vsprintf(const char *format, va_list args)
+/* same as vsprintf but allocates storage for the result
+ * simple error handling is used, so it can be called from LogError, etc.
+ */
+{
+	va_list copy;
+	va_copy(copy,args);
+	char *buffer=NULL; // default value to have deterministic behavior
+	int count=vsnprintf(NULL,0,format,args);
+	if (count>=0) {
+		buffer=(char*)malloc(((size_t)count+1)*sizeof(char));
+		if (buffer==NULL) {
+			fprintf(stderr,"ERROR: malloc failed in '%s'",__func__);
+			Stop(EXIT_FAILURE);
+		}
+		count=vsnprintf(buffer,(size_t)count+1,format,copy);
+	}
+	va_end(copy);
+	if (count<0) {
+		fprintf(stderr,"ERROR: Code %d returned by vsnprintf in '%s'",count,__func__);
+		Stop(count);
+	}
+	return buffer;
+}
+
+//============================================================
+
+char *dyn_sprintf(const char *format, ...)
+// same as sprintf, but allocates storage for the result
+{
+	va_list args;
+	va_start(args,format);
+	char *res=dyn_vsprintf(format,args);
+	va_end(args);
+	return res;
+}
+
+//============================================================
+// The following two functions are simple modifications of the preceding two, with reallocation
+char *rea_vsprintf(char *str,const char *format, va_list args)
+/* same as vsprintf but result is added to string str, which is reallocated on the way
+ * simple error handling is used, so it can be called from LogError, etc.
+ */{
+	va_list copy;
+	va_copy(copy,args);
+	char *buffer=NULL; // default value to have deterministic behavior
+	int count=vsnprintf(NULL,0,format,args);
+	if (count>=0) {
+		size_t len=strlen(str);
+		buffer=(char*)realloc(str,((size_t)count+len+1)*sizeof(char));
+		if (buffer==NULL) {
+			fprintf(stderr,"ERROR: realloc failed in '%s'",__func__);
+			Stop(EXIT_FAILURE);
+		}
+		count=vsnprintf(buffer+len,(size_t)count+1,format,copy);
+	}
+	va_end(copy);
+	if (count<0) { // simple error handling, so it can be called from LogError, etc.
+		fprintf(stderr,"ERROR: Code %d returned by vsnprintf in '%s'",count,__func__);
+		Stop(count);
+	}
+	return buffer;
+}
+
+//============================================================
+
+char *rea_sprintf(char *str,const char *format, ...)
+// same as sprintf, but result is added to string str, which is reallocated on the way
+{
+	va_list args;
+	va_start(args,format);
+	char *res=rea_vsprintf(str,format,args);
+	va_end(args);
+	return res;
+}
 
 //============================================================
 
@@ -416,4 +500,66 @@ void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 	sprintf(sbuffer,"mkdir \"%s\"",dir);
 	if (system(sbuffer)) LogWarning(EC_WARN,ERR_LOC_CALL,"Failed to make directory '%s'",dir);
 #endif
+}
+
+//===========================================================
+
+INLINE void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
+/* skips full line in the file, starting from current position;
+ * uses buffer 'buf' with size 'buf_size'
+ */
+{
+	do fgets(buf,buf_size,file); while (strchr(buf,'\n')==NULL && !feof(file));
+}
+
+//===========================================================
+
+char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
+	char * restrict buf,const int buf_size,ERR_LOC_DECL)
+/* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname
+ * and line number to be shown in error message; uses buffer 'buf' with size 'buf_size'.
+ */
+{
+	char *res;
+
+	res=fgets(buf,buf_size,file);
+	if (res!=NULL) {
+		(*line)++;
+		if (strchr(buf,'\n')==NULL && !feof(file)) LogError(ERR_LOC_CALL,
+			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",
+			fname,*line,BUF_LINE-1);
+	}
+	return res;
+}
+
+//===========================================================
+
+size_t SkipNLines(FILE * restrict file,const size_t n)
+// skips n lines from the file starting from current position in a file; returns n
+{
+	char buf[BUF_LINE];
+	size_t i;
+
+	for (i=0;i<n;i++) SkipFullLine(file,buf,BUF_LINE);
+	return n;
+}
+
+//===========================================================
+
+size_t SkipComments(FILE * restrict file)
+/* skips comments (#...), all lines, starting from current position in a file.
+ * returns number of lines skipped
+ */
+{
+	int ch;
+	size_t lines=0;
+	char buf[BUF_LINE];
+
+	while ((ch=fgetc(file))=='#') {
+		SkipFullLine(file,buf,BUF_LINE);
+		lines++;
+	}
+	if (ch!=EOF) ungetc(ch,file);
+
+	return lines;
 }

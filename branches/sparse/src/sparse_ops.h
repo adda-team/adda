@@ -1,7 +1,7 @@
 /* File: sparse_ops.h
  * Descr: low-level routines for the sparse mode ADDA
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,6 +21,7 @@
 
 #include "cmplx.h"
 #include "interaction.h"
+#include "vars.h"
    
 #ifdef ADDA_SPARSE
 

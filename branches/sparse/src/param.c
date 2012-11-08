@@ -3,7 +3,7 @@
  * Descr: initialization, parsing and handling of input parameters; also printout general
  *        information; contains file locking routines
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,24 +17,30 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <limits.h>
-#include "os.h"
-#include "io.h"
-#include "const.h"
+#include "const.h" // keep this first
+#include "param.h" // corresponding header
+// project headers
+#include "cmplx.h"
 #include "comm.h"
-#include "vars.h"
 #include "crosssec.h"
 #include "fft.h"
-#include "param.h"
-#include "cmplx.h"
 #include "function.h"
+#include "io.h"
+#include "os.h"
 #include "parbas.h"
+#include "vars.h"
+// system headers
+#include <ctype.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#ifdef OPENCL
+#	include "oclcore.h"
+#endif
 
 // definitions for file locking
 #ifdef USE_LOCK
@@ -48,7 +54,7 @@
 #		endif
 #		define FILEHANDLE int
 #	else
-#		error *** Unknown operation system. Creation of lock files is not supported. ***
+#		error "Unknown operation system. Creation of lock files is not supported."
 #	endif
 #	define LOCK_WAIT 1 // in seconds
 #	define MAX_LOCK_WAIT_CYCLES 60
@@ -70,12 +76,12 @@ extern const char avg_string[];
 extern const char beam_descr[];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
-extern const char sh_form_str[];
+extern const char *sh_form_str1,*sh_form_str2;
 #ifndef ADDA_SPARSE
 extern const int gr_N;
 extern const double gr_vf_real;
 #endif //ADDA_SPARSE
-extern const double mat_count[];
+extern const size_t mat_count[];
 
 // used in CalculateE.c
 bool store_int_field; // save full internal fields to text file
@@ -95,8 +101,8 @@ bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;
 // used in calculator.c
 bool avg_inc_pol;                 // whether to average CC over incident polarization
-char alldir_parms[MAX_FNAME];     // name of file with alldir parameters
-char scat_grid_parms[MAX_FNAME];  // name of file with parameters of scattering grid
+const char *alldir_parms;         // name of file with alldir parameters
+const char *scat_grid_parms;      // name of file with parameters of scattering grid
 // used in crosssec.c
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
@@ -108,13 +114,17 @@ double igt_eps; // relative error of integration in IGT
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
 opt_index opt_beam;                 // option index of beam option used
-char beam_fname[MAX_FNAME];         // name of file, defining the beam
+const char *beam_fnameY;            // names of files, defining the beam (for two polarizations)
+const char *beam_fnameX;
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
 double iter_eps;           // relative error to reach
 enum init_field InitField; // how to calculate initial field for the iterative solver
 bool recalc_resid;         // whether to recalculate residual at the end of iterative solver
+time_t chp_time;           // time of checkpoint (in sec)
+char const *chp_dir;       // directory name to save/load checkpoint
+
 // used in make_particle.c
 enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
@@ -124,9 +134,9 @@ double sizeX;                    // size of particle along x-axis
 double dpl;                      // number of dipoles per lambda (wavelength)
 double lambda;                   // incident wavelength (in vacuum)
 int jagged;                      // size of big dipoles, used to construct a particle
-char shape_fname[MAX_FNAME];     // name of file, defining the shape
-char save_geom_fname[MAX_FNAME]; // geometry file name to save dipole configuration
-char shapename[MAX_LINE];        // name of the used shape
+const char *shape_fname;         // name of file, defining the shape
+const char *save_geom_fname;     // geometry file name to save dipole configuration
+const char *shapename;           // name of the used shape
 bool volcor;                     // whether to use volume correction
 bool save_geom;                  // whether to save dipole configuration in .geom file
 opt_index opt_sh;                // option index of shape option used
@@ -141,10 +151,10 @@ bool store_grans;                // whether to save granule positions to file
 
 #define GFORM_RI_DIRNAME "%.4g" // format for refractive index in directory name
 
-static char run_name[MAX_WORD];   // first part of the dir name ('run' or 'test')
-static char avg_parms[MAX_FNAME]; // name of file with orientation averaging parameters
-static char *exename;             // name of executable (adda, adda.exe, adda_mpi,...)
-static int Nmat_given;            // number of refractive indices given in the command line
+static const char *run_name;    // first part of the dir name ('run' or 'test')
+static const char *avg_parms;   // name of file with orientation averaging parameters
+static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
+static int Nmat_given;          // number of refractive indices given in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define
@@ -189,19 +199,24 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
  */
 static const struct subopt_struct beam_opt[]={
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). "
-		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
-		"optional parameters (all in um). By default beam center coincides with the center of the "
-		"computational box. This option is recommended for the description of the Gaussian beam.",
+		"The beam width is obligatory and x, y, z coordinates of the center of the beam (in "
+		"laboratory reference frame) are optional (zero, by default). All arguments are in um. "
+		"This is recommended option for simulation of the Gaussian beam.",
 		UNDEF,B_BARTON5},
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). "
-		"The beam width is obligatory and x, y, z coordinates of the center of the beam are "
-		"optional parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_DAVIS3},
-	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam "
-		"width is obligatory and x, y, z coordinates of the center of the beam are optional "
-		"parameters (all in um). By default beam center coincides with the center of the "
-		"computational box.",UNDEF,B_LMINUS},
+		"The beam width is obligatory and x, y, z coordinates of the center of the beam (in "
+		"laboratory reference frame) are optional (zero, by default). All arguments are in um.",
+		UNDEF,B_DAVIS3},
+	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width "
+		"is obligatory and x, y, z coordinates of the center of the beam (in laboratory reference "
+		"frame) are optional (zero, by default). All arguments are in um.",UNDEF,B_LMINUS},
 	{"plane","","Infinite plane wave",0,B_PLANE},
+	{"read","<filenameY> [<filenameX>]","Defined by separate files, which names are given as "
+		"arguments. Normally two files are required for Y- and X-polarizations respectively, but "
+		"a single filename is sufficient if only Y-polarization is used (e.g. due to symmetry). "
+		"Incident field should be specified in a particle reference frame in the same format as "
+		"used by '-store_beam'.",
+		FNAME_ARG_1_2,B_READ},
 	/* TO ADD NEW BEAM
 	 * add a row to this list in alphabetical order. It contains:
 	 * beam name (used in command line), usage string, help string, possible number of float
@@ -212,8 +227,9 @@ static const struct subopt_struct beam_opt[]={
 	 * {...|...|...} for multiple options of an argument. Help string should contain general
 	 * description of the beam type and its arguments. Instead of number of parameters UNDEF can be
 	 * used (if beam can accept variable number of parameters, then check it explicitly in function
-	 * PARSE_FUNC(beam) below) or FNAME_ARG (if beam accepts a single string argument with file
-	 * name). Number of parameters should not be greater than MAX_N_BEAM_PARMS (defined in const.h).
+	 * PARSE_FUNC(beam) below) or one of FNAME_ARG family (see explanation in const.h) if beam
+	 * accepts a filenames as arguments. Number of parameters should not be greater than
+	 * MAX_N_BEAM_PARMS (defined in const.h).
 	 */
 	{NULL,NULL,NULL,0,0}
 };
@@ -246,12 +262,15 @@ static const struct subopt_struct shape_opt[]={
 		"scaling factor. Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
-	{"prism","<N> <h/Dx>","Homogeneous right N-sided prism with height (length along the z-axis) h "
-		"based on a regular polygon with N sides of size 'a'. The polygon is oriented so that "
-		"positive x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon "
-		"along the x-axis, equal to 2Ri and Rc+Ri for even and odd N respectively. "
-		"Rc=a/[2sin(pi/N)] and Ri=Rc*cos(pi/N) are radii of circumscribed and inscribed circles "
-		"respectively.",2,SH_PRISM},
+	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and "
+		"full diameter d (i.e. diameter of the constituent cylinder is d-h). Its axis of symmetry "
+		"coincides with the z-axis.",1,SH_PLATE},
+	{"prism","<n> <h/Dx>","Homogeneous right prism with height (length along the z-axis) h based "
+		"on a regular polygon with n sides of size 'a'. The polygon is oriented so that positive "
+		"x-axis is a middle perpendicular for one of its sides. Dx is size of the polygon along "
+		"the x-axis, equal to 2Ri and Rc+Ri for even and odd n respectively. Rc=a/[2sin(pi/n)] "
+		"and Ri=Rc*cos(pi/n) are radii of circumscribed and inscribed circles respectively.",
+		2,SH_PRISM},
 	{"rbc","<h/d> <b/d> <c/d>","Red Blood Cell, an axisymmetric (over z-axis) biconcave "
 		"homogeneous particle, which is characterized by diameter d, maximum and minimum width h, "
 		"b, and diameter at the position of the maximum width c. The surface is described by "
@@ -305,12 +324,16 @@ PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
 PARSE_FUNC(chp_type);
 PARSE_FUNC(chpoint);
+PARSE_FUNC(Cpr);
 PARSE_FUNC(Cpr_mat);
 PARSE_FUNC(Csca);
 PARSE_FUNC(dir);
 PARSE_FUNC(dpl);
 PARSE_FUNC(eps);
 PARSE_FUNC(eq_rad);
+#ifdef OPENCL
+PARSE_FUNC(gpu);
+#endif
 PARSE_FUNC(granul);
 PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
@@ -328,7 +351,6 @@ PARSE_FUNC(opt);
 PARSE_FUNC(orient);
 PARSE_FUNC(phi_integr);
 PARSE_FUNC(pol);
-PARSE_FUNC(prognose);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(recalc_resid);
@@ -363,10 +385,8 @@ static struct opt_struct options[]={
 		"diagonal in particle reference frame). '-m' then accepts 6 arguments per each domain. "
 		"Can not be used with CLDR polarizability and all SO formulations.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
-	{PAR(beam),"<type> [<args>]","Sets a type of the incident beam. Four other float arguments are "
-		"relevant for all beam types except 'plane'. These are the width and x, y, z coordinates of "
-		"the center of the beam respectively in the laboratory reference fram (all in um). The "
-		"latter three can be omitted (then beam center is located in the origin).\n"
+	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. "
+		"All parameters of predefined beam types (if present) are floats."
 		"Default: plane",UNDEF,beam_opt},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
@@ -378,7 +398,8 @@ static struct opt_struct options[]={
 		"All fields are optional, numbers are integers, 's' can be omitted, the format is not "
 		"case sensitive.\n"
 		"Examples: 12h30M, 1D10s, 3600",1,NULL},
-	{PAR(Cpr_mat),"","Calculate the total radiation force",0,NULL},
+	{PAR(Cpr),"","Calculate the total radiation force, expressed as cross section.",0,NULL},
+	{PAR(Cpr_mat),"","Deprecated command line option. Use '-Cpr' instead.",0,NULL},
 	{PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
 	{PAR(dir),"<dirname>","Sets directory for output files.\n"
 		"Default: constructed automatically",1,NULL},
@@ -393,6 +414,11 @@ static struct opt_struct options[]={
 		"be used together with '-size'. Size is defined by some shapes themselves, then this "
 		"option can be used to override the internal specification and scale the shape.\n"
 		"Default: determined by the value of '-size' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
+#ifdef OPENCL
+	{PAR(gpu),"<index>","Specifies index of GPU that should be used (starting from 0). Relevant "
+		"only for OpenCL version of ADDA, running on a system with several GPUs.\n"
+		"Default: 0",1,NULL},
+#endif
 	{PAR(granul),"<vol_frac> <diam> [<dom_number>]","Specifies that one particle domain should be "
 		"randomly filled with spherical granules with specified diameter <diam> and volume "
 		"fraction <vol_frac>. Domain number to fill is given by the last optional argument. "
@@ -413,24 +439,23 @@ static struct opt_struct options[]={
 		"Example: shape coated",UNDEF,NULL},
 	{PAR(init_field),"{auto|zero|inc|wkb}","Sets prescription to calculate initial (starting) "
 		"field for the iterative solver. 'zero' is a zero vector, 'inc' - equal to the incident "
-		"field, 'wkb' - from WKB approximation (incident field corrected for phase shift during "
-		"propagation in the particle), 'auto' - automatically choose from 'zero' and 'inc' based "
-		"on the lower residual value.\n"
+		"field, 'wkb' - from Wentzel-Kramers-Brillouin approximation, 'auto' - automatically "
+		"choose from 'zero' and 'inc' based on the lower residual value.\n"
 		"Default: auto",1,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}","Sets prescription to calculate "
-		"interaction term.\n"
-		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2. 'fcd_st' is static "
-		"(long-wavelength limit) version of FCD.\n"
-		"Parameters of 'igt' - Integration of Green's Tensor - are: <lim> - maximum distance (in "
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}",
+		"Sets prescription to calculate the interaction term.\n"
+		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
+		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
+		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in "
 		"dipole sizes), for which integration is used, (default: infinity); <prec> - minus decimal "
 		"logarithm of relative error of the integration, i.e. epsilon=10^(-<prec>) (default: same "
 		"as argument of '-eps' command line option).\n"
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
-		"'igt_so' is approximate evaluation of IGT using second order of kd approximation. 'poi' "
-		"is the simplest one - interaction between point dipoles. 'so' is under development and "
-		"incompatible with '-anisotr'.\n"
+		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
+		"'poi' - (the simplest) interaction between point dipoles.\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
@@ -482,33 +507,36 @@ static struct opt_struct options[]={
 		"cos(2*phi), sin(2*phi), cos(4*phi), and sin(4*phi) respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}","Type of polarizability "
-		"prescription.\n"
-		"'cldr' - Corrected LDR. 'cm' - Clausius-Mossotti. 'dgf' - Digitized Green's Function "
-		"(second order approximation to LAK). 'fcd' - Filtered Coupled Dipoles (requires dpl to be "
-		"larger than 2). 'igt_so' - Integration of Green's Tensor over a cube (second order "
-		"approximation). 'lak' - Lakhtakia - exact integration of Green's Tensor over a sphere.\n"
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}",
+		"Sets prescription to calculate the dipole polarizability.\n"
+		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
+		"'cm' - (the simplest) Clausius-Mossotti.\n"
+		"'dgf' - Digitized Green's Function (second order approximation to LAK).\n"
+		"'fcd' - Filtered Coupled Dipoles (requires dpl to be larger than 2).\n"
+		"'igt_so' - Integration of Green's Tensor over a cube (second order approximation).\n"
+		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average "
 		"polarizability over incident polarizations.\n"
-		"'rrc' - Radiative Reaction Correction (added to CM). 'so' is under development. 'cldr' "
-		"and 'so' are incompatible with '-anisotr'.\n"
+		"'rrc' - Radiative Reaction Correction (added to CM).\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
-	{PAR(prognose),"","Deprecated command line option. Use '-prognosis' instead.",0,NULL},
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only "
 		"estimate the required RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. "
 		"Normalization (to the unity vector) is performed automatically.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
-	{PAR(save_geom),"[<filename>]","Saves dipole configuration to a file <filename> (a path "
+	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognosis'.\n"
-		"Default: <type>.geom (<type> is a first argument to the '-shape' option; '_gran' is \n"
-		"                      added if '-granul' option is used).",UNDEF,NULL},
+		"Default: <type>.geom \n"
+		"(<type> is a first argument to the '-shape' option; '_gran' is added if '-granul' option "
+		"is used; file extension can differ depending on argument of '-sg_format' option).",
+		UNDEF,NULL},
 	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
-		"'dr' is standard formulation proposed by Draine, 'fin' is a slightly different one that "
-		"is based on a radiative correction for a finite dipole. 'igt_so' - second order in kd "
-		"approximation to Integration of Green's Tensor. 'so' is under development and "
-		"incompatible with '-anisotr'.\n"
+		"'dr' - (by Draine) standard formulation for point dipoles\n"
+		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
+		"'igt_so' - second order in kd approximation to Integration of Green's Tensor.\n"
+		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering "
 		"angles for calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -517,14 +545,18 @@ static struct opt_struct options[]={
 		"amplitude) should be saved to file. Amplitude matrix is never integrated (in combination "
 		"with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
-	{PAR(sg_format),"{text|text_ext|ddscat}","Specifies format for saving geometry files. First "
-		"two are ADDA default formats for single- and multi-domain particles respectively. 'text' "
-		"is automatically changed to 'text_ext' for multi-domain particles. DDSCAT format "
-		"corresponds to its shape option FRMFIL and output of 'calltarget' utility "
-		"(version 6.1).\n"
+	{PAR(sg_format),"{text|text_ext|ddscat6|ddscat7}","Specifies format for saving geometry files. "
+		"First two are ADDA default formats for single- and multi-domain particles respectively. "
+		"'text' is automatically changed to 'text_ext' for multi-domain particles. Two DDSCAT "
+		"formats correspond to its shape options 'FRMFIL' (version 6) and 'FROM_FILE' (version 7) "
+		"and output of 'calltarget' utility.\n"
 		"Default: text",1,NULL},
-	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' "
-		"from file. All the parameters of predefined shapes are floats except for filenames.\n"
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Modify string constants after 'PAR(sg_format)': add new argument to list {...} and
+		 * add its description to the next string.
+		 */
+	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' from "
+		"file. All parameters of predefined shapes are floats except for filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
 	{PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If "
 		"default wavelength is used, this option specifies the 'size parameter' of the "
@@ -535,7 +567,7 @@ static struct opt_struct options[]={
 		1,NULL},
 	{PAR(store_beam),"","Save incident beam to a file",0,NULL},
 	{PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
-	{PAR(store_force),"","Calculate the radiation force on each dipole. Requires '-Cpr_mat'",
+	{PAR(store_force),"","Calculate the radiation force on each dipole. Implies '-Cpr'",
 		0,NULL},
 	{PAR(store_grans),"","Save granule coordinates (placed by '-granul' option) to a file",0,NULL},
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
@@ -671,36 +703,36 @@ static void NargError(const int Narg,const char *expec)
  * information
  */
 {
-	char buf[MAX_WORD]; // not to allocate memory if needed
-
-	if (expec==NULL) {
-		if (opt.l2==UNDEF) sprintf(buf,"%d",options[opt.l1].narg);
-		else sprintf(buf,"%d",options[opt.l1].sub[opt.l2].narg);
-		expec=buf;
-	}
 	PrintErrorHelp("Illegal number of arguments (%d) to '-%s' option (%s expected)",
 		Narg,OptionName(),expec);
 }
 
 //============================================================
-// following two functions are interfaces to NargError
 
-INLINE void TestNarg(const int Narg)
-// check if Narg given to an option is correct
+INLINE void TestNarg(const int Narg,const int need)
+// check if Narg given to an option (or suboption) is correct; interface to NargError
 {
-	if (options[opt.l1].narg!=UNDEF && Narg!=options[opt.l1].narg) NargError(Narg,NULL);
-}
-
-//============================================================
-
-INLINE void TestNarg_sub(const int Narg)
-// check if Narg given to a suboption is correct
-{
-	int need;
-
-	need=options[opt.l1].sub[opt.l2].narg;
-	if (need==FNAME_ARG) need=1;
-	if (need!=UNDEF && Narg!=need) NargError(Narg,NULL);
+	if (need>=0) { // usual case
+		if (Narg!=need) {
+			char buf[MAX_WORD];
+			snprintf(buf,MAX_WORD,"%d",need);
+			NargError(Narg,buf);
+		}
+	} // otherwise special cases are considered, encoded by negative values
+	else if (need==UNDEF); // do nothing
+	else if (need==FNAME_ARG) {
+		if (Narg!=1) NargError(Narg,"1");
+	}
+	else if (need==FNAME_ARG_2) {
+		if (Narg!=2) NargError(Narg,"2");
+	}
+	else if (need==FNAME_ARG_1_2) {
+		if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
+	}
+	// rigorous test that every possible special case is taken care of
+	else PrintError("Critical error in TestNarg function (unknown argument 'need'=%d). Probably "
+		"this comes from value of 'narg' in one of static arrays, describing command line options."
+		,need);
 }
 
 //============================================================
@@ -715,19 +747,20 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 
 //============================================================
 
-INLINE void TestStrLength(const char * restrict str,const unsigned int size)
+INLINE const char *ScanStrError(const char * restrict str,const unsigned int size)
 /* check if string fits in buffer of size 'size', otherwise produces error message
- * 'opt' is command line option that checks its argument
+ * then content of str is copied into dest
  */
 {
 	if (strlen(str)>=size)
 		PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
 			"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
+	return str;
 }
 
 //============================================================
 
-INLINE void ScanfDoubleError(const char * restrict str,double *res)
+INLINE void ScanDoubleError(const char * restrict str,double *res)
 // scanf an option argument and checks for errors
 {
 	if (sscanf(str,"%lf",res)!=1) PrintErrorHelpSafe(
@@ -736,7 +769,7 @@ INLINE void ScanfDoubleError(const char * restrict str,double *res)
 
 //============================================================
 
-INLINE void ScanfIntError(const char * restrict str,int *res)
+INLINE void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
 	double tmp;
@@ -751,6 +784,32 @@ INLINE void ScanfIntError(const char * restrict str,int *res)
 	if (tmp <INT_MIN || tmp>INT_MAX) PrintErrorHelpSafe(
 		"Argument value (%s) of the option '-%s' is out of integer bounds",str,OptionName());
 	*res=(int)tmp;
+}
+
+//============================================================
+
+INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,
+	const char **fname2)
+/* If 'need' corresponds to one of FNAME_ARG, scan Narg<=2 filenames from argv into fname1 and
+ * fname2. All consistency checks are left to the caller (in particular, whether Narg corresponds
+ * to need). argv should be shifted to contain only filenames. fname2 can be NULL, but it will
+ * produce an error in combination with Narg=2)
+ *
+ * Returns whether filenames has been scanned.
+ */
+{
+	bool res=false;
+
+	if (IS_FNAME_ARG(need)) {
+		*fname1=ScanStrError(argv[0],MAX_FNAME);
+		if (Narg==2) {
+			if (fname2==NULL) // consistency check e.g. for reading shape filename
+				PrintError("Failed to store the second filename in function ScanFnamesError");
+			else *fname2=ScanStrError(argv[1],MAX_FNAME);
+		}
+		res=true;
+	}
+	return res;
 }
 
 //============================================================
@@ -821,8 +880,7 @@ static void PrintTime(char * restrict s,const time_t *time_ptr)
 
 PARSE_FUNC(alldir_inp)
 {
-	TestStrLength(argv[1],MAX_FNAME);
-	strcpy(alldir_parms,argv[1]);
+	alldir_parms=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(anisotr)
 {
@@ -837,7 +895,7 @@ PARSE_FUNC(asym)
 }
 PARSE_FUNC(beam)
 {
-	int i,j;
+	int i,j,need;
 	bool found;
 
 	Narg--;
@@ -849,8 +907,9 @@ PARSE_FUNC(beam)
 		beamtype=(enum beam)beam_opt[i].type;
 		beam_Npars=Narg;
 		opt_beam=opt;
+		need=beam_opt[i].narg;
 		// check number of arguments
-		TestNarg_sub(Narg);
+		TestNarg(Narg,need);
 		// for now, this is all non-plane beams, but another beams may be added in the future
 		if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
 			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
@@ -860,14 +919,9 @@ PARSE_FUNC(beam)
 		 * above) add a check of number of received arguments to this else-if sequence. Use
 		 * NargError function similarly as done in existing tests.
 		 */
-
-		// special cases to parse filename
-		if (beam_opt[i].narg==FNAME_ARG) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(beam_fname,argv[2]);
-		}
-		// else parse all parameters as float; their consistency is checked in InitBeam()
-		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],beam_pars+j);
+		// either parse filename or parse all parameters as float; consistency is checked later
+		if (!ScanFnamesError(Narg,need,argv+2,&beam_fnameY,&beam_fnameX))
+			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
 		break;
@@ -876,8 +930,7 @@ PARSE_FUNC(beam)
 }
 PARSE_FUNC(chp_dir)
 {
-	TestStrLength(argv[1],MAX_DIRNAME);
-	strcpy(chp_dir,argv[1]);
+	chp_dir=ScanStrError(argv[1],MAX_DIRNAME);
 }
 PARSE_FUNC(chp_load)
 {
@@ -899,9 +952,14 @@ PARSE_FUNC(chpoint)
 	}
 	else if (chp_type==CHP_NONE) chp_type=CHP_NORMAL;
 }
+PARSE_FUNC(Cpr)
+{
+	calc_mat_force = true;
+}
 PARSE_FUNC(Cpr_mat)
 {
 	calc_mat_force = true;
+	LogWarning(EC_WARN,ONE_POS,"Command line option '-Cpr_mat' is deprecated. Use '-Cpr' instead");
 }
 PARSE_FUNC(Csca)
 {
@@ -909,36 +967,42 @@ PARSE_FUNC(Csca)
 }
 PARSE_FUNC(dir)
 {
-	TestStrLength(argv[1],MAX_DIRNAME);
-	strcpy(directory,argv[1]);
+	directory=ScanStrError(argv[1],MAX_DIRNAME);
 }
 PARSE_FUNC(dpl)
 {
-	ScanfDoubleError(argv[1],&dpl);
+	ScanDoubleError(argv[1],&dpl);
 	TestPositive(dpl,"dpl");
 }
 PARSE_FUNC(eps)
 {
 	double tmp;
 
-	ScanfDoubleError(argv[1],&tmp);
+	ScanDoubleError(argv[1],&tmp);
 	TestPositive(tmp,"eps exponent");
 	iter_eps=pow(10,-tmp);
 }
 PARSE_FUNC(eq_rad)
 {
-	ScanfDoubleError(argv[1],&a_eq);
+	ScanDoubleError(argv[1],&a_eq);
 	TestPositive(a_eq,"dpl");
 }
+#ifdef OPENCL
+PARSE_FUNC(gpu)
+{
+	ScanIntError(argv[1],&gpuInd);
+	TestNonNegative_i(gpuInd,"GPU index");
+}
+#endif
 PARSE_FUNC(granul)
 {
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
-	ScanfDoubleError(argv[1],&gr_vf);
+	ScanDoubleError(argv[1],&gr_vf);
 	TestRangeII(gr_vf,"volume fraction",0,PI_OVER_SIX);
-	ScanfDoubleError(argv[2],&gr_d);
+	ScanDoubleError(argv[2],&gr_d);
 	TestPositive(gr_d,"diameter");
 	if (Narg==3) {
-		ScanfIntError(argv[3],&gr_mat);
+		ScanIntError(argv[3],&gr_mat);
 		TestPositive_i(gr_mat,"domain number");
 	}
 	else gr_mat=1;
@@ -948,12 +1012,12 @@ PARSE_FUNC(granul)
 PARSE_FUNC(grid)
 {
 	if (Narg!=1 && Narg!=3) NargError(Narg,"1 or 3");
-	ScanfIntError(argv[1],&boxX); // boxes are further multiplied by jagged if needed
+	ScanIntError(argv[1],&boxX); // boxes are further multiplied by jagged if needed
 	TestRange_i(boxX,"gridX",1,BOX_MAX);
 	if (Narg==3) {
-		ScanfIntError(argv[2],&boxY);
+		ScanIntError(argv[2],&boxY);
 		TestRange_i(boxY,"gridY",1,BOX_MAX);
-		ScanfIntError(argv[3],&boxZ);
+		ScanIntError(argv[3],&boxZ);
 		TestRange_i(boxY,"gridY",1,BOX_MAX);
 	}
 }
@@ -1031,10 +1095,10 @@ PARSE_FUNC(int)
 #endif
 		IntRelation=G_IGT;
 		if (Narg>=2) {
-			ScanfDoubleError(argv[2],&igt_lim);
+			ScanDoubleError(argv[2],&igt_lim);
 			TestNonNegative(igt_lim,"distance limit for IGT");
 			if (Narg==3) {
-				ScanfDoubleError(argv[3],&tmp);
+				ScanDoubleError(argv[3],&tmp);
 				TestPositive(tmp,"IGT precision");
 				igt_eps=pow(10,-tmp);
 			}
@@ -1064,12 +1128,12 @@ PARSE_FUNC(iter)
 }
 PARSE_FUNC(jagged)
 {
-	ScanfIntError(argv[1],&jagged);
+	ScanIntError(argv[1],&jagged);
 	TestRange_i(jagged,"jagged",1,BOX_MAX);
 }
 PARSE_FUNC(lambda)
 {
-	ScanfDoubleError(argv[1],&lambda);
+	ScanDoubleError(argv[1],&lambda);
 	TestPositive(lambda,"wavelength");
 }
 PARSE_FUNC(m)
@@ -1082,8 +1146,8 @@ PARSE_FUNC(m)
 		PrintErrorHelp("Too many materials (%d), maximum %d are supported. You may increase "
 			"parameter MAX_NMAT in const.h and recompile.",Nmat,MAX_NMAT);
 	for (i=0;i<Nmat;i++) {
-		ScanfDoubleError(argv[2*i+1],&ref_index[i][RE]);
-		ScanfDoubleError(argv[2*i+2],&ref_index[i][IM]);
+		ScanDoubleError(argv[2*i+1],&ref_index[i][RE]);
+		ScanDoubleError(argv[2*i+2],&ref_index[i][IM]);
 		if (ref_index[i][RE]==1 && ref_index[i][IM]==0)
 			PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
 				"Consider using, for instance, 1.0001 instead.",i+1);
@@ -1091,7 +1155,7 @@ PARSE_FUNC(m)
 }
 PARSE_FUNC(maxiter)
 {
-	ScanfIntError(argv[1],&maxiter);
+	ScanIntError(argv[1],&maxiter);
 	TestPositive_i(maxiter,"maximum number of iterations");
 }
 PARSE_FUNC(no_reduced_fft)
@@ -1104,7 +1168,7 @@ PARSE_FUNC(no_vol_cor)
 }
 PARSE_FUNC(ntheta)
 {
-	ScanfIntError(argv[1],&nTheta);
+	ScanIntError(argv[1],&nTheta);
 	TestPositive_i(nTheta,"number of theta intervals");
 	nTheta++;
 }
@@ -1121,22 +1185,19 @@ PARSE_FUNC(orient)
 		if (Narg>2) PrintErrorHelp(
 			"Illegal number of arguments (%d) to '-orient avg' option (0 or 1 expected)",Narg-1);
 		orient_avg=true;
-		if (Narg==2) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(avg_parms,argv[2]);
-		}
+		if (Narg==2) avg_parms=ScanStrError(argv[2],MAX_FNAME);
 	}
 	else {
 		if (Narg!=3) NargError(Narg,"3");
-		ScanfDoubleError(argv[1],&alph_deg);
-		ScanfDoubleError(argv[2],&bet_deg);
-		ScanfDoubleError(argv[3],&gam_deg);
+		ScanDoubleError(argv[1],&alph_deg);
+		ScanDoubleError(argv[2],&bet_deg);
+		ScanDoubleError(argv[3],&gam_deg);
 	}
 }
 PARSE_FUNC(phi_integr)
 {
 	phi_integr = true;
-	ScanfIntError(argv[1],&phi_int_type);
+	ScanIntError(argv[1],&phi_int_type);
 	TestRange_i(phi_int_type,"type of integration over phi",1,31);
 }
 PARSE_FUNC(pol)
@@ -1161,25 +1222,18 @@ PARSE_FUNC(pol)
 	if (Narg==2 && strcmp(argv[1],"ldr")!=0)
 		PrintErrorHelp("Second argument is allowed only for 'ldr'");
 }
-PARSE_FUNC(prognose)
-{
-	prognosis=true;
-	strcpy(run_name,"test");
-	LogWarning(EC_WARN,ONE_POS,
-		"Command line option '-prognose' is deprecated. Use '-prognosis' instead");
-}
 PARSE_FUNC(prognosis)
 {
 	prognosis=true;
-	strcpy(run_name,"test");
+	run_name="test";
 }
 PARSE_FUNC(prop)
 {
 	double tmp;
 
-	ScanfDoubleError(argv[1],prop_0);
-	ScanfDoubleError(argv[2],prop_0+1);
-	ScanfDoubleError(argv[3],prop_0+2);
+	ScanDoubleError(argv[1],prop_0);
+	ScanDoubleError(argv[2],prop_0+1);
+	ScanDoubleError(argv[3],prop_0+2);
 	tmp=DotProd(prop_0,prop_0);
 	if (tmp==0) PrintErrorHelp("Given propagation vector is null");
 	tmp=1/sqrt(tmp);
@@ -1195,10 +1249,7 @@ PARSE_FUNC(save_geom)
 {
 	if (Narg>1) NargError(Narg,"0 or 1");
 	save_geom=true;
-	if (Narg==1) {
-		TestStrLength(argv[1],MAX_FNAME);
-		strcpy(save_geom_fname,argv[1]);
-	}
+	if (Narg==1) save_geom_fname=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(scat)
 {
@@ -1210,8 +1261,7 @@ PARSE_FUNC(scat)
 }
 PARSE_FUNC(scat_grid_inp)
 {
-	TestStrLength(argv[1],MAX_FNAME);
-	strcpy(scat_grid_parms,argv[1]);
+	scat_grid_parms=ScanStrError(argv[1],MAX_FNAME);
 }
 PARSE_FUNC(scat_matr)
 {
@@ -1231,12 +1281,22 @@ PARSE_FUNC(sg_format)
 {
 	if (strcmp(argv[1],"text")==0) sg_format=SF_TEXT;
 	else if (strcmp(argv[1],"text_ext")==0) sg_format=SF_TEXT_EXT;
-	else if (strcmp(argv[1],"ddscat")==0) sg_format=SF_DDSCAT;
+	else if (strcmp(argv[1],"ddscat")==0) {
+		sg_format=SF_DDSCAT6;
+		LogWarning(EC_WARN,ONE_POS,"Argument 'ddscat' to command line option '-sg_format ...' is "
+			"deprecated. Use 'ddscat6' or 'ddscat7' instead");
+	}
+	else if (strcmp(argv[1],"ddscat6")==0) sg_format=SF_DDSCAT6;
+	else if (strcmp(argv[1],"ddscat7")==0) sg_format=SF_DDSCAT7;
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * Based on argument of command line option '-sg_format' assign value to variable 'sg_format'
+	 * (one of handles defined in const.h).
+	 */
 	else NotSupported("Geometry format",argv[1]);
 }
 PARSE_FUNC(shape)
 {
-	int i,j;
+	int i,j,need;
 	bool found;
 
 	Narg--;
@@ -1248,8 +1308,9 @@ PARSE_FUNC(shape)
 		opt.l2=i;
 		opt_sh=opt;
 		sh_Npars=Narg;
+		need=shape_opt[i].narg;
 		// check number of arguments
-		TestNarg_sub(Narg);
+		TestNarg(Narg,need);
 		if (shape==SH_COATED) {
 			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
 		}
@@ -1260,26 +1321,21 @@ PARSE_FUNC(shape)
 		 * If the shape accepts variable number of arguments (UNDEF was used in shape definition
 		 * above) add a check of number of received arguments to this else-if sequence. Use
 		 * NargError function similarly as done in existing tests.
-		*/
-
-		// special cases to parse filename
-		if (shape_opt[i].narg==FNAME_ARG) {
-			TestStrLength(argv[2],MAX_FNAME);
-			strcpy(shape_fname,argv[2]);
-		}
-		// else parse all parameters as float; their consistency is checked in InitShape()
-		else for (j=0;j<Narg;j++) ScanfDoubleError(argv[j+2],sh_pars+j);
+		 */
+		// either parse filename or parse all parameters as float; consistency is checked later
+		if (!ScanFnamesError(Narg,need,argv+2,&shape_fname,NULL))
+			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],sh_pars+j);
 		// stop search
 		found=true;
 		break;
 	}
-	if(!found) NotSupported("Shape type",argv[1]);
+	if (!found) NotSupported("Shape type",argv[1]);
 	// set shape name; takes place only if shape name was matched above
-	strcpy(shapename,argv[1]);
+	shapename=argv[1];
 }
 PARSE_FUNC(size)
 {
-	ScanfDoubleError(argv[1],&sizeX);
+	ScanDoubleError(argv[1],&sizeX);
 	TestPositive(sizeX,"particle size");
 }
 PARSE_FUNC(store_beam)
@@ -1293,6 +1349,7 @@ PARSE_FUNC(store_dip_pol)
 PARSE_FUNC(store_force)
 {
 	store_force = true;
+	calc_mat_force = true;
 }
 PARSE_FUNC(store_grans)
 {
@@ -1315,11 +1372,11 @@ PARSE_FUNC(sym)
 }
 PARSE_FUNC(test)
 {
-	strcpy(run_name,"test");
+	run_name="test";
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2011 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2012 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms "
 		"of the GNU General Public License as published by the Free Software Foundation; either "
 		"version 3 of the License, or (at your option) any later version.\n\n"
@@ -1384,8 +1441,16 @@ PARSE_FUNC(V)
 		// print version, MPI standard, type and compiler information, bit-mode
 		printf("ADDA v."ADDA_VERSION"\n");
 #ifdef OPENCL
-		// TODO. Specify a version of OpenCL used, may be check for conformance somewhere
-		printf("OpenCL (GPU-accelerated) version\n");
+#	if defined(CL_VERSION_1_2)
+#		define OCL_VERSION "1.2"
+#	elif defined(CL_VERSION_1_1)
+#		define OCL_VERSION "1.1"
+#	elif defined(CL_VERSION_1_0)
+#		define OCL_VERSION "1.0"
+#	else // this should never happen, since minimum OpenCL version is checked in oclcore.h
+#		error "OpenCL version not recognized"
+#	endif
+		printf("GPU-accelerated version conforming to OpenCL standard "OCL_VERSION"\n");
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
@@ -1407,8 +1472,8 @@ PARSE_FUNC(V)
 		bits=1;
 		while(num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
-#ifdef __MINGW64_VERSION
-		printf("      using MinGW-64 environment version"__MINGW64_VERSION_STR"\n");
+#ifdef __MINGW64_VERSION_STR
+		printf("      using MinGW-64 environment version "__MINGW64_VERSION_STR"\n");
 #elif defined(__MINGW32_VERSION)
 		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
 #endif
@@ -1433,8 +1498,14 @@ PARSE_FUNC(V)
 #ifdef NO_FORTRAN
 		"NO_FORTRAN, "
 #endif
+#ifdef NO_CPP
+		"NO_CPP, "
+#endif
 #ifdef OVERRIDE_STDC_TEST
 		"OVERRIDE_STDC_TEST, "
+#endif
+#ifdef OCL_READ_SOURCE_RUNTIME
+		"OCL_READ_SOURCE_RUNTIME, "
 #endif
 		"";
 		printf("Extra build options: ");
@@ -1568,7 +1639,7 @@ void InitVariables(void)
 	prop_0[0]=0; // by default beam propagates along z-axis
 	prop_0[1]=0;
 	prop_0[2]=1;
-	directory[0]=0;
+	directory="";
 	lambda=TWO_PI;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
@@ -1581,11 +1652,11 @@ void InitVariables(void)
 	sizeX=UNDEF;
 	a_eq=UNDEF;
 	dpl=UNDEF;
-	strcpy(run_name,"run");
+	run_name="run";
 	nTheta=UNDEF;
 	iter_eps=1E-5;
 	shape=SH_SPHERE;
-	strcpy(shapename,"sphere");
+	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
 	PolRelation=POL_LDR;
@@ -1598,10 +1669,10 @@ void InitVariables(void)
 	maxiter=UNDEF;
 	jagged=1;
 	beamtype=B_PLANE;
-	strcpy(alldir_parms,FD_ALLDIR_PARMS);
-	strcpy(avg_parms,FD_AVG_PARMS);
-	strcpy(scat_grid_parms,FD_SCAT_PARMS);
-	strcpy(chp_dir,FD_CHP_DIR);
+	alldir_parms=FD_ALLDIR_PARMS;
+	avg_parms=FD_AVG_PARMS;
+	scat_grid_parms=FD_SCAT_PARMS;
+	chp_dir=FD_CHP_DIR;
 	chp_time=UNDEF;
 	chp_type=CHP_NONE;
 	orient_avg=false;
@@ -1609,7 +1680,7 @@ void InitVariables(void)
 	volcor=true;
 	reduced_FFT=true;
 	save_geom=false;
-	save_geom_fname[0]=0;
+	save_geom_fname="";
 	yzplane=false;
 	all_dir=false;
 	scat_grid=false;
@@ -1632,11 +1703,15 @@ void InitVariables(void)
 	save_memory=false;
 	sg_format=SF_TEXT;
 	memory=0;
+	memPeak=0;
 	Ncomp=1;
 	igt_lim=UNDEF;
 	igt_eps=UNDEF;
 	InitField=IF_AUTO;
 	recalc_resid=false;
+#ifdef OPENCL
+	gpuInd=0;
+#endif
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If you use some new variables, flags, etc. you should specify their default values here. This
 	 * value will be used if new option is not specified in the command line.
@@ -1677,7 +1752,7 @@ void ParseParameters(const int argc,char **argv)
 		for (j=0;j<LENGTH(options);j++) if (strcmp(argv[i],options[j].name)==0) {
 			opt.l1=j;
 			// check consistency, if enabled for this parameter
-			TestNarg(Narg);
+			TestNarg(Narg,options[j].narg);
 			// parse this parameter
 			(*options[j].func)(Narg,argv+i);
 			// check duplicate options; it is safe since at this point argv[i] is known to be normal
@@ -1722,11 +1797,15 @@ void VariablesInterconnect(void)
 		if (store_dip_pol)
 			PrintError("'-store_dip_pol' and '-orient avg' can not be used together");
 		if (store_beam) PrintError("'-store_beam' and '-orient avg' can not be used together");
+		if (beamtype==B_READ) PrintError("'-beam read' and '-orient avg' can not be used together");
 		if (scat_grid) PrintError(
 			"'-orient avg' can not be used with calculation of scattering for a grid of angles");
 		// TODO: this limitation should be removed in the future
 		if (all_dir)
 			PrintError("Currently '-orient avg' can not be used with calculation of asym or Csca");
+		if (calc_mat_force)
+			PrintError("Currently '-orient avg' can not be used with calculation of Cpr");
+		if (store_force) PrintError("'-store_force' and '-orient avg' can not be used together");
 		if (!store_mueller && store_ampl) {
 			store_ampl=false;
 			LogWarning(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So "
@@ -1761,6 +1840,8 @@ void VariablesInterconnect(void)
 		if (orient_avg) PrintError("Currently checkpoint is incompatible with '-orient avg'");
 	}
 	if (sizeX!=UNDEF && a_eq!=UNDEF) PrintError("'-size' and '-eq_rad' can not be used together");
+	if (calc_mat_force && beamtype!=B_PLANE)
+		PrintError("Currently radiation forces can not be calculated for non-plane incident wave");
 	// scale boxes by jagged; should be completely robust to overflows
 #define JAGGED_BOX(a) if (a!=UNDEF) { \
 	if ((BOX_MAX/(size_t)jagged)<(size_t)a) \
@@ -1826,15 +1907,10 @@ void DirectoryLog(const int argc,char **argv)
 {
 	int i,Nexp;
 	FILE * restrict Nexpfile;
-	char sbuffer[MAX_LINE];
-	char *ptmp,*compname;
+	char *compname;
 	FILEHANDLE lockid;
 #ifdef PARALLEL
-	char *ptmp2;
-#endif
-#ifdef WINDOWS // for obtaining computer name
-	TCHAR cname[MAX_COMPUTERNAME_LENGTH+1];
-	DWORD cname_size=MAX_COMPUTERNAME_LENGTH+1;
+	char *ptmp,*ptmp2;
 #endif
 
 	// devise directory name (for output files)
@@ -1858,20 +1934,24 @@ void DirectoryLog(const int argc,char **argv)
 		}
 		// cast Nexp to all processors
 		MyBcast(&Nexp,int_type,1,NULL);
-		// create directory name
-		sprintf(sbuffer,"m"GFORM_RI_DIRNAME,ref_index[0][RE]);
-		ptmp=strchr(sbuffer,'.');
-		if (ptmp!=NULL) *ptmp='_';
-		sprintf(directory,"%s%03i_%s_g%i%s",run_name,Nexp,shapename,boxX,sbuffer);
+		/* create automatic directory name
+		 * It is stored in the following buffer. MAX_LINE should be enough for auto-name, however
+		 * up to MAX_DIRNAME can be obtained from '-dir ...'. So the latter size is considered in
+		 * all relevant buffers (for filenames or messages).
+		 */
+		static char sbuffer[MAX_LINE];
+		sprintf(sbuffer,"%s%03i_%s_g%i_m"GFORM_RI_DIRNAME,run_name,Nexp,shapename,boxX,
+			ref_index[0][RE]);
 #ifdef PARALLEL
 		// add PBS, SGE or SLURM job id to the directory name if available
 		if ((ptmp=getenv("PBS_JOBID"))!=NULL || (ptmp=getenv("JOB_ID"))!=NULL
 			|| (ptmp=getenv("SLURM_JOBID"))!=NULL) {
 				// job ID is truncated at first ".", probably can happen only for PBS
 				if ((ptmp2=strchr(ptmp,'.'))!=NULL) *ptmp2=0;
-				sprintf(directory+strlen(directory),"id%s",ptmp);
+				sprintf(sbuffer+strlen(sbuffer),"_id%s",ptmp);
 		}
 #endif
+		directory=sbuffer;
 	}
 	// make new directory and print info
 	if (IFROOT) {
@@ -1889,6 +1969,8 @@ void DirectoryLog(const int argc,char **argv)
 		fprintf(logfile,"Generated by ADDA v."ADDA_VERSION"\n");
 		// get computer name
 #ifdef WINDOWS
+		TCHAR cname[MAX_COMPUTERNAME_LENGTH+1];
+		DWORD cname_size=MAX_COMPUTERNAME_LENGTH+1;
 		GetComputerName(cname,&cname_size);
 		compname=cname;
 #else // POSIX and others
@@ -1925,20 +2007,22 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
+		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
-		printf("Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
+		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
-		fprintf(logfile,sh_form_str,sizeX);
+		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
 #ifndef ADDA_SPARSE		
 		if (sh_granul) fprintf(logfile,
-			"\n  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
-			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF,
+			"  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
+			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",
 			gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
-#endif //ADDA_SPARSE			
-		fprintf(logfile,"\nbox dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
+#endif //ADDA_SPARSE
+		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);			
+		
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",
@@ -1968,10 +2052,10 @@ void PrintInfo(void)
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
-		fprintf(logfile,"Total number of occupied dipoles: %.0f\n",nvoid_Ndip);
+		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		if (Nmat>1) {
-			fprintf(logfile,"  per domain: 1. %.0f\n",mat_count[0]);
-			for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %.0f\n",i+1,mat_count[i]);
+			fprintf(logfile,"  per domain: 1. %zu\n",mat_count[0]);
+			for (i=1;i<Nmat;i++) fprintf(logfile,"              %d. %zu\n",i+1,mat_count[i]);
 		}
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization

@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of functions for memory allocation and freeing; also includes overflows checks
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -19,11 +19,13 @@
 #ifndef __memory_h
 #define __memory_h
 
-#include <stddef.h>   // for size_t
-#include "function.h" // for function attributes
+// project headers
 #include "const.h"    // for enum types
-#include "io.h"       // for ERR_LOC_DECL
+#include "function.h" // for function attributes
+#include "io.h"
 #include "types.h"    // for doublecomplex
+// system headers
+#include <stddef.h>   // for size_t
 
 #define MBYTE 1048576.0
 #define FFORMM "%.1f" // format for memory footprint (estimates) in MB
@@ -43,8 +45,9 @@ unsigned short *ushortVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 char *charVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 unsigned char *ucharVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 void *voidVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
-// reallocate
+// reallocate; only two for now, more can be easily added
 double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
+char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 // free
 void Free_cVector(doublecomplex * restrict v);
 void Free_dMatrix(double ** restrict m,size_t rows);
@@ -57,6 +60,6 @@ void Free_general(void * restrict v);
 #define MALLOC_DVECTOR2(vec,nl,nh,who) vec=doubleVector2(nl,nh,who,POSIT,#vec)
 #define MALLOC_DMATRIX(vec,rows,cols,who) vec=doubleMatrix(rows,cols,who,POSIT,#vec)
 #define MALLOC_IMATRIX(vec,nrl,nrh,ncl,nch,who) vec=intMatrix(nrl,nrh,ncl,nch,who,POSIT,#vec)
-#define REALLOC_DVECTOR(vec,size,who) vec=doubleRealloc(vec,size,who,POSIT,#vec)
+#define REALLOC_VECTOR(vec,type,size,who) vec=type##Realloc(vec,size,who,POSIT,#vec)
 
 #endif //__memory_h

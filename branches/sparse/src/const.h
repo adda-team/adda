@@ -3,7 +3,7 @@
  * Descr: all the constants used by ADDA code, including enum constants, also defines some
  *        useful macros
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,7 +21,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.1b1"
+#define ADDA_VERSION "1.1"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
  * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
@@ -30,20 +30,37 @@
  * stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
 */
 # if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
-#   error Support for C99 standard (at least many of its parts) is strongly recommended for \
-          compilation. Otherwise the compilation will may fail or produce wrong results. If you \
-          still want to try, you may enable an override in the Makefile.
+#   error "Support for C99 standard (at least many of its parts) is strongly recommended for \
+compilation. Otherwise the compilation will may fail or produce wrong results. If you still want \
+to try, you may enable an override in the Makefile."
 #endif
 
+/* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family
+ * functions. For some (philosophical) reasons mingw64 developers have not implemented this behavior
+ * as the default one. So we need to set it manually.
+ * This macro should be defined before any system includes, hence inclusion of "const.h" should be
+ * the first one in all sources. This is also convenient for testing c99 standard above. However,
+ * there is no simple way then to test for MinGW64 at this point, since, e.g., __MINGW64_VERSION_STR
+ * is defined by the system header (not by the compiler itself). So the code executes always.
+ * Not the most reliable way, but seems the only way to keep the following definition in one place.
+ */
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+#	define __USE_MINGW_ANSI_STDIO 1
+#endif
 
 // basic constants
 #define UNDEF -1 // should be used only for variables, which are naturally non-negative
-	// denotes that shape accepts single filename argument; used in definitions of suboptions
-#define FNAME_ARG -2
+	// denotes that shape accepts filename arguments; used in definitions of options
+#define FNAME_ARG     -2  // single filename
+#define FNAME_ARG_2   -3  // two filenames
+#define FNAME_ARG_1_2 -4  // 1 or 2 filenames
+	// macro to test for occurrence of one of FNAME_ARG
+#define IS_FNAME_ARG(A) (((A)==FNAME_ARG) || ((A)==FNAME_ARG_2) || ((A)==FNAME_ARG_1_2))
 
 // simple functions
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
+#define MAXIMIZE(A,B) {if ((A)<(B)) (A)=(B);}
 #define IS_EVEN(A) (((A)%2) == 0)
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A
@@ -77,13 +94,6 @@
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
 
-/* determines the maximum number representable by size_t. Actually, SIZE_MAX is part of the C99
- * standard, but we leave this code to be.
- */
-#ifndef SIZE_MAX
-#define SIZE_MAX ((size_t)-1)
-#endif
-
 // sets the maximum box size; otherwise 'position' should be changed
 #define BOX_MAX USHRT_MAX
 
@@ -105,7 +115,7 @@
 #define MAX_WORD          10 // maximum length of a short word
 #define MAX_LINE         100 // maximum length of a line
 	// size of buffer for reading lines (longer lines are handled robustly)
-#define BUF_LINE      150
+#define BUF_LINE      300
 #define MAX_PARAGRAPH 600 // maximum length of a paragraph (few lines)
 
 // derived sizes
@@ -134,6 +144,7 @@
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
 #define GFORM6L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
+#define GFORM7L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
 #define GFORM10L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
 #define GFORMDEF3V "("GFORMDEF","GFORMDEF","GFORMDEF")"
 #define CFORM3V "("CFORM","CFORM","CFORM")"
@@ -151,6 +162,7 @@ enum sh { // shape types
 	SH_EGG,          // egg
 	SH_ELLIPSOID,    // general ellipsoid
 	SH_LINE,         // line with width of one dipole
+	SH_PLATE,        // plate
 	SH_PRISM,        // right rectangular prism
 	SH_RBC,          // Red Blood Cell
 	SH_READ,         // read from file
@@ -248,7 +260,8 @@ enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_LMINUS,  // 1st order description of the Gaussian beam
-	B_PLANE    // infinite plane wave
+	B_PLANE,   // infinite plane wave
+	B_READ     // read from file
 	/* TO ADD NEW BEAM
 	 * add an identifier starting with 'B_' and a descriptive comment to this list in alphabetical
 	 * order.
@@ -307,7 +320,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define F_EXPCOUNT      "ExpCount"
 #define F_EXPCOUNT_LCK  F_EXPCOUNT ".lck"
 #define F_CS            "CrossSec"
-#define F_FRP           "VisFrp"
+#define F_FRP           "RadForce"
 #define F_INTFLD        "IntField"
 #define F_DIPPOL        "DipPol"
 #define F_BEAM          "IncBeam"
@@ -337,6 +350,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define F_AMPL          "ampl"
 #define F_AMPL_SG       "ampl_scatgrid"
 	// temporary files; used in printf with ringid as argument
+#define F_FRP_TMP       "rf%d.tmp"
 #define F_BEAM_TMP      "b%d.tmp"
 #define F_INTFLD_TMP    "f%d.tmp"
 #define F_DIPPOL_TMP    "p%d.tmp"
@@ -358,9 +372,14 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 
 // shape formats; numbers should be nonnegative
 enum shform {
+	SF_DDSCAT6,  // DDSCAT 6 format (FRMFIL), produced by calltarget
+	SF_DDSCAT7,  // DDSCAT 7 format (FRMFIL), produced by calltarget
 	SF_TEXT,     // ADDA text format for one-domain particles
-	SF_TEXT_EXT, // ADDA text format for multi-domain particles
-	SF_DDSCAT    // DDSCAT 6.1 format (FRMFIL), produced by calltarget
+	SF_TEXT_EXT  // ADDA text format for multi-domain particles
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * add an identifier starting with 'SF_' and a descriptive comment to this list in alphabetical
+	 * order.
+	 */
 };
 
 #define POSIT __FILE__,__LINE__ // position of the error in source code

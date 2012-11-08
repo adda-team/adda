@@ -3,7 +3,7 @@
 # for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
-# Copyright (C) 2006-2011 ADDA contributors
+# Copyright (C) 2006-2012 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -18,8 +18,8 @@
 # <http://www.gnu.org/licenses/>.
 
 #===================================================================================================
-# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. 
-# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to 
+# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS.
+# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to
 # linker. Values specified below are added to the values given by the environment.
 # These variables can also be given in the command line to make, but it will override all values
 # specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
@@ -77,7 +77,8 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              OVERRIDE_STDC_TEST SPARSE
+              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME SPARSE
+
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -102,12 +103,24 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # This features will not work if line below is uncommented.
 #override OPTIONS += NO_FORTRAN
 
+# This should be uncommented, if compiling of C++ sources cause problems. However, currently a
+# number of ADDA (optional) features rely on C++ sources, in particular: OpenCL version.
+# This features will not work if line below is uncommented.
+#override OPTIONS += NO_CPP
+
 # ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
 # at compile time (and error is produced if the test fails). However, if you believe that your
 # compiler supports all the required features (listed in const.h), but do not define itself
 # conforming to C99, you may uncomment the following option to override the test. Do it at your own
 # risk!
 #override OPTIONS += OVERRIDE_STDC_TEST
+
+# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and
+# stores them as static string, which is compiled into the GPU code at runtime. Alternative option
+# is to read these files at runtime. This creates hassle of keeping .cl files together with the
+# executable, but may be a bit more robust/portable than the default approach. Uncomment the
+# following option to enable reading of kernel sources at runtime.
+#override OPTIONS += OCL_READ_SOURCE_RUNTIME
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation
@@ -126,10 +139,11 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # in later versions of CUDA and/or icc.
 COMPILER := gnu
 
-# Additional options for compiler. For instance, one may use -m32 to force 32 bit compilation in 64
-# bit environment. Flags specified below are appended to the ones specified in the environment or
-# command line of make (see explanation above for OPTIONS). The same value is used for all
-# programming languages to be compiled.
+# Additional options for compiler. Flags specified below are appended to the ones specified in the
+# environment or command line of make (see explanation above for OPTIONS). The same value is used 
+# for all programming languages to be compiled and for linker.
+# In particular, "-m32" may be used to force 32 bit compilation in 64 bit environment. However, it
+# also requires proper libraries (especially, external ones, like FFTW3 or MPI) to be supplied.
 override EXTRA_FLAGS +=
 
 # --FFTW3 paths--
@@ -158,8 +172,8 @@ override EXTRA_FLAGS +=
 
 # C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c calculator.c CalculateE.c GenerateB.c debug.c timing.c \
-           linalg.c iterative.c memory.c comm.c matvec.c param.c crosssec.c Romberg.c io.c \
-           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
+           linalg.c iterative.c memory.c comm.c make_particle.c matvec.c param.c crosssec.c \
+           Romberg.c io.c prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
@@ -173,14 +187,10 @@ CPPSOURCE :=
 PARENT    := ..
 FFOLDER   := fort
 CPPFOLDER := cpp
-CPATH     := $(PARENT)
-HPATH     := $(PARENT)
-FPATH     := $(PARENT)/$(FFOLDER)
-CPPPATH   := $(PARENT)/$(CPPFOLDER)
 
 LDLIBS    := -lm
 DEPFLAG   := -M
-DFFLAG    := -MF # this is required
+DFFLAG    := >
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
 
@@ -247,19 +257,28 @@ ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   CDEFS += -DNO_FORTRAN
   FSOURCE =
 endif
+ifneq ($(filter NO_CPP,$(OPTIONS)),)
+  $(info Without C++ sources)
+  CDEFS += -DNO_CPP
+  CPPSOURCE =
+endif
 ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
 endif
+
 ifneq ($(filter SPARSE,$(OPTIONS)),)
-  CSOURCE += make_particle_s.c
   CDEFS += -DADDA_SPARSE
 else
-  CSOURCE += fft.c make_particle.c
+  CSOURCE += fft.c
 endif
 ifneq ($(filter USE_SSE3,$(OPTIONS)),)
   CDEFS += -DUSE_SSE3
   CFLAGS += -msse3
+endif
+ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
+  # Here only the info is printed, the main logic is in ocl/Makefile
+  $(info Read CL sources at runtime)
 endif
 
 # Process EXTRA_FLAGS
@@ -268,6 +287,7 @@ ifneq ($(strip $(EXTRA_FLAGS)),)
   CFLAGS   += $(EXTRA_FLAGS)
   FFLAGS   += $(EXTRA_FLAGS)
   CPPFLAGS += $(EXTRA_FLAGS)
+  LDFLAGS  += $(EXTRA_FLAGS)
 endif
 
 # By default Fortran anc C++ optimization options are the same as C, but specific options can be
@@ -303,7 +323,7 @@ ifeq ($(COMPILER),gnu)
 
   CCPP    := g++
   CPPLIBS := -lstdc++
-  # for now we do not want to investigate C++ warnings (since these sources are planned to be 
+  # for now we do not want to investigate C++ warnings (since these sources are planned to be
   # replaced by more advanced routines), so we consider the following combination thorough enough
   CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
@@ -312,18 +332,20 @@ else ifeq ($(COMPILER),intel)
   COPT1 := -O2
   COPT2 := -O3
   CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1498,1572,2259
-  
+
   CF    := ifort
   FWARN += -vec-report0
   FLIBS += -lifcore
-  
-  CCPP  := icc
-  CPPWARN := -Wall -Wcheck -diag-disable 279
+
+  CCPP  := icpc
+  CPPWARN := -Wall -Wcheck -diag-disable 279,981,1418,1419
+  # it seems that icpc relies on gcc stdc++ library anyway, but icc not always adds it during linking
+  CPPLIBS += -lstdc++
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
   # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also
-  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results 
+  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results
   # to the authors.
   CC    := cc
   CF    := f77
@@ -333,8 +355,8 @@ else ifeq ($(COMPILER),compaq)
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
   # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
-  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report 
-  # results to the authors. 
+  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report
+  # results to the authors.
   #
   # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
   # machine. However, it will not work in some configurations.
@@ -344,12 +366,12 @@ else ifeq ($(COMPILER),ibm)
   CSTD  := -qlanglvl=extc99
   COPT1 := -O2
   COPT2 := -O3 -qcache=auto
-  # DFREDIRECT = 2>nul -qipa=level=2 -qhot
+  DFFLAG := -MF # somehow it may have problems with standard redirect (>)
   DEPFLAG := -qmakedep=gcc -qsyntaxonly
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
-  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you 
-  # happen to use this compiler, please report results to the authors. 
+  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you
+  # happen to use this compiler, please report results to the authors.
   CC    := cc
   CF    := f90
   CSTD  := -AC99
@@ -364,7 +386,7 @@ else
 endif
 $(info Compiler set '$(COMPILER)')
 
-# if 'release' turn off warningns
+# if 'release' turn off warnings
 ifeq ($(DBGLVL),0)
 # the following two options (-w) are assumed universal across all compilers
   CWARN   := -w
@@ -417,12 +439,12 @@ clean: cleanseq cleanmpi cleanocl
 # compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
 
 cleanocl:
 	@echo "Removing OpenCL compiled files"
-	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr
+	cd $(OCL) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr

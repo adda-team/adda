@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: functions for printing debugging information when compiling with option -DDEBUGFULL
  *
- * Copyright (C) 2006-2008,2010 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,15 +16,17 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include "types.h"
-#include "debug.h"
-#include "const.h"
+#include "const.h" // keep this first
+#include "debug.h" // corresponding header
+// project headers
 #include "comm.h"
 #include "io.h"
+#include "types.h"
 #include "vars.h"
+// system headers
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef DEBUGFULL
 //============================================================

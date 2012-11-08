@@ -1,9 +1,9 @@
-/* File: make_particlce.c
+/* File: make_particle.c
  * $Date::                            $
  * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
  *        file; includes granule generator
  *
- * Copyright (C) 2006-2011 ADDA contributors
+ * Copyright (C) 2006-2012 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,24 +17,28 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <time.h> // for time and clock (used for random seed)
-#include <limits.h>
-#include <stdbool.h>
-#include <float.h> // for DBL_MAX
-#include "vars.h"
-#include "const.h"
+#include "const.h" // keep this first
+// project headers
 #include "cmplx.h"
-#include "types.h"
 #include "comm.h"
 #include "debug.h"
-#include "memory.h"
 #include "io.h"
+#include "memory.h"
 #include "param.h"
 #include "timing.h"
+#include "types.h"
+#include "vars.h"
+// 3rd party headers
 #include "mt19937ar.h"
+// system headers
+#include <float.h> // for DBL_MAX
+#include <limits.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h> // for time and clock (used for random seed)
 
 // SEMI-GLOBAL VARIABLES
 
@@ -46,9 +50,9 @@ extern const enum sym sym_type;
 extern const double lambda;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
-extern const char shape_fname[];
-extern char shapename[];
-extern char save_geom_fname[];
+extern const char *shape_fname;
+extern const char *shapename;
+extern const char *save_geom_fname;
 extern const bool volcor,save_geom;
 extern opt_index opt_sh;
 extern const double gr_vf;
@@ -65,21 +69,21 @@ double gridspace; // interdipole distance (dipole size)
 
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
-char sh_form_str[MAX_PARAGRAPH]; // string for log file with shape parameters
+const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
 size_t gr_N;                     // number of granules
 double gr_vf_real;               // actual granules volume fraction
-double mat_count[MAX_NMAT+1];    // number of dipoles in each domain
+size_t mat_count[MAX_NMAT+1];    // number of dipoles in each domain
 
 // LOCAL VARIABLES
 
 static const char geom_format[]="%d %d %d\n";              // format of the geom file
 static const char geom_format_ext[]="%d %d %d %d\n";       // extended format of the geom file
 /* DDSCAT shape formats; several format are used, since first variable is unpredictable and last two
- * are not actually used (only to produce warnings
+ * are not actually used (only to produce warnings)
  */
-static const char ddscat_format_read1[]="%*f %d %d %d %d %d %d\n";
-static const char ddscat_format_read2[]="%*f %d %d %d %d";
-static const char ddscat_format_write[]="%zd %d %d %d %d %d %d\n";
+static const char ddscat_format_read1[]="%*s %d %d %d %d %d %d\n";
+static const char ddscat_format_read2[]="%*s %d %d %d %d";
+static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
 static double Ndip;             // total number of dipoles (in a circumscribing cube)
@@ -87,8 +91,10 @@ static double dpl_def;          // default value of dpl
 static int minX,minY,minZ;      // minimum values of dipole positions in dipole file
 static FILE * restrict dipfile; // handle of dipole file
 static enum shform read_format; // format of dipole file, which is read
-static char linebuf[BUF_LINE];  // buffer for reading lines from dipole file
 static double cX,cY,cZ;         // center for DipoleCoord, it is sometimes used in PlaceGranules
+
+#ifndef ADDA_SPARSE
+
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps; // for egg
@@ -96,13 +102,13 @@ static double chebeps,r0_2; // for Chebyshev
 static int chebn; // for Chebyshev
 static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
-static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (in units of Dx)
+static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
-static double contCurRo, contCurZ, contRoSqMin;
+static double contCurRo,contCurZ;
 static int contNseg;
 struct segment {
 	bool single;           // whether segment consists of a single joint
@@ -129,6 +135,9 @@ struct segment * restrict contSeg;
 static unsigned char * restrict material_tmp;
 static double * restrict DipoleCoord_tmp;
 static unsigned short * restrict position_tmp;
+#endif //ADDA_SPARSE
+
+#ifndef ADDA_SPARSE //much of the functionality here is disabled in sparse mode
 
 // EXTERNAL FUNCTIONS
 
@@ -138,15 +147,30 @@ void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,dou
 //============================================================
 
 static void SaveGeometry(void)
-// saves dipole configuration to .geom file
+// saves dipole configuration to a file
 {
 	char fname[MAX_FNAME];
 	FILE * restrict geom;
 	size_t i,j;
 	int mat;
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * Add code to this function to save geometry in new format. It should consist of:
+	 * 1) definition of default filename (by supplying an appropriate extension);
+	 * 2) writing header to the beginning of the file;
+	 * 3) writing a single line for each dipole (this is done in parallel).
+	 * Each part is done in corresponding if-else-if sequence
+	 */
 
-	// create save_geom_fname if not specified
-	if (save_geom_fname[0]==0) sprintf(save_geom_fname,"%s.geom",shapename);
+	TIME_TYPE tstart=GET_TIME();
+	// create save_geom_fname if not specified, by adding extension to the shapename
+	if (save_geom_fname[0]==0) {
+		const char *ext;
+		// choose extension
+		if (sg_format==SF_TEXT || sg_format==SF_TEXT_EXT) ext="geom";
+		else if (sg_format==SF_DDSCAT6 || sg_format==SF_DDSCAT7) ext="dat";
+		else LogError(ONE_POS,"Unknown format for saved geometry file (%d)",(int)sg_format);
+		save_geom_fname=dyn_sprintf("%s.%s",shapename,ext);
+	}
 	// automatically change format if needed
 	if (sg_format==SF_TEXT && Nmat>1) sg_format=SF_TEXT_EXT;
 	// choose filename
@@ -166,13 +190,18 @@ static void SaveGeometry(void)
 			             "#box size: %dx%dx%d\n",shapename,boxX,boxY,boxZ);
 			if (sg_format==SF_TEXT_EXT) fprintf(geom,"Nmat=%d\n",Nmat);
 		}
-		else if (sg_format==SF_DDSCAT)
+		else if (sg_format==SF_DDSCAT6 || sg_format==SF_DDSCAT7) {
 			fprintf(geom,"shape: '%s'; box size: %dx%dx%d; generated by ADDA v."ADDA_VERSION"\n"
-			             "%0.f = NAT\n"
+			             "%zu = NAT\n"
 			             "1 0 0 = A_1 vector\n"
 			             "0 1 0 = A_2 vector\n"
-			             "1 1 1 = lattice spacings (d_x,d_y,d_z)/d\n"
-			             "JA  IX  IY  IZ ICOMP(x,y,z)\n",shapename,boxX,boxY,boxZ,nvoid_Ndip);
+			             "1 1 1 = lattice spacings (d_x,d_y,d_z)/d\n",
+			             shapename,boxX,boxY,boxZ,nvoid_Ndip);
+			if (sg_format==SF_DDSCAT7) fprintf(geom,
+				"%g %g %g = coordinates (x0,y0,z0)/d of the zero dipole (IX=IY=IZ=0)\n",
+				(1-boxX)/2.0,(1-boxY)/2.0,(1-boxZ)/2.0);
+			fprintf(geom,"JA  IX  IY  IZ ICOMP(x,y,z)\n");
+		}
 #ifdef PARALLEL
 	} // end of if
 #endif
@@ -185,10 +214,11 @@ static void SaveGeometry(void)
 		j=3*i;
 		fprintf(geom,geom_format_ext,position[j],position[j+1],position[j+2],material[i]+1);
 	}
-	else if (sg_format==SF_DDSCAT) for(i=0;i<local_nvoid_Ndip;i++) {
+	else if (sg_format==SF_DDSCAT6 || sg_format==SF_DDSCAT7) for(i=0;i<local_nvoid_Ndip;i++) {
 		j=3*i;
 		mat=material[i]+1;
-		fprintf(geom,ddscat_format_write,i+1,position[j],position[j+1],position[j+2],mat,mat,mat);
+		fprintf(geom,ddscat_format_write,i+local_nvoid_d0+1,position[j],position[j+1],position[j+2],
+			mat,mat,mat);
 	}
 	FCloseErr(geom,fname,ALL_POS);
 #ifdef PARALLEL
@@ -198,212 +228,10 @@ static void SaveGeometry(void)
 	if (IFROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
 #endif
 	if (IFROOT) printf("Geometry saved to file\n");
+	Timing_FileIO+=GET_TIME()-tstart;
 }
 
 //===========================================================
-
-INLINE void SkipFullLine(FILE * restrict file)
-// skips full line in the file, starting from current position; it uses predefined buffer 'linebuf'
-{
-	do fgets(linebuf,BUF_LINE,file); while (strchr(linebuf,'\n')==NULL && !feof(file));
-}
-
-//===========================================================
-
-INLINE char *FgetsError(FILE * restrict file,const char * restrict fname,size_t *line,ERR_LOC_DECL)
-/* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname
- * and line number to be shown in error message; result is stored in predefined buffer 'linebuf'.
- */
-{
-	char *res;
-
-	res=fgets(linebuf,BUF_LINE,file);
-	if (res!=NULL) {
-		(*line)++;
-		if (strchr(linebuf,'\n')==NULL && !feof(file)) LogError(ERR_LOC_CALL,
-			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",
-			fname,*line,BUF_LINE-1);
-	}
-	return res;
-}
-
-//===========================================================
-
-INLINE void SkipNLines(FILE * restrict file,size_t n)
-// skips n lines from the file starting from current position in a file
-{
-	while (n>0) {
-		SkipFullLine(file);
-		n--;
-	}
-}
-
-//===========================================================
-
-static size_t SkipComments(FILE * restrict file)
-/* skips comments (#...), all lines, starting from current position in a file.
- * returns number of lines skipped
- */
-{
-	int ch;
-	size_t lines=0;
-
-	while ((ch=fgetc(file))=='#') {
-		SkipFullLine(file);
-		lines++;
-	}
-	if (ch!=EOF) ungetc(ch,file);
-
-	return lines;
-}
-
-//===========================================================
-#define DDSCAT_HL 6 // number of header lines in DDSCAT format
-
-static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm)
-/* read dipole file first to determine box sizes and Nmat; input is not checked for very large
- * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
- * closed in ReadDipFile.
- */
-{
-	int x,y,z,mat,scanned,mustbe;
-	size_t line,skiplines;
-	bool anis_warned;
-	int t2,t3; // dumb variables
-	int maxX,maxY,maxZ,maxN;
-	char formtext[MAX_LINE];
-
-	dipfile=FOpenErr(fname,"r",ALL_POS);
-	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
-	 * therefore we first skip all comments
-	 */
-	line=SkipComments(dipfile);
-	if (line<=DDSCAT_HL
-		&& (SkipNLines(dipfile,DDSCAT_HL-line),FgetsError(dipfile,fname,&line,ONE_POS)!=NULL)
-		&& sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
-
-		read_format=SF_DDSCAT;
-		strcpy(formtext,"DDSCAT format (FRMFIL)");
-		mustbe=6;
-		line=DDSCAT_HL;
-		fseek(dipfile,0,SEEK_SET);
-		SkipNLines(dipfile,line);
-	}
-	else { // test for ADDA text formats
-		fseek(dipfile,0,SEEK_SET);
-		line=SkipComments(dipfile);
-		/* scanf and analyze Nmat; if there is blank line between comments and Nmat, it fails later;
-		 * the value of Nmat obtained here is not actually relevant, the main factor is maximum
-		 * domain number among all dipoles.
-		 */
-		scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
-		if (scanned==EOF) LogError(ONE_POS,"No dipole positions are found in %s",fname);
-		else if (scanned==0) { // no "Nmat=..."
-			read_format=SF_TEXT;
-			strcpy(formtext,"ADDA text format (single domain)");
-			*Nm=1;
-			mustbe=3;
-		}
-		else { // "Nmat=..." present
-			read_format=SF_TEXT_EXT;
-			strcpy(formtext,"ADDA text format (multi-domain)");
-			mustbe=4;
-			line++;
-		}
-	}
-	D("%s was detected",formtext);
-	// scan main part of the file
-	skiplines=line;
-	maxX=maxY=maxZ=INT_MIN;
-	minX=minY=minZ=INT_MAX;
-	maxN=1;
-	anis_warned=false;
-	// reading is performed in lines
-	while(FgetsError(dipfile,fname,&line,ONE_POS)!=NULL) {
-		// scan numbers in a line
-		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x,&y,&z);
-		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
-		// for ddscat format, only first material is used, other two are ignored
-		else { // read_format==SF_DDSCAT
-			scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
-			if (!anis_warned && (t2!=mat || t3!=mat)) {
-				LogWarning(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
-					"line %zu). ADDA ignores this anisotropy, using only the identifier of "
-					"x-component of refractive index as domain number",fname,line);
-				anis_warned=true;
-			}
-		}
-		// if sscanf returns EOF, that is a blank line -> just skip
-		if (scanned!=EOF) {
-			if (scanned!=mustbe) // this in most cases indicates wrong format
-				LogError(ONE_POS,"%s was detected, but error occurred during scanning of line %zu "
-					"from dipole file %s",formtext,line,fname);
-			if (read_format!=SF_TEXT) {
-				if (mat<=0) LogError(ONE_POS,"%s was detected, but nonpositive material number "
-					"(%d) encountered during scanning of line %zu from dipole file %s",
-					formtext,mat,line,fname);
-				else if (mat>maxN) maxN=mat;
-			}
-			// update maxima and minima
-			if (x>maxX) maxX=x;
-			if (x<minX) minX=x;
-			if (y>maxY) maxY=y;
-			if (y<minY) minY=y;
-			if (z>maxZ) maxZ=z;
-			if (z<minZ) minZ=z;
-		}
-	}
-	if (read_format==SF_TEXT_EXT) {
-		if (*Nm!=maxN) LogWarning(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the "
-				"maximum domain number (%d) among all specified dipoles; hence the former is "
-				"ignored",*Nm,fname,maxN);
-	}
-	*Nm=maxN;
-	// set grid (box) sizes
-	*bX=jagged*(maxX-minX+1);
-	*bY=jagged*(maxY-minY+1);
-	*bZ=jagged*(maxZ-minZ+1);
-	// not optimal way, but works more robustly when non-system EOL is used in data file
-	fseek(dipfile,0,SEEK_SET);
-	SkipNLines(dipfile,skiplines);
-}
-#undef DDSCAT_HL
-//===========================================================
-
-static void ReadDipFile(const char * restrict fname)
-/* read dipole file; no consistency checks are made since they are made in InitDipFile.
- * the file is opened in InitDipFile; this function only closes the file.
- */
-{
-	int x,y,z,x0,y0,z0,mat,scanned;
-	int index;
-	size_t boxX_l;
-
-	// to remove possible overflows
-	boxX_l=(size_t)boxX;
-
-	mat=1;
-	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
-		// scan numbers in a line
-		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
-		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
-		else scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat); // read_format==SF_DDSCAT
-		// if sscanf returns EOF, that is a blank line -> just skip
-		if (scanned!=EOF) {
-			// shift dipole position to be nonnegative
-			x0-=minX;
-			y0-=minY;
-			z0-=minZ;
-			// initialize box jagged*jagged*jagged instead of one dipole
-			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
-				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
-					index=(z-local_z0)*boxXY+y*boxX_l+x;
-					material_tmp[index]=(unsigned char)(mat-1);
-			}
-		}
-	}
-	FCloseErr(dipfile,fname,ALL_POS);
-}
 
 //==========================================================
 #define ALLOCATE_SEGMENTS(N) (struct segment *)voidVector((N)*sizeof(struct segment),ALL_POS,\
@@ -477,9 +305,11 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	double ro,z,romin,romax,zmin,zmax,mult,zmid;
 	FILE* file;
 	bool increasing;
+	char linebuf[BUF_LINE];
 
 	D("InitContour has started");
 	// Read contour from file
+	TIME_TYPE tstart=GET_TIME();
 	file=FOpenErr(fname,"r",ALL_POS);
 	line=SkipComments(file);
 	size=CHUNK_SIZE;
@@ -490,7 +320,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	romin=zmin=DBL_MAX;
 	romax=zmax=-DBL_MAX;
 	// reading is performed in lines
-	while(FgetsError(file,fname,&line,ONE_POS)!=NULL) {
+	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		scanned=sscanf(linebuf,"%lf %lf",&ro,&z);
 		// if sscanf returns EOF, that is a blank line -> just skip
@@ -509,8 +339,8 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 			// add allocated memory to buf, if needed
 			if (nr >= size) {
 				size+=CHUNK_SIZE;
-				REALLOC_DVECTOR(bufRo,size,ALL);
-				REALLOC_DVECTOR(bufZ,size,ALL);
+				REALLOC_VECTOR(bufRo,double,size,ALL);
+				REALLOC_VECTOR(bufZ,double,size,ALL);
 			}
 			bufRo[nr]=ro;
 			bufZ[nr]=z;
@@ -518,6 +348,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 		}
 	}
 	FCloseErr(file,fname,ALL_POS);
+	Timing_FileIO+=GET_TIME()-tstart;
 	// Check number of points read
 	if (nr<3) LogError(ONE_POS,"Contour from file %s contains less than three points",fname);
 
@@ -552,7 +383,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	zmid=(zmax+zmin)/2;
 	*ratio=(zmax-zmin)*mult;
 	*shSize=2*romax;
-	contRoSqMin=romin*romin*mult*mult;
+	ri_2=romin*romin*mult*mult;
 	for (i=0;i<=nr;i++) {
 		contRo[i]*=mult;
 		contZ[i]=(contZ[i]-zmid)*mult;
@@ -601,7 +432,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	Free_general(contZ);
 	D("InitContour has finished");
 	D("Nseg=%d",contNseg);
-	D("minroSq="GFORM_DEBUG,contRoSqMin);
+	D("minroSq="GFORM_DEBUG,ri_2);
 }
 #undef CHUNK_SIZE
 #undef ALLOCATE_SEGMENTS
@@ -668,7 +499,7 @@ INLINE int CheckCell(const double * restrict gr,const double * restrict vgran,
 }
 //==========================================================
 
-static double PlaceGranules(void)
+static size_t PlaceGranules(void)
 /* Randomly places granules inside the specified domain;
  * Mersenne Twister is used for generating random numbers
  *
@@ -693,7 +524,7 @@ static double PlaceGranules(void)
 {
 	int i,j,k,zerofit,last;
 	size_t n,count,count_gr,false_count,ui;
-	double nd;                           // number of dipoles occupied by granules
+	size_t nd;                           // number of dipoles occupied by granules
 	int index,index1,index2;             // indices for dipole grid
 	int dom_index,dom_index1,dom_index2; // indices for auxiliary grid
 	int gX,gY,gZ;                        // auxiliary grid dimensions
@@ -756,7 +587,7 @@ static double PlaceGranules(void)
 	R2=R*R;
 	Di2=4*R2;
 	// inner box
-	D("gr_N=%d, Di="GFORMDEF,gr_N,Di);
+	D("gr_N=%zu, Di="GFORMDEF,gr_N,Di);
 	x0=R-0.5;
 	x1=boxX-R-0.5;
 	y0=R-0.5;
@@ -864,7 +695,7 @@ static double PlaceGranules(void)
 	n=count=count_gr=false_count=0;
 	nd=0;
 	// crude estimate of the probability to place a small granule into domain
-	if (sm_gr) overhead=Ndip/mat_count[gr_mat];
+	if (sm_gr) overhead=((double)Ndip)/mat_count[gr_mat];
 	else overhead=1;
 	// main cycle
 	D("Starting main iteration cycle");
@@ -1116,7 +947,7 @@ static double PlaceGranules(void)
 		ExchangeFits(vfit,cur_Ngr,&Timing_GranulComm);
 		// fit dipole grid with successive granules
 		Nfit=n;
-		for (ig=0;ig<cur_Ngr;ig++) {
+		for (ig=0;ig<cur_Ngr && n<gr_N;ig++) {
 			if (vfit[ig]) { // a successful granule
 				n++;
 				// fill dipoles in the sphere with granule material
@@ -1141,10 +972,9 @@ static double PlaceGranules(void)
 						}
 					}
 				}
-				// if the allocation was too optimistic
-				if (n>=gr_N) break;
 			}
 		}
+		cur_Ngr=ig; // this is non-trivial only if n=gr_N occurred above
 		// save correct granule positions to file
 		if (store_grans && IFROOT) for (ig=0;ig<cur_Ngr;ig++) if (vfit[ig])
 			fprintf(file,GFORM3L"\n",gridspace*(vgran[3*ig]-cX),gridspace*(vgran[3*ig+1]-cY),
@@ -1162,10 +992,10 @@ static double PlaceGranules(void)
 			zerofit++;
 			// check if taking too long
 			if (zerofit>MAX_ZERO_FITS) {
-				MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
+				MyInnerProduct(&nd,sizet_type,1,&Timing_GranulComm);
 				LogError(ONE_POS,"The granule generator failed to reach required volume fraction ("
 					GFORMDEF") of granules. %zu granules were successfully placed up to a volume "
-					"fraction of "GFORMDEF".",gr_vf,n,nd/mat_count[gr_mat]);
+					"fraction of "GFORMDEF".",gr_vf,n,((double)nd)/mat_count[gr_mat]);
 			}
 		}
 	}
@@ -1173,7 +1003,7 @@ static double PlaceGranules(void)
 		printf("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
 		       "                   possible granules= %zu (efficiency 2 = "GFORMDEF")\n",
 		       count,count_gr/(double)count,count_gr,gr_N/(double)count_gr);
-	MyInnerProduct(&nd,double_type,1,&Timing_GranulComm);
+	MyInnerProduct(&nd,sizet_type,1,&Timing_GranulComm);
 	// free everything
 	if (IFROOT) {
 		Free_general(occup);
@@ -1204,6 +1034,262 @@ static double PlaceGranules(void)
 #undef MIN_CELL_SIZE
 #undef CHECK_CELL
 #undef CHECK_CELL_TEST
+
+//===========================================================
+
+#endif //ADDA_SPARSE
+
+static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm,
+	const char **rft)
+/* read dipole file first to determine box sizes and Nmat; input is not checked for very large
+ * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
+ * closed in ReadDipFile.
+ */
+{
+	int x,y,z,mat,scanned,mustbe;
+	size_t line,skiplines,nd;
+	double ds_Ndip; // number of dipoles declared in DDSCAT file
+	bool anis_warned;
+	bool ds_lf; // whether 6-th line matches pattern for DDSCAT 7 format
+	int t2,t3; // dumb variables
+	float td1,td2,td3; // dumb float variables
+	int maxX,maxY,maxZ,maxN;
+	char linebuf[BUF_LINE];
+	const char *rf_text;
+
+	TIME_TYPE tstart=GET_TIME();
+	dipfile=FOpenErr(fname,"r",ALL_POS);
+
+	// detect file format
+	mustbe=UNDEF; // used as indicator whether shape was auto-detected
+	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
+	 * therefore we first skip all comments
+	 */
+	line=SkipComments(dipfile);
+	if (line<=1 // common extensive test for both DDSCAT formats
+		&& (SkipNLines(dipfile,1-line),line=1, // to always skip first line
+			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL)
+		&& sscanf(linebuf,"%lf",&ds_Ndip)==1 // %zu is not universally supported in scanf
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& (ds_lf=(sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3), // this line is new in DDSCAT7
+			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) ) {
+		/* Since the 6th or 7th line in DDSCAT format is arbitrary, it can match any test.
+		 * Therefore, it is impossible make rigorous automatic detection of version of DDSCAT
+		 * format. The failure at this step will only be detected after scanning the whole file and
+		 * comparing the number of data lines to ds_Ndip.
+		 * Having said this, it is less probable for a comment line to match 7-element pattern than
+		 * 3-element one, so the result of the following test takes precedence over ds_lf.
+		 */
+		if (sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
+			read_format=SF_DDSCAT6;
+			rf_text="DDSCAT 6 format (FRMFIL)";
+			mustbe=6;
+			skiplines=line-1; // should be 6
+		}
+		else if (ds_lf && FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+			&& sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
+			read_format=SF_DDSCAT7;
+			rf_text="DDSCAT 7 format (FROM_FILE)";
+			mustbe=6;
+			skiplines=line-1; // should be 7
+		}
+	}
+	if (mustbe==UNDEF) { // test for ADDA text formats, restarting the file
+		fseek(dipfile,0,SEEK_SET);
+		line=SkipComments(dipfile);
+		/* scanf and analyze Nmat; if there is blank line between comments and Nmat, it fails later;
+		 * the value of Nmat obtained here is not actually relevant, the main factor is maximum
+		 * domain number among all dipoles.
+		 */
+		scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
+		if (scanned==EOF) LogError(ONE_POS,"No dipole positions are found in %s",fname);
+		else if (scanned==0) { // no "Nmat=..."
+			/* It is hard to perform rigorous test for SF_TEXT since any number of blank lines
+			 * can be present before the data lines. Therefore this format is determined by
+			 * exclusion of other possibilities. Hence, errors in files of other formats will most
+			 * likely result in assignment of SF_TEXT format to it.
+			 */
+			read_format=SF_TEXT;
+			rf_text="ADDA text format (single domain)";
+			mustbe=3;
+			skiplines=line;
+		}
+		else { // "Nmat=..." present
+			read_format=SF_TEXT_EXT;
+			rf_text="ADDA text format (multi-domain)";
+			mustbe=4;
+			skiplines=line+1;
+		}
+	}
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * Add code to detect file format to this if-else sequence in appropriate place. Currently
+	 * SF_TEXT is very flexible - so it is not strictly checked against, effectively making it the
+	 * default format. So test for new format should probably go before SF_TEXT. Failure of
+	 * detection of other formats is indicated by mustbe==UNDEF.
+	 * The test if successful should at least assign:
+	 * 1) read_format to a handle from const.h;
+	 * 2) rf_text to some literal descriptive string;
+	 * 2) mustbe to a number of values to be scanned in each data line;
+	 * 3) skiplines to a number of non-data files in the beginning of the file
+	 */
+	if (mustbe==UNDEF) // currently this test is redundant
+		LogError(ONE_POS,"Failed to recognize the format of shape file %s",fname);
+
+	// scan main part of the file
+	fseek(dipfile,0,SEEK_SET);
+	line=SkipNLines(dipfile,skiplines);
+	maxX=maxY=maxZ=INT_MIN;
+	minX=minY=minZ=INT_MAX;
+	maxN=1;
+	anis_warned=false;
+	// reading is performed in lines
+	nd=0;
+	while(FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+		// scan numbers in a line
+		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x,&y,&z);
+		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
+		// for ddscat format, only first material is used, other two are ignored
+		else { // read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
+			scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
+			if (!anis_warned && (t2!=mat || t3!=mat)) {
+				LogWarning(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
+					"line %zu). ADDA ignores this anisotropy, using only the identifier of "
+					"x-component of refractive index as domain number",fname,line);
+				anis_warned=true;
+			}
+		}
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Add code to scan a single data line and perform consistency checks if necessary. The
+		 * common variables to be scanned are 'x','y','z' (integer positions of dipoles) and
+		 * possibly 'mat' - domain number. 'scanned' should be set to be tested below.
+		 */
+		// if sscanf returns EOF, that is a blank line -> just skip
+		if (scanned!=EOF) {
+			if (scanned!=mustbe) // this in most cases indicates wrong format
+				LogError(ONE_POS,"%s was detected, but error occurred during scanning of line %zu "
+					"from dipole file %s",rf_text,line,fname);
+			nd++;
+			if (read_format!=SF_TEXT) {
+				if (mat<=0) LogError(ONE_POS,"%s was detected, but nonpositive material number "
+					"(%d) encountered during scanning of line %zu from dipole file %s",
+					rf_text,mat,line,fname);
+				else if (mat>maxN) maxN=mat;
+			}
+			/* TO ADD NEW FORMAT OF SHAPE FILE
+			 * The code above processes scanned mat. It is fairly general but may need modification
+			 * for a new shape format. In particular the code should be executed if and only if the
+			 * shape format is (potentially) multi-domain.
+			 */
+			// update maxima and minima
+			if (x>maxX) maxX=x;
+			if (x<minX) minX=x;
+			if (y>maxY) maxY=y;
+			if (y<minY) minY=y;
+			if (z>maxZ) maxZ=z;
+			if (z<minZ) minZ=z;
+		}
+	}
+
+	// consistency checks and assignment of return values
+	if (read_format==SF_TEXT_EXT && *Nm!=maxN)
+		LogWarning(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the maximum domain "
+			"number (%d) among all specified dipoles; hence the former is ignored",*Nm,fname,maxN);
+	if ((read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7) && nd!=ds_Ndip)
+		LogWarning(EC_WARN,ONE_POS,"Number of dipoles (%.0f), as given in the beginning of %s, is "
+			"not equal to the number of data lines actually present and scanned (%zu)",
+			ds_Ndip,fname,nd);
+			
+	nvoid_Ndip=nd*jagged*jagged*jagged;
+	
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * If any consistency checks for the whole file can be performed, add them here.
+	 */
+	*rft=rf_text;
+	*Nm=maxN;
+	// set grid (box) sizes
+	*bX=jagged*(maxX-minX+1);
+	*bY=jagged*(maxY-minY+1);
+	*bZ=jagged*(maxZ-minZ+1);
+	/* return to first data line for ReadDipFile;
+	 * not optimal way, but works more robustly when non-system EOL is used in data file
+	 */
+	fseek(dipfile,0,SEEK_SET);
+	SkipNLines(dipfile,skiplines);
+	Timing_FileIO+=GET_TIME()-tstart;
+}
+
+//===========================================================
+
+static void ReadDipFile(const char * restrict fname)
+/* read dipole file; no consistency checks are made since they are made in InitDipFile.
+ * the file is opened in InitDipFile; this function only closes the file.
+ */
+{
+	int x,y,z,x0,y0,z0,mat,scanned;
+	size_t index=0;
+	char linebuf[BUF_LINE];	
+#ifndef ADDA_SPARSE
+	// to remove possible overflows	
+	size_t boxX_l=(size_t)boxX;
+#else
+	const int jagged_cu = jagged*jagged*jagged;
+#endif //ADDA_SPARSE
+
+	TIME_TYPE tstart=GET_TIME();	
+
+	mat=1; // the default value for single-domain shape formats
+	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+		// scan numbers in a line
+		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
+		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
+		// read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
+		else scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat);
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Add code to scan a single data line. The common variables to be scanned are 'x0','y0',
+		 * 'z0' (integer positions of dipoles) and  possibly 'mat' - domain number. 'scanned'
+		 * should be set to be tested against EOF below.
+		 * The code is similar to the one in InitDipFile() but can be simpler because no consistency
+		 * checks are performed here.
+		 */
+		// if sscanf returns EOF, that is a blank line -> just skip
+		if (scanned!=EOF) {
+			// shift dipole position to be nonnegative
+			x0-=minX;
+			y0-=minY;
+			z0-=minZ;
+			// initialize box jagged*jagged*jagged instead of one dipole
+#ifndef ADDA_SPARSE			
+			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
+				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
+					index=(z-local_z0)*boxXY+y*boxX_l+x;
+					material_tmp[index]=(unsigned char)(mat-1);
+			}
+#else
+			if ((jagged_cu*index >= local_nvoid_d0) && (jagged_cu*index < local_nvoid_d1)) {
+				for (z=0;z<jagged;z++) 
+				for (y=0;y<jagged;y++) 
+				for (x=0;x<jagged;x++) {
+					material_full[index]=(unsigned char)(mat-1);
+					position_full[3*index]=x0*jagged+x;
+					position_full[3*index+1]=y0*jagged+y;
+					position_full[3*index+2]=z0*jagged+z;
+					
+				}
+            }
+            index += jagged_cu;
+#endif //ADDA_SPARSE
+		}
+	}
+	
+	FCloseErr(dipfile,fname,ALL_POS);
+	Timing_FileIO+=GET_TIME()-tstart;
+}
 
 //==========================================================
 
@@ -1248,12 +1334,15 @@ void InitShape(void)
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
 	double yx_ratio,zx_ratio;
-	double tmp1,tmp2,tmp3;
+	double tmp1,tmp2;
+#ifndef ADDA_SPARSE
+	double tmp3;
+#endif
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
 	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
 	bool size_given_cmd;     // if size is given in the command line
-	char sizename[MAX_LINE]; // type of input size, used in diagnostic messages
+	const char *sizename;    // type of input size, used in diagnostic messages
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
 	 * well use 'tmp1'-'tmp3' variables defined above.
@@ -1266,10 +1355,12 @@ void InitShape(void)
 	 */
 	n_boxX=n_boxY=n_boxZ=UNDEF;
 	n_sizeX=UNDEF;
+	sh_form_str2=""; // this variable can be left uninitialized by some shapes
 
 	size_given_cmd=(sizeX!=UNDEF || a_eq!=UNDEF);
-	if (sizeX!=UNDEF) strcpy(sizename,"size");
-	else if (a_eq!=UNDEF) strcpy(sizename,"eq_rad");
+	if (sizeX!=UNDEF) sizename="size";
+	else if (a_eq!=UNDEF) sizename="eq_rad";
+	else sizename=""; // redundant initialization to remove warnings
 	/* calculate default dpl - 10*sqrt(max(|m|));
 	 * for anisotropic each component is considered separately
 	 */
@@ -1282,15 +1373,15 @@ void InitShape(void)
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
+#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode 
 	if (shape==SH_AXISYMMETRIC) {
 		/* Axisymmetric homogeneous shape, defined by its contour in ro-z plane of the cylindrical
 		 * coordinate system. Its symmetry axis coincides with the z-axis, and the contour is read
 		 * from file. Each line defines ro and z coordinates of a point, the first and the last
 		 * points are connected automatically. Linear interpolation is used between the points.
 		 */
-		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
-			"axisymmetric, defined by a contour in ro-z plane from file %s; diameter:%s",
-			shape_fname,GFORM);
+		if (IFROOT) sh_form_str1=dyn_sprintf(
+			"axisymmetric, defined by a contour in ro-z plane from file %s; diameter:",shape_fname);
 		InitContour(shape_fname,&zx_ratio,&n_sizeX);
 		yx_ratio=1;
 		symZ=false; // input contour is assumed asymmetric over ro-axis
@@ -1308,8 +1399,12 @@ void InitShape(void)
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"bicoated; diameter(d):%s, center-center distance R_cc/d="
-			GFORM", inner diameter d_in/d="GFORM,GFORM,diskratio,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="bicoated; diameter(d):";
+			sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM", inner diameter "
+				"d_in/d="GFORM,diskratio,coat_ratio);
+		}
+
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
@@ -1332,9 +1427,11 @@ void InitShape(void)
 		aspectZ2=sh_pars[4];
 		TestPositive(aspectZ2,"aspect ratio z2/x2");
 		// set descriptive string and symmetry
-		if (IFROOT) sprintf(sh_form_str,"biellipsoid; size along x-axis:%s; aspect ratios: y1/x1="
-			GFORM", z1/x1="GFORM", x2/x1="GFORM", y2/x2="GFORM", z2/x2="GFORM,
-			GFORM,aspectY,aspectZ,aspectXs,aspectY2,aspectZ2);
+		if (IFROOT) {
+			sh_form_str1="biellipsoid; size along x-axis:";
+			sh_form_str2=dyn_sprintf("; aspect ratios: y1/x1="GFORM", z1/x1="GFORM", x2/x1="GFORM
+				", y2/x2="GFORM", z2/x2="GFORM,aspectY,aspectZ,aspectXs,aspectY2,aspectZ2);
+		}
 		if (aspectY!=1 || aspectY2!=1) symR=false;
 		symZ=false; // since upper and lower ellipsoids are generally different both in size and RI
 		// set inverse squares of aspect ratios
@@ -1367,8 +1464,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"center-to-center distance to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,
-			"bisphere; diameter(d):%s, center-center distance R_cc/d="GFORM,GFORM,diskratio);
+		if (IFROOT) {
+			sh_form_str1="bisphere; diameter(d):";
+			sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2.0;
 		if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
 		else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
@@ -1380,7 +1479,7 @@ void InitShape(void)
 		double aspectY,aspectZ;
 
 		if (sh_Npars==0) {
-			if (IFROOT) strcpy(sh_form_str,"cube; size of edge along x-axis:"GFORM);
+			if (IFROOT) sh_form_str1="cube; size of edge along x-axis:";
 			aspectY=aspectZ=1;
 		}
 		else { // 2 parameters are given
@@ -1388,8 +1487,10 @@ void InitShape(void)
 			TestPositive(aspectY,"aspect ratio y/x");
 			aspectZ=sh_pars[1];
 			TestPositive(aspectZ,"aspect ratio z/x");
-			if (IFROOT) sprintf(sh_form_str,"rectangular parallelepiped; size along x-axis:%s, "
-				"aspect ratio y/x="GFORM", z/x="GFORM,GFORM,aspectY,aspectZ);
+			if (IFROOT) {
+				sh_form_str1="rectangular parallelepiped; size along x-axis:";
+				sh_form_str2=dyn_sprintf(", aspect ratio y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+			}
 		}
 		if (aspectY!=1) symR=false;
 		// set half-aspect ratios
@@ -1405,8 +1506,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestNonNegative(diskratio,"height to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,"capsule; diameter(d):%s, cylinder height h/d="GFORM,
-			GFORM,diskratio);
+		if (IFROOT) {
+			sh_form_str1="capsule; diameter(d):";
+			sh_form_str2=dyn_sprintf(", cylinder height h/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2;
 		volume_ratio = PI_OVER_FOUR*diskratio + PI_OVER_SIX;
 		yx_ratio=1;
@@ -1415,7 +1518,6 @@ void InitShape(void)
 	}
 	else if(shape==SH_CHEBYSHEV) {
 		double Dx,Dz; // grid sizes along x and z (in units of scale parameter r0)
-		double Ri,Rc; // radii of inscribed and circumscribed spheres (in units of r0)
 		double sz;    // coordinate of center of Dz relative to sphere origin (in units of r0)
 		double ae;    // |eps|
 
@@ -1424,12 +1526,12 @@ void InitShape(void)
 		chebn=sh_pars[1];
 		ConvertToInteger(sh_pars[1],"number of sides",&chebn);
 		TestPositive_i(chebn,"order n");
-		Ri=1-fabs(chebeps);
-		Rc=1+fabs(chebeps);
 		ChebyshevParams(chebeps,chebn,&Dx,&Dz,&sz,&volume_ratio);
-		if (IFROOT) sprintf(sh_form_str,"axisymmetric chebyshev particle; size along x-axis (Dx):"
-			"%s, amplitude eps="GFORM", order n=%d, initial radius r0/Dx="GFORM,GFORM,chebeps,
-			chebn,1/Dx);
+		if (IFROOT) {
+			sh_form_str1="axisymmetric chebyshev particle; size along x-axis (Dx):";
+			sh_form_str2=dyn_sprintf(", amplitude eps="GFORM", order n=%d, initial radius r0/Dx="
+				GFORM,chebeps,chebn,1/Dx);
+		}
 		yx_ratio=1;
 		zx_ratio=Dz/Dx;
 		symZ=(sz!=0);
@@ -1442,21 +1544,25 @@ void InitShape(void)
 	}
 	else if (shape==SH_COATED) {
 		double coat_ratio;
+		char *buf=NULL; // redundant initialization to remove warnings
 
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"inner/outer diameter ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"coated sphere; diameter(d):%s, inner diameter d_in/d="
-			GFORM,GFORM,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="coated sphere; diameter(d):";
+			buf=dyn_sprintf(", inner diameter d_in/d="GFORM,coat_ratio);
+		}
 		if (sh_Npars==4) {
 			coat_x=sh_pars[1];
 			coat_y=sh_pars[2];
 			coat_z=sh_pars[3];
 			if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
 				PrintErrorHelp("Inner sphere is not fully inside the outer");
-			if (IFROOT) sprintf(sh_form_str+strlen(sh_form_str),
-				"\n       position of inner sphere center r/d= "GFORM3V,coat_x,coat_y,coat_z);
+			if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d= "GFORM3V,
+				coat_x,coat_y,coat_z);
 		}
 		else coat_x=coat_y=coat_z=0; // initialize default values
+		if (IFROOT) sh_form_str2=buf;
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		volume_ratio=PI_OVER_SIX;
 		if (coat_x!=0) symX=symR=false;
@@ -1470,8 +1576,10 @@ void InitShape(void)
 
 		diskratio=sh_pars[0];
 		TestPositive(diskratio,"height to diameter ratio");
-		if (IFROOT) sprintf(sh_form_str,"cylinder; diameter(d):%s, height h/d="GFORM,GFORM,
-			diskratio);
+		if (IFROOT) {
+			sh_form_str1="cylinder; diameter(d):";
+			sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
+		}
 		hdratio=diskratio/2;
 		volume_ratio=PI_OVER_FOUR*diskratio;
 		yx_ratio=1;
@@ -1518,8 +1626,10 @@ void InitShape(void)
 		 */
 		volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)
 		            /(egnu*egnu+2*tmp3);
-		if (IFROOT) sprintf(sh_form_str,"egg; diameter(d):%s, epsilon="GFORM", nu="GFORM", a/d="
-			GFORM,GFORM,egeps,egnu,ad);
+		if (IFROOT) {
+			sh_form_str1="egg; diameter(d):";
+			sh_form_str2=dyn_sprintf(", epsilon="GFORM", nu="GFORM", a/d="GFORM,egeps,egnu,ad);
+		}
 		Nmat_need=1;
 		yx_ratio=1;
 		zx_ratio=ad*(tmp1+tmp2); // (a/d)*[1/sqrt(eps+nu)+1/sqrt(eps-nu)]
@@ -1531,8 +1641,10 @@ void InitShape(void)
 		TestPositive(aspectY,"aspect ratio y/x");
 		aspectZ=sh_pars[1];
 		TestPositive(aspectZ,"aspect ratio z/x");
-		if (IFROOT) sprintf(sh_form_str,"ellipsoid; size along x-axis:%s, aspect ratios y/x="GFORM
-			", z/x="GFORM,GFORM,aspectY,aspectZ);
+		if (IFROOT) {
+			sh_form_str1="ellipsoid; size along x-axis:";
+			sh_form_str2=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+		}
 		if (aspectY!=1) symR=false;
 		// set inverse squares of aspect ratios
 		invsqY=1/(aspectY*aspectY);
@@ -1543,12 +1655,28 @@ void InitShape(void)
 		Nmat_need=1;
 	}
 	else if (shape==SH_LINE) {
-		if (IFROOT) strcpy(sh_form_str,"line; length:"GFORM);
+		if (IFROOT) sh_form_str1="line; length:";
 		symY=symZ=symR=false;
 		n_boxY=n_boxZ=jagged;
 		yx_ratio=zx_ratio=UNDEF;
 		volume_ratio=UNDEF;
 		Nmat_need=1;
+	}
+	else if(shape==SH_PLATE) {
+		double diskratio; // ratio of height to diameter
+
+		diskratio=sh_pars[0];
+		TestRangeNI(diskratio, "height to diameter ratio",0,1);
+		if (IFROOT) {
+			sh_form_str1="plate; full diameter(d):";
+			sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
+		}
+		volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24;
+		yx_ratio=1;
+		zx_ratio=diskratio;
+		Nmat_need=1;
+		hdratio=zx_ratio/2;
+		ri_2=(0.5-hdratio)*(0.5-hdratio);
 	}
 	else if(shape==SH_PRISM) {
 		double Dx,Dy; // grid sizes along x and y (in units of a - side length)
@@ -1582,8 +1710,10 @@ void InitShape(void)
 			}
 			else Dy=Dx; // N=4k
 		}
-		if (IFROOT) sprintf(sh_form_str,"%d-sided regular prism; size along x-axis (Dx):%s, height "
-			"h/Dx="GFORM", base side a/Dx="GFORM,Nsides,GFORM,diskratio,1/Dx);
+		if (IFROOT) {
+			sh_form_str1=dyn_sprintf("%d-sided regular prism; size along x-axis (Dx):",Nsides);
+			sh_form_str2=dyn_sprintf(", height h/Dx="GFORM", base side a/Dx="GFORM,diskratio,1/Dx);
+		}
 		xcenter=sx/Dx;
 		yx_ratio=Dy/Dx;
 		zx_ratio=diskratio;
@@ -1609,8 +1739,11 @@ void InitShape(void)
 		if (h_d<=b_d) PrintErrorHelp("given RBC is not biconcave; maximum width is in the center");
 		c_d=sh_pars[2];
 		TestRangeII(c_d,"relative diameter of maximum width",0,1);
-		if (IFROOT) sprintf(sh_form_str,"red blood cell; diameter(d):%s, maximum and minimum width "
-			"h/d="GFORM", b/d="GFORM", diameter of maximum width c/d="GFORM,GFORM,h_d,b_d,c_d);
+		if (IFROOT) {
+			sh_form_str1="red blood cell; diameter(d):";
+			sh_form_str2=dyn_sprintf(", maximum and minimum width h/d="GFORM", b/d="GFORM", "
+				"diameter of maximum width c/d="GFORM,h_d,b_d,c_d);
+		}
 		// calculate shape parameters
 		h2=h_d*h_d;
 		b2=b_d*b_d;
@@ -1630,16 +1763,8 @@ void InitShape(void)
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
-	else if (shape==SH_READ) {
-		if (IFROOT) SnprintfErr(ONE_POS,sh_form_str,MAX_PARAGRAPH,
-			"specified by file %s; size along x-axis:%s",shape_fname,GFORM);
-		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
-		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need);
-		yx_ratio=zx_ratio=UNDEF;
-		volume_ratio=UNDEF;
-	}
 	else if (shape==SH_SPHERE) {
-		if (IFROOT) strcpy(sh_form_str,"sphere; diameter:"GFORM);
+		if (IFROOT) sh_form_str1="sphere; diameter:";
 		volume_ratio=PI_OVER_SIX;
 		yx_ratio=zx_ratio=1;
 		Nmat_need=1;
@@ -1649,12 +1774,25 @@ void InitShape(void)
 
 		coat_ratio=sh_pars[0];
 		TestRangeII(coat_ratio,"sphere diameter/cube edge ratio",0,1);
-		if (IFROOT) sprintf(sh_form_str,"sphere in cube; size of cube edge(a):%s, diameter of "
-			"sphere d/a="GFORM,GFORM,coat_ratio);
+		if (IFROOT) {
+			sh_form_str1="sphere in cube; size of cube edge(a):";
+			sh_form_str2=dyn_sprintf(", diameter of sphere d/a="GFORM,coat_ratio);
+		}
 		coat_r2=0.25*coat_ratio*coat_ratio;
 		yx_ratio=zx_ratio=1;
 		volume_ratio=1;
 		Nmat_need=2;
+	}	
+	else 
+#endif //ADDA_SPARSE	
+	if (shape==SH_READ) {
+		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
+		const char *rf_text;
+		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need,&rf_text);
+		if (IFROOT) sh_form_str1=dyn_sprintf("specified by file %s - %s; size along x-axis:",
+			shape_fname,rf_text);
+		yx_ratio=zx_ratio=UNDEF;
+		volume_ratio=UNDEF;
 	}
 	/* TO ADD NEW SHAPE
 	 * add an option here (in 'else if' sequence in alphabetical order). Identifier ('SH_...')
@@ -1689,7 +1827,12 @@ void InitShape(void)
 	 *   variables (which are used only in this part of the code), either use 'tmp1'-'tmp3' or
 	 *   define your own (with more informative names) in the beginning of this function.
 	 */
-	else LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
+	else 
+#ifndef ADDA_SPARSE 
+		LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
+#else
+		LogError(ONE_POS,"Only shapes read from a file are currently supported in sparse mode"); 
+#endif //ADDA_SPARSE
 
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
@@ -1707,6 +1850,7 @@ void InitShape(void)
 				"while shape '%s' sets both the particle size and the size of the grid",shapename);
 		}
 	}
+#ifndef ADDA_SPARSE //granulation disabled in sparse mode
 	// initialize domain granulation
 	if (sh_granul) {
 		symX=symY=symZ=symR=false; // no symmetry with granules
@@ -1714,8 +1858,10 @@ void InitShape(void)
 			PrintError("Specified domain number to be granulated (%d) is larger than total number "
 				"of domains (%d) for the given shape (%s)",gr_mat+1,Nmat_need,shapename);
 		else Nmat_need++;
-		strcat(shapename,"_gran");
+		// update shapename; use new storage
+		shapename=dyn_sprintf("%s_gran",shapename);
 	}
+#endif
 	// check if enough refractive indices or extra
 	if (Nmat<Nmat_need) {
 		if (prognosis) small_Nmat=Nmat;
@@ -1817,8 +1963,14 @@ void InitShape(void)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
 				n_boxY,n_boxZ,boxY,boxZ);
 	}
-	// initialize number of dipoles
-	Ndip=boxX*((double)boxY)*boxZ;
+#ifndef ADDA_SPARSE //this check is not needed in sparse mode
+	// initialize number of dipoles; first check that it fits into size_t type
+	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
+	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing "
+		"box (%.0f) is larger than supported by size_t type on this system (%zu). If possible, "
+		"please recompile ADDA in 64-bit mode.",tmp,SIZE_MAX);
+#endif //ADDA_SPARSE
+	Ndip=boxX*boxY*boxZ;
 	// initialize maxiter; not very realistic
 	if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
 	// some old, not really logical heuristics for Ntheta, but better than constant value
@@ -1840,37 +1992,47 @@ void InitShape(void)
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, gridspace
 {
-	int i,j,k,ns;
-	size_t index,dip,nlocalRows_tmp;
-	double tmp1,tmp2,tmp3;
-	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
+	int i;
+	size_t dip,index;
+	TIME_TYPE tstart;
+#ifndef ADDA_SPARSE
 	double jcX,jcY,jcZ; // center for jagged
+	size_t local_nRows_tmp;
+	int j,k,ns;	
+	double tmp1,tmp2,tmp3;
+	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;	
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
 	int xj,yj,zj;
 	int mat;
 	unsigned short us_tmp;
-	TIME_TYPE tstart,tgran;
+	TIME_TYPE tgran;
+#endif //ADDA_SPARSE	
+
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
 	 * well use 'tmp1'-'tmp3' variables defined above.
 	 */
 
 	tstart=GET_TIME();
-
-	index=0;
-	// assumed that box's are even
-	jcX=jcY=jcZ=jagged/2.0;
+	
 	cX=(boxX-1)/2.0;
 	cY=(boxY-1)/2.0;
 	cZ=(boxZ-1)/2.0;
-	nlocalRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"nlocalRows_tmp");
+		
+#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode
+	index=0;	
+	// assumed that box's are even
+	jcX=jcY=jcZ=jagged/2.0;
+
+	local_nRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"local_nRows_tmp");
+	
 	/* allocate temporary memory; even if prognosis, since they are needed for exact estimation
-	 * they will be reallocated afterwards (when nlocalRows is known).
+	 * they will be reallocated afterwards (when local_nRows is known).
 	 */
 	MALLOC_VECTOR(material_tmp,uchar,local_Ndip,ALL);
-	MALLOC_VECTOR(DipoleCoord_tmp,double,nlocalRows_tmp,ALL);
-	MALLOC_VECTOR(position_tmp,ushort,nlocalRows_tmp,ALL);
+	MALLOC_VECTOR(DipoleCoord_tmp,double,local_nRows_tmp,ALL);
+	MALLOC_VECTOR(position_tmp,ushort,local_nRows_tmp,ALL);
 
 	for(k=local_z0;k<local_z1_coer;k++)
 		for(j=0;j<boxY;j++)
@@ -1892,10 +2054,10 @@ void MakeParticle(void)
 				mat=Nmat; // corresponds to void
 
 				if (shape==SH_AXISYMMETRIC) {
-					r2=xr*xr+yr*yr;
-					if (r2>=contRoSqMin && r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2>=ri_2 && ro2<=0.25) {
 						largerZ=smallerZ=0;
-						contCurRo=sqrt(r2);
+						contCurRo=sqrt(ro2);
 						contCurZ=zr;
 						for (ns=0;ns<contNseg;ns++)
 							if (contCurRo>=contSegRoMin[ns] && contCurRo<=contSegRoMax[ns])
@@ -1909,11 +2071,11 @@ void MakeParticle(void)
 					}
 				}
 				else if (shape==SH_BICOATED) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1*tmp1+r2<=0.25) {
-							if (tmp1*tmp1+r2<=coat_r2) mat=1;
+						if (tmp1*tmp1+ro2<=0.25) {
+							if (tmp1*tmp1+ro2<=coat_r2) mat=1;
 							else mat=0;
 						}
 					}
@@ -1933,20 +2095,20 @@ void MakeParticle(void)
 					}
 				}
 				else if (shape==SH_BISPHERE) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1*tmp1+r2<=0.25) mat=0;
+						if (tmp1*tmp1+ro2<=0.25) mat=0;
 					}
 				}
 				else if (shape==SH_BOX) {
 					if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
 				}
 				else if (shape==SH_CAPSULE) {
-					r2=xr*xr+yr*yr;
-					if (r2<=0.25) {
+					ro2=xr*xr+yr*yr;
+					if (ro2<=0.25) {
 						tmp1=fabs(zr)-hdratio;
-						if (tmp1<=0 || tmp1*tmp1+r2<=0.25) mat=0;
+						if (tmp1<=0 || tmp1*tmp1+ro2<=0.25) mat=0;
 					}
 				}
 				else if (shape==SH_CHEBYSHEV) {
@@ -1975,10 +2137,10 @@ void MakeParticle(void)
 					if(xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
 				}
 				else if (shape==SH_EGG) {
-					r2=xr*xr+yr*yr;
+					ro2=xr*xr+yr*yr;
 					zshift=zr-zcenter;
 					z2=zshift*zshift;
-					if (r2+egeps*z2+egnu*zshift*sqrt(r2+z2)<=ad2) mat=0;
+					if (ro2+egeps*z2+egnu*zshift*sqrt(ro2+z2)<=ad2) mat=0;
 				}
 				else if (shape==SH_ELLIPSOID) {
 					if (xr*xr+yr*yr*invsqY+zr*zr*invsqZ<=0.25) mat=0;
@@ -1986,25 +2148,35 @@ void MakeParticle(void)
 				else if (shape==SH_LINE) {
 					if (yj==0 && zj==0) mat=0;
 				}
+				else if (shape==SH_PLATE) {
+					ro2=xr*xr+yr*yr;
+					if(ro2<=0.25 && fabs(zr)<=hdratio) {
+						if (ro2<=ri_2) mat=0;
+						else {
+							tmp1=sqrt(ro2)-0.5+hdratio; // ro-ri
+							if (tmp1*tmp1+zr*zr<=hdratio*hdratio) mat=0;
+						}
+					}
+				}
 				else if (shape==SH_PRISM) {
 					xshift=xr-xcenter;
-					r2=xshift*xshift+yr*yr;
-					if(r2<=rc_2 && fabs(zr)<=hdratio) {
-						if (r2<=ri_2) mat=0;
+					ro2=xshift*xshift+yr*yr;
+					if(ro2<=rc_2 && fabs(zr)<=hdratio) {
+						if (ro2<=ri_2) mat=0;
 						/* this can be optimized considering special cases for small N. For larger
 						 * N the relevant fraction of dipoles decrease as N^-2, so this part is less
 						 * problematic.
 						 */
 						else {
 							tmp1=cos(fmod(fabs(atan2(yr,xshift))+prang,2*prang)-prang);
-							if (tmp1*tmp1*r2<=ri_2) mat=0;
+							if (tmp1*tmp1*ro2<=ri_2) mat=0;
 						}
 					}
 				}
 				else if (shape==SH_RBC) {
-					r2=xr*xr+yr*yr;
+					ro2=xr*xr+yr*yr;
 					z2=zr*zr;
-					if (r2*r2+2*rbcS*r2*z2+z2*z2+rbcP*r2+rbcQ*z2+rbcR<=0) mat=0;
+					if (ro2*ro2+2*rbcS*ro2*z2+z2*z2+rbcP*ro2+rbcQ*z2+rbcR<=0) mat=0;
 				}
 				else if (shape==SH_SPHERE) {
 					if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;
@@ -2034,15 +2206,39 @@ void MakeParticle(void)
 				material_tmp[index]=(unsigned char)mat;
 				index++;
 			} // End box loop
+#endif //ADDA_SPARSE
+
+#ifdef ADDA_SPARSE
+	MALLOC_VECTOR(material_full,uchar,nvoid_Ndip,ALL);      
+    MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
+    memory+=(sizeof(char)+sizeof(int)*3)*nvoid_Ndip;
+
+	//for sparse mode, nvoid_Ndip is defined in InitDipFile 
+	//so we actually run SetupLocalD before reading the file
+	//(which requires local_nvoid_d0 and local_nvoid_d1 to be defined)
+	SetupLocalD();
+	local_nvoid_Ndip=local_nvoid_d1-local_nvoid_d0;	
+	local_Ndip = local_nvoid_Ndip;	
+#endif
+
 	if (shape==SH_READ) ReadDipFile(shape_fname);
 	// initialization of mat_count and dipoles counts
-	for(i=0;i<=Nmat;i++) mat_count[i]=0;
-	for(dip=0;dip<local_Ndip;dip++) mat_count[material_tmp[dip]]++;
+	for(i=0;i<=Nmat;i++) mat_count[i]=0;	
+	
+#ifndef ADDA_SPARSE
+	for(dip=0;dip<local_Ndip;dip++) mat_count[material_tmp[dip]]++;	
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
-	MyInnerProduct(mat_count,double_type,Nmat+1,NULL);
-	if ((nvoid_Ndip=Ndip-mat_count[Nmat])==0)
+	SetupLocalD();
+	nvoid_Ndip=Ndip-mat_count[Nmat];
+#else	
+	for(dip=0;dip<local_Ndip;dip++) mat_count[material_full[dip]]++;
+#endif //ADDA_SPARSE
+
+
+	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
+	if (nvoid_Ndip==0)
 		LogError(ONE_POS,"All dipoles of the scatterer are void");
-	nlocalRows=3*local_nvoid_Ndip;
+	local_nRows=3*local_nvoid_Ndip;
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
 	if (sizeX==UNDEF) {
@@ -2071,6 +2267,8 @@ void MakeParticle(void)
 	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip,ONE_THIRD)*gridspace;
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
+	
+#ifndef ADDA_SPARSE
 	// granulate one domain, if needed
 	if (sh_granul) {
 		tgran=GET_TIME();
@@ -2094,18 +2292,35 @@ void MakeParticle(void)
 		// actually place granules
 		mat_count[Nmat-1]=PlaceGranules();
 		// calculate exact volume fraction
-		gr_vf_real=mat_count[Nmat-1]/mat_count[gr_mat];
+		gr_vf_real=((double)mat_count[Nmat-1])/mat_count[gr_mat];
 		mat_count[gr_mat]-=mat_count[Nmat-1];
 		Timing_Granul=GET_TIME()-tgran;
 	}
-	/* allocate main particle arrays, using precise nlocalRows even when prognosis is used to enable
+#endif //ADDA_SPARSE	
+	
+	/* allocate main particle arrays, using precise local_nRows even when prognosis is used to enable
 	 * save_geom afterwards.
 	 */
-	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
-	MALLOC_VECTOR(DipoleCoord,double,nlocalRows,ALL);
-	MALLOC_VECTOR(position,ushort,nlocalRows,ALL);
-
+MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
+MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
+#ifndef ADDA_SPARSE	
+	MALLOC_VECTOR(position,ushort,local_nRows,ALL);
 	memory+=(3*(sizeof(short int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
+#else
+	MALLOC_VECTOR(position,int,local_nRows,ALL);
+	memory+=(3*(sizeof(int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
+	
+	memcpy(material, &(material_full[local_nvoid_d0]), local_nvoid_Ndip*sizeof(*material_full));
+    memcpy(position, &(position_full[3*local_nvoid_d0]), local_nRows*sizeof(*position_full));      
+
+	for (index=0; index<local_nvoid_Ndip; index++) {
+		DipoleCoord[3*index] = (position[3*index] - cX) * gridspace;
+		DipoleCoord[3*index+1] = (position[3*index+1] - cY) * gridspace;
+		DipoleCoord[3*index+2] = (position[3*index+2] - cZ) * gridspace;
+	}
+#endif
+
+#ifndef ADDA_SPARSE	
 	// copy nontrivial part of arrays
 	index=0;
 	for (dip=0;dip<local_Ndip;dip++) if (material_tmp[dip]<Nmat) {
@@ -2115,6 +2330,7 @@ void MakeParticle(void)
 		memcpy(position+3*index,position_tmp+3*dip,3*sizeof(short int));
 		index++;
 	}
+
 	// free temporary memory
 	Free_general(material_tmp);
 	Free_general(DipoleCoord_tmp);
@@ -2124,10 +2340,17 @@ void MakeParticle(void)
 		Free_general(contSegRoMin);
 		Free_general(contSegRoMax);
 	}
+#endif
 
 	// save geometry
-	if (save_geom) SaveGeometry();
+	if (save_geom)
+#ifndef ADDA_SPARSE 
+		SaveGeometry();
+#else
+		LogWarning(EC_WARN,ONE_POS,"Saving the geometry is not supported in sparse mode");
+#endif //ADDA_SPARSE
 
+#ifndef ADDA_SPARSE
 	/* adjust z-axis of position vector, to speed-up matrix-vector multiplication a little bit;
 	 * after this point 'position(z)' is taken relative to the local_z0.
 	 */
@@ -2137,9 +2360,21 @@ void MakeParticle(void)
 	}
 	local_Nz_unif=position[3*local_nvoid_Ndip-1]+1;
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
+#endif
+
 	box_origin_unif[0]=-gridspace*cX;
 	box_origin_unif[1]=-gridspace*cY;
-	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
+#ifndef ADDA_SPARSE
+	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);	
+#else
+    box_origin_unif[2]=-gridspace*cZ;
+    
+    InitArraySync();        
+	SyncPosition(position_full);
+	SyncMaterial(material_full);
+#endif //ADDA_SPARSE
+	
+	
 
 	Timing_Particle += GET_TIME() - tstart;
 }

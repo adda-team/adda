@@ -2,7 +2,7 @@
 # All options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2010-2011 ADDA contributors
+# Copyright (C) 2010-2012 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the 
@@ -32,17 +32,35 @@
 #===================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user
 #===================================================================================================
+#if clAmdFft (external library) should be used, oteherwise appleFFT is used
+#CFLAGS    += -DAMDFFT
+#LDFLAGS   += -lclAmdFft 
 
-CFLAGS    += -DOPENCL
-LDFLAGS   += -lOpenCL
+CFLAGS    += -DOPENCL 
+LDFLAGS   += -lOpenCL 
 CSOURCE   += oclcore.c
-CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+ifeq ($(filter NO_CPP,$(OPTIONS)),)
+  CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+else
+  $(error OpenCL version relies on C++ sources, hence it is incompatible with NO_CPP)
+endif
 
-# Each of the following .cl files is automatically transformed into .clstr files (located at ocl/) 
-# during compile time. The latter contain all the content of the original file as a C string, and 
-# are included in the C source files to define static strings. These strings define are further used
-# as a source to compile OpenCL kernels.
-CLSOURCE := oclkernels.cl
+ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
+  CFLAGS += -DOCL_READ_SOURCE_RUNTIME
+else
+  # Each of the following .cl files is automatically transformed into .clstr files (located at ocl/) 
+  # during compile time. The latter contain all the content of the original file as a C string, and 
+  # are included in the C source files to define static strings. These strings define are further 
+  # used as a source to compile OpenCL kernels.
+  CLSOURCE := oclkernels.cl
+endif
+
+# This fix is to disable linker warnings when linking against 32-bit OpenCL.dll on 64-bit Windows.
+# The issue appeared with Nvidia library supplied with driver 301.42
+ifneq ($(filter -m32,$(LDFLAGS)),)
+  LDFLAGS += -Wl,--enable-stdcall-fixup
+endif
+
 # This is a weird prefix, which is required since that is how .clstr files are quoted in .d files
 CLSPREFIX  := ../$(OCL)/
 CLSTRING   := $(CLSOURCE:.cl=.clstr)
@@ -55,8 +73,8 @@ CLSCOMMAND := sed -e 's/["\\]/\\&/g' -e 's/.*/"&\\n"/'
 # dependencies will fail. The implementation is equivalent to the one used in the make pattern in
 # common.mk (which is used for updating .clstr files when necessary), but more complicated since 
 # vpath (for .cl files) and automatic pattern substitution cannot be used
-$(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(CPATH)/%.cl,$(file)) > $(file)))
-vpath %.cl $(CPATH)
+$(foreach file,$(MISSINGCLS),$(shell $(CLSCOMMAND) $(patsubst %.clstr,$(PARENT)/%.cl,$(file)) > $(file)))
+vpath %.cl $(PARENT)
 
 PROG   := $(PROGOCL)
 MYCC   := $(CC)
