@@ -1237,12 +1237,10 @@ static void ReadDipFile(const char * restrict fname)
 #ifndef ADDA_SPARSE
 	// to remove possible overflows	
 	size_t boxX_l=(size_t)boxX;
-#else
-	const int jagged_cu = jagged*jagged*jagged;
 #endif //ADDA_SPARSE
 
-	TIME_TYPE tstart=GET_TIME();	
-
+	TIME_TYPE tstart=GET_TIME();
+	
 	mat=1; // the default value for single-domain shape formats
 	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
 		// scan numbers in a line
@@ -1271,18 +1269,18 @@ static void ReadDipFile(const char * restrict fname)
 					material_tmp[index]=(unsigned char)(mat-1);
 			}
 #else
-			if ((jagged_cu*index >= local_nvoid_d0) && (jagged_cu*index < local_nvoid_d1)) {
-				for (z=0;z<jagged;z++) 
-				for (y=0;y<jagged;y++) 
-				for (x=0;x<jagged;x++) {
+			
+			for (z=0;z<jagged;z++) 
+			for (y=0;y<jagged;y++) 
+			for (x=0;x<jagged;x++) {
+				if ((index >= local_nvoid_d0) && (index < local_nvoid_d1)) {
 					material_full[index]=(unsigned char)(mat-1);
 					position_full[3*index]=x0*jagged+x;
 					position_full[3*index+1]=y0*jagged+y;
-					position_full[3*index+2]=z0*jagged+z;
-					
+					position_full[3*index+2]=z0*jagged+z;					
 				}
-            }
-            index += jagged_cu;
+				index++;
+            }            
 #endif //ADDA_SPARSE
 		}
 	}
@@ -1992,10 +1990,12 @@ void InitShape(void)
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, gridspace
 {
-	int i;
-	size_t dip,index;
+	
+	size_t index;
 	TIME_TYPE tstart;
 #ifndef ADDA_SPARSE
+	int i;
+	size_t dip;
 	double jcX,jcY,jcZ; // center for jagged
 	size_t local_nRows_tmp;
 	int j,k,ns;	
@@ -2211,7 +2211,7 @@ void MakeParticle(void)
 #ifdef ADDA_SPARSE
 	MALLOC_VECTOR(material_full,uchar,nvoid_Ndip,ALL);      
     MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
-    memory+=(sizeof(char)+sizeof(int)*3)*nvoid_Ndip;
+    memory+=(sizeof(char)+sizeof(int)*3)*nvoid_Ndip;	
 
 	//for sparse mode, nvoid_Ndip is defined in InitDipFile 
 	//so we actually run SetupLocalD before reading the file
@@ -2222,20 +2222,20 @@ void MakeParticle(void)
 #endif
 
 	if (shape==SH_READ) ReadDipFile(shape_fname);
-	// initialization of mat_count and dipoles counts
-	for(i=0;i<=Nmat;i++) mat_count[i]=0;	
+	// initialization of mat_count and dipoles counts	
 	
 #ifndef ADDA_SPARSE
+	for(i=0;i<=Nmat;i++) mat_count[i]=0;
 	for(dip=0;dip<local_Ndip;dip++) mat_count[material_tmp[dip]]++;	
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	SetupLocalD();
-	nvoid_Ndip=Ndip-mat_count[Nmat];
-#else	
-	for(dip=0;dip<local_Ndip;dip++) mat_count[material_full[dip]]++;
+	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
+	if ((nvoid_Ndip=Ndip-mat_count[Nmat])==0)
+		LogError(ONE_POS,"All dipoles of the scatterer are void");		
 #endif //ADDA_SPARSE
 
 
-	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
+	
 	if (nvoid_Ndip==0)
 		LogError(ONE_POS,"All dipoles of the scatterer are void");
 	local_nRows=3*local_nvoid_Ndip;
@@ -2374,7 +2374,5 @@ MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
 	SyncMaterial(material_full);
 #endif //ADDA_SPARSE
 	
-	
-
 	Timing_Particle += GET_TIME() - tstart;
 }

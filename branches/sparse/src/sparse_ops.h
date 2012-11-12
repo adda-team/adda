@@ -27,7 +27,7 @@
 
 #ifdef USE_SSE3
 
-inline static void CcMul(doublecomplex const * restrict argvec_src, 
+inline static void CcMul(doublecomplex * restrict argvec_src, 
                          doublecomplex * restrict argvec_dest, const int j)
 /*
    Takes the j'th block in argvec_src, multiplies by cc_sqrt at that 
@@ -43,7 +43,7 @@ inline static void CcMul(doublecomplex const * restrict argvec_src,
                                            *(__m128d *)&(cc_sqrt[material[j]][2]));
 }
 
-inline static void AijProd(doublecomplex const * restrict argvec, 
+inline static void AijProd(doublecomplex * restrict argvec, 
                            doublecomplex * restrict resultvec,
                            const int i, const int j)
 /*
@@ -86,7 +86,7 @@ inline static void AijProd(doublecomplex const * restrict argvec,
    *(__m128d *)&(resultvec[i3+2]) = cadd(res, *(__m128d *)&(resultvec[i3+2]));
 }
 
-inline static void DiagProd(doublecomplex const * restrict argvec, doublecomplex * restrict resultvec, 
+inline static void DiagProd(doublecomplex * restrict argvec, doublecomplex * restrict resultvec, 
                             const int i) 
 /*
    Multiplies the result in the i'th block of resultvec by cc_sqrt at that block,
@@ -107,7 +107,7 @@ inline static void DiagProd(doublecomplex const * restrict argvec, doublecomplex
 
 #else //SSE3 not used
 
-inline static void CcMul(doublecomplex const * restrict argvec_src, 
+inline static void CcMul(doublecomplex * restrict argvec_src, 
                          doublecomplex * restrict argvec_dest, const int j)
 /*
    Takes the j'th block in argvec_src, multiplies by cc_sqrt at that 
@@ -115,13 +115,12 @@ inline static void CcMul(doublecomplex const * restrict argvec_src,
 */                         
 {
    const int j3 = j*3;
-   static doublecomplex tmp[3];
    cMult(argvec_src[j3],cc_sqrt[material_full[j]][0],argvec_dest[j3]);
    cMult(argvec_src[j3+1],cc_sqrt[material_full[j]][1],argvec_dest[j3+1]);
    cMult(argvec_src[j3+2],cc_sqrt[material_full[j]][2],argvec_dest[j3+2]);                                                               
 }
 
-inline static void AijProd(doublecomplex const * restrict argvec, 
+inline static void AijProd(doublecomplex * restrict argvec, 
                            doublecomplex * restrict resultvec,
                            const int i, const int j)
 /*
@@ -161,7 +160,7 @@ inline static void AijProd(doublecomplex const * restrict argvec,
 	cAdd(resZ,resultvec[i3+2],resultvec[i3+2]);
 }
 
-inline static void DiagProd(doublecomplex const * restrict argvec, doublecomplex * restrict resultvec, 
+inline static void DiagProd(doublecomplex * restrict argvec, doublecomplex * restrict resultvec, 
                             const int i) 
 /*
    Multiplies the result in the i'th block of resultvec by cc_sqrt at that block,

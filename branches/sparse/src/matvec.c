@@ -21,6 +21,7 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
+#include "debug.h"
 #include "fft.h"
 #include "function.h"
 #include "io.h"
@@ -529,7 +530,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		*inprod = 0.0;
 		for (size_t i=0; i<local_nRows; i++) {
 			*inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];		 
-		}
+		}		
 		MyInnerProduct(inprod,double_type,1,comm_timing);
 	}
 	

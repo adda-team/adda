@@ -1084,6 +1084,12 @@ PARSE_FUNC(init_field)
 PARSE_FUNC(int)
 {
 	double tmp;
+	
+#ifdef ADDA_SPARSE //only point dipoles in sparse mode
+	if (strcmp(argv[1],"poi")!=0) {
+		NotSupported("Interaction term prescription (sparse mode)",argv[1]);
+	}
+#endif
 
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
