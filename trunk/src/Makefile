@@ -24,6 +24,8 @@
 # These variables can also be given in the command line to make, but it will override all values
 # specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
 # with much care, including all relevant flags in the new value.
+# Moreover, all other variables can be overridden by command line option to make. In particular, 
+# this can be relevant for specifying a different version of the compiler (see below).
 #===================================================================================================
 
 #===================================================================================================
@@ -123,7 +125,9 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation
-# above for OPTIONS), overriding definition below.
+# above for OPTIONS), overriding definition below. To specify a different version of the compiler, 
+# e.g. 'gcc-4.7' instead of 'gcc', use command 'make CC=gcc-4.7' (analogously for Fortran and C++
+# compilers).
 # gnu - tested for gcc 3.2.3 - 4.5.2 (most recent experience only with 4.3 and newer)
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
