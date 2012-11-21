@@ -10,8 +10,9 @@ To be able to compile `ADDA` on Windows you need to install `MSYS` and `MinGW`.
  * Open command prompt and run
 {{{
 cd C:\MinGW\bin
-mingw-get install msys-base
+mingw-get install msys-base msys-coreutils-ext
 }}}
+ The latter part of `MSYS` (`msys-coreutils-ext`) is not required for `ADDA` compilation, but may be needed for executing Bash scripts, e.g. `tests/2exec/comp2exec`.
  * Add `C:\MinGW\MSYS\1.0\bin` to Windows environmental variable `PATH`.
 
 Unfortunately the original [http://www.mingw.org MinGW project] currently targets only 32-bit Windows. Therefore installation instructions for 32- and 64-bit are different.
