@@ -21,9 +21,12 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
+#include "debug.h"
 #include "fft.h"
 #include "function.h"
 #include "io.h"
+#include "sparse_ops.h"
+#include "interaction.h"
 #include "linalg.h"
 #include "prec_time.h"
 #include "vars.h"
@@ -47,7 +50,9 @@ extern const size_t DsizeY,DsizeZ,DsizeYZ;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
 
-#ifndef OPENCL // the following inline functions are not used in OpenCL mode
+#ifndef ADDA_SPARSE
+#ifndef OPENCL // the following inline functions are not used in OpenCL or sparse mode
+
 //============================================================
 
 INLINE size_t IndexSliceZY(const size_t y,const size_t z)
@@ -96,10 +101,12 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
-#endif
+#endif //OCL
+#endif //ADDA_SPARSE
 
 //============================================================
 
+#ifndef ADDA_SPARSE
 void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
@@ -466,3 +473,66 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	TotalMatVec++;
 }
+
+#else //ADDA_SPARSE is defined
+
+/* The sparse MatVec is implemented completely separately from the non-sparse version.
+ * Although there is some code duplication, this probably makes the both versions easier
+ * to maintain.
+*/
+void MatVec (doublecomplex * restrict argvec,    // the argument vector
+             doublecomplex * restrict resultvec, // the result vector
+             double *inprod,         // the resulting inner product
+             const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *comm_timing) // this variable is incremented by communication time
+{	
+	const bool ipr = (inprod != NULL);
+
+	if (her) {
+		for (size_t j=0; j<local_nRows; j++) {
+			argvec[j][IM] = -argvec[j][IM];		 
+		}
+	}
+	
+	for (size_t j=0; j<local_nvoid_Ndip; j++) {
+		CcMul(argvec,arg_full+3*local_nvoid_d0,j);
+	}
+	SyncArgvec();	
+	
+	for (size_t i=0; i<local_nvoid_Ndip; i++) {
+		const unsigned int i3 = 3*i;		
+		resultvec[i3][RE]=resultvec[i3][IM]=0.0;
+		resultvec[i3+1][RE]=resultvec[i3+1][IM]=0.0;
+		resultvec[i3+2][RE]=resultvec[i3+2][IM]=0.0;
+		for (size_t j=0; j<local_nvoid_d0+i; j++) {			
+			AijProd(arg_full, resultvec, i, j);
+		}		
+		for (size_t j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) {
+			AijProd(arg_full, resultvec, i, j);
+		}
+	}		
+	
+	for (size_t i=0; i<local_nvoid_Ndip; i++) {	
+		DiagProd(argvec, resultvec, i);		 
+	}
+	
+	if (her) {
+		for (size_t i=0; i<local_nRows; i++) {
+			resultvec[i][IM] = -resultvec[i][IM];
+			argvec[i][IM] = -argvec[i][IM];		
+		}
+	}	
+		
+	if (ipr) {
+		*inprod = 0.0;
+		for (size_t i=0; i<local_nRows; i++) {
+			*inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];		 
+		}		
+		MyInnerProduct(inprod,double_type,1,comm_timing);
+	}
+	
+	TotalMatVec++;
+	
+}
+
+#endif //ADDA_SPARSE

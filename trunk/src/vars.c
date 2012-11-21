@@ -31,9 +31,7 @@ double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 double WaveNum;           // wavenumber of incident light
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
-unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
-                                     * z-components are adjusted to be relative to the local_z0
-                                     */
+                                  
 double memory;            // total memory usage in bytes
 double memPeak;           // peak memory usage in bytes
 enum inter IntRelation;   // type of formula for interaction term
@@ -111,26 +109,9 @@ double * restrict Egrid_buffer;    // buffer to accumulate Egrid
 // checkpoint
 enum chpoint chp_type; // type of checkpoint (to save)
 
-// auxiliary grids and their partition over processors
-size_t gridX,gridY,gridZ;          /* sizes of the 'matrix' X, size_t - to remove type conversions
-                                    * we assume that 'int' is enough for it, but this declaration is
-                                    * to avoid type casting in calculations
-                                    */
-size_t gridYZ;                     // gridY*gridZ
-size_t smallY,smallZ;              // the size of the reduced matrix X
-size_t local_Nsmall;               // number of  points of expanded grid per one processor
 int nprocs;                        // total number of processes
 int ringid;                        // ID of current process
-int local_z0,local_z1;             // starting and ending z for current processor
-size_t local_Nz;                   // number of z layers (based on the division of smallZ)
-int local_Nz_unif;                 /* number of z layers (distance between max and min values),
-                                    * belonging to this processor, after all non_void dipoles are
-                                    * uniformly distributed between all processors
-                                    */
-int local_z1_coer;                 // ending z, coerced to be not greater than boxZ
-size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor and number of x
-                                    * layers (based on the division of smallX)
-                                    */
+
 size_t local_Ndip;                 // number of local total dipoles
 size_t local_nvoid_Ndip;           // number of local and ...
 size_t nvoid_Ndip;                 // ... total non-void dipoles
@@ -138,8 +119,8 @@ size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for
 /* By defining nvoid_Ndip, local_nvoid_d0, and local_nvoid_d1 as size_t we limit the possible number
  * of dipoles in 32-bit version by 4*10^9. This can be restricting for such huge runs distributed
  * among more than 1000 processors. But we assume that using such a large number of processor
- * implies modern cluster and hence 64-bit compilation of ADDA. Anyway, direct test for Ndip larger
- * than the limit is made and the meaningful error message is produced if needed.
+ * implies modern cluster and hence 64-bit compilation of ADDA. Anyway, a direct test for Ndip larger
+ * than the limit is made and a meaningful error message is produced if needed.
  *
  * The same limitation is implied in a few other places (like number of lines in dipole file, etc.).
  * Definitions of mat_count[] and Ndip are made as size_t due to the same reasoning.
@@ -153,3 +134,48 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_FileIO,      // time for input and output
           Timing_Integration, // time for all integrations (with precomputed values)
           tstart_main;        // starting time of the program (after MPI_Init in parallel)
+          
+#ifndef ADDA_SPARSE //These variables are exclusive to the FFT mode
+
+unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
+                                     * z-components are adjusted to be relative to the local_z0
+                                     */
+
+/* holds input vector (on expanded grid) to matvec. Also used as buffer in certain algorithms, that
+ * do not call MatVec (this should be strictly ensured !!!)
+ */
+doublecomplex * restrict Xmatrix;
+
+// auxiliary grids and their partition over processors
+size_t gridX,gridY,gridZ;          /* sizes of the 'matrix' X, size_t - to remove type conversions
+                                    * we assume that 'int' is enough for it, but this declaration is
+                                    * to avoid type casting in calculations
+                                    */
+size_t gridYZ;                     // gridY*gridZ
+size_t smallY,smallZ;              // the size of the reduced matrix X
+size_t local_Nsmall;               // number of  points of expanded grid per one processor
+
+int local_z0,local_z1;             // starting and ending z for current processor
+size_t local_Nz;                   // number of z layers (based on the division of smallZ)
+int local_Nz_unif;                 /* number of z layers (distance between max and min values),
+                                    * belonging to this processor, after all non_void dipoles are
+                                    * uniformly distributed between all processors
+                                    */
+int local_z1_coer;                 // ending z, coerced to be not greater than boxZ
+size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor and number of x
+                                    * layers (based on the division of smallX)
+                                    */
+
+#else //These variables are exclusive to the sparse mode
+
+int * restrict position;   // no reason to restrict this to short in sparse mode
+//in sparse mode, all coordinates must be available to each process
+int * restrict position_full;  
+
+unsigned char * restrict material_full;
+doublecomplex * restrict arg_full;
+
+double local_f0, local_f1;
+
+#endif //ADDA_SPARSE
+

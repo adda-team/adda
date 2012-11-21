@@ -33,11 +33,25 @@
 
 typedef enum {uchar_type,int_type,sizet_type,double_type,double3_type,cmplx_type,cmplx3_type} var_type;
 
+#ifdef PARALLEL
+#ifdef ADDA_SPARSE
+extern int * proc_mem_position;
+extern int * proc_mem_material;
+extern int * proc_mem_argvec; 
+extern int * proc_disp_position;
+extern int * proc_disp_material;
+extern int * proc_disp_argvec; 
+#endif //ADDA_SPARSE
+#endif //PARALLEL
+
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
+#ifndef ADDA_SPARSE
 void BlockTranspose(doublecomplex * restrict X,TIME_TYPE *timing);
 void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ);
+#endif //ADDA_SPARSE
 double AccumulateMax(double data,double *max);
+
 void Accumulate(double * restrict data,size_t size,double * restrict buffer,TIME_TYPE *timing);
 void MyInnerProduct(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
 void InitComm(int *argc_p,char ***argv_p);
@@ -46,11 +60,20 @@ void SetupLocalD(void);
 void MyBcast(void * restrict data,var_type type,const size_t n_elem,TIME_TYPE *timing);
 void BcastOrient(int *i,int *j,int *k);
 // used by granule generator
+#ifndef ADDA_SPARSE
 void SetGranulComm(double z0,double z1,double gdZ,int gZ,size_t gXY,size_t buf_size,int *lz0,
                    int *lz1,int sm_gr);
 void CollectDomainGranul(unsigned char * restrict dom,size_t gXY,int lz0,int locgZ,TIME_TYPE *timing);
 void FreeGranulComm(int sm_gr);
 void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
+#endif //ADDA_SPARSE
+
+#ifdef ADDA_SPARSE
+void InitArraySync(void);
+void SyncPosition(int * restrict pos);
+void SyncMaterial(unsigned char * restrict mat);
+void SyncArgvec(void);
+#endif //ADDA_SPARSE
 
 #ifdef PARALLEL
 // these functions are defined only in parallel mode

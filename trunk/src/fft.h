@@ -19,6 +19,8 @@
 #ifndef __fft_h
 #define __fft_h
 
+#ifndef ADDA_SPARSE //not needed in sparse mode
+
 #ifndef FFT_TEMPERTON
 #	define FFTW3 // FFTW3 is default
 #endif
@@ -37,5 +39,7 @@ void InitDmatrix(void);
 void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
+
+#endif //ADDA_SPARSE
 
 #endif // __fft_h

@@ -95,6 +95,9 @@ void InitTiming(void)
 	TotalIter=TotalMatVec=TotalEval=TotalEFieldPlane=0;
 	Timing_EField=Timing_FileIO=Timing_IntField=Timing_ScatQuan=Timing_Integration=0;
 	Timing_ScatQuanComm=Timing_InitDmComm=0;
+#ifdef ADDA_SPARSE
+	Timing_Dm_Init=Timing_Granul=Timing_FFT_Init=Timing_GranulComm=0;
+#endif	
 }
 
 //============================================================

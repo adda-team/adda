@@ -92,6 +92,9 @@ static int minX,minY,minZ;      // minimum values of dipole positions in dipole 
 static FILE * restrict dipfile; // handle of dipole file
 static enum shform read_format; // format of dipole file, which is read
 static double cX,cY,cZ;         // center for DipoleCoord, it is sometimes used in PlaceGranules
+
+#ifndef ADDA_SPARSE
+
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
 static double ad2,egnu,egeps; // for egg
@@ -132,6 +135,9 @@ struct segment * restrict contSeg;
 static unsigned char * restrict material_tmp;
 static double * restrict DipoleCoord_tmp;
 static unsigned short * restrict position_tmp;
+#endif //ADDA_SPARSE
+
+#ifndef ADDA_SPARSE //much of the functionality here is disabled in sparse mode
 
 // EXTERNAL FUNCTIONS
 
@@ -226,236 +232,6 @@ static void SaveGeometry(void)
 }
 
 //===========================================================
-
-static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm,
-	const char **rft)
-/* read dipole file first to determine box sizes and Nmat; input is not checked for very large
- * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
- * closed in ReadDipFile.
- */
-{
-	int x,y,z,mat,scanned,mustbe;
-	size_t line,skiplines,nd;
-	double ds_Ndip; // number of dipoles declared in DDSCAT file
-	bool anis_warned;
-	bool ds_lf; // whether 6-th line matches pattern for DDSCAT 7 format
-	int t2,t3; // dumb variables
-	float td1,td2,td3; // dumb float variables
-	int maxX,maxY,maxZ,maxN;
-	char linebuf[BUF_LINE];
-	const char *rf_text;
-
-	TIME_TYPE tstart=GET_TIME();
-	dipfile=FOpenErr(fname,"r",ALL_POS);
-
-	// detect file format
-	mustbe=UNDEF; // used as indicator whether shape was auto-detected
-	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
-	 * therefore we first skip all comments
-	 */
-	line=SkipComments(dipfile);
-	if (line<=1 // common extensive test for both DDSCAT formats
-		&& (SkipNLines(dipfile,1-line),line=1, // to always skip first line
-			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL)
-		&& sscanf(linebuf,"%lf",&ds_Ndip)==1 // %zu is not universally supported in scanf
-		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
-		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
-		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
-		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
-		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
-		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
-		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
-		&& (ds_lf=(sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3), // this line is new in DDSCAT7
-			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) ) {
-		/* Since the 6th or 7th line in DDSCAT format is arbitrary, it can match any test.
-		 * Therefore, it is impossible make rigorous automatic detection of version of DDSCAT
-		 * format. The failure at this step will only be detected after scanning the whole file and
-		 * comparing the number of data lines to ds_Ndip.
-		 * Having said this, it is less probable for a comment line to match 7-element pattern than
-		 * 3-element one, so the result of the following test takes precedence over ds_lf.
-		 */
-		if (sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
-			read_format=SF_DDSCAT6;
-			rf_text="DDSCAT 6 format (FRMFIL)";
-			mustbe=6;
-			skiplines=line-1; // should be 6
-		}
-		else if (ds_lf && FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
-			&& sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
-			read_format=SF_DDSCAT7;
-			rf_text="DDSCAT 7 format (FROM_FILE)";
-			mustbe=6;
-			skiplines=line-1; // should be 7
-		}
-	}
-	if (mustbe==UNDEF) { // test for ADDA text formats, restarting the file
-		fseek(dipfile,0,SEEK_SET);
-		line=SkipComments(dipfile);
-		/* scanf and analyze Nmat; if there is blank line between comments and Nmat, it fails later;
-		 * the value of Nmat obtained here is not actually relevant, the main factor is maximum
-		 * domain number among all dipoles.
-		 */
-		scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
-		if (scanned==EOF) LogError(ONE_POS,"No dipole positions are found in %s",fname);
-		else if (scanned==0) { // no "Nmat=..."
-			/* It is hard to perform rigorous test for SF_TEXT since any number of blank lines
-			 * can be present before the data lines. Therefore this format is determined by
-			 * exclusion of other possibilities. Hence, errors in files of other formats will most
-			 * likely result in assignment of SF_TEXT format to it.
-			 */
-			read_format=SF_TEXT;
-			rf_text="ADDA text format (single domain)";
-			mustbe=3;
-			skiplines=line;
-		}
-		else { // "Nmat=..." present
-			read_format=SF_TEXT_EXT;
-			rf_text="ADDA text format (multi-domain)";
-			mustbe=4;
-			skiplines=line+1;
-		}
-	}
-	/* TO ADD NEW FORMAT OF SHAPE FILE
-	 * Add code to detect file format to this if-else sequence in appropriate place. Currently
-	 * SF_TEXT is very flexible - so it is not strictly checked against, effectively making it the
-	 * default format. So test for new format should probably go before SF_TEXT. Failure of
-	 * detection of other formats is indicated by mustbe==UNDEF.
-	 * The test if successful should at least assign:
-	 * 1) read_format to a handle from const.h;
-	 * 2) rf_text to some literal descriptive string;
-	 * 2) mustbe to a number of values to be scanned in each data line;
-	 * 3) skiplines to a number of non-data files in the beginning of the file
-	 */
-	if (mustbe==UNDEF) // currently this test is redundant
-		LogError(ONE_POS,"Failed to recognize the format of shape file %s",fname);
-
-	// scan main part of the file
-	fseek(dipfile,0,SEEK_SET);
-	line=SkipNLines(dipfile,skiplines);
-	maxX=maxY=maxZ=INT_MIN;
-	minX=minY=minZ=INT_MAX;
-	maxN=1;
-	anis_warned=false;
-	// reading is performed in lines
-	nd=0;
-	while(FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
-		// scan numbers in a line
-		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x,&y,&z);
-		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
-		// for ddscat format, only first material is used, other two are ignored
-		else { // read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
-			scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
-			if (!anis_warned && (t2!=mat || t3!=mat)) {
-				LogWarning(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
-					"line %zu). ADDA ignores this anisotropy, using only the identifier of "
-					"x-component of refractive index as domain number",fname,line);
-				anis_warned=true;
-			}
-		}
-		/* TO ADD NEW FORMAT OF SHAPE FILE
-		 * Add code to scan a single data line and perform consistency checks if necessary. The
-		 * common variables to be scanned are 'x','y','z' (integer positions of dipoles) and
-		 * possibly 'mat' - domain number. 'scanned' should be set to be tested below.
-		 */
-		// if sscanf returns EOF, that is a blank line -> just skip
-		if (scanned!=EOF) {
-			if (scanned!=mustbe) // this in most cases indicates wrong format
-				LogError(ONE_POS,"%s was detected, but error occurred during scanning of line %zu "
-					"from dipole file %s",rf_text,line,fname);
-			nd++;
-			if (read_format!=SF_TEXT) {
-				if (mat<=0) LogError(ONE_POS,"%s was detected, but nonpositive material number "
-					"(%d) encountered during scanning of line %zu from dipole file %s",
-					rf_text,mat,line,fname);
-				else if (mat>maxN) maxN=mat;
-			}
-			/* TO ADD NEW FORMAT OF SHAPE FILE
-			 * The code above processes scanned mat. It is fairly general but may need modification
-			 * for a new shape format. In particular the code should be executed if and only if the
-			 * shape format is (potentially) multi-domain.
-			 */
-			// update maxima and minima
-			if (x>maxX) maxX=x;
-			if (x<minX) minX=x;
-			if (y>maxY) maxY=y;
-			if (y<minY) minY=y;
-			if (z>maxZ) maxZ=z;
-			if (z<minZ) minZ=z;
-		}
-	}
-
-	// consistency checks and assignment of return values
-	if (read_format==SF_TEXT_EXT && *Nm!=maxN)
-		LogWarning(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the maximum domain "
-			"number (%d) among all specified dipoles; hence the former is ignored",*Nm,fname,maxN);
-	if ((read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7) && nd!=ds_Ndip)
-		LogWarning(EC_WARN,ONE_POS,"Number of dipoles (%.0f), as given in the beginning of %s, is "
-			"not equal to the number of data lines actually present and scanned (%zu)",
-			ds_Ndip,fname,nd);
-	/* TO ADD NEW FORMAT OF SHAPE FILE
-	 * If any consistency checks for the whole file can be performed, add them here.
-	 */
-	*rft=rf_text;
-	*Nm=maxN;
-	// set grid (box) sizes
-	*bX=jagged*(maxX-minX+1);
-	*bY=jagged*(maxY-minY+1);
-	*bZ=jagged*(maxZ-minZ+1);
-	/* return to first data line for ReadDipFile;
-	 * not optimal way, but works more robustly when non-system EOL is used in data file
-	 */
-	fseek(dipfile,0,SEEK_SET);
-	SkipNLines(dipfile,skiplines);
-	Timing_FileIO+=GET_TIME()-tstart;
-}
-
-//===========================================================
-
-static void ReadDipFile(const char * restrict fname)
-/* read dipole file; no consistency checks are made since they are made in InitDipFile.
- * the file is opened in InitDipFile; this function only closes the file.
- */
-{
-	int x,y,z,x0,y0,z0,mat,scanned;
-	int index;
-	size_t boxX_l;
-	char linebuf[BUF_LINE];
-
-	TIME_TYPE tstart=GET_TIME();
-	// to remove possible overflows
-	boxX_l=(size_t)boxX;
-
-	mat=1; // the default value for single-domain shape formats
-	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
-		// scan numbers in a line
-		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
-		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
-		// read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
-		else scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat);
-		/* TO ADD NEW FORMAT OF SHAPE FILE
-		 * Add code to scan a single data line. The common variables to be scanned are 'x0','y0',
-		 * 'z0' (integer positions of dipoles) and  possibly 'mat' - domain number. 'scanned'
-		 * should be set to be tested against EOF below.
-		 * The code is similar to the one in InitDipFile() but can be simpler because no consistency
-		 * checks are performed here.
-		 */
-		// if sscanf returns EOF, that is a blank line -> just skip
-		if (scanned!=EOF) {
-			// shift dipole position to be nonnegative
-			x0-=minX;
-			y0-=minY;
-			z0-=minZ;
-			// initialize box jagged*jagged*jagged instead of one dipole
-			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
-				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
-					index=(z-local_z0)*boxXY+y*boxX_l+x;
-					material_tmp[index]=(unsigned char)(mat-1);
-			}
-		}
-	}
-	FCloseErr(dipfile,fname,ALL_POS);
-	Timing_FileIO+=GET_TIME()-tstart;
-}
 
 //==========================================================
 #define ALLOCATE_SEGMENTS(N) (struct segment *)voidVector((N)*sizeof(struct segment),ALL_POS,\
@@ -1259,6 +1035,260 @@ static size_t PlaceGranules(void)
 #undef CHECK_CELL
 #undef CHECK_CELL_TEST
 
+//===========================================================
+
+#endif //ADDA_SPARSE
+
+static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm,
+	const char **rft)
+/* read dipole file first to determine box sizes and Nmat; input is not checked for very large
+ * numbers (integer overflows) to increase speed; this function opens file for reading, the file is
+ * closed in ReadDipFile.
+ */
+{
+	int x,y,z,mat,scanned,mustbe;
+	size_t line,skiplines,nd;
+	double ds_Ndip; // number of dipoles declared in DDSCAT file
+	bool anis_warned;
+	bool ds_lf; // whether 6-th line matches pattern for DDSCAT 7 format
+	int t2,t3; // dumb variables
+	float td1,td2,td3; // dumb float variables
+	int maxX,maxY,maxZ,maxN;
+	char linebuf[BUF_LINE];
+	const char *rf_text;
+
+	TIME_TYPE tstart=GET_TIME();
+	dipfile=FOpenErr(fname,"r",ALL_POS);
+
+	// detect file format
+	mustbe=UNDEF; // used as indicator whether shape was auto-detected
+	/* test for DDSCAT format; in not-DDSCAT format, the line scanned below may be a long comment;
+	 * therefore we first skip all comments
+	 */
+	line=SkipComments(dipfile);
+	if (line<=1 // common extensive test for both DDSCAT formats
+		&& (SkipNLines(dipfile,1-line),line=1, // to always skip first line
+			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL)
+		&& sscanf(linebuf,"%lf",&ds_Ndip)==1 // %zu is not universally supported in scanf
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3
+		&& FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+		&& (ds_lf=(sscanf(linebuf,"%f %f %f",&td1,&td2,&td3)==3), // this line is new in DDSCAT7
+			FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) ) {
+		/* Since the 6th or 7th line in DDSCAT format is arbitrary, it can match any test.
+		 * Therefore, it is impossible make rigorous automatic detection of version of DDSCAT
+		 * format. The failure at this step will only be detected after scanning the whole file and
+		 * comparing the number of data lines to ds_Ndip.
+		 * Having said this, it is less probable for a comment line to match 7-element pattern than
+		 * 3-element one, so the result of the following test takes precedence over ds_lf.
+		 */
+		if (sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
+			read_format=SF_DDSCAT6;
+			rf_text="DDSCAT 6 format (FRMFIL)";
+			mustbe=6;
+			skiplines=line-1; // should be 6
+		}
+		else if (ds_lf && FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL
+			&& sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3)==6) {
+			read_format=SF_DDSCAT7;
+			rf_text="DDSCAT 7 format (FROM_FILE)";
+			mustbe=6;
+			skiplines=line-1; // should be 7
+		}
+	}
+	if (mustbe==UNDEF) { // test for ADDA text formats, restarting the file
+		fseek(dipfile,0,SEEK_SET);
+		line=SkipComments(dipfile);
+		/* scanf and analyze Nmat; if there is blank line between comments and Nmat, it fails later;
+		 * the value of Nmat obtained here is not actually relevant, the main factor is maximum
+		 * domain number among all dipoles.
+		 */
+		scanned=fscanf(dipfile,"Nmat=%d\n",Nm);
+		if (scanned==EOF) LogError(ONE_POS,"No dipole positions are found in %s",fname);
+		else if (scanned==0) { // no "Nmat=..."
+			/* It is hard to perform rigorous test for SF_TEXT since any number of blank lines
+			 * can be present before the data lines. Therefore this format is determined by
+			 * exclusion of other possibilities. Hence, errors in files of other formats will most
+			 * likely result in assignment of SF_TEXT format to it.
+			 */
+			read_format=SF_TEXT;
+			rf_text="ADDA text format (single domain)";
+			mustbe=3;
+			skiplines=line;
+		}
+		else { // "Nmat=..." present
+			read_format=SF_TEXT_EXT;
+			rf_text="ADDA text format (multi-domain)";
+			mustbe=4;
+			skiplines=line+1;
+		}
+	}
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * Add code to detect file format to this if-else sequence in appropriate place. Currently
+	 * SF_TEXT is very flexible - so it is not strictly checked against, effectively making it the
+	 * default format. So test for new format should probably go before SF_TEXT. Failure of
+	 * detection of other formats is indicated by mustbe==UNDEF.
+	 * The test if successful should at least assign:
+	 * 1) read_format to a handle from const.h;
+	 * 2) rf_text to some literal descriptive string;
+	 * 2) mustbe to a number of values to be scanned in each data line;
+	 * 3) skiplines to a number of non-data files in the beginning of the file
+	 */
+	if (mustbe==UNDEF) // currently this test is redundant
+		LogError(ONE_POS,"Failed to recognize the format of shape file %s",fname);
+
+	// scan main part of the file
+	fseek(dipfile,0,SEEK_SET);
+	line=SkipNLines(dipfile,skiplines);
+	maxX=maxY=maxZ=INT_MIN;
+	minX=minY=minZ=INT_MAX;
+	maxN=1;
+	anis_warned=false;
+	// reading is performed in lines
+	nd=0;
+	while(FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+		// scan numbers in a line
+		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x,&y,&z);
+		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat);
+		// for ddscat format, only first material is used, other two are ignored
+		else { // read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
+			scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
+			if (!anis_warned && (t2!=mat || t3!=mat)) {
+				LogWarning(EC_WARN,ONE_POS,"Anisotropic dipoles are detected in file %s (first on "
+					"line %zu). ADDA ignores this anisotropy, using only the identifier of "
+					"x-component of refractive index as domain number",fname,line);
+				anis_warned=true;
+			}
+		}
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Add code to scan a single data line and perform consistency checks if necessary. The
+		 * common variables to be scanned are 'x','y','z' (integer positions of dipoles) and
+		 * possibly 'mat' - domain number. 'scanned' should be set to be tested below.
+		 */
+		// if sscanf returns EOF, that is a blank line -> just skip
+		if (scanned!=EOF) {
+			if (scanned!=mustbe) // this in most cases indicates wrong format
+				LogError(ONE_POS,"%s was detected, but error occurred during scanning of line %zu "
+					"from dipole file %s",rf_text,line,fname);
+			nd++;
+			if (read_format!=SF_TEXT) {
+				if (mat<=0) LogError(ONE_POS,"%s was detected, but nonpositive material number "
+					"(%d) encountered during scanning of line %zu from dipole file %s",
+					rf_text,mat,line,fname);
+				else if (mat>maxN) maxN=mat;
+			}
+			/* TO ADD NEW FORMAT OF SHAPE FILE
+			 * The code above processes scanned mat. It is fairly general but may need modification
+			 * for a new shape format. In particular the code should be executed if and only if the
+			 * shape format is (potentially) multi-domain.
+			 */
+			// update maxima and minima
+			if (x>maxX) maxX=x;
+			if (x<minX) minX=x;
+			if (y>maxY) maxY=y;
+			if (y<minY) minY=y;
+			if (z>maxZ) maxZ=z;
+			if (z<minZ) minZ=z;
+		}
+	}
+
+	// consistency checks and assignment of return values
+	if (read_format==SF_TEXT_EXT && *Nm!=maxN)
+		LogWarning(EC_WARN,ONE_POS,"Nmat (%d), as given in %s, is not equal to the maximum domain "
+			"number (%d) among all specified dipoles; hence the former is ignored",*Nm,fname,maxN);
+	if ((read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7) && nd!=ds_Ndip)
+		LogWarning(EC_WARN,ONE_POS,"Number of dipoles (%.0f), as given in the beginning of %s, is "
+			"not equal to the number of data lines actually present and scanned (%zu)",
+			ds_Ndip,fname,nd);
+			
+	nvoid_Ndip=nd*jagged*jagged*jagged;
+	
+	/* TO ADD NEW FORMAT OF SHAPE FILE
+	 * If any consistency checks for the whole file can be performed, add them here.
+	 */
+	*rft=rf_text;
+	*Nm=maxN;
+	// set grid (box) sizes
+	*bX=jagged*(maxX-minX+1);
+	*bY=jagged*(maxY-minY+1);
+	*bZ=jagged*(maxZ-minZ+1);
+	/* return to first data line for ReadDipFile;
+	 * not optimal way, but works more robustly when non-system EOL is used in data file
+	 */
+	fseek(dipfile,0,SEEK_SET);
+	SkipNLines(dipfile,skiplines);
+	Timing_FileIO+=GET_TIME()-tstart;
+}
+
+//===========================================================
+
+static void ReadDipFile(const char * restrict fname)
+/* read dipole file; no consistency checks are made since they are made in InitDipFile.
+ * the file is opened in InitDipFile; this function only closes the file.
+ */
+{
+	int x,y,z,x0,y0,z0,mat,scanned;
+	size_t index=0;
+	char linebuf[BUF_LINE];	
+#ifndef ADDA_SPARSE
+	// to remove possible overflows
+	size_t boxX_l=(size_t)boxX;
+#endif //ADDA_SPARSE
+
+	TIME_TYPE tstart=GET_TIME();
+	
+	mat=1; // the default value for single-domain shape formats
+	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+		// scan numbers in a line
+		if (read_format==SF_TEXT) scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0);
+		else if (read_format==SF_TEXT_EXT) scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat);
+		// read_format==SF_DDSCAT6 || read_format==SF_DDSCAT7
+		else scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat);
+		/* TO ADD NEW FORMAT OF SHAPE FILE
+		 * Add code to scan a single data line. The common variables to be scanned are 'x0','y0',
+		 * 'z0' (integer positions of dipoles) and  possibly 'mat' - domain number. 'scanned'
+		 * should be set to be tested against EOF below.
+		 * The code is similar to the one in InitDipFile() but can be simpler because no consistency
+		 * checks are performed here.
+		 */
+		// if sscanf returns EOF, that is a blank line -> just skip
+		if (scanned!=EOF) {
+			// shift dipole position to be nonnegative
+			x0-=minX;
+			y0-=minY;
+			z0-=minZ;
+			// initialize box jagged*jagged*jagged instead of one dipole
+#ifndef ADDA_SPARSE
+			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
+				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
+					index=(z-local_z0)*boxXY+y*boxX_l+x;
+					material_tmp[index]=(unsigned char)(mat-1);
+			}
+#else
+			
+			for (z=0;z<jagged;z++) 
+			for (y=0;y<jagged;y++) 
+			for (x=0;x<jagged;x++) {
+				if ((index >= local_nvoid_d0) && (index < local_nvoid_d1)) {
+					material_full[index]=(unsigned char)(mat-1);
+					position_full[3*index]=x0*jagged+x;
+					position_full[3*index+1]=y0*jagged+y;
+					position_full[3*index+2]=z0*jagged+z;
+				}
+				index++;
+			}
+#endif //ADDA_SPARSE
+		}
+	}
+	
+	FCloseErr(dipfile,fname,ALL_POS);
+	Timing_FileIO+=GET_TIME()-tstart;
+}
+
 //==========================================================
 
 static int FitBox(const int box)
@@ -1302,7 +1332,10 @@ void InitShape(void)
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
 	double yx_ratio,zx_ratio;
-	double tmp1,tmp2,tmp3;
+	double tmp1,tmp2;
+#ifndef ADDA_SPARSE
+	double tmp3;
+#endif
 	TIME_TYPE tstart;
 	int Nmat_need,i,temp;
 	int small_Nmat=UNDEF;    // is set to Nmat, when it is smaller than needed (during prognosis)
@@ -1338,6 +1371,7 @@ void InitShape(void)
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
+#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode
 	if (shape==SH_AXISYMMETRIC) {
 		/* Axisymmetric homogeneous shape, defined by its contour in ro-z plane of the cylindrical
 		 * coordinate system. Its symmetry axis coincides with the z-axis, and the contour is read
@@ -1727,15 +1761,6 @@ void InitShape(void)
 		volume_ratio=UNDEF;
 		Nmat_need=1;
 	}
-	else if (shape==SH_READ) {
-		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
-		const char *rf_text;
-		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need,&rf_text);
-		if (IFROOT) sh_form_str1=dyn_sprintf("specified by file %s - %s; size along x-axis:",
-			shape_fname,rf_text);
-		yx_ratio=zx_ratio=UNDEF;
-		volume_ratio=UNDEF;
-	}
 	else if (shape==SH_SPHERE) {
 		if (IFROOT) sh_form_str1="sphere; diameter:";
 		volume_ratio=PI_OVER_SIX;
@@ -1755,6 +1780,17 @@ void InitShape(void)
 		yx_ratio=zx_ratio=1;
 		volume_ratio=1;
 		Nmat_need=2;
+	}	
+	else 
+#endif //ADDA_SPARSE	
+	if (shape==SH_READ) {
+		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
+		const char *rf_text;
+		InitDipFile(shape_fname,&n_boxX,&n_boxY,&n_boxZ,&Nmat_need,&rf_text);
+		if (IFROOT) sh_form_str1=dyn_sprintf("specified by file %s - %s; size along x-axis:",
+			shape_fname,rf_text);
+		yx_ratio=zx_ratio=UNDEF;
+		volume_ratio=UNDEF;
 	}
 	/* TO ADD NEW SHAPE
 	 * add an option here (in 'else if' sequence in alphabetical order). Identifier ('SH_...')
@@ -1789,7 +1825,12 @@ void InitShape(void)
 	 *   variables (which are used only in this part of the code), either use 'tmp1'-'tmp3' or
 	 *   define your own (with more informative names) in the beginning of this function.
 	 */
-	else LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
+	else 
+#ifndef ADDA_SPARSE 
+		LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
+#else
+		LogError(ONE_POS,"Only shapes read from a file are currently supported in sparse mode"); 
+#endif //ADDA_SPARSE
 
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
@@ -1807,6 +1848,7 @@ void InitShape(void)
 				"while shape '%s' sets both the particle size and the size of the grid",shapename);
 		}
 	}
+#ifndef ADDA_SPARSE //granulation disabled in sparse mode
 	// initialize domain granulation
 	if (sh_granul) {
 		symX=symY=symZ=symR=false; // no symmetry with granules
@@ -1817,6 +1859,7 @@ void InitShape(void)
 		// update shapename; use new storage
 		shapename=dyn_sprintf("%s_gran",shapename);
 	}
+#endif
 	// check if enough refractive indices or extra
 	if (Nmat<Nmat_need) {
 		if (prognosis) small_Nmat=Nmat;
@@ -1918,11 +1961,13 @@ void InitShape(void)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
 				n_boxY,n_boxZ,boxY,boxZ);
 	}
+#ifndef ADDA_SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
 	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing "
 		"box (%.0f) is larger than supported by size_t type on this system (%zu). If possible, "
 		"please recompile ADDA in 64-bit mode.",tmp,SIZE_MAX);
+#endif //ADDA_SPARSE
 	Ndip=boxX*boxY*boxZ;
 	// initialize maxiter; not very realistic
 	if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
@@ -1945,31 +1990,43 @@ void InitShape(void)
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, gridspace
 {
-	int i,j,k,ns;
-	size_t index,dip,local_nRows_tmp;
+	
+	size_t index;
+	TIME_TYPE tstart;
+#ifndef ADDA_SPARSE
+	int i;
+	size_t dip;
+	double jcX,jcY,jcZ; // center for jagged
+	size_t local_nRows_tmp;
+	int j,k,ns;	
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
-	double jcX,jcY,jcZ; // center for jagged
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
 	int xj,yj,zj;
 	int mat;
 	unsigned short us_tmp;
-	TIME_TYPE tstart,tgran;
+	TIME_TYPE tgran;
+#endif //ADDA_SPARSE
+
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
 	 * well use 'tmp1'-'tmp3' variables defined above.
 	 */
 
 	tstart=GET_TIME();
-
-	index=0;
-	// assumed that box's are even
-	jcX=jcY=jcZ=jagged/2.0;
+	
 	cX=(boxX-1)/2.0;
 	cY=(boxY-1)/2.0;
 	cZ=(boxZ-1)/2.0;
+		
+#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode
+	index=0;	
+	// assumed that box's are even
+	jcX=jcY=jcZ=jagged/2.0;
+
 	local_nRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"local_nRows_tmp");
+	
 	/* allocate temporary memory; even if prognosis, since they are needed for exact estimation
 	 * they will be reallocated afterwards (when local_nRows is known).
 	 */
@@ -2149,14 +2206,37 @@ void MakeParticle(void)
 				material_tmp[index]=(unsigned char)mat;
 				index++;
 			} // End box loop
+#endif //ADDA_SPARSE
+
+#ifdef ADDA_SPARSE
+	MALLOC_VECTOR(material_full,uchar,nvoid_Ndip,ALL);
+	MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
+	memory+=(sizeof(char)+sizeof(int)*3)*nvoid_Ndip;
+
+	//for sparse mode, nvoid_Ndip is defined in InitDipFile
+	//so we actually run SetupLocalD before reading the file
+	//(which requires local_nvoid_d0 and local_nvoid_d1 to be defined)
+	SetupLocalD();
+	local_nvoid_Ndip=local_nvoid_d1-local_nvoid_d0;
+	local_Ndip = local_nvoid_Ndip;
+#endif
+
 	if (shape==SH_READ) ReadDipFile(shape_fname);
 	// initialization of mat_count and dipoles counts
+	
+#ifndef ADDA_SPARSE
 	for(i=0;i<=Nmat;i++) mat_count[i]=0;
 	for(dip=0;dip<local_Ndip;dip++) mat_count[material_tmp[dip]]++;
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	SetupLocalD();
 	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
 	if ((nvoid_Ndip=Ndip-mat_count[Nmat])==0)
+		LogError(ONE_POS,"All dipoles of the scatterer are void");
+#endif //ADDA_SPARSE
+
+
+	
+	if (nvoid_Ndip==0)
 		LogError(ONE_POS,"All dipoles of the scatterer are void");
 	local_nRows=3*local_nvoid_Ndip;
 	// initialize dpl and gridspace
@@ -2187,6 +2267,8 @@ void MakeParticle(void)
 	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip,ONE_THIRD)*gridspace;
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
+	
+#ifndef ADDA_SPARSE
 	// granulate one domain, if needed
 	if (sh_granul) {
 		tgran=GET_TIME();
@@ -2214,14 +2296,31 @@ void MakeParticle(void)
 		mat_count[gr_mat]-=mat_count[Nmat-1];
 		Timing_Granul=GET_TIME()-tgran;
 	}
+#endif //ADDA_SPARSE
+	
 	/* allocate main particle arrays, using precise local_nRows even when prognosis is used to enable
 	 * save_geom afterwards.
 	 */
-	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
-	MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
+MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
+MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
+#ifndef ADDA_SPARSE	
 	MALLOC_VECTOR(position,ushort,local_nRows,ALL);
-
 	memory+=(3*(sizeof(short int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
+#else
+	MALLOC_VECTOR(position,int,local_nRows,ALL);
+	memory+=(3*(sizeof(int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
+	
+	memcpy(material, &(material_full[local_nvoid_d0]), local_nvoid_Ndip*sizeof(*material_full));
+	memcpy(position, &(position_full[3*local_nvoid_d0]), local_nRows*sizeof(*position_full));      
+
+	for (index=0; index<local_nvoid_Ndip; index++) {
+		DipoleCoord[3*index] = (position[3*index] - cX) * gridspace;
+		DipoleCoord[3*index+1] = (position[3*index+1] - cY) * gridspace;
+		DipoleCoord[3*index+2] = (position[3*index+2] - cZ) * gridspace;
+	}
+#endif
+
+#ifndef ADDA_SPARSE	
 	// copy nontrivial part of arrays
 	index=0;
 	for (dip=0;dip<local_Ndip;dip++) if (material_tmp[dip]<Nmat) {
@@ -2231,6 +2330,7 @@ void MakeParticle(void)
 		memcpy(position+3*index,position_tmp+3*dip,3*sizeof(short int));
 		index++;
 	}
+
 	// free temporary memory
 	Free_general(material_tmp);
 	Free_general(DipoleCoord_tmp);
@@ -2240,10 +2340,17 @@ void MakeParticle(void)
 		Free_general(contSegRoMin);
 		Free_general(contSegRoMax);
 	}
+#endif
 
 	// save geometry
-	if (save_geom) SaveGeometry();
+	if (save_geom)
+#ifndef ADDA_SPARSE 
+		SaveGeometry();
+#else
+		LogWarning(EC_WARN,ONE_POS,"Saving the geometry is not supported in sparse mode");
+#endif //ADDA_SPARSE
 
+#ifndef ADDA_SPARSE
 	/* adjust z-axis of position vector, to speed-up matrix-vector multiplication a little bit;
 	 * after this point 'position(z)' is taken relative to the local_z0.
 	 */
@@ -2253,9 +2360,19 @@ void MakeParticle(void)
 	}
 	local_Nz_unif=position[3*local_nvoid_Ndip-1]+1;
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
+#endif
+
 	box_origin_unif[0]=-gridspace*cX;
 	box_origin_unif[1]=-gridspace*cY;
+#ifndef ADDA_SPARSE
 	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
-
+#else
+	box_origin_unif[2]=-gridspace*cZ;
+	
+	InitArraySync();
+	SyncPosition(position_full);
+	SyncMaterial(material_full);
+#endif //ADDA_SPARSE
+	
 	Timing_Particle += GET_TIME() - tstart;
 }

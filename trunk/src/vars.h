@@ -33,11 +33,12 @@
 #include <time.h>    // for time_t
 
 // basic variables
+
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;
 extern double dipvol,kd,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
-extern unsigned short * restrict position;
+
 extern double memory,memPeak;
 extern enum inter IntRelation;
 extern enum pol PolRelation;
@@ -80,18 +81,38 @@ extern double * restrict Egrid_buffer;
 // checkpoint
 extern enum chpoint chp_type;
 
-// auxiliary grids and their partition over processors
-extern size_t gridX,gridY,gridZ;
-extern size_t gridYZ;
-extern size_t smallY,smallZ;
-extern size_t local_Nsmall;
 extern int nprocs,ringid;
-extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
-extern size_t local_Nz,local_x0,local_x1,local_Nx;
+
 extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid_d1,nvoid_Ndip;
 
 // timing
 extern time_t wt_start,last_chp_wt;
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
+
+#ifndef ADDA_SPARSE //These variables are exclusive to the FFT mode
+
+extern unsigned short * restrict position;
+
+extern doublecomplex * restrict Xmatrix;
+
+// auxiliary grids and their partition over processors
+extern size_t gridX,gridY,gridZ;
+extern size_t gridYZ;
+extern size_t smallY,smallZ;
+extern size_t local_Nsmall;
+extern int local_z0,local_z1,local_z1_coer,local_Nz_unif;
+extern size_t local_Nz,local_x0,local_x1,local_Nx;
+
+#else //These variables are exclusive to the sparse mode
+
+extern int * restrict position;
+extern double * restrict DipoleCoord_full;
+extern int * restrict position_full;
+extern unsigned char * restrict material_full;
+extern doublecomplex * restrict arg_full;
+
+extern double local_f0, local_f1;
+
+#endif //ADDA_SPARSE
 
 #endif // __vars_h

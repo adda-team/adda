@@ -50,7 +50,7 @@ extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in fft.c
 #ifndef OPENCL
-extern doublecomplex *Xmatrix; // used as storage for arrays in WKB init field
+extern doublecomplex * restrict Xmatrix; // used as storage for arrays in WKB init field
 #endif
 // defined and initialized in param.c
 extern const double iter_eps;
@@ -1061,6 +1061,7 @@ static const char *CalcInitField(double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		descr="x_0 = E_inc\n";
 	}
+#ifndef ADDA_SPARSE	//currently no support for WKB in sparse mode
 	else if (InitField==IF_WKB) {
 		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
 			"incident direction of the incoming wave (along z-axis)");
@@ -1159,6 +1160,7 @@ static const char *CalcInitField(double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		descr="x_0 = result of WKB\n";
 	} // redundant test
+#endif //ADDA_SPARSE	
 	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
 	return descr;
 }
