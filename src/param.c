@@ -77,8 +77,10 @@ extern const char beam_descr[];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
+#ifndef ADDA_SPARSE
 extern const int gr_N;
 extern const double gr_vf_real;
+#endif //ADDA_SPARSE
 extern const size_t mat_count[];
 
 // used in CalculateE.c
@@ -1082,6 +1084,12 @@ PARSE_FUNC(init_field)
 PARSE_FUNC(int)
 {
 	double tmp;
+	
+#ifdef ADDA_SPARSE //only point dipoles in sparse mode
+	if (strcmp(argv[1],"poi")!=0) {
+		NotSupported("Interaction term prescription (sparse mode)",argv[1]);
+	}
+#endif
 
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
@@ -2013,10 +2021,12 @@ void PrintInfo(void)
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
 		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
+#ifndef ADDA_SPARSE
 		if (sh_granul) fprintf(logfile,
 			"  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",
 			gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
+#endif //ADDA_SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");

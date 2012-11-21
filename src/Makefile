@@ -79,7 +79,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME
+              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME SPARSE
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -174,9 +174,9 @@ override EXTRA_FLAGS +=
 #===================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c  calculator.c make_particle.c CalculateE.c GenerateB.c debug.c timing.c \
-           linalg.c iterative.c memory.c comm.c matvec.c param.c fft.c crosssec.c Romberg.c io.c \
-           prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c
+CSOURCE := ADDAmain.c calculator.c CalculateE.c GenerateB.c debug.c timing.c \
+           linalg.c iterative.c memory.c comm.c make_particle.c matvec.c param.c crosssec.c \
+           Romberg.c io.c prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
            drlhre.f dtrhre.f propaesplibreintadda.f
@@ -269,10 +269,21 @@ ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
 endif
+
+ifneq ($(filter SPARSE,$(OPTIONS)),)
+  CDEFS += -DADDA_SPARSE
+else
+  CSOURCE += fft.c
+endif
+ifneq ($(filter USE_SSE3,$(OPTIONS)),)
+  CDEFS += -DUSE_SSE3
+  CFLAGS += -msse3
+endif
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Read CL sources at runtime)
 endif
+
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)
   $(info Extra compiler options: '$(EXTRA_FLAGS)')
@@ -378,7 +389,7 @@ else
 endif
 $(info Compiler set '$(COMPILER)')
 
-# if 'release' turn off warningns
+# if 'release' turn off warnings
 ifeq ($(DBGLVL),0)
 # the following two options (-w) are assumed universal across all compilers
   CWARN   := -w

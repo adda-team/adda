@@ -526,6 +526,9 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	double temp, na;
 	doublecomplex mult_mat[MAX_NMAT];
 	const bool scat_avg=true; // temporary fixed option for SO formulation
+#ifdef ADDA_SPARSE
+	doublecomplex expX, expY, expZ;
+#endif
 
 	if (ScatRelation==SQ_SO) {
 		// !!! this should never happen
@@ -543,9 +546,11 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	}
 	for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
 	// prepare values of exponents, along each of the coordinates
+#ifndef ADDA_SPARSE	
 	imExp_arr(-kd*n[0],boxX,expsX);
 	imExp_arr(-kd*n[1],boxY,expsY);
 	imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
+#endif //ADDA_SPARSE
 	/* not to double the code in the source we use two temporary defines,since the following 'if'
 	 * cases differ only by one line of code; (taking 'if' inside the cycle will affect performance)
 	 */
@@ -556,6 +561,8 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	 * using some kind of plans, i.e. by preliminary analyzing the position of the real dipoles on
 	 * the grid.
 	 */
+	 
+#ifndef ADDA_SPARSE //FFT mode
 #define PART1\
 	iy1=iz1=UNDEF;\
 	for (j=0;j<local_nvoid_Ndip;++j) {\
@@ -571,6 +578,26 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			cMult(expsY[iy2],expsZ[iz2],tmp);\
 		}\
 		cMult(tmp,expsX[ix],a);
+#else //sparse mode
+#define PART1\
+	iy1=iz1=UNDEF;\
+	for (j=0;j<local_nvoid_Ndip;++j) {\
+		jjj=3*j;\
+		/* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */\
+		ix=position[jjj];\
+		iy2=position[jjj+1];\
+		iz2=position[jjj+2];\
+		/* the second part is very improbable, but needed for robustness */\
+		if (iy2!=iy1 || iz2!=iz1) {\
+			iy1=iy2;\
+			iz1=iz2;\
+			imExp(-kd*n[1]*iy2,expY);\
+			imExp(-kd*n[2]*iz2,expZ);\
+			cMult(expY,expZ,tmp);\
+		}\
+		imExp(-kd*n[0]*ix,expX);\
+		cMult(tmp,expX,a);
+#endif //ADDA_SPARSE
 #define PART2\
 	/* sum(P*exp(-ik*r.n)) */\
 		for(i=0;i<3;i++) {\
@@ -578,6 +605,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];\
 		}\
 	} /* end for j */
+	
 	if (ScatRelation==SQ_SO) {
 		PART1
 		cMultSelf(a,mult_mat[material[j]]);

@@ -56,11 +56,22 @@ extern TIME_TYPE Timing_InitDmComm;
 // LOCAL VARIABLES
 
 #ifdef PARALLEL
+
 static int Ntrans;         // number of transmissions; used in CalcPartner
+#ifndef ADDA_SPARSE
 static int * restrict gr_comm_size;  // sizes of transmissions for granule generator communications
 static int * restrict gr_comm_overl; // shows whether two sequential transmissions overlap
 static unsigned char * restrict gr_comm_ob; // buffer for overlaps
 static void * restrict gr_comm_buf;         // buffer for MPI transfers
+#else //ADDA_SPARSE
+int * proc_mem_position;
+int * proc_mem_material;
+int * proc_mem_argvec; 
+int * proc_disp_position;
+int * proc_disp_material;
+int * proc_disp_argvec; 
+#endif //ADDA_SPARSE
+
 
 // First several functions are defined only in parallel mode
 //===========================================
@@ -80,6 +91,7 @@ static void RecoverCommandLine(int *argc_p,char ***argv_p)
 }
 //============================================================
 
+#ifndef ADDA_SPARSE
 INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
 // index block; used in BlockTranspose
 {
@@ -107,6 +119,7 @@ INLINE int CalcPartner(const int tran)
 	}
 	return part;
 }
+#endif //ADDA_SPARSE
 
 //============================================================
 
@@ -280,10 +293,13 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	nprocs=1;
 	ringid=ADDA_ROOT;
 #endif
+
+#ifndef ADDA_SPARSE //CheckNprocs does not exist in sparse mode
 	/* check if weird number of processors is specified; called even in sequential mode to
 	 * initialize weird_nprocs
 	 */
 	CheckNprocs();
+#endif //ADDA_SPARSE
 }
 
 //============================================================
@@ -448,6 +464,98 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 
 //============================================================
 
+void ParSetup(void)
+// initialize common parameters; need to do in the beginning to enable call to MakeParticle
+{
+
+#ifndef ADDA_SPARSE //FFT mode initialization
+
+#ifdef PARALLEL
+	int unitZ,unitX;
+#endif
+	// calculate size of 3D grid
+	gridX=fftFit(2*boxX,nprocs);
+	gridY=fftFit(2*boxY,1);
+	gridZ=fftFit(2*boxZ,2*nprocs);
+	// initialize some variables
+	smallY=gridY/2;
+	smallZ=gridZ/2;
+	/* if this check is passed then all other multiplications of 2 grids are OK,
+	 * except for XY values, used in granule generator
+	 */
+	gridYZ=MultOverflow(gridY,gridZ,ALL_POS,"gridYZ");
+#ifdef PARALLEL
+	unitZ=smallZ/nprocs; // this should always be an exact division
+	local_z0=ringid*unitZ;
+	local_z1=(ringid+1)*unitZ;
+	if (local_z1 > boxZ) local_z1_coer=boxZ;
+	else local_z1_coer=local_z1;
+	unitX=gridX/nprocs;
+	local_x0=ringid*unitX;
+	local_x1=(ringid+1)*unitX;
+#else
+	local_z0=0;
+	local_z1=smallZ;
+	local_z1_coer=boxZ;
+	local_x0=0;
+	local_x1=gridX;
+#endif
+	if (local_z1_coer<=local_z0) {
+		LogWarning(EC_INFO,ALL_POS,"No real dipoles are assigned");
+		local_z1_coer=local_z0;
+	}
+	local_Nz=local_z1-local_z0;
+	local_Nx=local_x1-local_x0;
+	boxXY=boxX*(size_t)boxY; // overflow check is covered by gridYZ above
+	local_Ndip=MultOverflow(boxXY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
+	D("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
+	
+#else //sparse mode initialization (completely different from FFT mode)
+
+#ifdef PARALLEL
+	double unit_f=1.0/nprocs;
+	//making sure that the first local_f0 and last local_f1 are 0.0 and 1.0
+	local_f0 = (ringid == 0) ? 0.0 : ringid*unit_f;
+	local_f1 = (ringid == nprocs-1) ? 1.0 : (ringid+1)*unit_f; 
+#else
+	local_f0 = 0.0;
+	local_f1 = 1.0;
+#endif //PARALLEL
+
+#endif //ADDA_SPARSE
+}
+
+//============================================================
+
+void SetupLocalD(void)
+// initialize local_nvoid_d0 and local_nvoid_d1
+{
+#ifndef ADDA_SPARSE //FFT mode
+ 
+#ifdef ADDA_MPI
+	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior
+	 * for the ringid=0. The latter would require special additional arrangements.
+	 */
+	MPI_Scan(&local_nvoid_Ndip,&local_nvoid_d1,1,MPI_SIZE_T,MPI_SUM,MPI_COMM_WORLD);
+	local_nvoid_d0=local_nvoid_d1-local_nvoid_Ndip;
+#else
+	local_nvoid_d0=0;
+	local_nvoid_d1=local_nvoid_Ndip;
+#endif
+
+#else // sparse mode
+
+	D("%d", (int)nvoid_Ndip);
+	local_nvoid_d0 = local_f0*nvoid_Ndip;
+	local_nvoid_d1 = local_f1*nvoid_Ndip;
+
+#endif //ADDA_SPARSE
+}
+
+//============================================================
+
+#ifndef ADDA_SPARSE
+
 void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 /* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
  *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
@@ -551,69 +659,6 @@ void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP
 		}
 	}
 	Timing_InitDmComm += GET_TIME() - tstart;
-#endif
-}
-
-//============================================================
-
-void ParSetup(void)
-// initialize common parameters; need to do in the beginning to enable call to MakeParticle
-{
-#ifdef PARALLEL
-	int unitZ,unitX;
-#endif
-	// calculate size of 3D grid
-	gridX=fftFit(2*boxX,nprocs);
-	gridY=fftFit(2*boxY,1);
-	gridZ=fftFit(2*boxZ,2*nprocs);
-	// initialize some variables
-	smallY=gridY/2;
-	smallZ=gridZ/2;
-	/* if this check is passed then all other multiplications of 2 grids are OK,
-	 * except for XY values, used in granule generator
-	 */
-	gridYZ=MultOverflow(gridY,gridZ,ALL_POS,"gridYZ");
-#ifdef PARALLEL
-	unitZ=smallZ/nprocs; // this should always be an exact division
-	local_z0=ringid*unitZ;
-	local_z1=(ringid+1)*unitZ;
-	if (local_z1 > boxZ) local_z1_coer=boxZ;
-	else local_z1_coer=local_z1;
-	unitX=gridX/nprocs;
-	local_x0=ringid*unitX;
-	local_x1=(ringid+1)*unitX;
-#else
-	local_z0=0;
-	local_z1=smallZ;
-	local_z1_coer=boxZ;
-	local_x0=0;
-	local_x1=gridX;
-#endif
-	if (local_z1_coer<=local_z0) {
-		LogWarning(EC_INFO,ALL_POS,"No real dipoles are assigned");
-		local_z1_coer=local_z0;
-	}
-	local_Nz=local_z1-local_z0;
-	local_Nx=local_x1-local_x0;
-	boxXY=boxX*(size_t)boxY; // overflow check is covered by gridYZ above
-	local_Ndip=MultOverflow(boxXY,local_z1_coer-local_z0,ALL_POS,"local_Ndip");
-	D("%i :  %i %i %i %zu %zu \n",ringid,local_z0,local_z1_coer,local_z1,local_Ndip,local_Nx);
-}
-
-//============================================================
-
-void SetupLocalD(void)
-// initialize local_nvoid_d0 and local_nvoid_d1
-{
-#ifdef ADDA_MPI
-	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior
-	 * for the ringid=0. The latter would require special additional arrangements.
-	 */
-	MPI_Scan(&local_nvoid_Ndip,&local_nvoid_d1,1,MPI_SIZE_T,MPI_SUM,MPI_COMM_WORLD);
-	local_nvoid_d0=local_nvoid_d1-local_nvoid_Ndip;
-#else
-	local_nvoid_d0=0;
-	local_nvoid_d1=local_nvoid_Ndip;
 #endif
 }
 
@@ -818,4 +863,73 @@ bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restri
 	return (ringid!=0);
 #endif
 }
+
 #endif // PARALLEL
+
+#endif //ADDA_SPARSE
+
+//============================================================
+
+#ifdef ADDA_SPARSE //functions exclusive to the sparse mode
+
+void InitArraySync() {
+#ifdef ADDA_MPI
+	MALLOC_VECTOR(proc_mem_position,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_mem_material,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_mem_argvec,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_position,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_material,int,nprocs,ALL);
+	MALLOC_VECTOR(proc_disp_argvec,int,nprocs,ALL);
+
+	proc_mem_position[ringid] = 3*local_nvoid_Ndip;
+	proc_mem_material[ringid] = local_nvoid_Ndip;
+	proc_mem_argvec[ringid] = 3*local_nvoid_Ndip*2; //*2 due to 2 doubles in complex
+	proc_disp_position[ringid] = 3*local_nvoid_d0;
+	proc_disp_material[ringid] = local_nvoid_d0;
+	proc_disp_argvec[ringid] = 3*local_nvoid_d0*2;
+	
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_position,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_material,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_mem_argvec,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_position,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_material,1,MPI_INT,MPI_COMM_WORLD);
+	MPI_Allgather(MPI_IN_PLACE,0,MPI_INT,proc_disp_argvec,1,MPI_INT,MPI_COMM_WORLD);
+#endif
+}
+
+//============================================================
+
+void SyncPosition(int * restrict pos)
+{
+#ifdef ADDA_MPI
+	static const MPI_Datatype mes_type = MPI_INT;
+	
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type,pos, proc_mem_position,
+	               proc_disp_position, mes_type, MPI_COMM_WORLD);
+		
+#endif
+}
+
+//============================================================
+
+void SyncMaterial(unsigned char * restrict mat)
+{
+#ifdef ADDA_MPI	
+	static const MPI_Datatype mes_type = MPI_CHAR;
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type, mat, proc_mem_material,
+	               proc_disp_material, mes_type, MPI_COMM_WORLD);
+#endif
+}
+
+//============================================================
+
+void SyncArgvec()
+{
+#ifdef ADDA_MPI
+	static const MPI_Datatype mes_type = MPI_DOUBLE;
+	MPI_Allgatherv(MPI_IN_PLACE, 0, mes_type,(double *)arg_full, proc_mem_argvec,
+	               proc_disp_argvec, mes_type, MPI_COMM_WORLD);
+#endif
+}
+
+#endif //ADDA_SPARSE
