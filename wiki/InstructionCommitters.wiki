@@ -86,7 +86,7 @@ svn checkout https://a-dda.googlecode.com/svn/branches/<branch_name> adda_branch
  * Modify the code inside this branch and commit it as often as needed, as described [InstructionCommitters#Committing_minor_changes above].
  * If during your work the trunk is changed by other developers, you may want to merge their changes into your branch to minimize future conflicts. The best time to do it is after the next commit on the branch, when there are no local changes in your working copy. Positioning in `adda_branch/` type
 {{{
-svn merge http://a-dda.googlecode.com/svn/trunk
+svn merge https://a-dda.googlecode.com/svn/trunk
 }}}
  and examine the merged changes for possible conflicts by both examining the source code directly (`'svn diff'` may help) and testing the compiled program. After taking care of conflicts, if needed, submit the changes on your branch to the repository
 {{{
@@ -97,7 +97,7 @@ svn commit -m "Merged latest trunk changes to branch <branch_name>."
  * Finally, merge your branch back into the trunk, as following. Go back to the working copy of the trunk (or checkout one), e.g. `adda/` update it, and merge changes
 {{{
 svn update
-svn merge --reintegrate http://a-dda.googlecode.com/svn/branches/<branch_name>
+svn merge --reintegrate https://a-dda.googlecode.com/svn/branches/<branch_name>
 }}}
  Search for all kind of conflicts that can appear and resolve them; compile and test the program. Next, commit the changes back into trunk
 {{{
@@ -105,7 +105,7 @@ svn commit -m "Merge branch <branch_name> back into trunk."
 }}}
  * Delete the branch. Note that the history of your branch and corresponding changes will not be lost.
 {{{
-svn delete http://a-dda.googlecode.com/svn/branches/<branch_name> \
+svn delete https://a-dda.googlecode.com/svn/branches/<branch_name> \
     -m "Remove branch <branch_name>, reintegrated with trunk in r<###>."
 }}}
 
