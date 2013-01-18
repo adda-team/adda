@@ -3,7 +3,7 @@
 # for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
-# Copyright (C) 2006-2012 ADDA contributors
+# Copyright (C) 2006-2013 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -79,7 +79,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME SPARSE
+              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -122,6 +122,9 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # executable, but may be a bit more robust/portable than the default approach. Uncomment the
 # following option to enable reading of kernel sources at runtime.
 #override OPTIONS += OCL_READ_SOURCE_RUNTIME
+
+# APPLE clFFT (fft.h)
+#override OPTIONS += CLFFT_APPLE
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation
@@ -228,8 +231,7 @@ ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
   ifeq ($(filter NO_FORTRAN,$(OPTIONS)),)
     FSOURCE += cfft99D.f
   else
-    $(error Temperton FFT (FFT_TEMPERTON) relies on Fortran sources, hence it is incompatible with \
-    NO_FORTRAN)
+    $(error Temperton FFT (FFT_TEMPERTON) is implemented in Fortran, hence incompatible with NO_FORTRAN)
   endif
 else
   $(info FFTW3)
@@ -283,7 +285,10 @@ ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Read CL sources at runtime)
 endif
-
+ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
+  # Here only the info is printed, the main logic is in ocl/Makefile
+  $(info Apple clFFT routines)
+endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)
   $(info Extra compiler options: '$(EXTRA_FLAGS)')
