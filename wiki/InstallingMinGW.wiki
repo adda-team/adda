@@ -35,7 +35,7 @@ Now you are ready to compile `ADDA`. The only drawback of the concise procedure,
 These options may be of interest to developers or to those, who plan to compile `ADDA` many times with different options. These steps should be performed after the basic steps, described above.
 
 To avoid need to manually  specify include and library paths for external packages in makefiles, do the following (based on [http://www.mingw.org/wiki/SpecsFileHOWTO MinGW instructions]): 
- * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], or [OpenCL OpenCL]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
+ * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL], or [InstallingclAmdFft clAmdFft]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
  * Locate the library folder of your gcc installation, its path (`<gcclib-path>`) should be one of the following
 {{{
 C:/MinGW/lib/gcc/mingw32/<gcc-version>
@@ -80,7 +80,7 @@ mingw-get gdb
 }}}
 
 =Multilib configuration on Windows=
-Below we describe additional steps to set up the environment on 64-bit Windows 7, which allows convenient building of both 32- and 64-bit `ADDA` executables. We also outline installation of [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], and [OpenCL OpenCL] slightly differently than given in separate wiki pages. Such complicated environment is needed exclusively for producing Windows binaries for `ADDA` releases from a single machine.
+Below we describe additional steps to set up the environment on 64-bit Windows 7, which allows convenient building of both 32- and 64-bit `ADDA` executables. We also outline installation of [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL] and [InstallingclAmdFft clAmdFft] slightly differently than given in separate wiki pages. Such complicated environment is needed exclusively for producing Windows binaries for `ADDA` releases from a single machine.
  * Create folder `C:\MinGW\MSYS\1.0\local\lib32` (additionally to `lib` and `include`, which were already created above).
 
  * [http://www.fftw.org/install/windows.html Download] 32- and 64-bit Windows packages of FFTW3. Then do the following, using 64-bit file manager with administrative privileges. 
@@ -103,6 +103,9 @@ mklink /D lib\mpich2 "C:\Program Files\MPICH2\lib"
 mklink /D lib32\mpich2 "C:\Program Files (x86)\MPICH2\lib"
 mklink lib32\libOpenCL.dll.a C:\Windows\SysWOW64\OpenCL.dll
 mklink lib\libOpenCL.dll.a C:\Windows\System32\OpenCL.dll
+mklink /D include\clAmdFft "C:\Program Files (x86)\AMD\clAmdFft\include\"
+mklink lib32\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib32\import\clAmdFft.Runtime.lib"
+mklink lib\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib64\import\clAmdFft.Runtime.lib"
 }}}
 
  * Additionally to modification of file `specs`, described in previous section, change the added head of this file to 
@@ -114,7 +117,7 @@ c:/MinGW/msys/1.0/local/
 %(local_prefix)include
 
 *local_includes:
--I%(local_incl) -I%(local_incl)/mpich2%{m32:_32}
+-I%(local_incl) -I%(local_incl)/mpich2%{m32:_32} -I%(local_incl)/clAmdFft
 
 *local_lib:
 %(local_prefix)lib%{m32:32}
