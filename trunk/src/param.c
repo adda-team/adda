@@ -3,7 +3,7 @@
  * Descr: initialization, parsing and handling of input parameters; also printout general
  *        information; contains file locking routines
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -40,6 +40,9 @@
 
 #ifdef OPENCL
 #	include "oclcore.h"
+#	ifdef CLFFT_AMD
+#		include <clAmdFft.h> // for version information
+#	endif
 #endif
 
 // definitions for file locking
@@ -1382,7 +1385,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2012 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2013 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms "
 		"of the GNU General Public License as published by the Free Software Foundation; either "
 		"version 3 of the License, or (at your option) any later version.\n\n"
@@ -1457,6 +1460,9 @@ PARSE_FUNC(V)
 #		error "OpenCL version not recognized"
 #	endif
 		printf("GPU-accelerated version conforming to OpenCL standard "OCL_VERSION"\n");
+#	ifdef CLFFT_AMD
+		printf("Linked to clAmdFft version %d.%d.%d\n",clAmdFftVersionMajor,clAmdFftVersionMinor,clAmdFftVersionPatch);
+#	endif
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified, requires MPI 1.2
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
@@ -1512,6 +1518,9 @@ PARSE_FUNC(V)
 #endif
 #ifdef OCL_READ_SOURCE_RUNTIME
 		"OCL_READ_SOURCE_RUNTIME, "
+#endif
+#ifdef CLFFT_APPLE
+		"CLFFT_APPLE, "
 #endif
 		"";
 		printf("Extra build options: ");
@@ -2136,12 +2145,20 @@ void PrintInfo(void)
 			fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n");
 		else if (IntRelation==G_POINT_DIP) fprintf(logfile,"'as Point dipoles'\n");
 		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
-		// log FFT method
+		// log FFT and (if needed) clFFT method
 		fprintf(logfile,"FFT algorithm: ");
 #ifdef FFTW3
 		fprintf(logfile,"FFTW3\n");
 #elif defined(FFT_TEMPERTON)
 		fprintf(logfile,"by C.Temperton\n");
+#endif
+#ifdef OPENCL
+		fprintf(logfile,"OpenCL FFT algorithm: ");
+#	ifdef CLFFT_AMD
+		fprintf(logfile,"by AMD\n");
+#	elif defined(CLFFT_APPLE)
+		fprintf(logfile,"by Apple\n");
+#	endif
 #endif
 		// log Iterative Method
 		fprintf(logfile,"Iterative Method: ");

@@ -4,7 +4,7 @@
 
  *        TODO: A lot of indirect indexing used - way to optimize.
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -35,12 +35,12 @@
 #include <string.h>
 
 #ifdef OPENCL
-#	ifdef AMDFFT
-#		include<clAmdFft.h> //external library from AMD
-#	else
+#	ifdef CLFFT_AMD
+#		include <clAmdFft.h> //external library from AMD
+#	elif defined(CLFFT_APPLE)
 #		include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #		ifdef NO_CPP
-#			error "OpenCL version relies on C++ sources, hence is incompatible with NO_CPP option"
+#			error "Apple clFFT relies on C++ sources, hence is incompatible with NO_CPP option"
 #		endif
 #	endif
 #	include "oclcore.h"
@@ -55,7 +55,7 @@
  */
 #	define PLAN_FFTW FFTW_MEASURE
 #	define PLAN_FFTW_DM FFTW_ESTIMATE
-#	define ONLY_FOR_FFTW3
+#	define ONLY_FOR_FFTW3 // this is used in function argument declarations
 #else
 #	define ONLY_FOR_FFTW3 ATT_UNUSED
 #endif
@@ -63,7 +63,7 @@
 #define TR_BLOCK 64
 
 #ifdef FFT_TEMPERTON
-#	define ONLY_FOR_TEMPERTON
+#	define ONLY_FOR_TEMPERTON // this is used in function argument declarations
 #else
 #	define ONLY_FOR_TEMPERTON ATT_UNUSED
 #endif
@@ -105,11 +105,11 @@ static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
 static bool weird_nprocs;              // whether weird number of processors is used
 #ifdef OPENCL
-	#ifdef AMDFFT
-	clAmdFftPlanHandle clplanX,clplanY,clplanZ;
-	#else
-	clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
-	#endif
+#	ifdef CLFFT_AMD
+static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
+#	elif defined(CLFFT_APPLE)
+static clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
+#	endif
 #endif
 #ifdef FFTW3
 // FFTW3 plans: f - FFT_FORWARD; b - FFT_BACKWARD
@@ -218,7 +218,7 @@ void TransposeYZ(const int direction)
 	 * block size is not efficient anyway, so falling back to noncached kernel is logical.
 	 */
 	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
-	cached&=(gridZ%16==0&&gridY%16==0);
+	cached&=(gridZ%16==0 && gridY%16==0); // this is required due to current limitation of cached kernel
 	
 	if (direction==FFT_FORWARD) {
 		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
@@ -335,10 +335,10 @@ void fftX(const int isign)
 // FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
-#	ifdef AMDFFT
-	CL_CH_ERR(clAmdFftEnqueueTransform( clplanX, (int)isign, 1, &command_queue, 0, 
-		NULL, NULL, &bufXmatrix, NULL, NULL));
-#	else
+#	ifdef CLFFT_AMD
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanX,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,
+			NULL,NULL));
+#	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,
 		(clFFT_Direction)isign,bufXmatrix,bufXmatrix,0,NULL,NULL));
 #	endif
@@ -350,7 +350,7 @@ void fftX(const int isign)
 	int nn=gridX,inc=1,jump=nn,lot=boxY;
 	size_t z;
 
-	for (z=0;z<3*local_Nz;z++) // -f
+	for (z=0;z<3*local_Nz;z++)
 		cfft99_((double *)(Xmatrix+z*gridX*smallY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
 #endif
 }
@@ -361,11 +361,11 @@ void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
-#	ifdef AMDFFT
-	CL_CH_ERR(clAmdFftEnqueueTransform( clplanY, (int)isign, 1, &command_queue, 0, NULL, NULL, 
-		&bufslices_tr, NULL, NULL));
-#	else
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)6*smallZ,(clFFT_Direction)isign,
+#	ifdef CLFFT_AMD
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,
+			NULL,NULL));
+#	elif defined(CLFFT_APPLE)
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,
 		bufslices_tr,bufslices_tr,0,NULL,NULL));
 #	endif
 	clFinish(command_queue);
@@ -373,10 +373,9 @@ void fftY(const int isign)
 	if (isign==FFT_FORWARD) fftw_execute(planYf);
 	else fftw_execute(planYb);
 #elif defined(FFT_TEMPERTON)
-	int nn=gridY,inc=1,jump=nn,lot=smallZ,j;
-	// cfft99_ slows down rapidly when lot is big, hence a small loop
-	for(j=0;j<6;j++)
-		cfft99_((double *)(slices_tr+j*gridY*smallZ),work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
+	int nn=gridY,inc=1,jump=nn,lot=3*gridZ,j;
+
+	cfft99_((double *)(slices_tr),work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
 #endif
 }
 
@@ -386,10 +385,10 @@ void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
-#	ifdef AMDFFT
-	CL_CH_ERR(clAmdFftEnqueueTransform( clplanZ, (int)isign, 1, &command_queue, 0, NULL, NULL, 
-		&bufslices, NULL, NULL));
-#	else
+#	ifdef CLFFT_AMD
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,
+			NULL,NULL));
+#	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,
 		bufslices,bufslices,0,NULL,NULL));
 #	endif
@@ -461,7 +460,9 @@ void CheckNprocs(void)
 	// remove simple prime divisors of y
 	while (y%2==0) y/=2;
 #ifdef OPENCL
-	// this is redundant, since OpenCL is not currently intended to run in parallel
+	/* this is redundant, since OpenCL is not currently intended to run in parallel
+	 * In the future it should properly handle capabilities of AMD clFFT
+	 */
 	if (y!=1) PrintError("Specified number of processors (%d) is incompatible with clFFT, since "
 		"the latter currently supports only FFTs with size 2^n. Please choose the number of "
 		"processors to be of the same form.",nprocs);
@@ -491,7 +492,7 @@ void CheckNprocs(void)
 //============================================================
 
 int fftFit(int x,int divis)
-/* find the first number >=x divisible by 2 only (clFFT) or 2,3,5 only (Temperton FFT) or also
+/* find the first number >=x divisible by 2 only (Apple clFFT) or 2,3,5 only (Temperton FFT or clAMDFFT) or also
  * allowing 7 and one of 11 or 13 (FFTW3), and also divisible by 2 and divis.
  * If weird_nprocs is used, only the latter condition is required.
  */
@@ -502,24 +503,26 @@ int fftFit(int x,int divis)
 		if (!IS_EVEN(divis)) divis*=2;
 		return (divis*((x+divis-1)/divis));
 	}
-	else while (true) {
-		y=x;
-		while (y%2==0) y/=2; // here OpenCL ends
-#ifdef AMDFFT
-		while (y%3==0) y/=3;
-		while (y%5==0) y/=5; // here AMDFFT ends
+	else while (true) { // not very efficient but robust way
+		if (IS_EVEN(x) && x%divis==0) {
+			y=x;
+			while (y%2==0) y/=2; // here Apple clFFT ends
+#ifdef CLFFT_AMD // implies OPENCL
+			while (y%3==0) y/=3;
+			while (y%5==0) y/=5; // here AMD clFFT ends
 #endif
 #ifndef OPENCL
-		while (y%3==0) y/=3;
-		while (y%5==0) y/=5; // here Temperton FFT ends
+			while (y%3==0) y/=3;
+			while (y%5==0) y/=5; // here Temperton FFT ends
 #	ifdef FFTW3
-		while (y%7==0) y/=7;
-		// one multiplier of either 11 or 13 is allowed
-		if (y%11==0) y/=11;
-		else if (y%13==0) y/=13;
+			while (y%7==0) y/=7;
+			// one multiplier of either 11 or 13 is allowed
+			if (y%11==0) y/=11;
+			else if (y%13==0) y/=13;
 #	endif
 #endif
-		if (y==1 && IS_EVEN(x) && x%divis==0) return(x);
+			if (y==1) return(x);
+		}
 		x++;
 	}
 }
@@ -532,6 +535,8 @@ static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 #ifdef FFTW3
 	int grXint=gridX,grYint=gridY,grZint=gridZ; // this is needed to provide 'int *' to grids
 
+	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s\n",
+			fftw_version,fftw_cc,fftw_codelet_optim);
 	planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,
 		slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
 	planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,
@@ -563,11 +568,13 @@ static void fftInitAfterD(void)
 /* second part of fft initialization
  * completely separate code is used for OpenCL and FFTW3, because even precise-timing output is
  * significantly different. In particular, FFTW3 uses separate plans for forward and backward, while
- * clFFT (by Apple) uses one plan for both directions.
+ * clFFT (by Apple or AMD) uses one plan for both directions.
  */
 {
 #ifdef OPENCL
+#	ifdef CLFFT_APPLE
 	cl_int err; // error code
+#	endif
 #	ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[4];
 #	endif
@@ -576,14 +583,27 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GetTime(tvp);
 #	endif
-#	ifdef AMDFFT
-	size_t xdimen[3]={(unsigned int)gridX,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanX, context, CLFFT_1D, xdimen));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX, (int)(3*local_Nz*smallY)));
-	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanX, CLFFT_DOUBLE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanX, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+#	ifdef CLFFT_AMD
+	CL_CH_ERR(clAmdFftSetup(NULL)); // first initialize clAmdFft
+#	ifdef DEBUGFULL
+	cl_uint major,minor,patch;
+	CL_CH_ERR(clAmdFftGetVersion(&major,&minor,&patch));
+	D("clAmdFft library version - %u.%u.%u\n",major,minor,patch);
+#	endif
+	/* Unfortunately, clAmdFft (and Apple clFFT as well) currently supports only simple regular batches of transforms
+	 * (similar to fftw_plan_many_dft) but not fully flexible configurations, like offered by fftw_plan_guru_dft. So to
+	 * make X transform as a single plan we have have to cycle over the whole smallY instead of (possibly smaller) boxY.
+	 * This incurs a small performance hit for "non-standard" values of boxY, but should be overall faster than making
+	 * an explicit loop over smaller kernels (like is now done with Temperton FFT).
+	 */
+	size_t xdimen[3]={gridX,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanX,context,CLFFT_1D,xdimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanX,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanX,1,&command_queue,NULL,NULL));
-#	else
+#	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 xdimen;
 	xdimen.x=(unsigned int)gridX;
 	xdimen.y=1;
@@ -594,14 +614,15 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 #	endif
-#	ifdef AMDFFT
-	size_t ydimen[3]={(unsigned int)gridY,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanY, context, CLFFT_1D, ydimen));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY, (int)6*smallZ));
-	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanY, CLFFT_DOUBLE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanY, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+#	ifdef CLFFT_AMD
+	size_t ydimen[3]={gridY,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,ydimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanY,1,&command_queue,NULL,NULL));
-#	else
+#	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 ydimen;
 	ydimen.x=(unsigned int)gridY;
 	ydimen.y=1;
@@ -612,14 +633,22 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 #	endif
-#	ifdef AMDFFT
-	size_t zdimen[3]={(unsigned int)gridZ,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan( &clplanZ, context, CLFFT_1D, zdimen));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ, (int)3*gridY));
-	CL_CH_ERR(clAmdFftSetPlanPrecision( clplanZ, CLFFT_DOUBLE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanZ, CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+#	ifdef CLFFT_AMD
+	/* Here the issue is similar to clplanX described above. However, we are using full gridY instead of boxY, which
+	 * incurs at least a-factor-of-two performance hit. To solve this problem one need to execute separate plans for 3
+	 * components of vectors. Unfortunately, this cannot be simply done using 3-element loop (like in Temperton FFT),
+	 * because a part of cl_mem object can't be addressed independently (as can be done with simple C arrays). The only
+	 * way to address this issue is to either create three separate cl_mem objects or to change the indexing of levels
+	 * inside the array, so that 3 components are stored together.
+	 */
+	size_t zdimen[3]={gridZ,1,1};
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,zdimen));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
-#	else
+#	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 zdimen;
 	zdimen.x=(unsigned int)gridZ;
 	zdimen.y=1;
@@ -1633,9 +1662,9 @@ void Free_FFT_Dmat(void)
 		my_clReleaseBuffer(bufinproduct);
 		Free_general(inprodhlp);
 	}
-#	ifdef AMDFFT
+#	ifdef CLFFT_AMD
 	clAmdFftTeardown();
-#	else
+#	elif defined(CLFFT_APPLE)
 	clFFT_DestroyPlan(clplanX);
 	clFFT_DestroyPlan(clplanY);
 	clFFT_DestroyPlan(clplanZ);

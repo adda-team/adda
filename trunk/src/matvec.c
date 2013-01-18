@@ -101,8 +101,8 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
-#endif //OCL
-#endif //ADDA_SPARSE
+#endif // OPENCL
+#endif // ADDA_SPARSE
 
 //============================================================
 

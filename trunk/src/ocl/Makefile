@@ -2,7 +2,7 @@
 # All options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2010-2012 ADDA contributors
+# Copyright (C) 2010-2013 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the 
@@ -29,21 +29,29 @@
 #CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
 #LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
 
+ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
+  ifeq ($(filter NO_CPP,$(OPTIONS)),)
+    CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+    CFLAGS    += -DCLFFT_APPLE
+  else
+    $(error Apple clFFT (CLFFT_APPLE) is implemented in C++, hence incompatible with NO_CPP)
+  endif
+else # AMD clFFT flags
+  # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and libraries.
+  # Path should be absolute or relative to the location of this Makefile.
+  #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
+  #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
+  
+  LDFLAGS  += -lclAmdFft.Runtime
+endif
+
 #===================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user
 #===================================================================================================
-#if clAmdFft (external library) should be used, oteherwise appleFFT is used
-#CFLAGS    += -DAMDFFT
-#LDFLAGS   += -lclAmdFft 
 
 CFLAGS    += -DOPENCL 
 LDFLAGS   += -lOpenCL 
 CSOURCE   += oclcore.c
-ifeq ($(filter NO_CPP,$(OPTIONS)),)
-  CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
-else
-  $(error OpenCL version relies on C++ sources, hence it is incompatible with NO_CPP)
-endif
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   CFLAGS += -DOCL_READ_SOURCE_RUNTIME

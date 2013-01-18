@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of FFT parameters and routines
  *
- * Copyright (C) 2006,2008,2010-2012 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -24,9 +24,14 @@
 #ifndef FFT_TEMPERTON
 #	define FFTW3 // FFTW3 is default
 #endif
+#ifdef OPENCL
+#	ifndef CLFFT_APPLE
+#		define CLFFT_AMD // CLFFT_AMD is default for OPENCL
+#	endif
+#endif
 
 /* direction of FFT and transpose;
- * complies with definitions of FFTW3, TempertonFFT, and Apple OpenCL FFT
+ * complies with definitions of FFTW3, TempertonFFT, Apple and AMD OpenCL FFTs
  */
 #define FFT_FORWARD -1
 #define FFT_BACKWARD 1
@@ -40,6 +45,6 @@ void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
 
-#endif //ADDA_SPARSE
+#endif // ADDA_SPARSE
 
 #endif // __fft_h
