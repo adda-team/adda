@@ -535,8 +535,8 @@ static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 #ifdef FFTW3
 	int grXint=gridX,grYint=gridY,grZint=gridZ; // this is needed to provide 'int *' to grids
 
-	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s\n",
-			fftw_version,fftw_cc,fftw_codelet_optim);
+	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",
+		fftw_version,fftw_cc,fftw_codelet_optim);
 	planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,
 		slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
 	planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,
@@ -588,7 +588,7 @@ static void fftInitAfterD(void)
 #	ifdef DEBUGFULL
 	cl_uint major,minor,patch;
 	CL_CH_ERR(clAmdFftGetVersion(&major,&minor,&patch));
-	D("clAmdFft library version - %u.%u.%u\n",major,minor,patch);
+	D("clAmdFft library version - %u.%u.%u",major,minor,patch);
 #	endif
 	/* Unfortunately, clAmdFft (and Apple clFFT as well) currently supports only simple regular batches of transforms
 	 * (similar to fftw_plan_many_dft) but not fully flexible configurations, like offered by fftw_plan_guru_dft. So to
