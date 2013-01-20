@@ -282,7 +282,7 @@ static void GetDevice(struct string *copt_ptr)
 #ifdef DEBUGFULL
 			char *dev_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_VERSION);
 			char *dr_vers=dyn_clGetDeviceInfo(device_id,CL_DRIVER_VERSION);
-			D("Device version: %s. Driver version: %s.\n",dev_vers,dr_vers);
+			D("Device version: %s. Driver version: %s.",dev_vers,dr_vers);
 			Free_general(dev_vers);
 			Free_general(dr_vers);
 #endif
