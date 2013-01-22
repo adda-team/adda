@@ -2,7 +2,7 @@
 
 <wiki:toc />
 
-[http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly parallel devices like graphic cards (GPUs) and mutlicore CPUs. The implementation is experimental and works on high end GPUs at current state. The main limitation is the required support of double precision floating point operations. For Nvidia this implies compute capability 1.3 or higher (e.g., Geforce GTX 260/Tesla C1060 and newer), examples from AMD (ATI) include Radeon HD 47xx/48xx/58xx/69xx and FireStream 9250+.
+[http://www.khronos.org/opencl/ OpenCL] is a framework for programming highly parallel devices like graphic cards (GPUs) and mutlicore CPUs. The implementation is experimental and works on high end GPUs at current state. The main limitation is the required support of double precision floating point operations. For Nvidia this implies compute capability 1.3 or higher (e.g., Geforce GTX 260/Tesla C1060 and newer), examples from AMD (ATI) include Radeon HD 47xx/48xx/58xx/69xx and !FireStream 9250+.
 
 = Setup of the environment =
 
@@ -31,13 +31,13 @@ This are required to compile OpenCL version of `ADDA`. Sometimes they are suppli
 
 If the package, which you installed, has not set the paths to OpenCL headers and libraries. You should either
  * set these paths yourself:
-   * _on Unix_ add headers location to environmental variables `C_INCLUDE_PATH` and `CPLUS_INCLUDE_PATH` and libraries location - to `LD_LIBRARY_PATH`. 
+   * _on Unix_ add headers location to environmental variables `C_INCLUDE_PATH` and `CPLUS_INCLUDE_PATH` and libraries location - to `LIBRARY_PATH` and `LD_LIBRARY_PATH` (for linking and runtime). Setting `LD_LIBRARY_PATH` can be replaced by modifying `/etc/ld.so.conf`, which sometimes is done automatically during driver installation.   
    * _on Windows_ copy contents of corresponding folders to `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment]. 
  * or specify paths to corresponding `include` and `lib` folders in file `src/ocl/Makefile`, as described in [CompilingADDA].
 
 = Implementation =
 
 In general the whole matrix-vector multiplication is done on the GPU.
-For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)]. Currently, `ADDA` on high-end gaming GPUs outperform that on high-end processors at least several times (sometimes by a factor of 10 or more). And this factor is significantly limited by relatively slow double-precision computations on current gaming GPUs and very modest performance of OpenCL FFT routines (compared to sophisticated `FFTW3`).
+For details and benchmarks see [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262-271 (2011)]. Currently, `ADDA` on high-end gaming GPUs outperform that on high-end processors at least several times (sometimes by a factor of 10 or more). And this factor is significantly limited by relatively slow double-precision computations on current gaming GPUs and very modest performance of OpenCL FFT routines (compared to sophisticated `FFTW3`). Recently, we switched (in the default mode) to [InstallingclAmdFft clAmdFft], which further increased speed a few times.
 
 Also OpenCL version of `ADDA` is fully operational, there are a number of [http://code.google.com/p/a-dda/issues/list?q=label:OpenCL limitations]. In particular, the maximum problem size is limited by the available GPU memory, more specifically, by its part available to `ADDA`.
