@@ -16,6 +16,7 @@
    * [InstallingFFTW3 Installing FFTW 3]
    * [InstallingMPI Installing MPI]
    * [OpenCL Use of OpenCL in ADDA]
+   * [InstallingclAmdFft Installing clAmdFft]
    * [UsingADDAInSparseMode Compiling ADDA for sparse DDA]
    * [InstallingMinGW Installing MinGW]
  * Adding new code
