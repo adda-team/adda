@@ -20,7 +20,7 @@ Position yourself in the `src/` directory of the [PackageDescription ADDA packag
 
 The [http://code.google.com/p/a-dda/source/browse/trunk/src/Makefile Makefile] is designed to work out-of-box on many systems using [http://www.gnu.org/software/gcc/ GNU compilers]. However, [InstallingFFTW3 FFTW3 package need to be installed] on your system. Moreover, MPI version of `ADDA` requires [InstallingMPI installed MPI implementation]. Using the latter, `ADDA` can run both on multiprocessor systems (clusters) and on multicore processors of a single PC, as well as on heterogeneous hardware. 
 
-The OpenCL version of `ADDA` is designed to use graphic cards (GPUs) to accelerate computations. It requires [OpenCL OpenCL to be installed properly] and a C++ compiler (for its FFT routines). The future goal is to make OpenCL version capable of running on other compatible hardware, including hybrid CPU-GPUs and [http://en.wikipedia.org/wiki/Cell_(microprocessor) Cell processors]. 
+The OpenCL version of `ADDA` is designed to use graphic cards (GPUs) to accelerate computations. It requires [OpenCL OpenCL environment] and [InstallingclAmdFft clAmdFft library] (alternatively, slower built-in OpenCL FFT routines can be used). The future goal is to make OpenCL version capable of running on other compatible hardware, including hybrid CPU-GPUs and [http://en.wikipedia.org/wiki/Cell_(microprocessor) Cell processors]. 
 
 `ADDA` is fully ready for 64-bit mode, which allows it to use practically unlimited memory per single process. Moreover, it will automatically compile as such in a 64-bit operating system.
 
