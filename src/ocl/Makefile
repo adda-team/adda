@@ -42,7 +42,12 @@ else # AMD clFFT flags
   #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
   #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
   
-  LDFLAGS  += -lclAmdFft.Runtime
+  LDFLAGS += -lclAmdFft.Runtime
+  
+  # Uncomment the following line if you experience problems during linking, like
+  # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
+  # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
+  #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
 endif
 
 #===================================================================================================
@@ -50,7 +55,7 @@ endif
 #===================================================================================================
 
 CFLAGS    += -DOPENCL 
-LDFLAGS   += -lOpenCL 
+LDFLAGS   += -lOpenCL
 CSOURCE   += oclcore.c
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
