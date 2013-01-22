@@ -91,6 +91,8 @@ Below we describe additional steps to set up the environment on 64-bit Windows 7
  * [http://www.mcs.anl.gov/research/projects/mpich2/downloads/index.php?s=downloads Download] both 32- and 64-bit Windows installers of MPICH2. First, install 32-bit version, then - 64-bit one. Then follow [InstallingMPI#Windows the standard steps] to set up `spmd` and `PATH` for the 64-bit version. But first install 32-bit `smpd`, running it from `C:\Program Files (x86)\MPICH2\bin`, and then 64-bit `smpd`. The latter will remove the 32-bit service. It seems that both versions of `MPICH2` coexist fine together. Moreover, 32-bit `adda_mpi` works fine with 64-bit `mpiexec` and `smpd`. The only problem is that `MPICH2` headers slightly differ between the two packages. It is not clear, whether this difference is significant, so below we substitute proper headers for each compilation mode.
 
  * Create folder `C:\MinGW\MSYS\1.0\local\include\CL` and [http://www.khronos.org/registry/cl/ download] into it OpenCL headers (`*.h`) of the version, supported by GPU drivers (e.g., version 1.1 for Nvidia drivers 301.42).
+ 
+ * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the installer of `clAmdFft` for Windows and install it to the default directory.
 
  * Create symbolic links (with administrative privileges):
 {{{
@@ -106,6 +108,8 @@ mklink lib\libOpenCL.dll.a C:\Windows\System32\OpenCL.dll
 mklink /D include\clAmdFft "C:\Program Files (x86)\AMD\clAmdFft\include\"
 mklink lib32\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib32\import\clAmdFft.Runtime.lib"
 mklink lib\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib64\import\clAmdFft.Runtime.lib"
+mklink C:\Windows\SysWOW64\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin32\clAmdFft.Runtime.dll"
+mklink C:\Windows\System32\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin64\clAmdFft.Runtime.dll"
 }}}
 
  * Additionally to modification of file `specs`, described in previous section, change the added head of this file to 
