@@ -8,7 +8,7 @@ The following guidelines are bases on `FFTW` version 3.2.2.
 
 The installation of [http://www.fftw.org FFTW 3] on any Unix system is straightforward and therefore is _highly recommended_, since it greatly improves the performance of `ADDA`. The easiest is to [http://www.fftw.org/fftw3_doc/Installation-on-Unix.html install FFTW 3 for the entire system], using `root` account. Moreover, it is available as a standard package in many Unix/Linux distributions (be sure to also install development package, which includes headers).
 
-If `root` is unavailable, FFTW can also be installed under any user account as follows:
+If `root` is unavailable, `FFTW3` can also be installed under any user account as follows:
  * Download the [http://www.fftw.org/download.html latest version of FFTW 3] 
  * Unpack it, cd into its directory, and type
 {{{
