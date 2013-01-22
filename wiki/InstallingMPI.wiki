@@ -31,7 +31,7 @@ make install
 {{{
 export PATH=$HOME/mpich2-install/bin:$PATH
 }}}
- to your `.bashrc` and relogin. Now you should be able to [CompilingADDA compile MPI-version of ADDA] using `mpicc` (automatically detected by the `Makefile`) and run it using `mpiexec`.
+ to your `.bash_profile` and relogin. Now you should be able to [CompilingADDA compile MPI-version of ADDA] using `mpicc` (automatically detected by the `Makefile`) and run it using `mpiexec`.
 
 =Windows=
 `MPICH2` [http://www.mcs.anl.gov/research/projects/mpich2/documentation/index.php?s=docs Installer's Guide] contains instructions for Windows - Section 9 "Windows Version". However, they seem somewhat incomplete in comparison with the following practical guide.
@@ -48,5 +48,5 @@ smpd -install -phrase behappy
 The above actions are necessary to use precompiled `adda_mpi`, included in [http://code.google.com/p/a-dda/wiki/PackageDescription#Windows_executables Windows packages]. If you want to compile MPI version of `ADDA` yourself, then additionally
  * Either 
    * specify paths to `include` and `lib` subdirectories of `MPICH2` directory in file `src/mpi/Makefile`, as described in [CompilingADDA].
-   * or copy contents of these folders to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment]. 
- This is required since Windows package of `MPICH2` does not contain compiler wrapper `mpicc`,
+   * or copy contents of these folders to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment].
+ This is required since Windows package of `MPICH2` does not contain compiler wrapper `mpicc`.
