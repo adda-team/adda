@@ -195,8 +195,7 @@ FFOLDER   := fort
 CPPFOLDER := cpp
 
 LDLIBS    := -lm
-DEPFLAG   := -M
-DFFLAG    := >
+DEPFLAG   := -MD
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
 
@@ -374,8 +373,7 @@ else ifeq ($(COMPILER),ibm)
   CSTD  := -qlanglvl=extc99
   COPT1 := -O2
   COPT2 := -O3 -qcache=auto
-  DFFLAG := -MF # somehow it may have problems with standard redirect (>)
-  DEPFLAG := -qmakedep=gcc -qsyntaxonly
+  DEPFLAG := -qmakedep=gcc
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
   # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you
@@ -385,6 +383,7 @@ else ifeq ($(COMPILER),hpux)
   CSTD  := -AC99
   COPT1 := +O2 +DD64
   COPT2 := +O3 +DD64
+  DEPFLAG :+= +Md
   CWARN :=
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)

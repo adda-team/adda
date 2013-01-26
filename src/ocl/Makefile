@@ -29,6 +29,12 @@
 #CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
 #LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
 
+# This workaround is to disable linker warnings when linking against 32-bit OpenCL.dll on 64-bit Windows. The issue 
+# appeared with Nvidia library supplied with driver 301.42. Uncomment the following 3 lines to enable it.
+#ifneq ($(filter -m32,$(LDFLAGS)),)
+#  LDFLAGS += -Wl,--enable-stdcall-fixup
+#endif
+
 ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
   ifeq ($(filter NO_CPP,$(OPTIONS)),)
     CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
@@ -47,6 +53,8 @@ else # AMD clFFT flags
   # Uncomment the following line if you experience problems during linking, like
   # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
   # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
+  # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like it,
+  # provide another libOpenCL.so (e.g. that from AMD) for linkig.
   #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
 endif
 
@@ -66,12 +74,6 @@ else
   # are included in the C source files to define static strings. These strings define are further 
   # used as a source to compile OpenCL kernels.
   CLSOURCE := oclkernels.cl
-endif
-
-# This fix is to disable linker warnings when linking against 32-bit OpenCL.dll on 64-bit Windows.
-# The issue appeared with Nvidia library supplied with driver 301.42
-ifneq ($(filter -m32,$(LDFLAGS)),)
-  LDFLAGS += -Wl,--enable-stdcall-fixup
 endif
 
 # This is a weird prefix, which is required since that is how .clstr files are quoted in .d files

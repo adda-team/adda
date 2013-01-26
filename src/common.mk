@@ -2,7 +2,7 @@
 # All options are defined in Makefile and specific makefiles
 # $Date::                            $
 #
-# Copyright (C) 2010-2011 ADDA contributors
+# Copyright (C) 2010-2011,2013 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -17,6 +17,7 @@
 # <http://www.gnu.org/licenses/>.
 
 # !!! This file do not have any options designed to be changed by ADDA user
+# Dependencies are generated during the compilation as proposed in http://make.paulandlesley.org/autodep.html
 
 # define objects and dependencies
 COBJECTS   := $(CSOURCE:.c=.o)
@@ -71,20 +72,16 @@ $(PROG): $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDOPTSFILE)
 	@echo "Building $@"
 	$(MYCC) -o $@ $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDFLAGS)
 
-$(COBJECTS): %.o: %.c %.d
-	$(MYCC) -c $(CFLAGS) $<
+$(COBJECTS): %.o: %.c $(COPTSFILE)
+	$(MYCC) -c $(CFLAGS) $(DEPFLAG) $<
 
+# Dependencies are only generated for C and C++ sources; we assume that each Fortran file is completely independent or
+# all of the files from dependent set are compiled at once.
 $(FOBJECTS): %.o: %.f $(FOPTSFILE)
 	$(MYCF) -c $(FFLAGS) $<
 
 $(CPPOBJECTS): %.o: %.cpp $(CPPOPTSFILE)
-	$(MYCCPP) -c $(CPPFLAGS) $<
-
-# Dependencies are only generated for C sources; we assume that each Fortran or C++ file is 
-# completely independent or all of the files from dependent set are compiled at once. 
-$(CDEPEND): %.d: %.c $(COPTSFILE)
-	if ($(MYCC) $(DEPFLAG) $(CFLAGS) $< $(DFFLAG) $@.$$$$); then \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; rm -f $@.$$$$; else false; fi
+	$(MYCCPP) -c $(CPPFLAGS) $(DEPFLAG) $<
 
 # Special rule for generation of stringified CL source. Used only for ocl. All relevant variables 
 # are defined in ocl/Makefile
