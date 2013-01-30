@@ -11,6 +11,8 @@
 ;mg4n; ;m; -grid 4 ;n;
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
+# default for testing of different grids
+;smn; -size 8 ;m; ;n;
 
 # Elementary variables
 ;m; -m 1.1 0.1
@@ -27,8 +29,20 @@
 # directly to ADDA.
 
 all
-# a single relatively long run
-all -grid 32 -size 8 ;m; ;n;
+# testing of different grids - relevant for FFT methods
+# to remove redundant warnings for ocl_seq, only (2,3,5) numbers are used
+all -grid 2 ;smn;
+all -grid 4 ;smn;
+all -grid 6 ;smn;
+all -grid 8 ;smn;
+all -grid 10 ;smn;
+all -grid 12 ;smn;
+all -grid 16 ;smn;
+all -grid 18 ;smn;
+all -grid 20 ;smn;
+all -grid 24 ;smn;
+all -grid 30 ;smn;
+all -grid 32 ;smn;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
