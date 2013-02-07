@@ -77,10 +77,9 @@ all -chp_dir chp_tmp -chp_load ;mgn;
 all -h Cpr
 all -Cpr ;sep; ;mgn;
 
-# the following is left for versions prior to 1.1
-all -h Cpr_mat
-all -Cpr_mat ;mgn;
-all -Cpr_mat ;sep; ;mgn;
+all -h Cpr
+all -Cpr ;mgn;
+all -Cpr ;sep; ;mgn;
 
 all -h Csca
 all -Csca ;se; ;mgn;
@@ -190,7 +189,6 @@ all -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis
 all -h sg_format
 all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text
 all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text_ext
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat
 all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat6
 all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat7
 
@@ -262,9 +260,7 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mgn;
 
 all -h store_force
-# the following is left for versions prior to 1.1
-all -store_force -Cpr_mat ;sep; ;mgn;
-all -store_force ;mgn;
+all -store_force ;sep; ;mgn;
 
 all -h store_grans
 granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
