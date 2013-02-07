@@ -242,8 +242,7 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mn;
 
 all -h store_force
-all -store_force -Cpr ;sep; ;mn;
-all -store_force ;mgn;
+all -store_force ;sep; ;mn;
 
 #all -h store_grans
 #granules -store_grans -granul 0.2 1 -size 4 ;2mgn;

@@ -331,7 +331,6 @@ PARSE_FUNC(chp_load);
 PARSE_FUNC(chp_type);
 PARSE_FUNC(chpoint);
 PARSE_FUNC(Cpr);
-PARSE_FUNC(Cpr_mat);
 PARSE_FUNC(Csca);
 PARSE_FUNC(dir);
 PARSE_FUNC(dpl);
@@ -413,7 +412,6 @@ static struct opt_struct options[]={
 		"case sensitive.\n"
 		"Examples: 12h30M, 1D10s, 3600",1,NULL},
 	{PAR(Cpr),"","Calculate the total radiation force, expressed as cross section.",0,NULL},
-	{PAR(Cpr_mat),"","Deprecated command line option. Use '-Cpr' instead.",0,NULL},
 	{PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
 	{PAR(dir),"<dirname>","Sets directory for output files.\n"
 		"Default: constructed automatically",1,NULL},
@@ -987,11 +985,6 @@ PARSE_FUNC(Cpr)
 {
 	calc_mat_force = true;
 }
-PARSE_FUNC(Cpr_mat)
-{
-	calc_mat_force = true;
-	LogWarning(EC_WARN,ONE_POS,"Command line option '-Cpr_mat' is deprecated. Use '-Cpr' instead");
-}
 PARSE_FUNC(Csca)
 {
 	calc_Csca = true;
@@ -1329,11 +1322,6 @@ PARSE_FUNC(sg_format)
 {
 	if (strcmp(argv[1],"text")==0) sg_format=SF_TEXT;
 	else if (strcmp(argv[1],"text_ext")==0) sg_format=SF_TEXT_EXT;
-	else if (strcmp(argv[1],"ddscat")==0) {
-		sg_format=SF_DDSCAT6;
-		LogWarning(EC_WARN,ONE_POS,"Argument 'ddscat' to command line option '-sg_format ...' is "
-			"deprecated. Use 'ddscat6' or 'ddscat7' instead");
-	}
 	else if (strcmp(argv[1],"ddscat6")==0) sg_format=SF_DDSCAT6;
 	else if (strcmp(argv[1],"ddscat7")==0) sg_format=SF_DDSCAT7;
 	/* TO ADD NEW FORMAT OF SHAPE FILE
