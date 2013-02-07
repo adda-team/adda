@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: basic timing and statistics routines
  *
- * Copyright (C) 2006,2008-2012 ADDA contributors
+ * Copyright (C) 2006,2008-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -95,7 +95,7 @@ void InitTiming(void)
 	TotalIter=TotalMatVec=TotalEval=TotalEFieldPlane=0;
 	Timing_EField=Timing_FileIO=Timing_IntField=Timing_ScatQuan=Timing_Integration=0;
 	Timing_ScatQuanComm=Timing_InitDmComm=0;
-#ifdef ADDA_SPARSE
+#ifdef SPARSE
 	Timing_Dm_Init=Timing_Granul=Timing_FFT_Init=Timing_GranulComm=0;
 #endif	
 }
@@ -147,14 +147,16 @@ void FinalStatistics(void)
 				"    init OpenCL          "FFORMT"\n",TO_SEC(Timing_OCL_Init));
 
 #endif
+#ifndef SPARSE
 			fprintf(logfile,
 				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
-#ifdef PARALLEL
+#	ifdef PARALLEL
 			fprintf(logfile,
 				"      communication:       "FFORMT"\n",TO_SEC(Timing_InitDmComm));
-#endif
+#	endif
 			fprintf(logfile,
 				"    FFT setup:           "FFORMT"\n",TO_SEC(Timing_FFT_Init));
+#endif // !SPARSE
 		}
 		fprintf(logfile,
 			"    make particle:       "FFORMT"\n",TO_SEC(Timing_Particle));

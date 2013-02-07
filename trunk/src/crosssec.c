@@ -3,7 +3,7 @@
  * Descr: all the functions to calculate scattering quantities (except Mueller matrix); to read
  *        different parameters from files; and initialize orientation of the particle
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -41,7 +41,9 @@
 // defined and initialized in calculator.c
 extern double * restrict E2_alldir,* restrict E2_alldir_buffer;
 extern const doublecomplex cc[][3];
+#ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
+#endif
 // defined and initialized in GenerateB.c
 extern const double beam_center_0[3];
 // defined and initialized in param.c
@@ -113,26 +115,6 @@ void InitRotation (void)
 	MatrVec(beta_matr,incPolY_0,incPolY);
 	MatrVec(beta_matr,incPolX_0,incPolX);
 	if (beam_asym) MatrVec(beta_matr,beam_center_0,beam_center);
-}
-
-//=====================================================================
-
-static int ATT_UNUSED ReadLine(FILE * restrict file, // opened file
-	const char * restrict fname,                     // ... its filename
-	char * restrict buf,const int buf_size)          // buffer for line and its size
-// reads the first uncommented line; returns 1 if EOF reached
-{
-	while (!feof(file)) {
-		fgets(buf,buf_size,file);
-		if (*buf!='#') { // if uncommented
-			if (strstr(buf,"\n")==NULL && !feof(file)) LogError(ONE_POS,
-				"Buffer overflow while reading '%s' (size of uncommented line > %d)",
-				fname,buf_size-1);
-			else return 0; // complete line is read
-		} // finish reading the commented line
-		else while (strstr(buf,"\n")==NULL  && !feof(file)) fgets(buf,buf_size,file);
-	}
-	return 1;
 }
 
 //=====================================================================
@@ -526,7 +508,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	double temp, na;
 	doublecomplex mult_mat[MAX_NMAT];
 	const bool scat_avg=true; // temporary fixed option for SO formulation
-#ifdef ADDA_SPARSE
+#ifdef SPARSE
 	doublecomplex expX, expY, expZ;
 #endif
 
@@ -546,11 +528,11 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	}
 	for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
 	// prepare values of exponents, along each of the coordinates
-#ifndef ADDA_SPARSE	
+#ifndef SPARSE	
 	imExp_arr(-kd*n[0],boxX,expsX);
 	imExp_arr(-kd*n[1],boxY,expsY);
 	imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 	/* not to double the code in the source we use two temporary defines,since the following 'if'
 	 * cases differ only by one line of code; (taking 'if' inside the cycle will affect performance)
 	 */
@@ -562,7 +544,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 	 * the grid.
 	 */
 	 
-#ifndef ADDA_SPARSE //FFT mode
+#ifndef SPARSE //FFT mode
 #define PART1\
 	iy1=iz1=UNDEF;\
 	for (j=0;j<local_nvoid_Ndip;++j) {\
@@ -578,7 +560,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			cMult(expsY[iy2],expsZ[iz2],tmp);\
 		}\
 		cMult(tmp,expsX[ix],a);
-#else //sparse mode
+#else // sparse mode
 #define PART1\
 	iy1=iz1=UNDEF;\
 	for (j=0;j<local_nvoid_Ndip;++j) {\
@@ -597,7 +579,7 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 		}\
 		imExp(-kd*n[0]*ix,expX);\
 		cMult(tmp,expX,a);
-#endif //ADDA_SPARSE
+#endif // SPARSE
 #define PART2\
 	/* sum(P*exp(-ik*r.n)) */\
 		for(i=0;i<3;i++) {\
@@ -1068,12 +1050,17 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	}
 	// check if it can work at all; check is redundant for sequential mode
 	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
-	#ifdef PARALLEL
+#ifdef PARALLEL
 	/* Because of the parallelization by row-block decomposition the distributed arrays involved
 	 * need to be gathered on each node a) DipoleCoord -> rdipT; b) pvec -> pT.
 	 * Actually this routine is usually called for two polarizations and rdipT does not change
 	 * between the calls. So one AllGather of rdipT can be removed. Number of memory allocations can
 	 * also be reduced. But this should be replaced by Fourier anyway.
+	 */
+	/* The following is somewhat redundant in sparse mode, since "full" (containing information about all dipoles)
+	 * vectors are already present in that mode. However, we do not optimize it now, since in standard mode radiation
+	 * forces should be computed by FFT anyway. Moreover, there are certain ideas to optimize sparse mode, so it will
+	 * not use full vectors - if done, this improvement can be also adjusted to the code below.
 	 */
 	// allocates a lot of additional memory
 	MALLOC_VECTOR(rdipT,double,nRows,ALL);

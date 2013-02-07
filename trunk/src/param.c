@@ -26,6 +26,7 @@
 #include "fft.h"
 #include "function.h"
 #include "io.h"
+#include "oclcore.h"
 #include "os.h"
 #include "parbas.h"
 #include "vars.h"
@@ -38,11 +39,8 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef OPENCL
-#	include "oclcore.h"
-#	ifdef CLFFT_AMD
-#		include <clAmdFft.h> // for version information
-#	endif
+#ifdef CLFFT_AMD
+#	include <clAmdFft.h> // for version information
 #endif
 
 // definitions for file locking
@@ -80,10 +78,10 @@ extern const char beam_descr[];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 extern const int gr_N;
 extern const double gr_vf_real;
-#endif //ADDA_SPARSE
+#endif //SPARSE
 extern const size_t mat_count[];
 
 // used in CalculateE.c
@@ -110,15 +108,16 @@ const char *scat_grid_parms;      // name of file with parameters of scattering 
 double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
-// used in fft.c
-double igt_lim; // limit (threshold) for integration in IGT
-double igt_eps; // relative error of integration in IGT
+
 // used in GenerateB.c
 int beam_Npars;
 double beam_pars[MAX_N_BEAM_PARMS]; // beam parameters
 opt_index opt_beam;                 // option index of beam option used
 const char *beam_fnameY;            // names of files, defining the beam (for two polarizations)
 const char *beam_fnameX;
+// used in interaction.c
+double igt_lim; // limit (threshold) for integration in IGT
+double igt_eps; // relative error of integration in IGT
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
@@ -237,6 +236,7 @@ static const struct subopt_struct beam_opt[]={
 	{NULL,NULL,NULL,0,0}
 };
 static const struct subopt_struct shape_opt[]={
+#ifndef SPARSE
 	{"axisymmetric","<filename>","Axisymmetric homogeneous shape, defined by its contour in "
 		"ro-z plane of the cylindrical coordinate system. Its symmetry axis coincides with the "
 		"z-axis, and the contour is read from file.",FNAME_ARG,SH_AXISYMMETRIC},
@@ -279,10 +279,13 @@ static const struct subopt_struct shape_opt[]={
 		"b, and diameter at the position of the maximum width c. The surface is described by "
 		"ro^4+2S*ro^2*z^2+z^4+P*ro^2+Q*z^2+R=0, ro^2=x^2+y^2, P,Q,R,S are determined by the "
 		"described parameters.",3,SH_RBC},
+#endif // !SPARSE
 	{"read","<filename>","Read a particle geometry from file <filename>",FNAME_ARG,SH_READ},
+#ifndef SPARSE
 	{"sphere","","Homogeneous sphere",0,SH_SPHERE},
 	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",1,
 		SH_SPHEREBOX},
+#endif // !SPARSE
 	/* TO ADD NEW SHAPE
 	 * add a row to this list in alphabetical order. It contains:
 	 * shape name (used in command line), usage string, help string, possible number of float
@@ -337,7 +340,9 @@ PARSE_FUNC(eq_rad);
 #ifdef OPENCL
 PARSE_FUNC(gpu);
 #endif
+#ifndef SPARSE
 PARSE_FUNC(granul);
+#endif
 PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
 PARSE_FUNC(init_field);
@@ -357,17 +362,23 @@ PARSE_FUNC(pol);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(recalc_resid);
+#ifndef SPARSE
 PARSE_FUNC(save_geom);
+#endif
 PARSE_FUNC(scat);
 PARSE_FUNC(scat_grid_inp);
 PARSE_FUNC(scat_matr);
+#ifndef SPARSE
 PARSE_FUNC(sg_format);
+#endif
 PARSE_FUNC(shape);
 PARSE_FUNC(size);
 PARSE_FUNC(store_beam);
 PARSE_FUNC(store_dip_pol);
 PARSE_FUNC(store_force);
+#ifndef SPARSE
 PARSE_FUNC(store_grans);
+#endif
 PARSE_FUNC(store_int_field);
 PARSE_FUNC(store_scat_grid);
 PARSE_FUNC(sym);
@@ -422,11 +433,13 @@ static struct opt_struct options[]={
 		"only for OpenCL version of ADDA, running on a system with several GPUs.\n"
 		"Default: 0",1,NULL},
 #endif
+#ifndef SPARSE
 	{PAR(granul),"<vol_frac> <diam> [<dom_number>]","Specifies that one particle domain should be "
 		"randomly filled with spherical granules with specified diameter <diam> and volume "
 		"fraction <vol_frac>. Domain number to fill is given by the last optional argument. "
 		"Algorithm may fail for volume fractions > 30-50%.\n"
 		"Default <dom_number>: 1",UNDEF,NULL},
+#endif // !SPARSE
 	{PAR(grid),"<nx> [<ny> <nz>]","Sets dimensions of the computation grid. Arguments should be "
 		"even integers. In most cases <ny> and <nz> can be omitted (they are automatically "
 		"determined by <nx> based on the proportions of the scatterer). This command line option "
@@ -440,10 +453,15 @@ static struct opt_struct options[]={
 		"preceding dash). For some options (e.g. '-beam' or '-shape') specific help on a "
 		"particular suboption <subopt> may be shown.\n"
 		"Example: shape coated",UNDEF,NULL},
-	{PAR(init_field),"{auto|zero|inc|wkb}","Sets prescription to calculate initial (starting) "
-		"field for the iterative solver. 'zero' is a zero vector, 'inc' - equal to the incident "
-		"field, 'wkb' - from Wentzel-Kramers-Brillouin approximation, 'auto' - automatically "
-		"choose from 'zero' and 'inc' based on the lower residual value.\n"
+	{PAR(init_field),"{auto|inc|wkb|zero}",
+		"Sets prescription to calculate initial (starting) field for the iterative solver.\n"
+		"'auto' - automatically choose from 'zero' and 'inc' based on the lower residual value.\n"
+		"'inc' - equal to the incident field,\n"
+		"'wkb' - from Wentzel-Kramers-Brillouin approximation,\n"
+#ifdef SPARSE
+		"!!! 'wkb' is not operational in sparse mode\n"
+#endif
+		"'zero' is a zero vector,\n"
 		"Default: auto",1,NULL},
 	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}",
 		"Sets prescription to calculate the interaction term.\n"
@@ -459,6 +477,9 @@ static struct opt_struct options[]={
 		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
+#ifdef SPARSE
+		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
+#endif
 		"Default: poi",UNDEF,NULL},
 	{PAR(iter),"{bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
@@ -529,12 +550,14 @@ static struct opt_struct options[]={
 		"Normalization (to the unity vector) is performed automatically.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
+#ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path "
 		"relative to the output directory). Can be used with '-prognosis'.\n"
 		"Default: <type>.geom \n"
 		"(<type> is a first argument to the '-shape' option; '_gran' is added if '-granul' option "
 		"is used; file extension can differ depending on argument of '-sg_format' option).",
 		UNDEF,NULL},
+#endif // !SPARSE
 	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
 		"'dr' - (by Draine) standard formulation for point dipoles\n"
 		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
@@ -548,12 +571,14 @@ static struct opt_struct options[]={
 		"amplitude) should be saved to file. Amplitude matrix is never integrated (in combination "
 		"with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
+#ifndef SPARSE
 	{PAR(sg_format),"{text|text_ext|ddscat6|ddscat7}","Specifies format for saving geometry files. "
 		"First two are ADDA default formats for single- and multi-domain particles respectively. "
 		"'text' is automatically changed to 'text_ext' for multi-domain particles. Two DDSCAT "
 		"formats correspond to its shape options 'FRMFIL' (version 6) and 'FROM_FILE' (version 7) "
 		"and output of 'calltarget' utility.\n"
 		"Default: text",1,NULL},
+#endif // !SPARSE
 		/* TO ADD NEW FORMAT OF SHAPE FILE
 		 * Modify string constants after 'PAR(sg_format)': add new argument to list {...} and
 		 * add its description to the next string.
@@ -572,7 +597,9 @@ static struct opt_struct options[]={
 	{PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
 	{PAR(store_force),"","Calculate the radiation force on each dipole. Implies '-Cpr'",
 		0,NULL},
+#ifndef SPARSE
 	{PAR(store_grans),"","Save granule coordinates (placed by '-granul' option) to a file",0,NULL},
+#endif
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
 	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it "
 		"to a file.",0,NULL},
@@ -722,7 +749,7 @@ INLINE void TestNarg(const int Narg,const int need)
 			NargError(Narg,buf);
 		}
 	} // otherwise special cases are considered, encoded by negative values
-	else if (need==UNDEF); // do nothing
+	else if (need==UNDEF) {} // do nothing
 	else if (need==FNAME_ARG) {
 		if (Narg!=1) NargError(Narg,"1");
 	}
@@ -901,6 +928,7 @@ PARSE_FUNC(beam)
 	int i,j,need;
 	bool found;
 
+	if (Narg==0) PrintErrorHelp("Suboption (argument) is missing for '-beam' option");
 	Narg--;
 	found=false;
 	i=-1;
@@ -997,6 +1025,7 @@ PARSE_FUNC(gpu)
 	TestNonNegative_i(gpuInd,"GPU index");
 }
 #endif
+#ifndef SPARSE
 PARSE_FUNC(granul)
 {
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
@@ -1012,6 +1041,7 @@ PARSE_FUNC(granul)
 	gr_mat--; // converted to usual indexing starting from 0
 	sh_granul=true;
 }
+#endif
 PARSE_FUNC(grid)
 {
 	if (Narg!=1 && Narg!=3) NargError(Narg,"1 or 3");
@@ -1059,6 +1089,10 @@ PARSE_FUNC(h)
 						while (options[i].sub[++j].name!=NULL)
 							printf("  %s %s\n",options[i].sub[j].name,options[i].sub[j].usage);
 						printf("Type '%s -h %s <subopt>' for details\n",exename,options[i].name);
+#ifdef SPARSE
+						if (strcmp(options[i].name,"shape")==0)
+							printf("!!! Most of the shape options are disabled in sparse mode\n");
+#endif
 					}
 				}
 				found=true;
@@ -1071,6 +1105,9 @@ PARSE_FUNC(h)
 			       "Available options:\n",exename,exeusage);
 			for (i=0;i<LENGTH(options);i++) printf("  -%s %s\n",options[i].name,options[i].usage);
 			printf("Type '%s -h <opt>' for details\n",exename);
+#ifdef SPARSE
+			printf("!!! A number of options are disabled in sparse mode\n");
+#endif
 		}
 	}
 	// exit
@@ -1081,19 +1118,18 @@ PARSE_FUNC(init_field)
 	if (strcmp(argv[1],"auto")==0) InitField=IF_AUTO;
 	else if (strcmp(argv[1],"zero")==0) InitField=IF_ZERO;
 	else if (strcmp(argv[1],"inc")==0) InitField=IF_INC;
-	else if (strcmp(argv[1],"wkb")==0) InitField=IF_WKB;
+	else if (strcmp(argv[1],"wkb")==0)
+#ifdef SPARSE
+		PrintErrorHelp("Initial field 'wkb' is not supported in sparse mode");
+#else
+		InitField=IF_WKB;
+#endif
 	else NotSupported("Initial field prescription",argv[1]);
 }
 PARSE_FUNC(int)
 {
 	double tmp;
 	
-#ifdef ADDA_SPARSE //only point dipoles in sparse mode
-	if (strcmp(argv[1],"poi")!=0) {
-		NotSupported("Interaction term prescription (sparse mode)",argv[1]);
-	}
-#endif
-
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
 	else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
@@ -1254,12 +1290,14 @@ PARSE_FUNC(recalc_resid)
 {
 	recalc_resid=true;
 }
+#ifndef SPARSE
 PARSE_FUNC(save_geom)
 {
 	if (Narg>1) NargError(Narg,"0 or 1");
 	save_geom=true;
 	if (Narg==1) save_geom_fname=ScanStrError(argv[1],MAX_FNAME);
 }
+#endif
 PARSE_FUNC(scat)
 {
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
@@ -1286,6 +1324,7 @@ PARSE_FUNC(scat_matr)
 	else if (strcmp(argv[1],"none")==0) store_mueller=store_ampl=false;
 	else NotSupported("Scattering matrix specifier",argv[1]);
 }
+#ifndef SPARSE
 PARSE_FUNC(sg_format)
 {
 	if (strcmp(argv[1],"text")==0) sg_format=SF_TEXT;
@@ -1303,11 +1342,13 @@ PARSE_FUNC(sg_format)
 	 */
 	else NotSupported("Geometry format",argv[1]);
 }
+#endif
 PARSE_FUNC(shape)
 {
 	int i,j,need;
 	bool found;
 
+	if (Narg==0) PrintErrorHelp("Suboption (argument) is missing for '-shape' option");
 	Narg--;
 	found=false;
 	i=-1;
@@ -1360,10 +1401,12 @@ PARSE_FUNC(store_force)
 	store_force = true;
 	calc_mat_force = true;
 }
+#ifndef SPARSE
 PARSE_FUNC(store_grans)
 {
 	store_grans=true;
 }
+#endif
 PARSE_FUNC(store_int_field)
 {
 	store_int_field=true;
@@ -1521,6 +1564,12 @@ PARSE_FUNC(V)
 #endif
 #ifdef CLFFT_APPLE
 		"CLFFT_APPLE, "
+#endif
+#ifdef SPARSE
+		"SPARSE, "
+#endif
+#ifdef USE_SSE3
+		"USE_SSE3, "
 #endif
 		"";
 		printf("Extra build options: ");
@@ -1857,6 +1906,9 @@ void VariablesInterconnect(void)
 	if (sizeX!=UNDEF && a_eq!=UNDEF) PrintError("'-size' and '-eq_rad' can not be used together");
 	if (calc_mat_force && beamtype!=B_PLANE)
 		PrintError("Currently radiation forces can not be calculated for non-plane incident wave");
+#ifdef SPARSE
+	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
+#endif
 	// scale boxes by jagged; should be completely robust to overflows
 #define JAGGED_BOX(a) if (a!=UNDEF) { \
 	if ((BOX_MAX/(size_t)jagged)<(size_t)a) \
@@ -2030,12 +2082,12 @@ void PrintInfo(void)
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
 		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 		if (sh_granul) fprintf(logfile,
 			"  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",
 			gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
-#endif //ADDA_SPARSE
+#endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
@@ -2151,8 +2203,10 @@ void PrintInfo(void)
 		fprintf(logfile,"FFTW3\n");
 #elif defined(FFT_TEMPERTON)
 		fprintf(logfile,"by C.Temperton\n");
+#elif defined(SPARSE)
+		fprintf(logfile,"none (sparse mode)\n");
 #endif
-#ifdef OPENCL
+#if defined(OPENCL) && !defined(SPARSE)
 		fprintf(logfile,"OpenCL FFT algorithm: ");
 #	ifdef CLFFT_AMD
 		fprintf(logfile,"by AMD\n");

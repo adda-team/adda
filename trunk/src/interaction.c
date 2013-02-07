@@ -1,227 +1,193 @@
 /* FILE : interaction.c
  * Descr: the functions used to calculate the interaction term
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2011-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-
+#include "const.h" // keep this first
+#include "interaction.h" // corresponding headers
+// project headers
 #include "cmplx.h"
-#include "const.h"
-#include "interaction.h"
 #include "io.h"
-#include "types.h"
+#include "memory.h"
 #include "vars.h"
-#include "param.h"
 
-// defined and initialized in calculator.c
-extern const double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,
-	* restrict tab6,* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
-extern const int * restrict * restrict tab_index;
+// SEMI-GLOBAL VARIABLES
+
+// defined and initialized in make_particle.c
 extern double gridspace;
-extern double igt_lim, igt_eps;
+
+// defined and initialized in param.c
+extern double igt_lim,igt_eps;
+
+// LOCAL VARIABLES
+
+// tables of integrals
+static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,* restrict tab6,
+	* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
+/* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
+* generally compatible with Free_iMatrix function syntax.
+*/
+static int ** restrict tab_index; // matrix for indexing of table arrays
+
+#ifdef USE_SSE3
+static __m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
+static __m128d exptbl[361];
+#endif //USE_SSE3
+
+// EXTERNAL FUNCTIONS
 
 #ifndef NO_FORTRAN
 // fort/propaesplibreintadda.f
-void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,
-	const double *relreq, double *result);
+void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,const double *relreq,
+	double *result);
 #endif
+// sinint.c
+void cisi(double x,double *ci,double *si);
 
-//This function pointer...
-void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex * restrict result);
-//...will point to one of the functions below
-void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result);
-void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * restrict result);
-
-#ifdef USE_SSE3
-__m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
-__m128d exptbl[361];
-#endif //USE_SSE3
-
-#define M_PI 3.14159265358979323846
-
-void InitInteraction(void) 
-/*
-	Initialize the interaction calculations
-*/
-{
-	if (IntRelation==G_POINT_DIP) {
-		CalcInterTerm = CalcInterTerm_opt;
-	} else {
-		CalcInterTerm = CalcInterTerm_complete;
-	}
-
-	#ifdef USE_SSE3
-	c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);
-	c2 = _mm_set_pd(-8.86096155697856783296e-7,-3.86632385155548605680e-9);
-	c3 = _mm_set_pd(1.74532925199432957214e-2,1.52308709893354299569e-4);
-	zo = _mm_set_pd(0.0,1.0);
-	inv_2pi = _mm_set_sd(1.0/(2*M_PI));
-	p360 = _mm_set_sd(360.0);
-	prad_to_deg = _mm_set_sd(180.0/M_PI);
-	
-	for (unsigned int i=0; i<=360; i++) {
-		double x = M_PI/180.0*(double)i; 
-		exptbl[i] = _mm_set_pd(sin(x),cos(x));
-	}
-	#endif
-}
-
+// this is used for debugging, should be empty define, when not required
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
+	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
+	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
 
 #ifdef USE_SSE3
 
-static inline __m128d accImExp(double x, double c)
-/*
-   Accelerated sin-cos (or imaginary exp) routine for use in the calculation of the 
-   interaction tensor. Returns c*exp(ix) in the resultant vector. The code is adapted
-   from the CEPHES library. The idea is that we have precalculated exp(iy) for some
-   discrete values of y. Then we take the y that is nearest to our x and write
-   exp(ix)=exp(iy+(ix-iy))=exp(iy)exp(i(x-y)). We take exp(y) from the table and 
-   exp(i(x-y)) from the Taylor series. This converges very fast since |x-y| is small.
-*/
+//=====================================================================================================================
+
+static inline __m128d accImExp(double x,double c)
+/* Accelerated sin-cos (or imaginary exp) routine for use in the calculation of the interaction tensor. Returns
+ * c*exp(ix) in the resultant vector. The code is adapted from the CEPHES library. The idea is that we have
+ * precalculated exp(iy) for some discrete values of y. Then we take the y that is nearest to our x and write
+ * exp(ix)=exp(iy+(ix-iy))=exp(iy)exp(i(x-y)). We take exp(y) from the table and exp(i(x-y)) from the Taylor series.
+ * This converges very fast since |x-y| is small.
+ */
 {
 	__m128d px = _mm_set_sd(x);
 	__m128d ipx = _mm_mul_pd(px,inv_2pi);
-	int ix = _mm_cvttsd_si32(ipx); //truncation so the function only works for 0 <= x < 2*pi*2^-31
+	int ix = _mm_cvttsd_si32(ipx); // truncation so the function only works for 0 <= x < 2*pi*2^-31
 	ipx = _mm_cvtsi32_sd(ipx,ix);
 	ipx = _mm_mul_pd(p360,ipx);
 	px = _mm_mul_pd(prad_to_deg,px);
-	px = _mm_sub_pd(px,ipx); //this is x (deg) mod 360
-	
-	ix = _mm_cvtsd_si32(px); //the closest integer (rounded, not truncated)
-	__m128d scx = exptbl[ix]; //the tabulated value
-	
+	px = _mm_sub_pd(px,ipx); // this is x (deg) mod 360
+
+	ix = _mm_cvtsd_si32(px); // the closest integer (rounded, not truncated)
+	__m128d scx = exptbl[ix]; // the tabulated value
+
 	ipx = _mm_cvtsi32_sd(ipx,ix);
-	__m128d pz = _mm_sub_pd(ipx,px); //the residual -z=(ix-x)	
+	__m128d pz = _mm_sub_pd(ipx,px); // the residual -z=(ix-x)
 	__m128d py = _mm_mul_pd(pz,pz);	
-	__m128d yy = _mm_shuffle_pd(py,py,0); //now (y,y)		
+	__m128d yy = _mm_shuffle_pd(py,py,0); // now (y,y)
 	__m128d zy = _mm_shuffle_pd(yy,pz,1);	
-	
-	__m128d scz = _mm_mul_pd(c1,yy);	//taylor series approximation
+
+	__m128d scz = _mm_mul_pd(c1,yy);	// Taylor series approximation
 	scz = _mm_add_pd(c2,scz);
 	scz = _mm_mul_pd(yy,scz);
 	scz = _mm_add_pd(c3,scz);
 	scz = _mm_mul_pd(zy,scz);
 	scz = _mm_sub_pd(zo,scz);
-	scx = cmul(scz,scx); //multiply lookup and approximation
-  	return _mm_mul_pd(_mm_set1_pd(c),scx); 
+	scx = cmul(scz,scx); // multiply lookup and approximation
+	return _mm_mul_pd(_mm_set1_pd(c),scx);
 }
 
+//=====================================================================================================================
+
 void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result)
-/* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
- * (in units of d). All six components of the symmetric matrix are computed at once.
- * The elements in result are: [G11, G12, G13, G22, G23, G33]
+/* calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). All six
+ * components of the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
+ * Only 'poi' interaction is implemented in this optimized routine
  */
 {	
-
-// this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
-	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
-	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
-	
 	double qx = i;
 	double qy = j;
 	double qz = k;
-	
+
 	const double rn = sqrt(qx*qx + qy*qy + qz*qz);
-		
 	const double rr=rn*gridspace;
 	const double invr3=1.0/(rr*rr*rr);
 	const double kr=WaveNum*rr;	
 	const __m128d sc = accImExp(kr,invr3);
-	
 	const double invrn = 1.0/rn;
 	qx *= invrn; qy *= invrn; qz *= invrn;
 	const double qxx=qx*qx, qxy=qx*qy, qxz=qx*qz, qyy=qy*qy, qyz=qy*qz, qzz=qz*qz;
-	
 	const double kr2=kr*kr;
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	 
+
 	__m128d qff, im_re;
 #define INTERACT_MUL(I)\
-   im_re = cmul(sc,im_re);\
-   _mm_store_pd(result+I,im_re);\
-	
+	im_re = cmul(sc,im_re);\
+	_mm_store_pd(result[I],im_re);
+
 	const __m128d v1 = _mm_set_pd(kr,t3);
 	const __m128d v2 = _mm_set_pd(t2,t1);
-	
+
 	qff = _mm_set1_pd(qxx);
 	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
 	INTERACT_MUL(0)
-	
+
 	qff = _mm_set1_pd(qxy);
 	im_re = _mm_mul_pd(v2,qff);
 	INTERACT_MUL(1)
-	
+
 	qff = _mm_set1_pd(qxz);
 	im_re = _mm_mul_pd(v2,qff);
 	INTERACT_MUL(2)
-	
+
 	qff = _mm_set1_pd(qyy);
 	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
 	INTERACT_MUL(3)
-	
+
 	qff = _mm_set1_pd(qyz);
 	im_re = _mm_mul_pd(v2,qff);
 	INTERACT_MUL(4)
-	
+
 	qff = _mm_set1_pd(qzz);
 	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
 	INTERACT_MUL(5)
-
 #undef INTERACT_MUL
-	
+
 	PRINT_GVAL;
 }
 
 #else //not using SSE3
 
+//=====================================================================================================================
+
 void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restrict result)
-/* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
- * (in units of d). All six components of the symmetric matrix are computed at once.
- * The elements in result are: [G11, G12, G13, G22, G23, G33]
+/* calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). All six
+ * components of the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
 {	
 	double re,im;
-
-// this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
-	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
-	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
-	
 	double qx = i;
 	double qy = j;
 	double qz = k;
-	
+
 	const double rn = sqrt(qx*qx + qy*qy + qz*qz);
 	const double invrn = 1.0/rn;
 	qx *= invrn; qy *= invrn; qz *= invrn;
 	const double qxx=qx*qx, qxy=qx*qy, qxz=qx*qz, qyy = qy*qy, qyz=qy*qz, qzz=qz*qz;	
-	
 	const double rr=rn*gridspace;
 	const double invr3=1.0/(rr*rr*rr);
 	const double kr=WaveNum*rr;
 	const double kr2=kr*kr;
-	
 	const double cov=cos(kr)*invr3;
 	const double siv=sin(kr)*invr3;
-	
+
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	
+
 #define INTERACT_MUL(I)\
-   result[I][RE] = re*cov - im*siv;\
+	result[I][RE] = re*cov - im*siv;\
 	result[I][IM] = re*siv + im*cov;
-	
+
 	re = t1*qxx + t3;
 	im = kr + t2*qxx;
 	INTERACT_MUL(0)	
@@ -240,18 +206,15 @@ void CalcInterTerm_opt(const int i,const int j,const int k,doublecomplex * restr
 	re = t1*qzz + t3;
 	im = kr + t2*qzz;
 	INTERACT_MUL(5)
-	
+
 #undef INTERACT_MUL	
-	
+
 	PRINT_GVAL;
 }
 
 #endif //USE_SSE3
 
-// sinint.c
-void cisi(double x,double *ci,double *si);
-
-//============================================================
+//=====================================================================================================================
 
 INLINE bool TestTableSize(const double rn)
 // tests if rn fits into the table; if not, returns false and produces info message
@@ -269,12 +232,11 @@ INLINE bool TestTableSize(const double rn)
 	else return true;
 }
 
-//============================================================
+//=====================================================================================================================
 
 void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * restrict result)
-/* calculates interaction term between two dipoles; given integer distance vector {i,j,k}
- * (in units of d). All six components of the symmetric matrix are computed at once.
- * The elements in result are: [G11, G12, G13, G22, G23, G33]
+/* calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). All six
+ * components of the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
 {
 	static double rr,qvec[3],q2[3],invr3,qavec[3],av[3];
@@ -288,16 +250,6 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 	static double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
 	static const bool inter_avg=true; // temporary fixed option for SO formulation
 
-// this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
-	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
-	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/ 
-
-	// self interaction; self term is computed in different subroutine
-	if (!(i || j || k)) for (comp=0;comp<NDCOMP;comp++) {
-		result[comp][RE]=result[comp][IM]=0;
-		return;
-	}
 	//====== calculate some basic constants ======
 	qvec[0]=i; // qvec is normalized below (after IGT)
 	qvec[1]=j;
@@ -341,16 +293,14 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 		cMult(br,expval,result[comp]);
 	}
 	//====== FCD (static and full) ========
-	/* speed of FCD can be improved by using faster version of sici routine, using predefined
-	 * tables, etc (e.g. as is done in GSL library). But currently extra time for this computation
-	 * is already smaller than one main iteration.
+	/* speed of FCD can be improved by using faster version of sici routine, using predefined tables, etc (e.g. as is
+	 * done in GSL library). But currently extra time for this computation is already smaller than one main iteration.
 	 */
 	if (IntRelation==G_FCD_ST) {
-		/* FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and
-		 * non-filtered 3D Green's tensor associated with infinite homogeneous space and surfaces",
-		 * Comp. Phys. Comm. 144:111-120 (2002), and Piller N.B. "Increasing the performance of the
-		 * coupled-dipole approximation: A spectral approach", IEEE Trans.Ant.Propag. 46(8):
-		 * 1126-1137. Here it differs by a factor of 4*pi*k^2.
+		/* FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D
+		 * Green's tensor associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120
+		 * (2002), and Piller N.B. "Increasing the performance of the coupled-dipole approximation: A spectral
+		 * approach", IEEE Trans.Ant.Propag. 46(8): 1126-1137. Here it differs by a factor of 4*pi*k^2.
 		 */
 		// result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi)
 		cisi(kfr,&ci,&si);
@@ -378,8 +328,8 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 	}
 	//======= second order corrections ========
 	else if (IntRelation==G_IGT_SO) {
-		/* There is still some space for speed optimization here (e.g. move mu,nu-independent
-		 * operations out of the cycles over components).
+		/* There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the
+		 * cycles over components).
 		 */
 		kd2=kd*kd;
 		if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
@@ -449,15 +399,14 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 			// cycle over tensor components
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
 				sig=sigV[mu]*sigV[nu]; // sign of some terms below
-				/* indexes for tables of different dimensions based on transformed indices mu and nu
-				 * '...munu' variables are invariant to permutations because both constituent
-				 * vectors and indices are permutated. So this variables can be used, as precomputed
-				 * above.
+				/* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
+				 * are invariant to permutations because both constituent vectors and indices are permutated. So this
+				 * variables can be used, as precomputed above.
 				 */
 				mu1=invord[mu];
 				nu1=invord[nu];
-				/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted
-				 * differently than comp. This is {{0,1,3},{1,2,4},{3,4,5}}
+				/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
+				 * This is {{0,1,3},{1,2,4},{3,4,5}}
 				 */
 				indmunu=mu1+nu1;
 				if (mu1==2 || nu1==2) indmunu++;
@@ -519,9 +468,9 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 		}
 	}
 	else if (IntRelation==G_SO) {
-		/* There is still some space for speed optimization here (e.g. move mu,nu-independent
-		 * operations out of the cycles over components). But now extra time is equivalent to 2-3
-		 * main iterations. So first priority is to make something useful out of SO.
+		/* There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the
+		 * cycles over components). But now extra time is equivalent to 2-3 main iterations. So first priority is to
+		 * make something useful out of SO.
 		 */
 		// next line should never happen
 		if (anisotropy) LogError(ONE_POS,"Incompatibility error in CalcInterTerm");
@@ -609,15 +558,14 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 			ind2m=6*ind0;			// cycle over tensor components
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
 				sig=sigV[mu]*sigV[nu]; // sign of some terms below
-				/* indexes for tables of different dimensions based on transformed indices mu and nu
-				 * '...munu' variables are invariant to permutations because both constituent
-				 * vectors and indices are permutated. So this variables can be used, as precomputed
-				 * above.
+				/* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
+				 * are invariant to permutations because both constituent vectors and indices are permutated. So this
+				 * variables can be used, as precomputed above.
 				 */
 				mu1=invord[mu];
 				nu1=invord[nu];
-				/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted
-				 * differently than comp. This is {{0,1,3},{1,2,4},{3,4,5}}
+				/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
+				 * This is {{0,1,3},{1,2,4},{3,4,5}}
 				 */
 				indmunu=mu1+nu1;
 				if (mu1==2 || nu1==2) indmunu++;
@@ -719,9 +667,7 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 			for (comp=0;comp<NDCOMP;comp++) cMultSelf(result[comp],br);
 			//==== compute and add Gf1 ===
 			if (!inter_avg) for (comp=0;comp<NDCOMP;comp++) {
-				/* br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa
-				 *    + qamunu*(3-3ikr-kr^2)
-				 */
+				// br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa + qamunu*(3-3ikr-kr^2)
 				br[RE]=(6*kr2-15)*qmunu[comp];
 				br[IM]=(15*kr-kr3)*qmunu[comp];
 				if(dmunu[comp]) {
@@ -759,8 +705,8 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 						// Gm1=expval*i*m*temp; temp is set anew
 						vMult(qvec,prop,qavec);
 						temp = 3*qa*(dmunu[comp]-7*qmunu[comp]) + 6*dmunu[comp]*qvec[mu]*prop[mu]
-							 - 7*(dmunu[comp]-9*qmunu[comp])*DotProd(qavec,q2)
-							 + 3*(prop[mu]*qvec[nu]*(1-7*q2[mu])+prop[nu]*qvec[mu]*(1-7*q2[nu]));
+						     - 7*(dmunu[comp]-9*qmunu[comp])*DotProd(qavec,q2)
+						     + 3*(prop[mu]*qvec[nu]*(1-7*q2[mu])+prop[nu]*qvec[mu]*(1-7*q2[nu]));
 						temp*=kd*invrn3/48;
 						cMultReal(temp,m,Gm1);
 						cMult_i(Gm1);
@@ -777,4 +723,122 @@ void CalcInterTerm_complete(const int i,const int j,const int k,doublecomplex * 
 	PRINT_GVAL;
 }
 
-#undef PRINT_GVAL
+//=====================================================================================================================
+
+static double * ATT_MALLOC ReadTableFile(const char * restrict sh_fname,const int size_multiplier)
+{
+	FILE * restrict ftab;
+	double * restrict tab_n;
+	int size;
+	char fname[MAX_FNAME];
+	int i;
+
+	size=TAB_SIZE*size_multiplier;
+	memory+=size*sizeof(double);
+	if (!prognosis) {
+		// allocate memory for tab_n
+		MALLOC_VECTOR(tab_n,double,size,ALL);
+		// open file
+		SnprintfErr(ALL_POS,fname,MAX_FNAME,TAB_PATH"%s",sh_fname);
+		ftab=FOpenErr(fname,"r",ALL_POS);
+		// scan file
+		for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
+			LogError(ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
+		if (!feof(ftab))
+			LogWarning(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
+		// close file
+		FCloseErr(ftab,fname,ALL_POS);
+		return tab_n;
+	}
+	else return NULL;
+}
+
+//=====================================================================================================================
+
+static void ReadTables(void)
+{
+	int i, j, ymax, Rm2, Rm2x;
+
+	TIME_TYPE tstart=GET_TIME();
+	tab1=ReadTableFile(TAB_FNAME(1),1);
+	tab2=ReadTableFile(TAB_FNAME(2),6);
+	tab3=ReadTableFile(TAB_FNAME(3),3);
+	tab4=ReadTableFile(TAB_FNAME(4),18);
+	tab5=ReadTableFile(TAB_FNAME(5),6);
+	tab6=ReadTableFile(TAB_FNAME(6),36);
+	tab7=ReadTableFile(TAB_FNAME(7),1);
+	tab8=ReadTableFile(TAB_FNAME(8),6);
+	tab9=ReadTableFile(TAB_FNAME(9),1);
+	tab10=ReadTableFile(TAB_FNAME(10),6);
+	Timing_FileIO += GET_TIME() - tstart;
+
+	if (!prognosis) {
+		// allocate memory for tab_index
+		MALLOC_IMATRIX(tab_index,1,TAB_RMAX,0,TAB_RMAX,ALL);
+		// fill tab_index
+		Rm2=TAB_RMAX*TAB_RMAX;
+		tab_index[1][0] = 0;
+		for (i=1; i<=TAB_RMAX; i++) {
+			Rm2x=Rm2-i*i;
+			ymax = MIN(i,(int)floor(sqrt(Rm2x)));
+			for (j=0; j<ymax; j++) {
+				tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
+			}
+			if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax]
+			                                  + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
+		}
+	}
+	// PRINTZ("P[5,3]=%d (should be 41)\n",tab_index[5][3]);
+}
+
+//=====================================================================================================================
+
+static void FreeTables(void)
+{
+	Free_iMatrix(tab_index,1,TAB_RMAX,0);
+	Free_general(tab1);
+	Free_general(tab2);
+	Free_general(tab3);
+	Free_general(tab4);
+	Free_general(tab5);
+	Free_general(tab6);
+	Free_general(tab7);
+	Free_general(tab8);
+	Free_general(tab9);
+	Free_general(tab10);
+}
+
+//=====================================================================================================================
+
+void InitInteraction(void)
+// Initialize the interaction calculations
+{
+	if (IntRelation==G_POINT_DIP) {
+		CalcInterTerm = &CalcInterTerm_opt;
+#ifdef USE_SSE3
+		c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);
+		c2 = _mm_set_pd(-8.86096155697856783296e-7,-3.86632385155548605680e-9);
+		c3 = _mm_set_pd(1.74532925199432957214e-2,1.52308709893354299569e-4);
+		zo = _mm_set_pd(0.0,1.0);
+		inv_2pi = _mm_set_sd(1.0/(2*PI));
+		p360 = _mm_set_sd(360.0);
+		prad_to_deg = _mm_set_sd(180.0/PI);
+
+		for (unsigned int i=0; i<=360; i++) {
+			double x = (PI/180.0)*(double)i;
+			exptbl[i] = _mm_set_pd(sin(x),cos(x));
+		}
+#endif
+	}
+	else CalcInterTerm = &CalcInterTerm_complete;
+	// read tables if needed
+	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
+}
+
+//=====================================================================================================================
+
+void FreeInteraction(void)
+// Free buffers used for interaction calculation
+{
+	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
+}

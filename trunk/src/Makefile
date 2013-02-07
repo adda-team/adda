@@ -79,7 +79,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # below are appended to the list specified elsewhere.
 # Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE
+              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum
 # optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
@@ -224,22 +224,42 @@ else
   $(info Release mode)
   DBGLVL := 0
 endif
-ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
-  $(info Temperton FFT)
-  CDEFS += -DFFT_TEMPERTON
-  ifeq ($(filter NO_FORTRAN,$(OPTIONS)),)
-    FSOURCE += cfft99D.f
-  else
-    $(error Temperton FFT (FFT_TEMPERTON) is implemented in Fortran, hence incompatible with NO_FORTRAN)
+ifneq ($(filter SPARSE,$(OPTIONS)),)
+  $(info Sparse (non-FFT) mode)
+  ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
+    $(error SPARSE turns off all FFT-related code, so it is incompatible with FFT_TEMPERTON)
   endif
+  ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
+    $(error SPARSE turns off all FFT-related code, so it is incompatible with CLFFT_APPLE)
+  endif
+  ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
+    $(error SPARSE is currently incompatible with PRECISE_TIMING)
+  endif
+  
+  CDEFS += -DSPARSE
 else
-  $(info FFTW3)
-  LDLIBS += -lfftw3
-  ifdef FFTW3_INC_PATH
-    CFLAGS += -I$(FFTW3_INC_PATH)
+  CSOURCE += fft.c
+  ifneq ($(filter FFT_TEMPERTON,$(OPTIONS)),)
+    $(info Temperton FFT)
+    CDEFS += -DFFT_TEMPERTON
+    ifeq ($(filter NO_FORTRAN,$(OPTIONS)),)
+      FSOURCE += cfft99D.f
+    else
+      $(error Temperton FFT (FFT_TEMPERTON) is implemented in Fortran, hence incompatible with NO_FORTRAN)
+    endif
+  else
+    $(info FFTW3)
+    LDLIBS += -lfftw3
+    ifdef FFTW3_INC_PATH
+      CFLAGS += -I$(FFTW3_INC_PATH)
+    endif
+    ifdef FFTW3_LIB_PATH
+      LDFLAGS += -L$(FFTW3_LIB_PATH)
+    endif
   endif
-  ifdef FFTW3_LIB_PATH
-    LDFLAGS += -L$(FFTW3_LIB_PATH)
+  ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
+    # Here only the info is printed, the main logic is in ocl/Makefile
+    $(info Apple clFFT routines)
   endif
 endif
 ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
@@ -270,23 +290,14 @@ ifneq ($(filter OVERRIDE_STDC_TEST,$(OPTIONS)),)
   $(info Overriding test for C99 conformance)
   CDEFS += -DOVERRIDE_STDC_TEST
 endif
-
-ifneq ($(filter SPARSE,$(OPTIONS)),)
-  CDEFS += -DADDA_SPARSE
-else
-  CSOURCE += fft.c
-endif
 ifneq ($(filter USE_SSE3,$(OPTIONS)),)
   CDEFS += -DUSE_SSE3
   CFLAGS += -msse3
+  $(info Using SSE3 optimizations)
 endif
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Read CL sources at runtime)
-endif
-ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
-  # Here only the info is printed, the main logic is in ocl/Makefile
-  $(info Apple clFFT routines)
 endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)
@@ -446,12 +457,12 @@ clean: cleanseq cleanmpi cleanocl
 # compilation and thus contain quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
-	cd $(SEQ) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
+	cd $(SEQ) && rm -f *.o *.d $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe
 
 cleanmpi:
 	@echo "Removing MPI compiled files"
-	cd $(MPI) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
+	cd $(MPI) && rm -f *.o *.d $(OPTSFILES) $(PROGMPI) $(PROGMPI).exe
 
 cleanocl:
 	@echo "Removing OpenCL compiled files"
-	cd $(OCL) && rm -f *.o *.d *.d.* $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr
+	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr

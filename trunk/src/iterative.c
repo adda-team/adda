@@ -10,7 +10,7 @@
  *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
  *        BiCGStab.
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -49,7 +49,7 @@ extern const TIME_TYPE tstart_CE;
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
 // defined and initialized in fft.c
-#ifndef OPENCL
+#if !defined(OPENCL) && !defined(SPARSE)
 extern doublecomplex * restrict Xmatrix; // used as storage for arrays in WKB init field
 #endif
 // defined and initialized in param.c
@@ -366,7 +366,7 @@ ITER_FUNC(BiCG_CS)
 		scalars[0].ptr=&ro_old;
 		scalars[0].size=sizeof(doublecomplex);
 	}
-	else if (ph==PHASE_INIT); // no specific initialization required
+	else if (ph==PHASE_INIT) {} // no specific initialization required
 	// main iteration cycle
 	else if (ph==PHASE_ITER) {
 		// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
@@ -384,7 +384,7 @@ ITER_FUNC(BiCG_CS)
 			nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
 		}
 		// q_k=Avecbuffer=A.p_k
-		if (niter==1 && matvec_ready); // do nothing, Avecbuffer is ready to use
+		if (niter==1 && matvec_ready) {} // do nothing, Avecbuffer is ready to use
 		else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		// mu_k=p_k.q_k; check for mu_k!=0
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
@@ -514,7 +514,7 @@ ITER_FUNC(CGNR)
 		scalars[0].ptr=&ro_old;
 		scalars[0].size=sizeof(double);
 	}
-	else if (ph==PHASE_INIT); // no specific initialization required
+	else if (ph==PHASE_INIT) {} // no specific initialization required
 	else if (ph==PHASE_ITER) {
 		// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
 		// since first product is with Ah , matvec_ready can't be employed
@@ -1061,7 +1061,7 @@ static const char *CalcInitField(double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		descr="x_0 = E_inc\n";
 	}
-#ifndef ADDA_SPARSE	//currently no support for WKB in sparse mode
+#ifndef SPARSE	//currently no support for WKB in sparse mode
 	else if (InitField==IF_WKB) {
 		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
 			"incident direction of the incoming wave (along z-axis)");
@@ -1160,7 +1160,7 @@ static const char *CalcInitField(double zero_resid)
 		nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 		descr="x_0 = result of WKB\n";
 	} // redundant test
-#endif //ADDA_SPARSE	
+#endif // !SPARSE
 	else LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
 	return descr;
 }

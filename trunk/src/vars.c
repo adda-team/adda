@@ -6,7 +6,7 @@
  *        source files are called 'semi-global' and not listed here. They are defined in one file
  *        and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -135,7 +135,7 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_Integration, // time for all integrations (with precomputed values)
           tstart_main;        // starting time of the program (after MPI_Init in parallel)
           
-#ifndef ADDA_SPARSE //These variables are exclusive to the FFT mode
+#ifndef SPARSE //These variables are exclusive to the FFT mode
 
 unsigned short * restrict position; /* position of the dipoles; in the very end of make_particle()
                                      * z-components are adjusted to be relative to the local_z0
@@ -168,14 +168,9 @@ size_t local_x0,local_x1,local_Nx; /* starting, ending x for current processor a
 
 #else //These variables are exclusive to the sparse mode
 
-int * restrict position;   // no reason to restrict this to short in sparse mode
+int *position; // no reason to restrict this to short in sparse mode; actually it points to a part of position_full
 //in sparse mode, all coordinates must be available to each process
-int * restrict position_full;  
+int * restrict position_full;
 
-unsigned char * restrict material_full;
-doublecomplex * restrict arg_full;
-
-double local_f0, local_f1;
-
-#endif //ADDA_SPARSE
+#endif //SPARSE
 

@@ -1,8 +1,8 @@
 /* File: oclcore.h
  * $Date::                            $
- * Descr: all common OpenCL variables and functions
+ * Descr: all common OpenCL variables and functions; void in non-OpenCL mode
  *
- * Copyright (C) 2010-2012 ADDA contributors
+ * Copyright (C) 2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#ifdef OPENCL
 
 #ifndef __oclcore_h
 #define __oclcore_h
@@ -73,3 +74,5 @@ INLINE void CheckCLErr(const cl_int err,ERR_LOC_DECL,const char * restrict msg)
 }
 
 #endif // __oclcore_h
+
+#endif // OPENCL

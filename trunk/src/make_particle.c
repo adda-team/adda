@@ -3,7 +3,7 @@
  * Descr: this module initializes the dipole set, either using predefined shapes or reading from a
  *        file; includes granule generator
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -43,28 +43,33 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in param.c
-extern const int sh_Npars;
 extern const enum sh shape;
-extern const double sh_pars[];
 extern const enum sym sym_type;
 extern const double lambda;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
 extern const char *shape_fname;
 extern const char *shapename;
-extern const char *save_geom_fname;
 extern const bool volcor,save_geom;
 extern opt_index opt_sh;
+#ifndef SPARSE
+extern const int sh_Npars;
+extern const double sh_pars[];
+extern const char *save_geom_fname;
 extern const double gr_vf;
 extern double gr_d;
 extern const int gr_mat;
 extern enum shform sg_format;
 extern bool store_grans;
+#endif
 
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_Particle,Timing_Granul,Timing_GranulComm;
+extern TIME_TYPE Timing_Particle;
+#ifndef SPARSE
+extern TIME_TYPE Timing_Granul,Timing_GranulComm;
+#endif
 
-// used in fft.c
+// used in interaction.c
 double gridspace; // interdipole distance (dipole size)
 
 // used in param.c
@@ -83,7 +88,9 @@ static const char geom_format_ext[]="%d %d %d %d\n";       // extended format of
  */
 static const char ddscat_format_read1[]="%*s %d %d %d %d %d %d\n";
 static const char ddscat_format_read2[]="%*s %d %d %d %d";
+#ifndef SPARSE
 static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
+#endif
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
 static double Ndip;             // total number of dipoles (in a circumscribing cube)
@@ -93,7 +100,7 @@ static FILE * restrict dipfile; // handle of dipole file
 static enum shform read_format; // format of dipole file, which is read
 static double cX,cY,cZ;         // center for DipoleCoord, it is sometimes used in PlaceGranules
 
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
@@ -133,11 +140,11 @@ struct segment * restrict contSeg;
 
 // temporary arrays before their real counterparts are allocated
 static unsigned char * restrict material_tmp;
-static double * restrict DipoleCoord_tmp;
 static unsigned short * restrict position_tmp;
-#endif //ADDA_SPARSE
 
-#ifndef ADDA_SPARSE //much of the functionality here is disabled in sparse mode
+#endif // !SPARSE
+
+#ifndef SPARSE //much of the functionality here is disabled in sparse mode
 
 // EXTERNAL FUNCTIONS
 
@@ -230,8 +237,6 @@ static void SaveGeometry(void)
 	if (IFROOT) printf("Geometry saved to file\n");
 	Timing_FileIO+=GET_TIME()-tstart;
 }
-
-//===========================================================
 
 //==========================================================
 #define ALLOCATE_SEGMENTS(N) (struct segment *)voidVector((N)*sizeof(struct segment),ALL_POS,\
@@ -1037,7 +1042,7 @@ static size_t PlaceGranules(void)
 
 //===========================================================
 
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 
 static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int *Nm,
 	const char **rft)
@@ -1227,17 +1232,21 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 //===========================================================
 
 static void ReadDipFile(const char * restrict fname)
-/* read dipole file; no consistency checks are made since they are made in InitDipFile.
- * the file is opened in InitDipFile; this function only closes the file.
+/* read dipole file; no consistency checks are made since they are made in InitDipFile. The file is opened in
+ * InitDipFile; this function only closes the file.
+ *
+ * The operation is quite different in FFT and sparse modes. In FFT mode only material is set here, while position is
+ * set in the main loop over shapes in MakeParticle(). By contrast, in sparse mode position is set here as well (since
+ * the loop in MakeParticle() is skipped altogether.
  */
 {
 	int x,y,z,x0,y0,z0,mat,scanned;
 	size_t index=0;
 	char linebuf[BUF_LINE];	
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	// to remove possible overflows
 	size_t boxX_l=(size_t)boxX;
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 
 	TIME_TYPE tstart=GET_TIME();
 	
@@ -1262,26 +1271,25 @@ static void ReadDipFile(const char * restrict fname)
 			y0-=minY;
 			z0-=minZ;
 			// initialize box jagged*jagged*jagged instead of one dipole
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
 				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
 					index=(z-local_z0)*boxXY+y*boxX_l+x;
 					material_tmp[index]=(unsigned char)(mat-1);
 			}
 #else
-			
 			for (z=0;z<jagged;z++) 
 			for (y=0;y<jagged;y++) 
 			for (x=0;x<jagged;x++) {
 				if ((index >= local_nvoid_d0) && (index < local_nvoid_d1)) {
-					material_full[index]=(unsigned char)(mat-1);
+					material[index-local_nvoid_d0]=(unsigned char)(mat-1);
 					position_full[3*index]=x0*jagged+x;
 					position_full[3*index+1]=y0*jagged+y;
 					position_full[3*index+2]=z0*jagged+z;
 				}
 				index++;
 			}
-#endif //ADDA_SPARSE
+#endif // SPARSE
 		}
 	}
 	
@@ -1333,7 +1341,7 @@ void InitShape(void)
 	double n_sizeX; // new value for size
 	double yx_ratio,zx_ratio;
 	double tmp1,tmp2;
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	double tmp3;
 #endif
 	TIME_TYPE tstart;
@@ -1371,7 +1379,7 @@ void InitShape(void)
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
-#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode
+#ifndef SPARSE //shapes other than "read" are disabled in sparse mode
 	if (shape==SH_AXISYMMETRIC) {
 		/* Axisymmetric homogeneous shape, defined by its contour in ro-z plane of the cylindrical
 		 * coordinate system. Its symmetry axis coincides with the z-axis, and the contour is read
@@ -1782,7 +1790,7 @@ void InitShape(void)
 		Nmat_need=2;
 	}	
 	else 
-#endif //ADDA_SPARSE	
+#endif // !SPARSE
 	if (shape==SH_READ) {
 		symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
 		const char *rf_text;
@@ -1826,11 +1834,11 @@ void InitShape(void)
 	 *   define your own (with more informative names) in the beginning of this function.
 	 */
 	else 
-#ifndef ADDA_SPARSE 
+#ifndef SPARSE 
 		LogError(ONE_POS,"Unknown shape"); // this is mainly to remove 'uninitialized' warnings
 #else
 		LogError(ONE_POS,"Only shapes read from a file are currently supported in sparse mode"); 
-#endif //ADDA_SPARSE
+#endif // SPARSE
 
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
@@ -1848,7 +1856,7 @@ void InitShape(void)
 				"while shape '%s' sets both the particle size and the size of the grid",shapename);
 		}
 	}
-#ifndef ADDA_SPARSE //granulation disabled in sparse mode
+#ifndef SPARSE //granulation disabled in sparse mode
 	// initialize domain granulation
 	if (sh_granul) {
 		symX=symY=symZ=symR=false; // no symmetry with granules
@@ -1961,13 +1969,13 @@ void InitShape(void)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",
 				n_boxY,n_boxZ,boxY,boxZ);
 	}
-#ifndef ADDA_SPARSE //this check is not needed in sparse mode
+#ifndef SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
 	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing "
 		"box (%.0f) is larger than supported by size_t type on this system (%zu). If possible, "
 		"please recompile ADDA in 64-bit mode.",tmp,SIZE_MAX);
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 	Ndip=boxX*boxY*boxZ;
 	// initialize maxiter; not very realistic
 	if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
@@ -1991,11 +1999,10 @@ void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, gridspace
 {
 	
-	size_t index;
+	size_t index,dip,i3;
 	TIME_TYPE tstart;
-#ifndef ADDA_SPARSE
 	int i;
-	size_t dip;
+#ifndef SPARSE
 	double jcX,jcY,jcZ; // center for jagged
 	size_t local_nRows_tmp;
 	int j,k,ns;	
@@ -2007,7 +2014,7 @@ void MakeParticle(void)
 	int mat;
 	unsigned short us_tmp;
 	TIME_TYPE tgran;
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 
 	/* TO ADD NEW SHAPE
 	 * Add here all intermediate variables, which are used only inside this function. You may as
@@ -2020,7 +2027,7 @@ void MakeParticle(void)
 	cY=(boxY-1)/2.0;
 	cZ=(boxZ-1)/2.0;
 		
-#ifndef ADDA_SPARSE //shapes other than "read" are disabled in sparse mode
+#ifndef SPARSE //shapes other than "read" are disabled in sparse mode
 	index=0;	
 	// assumed that box's are even
 	jcX=jcY=jcZ=jagged/2.0;
@@ -2031,7 +2038,6 @@ void MakeParticle(void)
 	 * they will be reallocated afterwards (when local_nRows is known).
 	 */
 	MALLOC_VECTOR(material_tmp,uchar,local_Ndip,ALL);
-	MALLOC_VECTOR(DipoleCoord_tmp,double,local_nRows_tmp,ALL);
 	MALLOC_VECTOR(position_tmp,ushort,local_nRows_tmp,ALL);
 
 	for(k=local_z0;k<local_z1_coer;k++)
@@ -2195,49 +2201,35 @@ void MakeParticle(void)
 				 * only in this part of the code), either use 'tmp1'-'tmp3' or define your own (with
 				 * more informative names) in the beginning of this function.
 				 */
-
 				position_tmp[3*index]=(unsigned short)i;
 				position_tmp[3*index+1]=(unsigned short)j;
 				position_tmp[3*index+2]=(unsigned short)k;
 				// afterwards multiplied by gridspace
-				DipoleCoord_tmp[3*index]=i-cX;
-				DipoleCoord_tmp[3*index+1]=j-cY;
-				DipoleCoord_tmp[3*index+2]=k-cZ;
 				material_tmp[index]=(unsigned char)mat;
 				index++;
 			} // End box loop
-#endif //ADDA_SPARSE
-
-#ifdef ADDA_SPARSE
-	MALLOC_VECTOR(material_full,uchar,nvoid_Ndip,ALL);
-	MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
-	memory+=(sizeof(char)+sizeof(int)*3)*nvoid_Ndip;
-
-	//for sparse mode, nvoid_Ndip is defined in InitDipFile
-	//so we actually run SetupLocalD before reading the file
-	//(which requires local_nvoid_d0 and local_nvoid_d1 to be defined)
-	SetupLocalD();
+#else // SPARSE
+	// local_nvoid_d0 and local_nvoid_d1 are set earlier in ParSetup()
 	local_nvoid_Ndip=local_nvoid_d1-local_nvoid_d0;
-	local_Ndip = local_nvoid_Ndip;
-#endif
-
+	local_Ndip=local_nvoid_Ndip;
+	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
+	MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
+	memory+=3*sizeof(int)*nvoid_Ndip+sizeof(char)*local_nvoid_Ndip;
+#endif // SPARSE
 	if (shape==SH_READ) ReadDipFile(shape_fname);
 	// initialization of mat_count and dipoles counts
-	
-#ifndef ADDA_SPARSE
 	for(i=0;i<=Nmat;i++) mat_count[i]=0;
+#ifdef SPARSE
+	for(dip=0;dip<local_Ndip;dip++) mat_count[material[dip]]++;
+	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
+#else
 	for(dip=0;dip<local_Ndip;dip++) mat_count[material_tmp[dip]]++;
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	SetupLocalD();
 	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
-	if ((nvoid_Ndip=Ndip-mat_count[Nmat])==0)
-		LogError(ONE_POS,"All dipoles of the scatterer are void");
-#endif //ADDA_SPARSE
-
-
-	
-	if (nvoid_Ndip==0)
-		LogError(ONE_POS,"All dipoles of the scatterer are void");
+	nvoid_Ndip=Ndip-mat_count[Nmat];
+#endif // !SPARSE
+	if (nvoid_Ndip==0) LogError(ONE_POS,"All dipoles of the scatterer are void");
 	local_nRows=3*local_nvoid_Ndip;
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
@@ -2268,7 +2260,7 @@ void MakeParticle(void)
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
 	
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	// granulate one domain, if needed
 	if (sh_granul) {
 		tgran=GET_TIME();
@@ -2296,61 +2288,50 @@ void MakeParticle(void)
 		mat_count[gr_mat]-=mat_count[Nmat-1];
 		Timing_Granul=GET_TIME()-tgran;
 	}
-#endif //ADDA_SPARSE
-	
 	/* allocate main particle arrays, using precise local_nRows even when prognosis is used to enable
 	 * save_geom afterwards.
 	 */
-MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
-MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
-#ifndef ADDA_SPARSE	
+	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
 	MALLOC_VECTOR(position,ushort,local_nRows,ALL);
-	memory+=(3*(sizeof(short int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
-#else
-	MALLOC_VECTOR(position,int,local_nRows,ALL);
-	memory+=(3*(sizeof(int)+sizeof(double))+sizeof(char))*local_nvoid_Ndip;
-	
-	memcpy(material, &(material_full[local_nvoid_d0]), local_nvoid_Ndip*sizeof(*material_full));
-	memcpy(position, &(position_full[3*local_nvoid_d0]), local_nRows*sizeof(*position_full));      
-
-	for (index=0; index<local_nvoid_Ndip; index++) {
-		DipoleCoord[3*index] = (position[3*index] - cX) * gridspace;
-		DipoleCoord[3*index+1] = (position[3*index+1] - cY) * gridspace;
-		DipoleCoord[3*index+2] = (position[3*index+2] - cZ) * gridspace;
-	}
-#endif
-
-#ifndef ADDA_SPARSE	
+	memory+=(3*sizeof(short int)+sizeof(char))*local_nvoid_Ndip;
 	// copy nontrivial part of arrays
 	index=0;
 	for (dip=0;dip<local_Ndip;dip++) if (material_tmp[dip]<Nmat) {
 		material[index]=material_tmp[dip];
-		// DipoleCoord=gridspace*DipoleCoord_tmp
-		vMultScal(gridspace,DipoleCoord_tmp+3*dip,DipoleCoord+3*index);
 		memcpy(position+3*index,position_tmp+3*dip,3*sizeof(short int));
 		index++;
 	}
 
 	// free temporary memory
 	Free_general(material_tmp);
-	Free_general(DipoleCoord_tmp);
 	Free_general(position_tmp);
 	if (shape==SH_AXISYMMETRIC) {
 		for (ns=0;ns<contNseg;ns++) FreeContourSegment(contSeg+ns);
 		Free_general(contSegRoMin);
 		Free_general(contSegRoMax);
 	}
-#endif
+#else
+	position=position_full + 3*local_nvoid_d0;
+#endif // SPARSE
+	// initialize DipoleCoord
+	MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
+	memory+=3*sizeof(double)*local_nvoid_Ndip;
+	for (index=0; index<local_nvoid_Ndip; index++) {
+		i3=3*index;
+		DipoleCoord[i3] = (position[i3]-cX)*gridspace;
+		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridspace;
+		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridspace;
+	}
 
 	// save geometry
 	if (save_geom)
-#ifndef ADDA_SPARSE 
+#ifndef SPARSE 
 		SaveGeometry();
 #else
-		LogWarning(EC_WARN,ONE_POS,"Saving the geometry is not supported in sparse mode");
-#endif //ADDA_SPARSE
+		LogError(ONE_POS,"Saving the geometry is not supported in sparse mode");
+#endif // SPARSE
 
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	/* adjust z-axis of position vector, to speed-up matrix-vector multiplication a little bit;
 	 * after this point 'position(z)' is taken relative to the local_z0.
 	 */
@@ -2360,19 +2341,18 @@ MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
 	}
 	local_Nz_unif=position[3*local_nvoid_Ndip-1]+1;
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
-#endif
+#endif // !SPARSE
 
 	box_origin_unif[0]=-gridspace*cX;
 	box_origin_unif[1]=-gridspace*cY;
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
 #else
 	box_origin_unif[2]=-gridspace*cZ;
-	
-	InitArraySync();
-	SyncPosition(position_full);
-	SyncMaterial(material_full);
-#endif //ADDA_SPARSE
+#	ifdef PARALLEL
+	AllGather(NULL,position_full,int3_type,NULL);
+#	endif
+#endif // SPARSE
 	
 	Timing_Particle += GET_TIME() - tstart;
 }

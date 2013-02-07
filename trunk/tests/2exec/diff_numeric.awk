@@ -1,8 +1,6 @@
-# Processes the diff of two files and ignores the small errors in numbers -
-# either small absolute or relative errors - controlled by 'abs_tol' and 'rel_tol'.
-# These values can be either specified outside by e.g. '-v abs_tol=1e-10' or assume
-# default values specified below.
-# Numbers should be separated from other text by spaces, '=', ',', or brackets -
+# Processes the diff of two files and ignores the small errors in numbers - either small absolute or relative errors -
+# controlled by 'abs_tol' and 'rel_tol'. These values can be either specified outside by e.g. '-v abs_tol=1e-10' or
+# assume default values specified below. Numbers should be separated from other text by spaces, '=', ',', or brackets -
 # controlled by 'FS'. Output happens only if differences are found.
 
 BEGIN {
@@ -21,15 +19,6 @@ function abs(a) {
 function relerr(a,b,  c) {
 	c=(abs(a)+abs(b))/2;
 	return (c==0) ? 0 : abs(a-b)/c
-}
-
-/^[0-9]/ {
-	if (i1>i2) {
-		printf "First file contains unmatched line:\n%s\n", ref[i2+1]
-		exit 3
-	}
-	i1=0
-	i2=0
 }
 
 /^< / {
@@ -55,9 +44,26 @@ function relerr(a,b,  c) {
 				exit 2
 			}
 			else if (abs(p1[j]-p2[j])>abs_tol && relerr(p1[j],p2[j])>rel_tol) {
+				# wrapping the following line produces some errors on Windows, so keep it like this
 				printf "Significant difference between numbers: '%s' and '%s' (abs_tol='%s', rel_tol='%s')\n", p1[j], p2[j], abs_tol, rel_tol
 				exit 1
 			}
 		}
+	}
+}
+
+/^[0-9]/ {
+	if (i1>i2) {
+		printf "First file contains unmatched line:\n%s\n", ref[i2+1]
+		exit 3
+	}
+	i1=0
+	i2=0
+}
+
+END {
+	if (i1>i2) {
+		printf "First file contains unmatched line:\n%s\n", ref[i2+1]
+		exit 3
 	}
 }
