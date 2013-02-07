@@ -882,6 +882,9 @@ INLINE double Rad2Deg(const double rad)
 }
 
 #ifdef USE_SSE3
+
+//============================================================
+
 static inline __m128d cmul(__m128d a,__m128d b)
 // complex multiplication
 {
@@ -894,12 +897,14 @@ static inline __m128d cmul(__m128d a,__m128d b)
 	return _mm_addsub_pd(t,b);
 }
 
+//============================================================
+
 static inline __m128d cadd(__m128d a,__m128d b)
 // complex addition
 {
 	return _mm_add_pd(a,b);
 }
 
-#endif //USE_SSE3
+#endif // USE_SSE3
 
 #endif // __cmplx_h

@@ -35,27 +35,31 @@
 #  LDFLAGS += -Wl,--enable-stdcall-fixup
 #endif
 
-ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
-  ifeq ($(filter NO_CPP,$(OPTIONS)),)
-    CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
-    CFLAGS    += -DCLFFT_APPLE
-  else
-    $(error Apple clFFT (CLFFT_APPLE) is implemented in C++, hence incompatible with NO_CPP)
+ifneq ($(filter SPARSE,$(OPTIONS)),)
+  $(error OPENCL version of sparse mode is not yet available)
+else # the following is only for non-sparse mode
+  ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
+    ifeq ($(filter NO_CPP,$(OPTIONS)),)
+      CPPSOURCE += fft_execute.cpp fft_setup.cpp fft_kernelstring.cpp
+      CFLAGS    += -DCLFFT_APPLE
+    else
+      $(error Apple clFFT (CLFFT_APPLE) is implemented in C++, hence incompatible with NO_CPP)
+    endif
+  else # AMD clFFT flags
+    # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
+    # libraries. Path should be absolute or relative to the location of this Makefile.
+    #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
+    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
+  
+    LDFLAGS += -lclAmdFft.Runtime
+  
+    # Uncomment the following line if you experience problems during linking, like
+    # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
+    # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
+    # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like 
+    # it, provide another libOpenCL.so (e.g. that from AMD) for linkig.
+    #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
-else # AMD clFFT flags
-  # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and libraries.
-  # Path should be absolute or relative to the location of this Makefile.
-  #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
-  #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
-  
-  LDFLAGS += -lclAmdFft.Runtime
-  
-  # Uncomment the following line if you experience problems during linking, like
-  # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
-  # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
-  # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like it,
-  # provide another libOpenCL.so (e.g. that from AMD) for linkig.
-  #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
 endif
 
 #===================================================================================================

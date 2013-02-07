@@ -7,41 +7,27 @@
 # default for two-domain particles
 ;2mgn; ;2m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
-;mg4n; ;m; -grid 4 ;n;
+;mg4n; ;m; -shape read sphere4.geom -sym enf ;n;
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
-# default for testing of different grids
-;smn; -size 8 ;m; ;n;
+# default addition for non-spherical shapes
+;mn; ;m; ;n;
 
 # Elementary variables
 ;m; -m 1.1 0.1
 ;2m; -m 1.1 0.1 1.2 0.2
 ;3m; -m 1.05 0.1 1.1 0.2 1.2 0.3
-;g; -grid 8
+;g; -shape read sphere.geom -sym enf
 ;n; -ntheta 5
 ;p; -prop 1 2 3
-;se; -shape ellipsoid 0.5 1.5
+;se; -shape read ellipsoid.geom
+
 #----------------------------- List of tests ---------------------------------------------------------------------------
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
 
-all
-
-# testing of different grids - relevant for FFT methods
-# to remove redundant warnings for ocl_seq, only (2,3,5) numbers are used
-all -grid 2 ;smn;
-all -grid 4 ;smn;
-all -grid 6 ;smn;
-all -grid 8 ;smn;
-all -grid 10 ;smn;
-all -grid 12 ;smn;
-all -grid 16 ;smn;
-all -grid 18 ;smn;
-all -grid 20 ;smn;
-all -grid 24 ;smn;
-all -grid 30 ;smn;
-all -grid 32 ;smn;
+all ;g;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
@@ -50,7 +36,7 @@ all -h anisotr
 all -anisotr ;3m; ;g; ;n;
 
 all -h asym
-all -asym ;sep; ;mgn;
+all -asym ;sep; ;mn;
 
 all -h beam
 all -h beam plane
@@ -62,7 +48,7 @@ all -beam davis3 2 1 2 3 ;mgn;
 all -h beam barton5
 all -beam barton5 2 1 2 3 ;mgn;
 all -h beam read
-all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
+all -beam read IncBeam-Y IncBeam-X ;se; ;mn;
 
 all -h chpoint
 all -chpoint 1s -eps 3 ;mgn;
@@ -75,15 +61,10 @@ all -h chp_load
 all -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
-all -Cpr ;sep; ;mgn;
-
-# the following is left for versions prior to 1.1
-all -h Cpr_mat
-all -Cpr_mat ;mgn;
-all -Cpr_mat ;sep; ;mgn;
+all -Cpr ;sep; ;mn;
 
 all -h Csca
-all -Csca ;se; ;mgn;
+all -Csca ;se; ;mn;
 
 all -h dir
 
@@ -98,12 +79,12 @@ all -eq_rad 1 ;mgn;
 
 # It is hard to make meaningful comparison of stdout and log for random placement of granules. However, optical
 # properties are compared using rather large tolerances
-all -h granul
-CrossSec-Y,CrossSec-X,mueller -granul 0.2 0.5 2 -size 8 -shape coated 0.5 ;3m; ;n;
-CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
+#all -h granul
+#CrossSec-Y,CrossSec-X,mueller -granul 0.2 0.5 2 -size 8 -shape coated 0.5 ;3m; ;n;
+#CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
 all -h grid
-all -grid 4 6 8 ;m; ;n;
+#all -grid 4 6 8 ;m; ;n;
 
 all -h
 all -h h
@@ -112,14 +93,14 @@ all -h init_field
 all -init_field auto ;mgn;
 all -init_field zero ;mgn;
 all -init_field inc ;mgn;
-all -init_field wkb ;mgn;
+#all -init_field wkb ;mgn;
 
 all -h int
 all -int fcd ;mgn;
 all -int fcd_st ;mgn;
-all -int igt ;mgn;
+all -int igt ;mg4n;
 all -int igt 3 ;mg4n;
-all -int igt 3 0.01 ;mgn;
+all -int igt 3 0.01 ;mg4n;
 all -int igt_so ;mgn;
 all -int poi ;mgn;
 all -int so ;mgn;
@@ -158,12 +139,12 @@ all -opt speed ;mgn;
 all -opt mem ;mgn;
 
 all -h orient
-all -orient 10 20 30 ;se; ;mgn;
-all -orient avg ;se; ;mg4n;
-all -orient avg ap.dat ;se; ;mg4n;
+all -orient 10 20 30 ;se; ;mn;
+all -orient avg ;se; ;mn;
+all -orient avg ap.dat ;se; ;mn;
 
 all -h phi_integr
-all -phi_integr 31 ;sep; ;mgn;
+all -phi_integr 31 ;sep; ;mn;
 
 all -h pol
 all -pol cldr ;p; ;mgn;
@@ -177,22 +158,21 @@ all -pol rrc ;mgn;
 all -pol so ;p; ;mgn;
 
 all -h prognosis
-all -prognosis
+all -prognosis ;g;
 
 all -h prop
-all -prop 5 1 3 ;se; ;mgn;
+all -prop 5 1 3 ;se; ;mn;
 
 all -h recalc_resid
 all -recalc_resid ;mgn;
 
-all -h save_geom
-all -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis
-all -h sg_format
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text_ext
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat6
-all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat7
+#all -h save_geom
+#all -save_geom -shape read coated.geom -prognosis
+#all -h sg_format
+#all -save_geom ;se; -prognosis -sg_format text
+#all -save_geom ;se; -prognosis -sg_format text_ext
+#all -save_geom ;se; -prognosis -sg_format ddscat6
+#all -save_geom ;se; -prognosis -sg_format ddscat7
 
 all -h scat
 all -scat dr ;mgn;
@@ -207,81 +187,80 @@ all -h scat_matr
 all -scat_matr muel ;mgn;
 all -scat_matr ampl ;mgn;
 all -scat_matr both ;mgn;
-all -scat_matr none ;m; ;g;
+all -scat_matr none ;m; ;g; 
 
 all -h shape
-all -h shape axisymmetric
-all -shape axisymmetric 196.txt ;mgn;
-all -h shape bicoated
-all -shape bicoated 3 0.5 ;2mgn;
-all -h shape biellipsoid
-all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn;
-all -h shape bisphere
-all -shape bisphere 2 ;mgn;
-all -h shape box
-all -shape box ;mgn;
-all -shape box 0.5 1.5 ;mgn;
-all -h shape capsule
-all -shape capsule 1.5 ;mgn;
-all -h shape chebyshev
-all -shape chebyshev 0.3 5 ;mgn;
-all -h shape coated
-all -shape coated 0.5 ;2mgn;
-all -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
-all -h shape cylinder
-all -shape cylinder 1 ;mgn;
-all -h shape egg
-all -shape egg 0.5 0.2 ;mgn;
-all -h shape ellipsoid
-all -shape ellipsoid 0.25 2 ;mgn;
-all -h shape line
-all -shape line -grid 16 ;m; ;n;
-all -h shape plate
-all -shape plate 0.5 ;mgn;
-all -h shape prism
-all -shape prism 5 1.5 ;mgn;
-all -h shape rbc
-all -shape rbc 0.3 0.1 0.3 ;mgn;
+#all -h shape axisymmetric
+#all -shape axisymmetric 196.txt ;mgn;
+#all -h shape bicoated
+#all -shape bicoated 3 0.5 ;2mgn;
+#all -h shape biellipsoid
+#all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn;
+#all -h shape bisphere
+#all -shape bisphere 2 ;mgn;
+#all -h shape box
+#all -shape box ;mgn;
+#all -shape box 0.5 1.5 ;mgn;
+#all -h shape capsule
+#all -shape capsule 1.5 ;mgn;
+#all -h shape chebyshev
+#all -shape chebyshev 0.3 5 ;mgn;
+#all -h shape coated
+#all -shape coated 0.5 ;2mgn;
+#all -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
+#all -h shape cylinder
+#all -shape cylinder 1 ;mgn;
+#all -h shape egg
+#all -shape egg 0.5 0.2 ;mgn;
+#all -h shape ellipsoid
+#all -shape ellipsoid 0.25 2 ;mgn;
+#all -h shape line
+#all -shape line -grid 16 ;m; ;n;
+#all -h shape plate
+#all -shape plate 0.5 ;mgn;
+#all -h shape prism
+#all -shape prism 5 1.5 ;mgn;
+#all -h shape rbc
+#all -shape rbc 0.3 0.1 0.3 ;mgn;
 all -h shape read
 all -shape read ellipsoid.geom ;m; ;n;
 all -shape read coated.geom ;2m; ;n;
 all -shape read ell_ddscat6.dat ;m; ;n;
 all -shape read ell_ddscat7.dat ;m; ;n;
-all -h shape sphere
-all -shape sphere ;mgn;
-all -h shape spherebox
-all -shape spherebox 0.5 ;2mgn;
+#all -h shape sphere
+#all -shape sphere ;mgn;
+#all -h shape spherebox
+#all -shape spherebox 0.5 ;2mgn;
 
-all -h size
+all -h size 
 all -size 8 ;mgn;
 
 all -h store_beam
-all -store_beam ;se; ;mgn;
+all -store_beam ;se; ;mn;
 
 all -h store_dip_pol
-all -store_dip_pol ;se; ;mgn;
+all -store_dip_pol ;se; ;mn;
 
 all -h store_force
-# the following is left for versions prior to 1.1
-all -store_force -Cpr_mat ;sep; ;mgn;
+all -store_force -Cpr ;sep; ;mn;
 all -store_force ;mgn;
 
-all -h store_grans
-granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
+#all -h store_grans
+#granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
 
 all -h store_int_field
-all -store_int_field ;se; ;mgn;
+all -store_int_field ;se; ;mn;
 
 all -h store_scat_grid
-all -store_scat_grid ;sep; ;mgn;
+all -store_scat_grid ;sep; ;mn;
 
-all -h sym
-all -sym auto ;mgn;
-all -sym no ;mgn;
-all -sym enf ;mgn;
-all -sym auto ;sep; ;mgn;
-all -sym no ;sep; ;mgn;
-all -sym enf ;sep; ;mgn;
+all -h sym 
+all -sym auto ;mn; -shape read sphere.geom
+all -sym no ;mn; -shape read sphere.geom
+all -sym enf ;mn; -shape read sphere.geom
+all -sym auto ;sep; ;mn;
+all -sym no ;sep; ;mn;
+all -sym enf ;sep; ;mn;
 
 all -h test
 all -test ;mgn;
@@ -290,7 +269,7 @@ all -h V
 all -V
 
 all -h vec
-all -vec ;sep; ;mgn;
+all -vec ;sep; ;mn;
 
 all -h yz
 all -yz -store_scat_grid ;mgn;

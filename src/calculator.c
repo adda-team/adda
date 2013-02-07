@@ -3,7 +3,7 @@
  * Descr: all the initialization is done here before actually calculating internal fields; includes
  *        calculation of couple constants
  *
- * Copyright (C) 2006-2010,2012 ADDA contributors
+ * Copyright (C) 2006-2010,2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -27,6 +27,7 @@
 #include "interaction.h"
 #include "io.h"
 #include "memory.h"
+#include "oclcore.h"
 #include "Romberg.h"
 #include "timing.h"
 #include "vars.h"
@@ -34,10 +35,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef OPENCL
-#	include "oclcore.h"
-#endif
 
 // SEMI-GLOBAL VARIABLES
 
@@ -64,25 +61,26 @@ double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
 	// amplitude matrix for different values of alpha
 doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY;
 double * restrict muel_alpha; // mueller matrix for different values of alpha
-// used in fft.c
-  // tables of integrals
-double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,
-	* restrict tab6,* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
-/* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
- * generally compatible with Free_iMatrix function syntax. However, it is defined so in fft.c.
- */
-int ** restrict tab_index; // matrix for indexing of table arrays
+
 // used in crosssec.c
 double * restrict E2_alldir; // square of E, calculated for alldir
 double * restrict E2_alldir_buffer; // buffer to accumulate E2_alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 	// arrays of exponents along 3 axes (for calc_field)
+#ifndef SPARSE
 doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
+#endif
+
 // used in iterative.c
 doublecomplex *rvec;                 // current residual
 doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector products
 // auxiliary vectors, used in some iterative solvers (with more meaningful names)
 doublecomplex * restrict vec1,* restrict vec2,* restrict vec3;
+
+#ifdef SPARSE
+// used in matvec.c
+doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
+#endif
 
 // LOCAL VARIABLES
 
@@ -95,9 +93,9 @@ static double * restrict out;
 // EXTERNAL FUNCTIONS
 
 // CalculateE.c
-extern int CalculateE(enum incpol which,enum Eftype type);
-extern void MuellerMatrix(void);
-extern void SaveMuellerAndCS(double * restrict in);
+int CalculateE(enum incpol which,enum Eftype type);
+void MuellerMatrix(void);
+void SaveMuellerAndCS(double * restrict in);
 
 //============================================================
 
@@ -247,91 +245,6 @@ static void InitCC(const enum incpol which)
 
 //============================================================
 
-static double * ATT_MALLOC ReadTableFile(const char * restrict sh_fname,const int size_multiplier)
-{
-	FILE * restrict ftab;
-	double * restrict tab_n;
-	int size;
-	char fname[MAX_FNAME];
-	int i;
-
-	size=TAB_SIZE*size_multiplier;
-	memory+=size*sizeof(double);
-	if (!prognosis) {
-		// allocate memory for tab_n
-		MALLOC_VECTOR(tab_n,double,size,ALL);
-		// open file
-		SnprintfErr(ALL_POS,fname,MAX_FNAME,TAB_PATH"%s",sh_fname);
-		ftab=FOpenErr(fname,"r",ALL_POS);
-		// scan file
-		for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
-			LogError(ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
-		if (!feof(ftab))
-			LogWarning(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
-		// close file
-		FCloseErr(ftab,fname,ALL_POS);
-		return tab_n;
-	}
-	else return NULL;
-}
-
-//============================================================
-
-static void ReadTables(void)
-{
-	int i, j, ymax, Rm2, Rm2x;
-
-	TIME_TYPE tstart=GET_TIME();
-	tab1=ReadTableFile(TAB_FNAME(1),1);
-	tab2=ReadTableFile(TAB_FNAME(2),6);
-	tab3=ReadTableFile(TAB_FNAME(3),3);
-	tab4=ReadTableFile(TAB_FNAME(4),18);
-	tab5=ReadTableFile(TAB_FNAME(5),6);
-	tab6=ReadTableFile(TAB_FNAME(6),36);
-	tab7=ReadTableFile(TAB_FNAME(7),1);
-	tab8=ReadTableFile(TAB_FNAME(8),6);
-	tab9=ReadTableFile(TAB_FNAME(9),1);
-	tab10=ReadTableFile(TAB_FNAME(10),6);
-	Timing_FileIO += GET_TIME() - tstart;
-
-	if (!prognosis) {
-		// allocate memory for tab_index
-		MALLOC_IMATRIX(tab_index,1,TAB_RMAX,0,TAB_RMAX,ALL);
-		// fill tab_index
-		Rm2=TAB_RMAX*TAB_RMAX;
-		tab_index[1][0] = 0;
-		for (i=1; i<=TAB_RMAX; i++) {
-			Rm2x=Rm2-i*i;
-			ymax = MIN(i,(int)floor(sqrt(Rm2x)));
-			for (j=0; j<ymax; j++) {
-				tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
-			}
-			if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax]
-			                                  + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
-		}
-	}
-	// PRINTZ("P[5,3]=%d (should be 41)\n",tab_index[5][3]);
-}
-
-//============================================================
-
-static void FreeTables(void)
-{
-	Free_iMatrix(tab_index,1,TAB_RMAX,0);
-	Free_general(tab1);
-	Free_general(tab2);
-	Free_general(tab3);
-	Free_general(tab4);
-	Free_general(tab5);
-	Free_general(tab6);
-	Free_general(tab7);
-	Free_general(tab8);
-	Free_general(tab9);
-	Free_general(tab10);
-}
-
-//============================================================
-
 static void calculate_one_orientation(double * restrict res)
 // performs calculation for one orientation; may do orientation averaging and put the result in res
 {
@@ -426,12 +339,12 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
-#ifdef ADDA_SPARSE
+#ifdef SPARSE
 	if (!prognosis) {
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
 	}
 	memory+=3*nvoid_Ndip*sizeof(*arg_full);
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
 	 * for any new iterative solver, based on the information contained in structure array 'params'
 	 * in file iterative.c. However, this requires different order of function calls to extract this
@@ -458,11 +371,11 @@ static void AllocateEverything(void)
 	 * non-zero, then change the above condition to allocate memory for these vectors. Variable
 	 * memory should be incremented to reflect the total allocated memory.
 	 */
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	MALLOC_VECTOR(expsX,complex,boxX,ALL);
 	MALLOC_VECTOR(expsY,complex,boxY,ALL);
 	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
-#endif //ADDA_SPARSE
+#endif // !SPARSE
 	if (yzplane) {
 		tmp=2*(double)nTheta;
 		if (!prognosis) {
@@ -584,25 +497,16 @@ static void FreeEverything(void)
  * actually allocated.
  */
 {
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
-#ifndef ADDA_SPARSE	
+	FreeInteraction();
+#ifndef SPARSE	
 	Free_FFT_Dmat();
 	Free_cVector(expsX);
 	Free_cVector(expsY);
 	Free_cVector(expsZ);
+	Free_general(position); // allocated in MakeParticle();
 #else	
-	Free_general(position_full);
-	Free_general(material_full);
-#ifdef PARALLEL
-	Free_general(arg_full);
-	Free_general(proc_mem_position);
-	Free_general(proc_mem_material);
-	Free_general(proc_mem_argvec);
-	Free_general(proc_disp_position);
-	Free_general(proc_disp_material);
-	Free_general(proc_disp_argvec);
-#endif //PARALLEL
-#endif //ADDA_SPARSE
+	Free_general(position_full); // allocated in MakeParticle();
+#endif // SPARSE
 
 	Free_cVector(xvec);
 	Free_cVector(rvec);
@@ -657,9 +561,8 @@ static void FreeEverything(void)
 		Free_general(Egrid_buffer);
 #endif
 	}
-	// these 3 were allocated in MakeParticle
+	// these 2 were allocated in MakeParticle
 	Free_general(DipoleCoord);
-	Free_general(position);
 	Free_general(material);
 
 	if (orient_avg) {
@@ -702,19 +605,14 @@ void Calculator (void)
 	}
 	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;
-	// read tables if needed
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
-
 	// Do preliminary setup for MatVec
 	InitInteraction();
-
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 	// initialize D matrix (for matrix-vector multiplication)
 	D("InitDmatrix started");
 	InitDmatrix();
 	D("InitDmatrix finished");
-#endif //ADDA_SPARSE
-
+#endif // !SPARSE
 	// allocate most (that is not already allocated; perform memory analysis
 	AllocateEverything();
 	// finish initialization

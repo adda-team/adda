@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: core parts of OpenCL code
  *
- * Copyright (C) 2010-2012 ADDA contributors
+ * Copyright (C) 2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -73,9 +73,8 @@ struct string {
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
 //#define OCL_READ_SOURCE_RUNTIME
 
-// For some reason Eclipse points out a syntax error in the following block. Just ignore it.
 #ifndef OCL_READ_SOURCE_RUNTIME
-	const char stringifiedSourceCL[]=
+	const char stringifiedSourceCL[]=""
 	// the following is a pure string generated automatically from oclkernels.cl at compile time
 #	include "ocl/oclkernels.clstr"
 	;

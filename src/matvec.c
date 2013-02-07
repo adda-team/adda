@@ -3,7 +3,7 @@
  * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k,
  *        using a FFT based convolution algorithm
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,32 +25,32 @@
 #include "fft.h"
 #include "function.h"
 #include "io.h"
-#include "sparse_ops.h"
 #include "interaction.h"
 #include "linalg.h"
+#include "oclcore.h"
 #include "prec_time.h"
+#include "sparse_ops.h"
 #include "vars.h"
 // system headers
 #include <stdio.h>
 #include <string.h>
 
-#ifdef OPENCL
-#	include "oclcore.h"
-#endif
-
 // SEMI-GLOBAL VARIABLES
 
+#ifdef SPARSE
+// defined and initialized in calculator.c
+extern doublecomplex * restrict arg_full;
+#elif !defined(OPENCL)
 // defined and initialized in fft.c
-#ifndef OPENCL
 extern const doublecomplex * restrict Dmatrix;
 extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr;
-#endif
 extern const size_t DsizeY,DsizeZ,DsizeYZ;
+#endif // !SPARSE && !OPENCL
 
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
 
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 #ifndef OPENCL // the following inline functions are not used in OpenCL or sparse mode
 
 //============================================================
@@ -102,11 +102,11 @@ INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
 #endif // OPENCL
-#endif // ADDA_SPARSE
+#endif // SPARSE
 
 //============================================================
 
-#ifndef ADDA_SPARSE
+#ifndef SPARSE
 void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
@@ -474,11 +474,12 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	TotalMatVec++;
 }
 
-#else //ADDA_SPARSE is defined
+#else // SPARSE is defined
 
-/* The sparse MatVec is implemented completely separately from the non-sparse version.
- * Although there is some code duplication, this probably makes the both versions easier
- * to maintain.
+//============================================================
+
+/* The sparse MatVec is implemented completely separately from the non-sparse version. Although there is some code
+ * duplication, this probably makes the both versions easier to maintain.
 */
 void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
@@ -487,52 +488,33 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
 {	
 	const bool ipr = (inprod != NULL);
+	size_t i,j,i3;
 
-	if (her) {
-		for (size_t j=0; j<local_nRows; j++) {
-			argvec[j][IM] = -argvec[j][IM];		 
-		}
-	}
-	
-	for (size_t j=0; j<local_nvoid_Ndip; j++) {
-		CcMul(argvec,arg_full+3*local_nvoid_d0,j);
-	}
-	SyncArgvec();	
-	
-	for (size_t i=0; i<local_nvoid_Ndip; i++) {
-		const unsigned int i3 = 3*i;		
+	if (her) for (j=0; j<local_nRows; j++) argvec[j][IM] = -argvec[j][IM];
+	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
+#	ifdef PARALLEL
+	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
+#	endif
+	for (i=0; i<local_nvoid_Ndip; i++) {
+		i3 = 3*i;
 		resultvec[i3][RE]=resultvec[i3][IM]=0.0;
 		resultvec[i3+1][RE]=resultvec[i3+1][IM]=0.0;
 		resultvec[i3+2][RE]=resultvec[i3+2][IM]=0.0;
-		for (size_t j=0; j<local_nvoid_d0+i; j++) {			
-			AijProd(arg_full, resultvec, i, j);
-		}		
-		for (size_t j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) {
-			AijProd(arg_full, resultvec, i, j);
-		}
+		for (j=0; j<local_nvoid_d0+i; j++) AijProd(arg_full,resultvec,i,j);
+		for (j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
 	}		
-	
-	for (size_t i=0; i<local_nvoid_Ndip; i++) {	
-		DiagProd(argvec, resultvec, i);		 
+	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
+	if (her) for (i=0; i<local_nRows; i++) {
+		resultvec[i][IM] = -resultvec[i][IM];
+		argvec[i][IM] = -argvec[i][IM];
 	}
-	
-	if (her) {
-		for (size_t i=0; i<local_nRows; i++) {
-			resultvec[i][IM] = -resultvec[i][IM];
-			argvec[i][IM] = -argvec[i][IM];		
-		}
-	}	
-		
 	if (ipr) {
 		*inprod = 0.0;
-		for (size_t i=0; i<local_nRows; i++) {
-			*inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];		 
-		}		
+		for (i=0; i<local_nRows; i++)
+			*inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];
 		MyInnerProduct(inprod,double_type,1,comm_timing);
 	}
-	
 	TotalMatVec++;
-	
 }
 
-#endif //ADDA_SPARSE
+#endif // SPARSE

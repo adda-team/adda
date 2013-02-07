@@ -1,6 +1,6 @@
 /* File: fft.h
  * $Date::                            $
- * Descr: definitions of FFT parameters and routines
+ * Descr: definitions of FFT parameters and routines; void in sparse mode
  *
  * Copyright (C) 2006,2008,2010-2013 ADDA contributors
  * This file is part of ADDA.
@@ -16,10 +16,10 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+#ifndef SPARSE
+
 #ifndef __fft_h
 #define __fft_h
-
-#ifndef ADDA_SPARSE //not needed in sparse mode
 
 #ifndef FFT_TEMPERTON
 #	define FFTW3 // FFTW3 is default
@@ -45,6 +45,6 @@ void Free_FFT_Dmat(void);
 int fftFit(int size, int _div);
 void CheckNprocs(void);
 
-#endif // ADDA_SPARSE
-
 #endif // __fft_h
+
+#endif // !SPARSE

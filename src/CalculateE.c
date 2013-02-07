@@ -5,7 +5,7 @@
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -60,13 +60,6 @@ extern size_t TotalEFieldPlane;
 // used in iterative.c
 TIME_TYPE tstart_CE;
 
-// EXTERNAL FUNCTIONS
-
-// GenerateB.c
-void GenerateB(enum incpol which,doublecomplex *x);
-// iterative.c
-int IterativeSolver(enum iter method);
-
 // LOCAL VARIABLES
 
 #define MUEL_HEADER "s11 s12 s13 s14 s21 s22 s23 s24 s31 s32 s33 s34 s41 s42 s43 s44"
@@ -79,6 +72,13 @@ int IterativeSolver(enum iter method);
 #define AMPL_FORMAT EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM
 #define ANGLE_FORMAT "%.2f"
 #define RMSE_FORMAT "%.3E"
+
+// EXTERNAL FUNCTIONS
+
+// GenerateB.c
+void GenerateB(enum incpol which,doublecomplex *x);
+// iterative.c
+int IterativeSolver(enum iter method);
 
 //============================================================
 
@@ -111,37 +111,6 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 
 //============================================================
 
-static void ATT_UNUSED ComputeMuellerMatrixNorm(double matrix[4][4],const doublecomplex s1,
-	const doublecomplex s2,const doublecomplex s3,const doublecomplex s4)
-/* computer mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula
- * 3.16 from Bohren and Huffman; normalize all elements to S11 (except itself)
- */
-{
-	matrix[0][0] = 0.5*(cMultConRe(s1,s1)+cMultConRe(s2,s2)+cMultConRe(s3,s3)+cMultConRe(s4,s4));
-	matrix[0][1] = 0.5*(cMultConRe(s2,s2)-cMultConRe(s1,s1)+cMultConRe(s4,s4)-cMultConRe(s3,s3))
-	             / matrix[0][0];
-	matrix[0][2] = (cMultConRe(s2,s3)+cMultConRe(s1,s4))/matrix[0][0];
-	matrix[0][3] = (cMultConIm(s2,s3)-cMultConIm(s1,s4))/matrix[0][0];
-
-	matrix[1][0] = 0.5*(cMultConRe(s2,s2)-cMultConRe(s1,s1)+cMultConRe(s3,s3)-cMultConRe(s4,s4))
-	             / matrix[0][0];
-	matrix[1][1] = 0.5*(cMultConRe(s2,s2)+cMultConRe(s1,s1)-cMultConRe(s3,s3)-cMultConRe(s4,s4))
-	             / matrix[0][0];
-	matrix[1][2] = (cMultConRe(s2,s3)-cMultConRe(s1,s4))/matrix[0][0];
-	matrix[1][3] = (cMultConIm(s2,s3)+cMultConIm(s1,s4))/matrix[0][0];
-
-	matrix[2][0] = (cMultConRe(s2,s4)+cMultConRe(s1,s3))/matrix[0][0];
-	matrix[2][1] = (cMultConRe(s2,s4)-cMultConRe(s1,s3))/matrix[0][0];
-	matrix[2][2] = (cMultConRe(s1,s2)+cMultConRe(s3,s4))/matrix[0][0];
-	matrix[2][3] = (cMultConIm(s2,s1)+cMultConIm(s4,s3))/matrix[0][0];
-
-	matrix[3][0] = (cMultConIm(s4,s2)+cMultConIm(s1,s3))/matrix[0][0];
-	matrix[3][1] = (cMultConIm(s4,s2)-cMultConIm(s1,s3))/matrix[0][0];
-	matrix[3][2] = (cMultConIm(s1,s2)-cMultConIm(s3,s4))/matrix[0][0];
-	matrix[3][3] = (cMultConRe(s1,s2)-cMultConRe(s3,s4))/matrix[0][0];
-}
-
-//==============================================================
 INLINE void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
 	char * restrict buf,const size_t buf_size,double * restrict *mult)
 /* If 'phi_int_type' matches 'type', appropriate file (name given by 'fname') is created (with
