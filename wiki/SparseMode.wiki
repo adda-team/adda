@@ -26,6 +26,7 @@ Otherwise, the sparse-mode executable is used just like the FFT (normal) one, bu
 
 = Current limitations =
 
-  * Only reading the dipoles from a file (i.e. the `-shape read` option) is currently supported in sparse mode. This complicates testing, but is usually not a problem in real use, as the the sparse mode is mainly useful with complicated targets, which have to be read from a file anyway. Likewise, the granule generator is not supported.
+  * Only reading the dipoles from a file (i.e. the `-shape read` option) is currently supported in sparse mode. This complicates testing, but is usually not a problem in real use, as the the sparse mode is mainly useful with complicated targets, which have to be read from a file anyway. Likewise, the granule generator and saving of geometry are not supported.
   * While the sparse `ADDA` uses MPI effectively for CPU parallelization, GPU parallelization using OpenCL is not currently available.
+  * WKB initial field (`-init_field wkb`) and precise timing (separate compilation mode) are not supported in sparse mode.
   * All polarization and dipole interaction terms used in normal `ADDA` mode are available. However, optimized computation of the interaction term is currently implemented only for the point-dipole interaction (the `-int poi` option, which is the default). For the other interaction terms, sparse `ADDA` falls back to the default implementation, which is much slower and also does not benefit from the SSE3 acceleration. Because of this, the point-dipole interaction is recommended for sparse-mode computations.
