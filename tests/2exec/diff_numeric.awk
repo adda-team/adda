@@ -7,7 +7,9 @@ BEGIN {
 	i1=0
 	i2=0
 	number="^[-+]?[0-9]*.?[0-9]+([eE][-+]?[0-9]+)?$"
-	FS="[[:space:]=,{}()[\\]]"
+# FS="[[:space:]=,{}()[\\]]"
+# A more robust assignment of FS is used to be compatible with mawk
+	FS="[ \\t=,{}\\(\\)[\\]]"
 	if (abs_tol !~ number) abs_tol=1e-15
 	if (rel_tol !~ number) rel_tol=1e-8
 }

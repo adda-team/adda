@@ -89,11 +89,14 @@ ALLNAME=all # denotes that all output files should be compared (in suite file)
 TMPREF=ref.tmp # temporary files for text processing
 TMPTEST=test.tmp
 
+# If you encounter errors of awk, try changing the following to gawk
+AWK=awk
+
 function cleanfile {
   # Processes file $1 and stores the result in $2. Basic step is removing lines matching regexp $3. Additional optional
   # step is cutting the end of the file starting from line matching regexp $4.
   if [ -n "$4" ]; then
-    awk "BEGIN{p=1} /$4/{p=0} p" $1 | grep -v -E -e "$3" > $2
+    $AWK "BEGIN{p=1} /$4/{p=0} p" $1 | grep -v -E -e "$3" > $2
   else
     grep -v -E -e "$3" $1 > $2
   fi
@@ -102,13 +105,13 @@ function numdiff {
   # Performs comparison of two files, ignoring differences in numerical values smaller than absolute and relative
   # tolerances, specified by variables atol and rtol (-log of real value). The main logic is inside awk script
   # 'diff_numeric'.
-  diff $1 $2 | awk -f diff_numeric.awk -v abs_tol=1e-$atol -v rel_tol=1e-$rtol -  >&2
+  diff $1 $2 | $AWK -f diff_numeric.awk -v abs_tol=1e-$atol -v rel_tol=1e-$rtol -  >&2
 }
 function numigndiff {
   # Same as numdiff, but additionally ignores certain differences in input files - see description of function cleanfile
   cleanfile $1 $TMPREF "$3" "$4"
   cleanfile $2 $TMPTEST "$3" "$4"
-  diff $TMPREF $TMPTEST | awk -f diff_numeric.awk -v abs_tol=1e-$atol -v rel_tol=1e-$rtol -  >&2
+  diff $TMPREF $TMPTEST | $AWK -f diff_numeric.awk -v abs_tol=1e-$atol -v rel_tol=1e-$rtol -  >&2
 }
 function igndiff {
   # Performs comparison of two files, ignoring differences in lines matching regexp $3 and all the differences after the
