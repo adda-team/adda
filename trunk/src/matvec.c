@@ -55,21 +55,21 @@ extern size_t TotalMatVec;
 
 //============================================================
 
-INLINE size_t IndexSliceZY(const size_t y,const size_t z)
+static inline size_t IndexSliceZY(const size_t y,const size_t z)
 {
 	return (z*gridY+y);
 }
 
 //============================================================
 
-INLINE size_t IndexSliceYZ(const size_t y,const size_t z)
+static inline size_t IndexSliceYZ(const size_t y,const size_t z)
 {
 	return(y*gridZ+z);
 }
 
 //============================================================
 
-INLINE size_t IndexGarbledX(const size_t x,const size_t y,const size_t z)
+static inline size_t IndexGarbledX(const size_t x,const size_t y,const size_t z)
 {
 #ifdef PARALLEL
 	return(((z%local_Nz)*smallY+y)*gridX+(z/local_Nz)*local_Nx+x%local_Nx);
@@ -80,14 +80,14 @@ INLINE size_t IndexGarbledX(const size_t x,const size_t y,const size_t z)
 
 //============================================================
 
-INLINE size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
+static inline size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 {
 	return((z*smallY+y)*gridX+x);
 }
 
 //============================================================
 
-INLINE size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
+static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
 	if (transposed) { // used only for G_SO
 		if (x>0) x=gridX-x;

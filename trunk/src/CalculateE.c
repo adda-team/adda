@@ -111,7 +111,7 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 
 //============================================================
 
-INLINE void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
+static inline void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
 	char * restrict buf,const size_t buf_size,double * restrict *mult)
 /* If 'phi_int_type' matches 'type', appropriate file (name given by 'fname') is created (with
  * handle '*file'), and heading line is put into it. String buffer 'buf' is used. Vector of
@@ -128,7 +128,7 @@ INLINE void InitMuellerIntegrFile(const int type,const char * restrict fname,FIL
 
 //==============================================================
 
-INLINE void PrintToIntegrFile(const int type,FILE * restrict file,double *maxerr,
+static inline void PrintToIntegrFile(const int type,FILE * restrict file,double *maxerr,
 	const double * restrict muel,double *  restrict muel_buf,const double * restrict mult,
 	double matrix[4][4],const double theta)
 /* If 'phi_int_type' matches 'type', array 'muel' is integrated over phi (possibly using multiplier
@@ -156,7 +156,7 @@ INLINE void PrintToIntegrFile(const int type,FILE * restrict file,double *maxerr
 
 //==============================================================
 
-INLINE void CloseIntegrFile(const int type,FILE * restrict file,const char * restrict fname,
+static inline void CloseIntegrFile(const int type,FILE * restrict file,const char * restrict fname,
 	double * restrict mult)
 /* If 'phi_int_type' matches 'type', appropriate 'file' (named 'fname') is closed and array 'mult'
  * is freed.
@@ -552,7 +552,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 
 //============================================================
 
-INLINE void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
+static inline void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
 // transform real vector vp from particle to beam reference frame, vb and vp must not alias!!!
 {
 	vb[0]=DotProd(vp,incPolX);

@@ -121,7 +121,7 @@ void cfft99_(double * restrict data,double * restrict _work,const double * restr
 
 //============================================================
 
-INLINE size_t IndexDmatrix(const size_t x,size_t y,size_t z)
+static inline size_t IndexDmatrix(const size_t x,size_t y,size_t z)
 // index D matrix to store final result
 {
 	if (y>=DsizeY) y=gridY-y;
@@ -132,7 +132,7 @@ INLINE size_t IndexDmatrix(const size_t x,size_t y,size_t z)
 
 //============================================================
 
-INLINE size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP)
+static inline size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP)
 // index D2 matrix after BlockTranspose
 {
 	if (y<0) y+=D2sizeY;
@@ -146,7 +146,7 @@ INLINE size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP
 
 //============================================================
 
-INLINE size_t IndexD2matrix(int x,int y,int z,const int nnn)
+static inline size_t IndexD2matrix(int x,int y,int z,const int nnn)
 // index D2 matrix to store calculated elements
 {
 	if (x<0) x+=gridX;
@@ -157,7 +157,7 @@ INLINE size_t IndexD2matrix(int x,int y,int z,const int nnn)
 
 //============================================================
 
-INLINE size_t IndexSliceD2matrix(int y,int z)
+static inline size_t IndexSliceD2matrix(int y,int z)
 // index slice of D2 matrix
 {
 	if (y<0) y+=gridY;
@@ -168,7 +168,7 @@ INLINE size_t IndexSliceD2matrix(int y,int z)
 
 //============================================================
 
-INLINE size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
+static inline size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
 // index transposed slice of D2 matrix
 {
 	return (z*gridY+y);

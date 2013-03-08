@@ -737,7 +737,7 @@ static void NargError(const int Narg,const char *expec)
 
 //============================================================
 
-INLINE void TestNarg(const int Narg,const int need)
+static inline void TestNarg(const int Narg,const int need)
 // check if Narg given to an option (or suboption) is correct; interface to NargError
 {
 	if (need>=0) { // usual case
@@ -775,7 +775,7 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 
 //============================================================
 
-INLINE const char *ScanStrError(const char * restrict str,const unsigned int size)
+static inline const char *ScanStrError(const char * restrict str,const unsigned int size)
 /* check if string fits in buffer of size 'size', otherwise produces error message
  * then content of str is copied into dest
  */
@@ -788,7 +788,7 @@ INLINE const char *ScanStrError(const char * restrict str,const unsigned int siz
 
 //============================================================
 
-INLINE void ScanDoubleError(const char * restrict str,double *res)
+static inline void ScanDoubleError(const char * restrict str,double *res)
 // scanf an option argument and checks for errors
 {
 	if (sscanf(str,"%lf",res)!=1) PrintErrorHelpSafe(
@@ -797,7 +797,7 @@ INLINE void ScanDoubleError(const char * restrict str,double *res)
 
 //============================================================
 
-INLINE void ScanIntError(const char * restrict str,int *res)
+static inline void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
 	double tmp;
@@ -816,7 +816,7 @@ INLINE void ScanIntError(const char * restrict str,int *res)
 
 //============================================================
 
-INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,
+static inline bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,
 	const char **fname2)
 /* If 'need' corresponds to one of FNAME_ARG, scan Narg<=2 filenames from argv into fname1 and
  * fname2. All consistency checks are left to the caller (in particular, whether Narg corresponds
@@ -842,7 +842,7 @@ INLINE bool ScanFnamesError(const int Narg,const int need,char **argv,const char
 
 //============================================================
 
-INLINE bool IsOption(const char * restrict str)
+static inline bool IsOption(const char * restrict str)
 /* checks if string is an option. First should be '-' and then letter (any case);
  * it enables use of negative numbers as sub-parameters
  */

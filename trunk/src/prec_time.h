@@ -32,7 +32,7 @@
 
 // project headers
 #include "os.h"       // for OS definitions
-#include "function.h" // for INLINE and function attributes
+#include "function.h" // for static inline and function attributes
 
 #ifdef WINDOWS
 #	define SYSTEM_TIME LARGE_INTEGER
@@ -53,7 +53,7 @@ double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2) 
 
 //============================================================
 
-INLINE void Elapsed(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
+static inline void Elapsed(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
 	SYSTEM_TIME * restrict res)
 // compute time difference
 {
@@ -67,7 +67,7 @@ INLINE void Elapsed(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict
 
 //============================================================
 
-INLINE void ElapsedInc(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
+static inline void ElapsedInc(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2,
 	SYSTEM_TIME * restrict res)
 // compute time difference, increment result by this value
 {
@@ -81,7 +81,7 @@ INLINE void ElapsedInc(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restr
 
 //============================================================
 
-INLINE void GetTime(SYSTEM_TIME * restrict t)
+static inline void GetTime(SYSTEM_TIME * restrict t)
 // get current time
 {
 #ifdef WINDOWS

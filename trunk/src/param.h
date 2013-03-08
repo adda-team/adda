@@ -20,7 +20,7 @@
 #define __param_h
 
 // project headers
-#include "function.h" // needed for INLINE and function attributes
+#include "function.h" // needed for static inline and function attributes
 // system headers
 #include <limits.h> // for INT_MIN and INT_MAX
 #include <math.h>
@@ -36,7 +36,7 @@ void PrintErrorHelp(const char * restrict fmt, ... ) ATT_PRINTF(1,2) ATT_NORETUR
 
 //============================================================
 
-INLINE void TestPositive(const double val,const char * restrict name)
+static inline void TestPositive(const double val,const char * restrict name)
 // check if val is positive, otherwise produces error message
 {
 	if (val<=0) PrintErrorHelp("Illegal %s ("GFORMDEF"), must be positive",name,val);
@@ -44,7 +44,7 @@ INLINE void TestPositive(const double val,const char * restrict name)
 
 //============================================================
 
-INLINE void TestNonNegative(const double val,const char * restrict name)
+static inline void TestNonNegative(const double val,const char * restrict name)
 // check if val is nonnegative, otherwise produces error message
 {
 	if (val<0) PrintErrorHelp("Illegal %s ("GFORMDEF"), must be nonnegative",name,val);
@@ -52,7 +52,7 @@ INLINE void TestNonNegative(const double val,const char * restrict name)
 
 //============================================================
 
-INLINE void TestPositive_i(const int val,const char * restrict name)
+static inline void TestPositive_i(const int val,const char * restrict name)
 // check if val (int) is positive, otherwise produces error message
 {
 	if (val<=0) PrintErrorHelp("Illegal %s (%d), must be positive",name,val);
@@ -60,7 +60,7 @@ INLINE void TestPositive_i(const int val,const char * restrict name)
 
 //============================================================
 
-INLINE void TestNonNegative_i(const int val,const char * restrict name)
+static inline void TestNonNegative_i(const int val,const char * restrict name)
 // check if val (int) is nonnegative, otherwise produces error message
 {
 	if (val<0) PrintErrorHelp("Illegal %s (%d), must be nonnegative",name,val);
@@ -71,7 +71,7 @@ INLINE void TestNonNegative_i(const int val,const char * restrict name)
  * right point of the interval respectively)
  */
 
-INLINE void TestRangeII(const double val,const char * restrict name,const double min,
+static inline void TestRangeII(const double val,const char * restrict name,const double min,
 	const double max)
 // check if val is in interval [min,max], otherwise produces error message
 {
@@ -81,7 +81,7 @@ INLINE void TestRangeII(const double val,const char * restrict name,const double
 
 //============================================================
 
-INLINE void TestRangeNI(const double val,const char * restrict name,const double min,
+static inline void TestRangeNI(const double val,const char * restrict name,const double min,
 	const double max)
 // checks if val is in interval (min,max], otherwise produces error message
 {
@@ -91,7 +91,7 @@ INLINE void TestRangeNI(const double val,const char * restrict name,const double
 
 //============================================================
 
-INLINE void TestRangeIN(const double val,const char * restrict name,const double min,
+static inline void TestRangeIN(const double val,const char * restrict name,const double min,
 	const double max)
 // checks if val is in interval [min,max), otherwise produces error message
 {
@@ -101,7 +101,7 @@ INLINE void TestRangeIN(const double val,const char * restrict name,const double
 
 //============================================================
 
-INLINE void TestRangeNN(const double val,const char * restrict name,const double min,
+static inline void TestRangeNN(const double val,const char * restrict name,const double min,
 	const double max)
 // checks if val is in interval (min,max), otherwise produces error message
 {
@@ -111,7 +111,7 @@ INLINE void TestRangeNN(const double val,const char * restrict name,const double
 
 //============================================================
 
-INLINE void ConvertToInteger(double val,const char * restrict name,int *res)
+static inline void ConvertToInteger(double val,const char * restrict name,int *res)
 /* converts val to res, but first checks if val is really an integer and in the bounds, otherwise
  * produces an error message
  */
@@ -125,7 +125,7 @@ INLINE void ConvertToInteger(double val,const char * restrict name,int *res)
 
 //============================================================
 
-INLINE void TestRange_i(const int val,const char * restrict name,const int min,const int max)
+static inline void TestRange_i(const int val,const char * restrict name,const int min,const int max)
 // checks if val (int) is in interval [min,max], otherwise produces error message
 {
 	if (val<min || val>max)
@@ -134,7 +134,7 @@ INLINE void TestRange_i(const int val,const char * restrict name,const int min,c
 
 //============================================================
 
-INLINE void TestGreaterThan_i(const int val,const char * restrict name,const int min)
+static inline void TestGreaterThan_i(const int val,const char * restrict name,const int min)
 // checks if val (int) is greater than min, otherwise produces error message
 {
 	if (val<=min)

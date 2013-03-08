@@ -467,7 +467,7 @@ static double OuterRomberg(double * restrict res)
 
 //============================================================
 
-INLINE const char *TextTest(const bool cond)
+static inline const char *TextTest(const bool cond)
 {
 	return cond ? "true" : "false";
 }

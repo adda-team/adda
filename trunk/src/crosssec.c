@@ -71,7 +71,7 @@ bool dCabs_ready=false; // whether dCabs is already calculated
 
 //=====================================================================
 
-INLINE int AlldirIndex(const int theta,const int phi)
+static inline int AlldirIndex(const int theta,const int phi)
 // Convert the (theta,phi) couple into a linear array index
 {
 	return (theta*phi_int.N + phi);
@@ -140,7 +140,7 @@ static void ReadLineStart(FILE *  restrict file,                  // opened file
 
 //=====================================================================
 
-INLINE void ScanDouble(FILE * restrict file,const char * restrict fname,char * restrict buf,
+static inline void ScanDouble(FILE * restrict file,const char * restrict fname,char * restrict buf,
 	const int buf_size,const char * restrict start,double *res)
 /* scans double value from a line starting with exactly 'start'; contains the same arguments as
  * ReadLineStart function, plus pointer to where the result should be placed
@@ -153,7 +153,7 @@ INLINE void ScanDouble(FILE * restrict file,const char * restrict fname,char * r
 
 //=====================================================================
 
-INLINE void ScanInt(FILE * restrict file,const char * restrict fname,char * restrict buf,
+static inline void ScanInt(FILE * restrict file,const char * restrict fname,char * restrict buf,
 	const int buf_size,const char * restrict start,int *res)
 /* scans integer value from a line starting with exactly 'start'; contains the same arguments as
  * ReadLineStart function, plus pointer to where the result should be placed
@@ -172,7 +172,7 @@ INLINE void ScanInt(FILE * restrict file,const char * restrict fname,char * rest
 
 //=====================================================================
 
-INLINE void ScanSizet(FILE * restrict file,const char * restrict fname,char * restrict buf,
+static inline void ScanSizet(FILE * restrict file,const char * restrict fname,char * restrict buf,
 	const int buf_size,const char * restrict start,size_t *res)
 /* scans large integer value from a line starting with exactly 'start'; contains the same arguments
  * as ReadLineStart function, plus pointer to where the result should be placed.
@@ -196,7 +196,7 @@ INLINE void ScanSizet(FILE * restrict file,const char * restrict fname,char * re
 
 //=====================================================================
 
-INLINE void ScanString(FILE * restrict file,const char * restrict fname,char * restrict buf,
+static inline void ScanString(FILE * restrict file,const char * restrict fname,char * restrict buf,
 	const int buf_size,const char * restrict start,char * restrict res)
 /* scans string value from a line starting with exactly 'start'; contains the same arguments as
  * ReadLineStart function, plus pointer to where the result should be placed; the memory allocated
