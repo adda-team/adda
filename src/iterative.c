@@ -140,7 +140,7 @@ void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * in
 
 //============================================================
 
-INLINE void SwapPointers(doublecomplex **a,doublecomplex **b)
+static inline void SwapPointers(doublecomplex **a,doublecomplex **b)
 /* swap two pointers of (doublecomplex *) type; should work for others but will give
  * "Suspicious pointer conversion" warning.
  * While this is a convenient function that can save some copying between memory blocks, it doesn't

@@ -62,7 +62,7 @@ void my_clReleaseBuffer(cl_mem buffer);
 
 //========================================================================
 
-INLINE void CheckCLErr(const cl_int err,ERR_LOC_DECL,const char * restrict msg)
+static inline void CheckCLErr(const cl_int err,ERR_LOC_DECL,const char * restrict msg)
 /* Checks error code and prints error if necessary. It is an inline wrapper, so it can be called
  * after each CL function without worrying about performance. Optional argument msg is added to the
  * error message, if not NULL.

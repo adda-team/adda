@@ -482,7 +482,7 @@ void FreeContourSegment(struct segment * restrict seg)
 #define CHECK_CELL(a) CheckCell(gr,vgran,tree_index,Di2,occup[a],&fits) // macro for simplicity
 #define CHECK_CELL_TEST(a) (CHECK_CELL(a),fits) // ... combined with test for 'fits'
 
-INLINE int CheckCell(const double * restrict gr,const double * restrict vgran,
+static inline int CheckCell(const double * restrict gr,const double * restrict vgran,
 	const unsigned short * restrict tree_index,const double Di2,const int start,
 	bool * restrict fits)
 // function that checks whether granule intersects anything in the cell

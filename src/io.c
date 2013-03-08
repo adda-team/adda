@@ -504,7 +504,7 @@ void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 
 //===========================================================
 
-INLINE void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
+static inline void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
 /* skips full line in the file, starting from current position;
  * uses buffer 'buf' with size 'buf_size'
  */

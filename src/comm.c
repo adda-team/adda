@@ -87,7 +87,7 @@ static void RecoverCommandLine(int *argc_p,char ***argv_p)
 
 #ifndef SPARSE
 
-INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
+static inline size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size_t lengthY)
 // index block; used in BlockTranspose
 {
 	return((z*lengthY+y)*gridX+x);
@@ -95,7 +95,7 @@ INLINE size_t IndexBlock(const size_t x,const size_t y,const size_t z,const size
 
 //============================================================
 
-INLINE int CalcPartner(const int tran)
+static inline int CalcPartner(const int tran)
 /* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
  * different implementations are possible; the only requirements are
  * 1) f(tran,f(tran,ringid))=ringid

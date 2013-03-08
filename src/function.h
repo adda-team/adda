@@ -1,6 +1,6 @@
 /* File: function.h
  * $Date::                            $
- * Descr: INLINE definition and function attributes
+ * Descr: static inline definition and function attributes
  *
  * Copyright (C) 2006,2008,2010-2011 ADDA contributors
  * This file is part of ADDA.
@@ -19,8 +19,6 @@
 #ifndef __function_h
 #define __function_h
 
-// specify to inline some functions; if there are problems with compiler change to "static"
-#define INLINE static __inline
 
 // attribute options for GCC compilers (Intel compiler may also recognize them)
 #ifdef __GNUC__
