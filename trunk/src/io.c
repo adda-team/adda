@@ -429,6 +429,8 @@ void PrintBoth(FILE * restrict file,const char * restrict fmt, ... )
 /* print anything both to file and to stdout; it is assumed that size of the message is limited to
  * MAX_PARAGRAPH (i.e. no filenames in the message). Makes little sense to call it by all
  * processors.
+ *
+ * Not thread-safe! Should not be called in parallel from multiple threads (e.g. OpenMP)
  */
 {
 	va_list args;

@@ -18,7 +18,7 @@
 
 #include "cmplx.h"
 
-void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex * restrict result);
+void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
 void InitInteraction(void);
 void FreeInteraction(void);
 

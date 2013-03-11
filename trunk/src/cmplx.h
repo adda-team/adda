@@ -8,7 +8,7 @@
  *        for reliability and stability were made according to the ideas of section 5.5 of the
  *        Numerical Recipes, 3rd edition.
  *
- * Copyright (C) 2006-2008,2010,2012 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -27,7 +27,6 @@
 
 // project headers
 #include "const.h"    // for math constants
-#include "function.h" // for static inline
 #include "types.h"    // for doublecomplex
 // system headers
 #include <math.h>     // for cos, sin
@@ -801,6 +800,19 @@ static inline void LinComb(const double a[static restrict 3],const double b[stat
 	c[0]=c1*a[0]+c2*b[0];
 	c[1]=c1*a[1]+c2*b[1];
 	c[2]=c1*a[2]+c2*b[2];
+}
+
+//============================================================
+
+static inline void OuterSym(const double a[static restrict 3],double matr[static restrict 6])
+// outer product of real vector a with itself, stored in symmetric matrix matr
+{
+	matr[0] = a[0]*a[0];
+	matr[1] = a[0]*a[1];
+	matr[2] = a[0]*a[2];
+	matr[3] = a[1]*a[1];
+	matr[4] = a[1]*a[2];
+	matr[5] = a[2]*a[2];
 }
 
 //============================================================

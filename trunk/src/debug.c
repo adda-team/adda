@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: functions for printing debugging information when compiling with option -DDEBUGFULL
  *
- * Copyright (C) 2006-2008,2010,2012 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -32,6 +32,10 @@
 //============================================================
 
 void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
+/* Prints anything to stdout with additional debug information
+ *
+ * Not thread-safe! Should not be called in parallel from multiple threads (e.g. OpenMP)
+ */
 {
 	va_list args;
 	static char msg[MAX_PARAGRAPH]; // not to allocate it at every call

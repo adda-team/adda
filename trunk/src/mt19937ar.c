@@ -46,6 +46,10 @@
 #include <stdio.h>
 #include "mt19937ar.h"
 
+/* Due to use of static local variables in this source file, the implementation is not thread-safe.
+ * Should not be called in parallel from multiple threads (e.g. OpenMP)
+ */
+
 /* Period parameters */  
 #define N 624
 #define M 397
