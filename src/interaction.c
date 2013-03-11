@@ -31,6 +31,12 @@ extern double igt_lim,igt_eps;
 
 // LOCAL VARIABLES
 
+/* Performance of the functions in this file can be improved by using static variable declarations (either inside
+ * functions or here for the whole source file. However, such optimizations are not thread-safe without additional'
+ * efforts. So we prefer not to do it, since parallel (multi-threaded) execution of these functions is probably the
+ * first step for the OpenMP implementation.
+ */
+
 // tables of integrals
 static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,* restrict tab6,
 	* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
@@ -38,6 +44,8 @@ static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* 
 * generally compatible with Free_iMatrix function syntax.
 */
 static int ** restrict tab_index; // matrix for indexing of table arrays
+// KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
+static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
 
 #ifdef USE_SSE3
 static __m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
@@ -59,38 +67,35 @@ void cisi(double x,double *ci,double *si);
 	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
 	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
 
-
-static inline void CalcInterParams(const int i, const int j, const int k, 	
-	double * restrict qx, double * restrict qy, double * restrict qz,
-	double * restrict qxx, double * restrict qxy, double * restrict qxz,
-	double * restrict qyy, double * restrict qyz, double * restrict qzz,
-	double * restrict rn, double * restrict invrn, double * restrict rr, double * restrict invr3,
-	double * restrict kr, double * restrict kr2) 
-/* some common variables needed by the interaction functions
+//=====================================================================================================================
+/* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
+ * same set of parameters - in this respect they can be replaced by macros. But inline functions are probably easier to
+ * maintain.
  */
+
+static inline void CalcInterParams1(const int i,const int j,const int k,double qvec[static restrict 3],double *rn)
+// some common variables needed by the interaction functions - needed always
 {
-	*qx = i;
-	*qy = j;
-	*qz = k;
-
-	*rn = sqrt((*qx)*(*qx) + (*qy)*(*qy) + (*qz)*(*qz));
-	*invrn = 1.0/(*rn);	
-	*qx *= *invrn;
-	*qy *= *invrn;
-	*qz *= *invrn;	
-	*rr=(*rn)*gridspace;
-	*invr3=1.0/((*rr)*(*rr)*(*rr));
-	*kr=WaveNum*(*rr);
-	*kr2=(*kr)*(*kr);
-
-	*qxx = (*qx)*(*qx);
-	*qxy = (*qx)*(*qy);
-	*qxz = (*qx)*(*qz);
-	*qyy = (*qy)*(*qy);
-	*qyz = (*qy)*(*qz);
-	*qzz = (*qz)*(*qz);
+	qvec[0]=i; // qvec is normalized below
+	qvec[1]=j;
+	qvec[2]=k;
+	*rn=sqrt(DotProd(qvec,qvec)); // normalized r
 }
 
+//=====================================================================================================================
+
+static inline void CalcInterParams2(double qvec[static restrict 3],double qmunu[static restrict 6],const double rn,
+	double *invrn,double *invr3,double *kr,double *kr2)
+// some common variables needed by the interaction functions - needed for all except IGT
+{
+	*invrn = 1.0/rn;
+	vMultScalSelf(*invrn,qvec); // finalize qvec
+	double rr=rn*gridspace;
+	*invr3=1/(rr*rr*rr);
+	*kr=WaveNum*rr;
+	*kr2=(*kr)*(*kr);
+	OuterSym(qvec,qmunu);
+}
 
 #ifdef USE_SSE3
 
@@ -130,168 +135,138 @@ static inline __m128d accImExp_pd(const double x)
 	return cmul(scz,scx); // multiply lookup and approximation
 }
 
+//=====================================================================================================================
 
 static inline void accImExp(const double x, doublecomplex c)
 {
 	_mm_store_pd(c,accImExp_pd(x));
 }
 
-
 //=====================================================================================================================
 
-static void CalcInterTerm_core(double kr, double kr2, double invr3, double qxx, double qxy, double qxz, 
-	double qyy, double qyz, double qzz, doublecomplex expikr, doublecomplex * restrict result)
-/* Core routine that calculates the point interaction term between two dipoles.
- */
+static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
+	const double qmunu[static restrict 6],doublecomplex expval,doublecomplex result[static restrict 6])
+// Core routine that calculates the point interaction term between two dipoles
 {	
 	const __m128d ie = accImExp_pd(kr);
-	_mm_store_pd(expikr, ie);
-	const __m128d sc = _mm_mul_pd(_mm_set1_pd(invr3), ie);	
+	const __m128d sc = _mm_mul_pd(_mm_set1_pd(invr3),ie);
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	const __m128d v1 = _mm_set_pd(kr,t3);
+	const __m128d v2 = _mm_set_pd(t2,t1);
+	__m128d qff,im_re;
+	_mm_store_pd(expval,sc);
 
-	__m128d qff, im_re;
-#define INTERACT_MUL(I)\
+#undef INTERACT_MUL
+#define INTERACT_DIAG(I)\
+	qff = _mm_set1_pd(qmunu[I]);\
+	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));\
+	im_re = cmul(sc,im_re);\
+	_mm_store_pd(result[I],im_re);
+#define INTERACT_NONDIAG(I)\
+	qff = _mm_set1_pd(qmunu[I]);\
+	im_re = _mm_mul_pd(v2,qff);\
 	im_re = cmul(sc,im_re);\
 	_mm_store_pd(result[I],im_re);
 
-	const __m128d v1 = _mm_set_pd(kr,t3);
-	const __m128d v2 = _mm_set_pd(t2,t1);
+	INTERACT_DIAG(0)    // xx
+	INTERACT_NONDIAG(1) // xy
+	INTERACT_NONDIAG(2) // xz
+	INTERACT_DIAG(3)    // yy
+	INTERACT_NONDIAG(4) // yz
+	INTERACT_DIAG(5)    // zz
 
-	qff = _mm_set1_pd(qxx);
-	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
-	INTERACT_MUL(0)
-
-	qff = _mm_set1_pd(qxy);
-	im_re = _mm_mul_pd(v2,qff);
-	INTERACT_MUL(1)
-
-	qff = _mm_set1_pd(qxz);
-	im_re = _mm_mul_pd(v2,qff);
-	INTERACT_MUL(2)
-
-	qff = _mm_set1_pd(qyy);
-	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
-	INTERACT_MUL(3)
-
-	qff = _mm_set1_pd(qyz);
-	im_re = _mm_mul_pd(v2,qff);
-	INTERACT_MUL(4)
-
-	qff = _mm_set1_pd(qzz);
-	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));
-	INTERACT_MUL(5)
-#undef INTERACT_MUL
-
-	PRINT_GVAL;
+#undef INTERACT_DIAG
+#undef INTERACT_NONDIAG
 }
 
 #else //not using SSE3
 
 static inline void accImExp(const double x, doublecomplex c)
-/* Without SSE3, this is just an alias for imExp
-*/
+// Without SSE3, this is just an alias for imExp
 {
 	imExp(x,c);
 }
 
 //=====================================================================================================================
 
-static void CalcInterTerm_core(double kr, double kr2, double invr3, double qxx, double qxy, double qxz, 
-	double qyy, double qyz, double qzz, doublecomplex expikr, doublecomplex * restrict result)
-/* Core routine that calculates the point interaction term between two dipoles.
- */
+static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
+	const double qmunu[static restrict 6],doublecomplex expval,doublecomplex result[static restrict 6])
+// Core routine that calculates the point interaction term between two dipoles
 {	
-	double re, im;
-
-	imExp(kr, expikr);
-	const double cov=expikr[RE]*invr3;
-	const double siv=expikr[IM]*invr3;
+	doublecomplex t;
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	imExp(kr,expval);
+	cMultReal(invr3,expval,expval);
 
-#define INTERACT_MUL(I)\
-	result[I][RE] = re*cov - im*siv;\
-	result[I][IM] = re*siv + im*cov;
+#define INTERACT_DIAG(I)\
+	t[RE] = t1*qmunu[I] + t3;\
+	t[IM] = kr + t2*qmunu[I];\
+	cMult(t,expval,result[I]);
+#define INTERACT_NONDIAG(I)\
+	t[RE] = t1*qmunu[I];\
+	t[IM] = t2*qmunu[I];\
+	cMult(t,expval,result[I]);
 
-	re = t1*qxx + t3;
-	im = kr + t2*qxx;
-	INTERACT_MUL(0)	
-	re = t1*qxy;
-	im = t2*qxy;
-	INTERACT_MUL(1)
-	re = t1*qxz;
-	im = t2*qxz;
-	INTERACT_MUL(2)
-	re = t1*qyy + t3;
-	im = kr + t2*qyy;
-	INTERACT_MUL(3)	
-	re = t1*qyz;
-	im = t2*qyz;
-	INTERACT_MUL(4)
-	re = t1*qzz + t3;
-	im = kr + t2*qzz;
-	INTERACT_MUL(5)
+	INTERACT_DIAG(0)    // xx
+	INTERACT_NONDIAG(1) // xy
+	INTERACT_NONDIAG(2) // xz
+	INTERACT_DIAG(3)    // yy
+	INTERACT_NONDIAG(4) // yz
+	INTERACT_DIAG(5)    // zz
 
-#undef INTERACT_MUL	
-
-	PRINT_GVAL;
+#undef INTERACT_DIAG
+#undef INTERACT_NONDIAG
 }
 
 #endif //USE_SSE3
 
-
 //=====================================================================================================================
 
-
-void CalcInterTerm_poi(const int i, const int j, const int k, doublecomplex * restrict result)
+void CalcInterTerm_poi(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). All six
  * components of the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
 {
-	double qx, qy, qz, rn, invrn, rr, invr3, kr, kr2;
-	double qxx, qxy, qxz, qyy, qyz, qzz;
-	static doublecomplex expikr;
-	CalcInterParams(i, j, k, &qx, &qy, &qz, &qxx, &qxy, &qxz, &qyy, &qyz, &qzz, &rn, &invrn, &rr, &invr3, &kr, &kr2);
-	CalcInterTerm_core(kr, kr2, invr3, qxx, qxy, qxz, qyy, qyz, qzz, expikr, result);
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
+
+	CalcInterParams1(i,j,k,qvec,&rn);
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	PRINT_GVAL;
 }
 
 //=====================================================================================================================
 
-void CalcInterTerm_fcd(const int i, const int j, const int k, doublecomplex * restrict result)
+void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles for FCD. See CalcInterTerm_poi for more details.
+ *
+ * FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D Green's tensor
+ * associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120 (2002), and
+ * Piller N.B. "Increasing the performance of the coupled-dipole approximation: A spectral approach",
+ * IEEE Trans.Ant.Propag. 46(8): 1126-1137. Here it differs by a factor of 4*pi*k^2.
+ *
+ * speed of FCD can be improved by using faster version of sici routine, using predefined tables, etc (e.g. as is
+ * done in GSL library). But currently extra time for this computation is already smaller than one main iteration.
  */
 {
-	static double qvec[3];
-	static double temp,qmunu[6];	
-	// KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
-	static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0}; 
-	static double kfr,ci,si,ci1,si1,ci2,si2,brd,cov,siv,skfr,ckfr,g0,g2;
-	static doublecomplex expval;
-	static int comp;
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
 
-	double rn, invrn, rr, invr3, kr, kr2;
-	CalcInterParams(i, j, k, &(qvec[0]), &(qvec[1]), &(qvec[2]), &(qmunu[0]), &(qmunu[1]), &(qmunu[2]),
-		&(qmunu[3]), &(qmunu[4]), &(qmunu[5]), &rn, &invrn, &rr, &invr3, &kr, &kr2);
+	double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
+	int comp;
+	doublecomplex eikfr; // exp(i*k_F*R)
+
+	CalcInterParams1(i,j,k,qvec,&rn);
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
-
-	accImExp(kfr, expval);
-	ckfr=expval[RE];
-	skfr=expval[IM];
-	
-	CalcInterTerm_core(kr, kr2, invr3, qmunu[0], qmunu[1], qmunu[2], qmunu[3], qmunu[4], qmunu[5], expval, result);
-	cov=expval[RE];
-	siv=expval[IM];
-
-	/* speed of FCD can be improved by using faster version of sici routine, using predefined tables, etc (e.g. as is
-	 * done in GSL library). But currently extra time for this computation is already smaller than one main iteration.
-	 */
-
-	// ci,si_1,2 = ci,si_+,- = Ci,Si((k_F +,- k)r)
-	/* FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D
-	 * Green's tensor associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120
-	 * (2002), and Piller N.B. "Increasing the performance of the coupled-dipole approximation: A spectral
-	 * approach", IEEE Trans.Ant.Propag. 46(8): 1126-1137. Here it differs by a factor of 4*pi*k^2.
-	 */
+	accImExp(kfr,eikfr);
 
 	// ci,si_1,2 = ci,si_+,- = Ci,Si((k_F +,- k)r)
 	cisi(kfr+kr,&ci1,&si1);
@@ -299,49 +274,44 @@ void CalcInterTerm_fcd(const int i, const int j, const int k, doublecomplex * re
 	// ci=ci1-ci2; si=pi-si1-si2
 	ci=ci1-ci2;
 	si=PI-si1-si2;
-	g0=INV_PI*(siv*ci+cov*si);
-	g2=INV_PI*(kr*(cov*ci-siv*si)+2*ONE_THIRD*(kfr*ckfr-4*skfr))-g0;
+	g0=INV_PI*(expval[IM]*ci+expval[RE]*si);
+	g2=INV_PI*(kr*(expval[RE]*ci-expval[IM]*si)+2*ONE_THIRD*invr3*(kfr*eikfr[RE]-4*eikfr[IM]))-g0;
 	temp=g0*kr2;
 	for (comp=0;comp<NDCOMP;comp++) {
 		// brd=(delta[mu,nu]*(-g0*kr^2-g2)+qmunu*(g0*kr^2+3g2))/r^3
 		brd=qmunu[comp]*(temp+3*g2);
 		if (dmunu[comp]) brd-=temp+g2;
-		brd*=invr3;
 		// result=Gp+brd
 		result[comp][RE]+=brd;
 	}
 	PRINT_GVAL;
 }
 
-
 //=====================================================================================================================
 
-void CalcInterTerm_fcd_st(const int i, const int j, const int k, doublecomplex * restrict result)
-/* Interaction term between two dipoles for static FCD. See CalcInterTerm_poi for more details.
- */
+void CalcInterTerm_fcd_st(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Interaction term between two dipoles for static FCD (in the limit of k->inf). See CalcInterTerm_fcd for more details.
 {
-	static double qvec[3];
-	static double qmunu[6];	
-	static double kfr,ci,si,brd,skfr,ckfr;
-	static doublecomplex expval;
-	int comp;
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
 
-	double rn, invrn, rr, invr3, kr, kr2;
-	CalcInterParams(i, j, k, &(qvec[0]), &(qvec[1]), &(qvec[2]), &(qmunu[0]), &(qmunu[1]), &(qmunu[2]),
-		&(qmunu[3]), &(qmunu[4]), &(qmunu[5]), &rn, &invrn, &rr, &invr3, &kr, &kr2);
+	double kfr,ci,si,brd;
+	int comp;
+	doublecomplex eikfr;
+
+	CalcInterParams1(i,j,k,qvec,&rn);
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
-
-	accImExp(kfr, expval);
-	ckfr=expval[RE];
-	skfr=expval[IM];
-	
-	CalcInterTerm_core(kr, kr2, invr3, qmunu[0], qmunu[1], qmunu[2], qmunu[3], qmunu[4], qmunu[5], expval, result);	
-
+	accImExp(kfr,eikfr);
 	// result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi)
 	cisi(kfr,&ci,&si);
-	brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*ckfr-4*skfr);
+	brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*eikfr[RE]-4*eikfr[IM]);
 	for (comp=0;comp<NDCOMP;comp++) cMultReal(brd,result[comp],result[comp]);
+	PRINT_GVAL;
 }
 
 //=====================================================================================================================
@@ -364,31 +334,29 @@ static inline bool TestTableSize(const double rn)
 
 //=====================================================================================================================
 
-void CalcInterTerm_igt_so(const int i, const int j, const int k, doublecomplex * restrict result)
+void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles for approximate IGT. See CalcInterTerm_poi for more details.
+ *
+ * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
+ * components).
  */
 {
-	static double rr,qvec[3],q2[3],invr3;
-	static double kr,kr2,kd2,q4,rn;
-	static double temp,qmunu[6],invrn,invrn2,invrn4;
-	// KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
-	static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0}; 
-	static doublecomplex expval,br,Gm0;
-	static int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	static int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	static double t3q,t4q,t5tr,t6tr;	
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
 
+	double q2[3];
+	double kd2,q4,temp,invrn2,invrn4;
+	doublecomplex br,Gm0;
+	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
+	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+	double t3q,t4q,t5tr,t6tr;
 	
-	//====== calculate some basic constants ======
-	CalcInterParams(i, j, k, &(qvec[0]), &(qvec[1]), &(qvec[2]), &(qmunu[0]), &(qmunu[1]), &(qmunu[2]),
-		&(qmunu[3]), &(qmunu[4]), &(qmunu[5]), &rn, &invrn, &rr, &invr3, &kr, &kr2);
+	CalcInterParams1(i,j,k,qvec,&rn);
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
 
-	CalcInterTerm_core(kr, kr2, invr3, qmunu[0], qmunu[1], qmunu[2], qmunu[3], qmunu[4], qmunu[5], expval, result);
-	cMultReal(invr3,expval,expval);	
-	
-	/* There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the
-	 * cycles over components).
-	 */
 	kd2=kd*kd;
 	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
 		//====== G close for IGT =============
@@ -523,41 +491,40 @@ void CalcInterTerm_igt_so(const int i, const int j, const int k, doublecomplex *
 			}
 		}
 	}
+	PRINT_GVAL;
 }
-
 
 //=====================================================================================================================
 
-
-void CalcInterTerm_so(const int i, const int j, const int k, doublecomplex * restrict result)
+void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles with second-order corrections. See CalcInterTerm_poi for more details.
+ *
+ * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
+ * components). But now extra time is equivalent to 2-3 main iterations. So first priority is to make something useful
+ * out of SO.
  */
 {
-	static double rr,qvec[3],q2[3],invr3,qavec[3],av[3];
-	static double kr,kr2,kr3,kd2,q4,rn;
-	static double temp,qmunu[6],qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
-	// KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool	
-	static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
-	static doublecomplex expval,br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
-	static int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	static int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	static double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
-	static const bool inter_avg=true; // temporary fixed option for SO formulation
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
 
+	double q2[3],qavec[3],av[3];
+	double kr3,kd2,q4;
+	double temp,qa,qamunu[6],invrn2,invrn3,invrn4;
+	doublecomplex br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
+	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
+	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
+	const bool inter_avg=true; // temporary fixed option for SO formulation
 
-	//double rn, invrn, rr, invr3, kr, kr2;
-	CalcInterParams(i, j, k, &(qvec[0]), &(qvec[1]), &(qvec[2]), &(qmunu[0]), &(qmunu[1]), &(qmunu[2]),
-		&(qmunu[3]), &(qmunu[4]), &(qmunu[5]), &rn, &invrn, &rr, &invr3, &kr, &kr2);
-
-	CalcInterTerm_core(kr, kr2, invr3, qmunu[0], qmunu[1], qmunu[2], qmunu[3], qmunu[4], qmunu[5], expval, result);
-	cMultReal(invr3,expval,expval);
-
-	/* There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the
-	 * cycles over components). But now extra time is equivalent to 2-3 main iterations. So first priority is to
-	 * make something useful out of SO.
-	 */
 	// next line should never happen
 	if (anisotropy) LogError(ONE_POS,"Incompatibility error in CalcInterTerm");
+
+	CalcInterParams1(i,j,k,qvec,&rn);
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+
 	kd2=kd*kd;
 	kr3=kr2*kr;
 	// only one refractive index can be used for FFT-compatible algorithm
@@ -803,44 +770,37 @@ void CalcInterTerm_so(const int i, const int j, const int k, doublecomplex * res
 			}
 		}
 	}
-
 	PRINT_GVAL;
 }
 
-
 //=====================================================================================================================
+#ifndef NO_FORTRAN
 
-void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex * restrict result) 
+void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles with integration of Green's tensor. See CalcInterTerm_poi for more details.
  */
 {
-	static double rr,qvec[3],invr3;
-	static double kr,kr2,rn,rn2;
-	static double invrn;
-	static double qx,qy,qz,qxx,qxy,qxz,qyy,qyz,qzz;
-	static doublecomplex expikr;
+	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
+	double rtemp[3];
+	result[8][RE]=0;
 
-	//====== calculate some basic constants ======
-	qvec[0]=i; // qvec is normalized below (after IGT)
-	qvec[1]=j;
-	qvec[2]=k;
-	rn2=DotProd(qvec,qvec);
-	rn=sqrt(rn2); // normalized r
-
-#ifndef NO_FORTRAN
-	if (igt_lim==UNDEF || rn<=igt_lim) { // a special case
-		double rtemp[3];
+	CalcInterParams1(i,j,k,qvec,&rn);
+	if (igt_lim==UNDEF || rn<=igt_lim) {
 		vMultScal(gridspace,qvec,rtemp);
 		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
-		PRINT_GVAL;
-		return;
 	}
-#endif
-
-	CalcInterParams(i, j, k, &qx, &qy, &qz, &qxx, &qxy, &qxz, &qyy, &qyz, &qzz, 
-		&rn, &invrn, &rr, &invr3, &kr, &kr2);
-	CalcInterTerm_core(kr, kr2, invr3, qxx, qxy, qxz, qyy, qyz, qzz, expikr, result);
+	else {
+		// The following is equivalent to CalcInterTerm_poi, except for the 1st part of initialization performed above
+		CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+		CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	}
+	PRINT_GVAL;
 }
+
+#endif
 
 //=====================================================================================================================
 
@@ -949,11 +909,14 @@ void InitInteraction(void)
 		case G_SO:
 			CalcInterTerm = &CalcInterTerm_so;
 			break;
+#ifndef NO_FORTRAN
 		case G_IGT:
 			CalcInterTerm = &CalcInterTerm_igt;
 			break;
+#endif
 		default: 
-			LogError(ONE_POS, "Invalid interaction term calculation method.");
+			LogError(ONE_POS, "Invalid interaction term calculation method: %d",IntRelation);
+			break;
 	}
 	// read tables if needed
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();

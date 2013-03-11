@@ -29,7 +29,6 @@
 #include "cmplx.h"
 #include "comm.h"
 #include "debug.h"
-#include "function.h"
 #include "io.h"
 #include "linalg.h"
 #include "memory.h"

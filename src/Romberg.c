@@ -54,6 +54,9 @@ extern const bool full_al_range;
 
 // LOCAL VARIABLES
 
+/* Due to heavy use of static local variables for communication between functions in this source file, the
+ * implementation is not thread-safe. Should not be called in parallel from multiple threads (e.g. OpenMP)
+ */
 static int dim;              // dimension of the data (integrated simultaneously)
 static int N_eval;           // number of function evaluations in inner cycle
 static int N_tot_eval;       // total number of function evaluation

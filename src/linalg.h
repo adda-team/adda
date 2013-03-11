@@ -3,7 +3,7 @@
  * Descr: definitions for linear algebra operations on large vectors; see source (linalg.c) for
  *        details
  *
- * Copyright (C) 2006,2008,2010-2012 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,7 +21,6 @@
 #define __linalg_h
 
 // project headers
-#include "function.h" // for function attributes
 #include "timing.h"   // for TIME_TYPE
 #include "types.h"    // for doublecomplex
 

@@ -23,7 +23,6 @@
 #include "comm.h"
 #include "debug.h"
 #include "fft.h"
-#include "function.h"
 #include "io.h"
 #include "interaction.h"
 #include "linalg.h"

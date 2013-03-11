@@ -1,8 +1,8 @@
 /* File: function.h
  * $Date::                            $
- * Descr: static inline definition and function attributes
+ * Descr: function attributes
  *
- * Copyright (C) 2006,2008,2010-2011 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2011,2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU

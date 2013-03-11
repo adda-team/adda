@@ -23,7 +23,6 @@
 #include "cmplx.h"
 #include "comm.h"
 #include "debug.h"
-#include "function.h"
 #include "io.h"
 #include "memory.h"
 #include "Romberg.h"

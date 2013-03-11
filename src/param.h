@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: inline routines for testing of input parameters
  *
- * Copyright (C) 2006,2008,2010-2012 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -20,7 +20,7 @@
 #define __param_h
 
 // project headers
-#include "function.h" // needed for static inline and function attributes
+#include "function.h" // needed for function attributes
 // system headers
 #include <limits.h> // for INT_MIN and INT_MAX
 #include <math.h>
