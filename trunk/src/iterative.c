@@ -1,25 +1,21 @@
 /* File: iterative.c
  * $Date::                            $
- * Descr: a few iterative techniques to solve DDA equations; currently CGNR,BiCGStab,BiCG-CS,QMR-CS
- *        are implemented
+ * Descr: a few iterative techniques to solve DDA equations
  *
- *        The linear system is composed so that diagonal terms are equal to 1, therefore use of
- *        Jacobi preconditioners does not have any effect.
+ *        The linear system is composed so that diagonal terms are equal to 1, therefore use of Jacobi preconditioners
+ *        does not have any effect.
  *
- *        CS methods still converge to the right result even when matrix is slightly non-symmetric
- *        (e.g. -int so), however they do it much slowly than usually. It is recommended then to use
- *        BiCGStab.
+ *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
+ *        however they do it much slowly than usually. It is recommended then to use BiCGStab.
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -57,10 +53,8 @@ extern const enum init_field InitField;
 extern const bool recalc_resid;
 extern const time_t chp_time;
 extern const char *chp_dir;
-
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,
-	Timing_IntFieldOneComm;
+extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,Timing_IntFieldOneComm;
 extern size_t TotalIter;
 
 // LOCAL VARIABLES
@@ -72,14 +66,13 @@ static double inprodR;     // used as |r_0|^2 and best squared norm of residual 
 static double inprodRp1;   // used as |r_k+1|^2 and squared norm of current residual
 static double epsB;        // stopping criterion
 static double resid_scale; // scale to get square of relative error
-  // previous relative error; used in ProgressReport, initialized in IterativeSolver
-static double prev_err;
+static double prev_err;    // previous relative error; used in ProgressReport, initialized in IterativeSolver
 static int ind_m;          // index of iterative method
 static int niter;          // iteration count
 static int counter;        // number of successive iterations without residual decrease
 static bool chp_exit;      // checkpoint occurred - exit
 static bool complete;      // complete iteration was performed (not stopped in the middle)
-// whether matrix-vector product computed during initialization can be reused at first iteration
+	// whether matrix-vector product computed during initialization can be reused at first iteration
 static bool matvec_ready;
 typedef struct // data for checkpoints
 {
@@ -110,9 +103,8 @@ ITER_FUNC(CSYM);
 ITER_FUNC(QMR_CS);
 ITER_FUNC(QMR_CS_2);
 /* TO ADD NEW ITERATIVE SOLVER
- * Add the line to this list in the alphabetical order, analogous to the ones already present. The
- * variable part is the name of the function, implementing the method. The macros expands to a
- * function prototype.
+ * Add the line to this list in the alphabetical order, analogous to the ones already present. The variable part is the
+ * name of the function, implementing the method. The macros expands to a function prototype.
  */
 
 static const struct iter_params_struct params[]={
@@ -123,29 +115,26 @@ static const struct iter_params_struct params[]={
 	{IT_QMR_CS,50000,8,3,QMR_CS},
 	{IT_QMR_CS_2,50000,5,2,QMR_CS_2}
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * Add its parameters to this list in the alphabetical order. The parameters, in order of
-	 * appearance, are identifier (specified in const.h), maximum allowed number of iterations
-	 * without the residual decrease, numbers of additional scalars and vectors to describe the
-	 * state of the iterative solver (see comment before function SaveCheckpoint), and name of a
-	 * function, implementing the method.
+	 * Add its parameters to this list in the alphabetical order. The parameters, in order of appearance, are identifier
+	 * (specified in const.h), maximum allowed number of iterations without the residual decrease, numbers of additional
+	 * scalars and vectors to describe the state of the iterative solver (see comment before function SaveCheckpoint),
+	 * and name of a function, implementing the method.
 	 */
 };
 
 // EXTERNAL FUNCTIONS
 
 // matvec.c
-void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,
-	TIME_TYPE *comm_timing);
+void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,TIME_TYPE *comm_timing);
 
-//============================================================
+//======================================================================================================================
 
 static inline void SwapPointers(doublecomplex **a,doublecomplex **b)
-/* swap two pointers of (doublecomplex *) type; should work for others but will give
- * "Suspicious pointer conversion" warning.
- * While this is a convenient function that can save some copying between memory blocks, it doesn't
- * allow consistent usage of 'restrict' keyword for affected pointers. This may hamper some
- * optimization. Hopefully, the most important optimizations are those in the linalg.c, which
- * can be improved by using 'restrict' keyword in the functions themselves.
+/* swap two pointers of (doublecomplex *) type; should work for others but will give "Suspicious pointer conversion"
+ * warning. While this is a convenient function that can save some copying between memory blocks, it doesn't allow
+ * consistent usage of 'restrict' keyword for affected pointers. This may hamper some optimizations. Hopefully, the most
+ * important optimizations are those in the linalg.c, which can be improved by using 'restrict' keyword in the functions
+ * themselves.
  */
 {
 	doublecomplex *tmp;
@@ -155,18 +144,17 @@ static inline void SwapPointers(doublecomplex **a,doublecomplex **b)
 	*b=tmp;
 }
 
-//============================================================
+//======================================================================================================================
 
-/* Checkpoint systems saves the current state of the iterative solver to the file. By default (for
- * every iterative solver) a number of scalars and vectors are saved. The scalars include, among
- * others, inprodR. There are 3 default vectors: xvec, rvec, pvec (Avecbuffer is _not_ saved). If
- * the iterative solver requires any other scalars or vectors to describe its state, this
- * information should be specified in structure arrays 'scalars' and 'vectors'.
+/* Checkpoint systems saves the current state of the iterative solver to the file. By default (for every iterative
+ * solver) a number of scalars and vectors are saved. The scalars include, among others, inprodR. There are 3 default
+ * vectors: xvec, rvec, pvec (Avecbuffer is _not_ saved). If the iterative solver requires any other scalars or vectors
+ * to describe its state, this information should be specified in structure arrays 'scalars' and 'vectors'.
  */
 
 static void SaveIterChpoint(void)
-/* save a binary checkpoint; only limitedly foolproof - user should take care to load checkpoints
- * on the same machine (number of processors) and with the same command line.
+/* save a binary checkpoint; only limitedly foolproof - user should take care to load checkpoints on the same machine
+ * (number of processors) and with the same command line.
  */
 {
 	int i;
@@ -183,8 +171,7 @@ static void SaveIterChpoint(void)
 			chp_file=FOpenErr(fname,"w",ONE_POS);
 		}
 		// write info and close file
-		fprintf(chp_file,
-			"Info about the run, which produced the checkpoint, can be found in ../%s",directory);
+		fprintf(chp_file,"Info about the run, which produced the checkpoint, can be found in ../%s",directory);
 		FCloseErr(chp_file,fname,ONE_POS);
 	}
 	// wait to ensure that directory exists
@@ -210,9 +197,8 @@ static void SaveIterChpoint(void)
 	if (fwrite(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// write specific vectors
-	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fwrite(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
-			LogError(ALL_POS,"Failed writing to file '%s'",fname);
+	for (i=0;i<params[ind_m].vec_N;i++) if (fwrite(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
+		LogError(ALL_POS,"Failed writing to file '%s'",fname);
 	// close file
 	FCloseErr(chp_file,fname,ALL_POS);
 	// write info to logfile after everyone is finished
@@ -222,12 +208,12 @@ static void SaveIterChpoint(void)
 	Synchronize(); // this is to ensure that message above appears if and only if OK
 }
 
-//============================================================
+//======================================================================================================================
 
 static void LoadIterChpoint(void)
-/* load a binary checkpoint; only limitedly foolproof - user should take care to load checkpoints
- * on the same machine (number of processors) and with the same command line.
- * */
+/* load a binary checkpoint; only limitedly foolproof - user should take care to load checkpoints on the same machine
+ * (number of processors) and with the same command line.
+ */
 {
 	int i;
 	int ind_m_new;
@@ -240,15 +226,14 @@ static void LoadIterChpoint(void)
 	// open input file; reading errors are checked only for vectors
 	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"rb",ALL_POS);
-	/* check for consistency. This implies that the same index corresponds to the same iterative
-	 * solver in list params. So if the ADDA executable was changed, e.g. by adding a new iterative
-	 * solver, between writing and reading checkpoint, this test may fail.
+	/* check for consistency. This implies that the same index corresponds to the same iterative solver in list params.
+	 * So if the ADDA executable was changed, e.g. by adding a new iterative solver, between writing and reading
+	 * checkpoint, this test may fail.
 	 */
 	fread(&ind_m_new,sizeof(int),1,chp_file);
 	if (ind_m_new!=ind_m) LogError(ALL_POS,"File '%s' is for different iterative method",fname);
 	fread(&local_nRows_new,sizeof(size_t),1,chp_file);
-	if (local_nRows_new!=local_nRows)
-		LogError(ALL_POS,"File '%s' is for different vector size",fname);
+	if (local_nRows_new!=local_nRows) LogError(ALL_POS,"File '%s' is for different vector size",fname);
 	// read common scalars
 	fread(&niter,sizeof(int),1,chp_file);
 	fread(&counter,sizeof(int),1,chp_file);
@@ -256,8 +241,7 @@ static void LoadIterChpoint(void)
 	fread(&prev_err,sizeof(double),1,chp_file); // read on ALL processors but used only on root
 	fread(&resid_scale,sizeof(double),1,chp_file);
 	// read specific scalars
-	for (i=0;i<params[ind_m].sc_N;i++)
-		fread(scalars[i].ptr,scalars[i].size,1,chp_file);
+	for (i=0;i<params[ind_m].sc_N;i++) fread(scalars[i].ptr,scalars[i].size,1,chp_file);
 	// read common vectors
 	if (fread(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
@@ -266,9 +250,8 @@ static void LoadIterChpoint(void)
 	if (fread(pvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific vectors
-	for (i=0;i<params[ind_m].vec_N;i++)
-		if (fread(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
-			LogError(ALL_POS,"Failed reading from file '%s'",fname);
+	for (i=0;i<params[ind_m].vec_N;i++) if (fread(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// check if EOF reached and close file
 	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
 	FCloseErr(chp_file,fname,ALL_POS);
@@ -278,14 +261,13 @@ static void LoadIterChpoint(void)
 	if (IFROOT) {
 		PrintBoth(logfile,"Checkpoint (iteration) loaded\n");
 		// if residual is stagnating print info about last minimum
-		if (counter!=0) fprintf(logfile,
-			"Residual has been stagnating already for %d iterations since:\n"
+		if (counter!=0) fprintf(logfile,"Residual has been stagnating already for %d iterations since:\n"
 			RESID_STRING"\n...\n",counter,niter-counter-1,sqrt(resid_scale*inprodR));
 	}
 	Timing_FileIO+=GET_TIME()-tstart;
 }
 
-//============================================================
+//======================================================================================================================
 
 static void ProgressReport(void)
 // Do common procedures; show progress in logfile and stdout; also check for checkpoint condition
@@ -325,14 +307,13 @@ static void ProgressReport(void)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict r,
-	doublecomplex * restrict buffer,TIME_TYPE *comm_timing)
-/* Computes ||Ax-b||^2, where b=sqrt(C).Einc; buffer is used for Ax, r contains Ax-b at the end;
- * comm_timing is incremented with communication time.
- * If only the norm is required, the calculation can be done without using vector r, but this does
- * not make a lot of sense, since memory is allocated anyway.
+static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict r,doublecomplex * restrict buffer,
+	TIME_TYPE *comm_timing)
+/* Computes ||Ax-b||^2, where b=sqrt(C).Einc; buffer is used for Ax, r contains Ax-b at the end; comm_timing is
+ * incremented with communication time. If only the norm is required, the calculation can be done without using vector
+ * r, but this does not make a lot of sense, since memory is allocated anyway.
  */
 {
 	double res;
@@ -343,15 +324,15 @@ static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict 
 	return res;
 }
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(BiCG_CS)
-/* Bi-Conjugate Gradient for Complex Symmetric systems
- * based on: Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric
- * coefficient matrices", SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
+/* Bi-Conjugate Gradient for Complex Symmetric systems, based on:
+ * Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric coefficient matrices",
+ * SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
  *
- * it is also identical to COCG, described in: van der Vorst H.A., Melissen J.B.M.
- * "A Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex",
+ * it is also identical to COCG, described in:
+ * van der Vorst H.A., Melissen J.B.M. "A Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex",
  * IEEE Transactions on Magnetics, 26(2):706-708, 1990.
  */
 {
@@ -373,8 +354,7 @@ ITER_FUNC(BiCG_CS)
 		abs_ro_new=cAbs(ro_new);
 		dtmp=abs_ro_new/inprodR;
 		Dz("|rT.r|/(r.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS1) LogError(ONE_POS,
-			"BiCG_CS fails: |rT.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
+		if (dtmp<EPS1) LogError(ONE_POS,"BiCG_CS fails: |rT.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=ro_k-1/ro_k-2
@@ -389,8 +369,7 @@ ITER_FUNC(BiCG_CS)
 		nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
 		dtmp=cAbs(mu)/abs_ro_new;
 		Dz("|pT.A.p|/(rT.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS2) LogError(ONE_POS,
-			"BiCG_CS fails: |pT.A.p|/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
+		if (dtmp<EPS2) LogError(ONE_POS,"BiCG_CS fails: |pT.A.p|/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 		// alpha_k=ro_k/mu_k
 		cDiv(ro_new,mu,alpha);
 		// x_k=x_k-1+alpha_k*p_k
@@ -406,11 +385,11 @@ ITER_FUNC(BiCG_CS)
 #undef EPS1
 #undef EPS2
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(BiCGStab)
-/* Bi-Conjugate Gradient Stabilized
- * based on "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
+/* Bi-Conjugate Gradient Stabilized, based on
+ * "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
  * http://www.netlib.org/templates/Templates.html .
  */
 {
@@ -421,8 +400,8 @@ ITER_FUNC(BiCGStab)
 	static doublecomplex * restrict v,* restrict s,* restrict rtilda;
 
 	if (ph==PHASE_VARS) {
-		/* rename some vectors; this doesn't contradict with 'restrict' keyword, since new
-		 * names are not used together with old names
+		/* rename some vectors; this doesn't contradict with 'restrict' keyword, since new names are not used together
+		 * with old names
 		 */
 		v=vec1;
 		s=vec2;
@@ -445,8 +424,7 @@ ITER_FUNC(BiCGStab)
 		nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
 		dtmp=cAbs(ro_new)/inprodR;
 		Dz("|r~.r|/(r.r)="GFORM_DEBUG,dtmp);
-		if (dtmp<EPS1) LogError(ONE_POS,
-			"BiCGStab fails: |r~.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
+		if (dtmp<EPS1) LogError(ONE_POS,"BiCGStab fails: |r~.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 		if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 		else {
 			// beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1)
@@ -455,8 +433,7 @@ ITER_FUNC(BiCGStab)
 			// check that omega_k-1!=0
 			dtmp=cAbs(temp2)/cAbs(temp1);
 			Dz("1/|beta_k|="GFORM_DEBUG,dtmp);
-			if (dtmp<EPS2) LogError(ONE_POS,
-				"Bi-CGStab fails: 1/|beta_k| is too small ("GFORM_DEBUG").",dtmp);
+			if (dtmp<EPS2) LogError(ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small ("GFORM_DEBUG").",dtmp);
 			cDiv(temp1,temp2,beta);
 			// p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1
 			cMult(beta,omega,temp1);
@@ -498,11 +475,11 @@ ITER_FUNC(BiCGStab)
 #undef EPS1
 #undef EPS2
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(CGNR)
-/* Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm
- * based on "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
+/* Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm, based on
+ * "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
  * http://www.netlib.org/templates/Templates.html .
  */
 {
@@ -540,23 +517,21 @@ ITER_FUNC(CGNR)
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(CSYM)
-/* Bi-Conjugate Gradient for Complex Symmetric systems
- * Based on A. Bunse-Gerstner and R. Stover, "On a conjugate gradient-type method for solving
- * complex symmetric linear systems," Lin. Alg. Appl. 287, 105-123 (1999).
- * with rearrangement of operations (MatVec is now calculated in the beginning of the iteration)
+/* Bi-Conjugate Gradient for Complex Symmetric systems, based on
+ * A. Bunse-Gerstner and R. Stover, "On a conjugate gradient-type method for solving complex symmetric linear systems,"
+ * Lin. Alg. Appl. 287, 105-123 (1999). with rearrangement of operations (MatVec is now calculated in the beginning of
+ * the iteration)
  *
- * Consumes one less vector than QMR-CS, because rvec does not need to be explicitly computed.
- * The residual should always decrease and always be smaller than that of CGNR (for the same number
- * of matrix-vector products).
+ * Consumes one less vector than QMR-CS, because rvec does not need to be explicitly computed. The residual should
+ * always decrease and always be smaller than that of CGNR (for the same number of matrix-vector products).
  */
 {
 	static doublecomplex alpha,gamma,invksi,theta,eta,tau,temp1,temp2,s_old,s_new;
 	static double dtmp,beta,c_old,c_new;
-		// can't be declared restrict due to SwapPointers
-	static doublecomplex *q_new,*q_old,*p_new,*p_old;
+	static doublecomplex *q_new,*q_old,*p_new,*p_old; // can't be declared restrict due to SwapPointers
 
 	if (ph==PHASE_VARS) {
 		// rename some vectors
@@ -596,8 +571,8 @@ ITER_FUNC(CSYM)
 	}
 	// main iteration cycle
 	else if (ph==PHASE_ITER) {
-		/* Avecbuffer = A.q_k. Since q_1 is r_0(*), mat-vec product for niter==1 is equivalent
-		 * to Ah.r_0 (as in CGNR). Thus, matvec_ready can't be employed.
+		/* Avecbuffer = A.q_k. Since q_1 is r_0(*), mat-vec product for niter==1 is equivalent to Ah.r_0 (as in CGNR).
+		 * Thus, matvec_ready can't be employed.
 		 */
 		MatVec(q_new,Avecbuffer,NULL,false,&Timing_OneIterComm);
 		// alpha_k = q_k(T).A.q_k
@@ -623,8 +598,8 @@ ITER_FUNC(CSYM)
 		cEqual(s_new,s_old);
 		dtmp=cAbs(gamma);
 		if (dtmp==0) {
-			if (beta==0) LogError(ONE_POS,"Fatal error in CSYM iterative solver. "
-				"Interaction matrix is singular"); // this should never happen
+			// the following condition should never occur
+			if (beta==0) LogError(ONE_POS,"Fatal error in CSYM iterative solver. Interaction matrix is singular");
 			c_new=0;
 			s_new[RE]=1;
 			s_new[IM]=0;
@@ -652,8 +627,7 @@ ITER_FUNC(CSYM)
 		else {
 			cMult(eta,invksi,temp1);
 			cInvSign(temp1); // temp1=-eta_k/ksi_k
-			if (niter==2) // use explicitly that p_0=0
-				nLinComb_cmplx(p_old,p_new,q_new,temp1,invksi,NULL,NULL);
+			if (niter==2) nLinComb_cmplx(p_old,p_new,q_new,temp1,invksi,NULL,NULL);  // use explicitly that p_0=0
 			else {
 				cMult(theta,invksi,temp2);
 				cInvSign(temp2); // temp2=-theta_k/ksi_k
@@ -676,15 +650,15 @@ ITER_FUNC(CSYM)
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 }
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(QMR_CS)
-/* Quasi Minimum Residual for Complex Symmetric systems
- * based on: Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric
- * coefficient matrices", SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
+/* Quasi Minimum Residual for Complex Symmetric systems, based on:
+ * Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric coefficient matrices",
+ * SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
  */
 {
-// !!! TODO: These bounds need to be rethought, but they are already working fine
+// !!! TODO: These bounds need to be reconsidered, but they are already working fine
 #define EPS1L  1E-10 // for (vT.v)/(b.b), low bound
 #define EPS1H  1E+20 // for (vT.v)/(b.b), high bound
 #define EPS2   1E-40 // for overflow of exponent number
@@ -743,8 +717,8 @@ ITER_FUNC(QMR_CS)
 		// check for zero or very high beta
 		dtmp1=cAbs2(beta)*resid_scale;
 		Dz("|vT.v|/(b.b)="GFORM_DEBUG,dtmp1);
-		if (dtmp1<EPS1L || dtmp1>EPS1H) LogError(ONE_POS,
-			"QMR_CS fails: |vT.v|/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
+		if (dtmp1<EPS1L || dtmp1>EPS1H)
+			LogError(ONE_POS,"QMR_CS fails: |vT.v|/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
 		// A.v_k; alpha_k=v_k(*).(A.v_k)
 		if (niter==1 && matvec_ready) { // uses that v_1=r_0/beta
 			cInv(beta,temp1);
@@ -754,8 +728,7 @@ ITER_FUNC(QMR_CS)
 		nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
 		// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
 		cInvSign2(alpha,temp2);
-		// use explicitly that v_0=0
-		if (niter==1) nLinComb1_cmplx(vtilda,v,Avecbuffer,temp2,NULL,NULL);
+		if (niter==1) nLinComb1_cmplx(vtilda,v,Avecbuffer,temp2,NULL,NULL); // use explicitly that v_0=0
 		else {
 			cInvSign2(beta,temp1);
 			nIncrem110_cmplx(vtilda,v,Avecbuffer,temp1,temp2);
@@ -830,12 +803,12 @@ ITER_FUNC(QMR_CS)
 #undef EPS1H
 #undef EPS2
 
-//============================================================
+//======================================================================================================================
 
 ITER_FUNC(QMR_CS_2)
-/* Quasi Minimum Residual for Complex Symmetric systems
- * based on: R.W. Freund and N.M. Nachtigal, "An implementation of the qmr method based on coupled
- * 2-term recurrences," SIAM J. Sci. Comp. 15, 313-337 (1994).
+/* Quasi Minimum Residual for Complex Symmetric systems based on:
+ * R.W. Freund and N.M. Nachtigal, "An implementation of the qmr method based on coupled 2-term recurrences,"
+ * SIAM J. Sci. Comp. 15, 313-337 (1994).
  *
  * We use recommended values of omega_k=1, which correspond to omega_k=||v_k|| used in QMR_CS above
  */
@@ -886,8 +859,7 @@ ITER_FUNC(QMR_CS_2)
 		nDotProdSelf_conj(v,delta,&Timing_OneIterComm);
 		dtmp1=cAbs(delta);
 		Dz("|vT.v|="GFORM_DEBUG,dtmp1);
-		if (dtmp1<EPS1) LogError(ONE_POS,
-			"QMR_CS_2 fails: |vT.v| is too small ("GFORM_DEBUG").",dtmp1);
+		if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS_2 fails: |vT.v| is too small ("GFORM_DEBUG").",dtmp1);
 		// p_k = v_k - p_k-1*ro_k*delta_k/eps_k-1
 		if (niter==1) nCopy(pvec,v); // use explicitly that p_0=0
 		else {
@@ -904,8 +876,7 @@ ITER_FUNC(QMR_CS_2)
 		nDotProd_conj(pvec,Avecbuffer,eps,&Timing_OneIterComm);
 		cDiv(eps,delta,beta);
 		Dz("|pT.A.p|="GFORM_DEBUG,cAbs(eps));
-		if (dtmp1<EPS1) LogError(ONE_POS,
-			"QMR_CS_2 fails: |pT.A.p| is too small ("GFORM_DEBUG").",dtmp1);
+		if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS_2 fails: |pT.A.p| is too small ("GFORM_DEBUG").",dtmp1);
 		// v~_k+1 = A.p_k - beta_k*v_k; stored in the same vector v
 		cInvSign2(beta,temp1);
 		nIncrem10_cmplx(v,Avecbuffer,temp1,&dtmp1,&Timing_OneIterComm);
@@ -928,8 +899,7 @@ ITER_FUNC(QMR_CS_2)
 		}
 		// x_k = x_k-1 + d_k
 		nIncrem(xvec,d,NULL,NULL);
-		/* The following formula to update residual was not given in the original publication, so
-		 * we derived it ourselves;
+		/* The following formula to update residual was not given in the original publication, we derived it ourselves;
 		 * r_k = (1-c_k^2)*r_k-1 - eta_k*v~_k+1
 		 */
 		cInvSign2(eta,temp1);
@@ -944,60 +914,64 @@ ITER_FUNC(QMR_CS_2)
 #undef EPS1
 #undef EPS2
 
-//============================================================
+//======================================================================================================================
 
 /* TO ADD NEW ITERATIVE SOLVER
- * Add the function implementing the iterative method to the list above in the alphabetical order.
- * The template for the function is provided below together with additional comments. Please also
- * look at the iterative solvers, already present, for examples.
- * For operations on complex numbers you are advised to use functions from cmplx.h, for switching
- * vectors - SwapPointers (above), for linear algebra - functions from linalg.c, for multiplication
- * of vector with matrix of the linear system - MatVec function from matvec.c. Some of these
- * functions take account of the time spent on communication between different processors (in
- * parallel mode), and increment their last argument by the corresponding amount.
- * You may also use  values of variables, defined in the beginning of this source
- * file, especially niter, resid_scale, and epsB.
+ * Add the function implementing the iterative method to the list above in the alphabetical order. The template for the
+ * function is provided below together with additional comments. Please also look at the iterative solvers, already
+ * present, for examples. For operations on complex numbers you are advised to use functions from cmplx.h, for switching
+ * vectors - SwapPointers (above), for linear algebra - functions from linalg.c, for multiplication of vector with
+ * matrix of the linear system - MatVec function from matvec.c. Some of these functions take account of the time spent
+ * on communication between different processors (in parallel mode), and increment their last argument by the
+ * corresponding amount. You may also use values of variables, defined in the beginning of this source file, especially
+ * niter, resid_scale, and epsB.
  */
 #if 0
 ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will do the rest
 // Short comment, providing full name of the iterative solver
 {
-// It is recommended to define all nontrivial constants here. Do not forget to undef them
-// at the end of this function to avoid conflicts with other iterative solvers.
+/* It is recommended to define all nontrivial constants here. Do not forget to undef them at the end of this function to
+ * avoid conflicts with other iterative solvers.
+ */
 #define EPS1 1E-30
-	// all internal variables should be defined here as static, since the function will be called
-	// many times (once per iteration).
+	/* all internal variables should be defined here as static, since the function will be called many times (once per
+	 * iteration).
+	 */
 	static double xxx;
 
-	// The function accepts a single argument 'ph' describing a phase, which it should perform at a
-	// particular run. This is done to move all common parts to the function IterativeSolver.
-	// Possible phases are defined and briefly explained in the definition of 'enum phase' in the
-	// beginning of this source file.
+	/* The function accepts a single argument 'ph' describing a phase, which it should perform at a particular run. This
+	 * is done to move all common parts to the function IterativeSolver. Possible phases are defined and briefly
+	 * explained in the definition of 'enum phase' in the beginning of this source file.
+	 */
 	if (ph==PHASE_VARS) {
-		// Here variables are linked to structure arrays 'scalars' and 'vectors' to initialize
-		// checkpoint system (see comment before function SaveCheckpoint). For example:
+		/* Here variables are linked to structure arrays 'scalars' and 'vectors' to initialize checkpoint system (see
+		 * comment before function SaveCheckpoint). For example:
+		 */
 		scalars[0].ptr=&xxx;
 		scalars[0].size=sizeof(double);
-		// Also, if auxiliary vectors vec1,... are used, their names may be changed to a more
-		// meaningful ones (using pointer assignments)
+		/* Also, if auxiliary vectors vec1,... are used, their names may be changed to a more meaningful ones (using
+		 * pointer assignments)
+		 */
 	}
 	else if (ph==PHASE_INIT) {
-		// Initialization of the iterative solver. You may use 'load_chpoint' to distinguish between
-		// the plain run and the one restarted from a checkpoint. Actual loading of checkpoint
-		// happens just before this phase. For gathering communication time use variable
-		// Timing_InitIterComm.
+		/* Initialization of the iterative solver. You may use 'load_chpoint' to distinguish between the plain run and
+		 * the one restarted from a checkpoint. Actual loading of checkpoint happens just before this phase. For
+		 * gathering communication time use variable Timing_InitIterComm.
+		 */
 	}
 	else if (ph==PHASE_ITER) {
-		// Performs a general iteration. As a result, inprodRp1 (current residual) should be
-		// calculated. For gathering communication time use variable Timing_OneIterComm.
+		/* Performs a general iteration. As a result, inprodRp1 (current residual) should be calculated. For gathering
+		 * communication time use variable Timing_OneIterComm.
+		 */
 
-		if (xxx<EPS1) // an example for checking of convergence failure (optional)
-			LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
+		// an example for checking of convergence failure (optional)
+		if (xxx<EPS1) LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
-		// _Some_ iterative solvers contain extra checks for convergence in the _middle_ of an
-		// iteration, designed to save time of, e.g., one matrix-vector product in some cases.
-		// They should be performed as follows. In particular, the intermediate test will be skipped
-		// if final checkpoint is required (checkpoint of type 'always').
+		/* _Some_ iterative solvers contain extra checks for convergence in the _middle_ of an iteration, designed to
+		 * save time of, e.g., one matrix-vector product in some cases. They should be performed as follows. In
+		 * particular, the intermediate test will be skipped if final checkpoint is required (checkpoint of type
+		 * 'always').
+		 */
 		if (inprodRp1<epsB && chp_type!=CHP_ALWAYS) {
 			// Additional code, e.g. to set xvec to the final value
 			complete=false; // this is required to skip saving checkpoint and some timing
@@ -1005,8 +979,9 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 		else {
 			// Continue the iteration normally
 		}
-		// Common check for convergence at the end of an iteration should not be done here, because
-		// it is performed in the function IterativeSolver.
+		/* Common check for convergence at the end of an iteration should not be done here, because it is performed in
+		 * the function IterativeSolver.
+		 */
 	}
 	else LogError(ONE_POS,"Unknown phase of the iterative solver");
 #undef EPS1
@@ -1015,21 +990,20 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 
 #undef ITER_FUNC
 
-//============================================================
+//======================================================================================================================
 
 static const char *CalcInitField(double zero_resid)
-/* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains
- * the right-hand side of equations (b). At the end of this function xvec should contain initial
- * vector for the iterative solver (x_0), rvec - corresponding residual r_0, and inprodR - the norm
- * of the latter residual.
- * Returns string containing description of the initial field used.
+/* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains the right-hand side
+ * of equations (b). At the end of this function xvec should contain initial vector for the iterative solver (x_0), rvec
+ * - corresponding residual r_0, and inprodR - the norm of the latter residual. Returns string containing description of
+ * the initial field used.
  */
 {
 	const char *descr;
 
 	if (InitField==IF_AUTO) {
-		/* This code is somewhat inelegant, but there seem to be no easy way to completely reuse
-		 * code for other cases. Moreover, this option will probably be changed afterwards.
+		/* This code is somewhat inelegant, but there seem to be no easy way to completely reuse code for other cases.
+		 * Moreover, this option will probably be changed afterwards.
 		 */
 		// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 		MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
@@ -1062,16 +1036,16 @@ static const char *CalcInitField(double zero_resid)
 	}
 #ifndef SPARSE	//currently no support for WKB in sparse mode
 	else if (InitField==IF_WKB) {
-		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default "
-			"incident direction of the incoming wave (along z-axis)");
+		if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default incident direction of "
+			"the incoming wave (along z-axis)");
 		doublecomplex vals[Nmat+1],tmpc;
 		int i,k; // for traversing single-axis dimensions
 		size_t dip,ind,dip_sl; // for traversing slices or up to local_nRows
 		size_t boxX_l=(size_t)boxX; // to remove type conversion in indexing
 #define INDEX_GRID(i) (position[(i)+2]*boxXY+position[(i)+1]*boxX_l+position[i])
-		/* can be optimized by reusing material_tmp from make_particle.c or keeping the values
-		 * between the calls. But this will require usage of extra memory. So the current option
-		 * can be considered as corresponding to '-opt mem'
+		/* can be optimized by reusing material_tmp from make_particle.c or keeping the values between the calls. But
+		 * this will require usage of extra memory. So the current option can be considered as corresponding to
+		 * '-opt mem'
 		 */
 		unsigned char *mat; // same as material, but defined on whole grid (local_Ndip)
 		doublecomplex *arg; // argument of exponent for corrections of incident field
@@ -1121,28 +1095,23 @@ static const char *CalcInitField(double zero_resid)
 		vals[Nmat][RE]=vals[Nmat][IM]=0;
 		// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
 		for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;
-		for (dip=0,ind=0;dip<local_nvoid_Ndip;dip++,ind+=3)
-			mat[INDEX_GRID(ind)]=material[dip];
-		/* main part responsible for calculation of arg;
-		 * arg[i,j,k+1]=arg[i,j,k]+vals[i,j,k]+vals[i,j,k+1]
+		for (dip=0,ind=0;dip<local_nvoid_Ndip;dip++,ind+=3) mat[INDEX_GRID(ind)]=material[dip];
+		/* main part responsible for calculation of arg; arg[i,j,k+1]=arg[i,j,k]+vals[i,j,k]+vals[i,j,k+1]
 		 * but that is done with temporary variables (not to index both k and k+1 simultaneously
-		 *
 		 * 'ind' traverses one slice, and 'dip' - all dipoles
 		 */
 		// First, calculate shifts relative to the bottom of current processor
 		for(ind=0;ind<boxXY;ind++) top[ind][RE]=top[ind][IM]=0;
-		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY)
-			for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++) {
-				cAdd(top[ind],vals[mat[dip]],arg[dip]);
-				cAdd(arg[dip],vals[mat[dip]],top[ind]);
+		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++) {
+			cAdd(top[ind],vals[mat[dip]],arg[dip]);
+			cAdd(arg[dip],vals[mat[dip]],top[ind]);
 		}
 #ifdef PARALLEL
 		// Second, fulfill boundary by exchanging shift values at top and bottom
 		if (ExchangePhaseShifts(bottom,top,&Timing_InitIterComm))
 			// Third (if required) update shift from the obtained values on the bottom
-			for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY)
-				for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
-					cAdd(arg[dip],bottom[ind],arg[dip]);
+			for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
+				cAdd(arg[dip],bottom[ind],arg[dip]);
 #endif
 		// xvec=pvec*Exp(arg), but arg is defined on a set of all (including void) dipoles
 		for (ind=0;ind<local_nRows;ind+=3) {
@@ -1164,7 +1133,7 @@ static const char *CalcInitField(double zero_resid)
 	return descr;
 }
 
-//============================================================
+//======================================================================================================================
 
 int IterativeSolver(const enum iter method_in)
 // choose required iterative method; do common initialization part
@@ -1178,12 +1147,11 @@ int IterativeSolver(const enum iter method_in)
 
 	/* Instead of solving system (I+D.C).x=b , C - diagonal matrix with couple constants
 	 *                                         D - symmetric interaction matrix of Green's tensor
-	 * we solve system (I+S.D.S).(S.x)=(S.b), S=sqrt(C), then total interaction matrix is symmetric
-	 * and Jacobi-preconditioned for any distribution of refractive index.
+	 * we solve system (I+S.D.S).(S.x)=(S.b), S=sqrt(C), then total interaction matrix is symmetric and
+	 * Jacobi-preconditioned for any distribution of refractive index.
 	 */
-	/* p=b=(S.Einc) is right part of the linear system; used only here. In iteration methods
-	 * themselves p is completely different vector. To avoid confusion this is done before any other
-	 * initializations, specific to iterative solvers.
+	/* p=b=(S.Einc) is right part of the linear system; used only here. In iteration methods themselves p is completely
+	 * different vector. To avoid confusion this is done before any other initializations, specific to iterative solvers
 	 */
 	Timing_InitIterComm=0;
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
@@ -1205,24 +1173,24 @@ int IterativeSolver(const enum iter method_in)
 		niter=1;
 		counter=0;
 	}
-	/* determine index of the iterative solver, which is further used to get its parameters from
-	 * list 'params'. This way it should be resistant to inconsistencies in orders of iterative
-	 * solvers inside the list of identifiers in const.h and in the list 'params' above.
+	/* determine index of the iterative solver, which is further used to get its parameters from list 'params'. This way
+	 * it should be resistant to inconsistencies in orders of iterative solvers inside the list of identifiers in
+	 * const.h and in the list 'params' above.
 	 */
 	ind_m=0;
 	while (params[ind_m].meth!=method_in) {
 		ind_m++;
-		if (ind_m>=LENGTH(params)) LogError(ONE_POS,
-			"Parameters for the given iterative solver are not found in list 'params'");
+		if (ind_m>=LENGTH(params))
+			LogError(ONE_POS,"Parameters for the given iterative solver are not found in list 'params'");
 	}
 	// initialize data required for checkpoints and specific variables
 	chp_exit=false;
 	complete=true;
-	if (params[ind_m].sc_N>0) scalars=(chp_data *)
-		voidVector(params[ind_m].sc_N*sizeof(chp_data),ALL_POS,"list of scalars");
+	if (params[ind_m].sc_N>0)
+		scalars=(chp_data *)voidVector(params[ind_m].sc_N*sizeof(chp_data),ALL_POS,"list of scalars");
 	else scalars=NULL;
-	if (params[ind_m].vec_N>0) vectors=(chp_data *)
-		voidVector(params[ind_m].vec_N*sizeof(chp_data),ALL_POS,"list of scalars");
+	if (params[ind_m].vec_N>0)
+		vectors=(chp_data *)voidVector(params[ind_m].vec_N*sizeof(chp_data),ALL_POS,"list of scalars");
 	else vectors=NULL;
 	(*params[ind_m].func)(PHASE_VARS);
 	// load checkpoint, if needed, and finish initialization of the iterative solver
@@ -1246,9 +1214,9 @@ int IterativeSolver(const enum iter method_in)
 		}
 		// use result from the previous iteration (assumed to be available by this time)
 		else Timing_OneIterComm=time_tmp;
-		/* check progress; it takes negligible time by itself (O(1) operations), but may lead to
-		 * saving checkpoint. Since the latter is not relevant to the iteration itself, the
-		 * ProgressReport is called after finalizing the time of a single iteration.
+		/* check progress; it takes negligible time by itself (O(1) operations), but may lead to saving checkpoint.
+		 * Since the latter is not relevant to the iteration itself, the ProgressReport is called after finalizing the
+		 * time of a single iteration.
 		 */
 		ProgressReport();
 	}
@@ -1256,17 +1224,16 @@ int IterativeSolver(const enum iter method_in)
 	if (chp_type==CHP_ALWAYS && !chp_exit) SaveIterChpoint();
 	// error output
 	if (inprodR>epsB) {
-		if (niter>maxiter) LogError(ONE_POS,
-			"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
-		else if (counter>params[ind_m].mc) LogError(ONE_POS,"Residual norm haven't decreased for "
-			"maximum allowed number of iterations (%d)",params[ind_m].mc);
+		if (niter>maxiter)
+			LogError(ONE_POS,"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
+		else if (counter>params[ind_m].mc) LogError(ONE_POS,"Residual norm haven't decreased for maximum allowed "
+			"number of iterations (%d)",params[ind_m].mc);
 	}
 	if (recalc_resid) { // compute and print final residual norm
 		inprodR=ResidualNorm2(xvec,rvec,Avecbuffer,&Timing_IntFieldOneComm);
 		if (IFROOT) {
 			temp=sqrt(resid_scale*inprodR);
-			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",
-				temp);
+			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",temp);
 			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
 			printf("%s",tmp_str);
 		}
@@ -1274,12 +1241,10 @@ int IterativeSolver(const enum iter method_in)
 	// post-processing
 	if (params[ind_m].sc_N>0) Free_general(scalars);
 	if (params[ind_m].vec_N>0) Free_general(vectors);
-	/* x is a solution of a modified system, not exactly internal field; should not be used further
-	 * except for adaptive technique (as starting vector for next system)
+	/* x is a solution of a modified system, not exactly internal field; should not be used further except for adaptive
+	 * technique (as starting vector for next system)
 	 */
-	nMult_mat(pvec,xvec,cc_sqrt); /* p is now vector of polarizations. Can be used to calculate
-	                               * e.g. scattered field faster.
-	                               */
+	nMult_mat(pvec,xvec,cc_sqrt); // p now contains polarizations. Can be used to calculate e.g. scattered field faster.
 	if (chp_exit) return CHP_EXIT; // check if exiting after checkpoint
 	return (niter-1); // the number of iterations elapsed
 }

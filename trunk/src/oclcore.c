@@ -5,13 +5,11 @@
  * Copyright (C) 2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -28,15 +26,15 @@
 #include <string.h>
 
 // GLOBAL VARIABLES
-/* used in fft.c and matvec.c. Some of them are used only in one file, but we do not differentiate
- * them for simplicity (to keep all extern declarations in one place)
+/* used in fft.c and matvec.c. Some of them are used only in one file, but we do not differentiate them for simplicity
+ * (to keep all extern declarations in one place)
  */
 cl_context context;
 cl_command_queue command_queue;
-cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
-	cltransposeb,cltransposeof,cltransposeob;
-cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,
-	bufDmatrix,bufinproduct;
+cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,cltransposeb,cltransposeof,
+	cltransposeob;
+cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
+	bufinproduct;
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)
 size_t oclMem,oclMemPeak,oclMemMaxObj;
@@ -49,8 +47,8 @@ const char *coptions;
 
 // LOCAL VARIABLES
 
-/* platform name. Defines whether the device is by NVIDIA, AMD, or something else ...
- * It is used for compiler options and (potentially) for conditional kernels
+/* platform name. Defines whether the device is by NVIDIA, AMD, or something else ... It is used for compiler options
+ * and (potentially) for conditional kernels
  */
 enum platname {
 	PN_NVIDIA, // Nvidia GPU
@@ -80,7 +78,7 @@ struct string {
 	;
 #endif
 
-//========================================================================
+//======================================================================================================================
 
 #define STR_SIZE_STEP 100
 static struct string StrInit(void)
@@ -94,12 +92,11 @@ static struct string StrInit(void)
 	return str;
 }
 
-//========================================================================
+//======================================================================================================================
 
 static void StrCatSpace(struct string *dest,const char *src)
-/* concatenates dest string (described by structure) and src string into the dest. Additionally,
- * space is added between the strings, if dest is originally not empty.
- * If needed additional memory is allocated automatically.
+/* concatenates dest string (described by structure) and src string into the dest. Additionally, space is added between
+ * the strings, if dest is originally not empty. If needed additional memory is allocated automatically.
  */
 {
 	if (dest->len>0) {
@@ -116,7 +113,7 @@ static void StrCatSpace(struct string *dest,const char *src)
 }
 #undef STR_SIZE_STEP
 
-//========================================================================
+//======================================================================================================================
 
 static const char *print_cl_errstring(cl_int err)
 // produces meaningful error message from the error code
@@ -172,22 +169,20 @@ static const char *print_cl_errstring(cl_int err)
 	}
 }
 
-//========================================================================
+//======================================================================================================================
 
 void PrintCLErr(cl_int err,ERR_LOC_DECL,const char * restrict msg)
-/* Prints explicit information about CL error.
- * Optional argument msg is added to the error message, if not NULL.
- */
+// Prints explicit information about CL error. Optional argument msg is added to the error message, if not NULL.
 {
 	if (msg==NULL) LogError(ERR_LOC_CALL,"CL error code %d: %s\n",err,print_cl_errstring(err));
 	else LogError(ERR_LOC_CALL,"%s (CL error code %d: %s)\n",msg,err,print_cl_errstring(err));
 }
 
-//========================================================================
+//======================================================================================================================
 
 static char* ATT_MALLOC dyn_clGetPlatformInfo(cl_platform_id plat_id,cl_platform_info param_name)
-/* wrapper for clGetPlatformInfo with string return value, it automatically allocates the string to
- * hold the result and returns it to the caller. All error checks are performed inside.
+/* wrapper for clGetPlatformInfo with string return value, it automatically allocates the string to hold the result and
+ * returns it to the caller. All error checks are performed inside.
  */
 {
 	size_t size;
@@ -198,11 +193,11 @@ static char* ATT_MALLOC dyn_clGetPlatformInfo(cl_platform_id plat_id,cl_platform
 	return res;
 }
 
-//========================================================================
+//======================================================================================================================
 
 static char* ATT_MALLOC dyn_clGetDeviceInfo(cl_device_id dev_id,cl_device_info param_name)
-/* wrapper for clGetDeviceInfo with string return value, it automatically allocates the string to
- * hold the result and returns it to the caller. All error checks are performed inside.
+/* wrapper for clGetDeviceInfo with string return value, it automatically allocates the string to hold the result and
+ * returns it to the caller. All error checks are performed inside.
  */
 {
 	size_t size;
@@ -213,12 +208,11 @@ static char* ATT_MALLOC dyn_clGetDeviceInfo(cl_device_id dev_id,cl_device_info p
 	return res;
 }
 
-//========================================================================
+//======================================================================================================================
 
-static char* ATT_MALLOC dyn_clGetProgramBuildInfo(cl_program prog,cl_device_id dev_id,
-	cl_program_build_info param_name)
-/* wrapper for clGetProgramBuildInfo with string return value, it automatically allocates the string
- * to hold the result and returns it to the caller. All error checks are performed inside.
+static char* ATT_MALLOC dyn_clGetProgramBuildInfo(cl_program prog,cl_device_id dev_id,cl_program_build_info param_name)
+/* wrapper for clGetProgramBuildInfo with string return value, it automatically allocates the string to hold the result
+ * and returns it to the caller. All error checks are performed inside.
  */
 {
 	size_t size;
@@ -228,7 +222,7 @@ static char* ATT_MALLOC dyn_clGetProgramBuildInfo(cl_program prog,cl_device_id d
 	CL_CH_ERR(clGetProgramBuildInfo(prog,dev_id,param_name,size,res,NULL));
 	return res;
 }
-//========================================================================
+//======================================================================================================================
 
 static void GetDevice(struct string *copt_ptr)
 // set OpenCL device number and related variable
@@ -243,19 +237,18 @@ static void GetDevice(struct string *copt_ptr)
 	printf("Searching for OpenCL devices\n");
 	// little trick to get just the number of the Platforms
 	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
-	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms
-	 * with successful return status. So we additionally test it.
+	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms with successful
+	 * return status. So we additionally test it.
 	 */
 	if (num_of_platforms==0) LogError(ALL_POS,"No OpenCL platform was found");
 	// dynamic array of platformids creation at runtime, stored in heap
-	platform_id=(cl_platform_id *)
-		voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
+	platform_id=(cl_platform_id *)voidVector(num_of_platforms*sizeof(platform_id),ALL_POS,"platform_id");
 	CL_CH_ERR(clGetPlatformIDs(num_of_platforms,platform_id,NULL));
 
 	for (unsigned int i=0;i<num_of_platforms;i++) {
-		/* Some errors are allowed here, since some platforms/devices may be not supported.
-		 * The execution continues normally if at least one (or gpuInd+1) supported device is found.
-		 * So errors are handled directly here, not through standard error handler
+		/* Some errors are allowed here, since some platforms/devices may be not supported. The execution continues
+		 * normally if at least one (or gpuInd+1) supported device is found. So errors are handled directly here, not
+		 * through standard error handler
 		 */
 		err=clGetDeviceIDs(platform_id[i],devtype,0,NULL,&num_of_devices);
 		if (err==CL_SUCCESS && (gpuN+=num_of_devices)>gpuInd) {
@@ -269,9 +262,7 @@ static void GetDevice(struct string *copt_ptr)
 			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
-			/* the program can potentially work with unknown compatible device, but performance is,
-			 * to some extent, unpredictable.
-			 */
+			// the program can potentially work with unknown compatible device, but performance is unpredictable.
 			else platformname=PN_UNDEF;
 			char *devicename=dyn_clGetDeviceInfo(device_id,CL_DEVICE_NAME);
 			PrintBoth(logfile,"Using OpenCL device %s, based on %s.\n",devicename,pname);
@@ -287,11 +278,9 @@ static void GetDevice(struct string *copt_ptr)
 #endif
 			cl_ulong mtot,mobj;
 			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,
-				NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,NULL));
 			// round numbers are expected so .0f is used, float is just for convenience
-			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",
-				mtot/MBYTE,mobj/MBYTE);
+			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",mtot/MBYTE,mobj/MBYTE);
 			char *dev_ext=dyn_clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS);
 			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
 			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
@@ -305,12 +294,12 @@ static void GetDevice(struct string *copt_ptr)
 	}
 	// if all platforms of the above cycle fail, then error is produced with the last error code
 	if (gpuN==0) LogError(ALL_POS,"No OpenCL-compatible GPU found");
-	else if (gpuN<=gpuInd) LogError(ALL_POS,"The specified GPU index (%d) must be less than the "
-		"total number of available GPUs (%d)",gpuInd,gpuN);
+	else if (gpuN<=gpuInd) LogError(ALL_POS,"The specified GPU index (%d) must be less than the total number of "
+		"available GPUs (%d)",gpuInd,gpuN);
 	Free_general(platform_id);
 }
 
-//========================================================================
+//======================================================================================================================
 
 void oclinit(void)
 // initialize OpenCL environment
@@ -322,8 +311,8 @@ void oclinit(void)
 	struct string cl_opt=StrInit();
 	// getting the first OpenCL device which is a GPU
 	GetDevice(&cl_opt);
-	/* cl_context_properties is a strange list of item:
-	 * first comes the name of the property as next element the corresponding value
+	/* cl_context_properties is a strange list of item: first comes the name of the property and next element is the
+	 * corresponding value
 	 */
 	cl_context_properties properties[3];
 	properties[0]=CL_CONTEXT_PLATFORM;
@@ -357,15 +346,14 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	// finalize build options and point coptions (used for sharing with clFFT) to it
 	StrCatSpace(&cl_opt,"-cl-mad-enable -cl-fast-relaxed-math");
-	/* OpenCL standard does define size_t-analogue type to avoid confusion. But we want to use
-	 * home-made definition in OpenCL source, since size_t is used a lot in ADDA to indicate the
-	 * largest problem solvable on current hardware. Since the proper OpenCL type is chosen during
-	 * compilation of the main ADDA source, there should be no portability problems, even though the
-	 * OpenCL sources may be compiled (at ADDA runtime) on a different hardware than ADDA itself.
-	 *
-	 * In the following it is more logical to compare against CL_UINT_MAX and CL_ULONG_MAX, but at
-	 * least the latter contains typecast "(cl_ulong)" which is badly interpreted by the
-	 * preprocessor. The values used should always be the same according to OpenCL standard.
+	/* OpenCL standard does define size_t-analogue type to avoid confusion. But we want to use home-made definition in
+	 * OpenCL source, since size_t is used a lot in ADDA to indicate the largest problem solvable on current hardware.
+	 * Since the proper OpenCL type is chosen during compilation of the main ADDA source, there should be no portability
+	 * problems, even though the OpenCL sources may be compiled (at ADDA runtime) on a different hardware than ADDA
+	 * itself.
+	 * In the following it is more logical to compare against CL_UINT_MAX and CL_ULONG_MAX, but at least the latter
+	 * contains typecast "(cl_ulong)" which is badly interpreted by the preprocessor. The values used should always be
+	 * the same according to OpenCL standard.
 	 */
 #if (SIZE_MAX==UINT32_MAX)
 	StrCatSpace(&cl_opt,"-DSIZET_UINT");
@@ -415,10 +403,9 @@ void oclinit(void)
 	D("OpenCL init complete");
 }
 
-//========================================================================
+//======================================================================================================================
 
-cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_LOC_DECL,
-	const char *name)
+cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_LOC_DECL,const char *name)
 // wrapper to create buffer, which also adjusts memory counts and takes care of errors
 {
 	cl_mem buf=NULL; // default value to return during prognosis
@@ -434,7 +421,7 @@ cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_L
 	return buf;
 }
 
-//========================================================================
+//======================================================================================================================
 
 void my_clReleaseBuffer(cl_mem buffer)
 // wrapper to release buffer and decrease memory count
@@ -444,15 +431,14 @@ void my_clReleaseBuffer(cl_mem buffer)
 	if (count==1) {
 		size_t size;
 		clGetMemObjectInfo(buffer,CL_MEM_SIZE,sizeof(size),&size,NULL);
-		if (oclMem<size) LogWarning(EC_WARN,ALL_POS,"Inconsistency detected in handling OpenCL "
-			"memory: remaining memory (%zu) is larger than size of the object to be freed (%zu)",
-			oclMem,size);
+		if (oclMem<size) LogWarning(EC_WARN,ALL_POS,"Inconsistency detected in handling OpenCL memory: remaining "
+			"memory (%zu) is smaller than size of the object to be freed (%zu)",oclMem,size);
 		else oclMem-=size;
 	}
 	clReleaseMemObject(buffer);
 }
 
-//========================================================================
+//======================================================================================================================
 
 void oclunload(void)
 // unload all OpenCL kernels and similar stuff; buffers are released in Free_FFT_Dmat()

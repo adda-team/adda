@@ -2,16 +2,14 @@
  * $Date::                            $
  * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
- * Copyright (C) 2006,2008,2010,2012 ADDA contributors
+ * Copyright (C) 2006,2008,2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -32,7 +30,7 @@ static double inv_freq;
 # define MICRO 1E-6
 #endif
 
-//============================================================
+//======================================================================================================================
 
 void InitTime(SYSTEM_TIME * restrict t)
 // set time to zero
@@ -44,7 +42,7 @@ void InitTime(SYSTEM_TIME * restrict t)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void SetTimerFreq(void)
 // set frequency of windows timer; should be called once before running TimerToSec or DiffSec
@@ -57,7 +55,7 @@ void SetTimerFreq(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 double TimerToSec(const SYSTEM_TIME * restrict t)
 // timer to seconds
@@ -69,7 +67,7 @@ double TimerToSec(const SYSTEM_TIME * restrict t)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2)
 // difference between two times in seconds

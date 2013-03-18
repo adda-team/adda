@@ -8,13 +8,11 @@
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -80,12 +78,12 @@ void GenerateB(enum incpol which,doublecomplex *x);
 // iterative.c
 int IterativeSolver(enum iter method);
 
-//============================================================
+//======================================================================================================================
 
 static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,const doublecomplex s2,
 	const doublecomplex s3,const doublecomplex s4)
-/* computer mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula
- * 3.16 from Bohren and Huffman
+/* computer mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula 3.16 from Bohren and
+ * Huffman
  */
 {
 	matrix[0][0] = 0.5*(cMultConRe(s1,s1)+cMultConRe(s2,s2)+cMultConRe(s3,s3)+cMultConRe(s4,s4));
@@ -109,13 +107,13 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 	matrix[3][3] = cMultConRe(s1,s2)-cMultConRe(s3,s4);
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
 	char * restrict buf,const size_t buf_size,double * restrict *mult)
-/* If 'phi_int_type' matches 'type', appropriate file (name given by 'fname') is created (with
- * handle '*file'), and heading line is put into it. String buffer 'buf' is used. Vector of
- * multipliers '*mult' is allocated if its pointer is specified.
+/* If 'phi_int_type' matches 'type', appropriate file (name given by 'fname') is created (with handle '*file'), and
+ * heading line is put into it. String buffer 'buf' is used. Vector of multipliers '*mult' is allocated if its pointer
+ * is specified.
  */
 {
 	if (phi_int_type & type) {
@@ -126,14 +124,12 @@ static inline void InitMuellerIntegrFile(const int type,const char * restrict fn
 	}
 }
 
-//==============================================================
+//======================================================================================================================
 
-static inline void PrintToIntegrFile(const int type,FILE * restrict file,double *maxerr,
-	const double * restrict muel,double *  restrict muel_buf,const double * restrict mult,
-	double matrix[4][4],const double theta)
-/* If 'phi_int_type' matches 'type', array 'muel' is integrated over phi (possibly using multiplier
- * 'mult' and buffer 'muel_buf') and saved to 'file' together with 'theta'. Maximum error '*maxerr'
- * is updated, 'matrix' buffer is used.
+static inline void PrintToIntegrFile(const int type,FILE * restrict file,double *maxerr,const double * restrict muel,
+	double *  restrict muel_buf,const double * restrict mult,double matrix[4][4],const double theta)
+/* If 'phi_int_type' matches 'type', array 'muel' is integrated over phi (possibly using multiplier 'mult' and buffer
+ * 'muel_buf') and saved to 'file' together with 'theta'. Maximum error '*maxerr' is updated, 'matrix' buffer is used.
  */
 {
 	int k;
@@ -147,34 +143,30 @@ static inline void PrintToIntegrFile(const int type,FILE * restrict file,double 
 			err=Romberg1D(phi_sg,16,muel_buf,matrix[0]);
 		}
 		if (err>*maxerr) *maxerr=err;
-		fprintf(file,ANGLE_FORMAT" "MUEL_FORMAT" "RMSE_FORMAT"\n",theta,matrix[0][0],
-			matrix[0][1],matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],
-			matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],matrix[3][0],
-			matrix[3][1],matrix[3][2],matrix[3][3],err);
+		fprintf(file,ANGLE_FORMAT" "MUEL_FORMAT" "RMSE_FORMAT"\n",theta,matrix[0][0],matrix[0][1],matrix[0][2],
+			matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],
+			matrix[2][3],matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3],err);
 	}
 }
 
-//==============================================================
+//======================================================================================================================
 
 static inline void CloseIntegrFile(const int type,FILE * restrict file,const char * restrict fname,
 	double * restrict mult)
-/* If 'phi_int_type' matches 'type', appropriate 'file' (named 'fname') is closed and array 'mult'
- * is freed.
- */
+// If 'phi_int_type' matches 'type', appropriate 'file' (named 'fname') is closed and array 'mult' is freed.
 {
 	if (phi_int_type & type) {
 		FCloseErr(file,fname,ONE_POS);
 		Free_general(mult);
 	}
 }
-//==============================================================
+//======================================================================================================================
 
 void MuellerMatrix(void)
 {
 	// redundant initializations in the following lines are against warnings
-	FILE * restrict mueller,* restrict ampl,* restrict mueller_int=NULL,
-		* restrict mueller_int_c2=NULL,* restrict mueller_int_s2=NULL,
-		* restrict mueller_int_c4=NULL,* restrict mueller_int_s4=NULL;
+	FILE * restrict mueller,* restrict ampl,* restrict mueller_int=NULL,* restrict mueller_int_c2=NULL,
+		* restrict mueller_int_s2=NULL,* restrict mueller_int_c4=NULL,* restrict mueller_int_s4=NULL;
 	double * restrict cos2=NULL,* restrict sin2=NULL,* restrict cos4=NULL,* restrict sin4=NULL;
 	double matrix[4][4];
 	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
@@ -182,8 +174,7 @@ void MuellerMatrix(void)
 	char fname[MAX_FNAME];
 	int i;
 	size_t index,index1,k_or,j,n,ind;
-	double co,si;
-	double alph;
+	double co,si,alph;
 	TIME_TYPE tstart;
 
 	// redundant initialization to remove warnings
@@ -194,9 +185,8 @@ void MuellerMatrix(void)
 	if (!IFROOT) return;
 
 	if (orient_avg) { // Amplitude matrix (ampl_alplha) => Mueller matrix (muel_alpha)
-		/* amplitude matrix is not integrated (hence not used here). We do check store_mueller
-		 * because orient_avg may have sense (though very little) without it (e.g. to compute only
-		 * averaged cross sections).
+		/* amplitude matrix is not integrated (hence not used here). We do check store_mueller because orient_avg may
+		 * have sense (though very little) without it (e.g. to compute only averaged cross sections).
 		 */
 		if (store_mueller) {
 			index1=index=0;
@@ -232,9 +222,9 @@ void MuellerMatrix(void)
 				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,EplaneX[2*i][RE],
-						EplaneX[2*i][IM],EplaneY[2*i+1][RE],EplaneY[2*i+1][IM],EplaneX[2*i+1][RE],
-						EplaneX[2*i+1][IM],EplaneY[2*i][RE],EplaneY[2*i][IM]);
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,EplaneX[2*i][RE],EplaneX[2*i][IM],
+						EplaneY[2*i+1][RE],EplaneY[2*i+1][IM],EplaneX[2*i+1][RE],EplaneX[2*i+1][IM],EplaneY[2*i][RE],
+						EplaneY[2*i][IM]);
 				}
 				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
@@ -244,12 +234,10 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],
-						EplaneY[2*i]);
-					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],
-						matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],
-						matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
-						matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+					ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],EplaneY[2*i]);
+					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],matrix[0][2],
+						matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],
+						matrix[2][2],matrix[2][3],matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
 			}
@@ -278,9 +266,8 @@ void MuellerMatrix(void)
 				}
 			}
 			if (phi_integr) { // also initializes arrays of multipliers
-				/* amplitude matrix is not integrated. Moreover, if mueller matrix is not needed,
-				 * then phi_integr has no action at all. So we assume that phi_integr implies
-				 * store_mueller (to be checked in param.c).
+				/* amplitude matrix is not integrated. Moreover, if mueller matrix is not needed, then phi_integr has no
+				 * action at all. So we assume that phi_integr implies store_mueller (to be checked in param.c).
 				 */
 				InitMuellerIntegrFile(PHI_UNITY,F_MUEL_INT,&mueller_int,fname,MAX_FNAME,NULL);
 				InitMuellerIntegrFile(PHI_COS2,F_MUEL_C2,&mueller_int_c2,fname,MAX_FNAME,&cos2);
@@ -334,42 +321,29 @@ void MuellerMatrix(void)
 						index1+=16;
 					}
 					if (store_scat_grid) {
-						if (store_mueller)
-							fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",
-								theta,phi,matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],
-								matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],
-								matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
+						if (store_mueller) fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,phi,
+								matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],
+								matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
 								matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
-						if (store_ampl)
-							fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",
+						if (store_ampl) fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",
 								theta,phi,s1[RE],s1[IM],s2[RE],s2[IM],s3[RE],s3[IM],s4[RE],s4[IM]);
 					}
 				}
 				if (phi_integr) {
-					PrintToIntegrFile(PHI_UNITY,mueller_int,&max_err,muel_phi,NULL,
-					NULL,matrix,theta);
-				PrintToIntegrFile(PHI_COS2,mueller_int_c2,&max_err_c2,muel_phi,muel_phi_buf,
-					cos2,matrix,theta);
-				PrintToIntegrFile(PHI_SIN2,mueller_int_s2,&max_err_s2,muel_phi,muel_phi_buf,
-					sin2,matrix,theta);
-				PrintToIntegrFile(PHI_COS4,mueller_int_c4,&max_err_c4,muel_phi,muel_phi_buf,
-					cos4,matrix,theta);
-				PrintToIntegrFile(PHI_SIN4,mueller_int_s4,&max_err_s4,muel_phi,muel_phi_buf,
-					sin4,matrix,theta);
+					PrintToIntegrFile(PHI_UNITY,mueller_int,&max_err,muel_phi,NULL,NULL,matrix,theta);
+					PrintToIntegrFile(PHI_COS2,mueller_int_c2,&max_err_c2,muel_phi,muel_phi_buf,cos2,matrix,theta);
+					PrintToIntegrFile(PHI_SIN2,mueller_int_s2,&max_err_s2,muel_phi,muel_phi_buf,sin2,matrix,theta);
+					PrintToIntegrFile(PHI_COS4,mueller_int_c4,&max_err_c4,muel_phi,muel_phi_buf,cos4,matrix,theta);
+					PrintToIntegrFile(PHI_SIN4,mueller_int_s4,&max_err_s4,muel_phi,muel_phi_buf,sin4,matrix,theta);
 				}
 			}
 			if (phi_integr) {
 				fprintf(logfile,"\nMaximum relative mean-square error of Mueller integration:\n");
-				if (phi_int_type & PHI_UNITY)
-					fprintf(logfile,"  1          -> "RMSE_FORMAT"\n",max_err);
-				if (phi_int_type & PHI_COS2)
-					fprintf(logfile,"  cos(2*phi) -> "RMSE_FORMAT"\n",max_err_c2);
-				if (phi_int_type & PHI_SIN2)
-					fprintf(logfile,"  sin(2*phi) -> "RMSE_FORMAT"\n",max_err_s2);
-				if (phi_int_type & PHI_COS4)
-					fprintf(logfile,"  cos(4*phi) -> "RMSE_FORMAT"\n",max_err_c4);
-				if (phi_int_type & PHI_SIN4)
-					fprintf(logfile,"  sin(4*phi) -> "RMSE_FORMAT"\n",max_err_s4);
+				if (phi_int_type & PHI_UNITY) fprintf(logfile,"  1          -> "RMSE_FORMAT"\n",max_err);
+				if (phi_int_type & PHI_COS2) fprintf(logfile,"  cos(2*phi) -> "RMSE_FORMAT"\n",max_err_c2);
+				if (phi_int_type & PHI_SIN2) fprintf(logfile,"  sin(2*phi) -> "RMSE_FORMAT"\n",max_err_s2);
+				if (phi_int_type & PHI_COS4) fprintf(logfile,"  cos(4*phi) -> "RMSE_FORMAT"\n",max_err_c4);
+				if (phi_int_type & PHI_SIN4) fprintf(logfile,"  sin(4*phi) -> "RMSE_FORMAT"\n",max_err_s4);
 			}
 			// close files; free arrays
 			if (store_scat_grid) {
@@ -388,7 +362,7 @@ void MuellerMatrix(void)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 static void CalcEplane(const enum incpol which,const enum Eftype type)
 // calculates scattered electric field in a plane
@@ -434,11 +408,10 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 			tstart = GET_TIME ();
 			if (orient==0) choice=which;
 			else { // orient==1
-				/* Rotation symmetry: calculate per-per from current data. CalculateE is called
-				 * from calculator with Y polarization - we now just assume that we have
-				 * the x-z plane as the scattering plane, rotating in the negative x-direction.
-				 * This mimics the real case of X polarization with the y-z plane as scattering plane
-				 * Then IncPolY -> -IncPolX; incPolX -> IncPolY
+				/* Rotation symmetry: calculate per-per from current data. CalculateE is called from calculator with Y
+				 * polarization - we now just assume that we have the x-z plane as the scattering plane, rotating in the
+				 * negative x-direction. This mimics the real case of X polarization with the y-z plane as scattering
+				 * plane. Then IncPolY -> -IncPolX; incPolX -> IncPolY
 				 */
 				if (which==INCPOL_Y) choice=INCPOL_X;
 				else choice=INCPOL_Y; // which==INCPOL_X
@@ -483,19 +456,18 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 	} // end of alpha loop
 }
 
-//============================================================
+//======================================================================================================================
 
 static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	double * restrict realF,const char * restrict fname_preffix,const char * restrict tmpl UOIP,
 	const char * restrict field_name,const char * restrict fullname)
-/* Write any fields on each dipole to file (internal fields, incident beam, polarization, etc.).
- * Accepts both complex and real fields. Processes the one, which is not null.
+/* Write any fields on each dipole to file (internal fields, incident beam, polarization, etc.). Accepts both complex
+ * and real fields. Processes the one, which is not null.
  *
- * All processors should write the 'field' to temporary file. These files are named by template
- * 'tmpl' and afterwards are concatenated into the file, which name is build by adding a small
- * suffix to 'fname_preffix'. If CE_PARPER is employed then naturally saves only once; use '-sym no'
- * if needed. 'field_name' is used to build column labels (i.e. there is difference in the first row
- * between different fields). 'fullname' is for standard output.
+ * All processors should write the 'field' to temporary file. These files are named by template 'tmpl' and afterwards
+ * are concatenated into the file, which name is build by adding a small suffix to 'fname_preffix'. If CE_PARPER is
+ * employed then naturally saves only once; use '-sym no' if needed. 'field_name' is used to build column labels (i.e.
+ * there is difference in the first row between different fields). 'fullname' is for standard output.
  */
 {
 	FILE * restrict file; // file to store the fields
@@ -515,9 +487,8 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	// choose filename for direct saving
 #ifdef PARALLEL
 	size_t shift=SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/",directory);
-	/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used,
-	 * but we do not know any other convenient way to make this function work for different file
-	 * name templates.
+	/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used, but we do not know any
+	 * other convenient way to make this function work for different file name templates.
 	 */
 	SnprintfShiftErr(ALL_POS,shift,fname,MAX_FNAME,tmpl,ringid);
 #else
@@ -535,11 +506,11 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	} // end of if
 #endif
 	// saves fields to file
-	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",
-		DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],cvNorm2(cmplxF+j),cmplxF[j][RE],
-		cmplxF[j][IM],cmplxF[j+1][RE],cmplxF[j+1][IM],cmplxF[j+2][RE],cmplxF[j+2][IM]);
-	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",DipoleCoord[j],DipoleCoord[j+1],
-		DipoleCoord[j+2],DotProd(realF+j,realF+j),realF[j],realF[j+1],realF[j+2]);
+	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",DipoleCoord[j],DipoleCoord[j+1],
+		DipoleCoord[j+2],cvNorm2(cmplxF+j),cmplxF[j][RE],cmplxF[j][IM],cmplxF[j+1][RE],cmplxF[j+1][IM],cmplxF[j+2][RE],
+		cmplxF[j+2][IM]);
+	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],
+		DotProd(realF+j,realF+j),realF[j],realF[j+1],realF[j+2]);
 	FCloseErr(file,fname,ALL_POS);
 #ifdef PARALLEL
 	// wait for all processes to save their part of geometry
@@ -550,7 +521,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	Timing_FileIO += GET_TIME() - tstart;
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
 // transform real vector vp from particle to beam reference frame, vb and vp must not alias!!!
@@ -560,12 +531,11 @@ static inline void ParticleToBeamRF(const double vp[static restrict 3],double vb
 	vb[2]=DotProd(vp,prop);
 }
 
-//============================================================
+//======================================================================================================================
 
 static void CalcIntegralScatQuantities(const enum incpol which)
-/* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter,
- * and force on the particle and each dipole. Cext and Cabs are averaged over orientation,
- * if needed.
+/* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter, and force on the'
+ * particle and each dipole. Cext and Cabs are averaged over orientation, if needed.
  */
 {
 	// Scattering force, extinction force and radiation pressure per dipole
@@ -597,8 +567,8 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		f_suf=F_XSUF;
 		incPol=incPolX;
 	}
-	/* order of calculations is important, when using SQ_FINDIP. Then first dCabs should be
-	 * calculated, which is further used to correct Cext
+	/* order of calculations is important, when using SQ_FINDIP. Then first dCabs should be calculated, which is further
+	 * used to correct Cext
 	 */
 	if (calc_Cabs) Cabs = AbsCross();
 	if (calc_Cext) Cext = ExtCross(incPol);
@@ -619,10 +589,8 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
-			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",
-				Cext,Cext*inv_G);
-			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",
-				Cabs,Cabs*inv_G);
+			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
+			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
 				Csca=ScaCross(f_suf);
@@ -633,8 +601,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				AsymParm_y(dummy+1,f_suf);
 				AsymParm_z(dummy+2,f_suf);
 				PrintBoth(CCfile,"Csca.g\t= "GFORM3V"\n",dummy[0],dummy[1],dummy[2]);
-				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",
-					dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
+				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
 		} // end of root
 		if (calc_mat_force) {
@@ -643,10 +610,9 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			else Frp=NULL;
 			Frp_mat(Finc_tot,Fsca_tot,Frp);
 			// Write Cross-Sections and Efficiencies to file
-			/* This output contains a number of redundant quantities, like Cext and Csca.g. The main
-			 * purpose of this is to use it as independent test (it can be quickly compared against
-			 * the same quantities calculated by different means).
-			 * It also partly addresses issue 133.
+			/* This output contains a number of redundant quantities, like Cext and Csca.g. The main purpose of this is
+			 * to use it as independent test (it can be quickly compared against the same quantities calculated by
+			 * different means). It also partly addresses issue 133.
 			 */
 			if (IFROOT) {
 				Cnorm = EIGHT_PI;
@@ -675,7 +641,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	Timing_ScatQuan += GET_TIME() - tstart;
 }
 
-//============================================================
+//======================================================================================================================
 
 static void StoreIntFields(const enum incpol which)
 // Write actual internal fields (not exciting) on each dipole to file
@@ -686,11 +652,11 @@ static void StoreIntFields(const enum incpol which)
 	StoreFields(which,xvec,NULL,F_INTFLD,F_INTFLD_TMP,"E","Internal fields");
 }
 
-//============================================================
+//======================================================================================================================
 
 int CalculateE(const enum incpol which,const enum Eftype type)
-/* Calculate everything for x or y polarized incident light; or one and use symmetry to determine
- * the rest (determined by type)
+/* Calculate everything for x or y polarized incident light; or one and use symmetry to determine the rest (determined
+ * by type)
  */
 {
 	int exit_status;
@@ -714,23 +680,19 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	if (all_dir) CalcAlldir();
 	// Calculate the scattered field on the given grid of angles
 	if (scat_grid) CalcScatGrid(which);
-	/* Calculate integral scattering quantities (cross sections, asymmetry parameter,
-	 * electric forces)
-	 */
-	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force)
-		CalcIntegralScatQuantities(which);
+	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
+	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
-	if (store_dip_pol)
-		StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
+	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
 	return 0;
 }
 
-//============================================================
+//======================================================================================================================
 
 void SaveMuellerAndCS(double * restrict in)
-/* saves Mueller matrix and cross sections (averaged) to files; vector in contains values of cross
- * sections and then array of Mueller matrix elements; designed to be called from ROOT only
+/* saves Mueller matrix and cross sections (averaged) to files; vector in contains values of cross sections and then
+ * array of Mueller matrix elements; designed to be called from ROOT only
  */
 {
 	FILE * restrict mueller,* restrict CCfile;
@@ -750,9 +712,8 @@ void SaveMuellerAndCS(double * restrict in)
 		mueller=FOpenErr(fname,"w",ONE_POS);
 		fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 		for (i=0;i<nTheta;i++) {
-			fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",
-				i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],muel[6],muel[7],
-				muel[8],muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
+			fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],
+				muel[6],muel[7],muel[8],muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
 			muel+=16;
 		}
 		FCloseErr(mueller,F_MUEL,ONE_POS);

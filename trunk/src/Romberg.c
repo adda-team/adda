@@ -2,34 +2,30 @@
  * $Date::                            $
  * Descr: routines for 1D and 2D Romberg integration
  *
- *        1D Romberg integration routine based on Davis P.J., Rabinowitz P. "Methods of numerical
- *        integration", Academic Press, 1975 (Chapter 6.3). When function is periodic simple
- *        trapezoidal rule is more suitable (Chapter 2.9), it is implemented inside the general
- *        Romberg framework. 1D Romberg works on precalculated array of data.
+ *        1D Romberg integration routine based on Davis P.J., Rabinowitz P. "Methods of numerical integration", Academic
+ *        Press, 1975 (Chapter 6.3). When function is periodic simple, trapezoidal rule is more suitable (Chapter 2.9),
+ *        it is implemented inside the general Romberg framework. 1D Romberg works on precalculated array of data.
  *
- *        Error estimates (for both cases) are based on the "bracketing" criterion (pp.330-331),
- *        they seems to be reliable (it is not so certain for trapezoid rule).
+ *        Error estimates (for both cases) are based on the "bracketing" criterion (pp.330-331), they seems to be
+ *        reliable (it is not so certain for trapezoid rule).
  *
- *        2D Romberg is two-level integration, where final error is estimated based on both the
- *        errors of outer and inner integration. It uses function pointer to calculate values as
- *        needed. Therefore it is adaptive, but can be used in non-adaptive regime on  precalculated
- *        values. Two instances of Romberg 2D should not be used in parallel (they use common
- *        storage). E.g. calculation of Csca inside orientation averaging must not be done.
+ *        2D Romberg is two-level integration, where final error is estimated based on both the errors of outer and
+ *        inner integration. It uses function pointer to calculate values as needed. Therefore it is adaptive, but can
+ *        also be used in non-adaptive regime on precalculated values. Two instances of Romberg 2D should not be used in
+ *        parallel (they use common storage). E.g. calculation of Csca inside orientation averaging must not be done.
  *
- *        Integration parameters are described in a special structure Parms_1D defined in types.h.
- *        They must be set outside of the Romberg routine. All the routines normalize the result on
- *        the interval width, i.e. actually averaging takes place.
+ *        Integration parameters are described in a special structure Parms_1D defined in types.h. They must be set
+ *        outside of the Romberg routine. All the routines normalize the result on the interval width, i.e. actually
+ *        averaging takes place.
  *
- * Copyright (C) 2006-2010,2012 ADDA contributors
+ * Copyright (C) 2006-2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -78,16 +74,16 @@ static double * restrict tv1, // 4^m
 static double (*func)(int theta,int phi,double * restrict res);
 static const Parms_1D *input; // parameters of integration
 
-//============================================================
+//======================================================================================================================
 
 double Romberg1D(const Parms_1D param,         // parameters of integration
                  const int size,               // size of block of data
                  const double * restrict data, // written as sequential blocks
                  double * restrict res)        // where to put result
-/* Performs integration of data. Since all values are already calculated, no adaptation is used
- * (all data is used). Result is normalized on the interval width, i.e. actually averaging takes
- * place. Returns relative mean-square error; if function is periodic then only the first column of
- * the table is used - i.e. trapezoid rule. This function is completely independent of others.
+/* Performs integration of data. Since all values are already calculated, no adaptation is used (all data is used).
+ * Result is normalized on the interval width, i.e. actually averaging takes place. Returns relative mean-square error;
+ * if function is periodic then only the first column of the table is used - i.e. trapezoid rule. This function is
+ * completely independent of others.
  */
 {
 	int m,m0,comp,i,step,index,Msize;
@@ -134,11 +130,9 @@ double Romberg1D(const Parms_1D param,         // parameters of integration
 				}
 			}
 			else {
-				if (param.periodic) for (comp=0;comp<size;++comp)
-					T1[comp]=0.5*(T1[comp]+M1[0][comp]);
+				if (param.periodic) for (comp=0;comp<size;++comp) T1[comp]=0.5*(T1[comp]+M1[0][comp]);
 				else {
-					for (comp=0;comp<size;++comp)
-						T1[comp]=t3[m-1]*t2[m]*(T1[comp]-M1[0][comp])+M1[0][comp];
+					for (comp=0;comp<size;++comp) T1[comp]=t3[m-1]*t2[m]*(T1[comp]-M1[0][comp])+M1[0][comp];
 					m0=m;
 				}
 			}
@@ -177,7 +171,7 @@ double Romberg1D(const Parms_1D param,         // parameters of integration
 	else return (sqrt(abs_err/abs_res));
 }
 
-//============================================================
+//======================================================================================================================
 
 static void AllocateAll(void)
 // allocates all needed memory
@@ -209,7 +203,7 @@ static void AllocateAll(void)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 static void FreeAll(void)
 // frees all memory
@@ -230,22 +224,20 @@ static void FreeAll(void)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 static void RombergIterate(double ** restrict M,  // array of M values
                            const int m)           // maximum order
 /* performs one Romberg iteration; transforms previous array of M into a new one
- * M_m^k=((4^m)*M_(m-1)^(k+1)-M_(m-1)^k)/(4^m-1); our storage implies
- * M_(m-1-k)^k -old-> M[k] -new-> M_(m-k)^k
+ * M_m^k=((4^m)*M_(m-1)^(k+1)-M_(m-1)^k)/(4^m-1); our storage implies M_(m-1-k)^k -old-> M[k] -new-> M_(m-k)^k
  */
 {
 	int k,comp;
 
-	for (k=m-1;k>=0;k--) for (comp=0;comp<dim;comp++)
-			M[k][comp]=tv2[m-k]*(tv1[m-k]*M[k+1][comp]-M[k][comp]);
+	for (k=m-1;k>=0;k--) for (comp=0;comp<dim;comp++) M[k][comp]=tv2[m-k]*(tv1[m-k]*M[k+1][comp]-M[k][comp]);
 }
 
-//============================================================
+//======================================================================================================================
 
 static double InnerInitT(const int fixed,double * restrict res)
 /* Calculate term T_0^0 for the inner integration of func over phi_min < phi < phi_max for fixed
@@ -268,11 +260,11 @@ static double InnerInitT(const int fixed,double * restrict res)
 	return err;
 }
 
-//============================================================
+//======================================================================================================================
 
 static double InnerTrapzd(const int fixed,double * restrict res,const int n)
-/* Calculate n'th refinement (term M_0^n) for the inner integration of func over
- * phi_min < phi < phi_max for fixed theta = th_f
+/* Calculate n'th refinement (term M_0^n) for the inner integration of func over phi_min < phi < phi_max for fixed
+ * theta = th_f
  */
 {
 	int comp,step;
@@ -295,14 +287,13 @@ static double InnerTrapzd(const int fixed,double * restrict res,const int n)
 	return (err*temp);
 }
 
-//============================================================
+//======================================================================================================================
 
 static double InnerRomberg(const int fixed,double * restrict res,const bool onepoint)
-/* Integrate (average) func for fixed theta=fixed; returns estimate of the absolute error (for the
- * first element); if function is periodic then only the first column of the table is used  - i.e.
- * trapezoid rule; if 'onepoint' is true only one point is used for evaluation, this is used e.g.
- * for theta==0, when all phi points are equivalent
- * */
+/* Integrate (average) func for fixed theta=fixed; returns estimate of the absolute error (for the first element); if
+ * function is periodic then only the first column of the table is used  - i.e. trapezoid rule; if 'onepoint' is true
+ * only one point is used for evaluation, this is used e.g. for theta==0, when all phi points are equivalent
+ */
 {
 	int m,m0,comp;
 	double abs_res,abs_err; // norms of result and error
@@ -322,11 +313,9 @@ static double InnerRomberg(const int fixed,double * restrict res,const bool onep
 		// calculate T_0^m
 		if (m==0) int_err=InnerInitT(fixed,T_in);
 		else {
-			if (input[PHI].periodic) for (comp=0;comp<dim;++comp)
-				T_in[comp]=0.5*(T_in[comp]+M_in[0][comp]);
+			if (input[PHI].periodic) for (comp=0;comp<dim;++comp) T_in[comp]=0.5*(T_in[comp]+M_in[0][comp]);
 			else {
-				for (comp=0;comp<dim;++comp)
-					T_in[comp]=tv3[m-1]*tv2[m]*(T_in[comp]-M_in[0][comp])+M_in[0][comp];
+				for (comp=0;comp<dim;++comp) T_in[comp]=tv3[m-1]*tv2[m]*(T_in[comp]-M_in[0][comp])+M_in[0][comp];
 				m0=m;
 			}
 		}
@@ -344,23 +333,19 @@ static double InnerRomberg(const int fixed,double * restrict res,const bool onep
 		}
 	}
 	// set result
-	for (comp=0;comp<dim;++comp)
-		res[comp]=0.5*(M_in[0][comp]+T_in[comp]);
+	for (comp=0;comp<dim;++comp) res[comp]=0.5*(M_in[0][comp]+T_in[comp]);
 	// set no_convergence
 	if (err>=input[PHI].eps) {
-		fprintf(file,"Inner_qromb converged only to d="GFORMDEF" for cosine value #%d\n",
-			err,fixed);
+		fprintf(file,"Inner_qromb converged only to d="GFORMDEF" for cosine value #%d\n",err,fixed);
 		no_convergence++;
 	}
 	return (abs_err);
 }
 
-//============================================================
+//======================================================================================================================
 
 static double OuterInitT(double * restrict res)
-/* Calculate term T_0^0 for the outer integration of func;
- * returns absolute error of the inner integration
- */
+// Calculate term T_0^0 for the outer integration of func; returns absolute error of the inner integration
 {
 	int comp;
 	double err;
@@ -370,19 +355,17 @@ static double OuterInitT(double * restrict res)
 
 	if (!input[THETA].equival) {
 		// calculate last point
-		err=0.5*(err
-			+InnerRomberg(input[THETA].Grid_size-1,dummy_out,input[THETA].max==1 && full_al_range));
-		for (comp=0;comp<dim;++comp)
-			res[comp] = 0.5*(dummy_out[comp]+res[comp]);
+		err=0.5*(err + InnerRomberg(input[THETA].Grid_size-1,dummy_out,input[THETA].max==1 && full_al_range));
+		for (comp=0;comp<dim;++comp) res[comp] = 0.5*(dummy_out[comp]+res[comp]);
 	}
 	return err;
 }
 
-//============================================================
+//======================================================================================================================
 
 static double OuterTrapzd(double * restrict res,const int n)
-/* Calculate n'th refinement for the outer integration of func (term M_0^n);
- * returns absolute error of the inner integration
+/* Calculate n'th refinement for the outer integration of func (term M_0^n); returns absolute error of the inner
+ * integration
  */
 {
 	int comp,step;
@@ -404,12 +387,11 @@ static double OuterTrapzd(double * restrict res,const int n)
 	return (err*temp);
 }
 
-//============================================================
+//======================================================================================================================
 
 static double OuterRomberg(double * restrict res)
-/* Performs outer integration (averaging). Returns relative error of integration (for the first
- * element). If function is periodic then only the first column of the table is used - i.e.
- * trapezoid rule
+/* Performs outer integration (averaging). Returns relative error of integration (for the first element). If function is
+ * periodic then only the first column of the table is used - i.e. trapezoid rule
  */
 {
 	int m,m0,comp;
@@ -437,11 +419,9 @@ static double OuterRomberg(double * restrict res)
 			N_tot_eval+=N_eval;
 		}
 		else {
-			if (input[THETA].periodic) for (comp=0;comp<dim;++comp)
-				T_out[comp]=0.5*(T_out[comp]+M_out[0][comp]);
+			if (input[THETA].periodic) for (comp=0;comp<dim;++comp) T_out[comp]=0.5*(T_out[comp]+M_out[0][comp]);
 			else {
-				for (comp=0;comp<dim;++comp)
-					T_out[comp]=tv3[m-1]*tv2[m]*(T_out[comp]-M_out[0][comp])+M_out[0][comp];
+				for (comp=0;comp<dim;++comp) T_out[comp]=tv3[m-1]*tv2[m]*(T_out[comp]-M_out[0][comp])+M_out[0][comp];
 				m0=m;
 			}
 		}
@@ -468,21 +448,20 @@ static double OuterRomberg(double * restrict res)
 	return (err);
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline const char *TextTest(const bool cond)
 {
 	return cond ? "true" : "false";
 }
-//============================================================
+//======================================================================================================================
 
-void Romberg2D(const Parms_1D parms_input[2],
-	double (*func_input)(int theta,int phi,double * restrict res),
+void Romberg2D(const Parms_1D parms_input[2],double (*func_input)(int theta,int phi,double * restrict res),
 	const int dim_input,double * restrict res,const char * restrict fname)
-/* Integrate 2D func with Romberg's method according to input's parameters. Function func_input
- * returns the estimate of the absolute error. Argument dim_input gives the number of components
- * of (double *). Consistency between 'func' and 'dim_input' is the user's responsibility. Result is
- * normalized on the interval widths, i.e. actually averaging takes place.
+/* Integrate 2D func with Romberg's method according to input's parameters. Function func_input returns the estimate of
+ * the absolute error. Argument dim_input gives the number of components of (double *). Consistency between 'func' and
+ * 'dim_input' is the user's responsibility. Result is normalized on the interval widths, i.e. actually averaging takes
+ * place.
  */
 {
 	double error;

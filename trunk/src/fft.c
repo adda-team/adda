@@ -6,13 +6,11 @@
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -43,13 +41,13 @@
 #		error "Apple clFFT relies on C++ sources, hence is incompatible with NO_CPP option"
 #	endif
 #endif
-/* standard FFT routines (FFTW3 of FFT_TEMPERTON) are required even when OpenCL is used, since
- * they are used for Fourier transform of the D-matrix
+/* standard FFT routines (FFTW3 of FFT_TEMPERTON) are required even when OpenCL is used, since they are used for Fourier
+ * transform of the D-matrix
  */
 #ifdef FFTW3
 #	include <fftw3.h>
-/* define level of planning for usual and Dmatrix (DM) FFT: FFTW_ESTIMATE (heuristics),
- * FFTW_MEASURE (default), FTW_PATIENT, or FFTW_EXHAUSTIVE
+/* define level of planning for usual and Dmatrix (DM) FFT: FFTW_ESTIMATE (heuristics), FFTW_MEASURE (default),
+ * FTW_PATIENT, or FFTW_EXHAUSTIVE
  */
 #	define PLAN_FFTW FFTW_MEASURE
 #	define PLAN_FFTW_DM FFTW_ESTIMATE
@@ -74,13 +72,12 @@ extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 // used in matvec.c
 doublecomplex * restrict Dmatrix; // holds FFT of the interaction matrix
 #ifndef OPENCL
-// holds input vector (on expanded grid) to matvec, also used as storage space in iterative.c
+	// holds input vector (on expanded grid) to matvec, also used as storage space in iterative.c
 doublecomplex * restrict Xmatrix;
 doublecomplex * restrict slices; // used in inner cycle of matvec - holds 3 components (for fixed x)
 doublecomplex * restrict slices_tr; // additional storage space for slices to accelerate transpose
 #endif
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D
-
 // used in comm.c
 double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspose
 
@@ -114,12 +111,11 @@ static double * restrict trigsX,* restrict trigsY,* restrict trigsZ,* restrict w
 static int ifaxX[IFAX_SIZE],ifaxY[IFAX_SIZE],ifaxZ[IFAX_SIZE];
 // Fortran routines from cfft99D.f
 void cftfax_(const int *nn,int * restrict ifax,double * restrict trigs);
-void cfft99_(double * restrict data,double * restrict _work,const double * restrict trigs,
-	const int * restrict ifax,const int *inc,const int *jump,const int *nn,const int *lot,
-	const int *isign);
+void cfft99_(double * restrict data,double * restrict _work,const double * restrict trigs,const int * restrict ifax,
+	const int *inc,const int *jump,const int *nn,const int *lot,const int *isign);
 #endif
 
-//============================================================
+//======================================================================================================================
 
 static inline size_t IndexDmatrix(const size_t x,size_t y,size_t z)
 // index D matrix to store final result
@@ -130,7 +126,7 @@ static inline size_t IndexDmatrix(const size_t x,size_t y,size_t z)
 	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP)
 // index D2 matrix after BlockTranspose
@@ -144,7 +140,7 @@ static inline size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengt
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline size_t IndexD2matrix(int x,int y,int z,const int nnn)
 // index D2 matrix to store calculated elements
@@ -155,7 +151,7 @@ static inline size_t IndexD2matrix(int x,int y,int z,const int nnn)
 	return(((z-nnn*local_z0)*D2sizeY+y)*gridX+x);
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline size_t IndexSliceD2matrix(int y,int z)
 // index slice of D2 matrix
@@ -166,7 +162,7 @@ static inline size_t IndexSliceD2matrix(int y,int z)
 	return(y*gridZ+z);
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
 // index transposed slice of D2 matrix
@@ -174,39 +170,38 @@ static inline size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
 	return (z*gridY+y);
 }
 
-//============================================================
+//======================================================================================================================
 
 void TransposeYZ(const int direction)
-/* optimized routine to transpose y and z; forward: slices->slices_tr; backward: slices_tr->slices;
- * direction can be made boolean but this contradicts with existing definitions of FFT_FORWARD and
- * FFT_BACKWARD, which themselves are determined by FFT routines invocation format
+/* optimized routine to transpose y and z; forward: slices->slices_tr; backward: slices_tr->slices; direction can be
+ * made boolean but this contradicts with existing definitions of FFT_FORWARD and FFT_BACKWARD, which themselves are
+ * determined by FFT routines invocation format
  */
 {
 #ifdef OPENCL
 	const size_t enqtglobalzy[3]={gridZ,gridY,3};
 	const size_t enqtglobalyz[3]={gridY,gridZ,3};
 	const size_t tblock[3]={16,16,1}; // this corresponds to BLOCK_DIM in oclkernels.cl
-//TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or
-// 	to remove cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
-	/* When calling kernels the working group size can't be smaller than the data size; hence cached
-	 * kernel can be used only for large enough problems. Alternative solution is to determine the
-	 * block size during ADDA runtime and pass it to kernel during its compilation. But using small
-	 * block size is not efficient anyway, so falling back to noncached kernel is logical.
+	/* TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or to remove
+	 * cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
+	 */
+	/* When calling kernels the working group size can't be smaller than the data size; hence cached kernel can be used
+	 * only for large enough problems. Alternative solution is to determine the block size during ADDA runtime and pass
+	 * it to kernel during its compilation. But using small block size is not efficient anyway, so falling back to
+	 * noncached kernel is logical.
 	 */
 	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
 	cached&=(gridZ%16==0 && gridY%16==0); // this is required due to current limitation of cached kernel
 	
 	if (direction==FFT_FORWARD) {
-		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,
-			enqtglobalzy,tblock,0,NULL,NULL));
-		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,
-			NULL,NULL));
+		if (cached)
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
 	}
 	else {
-		if (cached) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,
-			enqtglobalyz,tblock,0,NULL,NULL));
-		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,
-			NULL,NULL));
+		if (cached)
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL));
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
 	}
 	clFinish(command_queue);
 #else
@@ -261,7 +256,7 @@ void TransposeYZ(const int direction)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
 // optimized routine to transpose y and z for Dmatrix: data -> trans
@@ -305,18 +300,18 @@ static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void fftX(const int isign)
 // FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanX,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,
-			NULL,NULL));
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanX,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,NULL,
+		NULL));
 #	elif defined(CLFFT_APPLE)
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,
-		(clFFT_Direction)isign,bufXmatrix,bufXmatrix,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,(clFFT_Direction)isign,bufXmatrix,
+		bufXmatrix,0,NULL,NULL));
 #	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
@@ -326,23 +321,22 @@ void fftX(const int isign)
 	int nn=gridX,inc=1,jump=nn,lot=boxY;
 	size_t z;
 
-	for (z=0;z<3*local_Nz;z++)
-		cfft99_((double *)(Xmatrix+z*gridX*smallY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	for (z=0;z<3*local_Nz;z++) cfft99_((double *)(Xmatrix+z*gridX*smallY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,
-			NULL,NULL));
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
+		NULL));
 #	elif defined(CLFFT_APPLE)
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,
-		bufslices_tr,bufslices_tr,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslices_tr,
+		bufslices_tr,0,NULL,NULL));
 #	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
@@ -355,18 +349,18 @@ void fftY(const int isign)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,
-			NULL,NULL));
+	CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
+		NULL));
 #	elif defined(CLFFT_APPLE)
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,
-		bufslices,bufslices,0,NULL,NULL));
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,bufslices,bufslices,0,
+		NULL,NULL));
 #	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
@@ -375,12 +369,11 @@ void fftZ(const int isign)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridZ,inc=1,jump=nn,lot=boxY,Xcomp;
 
-	for (Xcomp=0;Xcomp<3;Xcomp++)
-		cfft99_((double *)(slices+gridYZ*Xcomp),work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&isign);
+	for (Xcomp=0;Xcomp<3;Xcomp++) cfft99_((double *)(slices+gridYZ*Xcomp),work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&isign);
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
 // FFT(forward) D2matrix(x) for all y,z; used for Dmatrix calculation
@@ -391,12 +384,11 @@ static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
 	int nn=gridX,inc=1,jump=nn,lot=D2sizeY,isign=FFT_FORWARD;
 	size_t z;
 
-	for (z=0;z<lengthZ;z++)
-		cfft99_((double *)(D2matrix+z*gridX*D2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	for (z=0;z<lengthZ;z++) cfft99_((double *)(D2matrix+z*gridX*D2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void fftY_Dm(void)
 // FFT(forward) slice_tr(y) for all z; used for Dmatrix calculation
@@ -410,7 +402,7 @@ static void fftY_Dm(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void fftZ_Dm(void)
 // FFT(forward) slice(z) for all y; used for Dmatrix calculation
@@ -424,7 +416,7 @@ static void fftZ_Dm(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void CheckNprocs(void)
 // checks for consistency the specified number of processors; called in the beginning from InitComm
@@ -436,41 +428,39 @@ void CheckNprocs(void)
 	// remove simple prime divisors of y
 	while (y%2==0) y/=2;
 #ifdef OPENCL
-	/* this is redundant, since OpenCL is not currently intended to run in parallel
-	 * In the future it should properly handle capabilities of AMD clFFT
+	/* this is redundant, since OpenCL is not currently intended to run in parallel. In the future it should properly
+	 * handle capabilities of AMD clFFT
 	 */
-	if (y!=1) PrintError("Specified number of processors (%d) is incompatible with clFFT, since "
-		"the latter currently supports only FFTs with size 2^n. Please choose the number of "
-		"processors to be of the same form.",nprocs);
+	if (y!=1) PrintError("Specified number of processors (%d) is incompatible with clFFT, since the latter currently "
+		"supports only FFTs with size 2^n. Please choose the number of processors to be of the same form.",nprocs);
 #else
 	while (y%3==0) y/=3;
 	while (y%5==0) y/=5;
 #	ifdef FFT_TEMPERTON
-	if (y!=1) PrintError("Specified number of processors (%d) is weird (has prime divisors larger "
-		"than 5). That is incompatible with Temperton FFT. Revise the number of processors "
-		"(recommended) or recompile with FFTW 3 support.",nprocs);
+	if (y!=1) PrintError("Specified number of processors (%d) is weird (has prime divisors larger than 5). That is "
+		"incompatible with Temperton FFT. Revise the number of processors (recommended) or recompile with FFTW 3 "
+		"support.",nprocs);
 #	elif defined(FFTW3)
 	while (y%7==0) y/=7;
 	// one multiplier of either 11 or 13 is allowed
 	if (y%11==0) y/=11;
 	else if (y%13==0) y/=13;
 	if (y!=1) {
-		LogWarning(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime "
-			"divisors larger than 13 or more than one divisor of either 11 or 13). FFTW3 will work "
-			"less efficiently. It is strongly recommended to revise the number of processors.",
-			nprocs);
+		LogWarning(EC_WARN,ONE_POS,"Specified number of processors (%d) is weird (has prime divisors larger than 13 or "
+			"more than one divisor of either 11 or 13). FFTW3 will work less efficiently. It is strongly recommended "
+			"to revise the number of processors.",nprocs);
 		weird_nprocs=true;
 	}
 #	endif
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 int fftFit(int x,int divis)
 /* find the first number >=x divisible by 2 only (Apple clFFT) or 2,3,5 only (Temperton FFT or clAMDFFT) or also
- * allowing 7 and one of 11 or 13 (FFTW3), and also divisible by 2 and divis.
- * If weird_nprocs is used, only the latter condition is required.
+ * allowing 7 and one of 11 or 13 (FFTW3), and also divisible by 2 and divis. If weird_nprocs is used, only the latter
+ * condition is required.
  */
 {
 	int y;
@@ -503,7 +493,7 @@ int fftFit(int x,int divis)
 	}
 }
 
-//=============================================================
+//======================================================================================================================
 
 static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 // initialize fft before initialization of Dmatrix
@@ -511,14 +501,12 @@ static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 #ifdef FFTW3
 	int grXint=gridX,grYint=gridY,grZint=gridZ; // this is needed to provide 'int *' to grids
 
-	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",
-		fftw_version,fftw_cc,fftw_codelet_optim);
-	planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,
-		slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
-	planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,
-		slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
-	planXf_Dm=fftw_plan_many_dft(1,&grXint,lengthZ*D2sizeY,D2matrix,NULL,1,gridX,
-		D2matrix,NULL,1,gridX,FFT_FORWARD,PLAN_FFTW_DM);
+	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",fftw_version,fftw_cc,
+		fftw_codelet_optim);
+	planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
+	planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
+	planXf_Dm=fftw_plan_many_dft(1,&grXint,lengthZ*D2sizeY,D2matrix,NULL,1,gridX,D2matrix,NULL,1,gridX,FFT_FORWARD,
+		PLAN_FFTW_DM);
 #elif defined(FFT_TEMPERTON)
 	int size,nn;
 
@@ -538,13 +526,13 @@ static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void fftInitAfterD(void)
 /* second part of fft initialization
- * completely separate code is used for OpenCL and FFTW3, because even precise-timing output is
- * significantly different. In particular, FFTW3 uses separate plans for forward and backward, while
- * clFFT (by Apple or AMD) uses one plan for both directions.
+ * completely separate code is used for OpenCL and FFTW3, because even precise-timing output is significantly different.
+ * In particular, FFTW3 uses separate plans for forward and backward, while clFFT (by Apple or AMD) uses one plan for
+ * both directions.
  */
 {
 #ifdef OPENCL
@@ -656,13 +644,11 @@ static void fftInitAfterD(void)
 	GetTime(tvp);
 #	endif
 	lot=3*gridZ;
-	planYf=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,
-		slices_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW);
+	planYf=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,slices_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 #	endif
-	planYb=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,
-		slices_tr,NULL,1,gridY,FFT_BACKWARD,PLAN_FFTW);
+	planYb=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,slices_tr,NULL,1,gridY,FFT_BACKWARD,PLAN_FFTW);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+2);
 #	endif
@@ -704,8 +690,8 @@ static void fftInitAfterD(void)
 		"Zb = "FFORMPT"\n"
 		"Xf = "FFORMPT"\n"
 		"Xb = "FFORMPT"\n\n",
-		DiffSec(tvp,tvp+1),DiffSec(tvp,tvp+6),DiffSec(tvp+1,tvp+2),DiffSec(tvp+2,tvp+3),
-		DiffSec(tvp+3,tvp+4),DiffSec(tvp+4,tvp+5),DiffSec(tvp+5,tvp+6));
+		DiffSec(tvp,tvp+1),DiffSec(tvp,tvp+6),DiffSec(tvp+1,tvp+2),DiffSec(tvp+2,tvp+3),DiffSec(tvp+3,tvp+4),
+		DiffSec(tvp+4,tvp+5),DiffSec(tvp+5,tvp+6));
 #	endif
 	// destroy old plans
 	fftw_destroy_plan(planXf_Dm);
@@ -714,13 +700,12 @@ static void fftInitAfterD(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void InitDmatrix(void)
-/* Initializes the matrix D. D[i][j][k]=A[i1-i2][j1-j2][k1-k2]. Actually D=-FFT(G)/Ngrid.
- * Then -G.x=invFFT(D*FFT(x)) for practical implementation of FFT such that invFFT(FFT(x))=Ngrid*x.
- * G is exactly Green's tensor. The routine is called only once, so does not need to be very fast,
- * however we tried to optimize it.
+/* Initializes the matrix D. D[i][j][k]=A[i1-i2][j1-j2][k1-k2]. Actually D=-FFT(G)/Ngrid. Then -G.x=invFFT(D*FFT(x)) for
+ * practical implementation of FFT such that invFFT(FFT(x))=Ngrid*x. G is exactly Green's tensor. The routine is called
+ * only once, so does not need to be very fast, however we tried to optimize it.
  */
 {
 	int i,j,k,kcor,Dcomp;
@@ -733,8 +718,8 @@ void InitDmatrix(void)
 #ifdef PRECISE_TIMING
 	// precise timing of the Dmatrix computation
 	SYSTEM_TIME tvp[13];
-	SYSTEM_TIME Timing_fftX,Timing_fftY,Timing_fftZ,Timing_Gcalc,Timing_ar1,Timing_ar2,Timing_ar3,
-	Timing_BT,Timing_TYZ,Timing_beg;
+	SYSTEM_TIME Timing_fftX,Timing_fftY,Timing_fftZ,Timing_Gcalc,Timing_ar1,Timing_ar2,Timing_ar3,Timing_BT,Timing_TYZ,
+		Timing_beg;
 	double t_fftX,t_fftY,t_fftZ,t_ar1,t_ar2,t_ar3,t_TYZ,t_beg,t_Gcalc,t_Arithm,t_FFT,t_BT,t_InitMV;
 
 	// This should be the first occurrence of PRECISE_TIMING in the program
@@ -780,25 +765,20 @@ void InitDmatrix(void)
 	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
 	if (IFROOT) fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
 #ifdef OPENCL // perform setting up of buffers and kernels
-	/* create all Buffers needed on Device in MatVec
-	 * When prognosis, the following code just counts required memory
-	 */
+	// create all Buffers needed on Device in MatVec; When prognosis, the following code just counts required memory
 	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-	/* The following are constant device buffers which are initialized with host data. But
-	 * bufDmatrix is initialized in the end of this function (to be compatible with prognosis. And
-	 * bufcc_sqrt is initialized in InitCC, since it may change for every run of the iterative
-	 * solver.
+	/* The following are constant device buffers which are initialized with host data. But bufDmatrix is initialized in
+	 * the end of this function (to be compatible with prognosis. And bufcc_sqrt is initialized in InitCC, since it may
+	 * change for every run of the iterative solver.
 	 */
 	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
 	CREATE_CL_BUFFER(bufDmatrix,CL_MEM_READ_ONLY,Dsize*sizeof(*Dmatrix),NULL);
-	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		local_nvoid_Ndip*sizeof(*material),material);
-	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		local_nRows*sizeof(*position),position);
+	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
+	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
 	if (ipr_required) { // for inner product (only if it will be used afterwards)
 		memory+=local_nvoid_Ndip*sizeof(double);
 		CREATE_CL_BUFFER(bufinproduct,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL);
@@ -863,15 +843,14 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(cltransposeb,1,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clSetKernelArg(cltransposeb,2,sizeof(size_t),&gridY));
 		CL_CH_ERR(clSetKernelArg(cltransposeb,3,sizeof(size_t),&gridZ));
-		//faster transpose kernel with cache
-		//(maybe not faster for all sizes so keep the old kernel for special conditions)
+		// faster transpose kernel with cache; (maybe not always faster so keep the old kernel for special conditions)
 		CL_CH_ERR(clSetKernelArg(cltransposeof,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(size_t),&gridZ));
 		CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(size_t),&gridY));
-		//setting up local cache size as 17*16*3 elements
-		//note: a block is only 16*16, but 1*16 stride is needed
-		//to avoid bank conflicts
+		/* setting up local cache size as 17*16*3 elements; note: a block is only 16*16, but 1*16 stride is needed to
+		 * avoid bank conflicts
+		 */
 		CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
@@ -893,8 +872,7 @@ void InitDmatrix(void)
 	// printout some information
 	if (IFROOT) {
 #ifdef PARALLEL
-		PrintBoth(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",
-			mem/MBYTE);
+		PrintBoth(logfile,"Memory usage for MatVec matrices (per processor): "FFORMM" MB\n",mem/MBYTE);
 #else
 		PrintBoth(logfile,"Memory usage for MatVec matrices: "FFORMM" MB\n",mem/MBYTE);
 #endif
@@ -922,14 +900,12 @@ void InitDmatrix(void)
 	Elapsed(tvp,tvp+1,&Timing_beg); // it includes a lot of OpenCL stuff
 #endif
 	if (IFROOT) printf("Calculating Green's function (Dmatrix)\n");
-	/* Interaction matrix values are calculated all at once for performance reasons. They are stored
-	 * in Dmatrix with indexing corresponding to D2matrix (to facilitate copying) but NDCOMP
-	 * elements instead of one. Afterwards they are replaced by Fourier transforms (with different
-	 * indexing) component-wise (in cycle over NDCOMP)
+	/* Interaction matrix values are calculated all at once for performance reasons. They are stored in Dmatrix with
+	 * indexing corresponding to D2matrix (to facilitate copying) but NDCOMP elements instead of one. Afterwards they
+	 * are replaced by Fourier transforms (with different indexing) component-wise (in cycle over NDCOMP)
 	 */
-
-	/* fill Dmatrix with 0, this if to fill the possible gap between e.g. boxY and gridY/2; (and for R=0)
-	 * probably faster than using a lot of conditionals
+	/* fill Dmatrix with 0, this if to fill the possible gap between e.g. boxY and gridY/2; (and for R=0) probably
+	 * faster than using a lot of conditionals
 	 */
 	for (ind=0;ind<Dsize;ind++) Dmatrix[ind][RE]=Dmatrix[ind][IM]=0;
 	// fill Dmatrix with values of Green's tensor
@@ -1042,8 +1018,7 @@ void InitDmatrix(void)
 #endif
 #ifdef OPENCL
 	// copy Dmatrix to OpenCL buffer, blocking to ensure completion before function end
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,Dsize*sizeof(*Dmatrix),
-		Dmatrix,0,NULL,NULL));
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,Dsize*sizeof(*Dmatrix),Dmatrix,0,NULL,NULL));
 	Free_cVector(Dmatrix);
 #else
 	// allocate memory for Xmatrix, slices and slices_tr - used in matvec
@@ -1088,8 +1063,8 @@ void InitDmatrix(void)
 		"FFTY   = "FFORMPT"\n"
 		"Arith3 = "FFORMPT"\n"
 		"InitMV = "FFORMPT"\n\n",
-		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_InitMV,t_BT,
-		t_ar2,DiffSec(tvp,tvp+12),t_fftZ,t_TYZ,t_fftY,t_ar3,t_InitMV);
+		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_InitMV,t_BT,t_ar2,DiffSec(tvp,tvp+12),t_fftZ,t_TYZ,t_fftY,
+		t_ar3,t_InitMV);
 #endif
 
 	fftInitAfterD();
@@ -1097,7 +1072,7 @@ void InitDmatrix(void)
 	Timing_FFT_Init = GET_TIME()-time1;
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)
@@ -1123,8 +1098,7 @@ void Free_FFT_Dmat(void)
 	clFFT_DestroyPlan(clplanY);
 	clFFT_DestroyPlan(clplanZ);
 #	endif
-	if (oclMem>0) LogWarning(EC_WARN,ALL_POS,
-		"Possible leak of OpenCL memory (size %zu bytes) detected",oclMem);
+	if (oclMem>0) LogWarning(EC_WARN,ALL_POS,"Possible leak of OpenCL memory (size %zu bytes) detected",oclMem);
 #else
 	Free_cVector(Dmatrix);
 	Free_cVector(Xmatrix);

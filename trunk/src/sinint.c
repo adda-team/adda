@@ -2,19 +2,17 @@
  * $Date::                            $
  * Descr: function for calculating sine and cosine integrals
  *
- *        It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was
- *        slightly corrected according to the 3rd ed. of the same book.
+ *        It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was slightly corrected
+ *        according to the 3rd ed. of the same book.
  *
- * Copyright (C) 2007-2010,2012 ADDA contributors
+ * Copyright (C) 2007-2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -33,12 +31,11 @@
 #define BIG DBL_MAX*EPS // A number near machine overflow limit
 #define FPMIN DBL_MIN*4 // Number close to the smallest representable number
 
-//============================================================
+//======================================================================================================================
 
 void cisi(const double x,double *ci,double *si)
-/* Computes the cosine and sine integrals Ci(x) and Si(x). Ci(0) is returned as a large negative
- * number and no error message is generated. For x<0 routine returns -Si(-x) [correct] and Ci(-x),
- * while actually Ci(x)=Ci(-x)-i*pi.
+/* Computes the cosine and sine integrals Ci(x) and Si(x). Ci(0) is returned as a large negative number and no error
+ * message is generated. For x<0 routine returns -Si(-x) [correct] and Ci(-x), while actually Ci(x)=Ci(-x)-i*pi.
  */
 
 {
@@ -78,8 +75,7 @@ void cisi(const double x,double *ci,double *si)
 			cMultSelf(h,del);
 			if (fabs(del[RE]-1)+fabs(del[IM])<=EPS) break;
 		}
-		if (i>=MAXIT) LogError(ALL_POS,
-			"Failed to converge during calculation of sine integral of "GFORMDEF,x);
+		if (i>=MAXIT) LogError(ALL_POS,"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		imExp(-t,tmp);
 		cMultSelf(h,tmp);
 		*ci=-h[RE];
@@ -112,8 +108,7 @@ void cisi(const double x,double *ci,double *si)
 				if (err<EPS) break;
 				odd=!odd;
 			}
-			if (k>MAXIT) LogError(ALL_POS,
-				"Failed to converge during calculation of sine integral of "GFORMDEF,x);
+			if (k>MAXIT) LogError(ALL_POS,"Failed to converge during calculation of sine integral of "GFORMDEF,x);
 		}
 		*si=sums;
 		*ci=sumc+log(t)+EULER;

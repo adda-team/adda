@@ -2,20 +2,17 @@
  * $Date::                            $
  * Descr: all the global variables are declared here
  *
- *        Global means: used in three or more source files. Variables that are used in only two
- *        source files are called 'semi-global' and not listed here. They are defined in one file
- *        and referenced with 'extern' in another one.
+ *        'Global' means used in three or more source files. Variables that are used in only two source files are called
+ *        'semi-global' and not listed here. They are defined in one file and referenced with 'extern' in another one.
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -48,8 +45,8 @@ extern enum beam beamtype;
 extern bool symX,symY,symZ,symR;
 
 // flags
-extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
-	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required;
+extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,load_chpoint,beam_asym,
+	anisotropy,save_memory,ipr_required;
 // 3D vectors
 extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 

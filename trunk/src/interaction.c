@@ -25,7 +25,6 @@
 
 // defined and initialized in make_particle.c
 extern double gridspace;
-
 // defined and initialized in param.c
 extern double igt_lim,igt_eps;
 
@@ -63,9 +62,9 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *a
 void cisi(double x,double *ci,double *si);
 
 // this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",\
-	i,j,k,result[0][RE],result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],\
-	result[3][RE],result[3][IM],result[4][RE],result[4][IM],result[5][RE],result[5][IM]);*/
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,result[0][RE],\
+	result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],result[3][RE],result[3][IM],result[4][RE],\
+	result[4][IM],result[5][RE],result[5][IM]);*/
 
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
@@ -324,8 +323,8 @@ static inline bool TestTableSize(const double rn)
 	if (rn>TAB_RMAX) {
 		if (!warned) {
 			warned=true;
-			LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), "
-				"so O(kd^2) accuracy of Green's function is not guaranteed",TAB_RMAX);
+			LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), so O(kd^2) accuracy of "
+				"Green's function is not guaranteed",TAB_RMAX);
 		}
 		return false;
 	}
@@ -860,11 +859,8 @@ static void ReadTables(void)
 		for (i=1; i<=TAB_RMAX; i++) {
 			Rm2x=Rm2-i*i;
 			ymax = MIN(i,(int)floor(sqrt(Rm2x)));
-			for (j=0; j<ymax; j++) {
-				tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
-			}
-			if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax]
-			                                  + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
+			for (j=0; j<ymax; j++) tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
+			if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax] + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
 		}
 	}
 	// PRINTZ("P[5,3]=%d (should be 41)\n",tab_index[5][3]);

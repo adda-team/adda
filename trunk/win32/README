@@ -1,12 +1,10 @@
-Additionally to ADDA executables, this folder contains all required DLLs. Hence,
-these executables are ready to run.
+Additionally to ADDA executables, this folder contains all required DLLs. Hence, these executables are ready to run.
 
-Executables of misc/ packages are located in separate folders for convenience,
-but they may also require some of these DLLs. For instance, those based on
-Fortran code require:
+Executables of misc/ packages are located in separate folders for convenience, but they may also require some of these
+DLLs. For instance, those based on Fortran code require:
 libgcc_s_dw2-1.dll
 libgfortran-3.dll
 libquadmath-0.dll
 
-In general, one either need to add path to required DLLs to the PATH
-environmental variable or to keep executables and DLLs in the same folder.
+In general, one either need to add path to required DLLs to the PATH environmental variable or to keep executables and
+DLLs in the same folder.

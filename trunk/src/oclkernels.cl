@@ -1,18 +1,15 @@
 /* File: oclkernels.cl
  * $Date::                            $
- * Descr: Kernel File for OpenCL kernels.
- *        includes all subfunctions of the Matvec routine as OpenCL kernels
+ * Descr: Kernel File for OpenCL kernels. Includes all subfunctions of the Matvec routine as OpenCL kernels
  *
- * Copyright (C) 2010-2012 ADDA contributors
+ * Copyright (C) 2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -39,10 +36,8 @@ typedef ulong in_sizet;
 #	error "size_t alternative is not defined"
 #endif
 
-/*************************************
- *  functions used in kernels        *
- *                                   *
- *************************************/
+//======================================================================================================================
+// functions used in kernels
 
 void cMult(__constant double2 *a,__global const double2 *b,__global double2 *c)
 // complex multiplication; c=ab; !!! c should be different from a and b !!!
@@ -51,7 +46,7 @@ void cMult(__constant double2 *a,__global const double2 *b,__global double2 *c)
 	(*c).s1=(*a).s1*(*b).s0 + (*a).s0*(*b).s1;
 }
 
-//============================================================
+//======================================================================================================================
 
 void cMult2(__constant double2 *a,__global const double2 *b,double2 *c)
 // complex multiplication; c=ab; !!! c should be different from a and b !!! c is private
@@ -60,19 +55,17 @@ void cMult2(__constant double2 *a,__global const double2 *b,double2 *c)
 	(*c).s1=(*a).s1*(*b).s0 + (*a).s0*(*b).s1;
 }
 
-//============================================================
+//======================================================================================================================
 
 double cvNorm2(__global const double2 *a)
 // square of the norm of a complex vector[3]
 {
 	return ( a[0].s0*a[0].s0 + a[0].s1*a[0].s1 + a[1].s0*a[1].s0 + a[1].s1*a[1].s1
-		+ a[2].s0*a[2].s0 + a[2].s1*a[2].s1 );
+	       + a[2].s0*a[2].s0 + a[2].s1*a[2].s1 );
 }
 
-/*************************************
- *  Arith1 kernels                   *
- *                                   *
- *************************************/
+//======================================================================================================================
+// Arith1 kernels
 
 __kernel void nConj(__global double2 *a)
 {
@@ -81,7 +74,7 @@ __kernel void nConj(__global double2 *a)
 	a[id].s1= -a[id].s1;
 }
 
-//============================================================
+//======================================================================================================================
 
 __kernel void clzero(__global double2 *input)
 {
@@ -90,11 +83,11 @@ __kernel void clzero(__global double2 *input)
 	input[id] = 0.0;
 }
 
-//============================================================
+//======================================================================================================================
 
-__kernel void arith1(__global const uchar *material,__global const ushort *position,
-	__constant double2 *cc_sqrt, __global const double2 *argvec, __global double2 *Xmatrix,
-	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX)
+__kernel void arith1(__global const uchar *material,__global const ushort *position,__constant double2 *cc_sqrt,
+	__global const double2 *argvec, __global double2 *Xmatrix,const in_sizet local_Nsmall,const in_sizet smallY,
+	const in_sizet gridX)
 {
 	const size_t id=get_global_id(0);
 	const size_t j=3*id;
@@ -103,18 +96,14 @@ __kernel void arith1(__global const uchar *material,__global const ushort *posit
 	int xcomp;
 
 	index = ((position[j+2]*smallY+position[j+1])*gridX+position[j]);
-	for (xcomp=0;xcomp<3;xcomp++)
-		cMult(&cc_sqrt[mat*3+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
+	for (xcomp=0;xcomp<3;xcomp++) cMult(&cc_sqrt[mat*3+xcomp],&argvec[j+xcomp],&Xmatrix[index+xcomp*local_Nsmall]);
 }
 
-/*************************************
- *  Arith2 kernel                    *
- *                                   *
- *************************************/
+//======================================================================================================================
+// Arith2 kernel
 
 __kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,const in_sizet gridZ,
-	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
-	const in_sizet x)
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,const in_sizet x)
 {
 	const size_t y=get_global_id(0);
 	const size_t z=get_global_id(1);
@@ -127,10 +116,8 @@ __kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,co
 	for (xcomp=0;xcomp<3;xcomp++) slices[i+xcomp*gridYZ]=Xmatrix[j+xcomp*local_Nsmall];
 }
 
-/*************************************
- *  Arith3 kernels and functions     *
- *                                   *
- *************************************/
+//======================================================================================================================
+// Arith3 kernels and functions
 
 void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 // multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
@@ -157,12 +144,11 @@ void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 	          + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
 }
 
-//============================================================
+//======================================================================================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,
-	const in_sizet local_x0,const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,
-	const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,const char reduced_FFT,
-	const char transposed,const in_sizet x)
+__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet local_x0,
+	const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,
+	const char NDCOMP,const char reduced_FFT,const char transposed,const in_sizet x)
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
@@ -209,14 +195,11 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
 }
 
-/*************************************
- *  Arith4 kernel                    *
- *                                   *
- *************************************/
+//======================================================================================================================
+// Arith4 kernel
 
 __kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,const in_sizet gridZ,
-	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,
-	const in_sizet x)
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,const in_sizet x)
 {
 	const size_t y =get_global_id(0);
 	const size_t z =get_global_id(1);
@@ -229,15 +212,12 @@ __kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,co
 	for (xcomp=0;xcomp<3;xcomp++) Xmatrix[j+xcomp*local_Nsmall]=slices[i+xcomp*gridYZ];
 }
 
-/*************************************
- *  Arith5 kernels                   *
- *                                   *
- *************************************/
+//======================================================================================================================
+// Arith5 kernel
 
-__kernel void arith5(__global const uchar *material,__global const ushort *position,
-	__constant double2 *cc_sqrt,__global const double2 *argvec,__global const double2 *Xmatrix,
-	const in_sizet local_Nsmall,const in_sizet smallY,const in_sizet gridX,
-	__global double2 *resultvec)
+__kernel void arith5(__global const uchar *material,__global const ushort *position,__constant double2 *cc_sqrt,
+	__global const double2 *argvec,__global const double2 *Xmatrix,const in_sizet local_Nsmall,const in_sizet smallY,
+	const in_sizet gridX,__global double2 *resultvec)
 {
 	const size_t id = get_global_id(0);
 	const size_t j=3*id;
@@ -253,7 +233,7 @@ __kernel void arith5(__global const uchar *material,__global const ushort *posit
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 __kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 {
@@ -262,13 +242,11 @@ __kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 	inprod[id]=cvNorm2(resultvec+(id*3));
 }
 
-/*************************************
- * transpose kernels                 *
- *                                   *
- *************************************/
+//======================================================================================================================
+// transpose kernel
 
-__kernel void transpose(__global const double2 *input,__global double2 *output,
-	const in_sizet width,const in_sizet height)
+__kernel void transpose(__global const double2 *input,__global double2 *output,const in_sizet width,
+	const in_sizet height)
 {
 	const size_t idz = get_global_id(0);
 	const size_t idy = get_global_id(1);
@@ -277,11 +255,13 @@ __kernel void transpose(__global const double2 *input,__global double2 *output,
 	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
 }
 
-//optimised transpose kernel with cache and removed bank conflicts obtained from Nvidia SDK samples
+//======================================================================================================================
+
 // This corresponds to value of tblock in TransposeYZ() in fft.c
 #define BLOCK_DIM 16
-__kernel void transposeo(__global const double2 *idata,__global double2 *odata,
-	const in_sizet width,const in_sizet height,__local double2 *block)
+__kernel void transposeo(__global const double2 *idata,__global double2 *odata,const in_sizet width,
+	const in_sizet height,__local double2 *block)
+//optimised transpose kernel with cache and removed bank conflicts obtained from Nvidia SDK samples
 {
 	// read tiles into local memory
 	size_t xIndex = get_global_id(0);
