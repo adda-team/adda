@@ -2,16 +2,14 @@
  * $Date::                            $
  * Descr: i/o routines
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -46,15 +44,15 @@ extern const char logfname[];
 // error buffer for warning message generated before logfile is opened
 static char warn_buf[MAX_MESSAGE2]="";
 
-//============================================================
+//======================================================================================================================
 /* The following two functions are based on implementations of vasprintf and asprintf from
- * http://stackoverflow.com/a/4900830, which is also similar to the implementation from gnulib.
- * However, explicit error checks has been added inside to avoid need to check the result, and
- * pointer to a new string is returned instead of passing it as an argument.
+ * http://stackoverflow.com/a/4900830, which is also similar to the implementation from gnulib. However, explicit error
+ * checks has been added inside to avoid need to check the result, and pointer to a new string is returned instead of
+ * passing it as an argument.
  */
 static char *dyn_vsprintf(const char *format, va_list args)
-/* same as vsprintf but allocates storage for the result
- * simple error handling is used, so it can be called from LogError, etc.
+/* same as vsprintf but allocates storage for the result; simple error handling is used, so it can be called from
+ * LogError, etc.
  */
 {
 	va_list copy;
@@ -77,7 +75,7 @@ static char *dyn_vsprintf(const char *format, va_list args)
 	return buffer;
 }
 
-//============================================================
+//======================================================================================================================
 
 char *dyn_sprintf(const char *format, ...)
 // same as sprintf, but allocates storage for the result
@@ -89,11 +87,11 @@ char *dyn_sprintf(const char *format, ...)
 	return res;
 }
 
-//============================================================
+//======================================================================================================================
 // The following two functions are simple modifications of the preceding two, with reallocation
 char *rea_vsprintf(char *str,const char *format, va_list args)
-/* same as vsprintf but result is added to string str, which is reallocated on the way
- * simple error handling is used, so it can be called from LogError, etc.
+/* same as vsprintf but result is added to string str, which is reallocated on the way; simple error handling is used,
+ * so it can be called from LogError, etc.
  */{
 	va_list copy;
 	va_copy(copy,args);
@@ -116,7 +114,7 @@ char *rea_vsprintf(char *str,const char *format, va_list args)
 	return buffer;
 }
 
-//============================================================
+//======================================================================================================================
 
 char *rea_sprintf(char *str,const char *format, ...)
 // same as sprintf, but result is added to string str, which is reallocated on the way
@@ -128,11 +126,11 @@ char *rea_sprintf(char *str,const char *format, ...)
 	return res;
 }
 
-//============================================================
+//======================================================================================================================
 
 void WrapLines(char *restrict str)
-/* wraps long lines in a string without breaking words; it replaces a number of spaces in string by
- * '\n' characters; line width is determined by variable term_width.
+/* wraps long lines in a string without breaking words; it replaces a number of spaces in string by '\n' characters;
+ * line width is determined by variable term_width.
  */
 {
 	char *left,*right,*mid,*end;
@@ -178,11 +176,11 @@ void WrapLines(char *restrict str)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 char *WrapLinesCopy(const char * restrict str)
-/* same as WrapLines, but creates a copy of the string, leaving the original intact; it is designed
- * to be run once during the program (or not many), since this memory is not freed afterwards
+/* same as WrapLines, but creates a copy of the string, leaving the original intact; it is designed to be run once
+ * during the program (or not many), since this memory is not freed afterwards
  */
 {
 	char * restrict dup;
@@ -193,14 +191,13 @@ char *WrapLinesCopy(const char * restrict str)
 	return dup;
 }
 
-//============================================================
+//======================================================================================================================
 
 static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict fmt,va_list args)
-/* performs output of error specified by 'code' at 'file':'line'; 'fmt' & arguments ('...')
- * specify error message, 'who' specifies whether 1 (ringid=ADDA_ROOT) or all processors should
- * produce output. We use sprintf-type functions a couple of times, because we want each node to
- * generate an atomic message, not a couple of messages after each other, since other nodes may
- * then interfere with our output. INFO is printed to stdout and without showing the position in
+/* performs output of error specified by 'code' at 'file':'line'; 'fmt' & arguments ('...') specify error message, 'who'
+ * specifies whether 1 (ringid=ADDA_ROOT) or all processors should produce output. We use sprintf-type functions a
+ * couple of times, because we want each node to generate an atomic message, not a couple of messages after each other,
+ * since other nodes may then interfere with our output. INFO is printed to stdout and without showing the position in
  * the source file, ERROR and WARN - to stderr and logfile.
  */
 {
@@ -212,10 +209,9 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 		if (code==EC_ERROR) strcpy(msg,"ERROR: ");
 		else if (code==EC_WARN) strcpy(msg,"WARNING: ");
 		else if (code==EC_INFO) strcpy(msg,"INFO: ");
-		/* the following statement is for full robustness, however all new error codes should be
-		 * included in the 'enum ec' in const.h and handled explicitly (this is what 'enum' is for).
-		 * Moreover the logical structure of this function is not immediately ready for new error
-		 * codes (at least, this should be checked separately).
+		/* the following statement is for full robustness, however all new error codes should be included in the
+		 * 'enum ec' in const.h and handled explicitly (this is what 'enum' is for). Moreover the logical structure of
+		 * this function is not immediately ready for new error codes (at least, this should be checked separately).
 		 */
 		else strcpy(msg,"Unknown Error Type: ");
 		shift=strlen(msg);
@@ -245,10 +241,9 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 			// first put error message in logfile
 			if (logfname[0]!=0) { // otherwise can't produce output at all
 				if (IFROOT) {
-					/* logfile is initialized to NULL in the beginning of the program. Hence if
-					 * logfile!=NULL, logfile is necessarily initialized (open or already closed).
-					 * logfile==NULL (when logname!=0) means that error is in opening logfile
-					 * itself
+					/* logfile is initialized to NULL in the beginning of the program. Hence if logfile!=NULL, logfile
+					 * is necessarily initialized (open or already closed). logfile==NULL (when logname!=0) means that
+					 * error is in opening logfile itself
 					 */
 					if (logfile!=NULL) {
 						if (fprintf(logfile,"%s",msg)==EOF) {
@@ -273,32 +268,30 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void LogError(ERR_LOC_DECL,const char * restrict fmt, ... )
-/* A wrapper for ProcessError, which explicitly states fatal error and, hence, exits after the
- * message is printed out.
- */
+// A wrapper for ProcessError, which explicitly states fatal error and, hence, exits after the message is printed out.
 {
 	va_list args;
 
 	va_start(args,fmt);
 	ProcessError(EC_ERROR,ERR_LOC_CALL,fmt,args);
 	va_end(args);
-	/* There seems to be no reliable way to wait for all error messages to appear, since we can't be
-	 * sure, which processors call this function. So the following condition is inverse to the one,
-	 * that determines printing output by ProcessError function. This way we can be sure that those
-	 * processors that trigger the final exit, will first produce some meaningful output.
+	/* There seems to be no reliable way to wait for all error messages to appear, since we can't be sure, which
+	 * processors call this function. So the following condition is inverse to the one, that determines printing output
+	 * by ProcessError function. This way we can be sure that those processors that trigger the final exit, will first
+	 * produce some meaningful output.
 	 */
 	if (!(who==ALL || IFROOT)) Synchronize();
 	Stop(EXIT_FAILURE);
 }
 
-//============================================================
+//======================================================================================================================
 
 void LogWarning(const enum ec code,ERR_LOC_DECL,const char * restrict fmt, ... )
-/* Can process any error codes, but always return (do not have noreturn attribute).
- * So it is misleading to call it with EC_ERROR code.
+/* Can process any error codes, but always return (do not have noreturn attribute). So it is misleading to call it with
+ * EC_ERROR code.
  */
 {
 	va_list args;
@@ -308,18 +301,16 @@ void LogWarning(const enum ec code,ERR_LOC_DECL,const char * restrict fmt, ... )
 	va_end(args);
 }
 
-//============================================================
+//======================================================================================================================
 
 
 size_t SnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const char * restrict fmt,...)
-/* accepts the same arguments as snprintf + location arguments given by macro ERR_LOC_DECL;
- * returns the result of snprintf but first checks that everything went OK, otherwise error is
- * produced. Return type is size_t because it is always non-negative (otherwise error) and this type
- * is more convenient for further use.
- * Using this function adds extra level of safety to building strings, additional to the automatic
- * calculation of buffer size and controlling of all input strings. It is recommended to use it,
- * when potentially long strings (file and directory names) need to be processed.
- *
+/* accepts the same arguments as snprintf + location arguments given by macro ERR_LOC_DECL; returns the result of
+ * snprintf but first checks that everything went OK, otherwise error is produced. Return type is size_t because it is
+ * always non-negative (otherwise error) and this type is more convenient for further use. Using this function adds
+ * extra level of safety to building strings, additional to the automatic calculation of buffer size and controlling of
+ * all input strings. It is recommended to use it, when potentially long strings (file and directory names) need to be
+ * processed.
  */
 {
 	va_list args;
@@ -335,14 +326,13 @@ size_t SnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const char
 	return out;
 }
 
-//============================================================
+//======================================================================================================================
 
 size_t SnprintfShiftErr(ERR_LOC_DECL,const size_t shift,char * restrict str,const size_t size,
 	const char * restrict fmt,...)
-/* Same as SnprintfErr, but accepts one extra argument - 'shift'. Writing of new data to 'str'
- * starts after shift characters (i.e. shift=0 is equivalent to SnprintfErr). 'size' specifies the
- * memory available to the whole string 'str', not to the remaining part. Returns the new (total)
- * shift after write.
+/* Same as SnprintfErr, but accepts one extra argument - 'shift'. Writing of new data to 'str' starts after shift
+ * characters (i.e. shift=0 is equivalent to SnprintfErr). 'size' specifies the memory available to the whole string
+ * 'str', not to the remaining part. Returns the new (total) shift after write.
  */
 {
 	va_list args;
@@ -358,14 +348,13 @@ size_t SnprintfShiftErr(ERR_LOC_DECL,const size_t shift,char * restrict str,cons
 	return out;
 }
 
-//============================================================
+//======================================================================================================================
 
 size_t VsnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const char * restrict fmt,
 	va_list args)
-/* accepts the same arguments as vsnprintf + location arguments given by macro ERR_LOC_DECL;
- * returns the result of snprintf but first checks that everything went OK, otherwise error is
- * produced. Return type is size_t because it is always non-negative (otherwise error) and this type
- * is more convenient for further use.
+/* accepts the same arguments as vsnprintf + location arguments given by macro ERR_LOC_DECL; returns the result of
+ * snprintf but first checks that everything went OK, otherwise error is produced. Return type is size_t because it is
+ * always non-negative (otherwise error) and this type is more convenient for further use.
   */
 {
 	int res;
@@ -379,12 +368,11 @@ size_t VsnprintfErr(ERR_LOC_DECL,char * restrict str,const size_t size,const cha
 }
 
 
-//============================================================
+//======================================================================================================================
 
 void PrintError(const char * restrict fmt, ... )
-/* print anything to stderr (on root processor) and stop; much simpler than LogError (do not print
- * location of the error, and does not duplicate errors to files; assumes that all processors call
- * it.
+/* print anything to stderr (on root processor) and stop; much simpler than LogError (do not print location of the
+ * error, and does not duplicate errors to files; assumes that all processors call it.
  */
 {
 	va_list args;
@@ -405,11 +393,11 @@ void PrintError(const char * restrict fmt, ... )
 	Stop(EXIT_FAILURE);
 }
 
-//============================================================
+//======================================================================================================================
 
 void LogPending(void)
-/* Logs pending warning messages (currently only one maximum). Should be called when logname is
- * created and logfile is opened on root.
+/* Logs pending warning messages (currently only one maximum). Should be called when logname is created and logfile is
+ * opened on root.
  */
 {
 	if (warn_buf[0]!=0) {
@@ -423,12 +411,11 @@ void LogPending(void)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void PrintBoth(FILE * restrict file,const char * restrict fmt, ... )
-/* print anything both to file and to stdout; it is assumed that size of the message is limited to
- * MAX_PARAGRAPH (i.e. no filenames in the message). Makes little sense to call it by all
- * processors.
+/* print anything both to file and to stdout; it is assumed that size of the message is limited to MAX_PARAGRAPH (i.e.
+ * no filenames in the message). Makes little sense to call it by all processors.
  *
  * Not thread-safe! Should not be called in parallel from multiple threads (e.g. OpenMP)
  */
@@ -437,8 +424,8 @@ void PrintBoth(FILE * restrict file,const char * restrict fmt, ... )
 	static char msg[MAX_PARAGRAPH]; // not to allocate at every call
 
 	va_start(args,fmt);
-	/* ALL_POS will not contain a lot of useful information here (since it is not related to the
-	 * origin of function call). However, an error here is extremely improbable.
+	/* ALL_POS will not contain a lot of useful information here (since it is not related to the origin of function
+	 * call). However, an error here is extremely improbable.
 	 */
 	VsnprintfErr(ALL_POS,msg,MAX_PARAGRAPH,fmt,args);
 	fprintf(file,"%s",msg);
@@ -446,7 +433,7 @@ void PrintBoth(FILE * restrict file,const char * restrict fmt, ... )
 	va_end(args);
 }
 
-//============================================================
+//======================================================================================================================
 
 FILE *FOpenErr(const char * restrict fname,const char * restrict mode,ERR_LOC_DECL)
 // open file and check for error
@@ -457,7 +444,7 @@ FILE *FOpenErr(const char * restrict fname,const char * restrict mode,ERR_LOC_DE
 	return file;
 }
 
-//============================================================
+//======================================================================================================================
 
 void FCloseErr(FILE * restrict file,const char * restrict fname,ERR_LOC_DECL)
 // close file and check for error
@@ -466,31 +453,28 @@ void FCloseErr(FILE * restrict file,const char * restrict fname,ERR_LOC_DECL)
 		LogWarning(EC_WARN,ERR_LOC_CALL,"Errors detected during work with file '%s'",fname);
 }
 
-//============================================================
+//======================================================================================================================
 
 void RemoveErr(const char * restrict fname,ERR_LOC_DECL)
 // remove file and check the result
 {
 	if(remove(fname) && errno!=ENOENT) LogWarning(EC_WARN,ERR_LOC_CALL,
-		"Failed to remove temporary file '%s' (%s). Remove it manually, if needed",
-		fname,strerror(errno));
+		"Failed to remove temporary file '%s' (%s). Remove it manually, if needed",fname,strerror(errno));
 }
 
-//============================================================
+//======================================================================================================================
 
 void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 // make directory and check for error.
 {
 #ifdef WINDOWS
 	if (!CreateDirectory(dir,NULL)) {
-		if (GetLastError()==ERROR_ALREADY_EXISTS)
-			LogWarning(EC_WARN,ERR_LOC_CALL,"Directory '%s' already exists",dir);
+		if (GetLastError()==ERROR_ALREADY_EXISTS) LogWarning(EC_WARN,ERR_LOC_CALL,"Directory '%s' already exists",dir);
 		else LogError(ERR_LOC_CALL,"Failed to make directory '%s'",dir);
 	}
 #elif defined(POSIX)
 	if (mkdir(dir,0755)==-1) {
-		if (errno==EEXIST)
-			LogWarning(EC_WARN,ERR_LOC_CALL,"Directory '%s' already exists",dir);
+		if (errno==EEXIST) LogWarning(EC_WARN,ERR_LOC_CALL,"Directory '%s' already exists",dir);
 		else LogError(ERR_LOC_CALL,"Failed to make directory '%s'",dir);
 	}
 #else
@@ -504,22 +488,20 @@ void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 #endif
 }
 
-//===========================================================
+//======================================================================================================================
 
 static inline void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
-/* skips full line in the file, starting from current position;
- * uses buffer 'buf' with size 'buf_size'
- */
+// skips full line in the file, starting from current position; uses buffer 'buf' with size 'buf_size'
 {
 	do fgets(buf,buf_size,file); while (strchr(buf,'\n')==NULL && !feof(file));
 }
 
-//===========================================================
+//======================================================================================================================
 
-char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
-	char * restrict buf,const int buf_size,ERR_LOC_DECL)
-/* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname
- * and line number to be shown in error message; uses buffer 'buf' with size 'buf_size'.
+char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,char * restrict buf,const int buf_size,
+	ERR_LOC_DECL)
+/* calls fgets, checks for errors and increments line number; s_fname and s_line are source fname and line number to be
+ * shown in error message; uses buffer 'buf' with size 'buf_size'.
  */
 {
 	char *res;
@@ -528,13 +510,12 @@ char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,
 	if (res!=NULL) {
 		(*line)++;
 		if (strchr(buf,'\n')==NULL && !feof(file)) LogError(ERR_LOC_CALL,
-			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",
-			fname,*line,BUF_LINE-1);
+			"Buffer overflow while scanning lines in file '%s' (size of line %zu > %d)",fname,*line,BUF_LINE-1);
 	}
 	return res;
 }
 
-//===========================================================
+//======================================================================================================================
 
 size_t SkipNLines(FILE * restrict file,const size_t n)
 // skips n lines from the file starting from current position in a file; returns n
@@ -546,12 +527,10 @@ size_t SkipNLines(FILE * restrict file,const size_t n)
 	return n;
 }
 
-//===========================================================
+//======================================================================================================================
 
 size_t SkipComments(FILE * restrict file)
-/* skips comments (#...), all lines, starting from current position in a file.
- * returns number of lines skipped
- */
+// skips comments (#...), all lines, starting from current position in a file. returns number of lines skipped
 {
 	int ch;
 	size_t lines=0;

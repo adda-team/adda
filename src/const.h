@@ -6,13 +6,11 @@
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -21,28 +19,26 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.2b2"
+#define ADDA_VERSION "1.2b3"
 
-/* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However,
- * they may be not completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we
- * check the version of the standard here and produce a strong warning, if it is not satisfied.
- * The list of C99 features, used by ADDA, include (but may be not limited to):
- * stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
+/* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
+ * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
+ * and produce a strong warning, if it is not satisfied. The list of C99 features, used by ADDA, include (but may be not
+ * limited to): stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
 */
 # if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
-#   error "Support for C99 standard (at least many of its parts) is strongly recommended for \
-compilation. Otherwise the compilation will may fail or produce wrong results. If you still want \
-to try, you may enable an override in the Makefile."
+#   error "Support for C99 standard (at least many of its parts) is strongly recommended for compilation. Otherwise \
+	the compilation will may fail or produce wrong results. If you still want to try, you may enable an override in \
+	the Makefile."
 #endif
 
-/* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family
- * functions. For some (philosophical) reasons mingw64 developers have not implemented this behavior
- * as the default one. So we need to set it manually.
- * This macro should be defined before any system includes, hence inclusion of "const.h" should be
- * the first one in all sources. This is also convenient for testing c99 standard above. However,
- * there is no simple way then to test for MinGW64 at this point, since, e.g., __MINGW64_VERSION_STR
- * is defined by the system header (not by the compiler itself). So the code executes always.
- * Not the most reliable way, but seems the only way to keep the following definition in one place.
+/* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family functions. For some
+ * (philosophical) reasons mingw64 developers have not implemented this behavior as the default one. So we need to set
+ * it manually. This macro should be defined before any system includes, hence inclusion of "const.h" should be the
+ * first one in all sources. This is also convenient for testing c99 standard above. However, there is no simple way
+ * then to test for MinGW64 at this point, since, e.g., __MINGW64_VERSION_STR is defined by the system header (not by
+ * the compiler itself). So the code executes always. Not the most reliable way, but seems the only way to keep the
+ * following definition in one place.
  */
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
 #	define __USE_MINGW_ANSI_STDIO 1
@@ -70,8 +66,8 @@ to try, you may enable an override in the Makefile."
 #	define PARALLEL
 #endif
 
-/* ringid of root processor. Using ADDA_ROOT!=0 should work, however it was not thoroughly tested.
- * Hence do not change without necessity.
+/* ringid of root processor. Using ADDA_ROOT!=0 should work, however it was not thoroughly tested. Hence do not change
+ * without necessity.
  */
 #define ADDA_ROOT 0
 
@@ -103,10 +99,10 @@ to try, you may enable an override in the Makefile."
 #define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
 
 // sizes of filenames and other strings
-/* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to
- * override this limit. On POSIX this constant may be much larger and have even less reliability.
- * So the values below are conservatively high, but are not guaranteed to suffice. However, the
- * functions in the code are designed to survive if this buffer won't suffice.
+/* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to override this limit. On
+ * POSIX this constant may be much larger and have even less reliability. So the values below are conservatively high,
+ * but are not guaranteed to suffice. However, the functions in the code are designed to survive if this buffer won't
+ * suffice.
  */
 #define MAX_DIRNAME      300 // maximum length of dirname; increase THIS if any errors appear
 #define MAX_FNAME_SH     100 // maximum length of filename (used for known names)
@@ -114,9 +110,8 @@ to try, you may enable an override in the Makefile."
 #define MAX_SYSTEM_CALL   10 // maximum string length of system call (itself)
 #define MAX_WORD          10 // maximum length of a short word
 #define MAX_LINE         100 // maximum length of a line
-	// size of buffer for reading lines (longer lines are handled robustly)
-#define BUF_LINE      300
-#define MAX_PARAGRAPH 600 // maximum length of a paragraph (few lines)
+#define BUF_LINE         300 // size of buffer for reading lines (longer lines are handled robustly)
+#define MAX_PARAGRAPH    600 // maximum length of a paragraph (few lines)
 
 // derived sizes
 	// maximum string to create directory
@@ -170,8 +165,7 @@ enum sh { // shape types
 	SH_SPHERE,       // sphere
 	SH_SPHEREBOX     // sphere in a box
 	/* TO ADD NEW SHAPE
-	 * add an identifier starting with 'SH_' and a descriptive comment to this list in alphabetical
-	 * order.
+	 * add an identifier starting with 'SH_' and a descriptive comment to this list in alphabetical order.
 	 */
 };
 
@@ -190,9 +184,8 @@ enum pol { // which way to calculate coupleconstant
 
 enum scat { // how to calculate scattering quantities
 	SQ_DRAINE, // classical, as Draine
-	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole when
-	            * calculating absorption cross section
-	            */
+	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole when calculating
+	              absorption cross section */
 	SQ_IGT_SO, // Integration of Green's tensor (second order in kd approximation)
 	SQ_SO      // Second Order formulation
 };
@@ -234,16 +227,13 @@ enum iter { // iterative methods
 	IT_QMR_CS,   // Quasi-minimal residual for Complex-Symmetric matrices
 	IT_QMR_CS_2  // 2-term QMR (better roundoff properties)
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * add an identifier starting with 'IT_' and a descriptive comment to this list in the
-	 * alphabetical order.
+	 * add an identifier starting with 'IT_' and a descriptive comment to this list in the alphabetical order.
 	 */
 };
 
 enum Eftype { // type of E field calculation
 	CE_NORMAL, // normal
-	CE_PARPER  /* use symmetry to calculate both incident polarizations from one calculation of
-	            * internal fields
-	            */
+	CE_PARPER  // use symmetry to calculate both incident polarizations from one calculation of internal fields
 };
 
 enum incpol {
@@ -263,8 +253,7 @@ enum beam { // beam types
 	B_PLANE,   // infinite plane wave
 	B_READ     // read from file
 	/* TO ADD NEW BEAM
-	 * add an identifier starting with 'B_' and a descriptive comment to this list in alphabetical
-	 * order.
+	 * add an identifier starting with 'B_' and a descriptive comment to this list in alphabetical order.
 	 */
 };
 
@@ -294,9 +283,8 @@ enum chpoint { // types of checkpoint (to save)
 	CHP_NONE,    // do not save checkpoint
 	CHP_NORMAL,  // save checkpoint if not finished in time and exit
 	CHP_REGULAR, // save checkpoints in regular time intervals (until finished or halted)
-	CHP_ALWAYS   /* save checkpoint if either simulation is finished or time elapsed and calculate
-	              * all scattering quantities
-                  */
+	CHP_ALWAYS   /* save checkpoint if either simulation is finished or time elapsed and calculate all scattering
+	                quantities */
 };
 
 enum init_field { // how to calculate initial field to be used in the iterative solver
@@ -365,8 +353,8 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define FD_SCAT_PARMS   "scat_params.dat"
 #define FD_CHP_DIR      "chpoint"
 
-/* number of components of D. Really, it can't be easily changed, but using constant instead of 6
- * adds more understanding for reader
+/* number of components of D. Really, it can't be easily changed, but using constant instead of 6 adds more
+ * understanding for reader
  */
 #define NDCOMP 6
 
@@ -377,8 +365,7 @@ enum shform {
 	SF_TEXT,     // ADDA text format for one-domain particles
 	SF_TEXT_EXT  // ADDA text format for multi-domain particles
 	/* TO ADD NEW FORMAT OF SHAPE FILE
-	 * add an identifier starting with 'SF_' and a descriptive comment to this list in alphabetical
-	 * order.
+	 * add an identifier starting with 'SF_' and a descriptive comment to this list in alphabetical order.
 	 */
 };
 

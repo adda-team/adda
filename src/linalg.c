@@ -2,22 +2,19 @@
  * $Date::                            $
  * Descr: different linear algebra operations for use with iterative solvers; highly specialized
  *
- *        'const' can be used for many more function variables, however it doesn't work in
- *        combination with 'doublecomplex *' or more nested lists. That seems to be a principal
- *        limitation of C standard (some compilers may work, some produce warnings).
- *        Common feature of many functions is accepting timing argument. If it is not NULL, it is
- *        incremented by the time used for communication.
+ *        'const' can be used for many more function variables, however it doesn't work in combination with
+ *        'doublecomplex *' or more nested lists. That seems to be a principal limitation of C standard (some compilers
+ *        may work, some produce warnings). Common feature of many functions is accepting timing argument. If it is not
+ *        NULL, it is incremented by the time used for communication.
  *
- * Copyright (C) 2006-2008,2010-2012 ADDA contributors
+ * Copyright (C) 2006-2008,2010-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -31,19 +28,17 @@
 #include <string.h>
 
 /* There are several optimization ideas used in this file:
- * 1) 'restrict' keyword tells the compiler that used doublecomplex array do not alias, however it
- * is unclear whether the compiler will also assume that they do not alias with input pointers to
- * double or single doublecomplex (also passed as a pointer to double). Moreover, these single
- * variables are the ones that are most often accessed inside the loop. So we define them as local
- * register variables, and connect them to the input values outside of the main loop.
- * 2) pragmas, indicating that the loop is supposed to be very large, are used. However, they are
- * probably understood only by the Intel compiler.
- * 3) If usage of some function has coinciding arguments, than a special function for such case is
- * created. In particular, this allows consistent usage of 'restrict' keyword almost for all
- * function arguments.
+ * 1) 'restrict' keyword tells the compiler that used doublecomplex array do not alias, however it is unclear whether
+ * the compiler will also assume that they do not alias with input pointers to double or single doublecomplex (also
+ * passed as a pointer to double). Moreover, these single variables are the ones that are most often accessed inside the
+ * loop. So we define them as local register variables, and connect them to the input values outside of the main loop.
+ * 2) pragmas, indicating that the loop is supposed to be very large, are used. However, they are probably understood
+ * only by the Intel compiler.
+ * 3) If usage of some function has coinciding arguments, than a special function for such case is created. In
+ * particular, this allows consistent usage of 'restrict' keyword almost for all function arguments.
  * 4) Deeper optimizations, such as loop unrolling, are left to the compiler.
  */
-//============================================================
+//======================================================================================================================
 
 void nInit(doublecomplex * restrict a)
 // initialize vector a with null values
@@ -55,7 +50,7 @@ void nInit(doublecomplex * restrict a)
 	for (i=0;i<n;i++) a[i][RE]=a[i][IM]=0;
 }
 
-//============================================================
+//======================================================================================================================
 
 void nCopy(doublecomplex * restrict a,doublecomplex * restrict b)
 // copy vector b to a (a=b); !!! they must not alias !!!
@@ -63,7 +58,7 @@ void nCopy(doublecomplex * restrict a,doublecomplex * restrict b)
 	memcpy(a,b,local_nRows*sizeof(doublecomplex));
 }
 
-//============================================================
+//======================================================================================================================
 
 double nNorm2(doublecomplex * restrict a,TIME_TYPE *comm_timing)
 // squared norm of a large vector a
@@ -81,10 +76,9 @@ double nNorm2(doublecomplex * restrict a,TIME_TYPE *comm_timing)
 	return inprod;
 }
 
-//============================================================
+//======================================================================================================================
 
-void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,
-	TIME_TYPE *comm_timing)
+void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,TIME_TYPE *comm_timing)
 /* dot product of two large vectors; c=a.b; here the dot implies conjugation
  * !!! a and b must not alias !!! (to enforce use of function nNorm2 for coinciding arguments)
  */
@@ -104,13 +98,11 @@ void nDotProd(doublecomplex * restrict a,doublecomplex * restrict b,doublecomple
 	MyInnerProduct(c,cmplx_type,1,comm_timing);
 }
 
-//============================================================
+//======================================================================================================================
 
-void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,
-	TIME_TYPE *comm_timing)
+void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex c,TIME_TYPE *comm_timing)
 /* conjugate dot product of two large vectors; c=a.b*=b.a*; here the dot implies conjugation
- * !!! a and b must not alias !!! (to enforce use of function nDotProdSelf_conj for coinciding
- * arguments)
+ * !!! a and b must not alias !!! (to enforce use of function nDotProdSelf_conj for coinciding arguments)
  */
 {
 	register size_t i;
@@ -128,7 +120,7 @@ void nDotProd_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublec
 	MyInnerProduct(c,cmplx_type,1,comm_timing);
 }
 
-//============================================================
+//======================================================================================================================
 
 void nDotProdSelf_conj(doublecomplex * restrict a,doublecomplex c,TIME_TYPE *comm_timing)
 // conjugate dot product of vector on itself; c=a.a*; here the dot implies conjugation
@@ -149,13 +141,10 @@ void nDotProdSelf_conj(doublecomplex * restrict a,doublecomplex c,TIME_TYPE *com
 	c[IM]*=2;
 }
 
-//============================================================
+//======================================================================================================================
 
-void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double * restrict norm,
-	TIME_TYPE *comm_timing)
-/* Computes both conjugate dot product of vector on itself (c=a.a*)
- * and its Hermitian squared norm=||a||^2
- */
+void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double * restrict norm,TIME_TYPE *comm_timing)
+// Computes both conjugate dot product of vector on itself (c=a.a*) and its Hermitian squared norm=||a||^2
 {
 	register size_t i;
 	register const size_t n=local_nRows;
@@ -178,10 +167,10 @@ void nDotProdSelf_conj_Norm2(doublecomplex * restrict a,doublecomplex c,double *
 	c[IM]=2*buf[2];
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2)
+void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,const doublecomplex c2)
 // a=c1*a+c2*b+c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
@@ -198,10 +187,10 @@ void nIncrem110_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2)
+void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,const doublecomplex c2)
 // a+=c1*b+c2*c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
@@ -216,13 +205,12 @@ void nIncrem011_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem110_d_c_conj(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const double c1,const doublecomplex c2,double * restrict inprod,
-	TIME_TYPE *comm_timing)
-/* a=c1*a(*)+c2*b(*)+c; one constant is real, another - complex,
- * vectors a and c are conjugated during the evaluation; !!! a,b,c must not alias !!!
+void nIncrem110_d_c_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const double c1,const doublecomplex c2,double * restrict inprod,TIME_TYPE *comm_timing)
+/* a=c1*a(*)+c2*b(*)+c; one constant is real, another - complex, vectors a and b are conjugated during the evaluation;
+ * !!! a,b,c must not alias !!!
  */
 {
 	register const size_t n=local_nRows;
@@ -252,10 +240,10 @@ void nIncrem110_d_c_conj(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2,const doublecomplex c3)
+void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,const doublecomplex c2,const doublecomplex c3)
 // a=c1*a+c2*b+c3*c; !!! a,b,c must not alias !!!
 {
 	register size_t i;
@@ -274,10 +262,9 @@ void nIncrem111_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,
-	TIME_TYPE *comm_timing)
+void nIncrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,TIME_TYPE *comm_timing)
 // a+=b, inprod=|a|^2; !!! a and b must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -305,10 +292,9 @@ void nIncrem(doublecomplex * restrict a,doublecomplex * restrict b,double * rest
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nDecrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,
-	TIME_TYPE *comm_timing)
+void nDecrem(doublecomplex * restrict a,doublecomplex * restrict b,double * restrict inprod,TIME_TYPE *comm_timing)
 // a-=b, inprod=|a|^2; !!! a and b must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -336,10 +322,10 @@ void nDecrem(doublecomplex * restrict a,doublecomplex * restrict b,double * rest
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const double c,
-	double * restrict inprod,TIME_TYPE *comm_timing)
+void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const double c,double * restrict inprod,
+	TIME_TYPE *comm_timing)
 // a=a+c*b, inprod=|a|^2; !!! a and b must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -368,10 +354,10 @@ void nIncrem01(doublecomplex * restrict a,doublecomplex * restrict b,const doubl
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const double c,
-	double * restrict inprod,TIME_TYPE *comm_timing)
+void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const double c,double * restrict inprod,
+	TIME_TYPE *comm_timing)
 // a=c*a+b, inprod=|a|^2; !!! a and b must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -400,13 +386,11 @@ void nIncrem10(doublecomplex * restrict a,doublecomplex * restrict b,const doubl
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const double c1,
-	const doublecomplex c2,double * restrict inprod,TIME_TYPE *comm_timing)
-/* a=c1*a+c2*b, inprod=|a|^2 , one constant is double, another - complex;
- * !!! a and b must not alias !!!
- */
+void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const double c1,const doublecomplex c2,
+	double * restrict inprod,TIME_TYPE *comm_timing)
+// a=c1*a+c2*b, inprod=|a|^2 , one constant is double, another - complex; !!! a and b must not alias !!!
 {
 	register const size_t n=local_nRows;
 	register size_t i;
@@ -436,7 +420,7 @@ void nIncrem11_d_c(doublecomplex * restrict a,doublecomplex * restrict b,const d
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nIncrem01_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c,
 	double * restrict inprod,TIME_TYPE *comm_timing)
@@ -468,7 +452,7 @@ void nIncrem01_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nIncrem10_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c,
 	double * restrict inprod,TIME_TYPE *comm_timing)
@@ -502,11 +486,10 @@ void nIncrem10_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,const doublecomplex c2,
-	double * restrict inprod,TIME_TYPE *comm_timing)
+void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,const doublecomplex c2,double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c1*b+c2*c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -537,11 +520,10 @@ void nLinComb_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,double * restrict inprod,
-	TIME_TYPE *comm_timing)
+void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c1*b+c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -572,11 +554,10 @@ void nLinComb1_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
-void nLinComb1_cmplx_conj(doublecomplex * restrict a,doublecomplex * restrict b,
-	doublecomplex * restrict c,const doublecomplex c1,double * restrict inprod,
-	TIME_TYPE *comm_timing)
+void nLinComb1_cmplx_conj(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
+	const doublecomplex c1,double * restrict inprod,TIME_TYPE *comm_timing)
 // a=c1*b(*)+c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -606,10 +587,10 @@ void nLinComb1_cmplx_conj(doublecomplex * restrict a,doublecomplex * restrict b,
 }
 
 
-//============================================================
+//======================================================================================================================
 
-void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,
-	double *inprod,TIME_TYPE *comm_timing)
+void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex * restrict c,double *inprod,
+	TIME_TYPE *comm_timing)
 // a=b-c, inprod=|a|^2; !!! a,b,c must not alias !!!
 {
 	register const size_t n=local_nRows;
@@ -637,7 +618,7 @@ void nSubtr(doublecomplex * restrict a,doublecomplex * restrict b,doublecomplex 
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMult(doublecomplex * restrict a,doublecomplex * restrict b,const double c)
 // multiply vector by a real constant; a=c*b; !!! a and b must not alias !!!
@@ -654,7 +635,7 @@ void nMult(doublecomplex * restrict a,doublecomplex * restrict b,const double c)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const doublecomplex c)
 // multiply vector by a complex constant; a=c*b; !!! a and b must not alias !!!
@@ -671,7 +652,7 @@ void nMult_cmplx(doublecomplex * restrict a,doublecomplex * restrict b,const dou
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMultSelf(doublecomplex * restrict a,const double c)
 // multiply vector by a real constant; a*=c
@@ -687,7 +668,7 @@ void nMultSelf(doublecomplex * restrict a,const double c)
 		a[i][IM] *= cd;
 	}
 }
-//============================================================
+//======================================================================================================================
 
 void nMultSelf_conj(doublecomplex * restrict a,const double c)
 // conjugate vector and multiply it by a real constant; a=c*a(*)
@@ -704,7 +685,7 @@ void nMultSelf_conj(doublecomplex * restrict a,const double c)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 // multiply vector by a complex constant; a*=c
@@ -723,7 +704,7 @@ void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMult_mat(doublecomplex * restrict a,doublecomplex * restrict b,
 	doublecomplex (* restrict c)[3])
@@ -734,9 +715,8 @@ void nMult_mat(doublecomplex * restrict a,doublecomplex * restrict b,
 	register const size_t nd=local_nvoid_Ndip; // name 'nd' to distinguish with 'n' used elsewhere
 	register size_t i,k;
 	register int j;
-	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the
-	 * compiler should understand that none of the used vectors alias. Otherwise, deeper
-	 * optimization should be used.
+	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the compiler should
+	 * understand that none of the used vectors alias. Otherwise, deeper optimization should be used.
 	 */
 	doublecomplex * restrict val;
 
@@ -752,7 +732,7 @@ void nMult_mat(doublecomplex * restrict a,doublecomplex * restrict b,
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
 /* multiply by a function of material of a dipole and component; a[3*i+j]*=c[mat[i]][j]
@@ -763,9 +743,8 @@ void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
 	register size_t i,k;
 	register int j;
 	register double tmp;
-	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the
-	 * compiler should understand that none of the used vectors alias. Otherwise, deeper
-	 * optimization should be used.
+	/* Hopefully, the following declaration is enough to allow efficient loop unrolling. So the compiler should
+	 * understand that none of the used vectors alias. Otherwise, deeper optimization should be used.
 	 */
 	doublecomplex * restrict val;
 
@@ -782,7 +761,7 @@ void nMultSelf_mat(doublecomplex * restrict a,doublecomplex (* restrict c)[3])
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 void nConj(doublecomplex * restrict a)
 // complex conjugate of the vector

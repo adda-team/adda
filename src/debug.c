@@ -5,13 +5,11 @@
  * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -29,7 +27,7 @@
 #include <string.h>
 
 #ifdef DEBUGFULL
-//============================================================
+//======================================================================================================================
 
 void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
 /* Prints anything to stdout with additional debug information
@@ -53,18 +51,17 @@ void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
 	}
 }
 
-//=======================================================
+//======================================================================================================================
 
 void FieldPrint (doublecomplex * restrict x)
-/* print current field at certain dipole -- not used; left for deep debug; NOT ROBUST, since
- * DipoleCoord is not always available
+/* print current field at certain dipole -- not used; left for deep debug; NOT ROBUST, since DipoleCoord is not always
+ * available
  */
 {
 	int i=9810;
 
 	i*=3;
-	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",
-		DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
+	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
 	fprintf(logfile,"E = "CFORM3V,x[i][RE],x[i][IM],x[i+1][RE],x[i+1][IM],x[i+2][RE],x[i+2][IM]);
 }
 

@@ -1,18 +1,16 @@
 /* File: memory.c
  * $Date::                            $
  * Descr: allocation and freeing of different vectors and matrices; checks for 'out of memory';
- *       resistant to 0 sizes in allocation and NULL in freeing
+ *        resistant to 0 sizes in allocation and NULL in freeing
  *
- * Copyright (C) 2006-2008,2010,2012 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -39,7 +37,7 @@
 #define IF_FREE(v) if((v)!=NULL) free(v)
 #define OVERFLOW LogError(ERR_LOC_CALL,"Integer overflow in '%s'",name);
 
-//============================================================
+//======================================================================================================================
 
 void CheckOverflow(const double size,OTHER_ARGUMENTS)
 // checks if size can fit into size_t type, otherwise overflow will happen before memory allocation
@@ -47,7 +45,7 @@ void CheckOverflow(const double size,OTHER_ARGUMENTS)
 	if (size>SIZE_MAX) OVERFLOW;
 }
 
-//============================================================
+//======================================================================================================================
 
 size_t MultOverflow(const size_t a,const size_t b,OTHER_ARGUMENTS)
 // multiplies two integers and checks for overflow
@@ -56,7 +54,7 @@ size_t MultOverflow(const size_t a,const size_t b,OTHER_ARGUMENTS)
 	return(a*b);
 }
 
-//============================================================
+//======================================================================================================================
 doublecomplex *complexVector(const size_t size,OTHER_ARGUMENTS)
 // allocates complex vector
 {
@@ -72,7 +70,7 @@ doublecomplex *complexVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 double **doubleMatrix(const size_t rows,const size_t cols,OTHER_ARGUMENTS)
 // allocates double matrix (rows x cols)
@@ -91,7 +89,7 @@ double **doubleMatrix(const size_t rows,const size_t cols,OTHER_ARGUMENTS)
 	return m;
 }
 
-//============================================================
+//======================================================================================================================
 
 double *doubleVector(const size_t size,OTHER_ARGUMENTS)
 // allocates double vector
@@ -104,7 +102,7 @@ double *doubleVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS)
 // reallocates double vector ptr to a larger size
@@ -117,7 +115,7 @@ double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 double *doubleVector2(const size_t nl,const size_t nh,OTHER_ARGUMENTS)
 // allocates double vector with indices from nl to nh; all arguments must be non-negative and nh>=nl
@@ -134,12 +132,10 @@ double *doubleVector2(const size_t nl,const size_t nh,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 int **intMatrix(const size_t nrl,const size_t nrh,const size_t ncl,const size_t nch,OTHER_ARGUMENTS)
-/* allocates integer matrix with indices [nrl,nrh]x[ncl,nch]; all arguments must be non-negative;
- * and nrh>=nrl; nch>=ncl
- */
+// allocates integer matrix with indices [nrl,nrh]x[ncl,nch]; all arguments must be non-negative; nrh>=nrl; nch>=ncl
 {
 	register size_t i;
 	size_t rows,cols;
@@ -162,7 +158,7 @@ int **intMatrix(const size_t nrl,const size_t nrh,const size_t ncl,const size_t 
 	return m;
 }
 
-//============================================================
+//======================================================================================================================
 
 int *intVector(const size_t size,OTHER_ARGUMENTS)
 // allocates integer vector
@@ -175,7 +171,7 @@ int *intVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 unsigned short *ushortVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned short vector
@@ -188,7 +184,7 @@ unsigned short *ushortVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 char *charVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned char vector
@@ -200,7 +196,7 @@ char *charVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS)
 // reallocates char vector ptr to a larger size
@@ -213,7 +209,7 @@ char *charRealloc(char *ptr,const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 // allocates unsigned char vector
@@ -225,7 +221,7 @@ unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 void *voidVector(const size_t size,OTHER_ARGUMENTS)
 // allocates void vector
@@ -237,7 +233,7 @@ void *voidVector(const size_t size,OTHER_ARGUMENTS)
 	return v;
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_cVector (doublecomplex * restrict v)
 // frees complex vector
@@ -249,7 +245,7 @@ void Free_cVector (doublecomplex * restrict v)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_dMatrix(double ** restrict m,const size_t rows)
 // frees double matrix (rows x cols)
@@ -260,7 +256,7 @@ void Free_dMatrix(double ** restrict m,const size_t rows)
 	IF_FREE(m);
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_dVector2(double * restrict v,const size_t nl)
 // frees double vector with indices from nl; all arguments must be non-negative
@@ -268,7 +264,7 @@ void Free_dVector2(double * restrict v,const size_t nl)
 	IF_FREE(v+nl);
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_iMatrix(int ** restrict m,const size_t nrl,const size_t nrh,const size_t ncl)
 // frees integer matrix with indices [nrl,nrh]x[ncl,...]; all arguments must be non-negative
@@ -279,7 +275,7 @@ void Free_iMatrix(int ** restrict m,const size_t nrl,const size_t nrh,const size
 	IF_FREE(m+nrl);
 }
 
-//============================================================
+//======================================================================================================================
 
 void Free_general(void * restrict v)
 // frees general vector; kept in a special function for future development

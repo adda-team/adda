@@ -2,28 +2,25 @@
  * $Date::                            $
  * Descr: generate a incident beam
  *
- *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere
- *        arbitrary located in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,
- *        1427-1443 (1988). Eq.(22) - complex conjugate.
+ *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
+ *        in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,1427-1443 (1988).
+ *        Eq.(22) - complex conjugate.
  *
- *        Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19,
- *        1177-1179 (1979). Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2"
- *        (typo).
+ *        Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
+ *        Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo).
  *
- *        Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected
- *        electromagnetic-field components for a fundamental Gaussian-beam," J.Appl.Phys. 66,
- *        2800-2802 (1989). Eqs.(25)-(28) - complex conjugate.
+ *        Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field
+ *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
+ *        Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2012 ADDA contributors
+ * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -48,7 +45,6 @@ extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern opt_index opt_beam;
 
-
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
 // used in param.c
@@ -58,13 +54,12 @@ char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 /* TO ADD NEW BEAM
- * Add here all internal variables (beam parameters), which you initialize in InitBeam()
- * and use in GenerateB() afterwards. If you need local, intermediate variables, put them into
- * the beginning of the corresponding function.
+ * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
+ * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
  * Add descriptive comments, use 'static'.
  */
 
-//============================================================
+//======================================================================================================================
 
 void InitBeam(void)
 // initialize beam; produce description string
@@ -104,12 +99,10 @@ void InitBeam(void)
 			strcpy(beam_descr,"Gaussian beam (");
 			if (beamtype==B_LMINUS) strcat(beam_descr,"L- approximation)\n");
 			else if (beamtype==B_DAVIS3) strcat(beam_descr,"3rd order approximation, by Davis)\n");
-			else if (beamtype==B_BARTON5)
-				strcat(beam_descr,"5th order approximation, by Barton)\n");
-			sprintf(beam_descr+strlen(beam_descr),
-				"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
-			if (beam_asym) sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,
-					beam_center_0[0],beam_center_0[1],beam_center_0[2]);
+			else if (beamtype==B_BARTON5) strcat(beam_descr,"5th order approximation, by Barton)\n");
+			sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
+			if (beam_asym) sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,beam_center_0[0],
+				beam_center_0[1],beam_center_0[2]);
 			else strcat(beam_descr,"\tCenter is in the origin");
 		}
 	}
@@ -123,31 +116,28 @@ void InitBeam(void)
 		// we do not define beam_asym here, because beam_center is not defined anyway
 	}
 	/* TO ADD NEW BEAM
-	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...') should be
-	 * defined inside 'enum beam' in const.h. The option should
-	 * 1) save all the input parameters from array 'beam_pars' to local variables
-	 *    (defined in the beginning of this source files)
-	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since
-	 *    they would automatically produce informative output in case of error).
-	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set
-	 *    any of them to true, as they can be set to false by other factors.
+	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...') should be defined inside 'enum beam'
+	 * in const.h. The option should
+	 * 1) save all the input parameters from array 'beam_pars' to local variables (defined in the beginning of this
+	 *    source files)
+	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since they would
+	 *    automatically produce informative output in case of error).
+	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set any of them to true,
+	 *    as they can be set to false by other factors.
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
 	 *    symR - symmetry of rotation for 90 degrees over the Z axis
 	 * 4) initialize the following:
-	 * beam_descr - descriptive string, which will appear in log file.
-	 * beam_asym - whether beam center does not coincide with the reference frame origin. If it is
-	 *             set to true, then set also beam_center_0 - 3D radius-vector of beam center in the
-	 *             laboratory reference frame (it will be then automatically transformed to particle
-	 *             reference frame, if required).
-	 * all other auxiliary variables, which are used in beam generation (GenerateB(), see
-	 *   below), should be defined in the beginning of this file. If you need temporary local
-	 *   variables (which are used only in this part of the code), define them in the beginning of
-	 *   this function.
+	 *    beam_descr - descriptive string, which will appear in log file.
+	 *    beam_asym - whether beam center does not coincide with the reference frame origin. If it is set to true, then
+	 *                set also beam_center_0 - 3D radius-vector of beam center in the laboratory reference frame (it
+	 *                will be then automatically transformed to particle reference frame, if required).
+	 * All other auxiliary variables, which are used in beam generation (GenerateB(), see below), should be defined in
+	 * the beginning of this file. If you need temporary local variables (which are used only in this part of the code),
+	 * define them in the beginning of this function.
 	 */
-
 }
 
-//============================================================
+//======================================================================================================================
 
 void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 doublecomplex *restrict b) // the b vector for the incident field
@@ -163,8 +153,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	double ey[3];
 	double r1[3];
 	/* TO ADD NEW BEAM
-	 * Add here all intermediate variables, which are used only inside this function. You may as
-	 * well use 't1'-'t8' variables defined above.
+	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
+	 * variables defined above.
 	 */
 
 	// set reference frame of the beam; ez=prop, ex - incident polarization
@@ -262,8 +252,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					t2[RE]-=2;
 					cMultSelf(t2,t4);
 					cMultReal(xy_s,t2,t2);
-					/* t3 = s(-2Qx) + s^3[(6ro^2*Q^3+2iro^4*Q^4)x]
-					 *    + s^5[(-20ro^4*Q^5-10iro^6*Q^6+ro^8*Q^7)x]
+					/* t3 = s(-2Qx) + s^3[(6ro^2*Q^3+2iro^4*Q^4)x] + s^5[(-20ro^4*Q^5-10iro^6*Q^6+ro^8*Q^7)x]
 					 *    = t7{-2+t4[6+2t5+t4(-20-10t5+t6)]}
 					 */
 					cMultReal(-10,t5,t3);
@@ -291,8 +280,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		const char *fname;
 		if (which==INCPOL_Y) fname=beam_fnameY;
 		else { // which==INCPOL_X
-			if (beam_Npars==1) LogError(ONE_POS,"Only one beam file is specified, while X "
-				"polarization need to be calculated");
+			if (beam_Npars==1)
+				LogError(ONE_POS,"Only one beam file is specified, while X polarization need to be calculated");
 			fname=beam_fnameX;
 		}
 		TIME_TYPE tstart=GET_TIME();
@@ -308,18 +297,17 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		i=j=0;
 		while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 			// scan numbers in a line
-			scanned=sscanf(linebuf,beam_format,&(b[j][RE]),&(b[j][IM]),&(b[j+1][RE]),&(b[j+1][IM]),
-				&(b[j+2][RE]),&(b[j+2][IM]));
+			scanned=sscanf(linebuf,beam_format,&(b[j][RE]),&(b[j][IM]),&(b[j+1][RE]),&(b[j+1][IM]),&(b[j+2][RE]),
+				&(b[j+2][IM]));
 			if (scanned!=EOF) { // if sscanf returns EOF, that is a blank line -> just skip
 				if (scanned!=mustbe) // this in most cases indicates wrong format
-					LogError(ALL_POS,"Error occurred during scanning of line %zu from beam file %s",
-						line,fname);
-				if (i==nvoid_Ndip) LogError(ALL_POS,"Beam file %s contains more data rows than "
-					"number of dipoles (%zu) in the particle",fname,nvoid_Ndip);
+					LogError(ALL_POS,"Error occurred during scanning of line %zu from beam file %s",line,fname);
+				if (i==nvoid_Ndip) LogError(ALL_POS,"Beam file %s contains more data rows than number of dipoles (%zu) "
+					"in the particle",fname,nvoid_Ndip);
 				if (i>=local_nvoid_d0) j+=3;
 				i++;
-				/* all processors stop reading file as soon as possible, but the last processor
-				 * reads one more line to test (above) for extra strings in the file
+				/* all processors stop reading file as soon as possible, but the last processor reads one more line to
+				 * test (above) for extra strings in the file
 				 */
 				if(i==local_nvoid_d1 && i!=nvoid_Ndip) break;
 			}
@@ -327,15 +315,16 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		Timing_FileIO+=GET_TIME()-tstart;
 	}
 	/* TO ADD NEW BEAM
-	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...')
-	 * should be defined inside 'enum beam' in const.h. This option should set complex vector 'b',
-	 * describing the incident field in the particle reference frame. It is set inside the cycle for
-	 * each dipole of the particle and is calculated using 1) 'DipoleCoord' – array of dipole
-	 * coordinates; 2) 'prop' – propagation direction of the incident field; 3) 'ex' – direction of
-	 * incident polarization; 4) 'ey' – complementary unity vector of polarization (orthogonal to
-	 * both 'prop' and 'ex'); 5) 'beam_center' – beam center in the particle reference frame
-	 * (automatically calculated from 'beam_center_0' defined in InitBeam). If you need temporary
-	 * local variables (which are used only in this part of the code), either use 't1'-'t8' or
+	 * add an option here (in the end of 'else if' sequence). Identifier ('B_...') should be defined inside 'enum beam'
+	 * in const.h. This option should set complex vector 'b', describing the incident field in the particle reference
+	 * frame. It is set inside the cycle for each dipole of the particle and is calculated using
+	 * 1) 'DipoleCoord' – array of dipole coordinates;
+	 * 2) 'prop' – propagation direction of the incident field;
+	 * 3) 'ex' – direction of incident polarization;
+	 * 4) 'ey' – complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
+	 * 5) 'beam_center' – beam center in the particle reference frame (automatically calculated from 'beam_center_0'
+	 *                    defined in InitBeam).
+	 * If you need temporary local variables (which are used only in this part of the code), either use 't1'-'t8' or
 	 * define your own (with more informative names) in the beginning of this function.
 	 */
 }

@@ -2,16 +2,14 @@
  * $Date::                            $
  * Descr: routines for determining parameters of the chebyshev particles
  *
- * Copyright (C) 2011-2012 ADDA contributors
+ * Copyright (C) 2011-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -25,9 +23,7 @@
 // LOCAL VARIABLES
 
 #define MAX_NEWTON_ITERATIONS 20
-/* The following corresponds to sqrt(DBL_EPSILON)/10.
- * It should lead to DBL_EPSILON precision in the function value
- */
+// The following corresponds to sqrt(DBL_EPSILON)/10. It should lead to DBL_EPSILON precision in the function value
 #define NEWTON_EPS 1e-9
 enum newt_func { // type of function to calculate in Newton's maximization
 	NF_VALUE, // f(x)
@@ -36,7 +32,7 @@ enum newt_func { // type of function to calculate in Newton's maximization
 static double eps;
 static int n;
 
-//==========================================================
+//======================================================================================================================
 
 static double Zfunc(double x,enum newt_func mode)
 // computes either f(x) or f'(x)/f''(x), where f(x)=[1+e*cos(nx)]cos(x)
@@ -60,7 +56,7 @@ static double Zfunc(double x,enum newt_func mode)
 	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
-//==========================================================
+//======================================================================================================================
 
 static double Xfunc(double x,enum newt_func mode)
 // computes either f(x) or f'(x)/f''(x), where f(x)=[1+e*sin(nx)]cos(x)
@@ -84,14 +80,12 @@ static double Xfunc(double x,enum newt_func mode)
 	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
-//==========================================================
+//======================================================================================================================
 
 static double NewtonMaximum(double x0,double x1,double x2,double (*func)(double x,enum newt_func))
-/* finds a maximum (minimum) of a function f(x) using the Newton's method
- * x0 - should be a good guess, and [x1,x2] is a bounding interval
- * (preliminary analysis is usually required for this)
- * func - is a reference to function, which implements both f(x) and f'(x)/f''(x) (depending on the
- * second argument)
+/* finds a maximum (minimum) of a function f(x) using the Newton's method; x0 - should be a good guess, and [x1,x2] is
+ * a bounding interval (preliminary analysis is usually required for this); func - is a reference to function, which
+ * implements both f(x) and f'(x)/f''(x) (depending on the second argument)
  */
 {
 	int i;
@@ -107,7 +101,7 @@ static double NewtonMaximum(double x0,double x1,double x2,double (*func)(double 
 	LogError(ONE_POS,"Newton's method failed to converge in %d iterations",i);
 }
 
-//===========================================================
+//======================================================================================================================
 
 static double Zmax(double e)
 // finds maximum of function [1+e*cos(n*x)]cos(x)
@@ -117,9 +111,8 @@ static double Zmax(double e)
 	n2=n*n;
 	tmp=e*(n2+1);
 	if (tmp>=-1) res=1+e;
-	/* two special cases for small n are based on direct solution of f'(x)=0
-	 * The formulae are self-derived but agree (for n=2) with
-	 * A. Mugnai and W.J. Wiscombe, “Scattering of radiation by moderately nonspherical particles,”
+	/* two special cases for small n are based on direct solution of f'(x)=0; the formulae are self-derived but agree
+	 * (for n=2) with A. Mugnai and W.J. Wiscombe, “Scattering of radiation by moderately nonspherical particles,”
 	 * J. Atmos. Sci. 37, 1291-1307 (1980).
 	 */
 	else if (n==1) res=-1/(4*e);
@@ -135,12 +128,10 @@ static double Zmax(double e)
 	return res;
 }
 
-//===========================================================
+//======================================================================================================================
 
 static double Xmax(void)
-/* finds maximum of function [1+e*sin(n*x)]cos(x);
- * in principle should work for any n, but is called only for odd n
- */
+// finds maximum of function [1+e*sin(n*x)]cos(x); in principle should work for any n, but is called only for odd n
 {
 	double res,e,s,arg;
 	e=fabs(eps); // result does not depend on sign of eps anyway
@@ -156,7 +147,7 @@ static double Xmax(void)
 	return res;
 }
 
-//===========================================================
+//======================================================================================================================
 
 void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,double *vr)
 // finds geometric parameters of the Chebyshev particles: r(th)=1+eps*cos(n*th)
@@ -180,9 +171,8 @@ void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,dou
 	*dz=zmax-zmin;
 	*sz=(zmax+zmin)/2;
 	*dx=2*xmax;
-	/* determine volume fraction; the formula is self-derived but agrees with
-	 * A. Mugnai and W.J. Wiscombe, “Scattering of radiation by moderately nonspherical particles,”
-	 * J. Atmos. Sci. 37, 1291-1307 (1980).
+	/* determine volume fraction; the formula is self-derived but agrees with A. Mugnai and W.J. Wiscombe, “Scattering
+	 * of radiation by moderately nonspherical particles,” J. Atmos. Sci. 37, 1291-1307 (1980).
 	 */
 	tmp1=eps*eps/4;
 	tmp2=1+6*tmp1*(4*n2-2)/(4*n2-1);

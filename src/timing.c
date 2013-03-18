@@ -5,13 +5,11 @@
  * Copyright (C) 2006,2008-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -39,43 +37,36 @@ TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total a
           Timing_IntField,Timing_IntFieldOne, // for internal fields: total & one calculation
           Timing_ScatQuan;                    // for integral scattering quantities
 size_t TotalEFieldPlane; // total number of planes for scattered field calculations
-
 // used in calculator.c
 TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
 size_t TotalEval;      // total number of orientation evaluations
 #ifdef OPENCL
 TIME_TYPE Timing_OCL_Init; // for initialization of OpenCL (including building program)
 #endif
-
 // used in comm.c
 TIME_TYPE Timing_InitDmComm; // communication time for initialization of D-matrix
-
 // used in crosssec.c
-// total time for all_dir and scat_grid calculations
+	// total time for all_dir and scat_grid calculations
 TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & comm
           Timing_EFieldSG,Timing_EFieldSGComm,  // time for scat_dir: total & comm
           Timing_ScatQuanComm;                  // time for comm of scat.quantities
-
 // used in fft.c
 TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
           Timing_Dm_Init;  // for building Dmatrix
-
 // used in iterative.c
 TIME_TYPE Timing_OneIter,Timing_OneIterComm,    // for one iteration: total & comm
           Timing_InitIter,Timing_InitIterComm,  // for initialization of iterations: total & comm
           Timing_IntFieldOneComm;               // comm for one calculation of the internal fields
 size_t TotalIter;                               // total number of iterations performed
-
 // used in make_particle.c
 TIME_TYPE Timing_Particle,                 // for particle construction
           Timing_Granul,Timing_GranulComm; // for granule generation: total & comm
-
 // used in matvec.c
 size_t TotalMatVec; // total number of matrix-vector products
 
 #define FFORMT "%.4f" // format for timing results
 
-//============================================================
+//======================================================================================================================
 
 void StartTime(void)
 // start global time
@@ -87,7 +78,7 @@ void StartTime(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void InitTiming(void)
 // init timing variables and counters
@@ -100,7 +91,7 @@ void InitTiming(void)
 #endif	
 }
 
-//============================================================
+//======================================================================================================================
 
 void FinalStatistics(void)
 // print final output and statistics

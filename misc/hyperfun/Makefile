@@ -1,13 +1,13 @@
-# Makefile for calc_pip_arg. Uses the default gfortran, which should be present on any Unix. Other
-# compilers and optimization flags may also be used, but this makes little sense, since the routine
-# is a trivial one and is executed only a few times.
+# Makefile for calc_pip_arg. Uses the default gfortran, which should be present on any Unix. Other compilers and
+# optimization flags may also be used, but this makes little sense, since the routine # is a trivial one and is executed
+# only a few times.
 
 CF      = gfortran
 FFLAGS  = -O
 PROG    = calc_pip_arg
 FSOURCE = calc_pip_arg.f90
 
-#===================================================================================================
+#=======================================================================================================================
 
 .PHONY: all clean
 

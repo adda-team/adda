@@ -1,18 +1,16 @@
 /* File: calculator.c
  * $Date::                            $
- * Descr: all the initialization is done here before actually calculating internal fields; includes
- *        calculation of couple constants
+ * Descr: all the initialization is done here before actually calculating internal fields;
+ *        includes calculation of couple constants
  *
  * Copyright (C) 2006-2010,2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -58,37 +56,31 @@ double * restrict muel_phi_buf; // additional for integrating with different mul
 doublecomplex * restrict EplaneX, * restrict EplaneY;
 double * restrict Eplane_buffer; // buffer to accumulate Eplane
 double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
-	// amplitude matrix for different values of alpha
-doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY;
+doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY; // amplitude matrix for different values of alpha
 double * restrict muel_alpha; // mueller matrix for different values of alpha
 
 // used in crosssec.c
 double * restrict E2_alldir; // square of E, calculated for alldir
 double * restrict E2_alldir_buffer; // buffer to accumulate E2_alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
-	// arrays of exponents along 3 axes (for calc_field)
 #ifndef SPARSE
-doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
+doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of exponents along 3 axes (for calc_field)
 #endif
-
 // used in iterative.c
 doublecomplex *rvec;                 // current residual
 doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector products
 // auxiliary vectors, used in some iterative solvers (with more meaningful names)
 doublecomplex * restrict vec1,* restrict vec2,* restrict vec3;
-
-#ifdef SPARSE
 // used in matvec.c
+#ifdef SPARSE
 doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
 #endif
 
 // LOCAL VARIABLES
 
 static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
-	// whether to stop orientation averaging; defined as int to simplify MPI casting
-static int finish_avg;
-	// used to collect both mueller matrix and integral scattering quantities when orient_avg
-static double * restrict out;
+static int finish_avg; // whether to stop orientation averaging; defined as int to simplify MPI casting
+static double * restrict out; // used to collect both mueller matrix and integral scattering quantities when orient_avg
 
 // EXTERNAL FUNCTIONS
 
@@ -97,11 +89,11 @@ int CalculateE(enum incpol which,enum Eftype type);
 void MuellerMatrix(void);
 void SaveMuellerAndCS(double * restrict in);
 
-//============================================================
+//======================================================================================================================
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex *res)
-/* hard to maintain. It is better to separate different polarizability relations to make the
- * resulting expressions more understandable.
+/* hard to maintain. It is better to separate different polarizability relations to make the resulting expressions more
+ * understandable.
  */
 {
 	doublecomplex coup_con[3];
@@ -155,8 +147,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					else {
 						if (which==INCPOL_Y) incPol=incPolY;
 						else incPol=incPolX; // which==INCPOL_X
-						S = prop2[0]*incPol[0]*incPol[0] + prop2[1]*incPol[1]*incPol[1]
-						  + prop2[2]*incPol[2]*incPol[2];
+						S = prop2[0]*incPol[0]*incPol[0] + prop2[1]*incPol[1]*incPol[1] + prop2[2]*incPol[2]*incPol[2];
 					}
 				}
 			}
@@ -178,8 +169,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					t1[IM]=2*kd2*kd/3; // t1=2/3*i*kd^3
 					// plus more advanced corrections
 					if (PolRelation==POL_DGF) t1[RE]+=DGF_B1*kd2;
-					else if (PolRelation==POL_FCD) // t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-						t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
+					// t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+					else if (PolRelation==POL_FCD) t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
 					if (PolRelation==POL_IGT_SO) t1[RE]+=SO_B1*kd2;
 					else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
 						if (PolRelation!=POL_LDR) S=prop2[i];
@@ -198,19 +189,18 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],
-			coup_con[0][IM],coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],coup_con[0][IM],
+			coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
 	}
 	else {
 		cEqual(coup_con[0],coup_con[1]);
 		cEqual(coup_con[0],coup_con[2]);
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",
-				coup_con[0][RE],coup_con[0][IM]);
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",coup_con[0][RE],coup_con[0][IM]);
 	}
 	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
 
-//============================================================
+//======================================================================================================================
 
 static void InitCC(const enum incpol which)
 // calculate cc, cc_sqrt, and chi_inv
@@ -235,15 +225,14 @@ static void InitCC(const enum incpol which)
 		}
 	}
 #ifdef OPENCL
-	/* this is done here, since InitCC can be run between different runs of the iterative solver
-	 * write is blocking to ensure completion before function end
+	/* this is done here, since InitCC can be run between different runs of the iterative solver; write is blocking to
+	 * ensure completion before function end
 	 */
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,
-		NULL,NULL));
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,NULL,NULL));
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 static void calculate_one_orientation(double * restrict res)
 // performs calculation for one orientation; may do orientation averaging and put the result in res
@@ -253,8 +242,7 @@ static void calculate_one_orientation(double * restrict res)
 	if (orient_avg) {
 		alph_deg=0;
 		InitRotation();
-		if (IFROOT) PrintBoth(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",
-			bet_deg,gam_deg);
+		if (IFROOT) PrintBoth(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",bet_deg,gam_deg);
 	}
 
 	// calculate scattered field for y - polarized incident light
@@ -267,9 +255,9 @@ static void calculate_one_orientation(double * restrict res)
 		if (CalculateE(INCPOL_Y,CE_PARPER)==CHP_EXIT) return;
 	}
 	else { // no rotational symmetry
-		/* TODO: in case of scat_grid we run twice to get the full electric field with incoming
-		 * light polarized in X and Y direction. In case of rotational symmetry this is not needed
-		 * but requires lots more programming so we leave this optimization to a later time.
+		/* TODO: in case of scat_grid we run twice to get the full electric field with incoming light polarized in X and
+		 * Y direction. In case of rotational symmetry this is not needed but requires lots more programming so we leave
+		 * this optimization to a later time.
 		 */
 		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
@@ -286,8 +274,8 @@ static void calculate_one_orientation(double * restrict res)
 	D("MuellerMatrix finished");
 	if (IFROOT && orient_avg) {
 		tstart=GET_TIME();
-		/* it is more logical to use store_mueller in the following test, but for orientation
-		 * averaging these two flags are identical
+		/* it is more logical to use store_mueller in the following test, but for orientation averaging these two flags
+		 * are identical
 		 */
 		if (yzplane) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
@@ -298,7 +286,7 @@ static void calculate_one_orientation(double * restrict res)
 	TotalEval++;
 }
 
-//============================================================
+//======================================================================================================================
 
 static double orient_integrand(int beta_i,int gamma_i, double * restrict res)
 // function that provides interface with Romberg integration
@@ -312,7 +300,7 @@ static double orient_integrand(int beta_i,int gamma_i, double * restrict res)
 	return 0;
 }
 
-//============================================================
+//======================================================================================================================
 
 static void AllocateEverything(void)
 // allocates a lot of arrays and performs memory analysis
@@ -324,10 +312,9 @@ static void AllocateEverything(void)
 	// redundant initialization to remove warnings
 	temp_int=0;
 
-	/* It may be nice to initialize all pointers to NULL here, so that any pointer, which is not
-	 * initialized below, will surely stay NULL (independent of a particular compiler). But even
-	 * without this forgetting to allocate a necessary vector, will surely cause segmentation fault
-	 * afterwards. So we do not implement these extra tests for now.
+	/* It may be nice to initialize all pointers to NULL here, so that any pointer, which is not initialized below, will
+	 * surely stay NULL (independent of a particular compiler). But even without this forgetting to allocate a necessary
+	 * vector, will surely cause segmentation fault afterwards. So we do not implement these extra tests for now.
 	 */
 	// allocate all the memory
 	tmp=sizeof(doublecomplex)*(double)local_nRows;
@@ -345,10 +332,10 @@ static void AllocateEverything(void)
 	}
 	memory+=3*nvoid_Ndip*sizeof(*arg_full);
 #endif // !SPARSE
-	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated
-	 * for any new iterative solver, based on the information contained in structure array 'params'
-	 * in file iterative.c. However, this requires different order of function calls to extract this
-	 * information beforehand. So currently this part should be edited manually when needed.
+	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
+	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
+	 * this requires different order of function calls to extract this information beforehand. So currently this part
+	 * should be edited manually when needed.
 	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		if (!prognosis) {
@@ -366,10 +353,9 @@ static void AllocateEverything(void)
 		memory+=2*tmp;
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * If the new iterative solver requires any extra vectors (additionally to the default ones),
-	 * i.e. number vec_N in corresponding element of structure array params in iterative.c is
-	 * non-zero, then change the above condition to allocate memory for these vectors. Variable
-	 * memory should be incremented to reflect the total allocated memory.
+	 * If the new iterative solver requires any extra vectors (additionally to the default ones), i.e. number vec_N in
+	 * corresponding element of structure array params in iterative.c is non-zero, then change the above condition to
+	 * allocate memory for these vectors. Variable memory should be incremented to reflect the total allocated memory.
 	 */
 #ifndef SPARSE
 	MALLOC_VECTOR(expsX,complex,boxX,ALL);
@@ -386,10 +372,9 @@ static void AllocateEverything(void)
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
 #ifdef PARALLEL
-		/* Buffers like Eplane_buffer are defined always (without "ifdef PARALLEL"), so that
-		 * functions like Accumulate may be called even in sequential mode with buffers in their
-		 * arguments. Such calls are void, but are good for generality of the code. So only
-		 * allocation of these buffers is put inside "ifdef".
+		/* Buffers like Eplane_buffer are defined always (without "ifdef PARALLEL"), so that functions like Accumulate
+		 * may be called even in sequential mode with buffers in their arguments. Such calls are void, but are good for
+		 * generality of the code. So only allocation of these buffers is put inside "ifdef".
 		 */
 		if (IFROOT) { // buffer for accumulate operation
 			if (!prognosis) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
@@ -399,8 +384,8 @@ static void AllocateEverything(void)
 	}
 	if (all_dir) {
 		ReadAlldirParms(alldir_parms);
-		/* calculate size of vectors; 4 - because first it is used to store per and par components
-		 * of the field, and only afterwards - squares.
+		/* calculate size of vectors; 4 - because first it is used to store per and par components of the field, and
+		 * only afterwards - squares.
 		 */
 		tmp=4*((double)theta_int.N)*phi_int.N;
 		if (!prognosis) {
@@ -467,13 +452,11 @@ static void AllocateEverything(void)
 	}
 	/* estimate of the memory (only the fastest scaling part):
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
-	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only
-	 *          for parallel mode.
+	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 *          For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
 	 * others - nvoid_Ndip*{271(CGNR,BiCG),367(CSYM,QMR2), or 415(BiCGStab,QMR)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
-	 * PARALLEL: above is total; division over processors of MatVec is uniform,
-	 *           others - according to local_nvoid_Ndip
+	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
 	 */
 	MAXIMIZE(memPeak,memory);
 	double memSum=AccumulateMax(memPeak,&memmax);
@@ -483,14 +466,13 @@ static void AllocateEverything(void)
 		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax/MBYTE);
 #endif
 #ifdef OPENCL
-		PrintBoth(logfile,
-			"OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
+		PrintBoth(logfile,"OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
 			oclMemPeak/MBYTE,oclMemMaxObj/MBYTE);
 #endif
 	}
 }
 
-//============================================================
+//======================================================================================================================
 
 static void FreeEverything(void)
 /* frees all allocated vectors; should not be called in prognosis mode, since arrays are not
@@ -514,9 +496,9 @@ static void FreeEverything(void)
 	Free_cVector(Einc);
 	Free_cVector(Avecbuffer);
 	
-	/* The following can be automated to some extent, either using the information from structure
-	 * array 'params' in iterative.c or checking each vector for being NULL. However, it will anyway
-	 * require manual editing if additional (e.g. fourth) vector will be added.
+	/* The following can be automated to some extent, either using the information from structure array 'params' in
+	 * iterative.c or checking each vector for being NULL. However, it will anyway require manual editing if additional
+	 * (e.g. fourth) vector will be added.
 	 */
 	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
 		Free_cVector(vec1);
@@ -528,11 +510,10 @@ static void FreeEverything(void)
 		Free_cVector(vec2);
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * If the new iterative solver requires any extra vectors (so that they were allocated in
-	 * function AllocateEverything() above), then this condition (immediately above) should be
-	 * changed to perform freeing of these vectors.
+	 * If the new iterative solver requires any extra vectors (so that they were allocated in function
+	 * AllocateEverything() above), then this condition (immediately above) should be changed to perform freeing of
+	 * these vectors.
 	 */
-
 	if (yzplane) {
 		Free_cVector(EplaneX);
 		Free_cVector(EplaneY);
@@ -583,7 +564,7 @@ static void FreeEverything(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void Calculator (void)
 {
@@ -628,8 +609,7 @@ void Calculator (void)
 			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
 			D("Romberg2D finished on root");
 			finish_avg=true;
-			/* first two are dummy variables; this call corresponds to similar call in
-			 * orient_integrand by other processors;
+			/* first two are dummy variables; this call corresponds to one in orient_integrand by other processors;
 			 * TODO: replace by a call without unnecessary overhead
 			 */
 			BcastOrient(&finish_avg,&finish_avg,&finish_avg);

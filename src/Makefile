@@ -1,36 +1,33 @@
 # Main makefile for ADDA package
-# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl'
-# for sequential, parallel (MPI), and OpenCL (GPU accelerated) version respectively
+# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI),
+# and OpenCL (GPU accelerated) version respectively
 # $Date::                            $
 #
 # Copyright (C) 2006-2013 ADDA contributors
 # This file is part of ADDA.
 #
-# ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
-# General Public License as published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
+# ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 #
-# ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
-# the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-# Public License for more details.
+# ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with ADDA. If not, see
 # <http://www.gnu.org/licenses/>.
 
-#===================================================================================================
-# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS.
-# First three are passed to C, Fortran, and C++ compiler respectively, and last two are passed to
-# linker. Values specified below are added to the values given by the environment.
-# These variables can also be given in the command line to make, but it will override all values
-# specified in this Makefile. This is especially critical for CFLAGS which should be overridden only
-# with much care, including all relevant flags in the new value.
-# Moreover, all other variables can be overridden by command line option to make. In particular, 
-# this can be relevant for specifying a different version of the compiler (see below).
-#===================================================================================================
+#=======================================================================================================================
+# !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. First three are
+# passed to C, Fortran, and C++ compiler respectively, and last two are passed to the linker. Values specified below are
+# added to the values given by the environment. These variables can also be given in the command line to make, but it
+# will override all values specified in this Makefile. This is especially critical for CFLAGS which should be overridden
+# only with much care, including all relevant flags in the new value. Moreover, all other variables can be overridden by
+# command line option to make. In particular, this can be relevant for specifying a different version of the compiler
+# (see below).
+#=======================================================================================================================
 
-#===================================================================================================
+#=======================================================================================================================
 # Fixed definitions for non-compilation targets
-#===================================================================================================
+#=======================================================================================================================
 
 SHELL      := /bin/sh
 # Separate directories to store Makefiles and .o and .d files for sequential and MPI executables
@@ -53,39 +50,37 @@ OPTSFILES   := $(LDOPTSFILE) $(COPTSFILE) $(FOPTSFILE) $(CPPOPTSFILE)
 # Common makefile to be included from the specific makefiles for seq and mpi version
 COMMONMK    := ../common.mk
 
-#===================================================================================================
-# !!! Start of control section. Flags and options here can be modified by user. However, the default
-# set of options may work out-of-box on some systems.
+#=======================================================================================================================
+# !!! Start of control section. Flags and options here can be modified by user. However, the default set of options may
+# work out-of-box on some systems.
+
 # First section contains general variables used by non-compilation targets (clean, install, etc.)
-#===================================================================================================
+#=======================================================================================================================
 
 # nothing here yet
 
-#===================================================================================================
-# Below are flags and options specific for compilation. If compiling with MPI support please also
-# look at control section in file 'mpi/Makefile'.
+#=======================================================================================================================
+# Below are flags and options specific for compilation. If compiling with MPI or OpenCL support please also look at
+# control sections in files 'mpi/Makefile' and 'ocl/Makefile' respectively.
 
-# Everything from here down to the main action part of this makefile is skipped if targets specified
-# in the command line to this makefile do not imply compilation.
+# Everything from here down to the main action part of this makefile is skipped if targets specified in the command line
+# to this makefile do not imply compilation.
 ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),)
-#===================================================================================================
+#=======================================================================================================================
 
 # ---Optional flags---
-# Uncomment those that you find appropriate; additional information is in specified headers.
-# One can also export environmental variable OPTIONS before executing make, or define its value in
-# the command line of make. For instance, 'make OPTIONS=DEBUG ...' or 'make OPTIONS+=DEBUG ...'. If
-# several options need to be given, they should be given as one argument in quotes with its parts
-# separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that are uncommented
-# below are appended to the list specified elsewhere.
-# Full list of possible options is the following:
-VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN \
-              NO_CPP OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
+# Uncomment those that you find appropriate; additional information is in specified headers. One can also export
+# environmental variable OPTIONS before executing make, or define its value in the command line of make. For instance,
+# 'make OPTIONS=DEBUG ...' or 'make OPTIONS+=DEBUG ...'. If several options need to be given, they should be given as
+# one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
+# are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
+VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
 
-# Debug mode. By default, release configuration is used (no debug, no warnings, maximum
-# optimization). DEBUG turns on producing debugging symbols (-g) and warnings and brings
-# optimization down to O2 (this is required to produce all possible warnings by the compiler).
-# DEBUGFULL turns off optimization completely (for more accurate debugging symbols) and turns on
-# additional diagnostic messages in the source code (debug.c/h).
+# Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
+# producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
+# possible warnings by the compiler). DEBUGFULL turns off optimization completely (for more accurate debugging symbols)
+# and turns on additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
 
@@ -99,66 +94,60 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 #override OPTIONS += NOT_USE_LOCK
 #override OPTIONS += ONLY_LOCKFILE
 
-# This should be uncommented, if compiling of Fortran sources cause problems. However, currently a
-# number of ADDA (optional) features rely on Fortran sources, in particular: IGT, Temperton FFT.
-# This features will not work if line below is uncommented.
+# This should be uncommented, if compiling of Fortran sources cause problems. However, currently a number of ADDA
+# (optional) features rely on Fortran sources, in particular: IGT, Temperton FFT. This features will not work if line
+# below is uncommented.
 #override OPTIONS += NO_FORTRAN
 
-# This should be uncommented, if compiling of C++ sources cause problems. However, currently a
-# number of ADDA (optional) features rely on C++ sources, in particular: OpenCL version.
-# This features will not work if line below is uncommented.
+# This should be uncommented, if compiling of C++ sources cause problems. However, currently a number of ADDA (optional)
+# features rely on C++ sources, in particular: OpenCL version. This features will not work if line below is uncommented.
 #override OPTIONS += NO_CPP
 
-# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked
-# at compile time (and error is produced if the test fails). However, if you believe that your
-# compiler supports all the required features (listed in const.h), but do not define itself
-# conforming to C99, you may uncomment the following option to override the test. Do it at your own
-# risk!
+# ADDA code relies on certain parts of C99 standard, therefore support of this standard is checked at compile time (and
+# error is produced if the test fails). However, if you believe that your compiler supports all the required features
+# (listed in const.h), but do not define itself conforming to C99, you may uncomment the following option to override
+# the test. Do it at your own risk!
 #override OPTIONS += OVERRIDE_STDC_TEST
 
-# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and
-# stores them as static string, which is compiled into the GPU code at runtime. Alternative option
-# is to read these files at runtime. This creates hassle of keeping .cl files together with the
-# executable, but may be a bit more robust/portable than the default approach. Uncomment the
-# following option to enable reading of kernel sources at runtime.
+# By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and stores them as
+# static string, which is compiled into the GPU code at runtime. Alternative option is to read these files at runtime.
+# This creates hassle of keeping .cl files together with the executable, but may be a bit more robust/portable than
+# the default approach. Uncomment the following option to enable reading of kernel sources at runtime.
 #override OPTIONS += OCL_READ_SOURCE_RUNTIME
 
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
 
 # ---Compilers---
-# Choose one of the following. Can also be specified from command line to make (see explanation
-# above for OPTIONS), overriding definition below. To specify a different version of the compiler, 
-# e.g. 'gcc-4.7' instead of 'gcc', use command 'make CC=gcc-4.7' (analogously for Fortran and C++
-# compilers).
+# Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
+# overriding definition below. To specify a different version of the compiler, e.g. 'gcc-4.7' instead of 'gcc', use
+# command 'make CC=gcc-4.7' (analogously for Fortran and C++ compilers).
 # gnu - tested for gcc 3.2.3 - 4.5.2 (most recent experience only with 4.3 and newer)
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
 # hpux - tested on ia64
 # other -
-# WARNING: Currently intel compiler version 11.0 has problems with CUDA version 3.2 (Nvidia) CL
-# headers. In particular, cl_platform.h defines some types with __attribute__(vector...) not
-# checking for support of these attributes (against gcc version). Compiling with option '-no-gcc'
-# does not seem to work either. So the only feasible option to use icc with ocl seems to manually
-# modify this (system) header or replace them with that from AMD SDK. Hopefully, this will be fixed
-# in later versions of CUDA and/or icc.
+# WARNING: Currently intel compiler version 11.0 has problems with CUDA version 3.2 (Nvidia) CL headers. In particular,
+# cl_platform.h defines some types with __attribute__(vector...) not checking for support of these attributes (against
+# gcc version). Compiling with option '-no-gcc' does not seem to work either. So the only feasible option to use icc
+# with ocl seems to manually modify this (system) header or replace them with that from AMD SDK. Hopefully, this will
+# be fixed in later versions of CUDA and/or icc.
 COMPILER := gnu
 
-# Additional options for compiler. Flags specified below are appended to the ones specified in the
-# environment or command line of make (see explanation above for OPTIONS). The same value is used 
-# for all programming languages to be compiled and for linker.
-# In particular, "-m32" may be used to force 32 bit compilation in 64 bit environment. However, it
-# also requires proper libraries (especially, external ones, like FFTW3 or MPI) to be supplied.
+# Additional options for compiler. Flags specified below are appended to the ones specified in the environment or
+# command line of make (see explanation above for OPTIONS). The same value is used for all programming languages to be
+# compiled and for linker. In particular, "-m32" may be used to force 32 bit compilation in 64 bit environment. However,
+# it also requires proper libraries (especially, external ones, like FFTW3 or MPI) to be supplied.
 override EXTRA_FLAGS +=
 
 # --FFTW3 paths--
-# Specify path to headers and libraries of FFTW3. Some systems do not need them at all, some specify
-# special global variables (first or second 2 lines), on some - FFTW3 is installed under user
-# account (next 2 lines). Under Windows it may be required to specify paths manually (last 2 lines).
-# Relative (to location of this Makefile) paths should be immediately transformed into absolute
-# ones using "$(abspath ...)". This two variables (FFTW3_INC_PATH and FFTW3_LIB_PATH) can also be
-# defined in the enviroment or in the command line of make (see explanation above for OPTIONS).
+# Specify path to headers and libraries of FFTW3. Some systems do not need them at all, some specify special global
+# variables (first or second 2 lines), on some - FFTW3 is installed under user account (next 2 lines). Under Windows it
+# may be required to specify paths manually (last 2 lines). Relative (to location of this Makefile) paths should be
+# immediately transformed into absolute ones using "$(abspath ...)". This two variables (FFTW3_INC_PATH and
+# FFTW3_LIB_PATH) can also be defined in the enviroment or in the command line of make (see explanation above for
+# OPTIONS).
 #FFTW3_INC_PATH := $(FFTW_INC)
 #FFTW3_LIB_PATH := $(FFTW_LIB)
 #FFTW3_INC_PATH := $(FFTWINCLUDE)
@@ -168,28 +157,27 @@ override EXTRA_FLAGS +=
 #FFTW3_INC_PATH := "$(abspath ./../lib)"
 #FFTW3_LIB_PATH := "$(abspath ./../lib)"
 
-#===================================================================================================
-# !!! End of control section. Everything below is not designed to be modified by user. However,
-# advanced users may wish to modify some compilers  flags below, especially when using 'other'
-# compiler.
+#=======================================================================================================================
+# !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
+# to modify some compilers flags below, especially when using 'other' compiler.
 
 # Unconditional variables
-#===================================================================================================
+#=======================================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c calculator.c CalculateE.c GenerateB.c debug.c timing.c \
-           linalg.c iterative.c memory.c comm.c make_particle.c matvec.c param.c crosssec.c \
-           Romberg.c io.c prec_time.c vars.c mt19937ar.c sinint.c chebyshev.c interaction.c
+CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c debug.c GenerateB.c interaction.c io.c \
+           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c prec_time.c Romberg.c sinint.c \
+           timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
-FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f \
-           drlhre.f dtrhre.f propaesplibreintadda.f
+FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
+           propaesplibreintadda.f
 # C++ files are located in src/cpp folder, other files may be added below
 CPPSOURCE :=
 
 # All object files and dependencies are defined in common.mk after the source lists are finalized
 
-# Path to search for source files from the child Makefiles (in child folders)
-# Those are used for vpath directives in child Makefiles
+# Path to search for source files from the child Makefiles (in child folders) Those are used for vpath directives in
+# child Makefiles
 PARENT    := ..
 FFOLDER   := fort
 CPPFOLDER := cpp
@@ -199,9 +187,9 @@ DEPFLAG   := -MD
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
 
-#===================================================================================================
+#=======================================================================================================================
 # Conditional variables that depend on the values of optional flags.
-#===================================================================================================
+#=======================================================================================================================
 #
 # Process OPTIONS
 # Produce warnings if any of OPTIONS are not present in VALID_OPTS list
@@ -308,14 +296,12 @@ ifneq ($(strip $(EXTRA_FLAGS)),)
   LDFLAGS  += $(EXTRA_FLAGS)
 endif
 
-# By default Fortran anc C++ optimization options are the same as C, but specific options can be
-# used for some compilers below. This definition creates a permanent link, so further changes to
-# COPT affect FOPT and CPPOPT as well.
+# By default Fortran anc C++ optimization options are the same as C, but specific options can be used for some compilers
+# below. This definition creates a permanent link, so further changes to COPT affect FOPT and CPPOPT as well.
 FOPT   = $(COPT)
 CPPOPT = $(COPT)
-# This is for additional libraries that may be needed when using C linker on Fortran or C++ sources
-# (using Fortran or C++ linker may also cause some problems, i.e. for MPI mode). Particular values
-# are assigned for each compiler below.
+# This is for additional libraries that may be needed when using C linker on Fortran or C++ sources (using Fortran or
+# C++ linker may also cause some problems, i.e. for MPI mode). Particular values are assigned for each compiler below.
 FLIBS   +=
 CPPLIBS +=
 # Debugging flag is assumed the same for all compilers
@@ -326,9 +312,9 @@ ifeq ($(COMPILER),gnu)
   CSTD    := -std=c99
   COPT1   := -O2
   COPT2   := -O3 -ffast-math -funroll-loops
-  CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings \
-            -Wstrict-prototypes -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs \
-            -Wcomment -Wno-unknown-pragmas -Wno-overlength-strings
+  CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
+             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas \
+             -Wno-overlength-strings
 
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
@@ -341,8 +327,8 @@ ifeq ($(COMPILER),gnu)
 
   CCPP    := g++
   CPPLIBS := -lstdc++
-  # for now we do not want to investigate C++ warnings (since these sources are planned to be
-  # replaced by more advanced routines), so we consider the following combination thorough enough
+  # for now we do not want to investigate C++ warnings (since these sources are planned to be replaced by more advanced
+  # routines), so we consider the following combination thorough enough
   CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
   CC    := icc
@@ -361,10 +347,9 @@ else ifeq ($(COMPILER),intel)
   CPPLIBS += -lstdc++
   # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
-  # This compiler was not tested since 2007. In particular, warning options may not fit exactly the
-  # C99 standard, to which the code was transferred. Its support for 64 bit compilations is also
-  # undefined. No C++ compiler is defined. If you happen to use this compiler, please report results
-  # to the authors.
+  # This compiler was not tested since 2007. In particular, warning options may not fit exactly the C99 standard, to
+  # which the code was transferred. Its support for 64 bit compilations is also undefined. No C++ compiler is defined.
+  # If you happen to use this compiler, please report results to the authors.
   CC    := cc
   CF    := f77
   #CSTD  = -std=c99
@@ -372,13 +357,11 @@ else ifeq ($(COMPILER),compaq)
   COPT2 := -fast
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
-  # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS
-  # should be used. No C++ compiler is defined. If you happen to use this compiler, please report
-  # results to the authors.
+  # This compiler was not tested since 2008. In particular, it is not clear, whether and what FLIBS should be used. No
+  # C++ compiler is defined. If you happen to use this compiler, please report results to the authors.
   #
-  # -O5 implies "-arch=auto", which tunes compilation exclusively for the host
-  # machine. However, it will not work in some configurations.
-  # Then use '-O3 -qarch=... -qtune=...' instead
+  # -O5 implies "-arch=auto", which tunes compilation exclusively for the host machine. However, it will not work in
+  # some configurations. Then use '-O3 -qarch=... -qtune=...' instead
   CC    := xlc
   CF    := xlf
   CSTD  := -qlanglvl=extc99
@@ -387,8 +370,8 @@ else ifeq ($(COMPILER),ibm)
   DEPFLAG := -qmakedep=gcc
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
 else ifeq ($(COMPILER),hpux)
-  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you
-  # happen to use this compiler, please report results to the authors.
+  # This compiler was not tested since 2010. In particular, no C++ compiler is defined.  If you  happen to use this
+  # compiler, please report results to the authors.
   CC    := cc
   CF    := f90
   CSTD  := -AC99
@@ -427,11 +410,11 @@ CPPFLAGS += $(CPPOPT) $(CPPWARN) $(DBGFLAG)
 
 $(info ----------------------------)
 
-#===================================================================================================
+#=======================================================================================================================
 #end of check for targets implying compilation
 endif
 # Main action part
-#===================================================================================================
+#=======================================================================================================================
 
 .EXPORT_ALL_VARIABLES:
 .PHONY: seq mpi ocl all clean cleanseq cleanmpi cleanocl
@@ -453,8 +436,8 @@ ocl:
 
 clean: cleanseq cleanmpi cleanocl
 
-# 'clean' commands are executed here to keep them simple. Child makefiles are used only for
-# compilation and thus contain quite heavy processing.
+# 'clean' commands are executed here to keep them simple. Child makefiles are used only for compilation and thus contain
+# quite heavy processing.
 cleanseq:
 	@echo "Removing sequential compiled files"
 	cd $(SEQ) && rm -f *.o *.d $(OPTSFILES) $(PROGSEQ) $(PROGSEQ).exe

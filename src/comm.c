@@ -1,18 +1,16 @@
 /* FILE : comm.c
  * $Date::                            $
- * Descr: incorporates all parallelization related code, so most of it is directly involved in or
- *        closely related to interprocess communication
+ * Descr: incorporates all parallelization related code, so most of it is directly involved in or closely related to
+ *        interprocess communication
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
- * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU
- * General Public License as published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
- * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details.
+ * ADDA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
@@ -40,9 +38,9 @@ int *recvcounts,*displs; // arrays of size ringid required for AllGather operati
 bool displs_init=false;  // whether arrays above are initialized
 #endif
 
-/* whether a synchronize call should be performed before parallel timing. It makes communication
- * timing more accurate, but may deteriorate overall performance by introducing unnecessary
- * delays (test showed only slight difference for granule generator)
+/* whether a synchronize call should be performed before parallel timing. It makes communication timing more accurate,
+ * but may deteriorate overall performance by introducing unnecessary delays (test showed only slight difference for
+ * granule generator)
  */
 #define SYNCHRONIZE_TIMING
 
@@ -53,7 +51,6 @@ bool displs_init=false;  // whether arrays above are initialized
 
 // defined and allocated in fft.c
 extern double * restrict BT_buffer, * restrict BT_rbuffer;
-
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_InitDmComm;
 
@@ -68,12 +65,10 @@ static void * restrict gr_comm_buf;         // buffer for MPI transfers
 
 
 // First several functions are defined only in parallel mode
-//===========================================
+//======================================================================================================================
 
 static void RecoverCommandLine(int *argc_p,char ***argv_p)
-/* eliminate all NULL pointers from argv, shift the rest, and adjust argc accordingly.
- * Used in InitComm
- * */
+// eliminate all NULL pointers from argv, shift the rest, and adjust argc accordingly. Used in InitComm
 {
 	int i,j;
 
@@ -83,7 +78,7 @@ static void RecoverCommandLine(int *argc_p,char ***argv_p)
 	}
 	(*argc_p)-=j;
 }
-//============================================================
+//======================================================================================================================
 
 #ifndef SPARSE
 
@@ -93,11 +88,11 @@ static inline size_t IndexBlock(const size_t x,const size_t y,const size_t z,con
 	return((z*lengthY+y)*gridX+x);
 }
 
-//============================================================
+//======================================================================================================================
 
 static inline int CalcPartner(const int tran)
-/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many
- * different implementations are possible; the only requirements are
+/* calculate ringid of partner processor for current transmission; used in BlockTranspose. Many different
+ * implementations are possible; the only requirements are
  * 1) f(tran,f(tran,ringid))=ringid
  * 2) f({1,2,Ntrans},ringid)={0,1,Ntrans}\ringid
  * where f=nprocs is equivalent to skipping this transmission (relevant for odd nprocs)
@@ -116,12 +111,12 @@ static inline int CalcPartner(const int tran)
 }
 #endif // !SPARSE
 
-//============================================================
+//======================================================================================================================
 
 void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char * restrict dest)
-/* cat several temporary files (one for each processor, names defined by the template 'tmpl' that
- * should contain %d to be replaced by ringid). Files are located in directory 'dir'. Combined into
- * 'dest' in the same directory. Afterwards temporary files are removed.
+/* cat several temporary files (one for each processor, names defined by the template 'tmpl' that should contain %d to
+ * be replaced by ringid). Files are located in directory 'dir'. Combined into 'dest' in the same directory. Afterwards
+ * temporary files are removed.
  */
 {
 	int i,c;
@@ -135,9 +130,8 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 	for (i=0;i<nprocs;i++) {
 		// produce full path of tmp file and open it
 		shift=SnprintfErr(ONE_POS,fname_in,MAX_TMP_FNAME,"%s/",dir);
-		/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used,
-		 * but we do not know any other convenient way to make this function work for different file
-		 * name templates.
+		/* the following will cause warning by GCC if -Wformat-nonliteral (or -Wformat=2) is used, but we do not know
+		 * any other convenient way to make this function work for different file name templates.
 		 */
 		SnprintfShiftErr(ONE_POS,shift,fname_in,MAX_TMP_FNAME,tmpl,i);
 		in=FOpenErr(fname_in,"r",ONE_POS);
@@ -151,15 +145,14 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 	FCloseErr(out,fname_out,ONE_POS);
 }
 
-//============================================================
+//======================================================================================================================
 
 #ifdef ADDA_MPI
 static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
-/* Chooses MPI datatype corresponding to 'type'. When only copying operations are required (like
- * cast, gather, etc.) exact correspondence is possible. But when reduce operations are used
- * ('reduce'=true), only built-in datatypes can be directly used. In this case we emulate more
- * complex datatypes through multiplication of double, and additional variable 'mult' is returned
- * to account for this factor.
+/* Chooses MPI datatype corresponding to 'type'. When only copying operations are required (like cast, gather, etc.)
+ * exact correspondence is possible. But when reduce operations are used ('reduce'=true), only built-in datatypes can be
+ * directly used. In this case we emulate more complex datatypes through multiplication of double, and additional
+ * variable 'mult' is returned to account for this factor.
  */
 {
 	MPI_Datatype res;
@@ -202,14 +195,14 @@ static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
 	return res;
 }
 
-//============================================================
+//======================================================================================================================
 
 void InitDispls(void)
 // initialize arrays recvcounts and displs once, further calls have no effect
 {
 	if (!displs_init) {
-		if (nvoid_Ndip>INT_MAX) LogError(ONE_POS,
-			"int overflow in MPI function for number of non-void dipoles (%zu)",nvoid_Ndip);
+		if (nvoid_Ndip>INT_MAX)
+			LogError(ONE_POS,"int overflow in MPI function for number of non-void dipoles (%zu)",nvoid_Ndip);
 		MALLOC_VECTOR(recvcounts,int,nprocs,ALL);
 		MALLOC_VECTOR(displs,int,nprocs,ALL);
 		// !!! TODO: check for overflow of int
@@ -223,7 +216,7 @@ void InitDispls(void)
 
 #endif // ADDA_MPI
 
-//============================================================
+//======================================================================================================================
 
 void AllGather(void * restrict x_from,void * restrict x_to,const var_type type,TIME_TYPE *timing)
 /* Gather distributed arrays; works for all types; x_from can be NULL then the data from x_to is used (in_place)
@@ -252,7 +245,7 @@ void AllGather(void * restrict x_from,void * restrict x_to,const var_type type,T
 
 #endif // PARALLEL
 
-//============================================================
+//======================================================================================================================
 
 void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 // initialize communications in the beginning of the program
@@ -260,13 +253,12 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 #ifdef ADDA_MPI
 	int ver,subver;
 
-	/* MPI_Init may alter argc and argv and interfere with normal parsing of command line
-	 * parameters. The way of altering is implementation depending. MPI searches for MPI parameters
-	 * in the command line and removes them (we assume some kind of removing does take place -
-	 * otherwise ADDA will produce error 'unknown parameter'). The best would be to change argc and
-	 * argv so that they look like no special command line arguments are present. However,
-	 * MPICH 1.2.5, for example, just replaces corresponding parameters by NULLs. To incorporate it
-	 * we introduce special function to restore the command line
+	/* MPI_Init may alter argc and argv and interfere with normal parsing of command line parameters. The way of
+	 * altering is implementation depending. MPI searches for MPI parameters in the command line and removes them (we
+	 * assume some kind of removing does take place - otherwise ADDA will produce error 'unknown parameter'). The best
+	 * would be to change argc and argv so that they look like no special command line arguments are present. However,
+	 * MPICH 1.2.5, for example, just replaces corresponding parameters by NULLs. To incorporate it we introduce special
+	 * function to restore the command line
 	 */
 	MPI_Init(argc_p,argv_p);
 	tstart_main = GET_TIME(); // initialize program time
@@ -280,8 +272,8 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	else Ntrans=nprocs;
 #endif
 	// define a few derived datatypes
-	/* this is intimately tied to the type definition of doublecomplex; when switching to C99
-	 * complex datatypes, this should be replaced just by MPI_DOUBLE_COMPLEX.
+	/* this is intimately tied to the type definition of doublecomplex; when switching to C99 complex datatypes, this
+	 * should be replaced just by MPI_DOUBLE_COMPLEX.
 	 */
 	MPI_Type_contiguous(2,MPI_DOUBLE,&mpi_dcomplex);
 	MPI_Type_commit(&mpi_dcomplex);
@@ -294,8 +286,7 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	// check MPI version at runtime
 	MPI_Get_version(&ver,&subver);
 	if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<MPI_SUBVER_REQ))) LogError(ONE_POS,
-		"MPI version (%d.%d) is too old. Version %d.%d or newer is required",ver,subver,
-		MPI_VER_REQ,MPI_SUBVER_REQ);
+		"MPI version (%d.%d) is too old. Version %d.%d or newer is required",ver,subver,MPI_VER_REQ,MPI_SUBVER_REQ);
 	// if MPI crashes, it happens here
 	Synchronize();
 #elif !defined(PARALLEL)
@@ -304,14 +295,12 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 #endif
 
 #ifndef SPARSE // CheckNprocs does not exist in sparse mode
-	/* check if weird number of processors is specified; called even in sequential mode to
-	 * initialize weird_nprocs
-	 */
+	// check if weird number of processors is specified; called even in sequential mode to initialize weird_nprocs
 	CheckNprocs();
 #endif // !SPARSE
 }
 
-//============================================================
+//======================================================================================================================
 
 void Stop(const int code)
 // stops the program with exit 'code'
@@ -342,7 +331,7 @@ void Stop(const int code)
 	exit(code);
 }
 
-//============================================================
+//======================================================================================================================
 
 void Synchronize(void)
 // synchronizes all processes
@@ -352,12 +341,12 @@ void Synchronize(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void MyBcast(void * restrict data UOIP,const var_type type UOIP,const size_t n_elem UOIP,
 	TIME_TYPE *timing UOIP)
-/* casts values stored in '*data' from root processor to all other; works for all types; increments
- * 'timing' (if not NULL) by the time used
+/* casts values stored in '*data' from root processor to all other; works for all types;
+ * increments 'timing' (if not NULL) by the time used
  */
 {
 #ifdef ADDA_MPI
@@ -375,11 +364,11 @@ void MyBcast(void * restrict data UOIP,const var_type type UOIP,const size_t n_e
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
-/* cast current orientation angle (in orientation averaging) to all processes from root.
- * This can be done as atomic operation using some complex MPI datatype, but it is not worth it.
+/* cast current orientation angle (in orientation averaging) to all processes from root. This can be done as atomic
+ * operation using some complex MPI datatype, but it is not worth it.
  */
 {
 #ifdef ADDA_MPI
@@ -399,12 +388,10 @@ void BcastOrient(int *i UOIP, int *j UOIP, int *k UOIP)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 double AccumulateMax(double data UOIP,double *max UOIP)
-/* given a single double on each processor, accumulates their sum (returns) and maximum on root\
- * processor
- */
+// given a single double on each processor, accumulates their sum (returns) and maximum on root processor
 {
 #ifdef ADDA_MPI
 	double buf;
@@ -417,16 +404,14 @@ double AccumulateMax(double data UOIP,double *max UOIP)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
-void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restrict buf UOIP,
-	TIME_TYPE *timing UOIP)
-/* Gather and add double vector on processor root; total time is saved in timing (NOT incremented).
- * Passing doublecomplex vector as first argument (with appropriate cast) may cause warnings using
- * some compilers (possible problems with strict aliasing rules. While these particular warnings can
- * be easily fixed (e.g. by defining argument as void *), the root of the problem lies in lack of
- * native support of complex types in MPI_Reduce. Currently this support is emulated through doubles
- * and may potentially cause problems with aliasing.
+void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restrict buf UOIP,TIME_TYPE *timing UOIP)
+/* Gather and add double vector on processor root; total time is saved in timing (NOT incremented). Passing
+ * doublecomplex vector as first argument (with appropriate cast) may cause warnings using some compilers (possible
+ * problems with strict aliasing rules. While these particular warnings can be easily fixed (e.g. by defining argument
+ * as void *), the root of the problem lies in lack of native support of complex types in MPI_Reduce. Currently this
+ * support is emulated through doubles and may potentially cause problems with aliasing.
  */
 {
 #ifdef ADDA_MPI
@@ -443,13 +428,11 @@ void Accumulate(double * restrict vector UOIP,const size_t n UOIP,double * restr
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
-void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UOIP,
-	TIME_TYPE *timing UOIP)
-/* gather values stored in *data, add them and return them in *data; works for all types; increments
- * 'timing' (if not NULL) by the time used; not optimized for long data (allocates memory at every
- * call)
+void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_elem UOIP,TIME_TYPE *timing UOIP)
+/* gather values stored in *data, add them and return them in *data; works for all types; increments 'timing' (if not
+ * NULL) by the time used; not optimized for long data (allocates memory at every call)
  */
 {
 #ifdef ADDA_MPI
@@ -460,7 +443,7 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 	if (n_elem>INT_MAX) LogError(ONE_POS,"int overflow in MPI function (%zu)",n_elem);
 	if (timing!=NULL) {
 #ifdef SYNCHRONIZE_TIMING
-		MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
+		MPI_Barrier(MPI_COMM_WORLD); // synchronize to get correct timing
 #endif
 		tstart=GET_TIME();
 	}
@@ -471,12 +454,12 @@ void MyInnerProduct(void * restrict data UOIP,const var_type type UOIP,size_t n_
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void ParSetup(void)
 // initialize common parameters; need to do in the beginning to enable call to MakeParticle
 {
-#ifndef SPARSE //FFT mode initialization
+#ifndef SPARSE // FFT mode initialization
 #	ifdef PARALLEL
 	int unitZ,unitX;
 #	endif
@@ -487,8 +470,8 @@ void ParSetup(void)
 	// initialize some variables
 	smallY=gridY/2;
 	smallZ=gridZ/2;
-	/* if this check is passed then all other multiplications of 2 grids are OK,
-	 * except for XY values, used in granule generator
+	/* if this check is passed then all other multiplications of 2 grids are OK, except for XY values, used in granule
+	 * generator
 	 */
 	gridYZ=MultOverflow(gridY,gridZ,ALL_POS,"gridYZ");
 #	ifdef PARALLEL
@@ -535,14 +518,14 @@ void ParSetup(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void SetupLocalD(void)
 // initialize local_nvoid_d0 and local_nvoid_d1 in FFT mode. In sparse mode those are set earlier in ParSetup()
 {
 #ifdef ADDA_MPI
-	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior
-	 * for the ringid=0. The latter would require special additional arrangements.
+	/* use of exclusive scan (MPI_Exscan) is logically more suitable, but it has special behavior for the ringid=0. The
+	 * latter would require special additional arrangements.
 	 */
 	MPI_Scan(&local_nvoid_Ndip,&local_nvoid_d1,1,MPI_SIZE_T,MPI_SUM,MPI_COMM_WORLD);
 	local_nvoid_d0=local_nvoid_d1-local_nvoid_Ndip;
@@ -552,17 +535,17 @@ void SetupLocalD(void)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 #ifndef SPARSE
 
 void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix;
- *  do 3 components in one message; increments 'timing' (if not NULL) by the time used
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specializes at Xmatrix; do 3 components in one
+ * message; increments 'timing' (if not NULL) by the time used
  *
- *  !!! TODO: Although size_t is used for bufsize,etc., MPI functions take int as arguments. This
- *  limits the largest possible size to some extent. Moreover, the size of int is not really well
- *  predicted. The exact implications of this is still unclear.
+ *  !!! TODO: Although size_t is used for bufsize,etc., MPI functions take int as arguments. This limits the largest
+ *  possible size to some extent. Moreover, the size of int is not really well predicted. The exact implications of this
+ *  are still unclear.
  */
 {
 #ifdef ADDA_MPI
@@ -612,13 +595,12 @@ void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
-void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,
-	const size_t lengthZ UOIP)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix
- * It can be updated to accept timing argument for generality. But, since this is a specialized
- * function, we keep the timing variable hard-wired in the code.
+void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,const size_t lengthZ UOIP)
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix. It can be updated to
+ * accept timing argument for generality. But, since this is a specialized function, we keep the timing variable
+ * hard-wired in the code.
  */
 {
 #ifdef ADDA_MPI
@@ -662,13 +644,11 @@ void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 #ifdef PARALLEL
-void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const int gZ,
-	const int id,int *lz0,int *lz1)
-/* calculates starting and ending (+1) cell of granule grid (lz0 & lz1) on a processor with
- * ringid=id
+void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const int gZ,const int id,int *lz0,int *lz1)
+/* calculates starting and ending (+1) cell of granule grid (lz0 & lz1) on a processor with ringid=id
  */
 {
 	int dzl,dzh; // similar to local_z0 and local_z1
@@ -687,12 +667,12 @@ void CalcLocalGranulGrid(const double z0,const double z1,const double gdZ,const 
 }
 #endif
 
-//============================================================
+//======================================================================================================================
 
-void SetGranulComm(const double z0 UOIP,const double z1 UOIP,const double gdZ UOIP,const int gZ,
-	const size_t gXY UOIP,size_t max_gran UOIP,int *lz0,int *lz1,const int sm_gr UOIP)
-/* sets communication for granule generator; max_gran - maximum number of granules in one set
- * (used to allocate buffer); sm_gr - whether granules are small (simpler)
+void SetGranulComm(const double z0 UOIP,const double z1 UOIP,const double gdZ UOIP,const int gZ,const size_t gXY UOIP,
+	size_t max_gran UOIP,int *lz0,int *lz1,const int sm_gr UOIP)
+/* sets communication for granule generator; max_gran - maximum number of granules in one set (used to allocate buffer);
+ * sm_gr - whether granules are small (simpler)
  */
 {
 #ifdef PARALLEL
@@ -727,13 +707,11 @@ void SetGranulComm(const double z0 UOIP,const double z1 UOIP,const double gdZ UO
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP,const int lz0 UOIP,
 	const int locgZ UOIP,TIME_TYPE *timing UOIP)
-/* collects the map of domain for granule generator on the root processor;
- * timing is incremented by the total time used
- */
+// collects the map of domain for granule generator on the root processor; timing is incremented by the total time used
 {
 #ifdef ADDA_MPI
 	int i,unit,index;
@@ -754,8 +732,7 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 					index-=gXY;
 					memcpy(gr_comm_ob,dom+index,unit);
 				}
-				MPI_Recv(dom+index,unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,MPI_COMM_WORLD,
-					&status);
+				MPI_Recv(dom+index,unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,MPI_COMM_WORLD,&status);
 				if (gr_comm_overl[i-1]) for (j=0;j<gXY;j++) dom[index+j]|=gr_comm_ob[j];
 				index+=gXY*gr_comm_size[i];
 			}
@@ -768,8 +745,8 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 					memcpy(gr_comm_ob,dom+index,unit);
 					index+=gXY;
 				}
-				MPI_Recv(dom+index-gXY*gr_comm_size[i],unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,
-					MPI_COMM_WORLD,&status);
+				MPI_Recv(dom+index-gXY*gr_comm_size[i],unit*gr_comm_size[i],MPI_UNSIGNED_CHAR,i,0,MPI_COMM_WORLD,
+					&status);
 				if (gr_comm_overl[i]) for (j=0;j<gXY;j++) dom[index-gXY+j]|=gr_comm_ob[j];
 				index-=gXY*gr_comm_size[i];
 			}
@@ -785,12 +762,10 @@ void CollectDomainGranul(unsigned char * restrict dom UOIP,const size_t gXY UOIP
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void FreeGranulComm(const int sm_gr UOIP)
-/* frees all additional memory used for communications of granule generator;
- * simpler if small granules
- */
+// frees all additional memory used for communications of granule generator; simpler if small granules
 {
 #ifdef PARALLEL
 	Free_general(gr_comm_buf);
@@ -802,14 +777,13 @@ void FreeGranulComm(const int sm_gr UOIP)
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timing UOIP)
-/* performs a collective AND operation on the (vector) data; timing is incremented by the total
- * time used.
- * TODO: When MPI_C_BOOL data type will become widely supported, this function should be rewritten
- * using bool input data. However, this may be memory-inefficient if sizeof(MPI_BOOL)>1. This is
- * currently discussed as an errata to MPI 2.2.
+/* performs a collective AND operation on the (vector) data; timing is incremented by the total time used.
+ * TODO: When MPI_C_BOOL data type will become widely supported, this function should be rewritten using bool input
+ * data. However, this may be memory-inefficient if sizeof(MPI_BOOL)>1. This is currently discussed as an errata to
+ * MPI 2.2.
  */
 {
 #ifdef ADDA_MPI
@@ -826,17 +800,15 @@ void ExchangeFits(char * restrict data UOIP,const size_t n UOIP,TIME_TYPE *timin
 #endif
 }
 
-//============================================================
+//======================================================================================================================
 
 #ifdef PARALLEL
 
-bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,
-	TIME_TYPE *timing)
-/* propagates slice of complex values from bottom to top. In the beginning 'top' contains phase
- * shift over the current processor, at the end 'bottom' and 'top' contain phase shifts from the
- * bottom of the first processor to bottom and top of the current processor.
- * Potentially, can be optimized by some tree algorithm. However, there seem to be no ready MPI
- * function available.
+bool ExchangePhaseShifts(doublecomplex * restrict bottom, doublecomplex * restrict top,TIME_TYPE *timing)
+/* propagates slice of complex values from bottom to top. In the beginning 'top' contains phase shift over the current
+ * processor, at the end 'bottom' and 'top' contain phase shifts from the bottom of the first processor to bottom and
+ * top of the current processor. Potentially, can be optimized by some tree algorithm. However, there seem to be no
+ * ready MPI function available.
  */
 {
 #ifdef ADDA_MPI
