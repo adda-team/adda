@@ -1,0 +1,12 @@
+1) make sure that manual.doc/pdf, history, and const.h are up to date. In particular, version number in const.h should
+not contain "a" or "b".
+
+(on 64-bit Windows)
+2) sh win_all.sh #.#
+
+(on Linux)
+3) ./zip_packages #.#
+
+4) Upload packages to GoogleCode
+5) Update Wiki pages: PackageDescription, ReleaseNotes, Features
+6) Send announcement to users.
