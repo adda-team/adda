@@ -14,6 +14,14 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+
+/* This file should be compiled only in OpenCL mode, hence the following declaration is redundant. However, it helps
+ * proper syntax checking in IDE, such as Eclipse.
+ */
+#ifndef OPENCL
+#  define OPENCL
+#endif
+
 #include "const.h" // keep this first
 #include "oclcore.h" // corresponding header
 // project headers

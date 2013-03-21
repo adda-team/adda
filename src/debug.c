@@ -14,6 +14,14 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+
+/* This file should be compiled only in full debug mode, hence the following declaration is redundant. However, it helps
+ * proper syntax checking in IDE, such as Eclipse.
+ */
+#ifndef DEBUGFULL
+#  define DEBUGFULL
+#endif
+
 #include "const.h" // keep this first
 #include "debug.h" // corresponding header
 // project headers
@@ -26,7 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef DEBUGFULL
 //======================================================================================================================
 
 void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
@@ -64,5 +71,3 @@ void FieldPrint (doublecomplex * restrict x)
 	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
 	fprintf(logfile,"E = "CFORM3V,x[i][RE],x[i][IM],x[i+1][RE],x[i+1][IM],x[i+2][RE],x[i+2][IM]);
 }
-
-#endif // DEBUGFULL

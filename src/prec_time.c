@@ -14,13 +14,15 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+
+/* This file should be compiled only in precise timing mode, hence the following declaration is redundant. However, it
+ * helps proper syntax checking in IDE, such as Eclipse.
+ */
+#ifndef PRECISE_TIMING
+#  define PRECISE_TIMING
+#endif
+
 #include "prec_time.h" // corresponding header, there all other needed includes are added
-
-// this is to eliminate warnings about empty source file
-#include "function.h" // for function attributes
-void ATT_UNUSED void_function(void) {}
-
-#ifdef PRECISE_TIMING // following is only for precise timing
 
 // LOCAL VARIABLES
 
@@ -77,5 +79,3 @@ double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2)
 	Elapsed(t1,t2,&res);
 	return TimerToSec(&res);
 }
-
-#endif // PRECISE_TIMING
