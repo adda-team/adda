@@ -21,8 +21,6 @@
  * to generate such messages is used.
  */
 
-//#define DEBUGFULL // uncomment to degug
-
 // this are used not always, but only for manual debug (hence can be always defined)
 #define PRINT_REAL(x) printf(#x"=%g\n",x)
 #define PRINT_COMPLEX(x) printf(#x"=%g%+gi\n",x[RE],x[IM])

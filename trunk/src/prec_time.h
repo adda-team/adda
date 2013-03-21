@@ -23,8 +23,6 @@
  * therefore is system dependent, though is expected to work for most.
  */
 
-//#define PRECISE_TIMING // uncomment to perform precise timing
-
 #ifdef PRECISE_TIMING
 
 // project headers

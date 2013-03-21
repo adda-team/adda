@@ -165,9 +165,9 @@ override EXTRA_FLAGS +=
 #=======================================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c debug.c GenerateB.c interaction.c io.c \
-           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c prec_time.c Romberg.c sinint.c \
-           timing.c vars.c
+CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c GenerateB.c interaction.c io.c \
+           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c Romberg.c sinint.c timing.c \
+           vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
            propaesplibreintadda.f
@@ -201,6 +201,7 @@ ifneq ($(filter DEBUGFULL,$(OPTIONS)),)
   $(info Full debug mode)
   DBGLVL := 2
   CDEFS  += -DDEBUGFULL
+  CSOURCE += debug.c
   ifneq ($(filter DEBUG,$(OPTIONS)),)
     $(warning DEBUG has no effect when DEBUGFULL is enabled)
   endif
@@ -253,6 +254,7 @@ endif
 ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
   $(info Precise timing)
   CDEFS += -DPRECISE_TIMING
+  CSOURCE += prec_time.c
 endif
 ifneq ($(filter NOT_USE_LOCK,$(OPTIONS)),)
   $(info No locks at all)
@@ -417,7 +419,7 @@ endif
 #=======================================================================================================================
 
 .EXPORT_ALL_VARIABLES:
-.PHONY: seq mpi ocl all clean cleanseq cleanmpi cleanocl
+.PHONY: seq mpi ocl all cleanfull clean cleanruns cleanseq cleanmpi cleanocl cleanrunsseq cleanrunsmpi cleanrunsocl
 
 all: seq mpi ocl
 
@@ -433,8 +435,11 @@ ocl:
 	@echo "Compiling OpenCL version of ADDA"
 	$(MAKE) -C $(OCL)
 
+cleanfull: clean cleanruns
 
 clean: cleanseq cleanmpi cleanocl
+
+cleanruns: cleanrunsseq cleanrunsmpi cleanrunsocl
 
 # 'clean' commands are executed here to keep them simple. Child makefiles are used only for compilation and thus contain
 # quite heavy processing.
@@ -449,3 +454,15 @@ cleanmpi:
 cleanocl:
 	@echo "Removing OpenCL compiled files"
 	cd $(OCL) && rm -f *.o *.d $(OPTSFILES) $(PROGOCL) $(PROGOCL).exe *.clstr
+	
+cleanrunsseq: 
+	@echo "Removing output of sequential version of ADDA"
+	cd $(SEQ) && rm -f -r ExpCount run* test*
+
+cleanrunsmpi: 
+	@echo "Removing output of MPI version of ADDA"
+	cd $(MPI) && rm -f -r ExpCount run* test*
+	
+cleanrunsocl: 
+	@echo "Removing output of OpenCL version of ADDA"
+	cd $(OCL) && rm -f -r ExpCount run* test*
