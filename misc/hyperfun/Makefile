@@ -3,9 +3,13 @@
 # only a few times.
 
 CF      = gfortran
-FFLAGS  = -O
+FFLAGS  = -O $(EXTRA_FLAGS)
 PROG    = calc_pip_arg
 FSOURCE = calc_pip_arg.f90
+
+srcdir = .
+vpath %.f90 $(srcdir)/
+vpath Makefile $(srcdir)/
 
 #=======================================================================================================================
 
@@ -14,7 +18,7 @@ FSOURCE = calc_pip_arg.f90
 all: $(PROG)
 
 $(PROG): $(FSOURCE) Makefile
-	$(CF) -o $@ $(FFLAGS) $(FSOURCE)
+	$(CF) -o $@ $(FFLAGS) $<
 
 clean:
 	rm -f $(PROG) $(PROG).exe
