@@ -453,18 +453,26 @@ void ReadScatGridParms(const char * restrict fname)
 	// print info
 	if (IFROOT) {
 		fprintf(logfile,"\nScattered field is calculated for multiple directions\n");
-		if (angles.type==SG_GRID) {
-			if (theta_type==AS_RANGE) fprintf(logfile,"theta: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",
-				angles.theta.min,angles.theta.max,angles.theta.N);
-			else if (theta_type==AS_VALUES) fprintf(logfile,"theta: %zu given values\n",angles.theta.N);
-			if (phi_type==AS_RANGE) {
-				fprintf(logfile,"phi: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",angles.phi.min,angles.phi.max,
-					angles.phi.N);
-				if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
-			}
-			else if (phi_type==AS_VALUES) fprintf(logfile,"phi: %zu given values\n",angles.phi.N);
+		switch (angles.type) {
+			case SG_GRID:
+				switch (theta_type) {
+					case AS_RANGE:
+						fprintf(logfile,"theta: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",angles.theta.min,
+							angles.theta.max,angles.theta.N);
+						break;
+					case AS_VALUES: fprintf(logfile,"theta: %zu given values\n",angles.theta.N); break;
+				}
+				switch (phi_type) {
+					case AS_RANGE:
+						fprintf(logfile,"phi: from "GFORMDEF" to "GFORMDEF" in %zu steps\n",angles.phi.min,
+							angles.phi.max,angles.phi.N);
+						if (phi_integr) fprintf(logfile,"(Mueller matrix is integrated over phi)\n");
+						break;
+					case AS_VALUES: fprintf(logfile,"phi: %zu given values\n",angles.phi.N); break;
+				}
+				break;
+			case SG_PAIRS: fprintf(logfile,"Total %zu given (theta,phi) pairs\n",angles.N); break;
 		}
-		else if (angles.type==SG_PAIRS) fprintf(logfile,"Total %zu given (theta,phi) pairs\n",angles.N);
 		fprintf(logfile,"\n");
 	}
 	D("ReadScatGridParms finished");
@@ -509,76 +517,55 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 		}
 	}
 	for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
+#ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
-#ifndef SPARSE	
 	imExp_arr(-kd*n[0],boxX,expsX);
 	imExp_arr(-kd*n[1],boxY,expsY);
 	imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
 #endif // !SPARSE
-	/* not to double the code in the source we use two temporary defines,since the following 'if' cases differ only by
-	 * one line of code; (taking 'if' inside the cycle will affect performance)
-	 */
 	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
 	 * porous particles though, but for them this part of code is anyway fast relative to the FFT on a large grid;
 	 * Further optimization is possible using some kind of plans, i.e. by preliminary analyzing the position of the
 	 * real dipoles on the grid.
 	 */
-#ifndef SPARSE //FFT mode
-#define PART1\
-	iy1=iz1=UNDEF;\
-	for (j=0;j<local_nvoid_Ndip;++j) {\
-		jjj=3*j;\
-		/* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */\
-		ix=position[jjj];\
-		iy2=position[jjj+1];\
-		iz2=position[jjj+2];\
-		/* the second part is very improbable, but needed for robustness */\
-		if (iy2!=iy1 || iz2!=iz1) {\
-			iy1=iy2;\
-			iz1=iz2;\
-			cMult(expsY[iy2],expsZ[iz2],tmp);\
-		}\
+	iy1=iz1=UNDEF;
+	for (j=0;j<local_nvoid_Ndip;++j) {
+		jjj=3*j;
+		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		ix=position[jjj];
+		iy2=position[jjj+1];
+		iz2=position[jjj+2];
+		// the second part is very improbable, but needed for robustness
+		if (iy2!=iy1 || iz2!=iz1) {
+			iy1=iy2;
+			iz1=iz2;
+#ifndef SPARSE // FFT mode
+			cMult(expsY[iy2],expsZ[iz2],tmp);
+		}
 		cMult(tmp,expsX[ix],a);
-#else // sparse mode
-#define PART1\
-	iy1=iz1=UNDEF;\
-	for (j=0;j<local_nvoid_Ndip;++j) {\
-		jjj=3*j;\
-		/* a=exp(-ikr.n), but r is taken relative to the first dipole of the local box */\
-		ix=position[jjj];\
-		iy2=position[jjj+1];\
-		iz2=position[jjj+2];\
-		/* the second part is very improbable, but needed for robustness */\
-		if (iy2!=iy1 || iz2!=iz1) {\
-			iy1=iy2;\
-			iz1=iz2;\
-			imExp(-kd*n[1]*iy2,expY);\
-			imExp(-kd*n[2]*iz2,expZ);\
-			cMult(expY,expZ,tmp);\
-		}\
-		imExp(-kd*n[0]*ix,expX);\
+#else // sparse mode - the difference is that exponents are not precomputed
+			imExp(-kd*n[1]*iy2,expY);
+			imExp(-kd*n[2]*iz2,expZ);
+			cMult(expY,expZ,tmp);
+		}
+		imExp(-kd*n[0]*ix,expX);
 		cMult(tmp,expX,a);
 #endif // SPARSE
-#define PART2\
-	/* sum(P*exp(-ik*r.n)) */\
-		for(i=0;i<3;i++) {\
-			sum[i][RE]+=pvec[jjj+i][RE]*a[RE]-pvec[jjj+i][IM]*a[IM];\
-			sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];\
-		}\
+		/* the following line may incur certain overhead (from 0% to 5% depending on tests).
+		 * It is possible to remove this overhead by separating the complete loop for SQ_SO in a separate case (and it
+		 * was like that at r1209). However, the code was much harder to read and maintain. Since there are several
+		 * ideas that may speed up this calculation by a factor of a few times, we should not worry about 5%.
+		 */
+		if (ScatRelation==SQ_SO) cMultSelf(a,mult_mat[material[j]]);
+		// sum(P*exp(-ik*r.n))
+		for(i=0;i<3;i++) {
+			sum[i][RE]+=pvec[jjj+i][RE]*a[RE]-pvec[jjj+i][IM]*a[IM];
+			sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];
+		}
 	} /* end for j */
 	
-	if (ScatRelation==SQ_SO) {
-		PART1
-		cMultSelf(a,mult_mat[material[j]]);
-		PART2
-	}
-	else if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP || ScatRelation==SQ_IGT_SO) {
-		PART1
-		PART2
-	}
-#undef PART1
-#undef PART2
+
 	// tbuff=(I-nxn).sum=sum-n*(n.sum)
 	crDotProd(sum,n,dpr);
 	cScalMultRVec(n,dpr,tbuff);
@@ -658,34 +645,35 @@ double AbsCross(void)
 	 * the result is different only for LDR (and similar), for which using IGT does not make a lot of sense anyway.
 	 * Overall, peculiar details related to optical theorem warrant a further study.
 	 */
-	if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_FINDIP || ScatRelation==SQ_IGT_SO) {
-		/* code below is applicable only for diagonal (possibly anisotropic) polarizability and should be rewritten
-		 * otherwise
+	switch (ScatRelation) {
+		/* code below is applicable only for diagonal (for some cases - possibly anisotropic) polarizability and should
+		 * be rewritten otherwise
 		 */
-
-		/* based on Eq.(35) from Yurkin and Hoekstra, "The discrete dipole approximation: an overview and recent
-		 * developments," JQSRT 106:558-589 (2007).
-		 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
-		 */
-		temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-		for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cInvIm(cc[i][j])-temp1;
-		if (ScatRelation==SQ_FINDIP) {
-			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
-			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
-			 * Difference between this formulation and the classical one is also calculated, which is further used to
-			 * correct Cext.
+		case SQ_IGT_SO:
+		case SQ_DRAINE:
+			/* based on Eq.(35) from Yurkin and Hoekstra, "The discrete dipole approximation: an overview and recent
+			 * developments," JQSRT 106:558-589 (2007).
+			 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
 			 */
-			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multfin[i][j]=-chi_inv[i][j][IM];
-		}
-		// main cycle
-		if (ScatRelation==SQ_DRAINE || ScatRelation==SQ_IGT_SO) {
+			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cInvIm(cc[i][j])-temp1;
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=multdr[mat][i]*cAbs2(pvec[index+i]);
 			}
-		}
-		else if (ScatRelation==SQ_FINDIP) {
+			break;
+		case SQ_FINDIP:
+			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
+			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
+			 * Difference between this formulation and the classical one is also calculated, which is further used to
+			 * correct Cext.
+			 */
+			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) {
+				multdr[i][j]=-cInvIm(cc[i][j])-temp1;
+				multfin[i][j]=-chi_inv[i][j][IM];
+			}
 			for (dip=0,sum=0,dCabs=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
@@ -695,23 +683,23 @@ double AbsCross(void)
 					dCabs+=(multfin[mat][i]-multdr[mat][i])*temp1;
 				}
 			}
-		}
-	}
-	else if (ScatRelation==SQ_SO) {
-		// !!! this should never happen
-		if (anisotropy) LogError(ONE_POS,"Incompatibility error in AbsCross");
-		// calculate mult1
-		temp1=kd*kd/6;
-		temp2=FOUR_PI/dipvol;
-		for (i=0;i<Nmat;i++) {
-			m=ref_index[i];
-			cSquare(m,m2);
-			m2[RE]-=1;
-			// mult1=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
-			mult1[i]=temp2*m2[IM]*(1+temp1*m[IM]*m[IM])/cAbs2(m2);
-		}
-		// main cycle
-		for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
+			break;
+		case SQ_SO:
+			// !!! the following should never happen
+			if (anisotropy) LogError(ONE_POS,"Incompatibility error in AbsCross");
+			// calculate mult1
+			temp1=kd*kd/6;
+			temp2=FOUR_PI/dipvol;
+			for (i=0;i<Nmat;i++) {
+				m=ref_index[i];
+				cSquare(m,m2);
+				m2[RE]-=1;
+				// mult1=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
+				mult1[i]=temp2*m2[IM]*(1+temp1*m[IM]*m[IM])/cAbs2(m2);
+			}
+			// main cycle
+			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
+			break;
 	}
 	if (ScatRelation==SQ_FINDIP) {
 		MyInnerProduct(&dCabs,double_type,1,&Timing_ScatQuanComm);

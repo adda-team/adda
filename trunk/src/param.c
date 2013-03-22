@@ -696,19 +696,16 @@ static inline void TestNarg(const int Narg,const int need)
 			NargError(Narg,buf);
 		}
 	} // otherwise special cases are considered, encoded by negative values
-	else if (need==UNDEF) {} // do nothing
-	else if (need==FNAME_ARG) {
-		if (Narg!=1) NargError(Narg,"1");
+	else switch (need) {
+		case UNDEF: break; // do nothing
+		case FNAME_ARG: if (Narg!=1) NargError(Narg,"1"); break;
+		case FNAME_ARG_2: if (Narg!=2) NargError(Narg,"2"); break;
+		case FNAME_ARG_1_2: if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2"); break;
+		default: // rigorous test that every possible special case is taken care of
+			PrintError("Critical error in TestNarg function (unknown argument 'need'=%d). Probably this comes from "
+				"value of 'narg' in one of static arrays, describing command line options.",need);
+			// no break
 	}
-	else if (need==FNAME_ARG_2) {
-		if (Narg!=2) NargError(Narg,"2");
-	}
-	else if (need==FNAME_ARG_1_2) {
-		if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
-	}
-	// rigorous test that every possible special case is taken care of
-	else PrintError("Critical error in TestNarg function (unknown argument 'need'=%d). Probably this comes from value "
-		"of 'narg' in one of static arrays, describing command line options.",need);
 }
 
 //======================================================================================================================
@@ -793,16 +790,20 @@ static inline bool IsOption(const char * restrict str)
 }
 //======================================================================================================================
 
-static int TimeField(const char c)
+static inline int TimeField(const char c)
 // analyze one time multiplier
 {
-	if (c=='d' || c=='D') return 86400;
-	else if (c=='h' || c=='H') return 3600;
-	else if (c=='m' || c=='M') return 60;
-	else if (c=='s' || c=='S' || c==0) return 1;
-	else PrintErrorHelp("Illegal time format specifier (%c)",c);
-	// never reached
-	return 0;
+	switch (c) {
+		case 'd':
+		case 'D': return 86400;
+		case 'h':
+		case 'H': return 3600;
+		case 'm':
+		case 'M': return 60;
+		case 's':
+		case 'S': return 1;
+	}
+	PrintErrorHelp("Illegal time format specifier (%c)",c);
 }
 
 //======================================================================================================================
@@ -877,15 +878,15 @@ PARSE_FUNC(beam)
 		opt_beam=opt;
 		need=beam_opt[i].narg;
 		// check number of arguments
-		TestNarg(Narg,need);
-		// for now, this is all non-plane beams, but another beams may be added in the future
-		if (beamtype==B_LMINUS || beamtype==B_DAVIS3 || beamtype==B_BARTON5) {
-			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
+		switch (beamtype) {
+			case B_LMINUS:
+			case B_DAVIS3:
+			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
+			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
 		 * If the beam accepts variable number of arguments (UNDEF was used in beam definition above) add a check of
-		 * number of received arguments to this else-if sequence. Use NargError function similarly as done in existing
-		 * tests.
+		 * number of received arguments as a new case above. Use NargError function similarly as done in existing tests.
 		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
 		if (!ScanFnamesError(Narg,need,argv+2,&beam_fnameY,&beam_fnameX))
@@ -1094,9 +1095,8 @@ PARSE_FUNC(iter)
 	else if (strcmp(argv[1],"qmr")==0) IterMethod=IT_QMR_CS;
 	else if (strcmp(argv[1],"qmr2")==0) IterMethod=IT_QMR_CS_2;
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones
-	 * already present. The variable parts of the line are its name used in command line and its
-	 * descriptor, defined in const.h
+	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
+	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h
 	 */
 	else NotSupported("Iterative method",argv[1]);
 }
@@ -1280,17 +1280,14 @@ PARSE_FUNC(shape)
 		sh_Npars=Narg;
 		need=shape_opt[i].narg;
 		// check number of arguments
-		TestNarg(Narg,need);
-		if (shape==SH_COATED) {
-			if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
-		}
-		else if (shape==SH_BOX) {
-			if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2");
+		switch (shape) {
+			case SH_COATED: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
+			case SH_BOX: if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2"); break;
+			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW SHAPE
 		 * If the shape accepts variable number of arguments (UNDEF was used in shape definition above) add a check of
-		 * number of received arguments to this else-if sequence. Use NargError function similarly as done in existing
-		 * tests.
+		 * number of received arguments as a new case above. Use NargError function similarly as done in existing tests.
 		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
 		if (!ScanFnamesError(Narg,need,argv+2,&shape_fname,NULL))
@@ -1811,9 +1808,12 @@ void VariablesInterconnect(void)
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
 #endif
 	// scale boxes by jagged; should be completely robust to overflows
-#define JAGGED_BOX(a) if (a!=UNDEF) { \
-	if ((BOX_MAX/(size_t)jagged)<(size_t)a) LogError(ONE_POS,"Derived grid size (" #a ") is too large (>%d)",BOX_MAX); \
-	else a*=jagged; }
+#define JAGGED_BOX(a) { \
+	if (a!=UNDEF) { \
+		if ((BOX_MAX/(size_t)jagged)<(size_t)a) \
+			LogError(ONE_POS,"Derived grid size (" #a ") is too large (>%d)",BOX_MAX); \
+		else a*=jagged; \
+	} }
 
 	if (jagged!=1) {
 		JAGGED_BOX(boxX);
@@ -2046,37 +2046,43 @@ void PrintInfo(void)
 		}
 		// log polarizability relation
 		fprintf(logfile,"Polarizability relation: ");
-		if (PolRelation==POL_CLDR) fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n");
-		else if (PolRelation==POL_CM) fprintf(logfile,"'Clausius-Mossotti'\n");
-		else if (PolRelation==POL_DGF) fprintf(logfile,"'Digitized Green's Function'\n");
-		else if (PolRelation==POL_FCD) fprintf(logfile,"'Filtered Coupled Dipoles'\n");
-		else if (PolRelation==POL_IGT_SO) fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n");
-		else if (PolRelation==POL_LAK) fprintf(logfile,"'by Lakhtakia'\n");
-		else if (PolRelation==POL_LDR) {
-			fprintf(logfile,"'Lattice Dispersion Relation'");
-			if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
-			fprintf(logfile,"\n");
+		switch (PolRelation) {
+			case POL_CLDR: fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n"); break;
+			case POL_CM: fprintf(logfile,"'Clausius-Mossotti'\n"); break;
+			case POL_DGF: fprintf(logfile,"'Digitized Green's Function'\n"); break;
+			case POL_FCD: fprintf(logfile,"'Filtered Coupled Dipoles'\n"); break;
+			case POL_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
+			case POL_LAK: fprintf(logfile,"'by Lakhtakia'\n"); break;
+			case POL_LDR:
+				fprintf(logfile,"'Lattice Dispersion Relation'");
+				if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
+				fprintf(logfile,"\n");
+				break;
+			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
+			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
-		else if (PolRelation==POL_RRC) fprintf(logfile,"'Radiative Reaction Correction'\n");
-		else if (PolRelation==POL_SO) fprintf(logfile,"'Second Order'\n");
 		// log Scattering Quantities formulae
 		fprintf(logfile,"Scattering quantities formulae: ");
-		if (ScatRelation==SQ_DRAINE) fprintf(logfile,"'by Draine'\n");
-		else if (ScatRelation==SQ_FINDIP) fprintf(logfile,"'Finite Dipoles'\n");
-		else if (ScatRelation==SQ_IGT_SO) fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n");
-		else if (ScatRelation==SQ_SO) fprintf(logfile,"'Second Order'\n");
+		switch (ScatRelation) {
+			case SQ_DRAINE: fprintf(logfile,"'by Draine'\n"); break;
+			case SQ_FINDIP: fprintf(logfile,"'Finite Dipoles'\n"); break;
+			case SQ_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
+			case SQ_SO: fprintf(logfile,"'Second Order'\n"); break;
+		}
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");
-		if (IntRelation==G_FCD) fprintf(logfile,"'Filtered Green's tensor'\n");
-		else if (IntRelation==G_FCD_ST) fprintf(logfile,"'Filtered Green's tensor (quasistatic)'\n");
-		else if (IntRelation==G_IGT) {
-			fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
-			if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
-			else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
+		switch (IntRelation) {
+			case G_FCD: fprintf(logfile,"'Filtered Green's tensor'\n"); break;
+			case G_FCD_ST: fprintf(logfile,"'Filtered Green's tensor (quasistatic)'\n"); break;
+			case G_IGT:
+				fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
+				if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
+				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
+				break;
+			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
+			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
+			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
-		else if (IntRelation==G_IGT_SO) fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n");
-		else if (IntRelation==G_POINT_DIP) fprintf(logfile,"'as Point dipoles'\n");
-		else if (IntRelation==G_SO) fprintf(logfile,"'Second Order'\n");
 		// log FFT and (if needed) clFFT method
 		fprintf(logfile,"FFT algorithm: ");
 #ifdef FFTW3
@@ -2096,20 +2102,25 @@ void PrintInfo(void)
 #endif
 		// log Iterative Method
 		fprintf(logfile,"Iterative Method: ");
-		if (IterMethod==IT_BICG_CS) fprintf(logfile,"Bi-CG (complex symmetric)\n");
-		else if (IterMethod==IT_BICGSTAB) fprintf(logfile,"Bi-CG Stabilized\n");
-		else if (IterMethod==IT_CGNR) fprintf(logfile,"CGNR\n");
-		else if (IterMethod==IT_CSYM) fprintf(logfile,"CSYM\n");
-		else if (IterMethod==IT_QMR_CS) fprintf(logfile,"QMR (complex symmetric)\n");
-		else if (IterMethod==IT_QMR_CS_2) fprintf(logfile,"2-term QMR (complex symmetric)\n");
+		switch (IterMethod) {
+			case IT_BICG_CS: fprintf(logfile,"Bi-CG (complex symmetric)\n"); break;
+			case IT_BICGSTAB: fprintf(logfile,"Bi-CG Stabilized\n"); break;
+			case IT_CGNR: fprintf(logfile,"CGNR\n"); break;
+			case IT_CSYM: fprintf(logfile,"CSYM\n"); break;
+			case IT_QMR_CS: fprintf(logfile,"QMR (complex symmetric)\n"); break;
+			case IT_QMR_CS_2: fprintf(logfile,"2-term QMR (complex symmetric)\n"); break;
+		}
 		/* TO ADD NEW ITERATIVE SOLVER
-		 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
-		 * variable parts of the line are descriptor of the iterative solver, defined in const.h, and its plain-text
-		 * description (to be shown in log).
+		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
+		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
+		 * in log).
 		 */
-		// log Symmetry options; do not print anything in case of SYM_AUTO
-		if (sym_type==SYM_NO) fprintf(logfile,"No symmetries are used\n");
-		else if (sym_type==SYM_ENF) fprintf(logfile,"Symmetry is enforced by user (warning!)\n");
+		// log Symmetry options
+		switch (sym_type) {
+			case SYM_AUTO: break; //  do not print anything in this case
+			case SYM_NO: fprintf(logfile,"No symmetries are used\n"); break;
+			case SYM_ENF: fprintf(logfile,"Symmetry is enforced by user (warning!)\n"); break;
+		}
 		// log optimization method
 		if (save_memory) fprintf(logfile,"Optimization is done for minimum memory usage\n");
 		else fprintf(logfile,"Optimization is done for maximum speed\n");
@@ -2117,9 +2128,12 @@ void PrintInfo(void)
 		if (load_chpoint) fprintf(logfile,"Simulation is continued from a checkpoint\n");
 		if (chp_type!=CHP_NONE) {
 			fprintf(logfile,"Checkpoint is turned on:\n");
-			if (chp_type==CHP_NORMAL) fprintf(logfile,"    type = normal\n");
-			else if (chp_type==CHP_REGULAR) fprintf(logfile,"    type = regular\n");
-			else if (chp_type==CHP_ALWAYS) fprintf(logfile,"    type = always\n");
+			switch (chp_type) {
+				case CHP_NONE: break; // redundant; to keep a set of cases complete
+				case CHP_NORMAL: fprintf(logfile,"    type = normal\n"); break;
+				case CHP_REGULAR: fprintf(logfile,"    type = regular\n"); break;
+				case CHP_ALWAYS: fprintf(logfile,"    type = always\n"); break;
+			}
 			if (chp_time==UNDEF) fprintf(logfile,"    time = no limit\n");
 			else {
 				PrintTime(sbuffer,&chp_time);
