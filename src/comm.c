@@ -155,44 +155,40 @@ static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
  * variable 'mult' is returned to account for this factor.
  */
 {
-	MPI_Datatype res;
+	//MPI_Datatype res;
 
 	if (reduce) *mult=1; // default value when direct correspondence is possible
-	if (type==uchar_type) return MPI_UNSIGNED_CHAR;
-	else if (type==int_type) return MPI_INT;
-	else if (type==sizet_type) return MPI_SIZE_T;
-	else if (type==double_type) return MPI_DOUBLE;
-	else if (type==cmplx_type) {
-		if (reduce) {
-			res=MPI_DOUBLE;
-			*mult=2;
-		}
-		else res=mpi_dcomplex;
+	switch (type) {
+		case uchar_type: return MPI_UNSIGNED_CHAR;
+		case int_type: return MPI_INT;
+		case sizet_type: return MPI_SIZE_T;
+		case double_type: return MPI_DOUBLE;
+		case cmplx_type:
+			if (reduce) {
+				*mult=2;
+				return MPI_DOUBLE;
+			}
+			else return mpi_dcomplex;
+		case int3_type:
+			if (reduce) {
+				*mult=3;
+				return MPI_INT;
+			}
+			else return mpi_int3;
+		case double3_type:
+			if (reduce) {
+				*mult=3;
+				return MPI_DOUBLE;
+			}
+			else return mpi_double3;
+		case cmplx3_type:
+			if (reduce) {
+				*mult=6;
+				return MPI_DOUBLE;
+			}
+			else return mpi_dcomplex3;
 	}
-	else if (type==int3_type) {
-		if (reduce) {
-			res=MPI_INT;
-			*mult=3;
-		}
-		else res=mpi_int3;
-	}
-	else if (type==double3_type) {
-		if (reduce) {
-			res=MPI_DOUBLE;
-			*mult=3;
-		}
-		else res=mpi_double3;
-	}
-	else if (type==cmplx3_type) {
-		if (reduce) {
-			res=MPI_DOUBLE;
-			*mult=6;
-		}
-		else res=mpi_dcomplex3;
-	}
-	else LogError(ONE_POS,"Variable type %d is not supported",(int)type);
-
-	return res;
+	LogError(ONE_POS,"Variable type %d is not supported",(int)type);
 }
 
 //======================================================================================================================

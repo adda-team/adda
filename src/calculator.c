@@ -94,6 +94,7 @@ void SaveMuellerAndCS(double * restrict in);
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex *res)
 /* hard to maintain. It is better to separate different polarizability relations to make the resulting expressions more
  * understandable.
+ * Recent changes from if-else-if to switch does not significantly improves clarity
  */
 {
 	doublecomplex coup_con[3];
@@ -113,15 +114,19 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 	if (asym) imax=3;
 	else imax=1;
-	if (PolRelation==POL_LDR || PolRelation==POL_CLDR) {
-		b1=LDR_B1;
-		b2=LDR_B2;
-		b3=LDR_B3;
-	}
-	else if (PolRelation==POL_SO) {
-		b1=SO_B1;
-		b2=SO_B2;
-		b3=SO_B3;
+	switch (PolRelation) {
+		case POL_LDR:
+		case POL_CLDR:
+			b1=LDR_B1;
+			b2=LDR_B2;
+			b3=LDR_B3;
+			break;
+		case POL_SO:
+			b1=SO_B1;
+			b2=SO_B2;
+			b3=SO_B3;
+			break;
+		default: break;
 	}
 	// calculate the CM couple constant CC=(3V/4pi)*(m^2-1)/(m^2+2)
 	temp = 3*dipvol/FOUR_PI;
@@ -168,14 +173,21 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					t1[RE]=0.0;
 					t1[IM]=2*kd2*kd/3; // t1=2/3*i*kd^3
 					// plus more advanced corrections
-					if (PolRelation==POL_DGF) t1[RE]+=DGF_B1*kd2;
-					// t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-					else if (PolRelation==POL_FCD) t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
-					if (PolRelation==POL_IGT_SO) t1[RE]+=SO_B1*kd2;
-					else if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
-						if (PolRelation!=POL_LDR) S=prop2[i];
-						t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
-						t1[IM]+=(b2+b3*S)*m2[IM]*kd2;
+					switch (PolRelation) {
+						case POL_DGF: t1[RE]+=DGF_B1*kd2; break;
+						case POL_FCD: // t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+							t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
+							break;
+						case POL_IGT_SO: t1[RE]+=SO_B1*kd2; break;
+						case POL_CLDR:
+						case POL_SO:
+							S=prop2[i];
+							// no break
+						case POL_LDR:
+							t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
+							t1[IM]+=(b2+b3*S)*m2[IM]*kd2;
+							break;
+						default: break;
 					}
 				}
 				// CC[i]=cm/(1-(cm/V)*t1); t1 is the M-term
@@ -337,25 +349,33 @@ static void AllocateEverything(void)
 	 * this requires different order of function calls to extract this information beforehand. So currently this part
 	 * should be edited manually when needed.
 	 */
-	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
-		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
-			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
-			MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
-		}
-		memory+=3*tmp;
-	}
-	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
-		if (!prognosis) {
-			MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
-			MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
-		}
-		memory+=2*tmp;
+	switch (IterMethod) {
+		case IT_CGNR:
+		case IT_BICG_CS:
+			break;
+		case IT_BICGSTAB:
+		case IT_QMR_CS:
+			if (!prognosis) {
+				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
+			}
+			memory+=3*tmp;
+			break;
+		case IT_CSYM:
+		case IT_QMR_CS_2:
+			if (!prognosis) {
+				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
+			}
+			memory+=2*tmp;
+			break;
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * If the new iterative solver requires any extra vectors (additionally to the default ones), i.e. number vec_N in
-	 * corresponding element of structure array params in iterative.c is non-zero, then change the above condition to
-	 * allocate memory for these vectors. Variable memory should be incremented to reflect the total allocated memory.
+	 * Add here a case corresponding to the new iterative solver. If the new iterative solver requires any extra vectors
+	 * (additionally to the default ones), i.e. number vec_N in corresponding element of structure array params in
+	 * iterative.c is non-zero, then allocate memory for these vectors here. Variable memory should be incremented to
+	 * reflect the total allocated memory.
 	 */
 #ifndef SPARSE
 	MALLOC_VECTOR(expsX,complex,boxX,ALL);
@@ -500,19 +520,25 @@ static void FreeEverything(void)
 	 * iterative.c or checking each vector for being NULL. However, it will anyway require manual editing if additional
 	 * (e.g. fourth) vector will be added.
 	 */
-	if (IterMethod==IT_BICGSTAB || IterMethod==IT_QMR_CS) {
-		Free_cVector(vec1);
-		Free_cVector(vec2);
-		Free_cVector(vec3);
-	}
-	else if (IterMethod==IT_CSYM || IterMethod==IT_QMR_CS_2) {
-		Free_cVector(vec1);
-		Free_cVector(vec2);
+	switch (IterMethod) {
+		case IT_CGNR:
+		case IT_BICG_CS:
+			break;
+		case IT_BICGSTAB:
+		case IT_QMR_CS:
+			Free_cVector(vec1);
+			Free_cVector(vec2);
+			Free_cVector(vec3);
+			break;
+		case IT_CSYM:
+		case IT_QMR_CS_2:
+			Free_cVector(vec1);
+			Free_cVector(vec2);
+			break;
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
-	 * If the new iterative solver requires any extra vectors (so that they were allocated in function
-	 * AllocateEverything() above), then this condition (immediately above) should be changed to perform freeing of
-	 * these vectors.
+	 * Add here a case corresponding to the new iterative solver. It should free the extra vectors that were allocated
+	 * in AllocateEverything() above.
 	 */
 	if (yzplane) {
 		Free_cVector(EplaneX);

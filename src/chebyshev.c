@@ -41,19 +41,19 @@ static double Zfunc(double x,enum newt_func mode)
 
 	e=-fabs(eps); // assumes that e is negative; solution is trivial otherwise
 	xn=n*x;
-	if (mode==NF_VALUE) {
-		c=cos(x);
-		cn=cos(xn);
-		return (1+e*cn)*c;
+	switch (mode) {
+		case NF_VALUE:
+			c=cos(x);
+			cn=cos(xn);
+			return (1+e*cn)*c;
+		case NF_DRATIO:
+			s=sin(x);
+			c=cos(x);
+			sn=sin(xn);
+			cn=cos(xn);
+			return (-e*n*sn*c-(1+e*cn)*s)/(2*e*n*sn*s-(1+e*(1+n*n)*cn)*c);
 	}
-	else if (mode==NF_DRATIO) {
-		s=sin(x);
-		c=cos(x);
-		sn=sin(xn);
-		cn=cos(xn);
-		return (-e*n*sn*c-(1+e*cn)*s)/(2*e*n*sn*s-(1+e*(1+n*n)*cn)*c);
-	}
-	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
+	LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
 //======================================================================================================================
@@ -65,19 +65,19 @@ static double Xfunc(double x,enum newt_func mode)
 
 	e=fabs(eps); // assumes that e is positive (maximum value is invariant to sign change)
 	xn=n*x;
-	if (mode==NF_VALUE) {
-		c=cos(x);
-		sn=sin(xn);
-		return (1+e*sn)*c;
+	switch (mode) {
+		case NF_VALUE:
+			c=cos(x);
+			sn=sin(xn);
+			return (1+e*sn)*c;
+		case NF_DRATIO:
+			s=sin(x);
+			c=cos(x);
+			sn=sin(xn);
+			cn=cos(xn);
+			return (e*n*cn*c-(1+e*sn)*s)/(-2*e*n*cn*s-(1+e*(1+n*n)*sn)*c);
 	}
-	else if (mode==NF_DRATIO) {
-		s=sin(x);
-		c=cos(x);
-		sn=sin(xn);
-		cn=cos(xn);
-		return (e*n*cn*c-(1+e*sn)*s)/(-2*e*n*cn*s-(1+e*(1+n*n)*sn)*c);
-	}
-	else LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
+	LogError(ONE_POS,"Unknown mode %d for calling Zfunc",(int)mode);
 }
 
 //======================================================================================================================

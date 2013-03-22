@@ -161,7 +161,7 @@ enum sh { // shape types
 	SH_PRISM,        // right rectangular prism
 	SH_RBC,          // Red Blood Cell
 	SH_READ,         // read from file
-	SH_SDISK_ROT,    // disc cut of a sphere -- not operational
+	//SH_SDISK_ROT,  // disc cut of a sphere -- not operational
 	SH_SPHERE,       // sphere
 	SH_SPHEREBOX     // sphere in a box
 	/* TO ADD NEW SHAPE

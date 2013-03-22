@@ -156,23 +156,23 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 	_mm_store_pd(expval,sc);
 
 #undef INTERACT_MUL
-#define INTERACT_DIAG(I)\
-	qff = _mm_set1_pd(qmunu[I]);\
-	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff));\
-	im_re = cmul(sc,im_re);\
-	_mm_store_pd(result[I],im_re);
-#define INTERACT_NONDIAG(I)\
-	qff = _mm_set1_pd(qmunu[I]);\
-	im_re = _mm_mul_pd(v2,qff);\
-	im_re = cmul(sc,im_re);\
-	_mm_store_pd(result[I],im_re);
+#define INTERACT_DIAG(I) { \
+	qff = _mm_set1_pd(qmunu[I]); \
+	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff)); \
+	im_re = cmul(sc,im_re); \
+	_mm_store_pd(result[I],im_re); }
+#define INTERACT_NONDIAG(I) { \
+	qff = _mm_set1_pd(qmunu[I]); \
+	im_re = _mm_mul_pd(v2,qff); \
+	im_re = cmul(sc,im_re); \
+	_mm_store_pd(result[I],im_re); }
 
-	INTERACT_DIAG(0)    // xx
-	INTERACT_NONDIAG(1) // xy
-	INTERACT_NONDIAG(2) // xz
-	INTERACT_DIAG(3)    // yy
-	INTERACT_NONDIAG(4) // yz
-	INTERACT_DIAG(5)    // zz
+	INTERACT_DIAG(0);    // xx
+	INTERACT_NONDIAG(1); // xy
+	INTERACT_NONDIAG(2); // xz
+	INTERACT_DIAG(3);    // yy
+	INTERACT_NONDIAG(4); // yz
+	INTERACT_DIAG(5);    // zz
 
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
@@ -197,21 +197,21 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 	imExp(kr,expval);
 	cMultReal(invr3,expval,expval);
 
-#define INTERACT_DIAG(I)\
-	t[RE] = t1*qmunu[I] + t3;\
-	t[IM] = kr + t2*qmunu[I];\
-	cMult(t,expval,result[I]);
-#define INTERACT_NONDIAG(I)\
-	t[RE] = t1*qmunu[I];\
-	t[IM] = t2*qmunu[I];\
-	cMult(t,expval,result[I]);
+#define INTERACT_DIAG(I) { \
+	t[RE] = t1*qmunu[I] + t3; \
+	t[IM] = kr + t2*qmunu[I]; \
+	cMult(t,expval,result[I]); }
+#define INTERACT_NONDIAG(I) { \
+	t[RE] = t1*qmunu[I]; \
+	t[IM] = t2*qmunu[I]; \
+	cMult(t,expval,result[I]); }
 
-	INTERACT_DIAG(0)    // xx
-	INTERACT_NONDIAG(1) // xy
-	INTERACT_NONDIAG(2) // xz
-	INTERACT_DIAG(3)    // yy
-	INTERACT_NONDIAG(4) // yz
-	INTERACT_DIAG(5)    // zz
+	INTERACT_DIAG(0);    // xx
+	INTERACT_NONDIAG(1); // xy
+	INTERACT_NONDIAG(2); // xz
+	INTERACT_DIAG(3);    // yy
+	INTERACT_NONDIAG(4); // yz
+	INTERACT_DIAG(5);    // zz
 
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
@@ -890,29 +890,16 @@ void InitInteraction(void)
 {
 	// set CalcInterTerm to point at the right function
 	switch (IntRelation) {
-		case G_POINT_DIP:
-			CalcInterTerm = &CalcInterTerm_poi;
-			break;
-		case G_FCD:
-			CalcInterTerm = &CalcInterTerm_fcd;
-			break;
-		case G_FCD_ST:
-			CalcInterTerm = &CalcInterTerm_fcd_st;
-			break;
-		case G_IGT_SO:
-			CalcInterTerm = &CalcInterTerm_igt_so;
-			break;
-		case G_SO:
-			CalcInterTerm = &CalcInterTerm_so;
-			break;
+		case G_POINT_DIP: CalcInterTerm = &CalcInterTerm_poi; break;
+		case G_FCD: CalcInterTerm = &CalcInterTerm_fcd; break;
+		case G_FCD_ST: CalcInterTerm = &CalcInterTerm_fcd_st; break;
+		case G_IGT_SO: CalcInterTerm = &CalcInterTerm_igt_so; break;
+		case G_SO: CalcInterTerm = &CalcInterTerm_so; break;
 #ifndef NO_FORTRAN
-		case G_IGT:
-			CalcInterTerm = &CalcInterTerm_igt;
-			break;
+		case G_IGT: CalcInterTerm = &CalcInterTerm_igt; break;
 #endif
-		default: 
-			LogError(ONE_POS, "Invalid interaction term calculation method: %d",IntRelation);
-			break;
+		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",IntRelation);
+			// no break
 	}
 	// read tables if needed
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();

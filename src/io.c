@@ -206,14 +206,12 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 
 	if (who==ALL || IFROOT) { // controls whether output should be produced
 		// first build output string
-		if (code==EC_ERROR) strcpy(msg,"ERROR: ");
-		else if (code==EC_WARN) strcpy(msg,"WARNING: ");
-		else if (code==EC_INFO) strcpy(msg,"INFO: ");
-		/* the following statement is for full robustness, however all new error codes should be included in the
-		 * 'enum ec' in const.h and handled explicitly (this is what 'enum' is for). Moreover the logical structure of
-		 * this function is not immediately ready for new error codes (at least, this should be checked separately).
-		 */
-		else strcpy(msg,"Unknown Error Type: ");
+		switch (code) {
+			case EC_ERROR: strcpy(msg,"ERROR: "); break;
+			case EC_WARN: strcpy(msg,"WARNING: "); break;
+			case EC_INFO: strcpy(msg,"INFO: "); break;
+			case EC_OK: break; // redundant; for a full set of cases
+		}
 		shift=strlen(msg);
 		if (code!=EC_INFO) { // for EC_INFO position in source code is not saved
 			SNPRINTF_SHIFT_ROBUST(shift,tmp,msg,MAX_MESSAGE2,"(%s:%d) ",srcfile,srcline);
@@ -231,39 +229,42 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 		if (shift==MAX_MESSAGE2-1) shift--; // to avoid buffer overflows
 		strcpy(msg+shift,"\n");
 		// print message
-		if (code==EC_INFO) {
-			// put message to stdout, wrapping lines
-			WrapLines(msg);
-			printf("%s",msg);
-			fflush(stdout);
-		}
-		else if (code==EC_ERROR || code==EC_WARN) {
-			// first put error message in logfile
-			if (logfname[0]!=0) { // otherwise can't produce output at all
-				if (IFROOT) {
-					/* logfile is initialized to NULL in the beginning of the program. Hence if logfile!=NULL, logfile
-					 * is necessarily initialized (open or already closed). logfile==NULL (when logname!=0) means that
-					 * error is in opening logfile itself
-					 */
-					if (logfile!=NULL) {
-						if (fprintf(logfile,"%s",msg)==EOF) {
-							fclose(logfile); // in most cases this is redundant
-							// try to reopen logfile and save message
-							if ((logfile=fopen(logfname,"a"))!=NULL) fprintf(logfile,"%s",msg);
+		switch (code) {
+			case EC_ERROR:
+			case EC_WARN:
+				// first put error message in logfile
+				if (logfname[0]!=0) { // otherwise can't produce output at all
+					if (IFROOT) {
+						/* logfile is initialized to NULL in the beginning of the program. Hence if logfile!=NULL,
+						 * logfile is necessarily initialized (open or already closed). logfile==NULL (when logname!=0)
+						 * means that error is in opening logfile itself
+						 */
+						if (logfile!=NULL) {
+							if (fprintf(logfile,"%s",msg)==EOF) {
+								fclose(logfile); // in most cases this is redundant
+								// try to reopen logfile and save message
+								if ((logfile=fopen(logfname,"a"))!=NULL) fprintf(logfile,"%s",msg);
+							}
+							fflush(logfile); // needed for warnings to appear on time
 						}
-						fflush(logfile); // needed for warnings to appear on time
+					} // other processors
+					else if ((logfile=fopen(logfname,"a"))!=NULL) {
+						fprintf(logfile,"%s",msg);
+						fclose(logfile);
 					}
-				} // other processors
-				else if ((logfile=fopen(logfname,"a"))!=NULL) {
-					fprintf(logfile,"%s",msg);
-					fclose(logfile);
-				}
-			} // save message to buffer to save into logfile afterwards
-			else if (code==EC_WARN) strcpy(warn_buf,msg);
-			// duplicate message to stderr, wrapping lines
-			WrapLines(msg);
-			fprintf(stderr,"%s",msg);
-			fflush(stderr);
+				} // save warning message to buffer to save into logfile afterwards
+				else if (code==EC_WARN) strcpy(warn_buf,msg);
+				// write (duplicate) message to stderr, wrapping lines
+				WrapLines(msg);
+				fprintf(stderr,"%s",msg);
+				fflush(stderr);
+				break;
+			case EC_INFO: // put message to stdout, wrapping lines
+				WrapLines(msg);
+				printf("%s",msg);
+				fflush(stdout);
+				break;
+			case EC_OK: break; // redundant; for a full set of cases
 		}
 	}
 }
