@@ -6,7 +6,7 @@ All places in the code, where something should be added, are commented. These co
    * Add a short name of the iterative solver, to be used in the command line, to the list inside `{...}` on the line starting with `PAR(iter)` in the constant array `options`. 
    * Add one line to the else-if sequence in the function `PARSE_FUNC(iter)`.
    * If the iterative solver requires computation of the norm of the matrix-vector product together with the product itself (during the call to `MatVec` function), then update the assignment of `ipr_required` in function `VariablesInterconnect` accordingly.
-   * Add one line to the relevant else-if sequence in the function `PrintInfo`.
+   * Add a case to the relevant switch in the function `PrintInfo`.
  * Main part of the code should be added to [http://code.google.com/p/a-dda/source/browse/trunk/src/iterative.c iterative.c].
    * Add a function prototype `ITER_FUNC(_name_);`  to the existing list of prototypes. `ITER_FUNC(…)` is a macro for conciseness.
    * Add an element to the structure `params` consisting of:
@@ -19,29 +19,31 @@ All places in the code, where something should be added, are commented. These co
 ITER_FUNC(_name_)
 // Short comment, providing full name of the iterative solver
 {
-// It is recommended to define all nontrivial constants here. 
+// It is recommended to define all nontrivial constants here
 #define EPS1 1E-30
-	// all internal variables should be defined here as static, since the function will be called many times.
+	// all internal variables should be defined here as static, since the function will be called many times
 	static double xxx;
 
 	// The function accepts a single argument 'ph' describing a current phase to execute
-	if (ph==PHASE_VARS) {
-		// Here variables are linked to structure arrays 'scalars' and 'vectors'. For example:
-		scalars[0].ptr=&xxx;
-		scalars[0].size=sizeof(double);
-		// Also, if auxiliary vectors vec1,... are used, their names may be changed
-	}
-	else if (ph==PHASE_INIT) {
-		// Initialization of the iterative solver.
-	}
-	else if (ph==PHASE_ITER) {
-		// Performs a general iteration. As a result, current residual should be calculated.
+	switch (ph) {
+		case PHASE_VARS:
+			// Here variables are linked to structure arrays 'scalars' and 'vectors'. For example:
+			scalars[0].ptr=&xxx;
+			scalars[0].size=sizeof(double);
+			// Also, if auxiliary vectors vec1,... are used, their names may be changed
+			return;
+		case PHASE_INIT:
+			// Initialization of the iterative solver
+			return;
+		case PHASE_ITER:
+			// Performs a general iteration. As a result, current residual should be calculated
 
-		if (xxx<EPS1) // an example for checking of convergence failure (optional)
-			LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
+			// an example for checking of convergence failure (optional)
+			if (xxx<EPS1) LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
+			return;
 	}
-	else LogError(ONE_POS,"Unknown phase of the iterative solver");
+	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
 #undef EPS1
 }
 }}}
