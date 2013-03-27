@@ -7,7 +7,8 @@
 
 alpha:
 # calculation for alpha is cheap but only precalculated, therefore Jmax should be rather large.
-# Jmin and eps are really not used;
+# Jmin and eps are really not used.
+# Completely irrelevant, when only cross sections are calculated ('-scat_matr none').
 # Do not change the range from default unless you have a good reason; using only one value of gamma for beta=0,pi is
 #   done only when full range is specified here to avoid possible inaccuracies.
 # default: min=0;max=360;Jmax=5;equiv=true;periodic=true

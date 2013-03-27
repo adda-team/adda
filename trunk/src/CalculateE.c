@@ -580,6 +580,10 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				muel_alpha[-1]=Cabs;
 			}
 			else { // which == INCPOL_X
+				/* These formulae assume that cross sections need to be calculated for unpolarized incident light. It
+				 * doesn't matter (equal to the result for any linear polarization), when full averaging over alpha is
+				 * performed. However, the difference occur for non-full range of alpha (which is hardly ever used).
+				 */
 				muel_alpha[-2]=(muel_alpha[-2]+Cext)/2;
 				muel_alpha[-1]=(muel_alpha[-1]+Cabs)/2;
 			}
