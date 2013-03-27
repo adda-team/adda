@@ -52,7 +52,7 @@ else # the following is only for non-sparse mode
     # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
     # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
     # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like 
-    # it, provide another libOpenCL.so (e.g. that from AMD) for linkig.
+    # it, provide another libOpenCL.so (e.g. that from AMD) for linking.
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
 endif

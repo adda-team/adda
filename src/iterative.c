@@ -976,22 +976,22 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 			// an example for checking of convergence failure (optional)
 			if (xxx<EPS1) LogError(ONE_POS,"_name_ fails: xxx is too small ("GFORM_DEBUG").",xxx);
 
-		/* _Some_ iterative solvers contain extra checks for convergence in the _middle_ of an iteration, designed to
-		 * save time of, e.g., one matrix-vector product in some cases. They should be performed as follows. In
-		 * particular, the intermediate test will be skipped if final checkpoint is required (checkpoint of type
-		 * 'always').
-		 */
-		if (inprodRp1<epsB && chp_type!=CHP_ALWAYS) {
-			// Additional code, e.g. to set xvec to the final value
-			complete=false; // this is required to skip saving checkpoint and some timing
-		}
-		else {
-			// Continue the iteration normally
-		}
-		/* Common check for convergence at the end of an iteration should not be done here, because it is performed in
-		 * the function IterativeSolver.
-		 */
-		return;
+			/* _Some_ iterative solvers contain extra checks for convergence in the _middle_ of an iteration, designed
+			 * to save time of, e.g., one matrix-vector product in some cases. They should be performed as follows. In
+			 * particular, the intermediate test will be skipped if final checkpoint is required (checkpoint of type
+			 * 'always').
+			 */
+			if (inprodRp1<epsB && chp_type!=CHP_ALWAYS) {
+				// Additional code, e.g. to set xvec to the final value
+				complete=false; // this is required to skip saving checkpoint and some timing
+			}
+			else {
+				// Continue the iteration normally
+			}
+			/* Common check for convergence at the end of an iteration should not be done here, because it is performed in
+			 * the function IterativeSolver.
+			 */
+			return;
 	}
 	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
 #undef EPS1
