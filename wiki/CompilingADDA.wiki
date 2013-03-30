@@ -62,6 +62,7 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || || `SPARSE` || Compile `ADDA` in SparseMode (non-FFT). ||
 || || `USE_SSE3` || Enable SSE3 optimizations for the `gcc` compiler and hardware that supports it (most hardware do nowadays). This is used for the calculation of the dipole interaction term, and should yield significant acceleration when used in conjunction with the `SPARSE` option. In normal mode the benefits are minor. ||
 || || `CLFFT_APPLE` || Uses built-in clFFT routines by Apple for OpenCL version. This is recommended if you have problems installing `clAmdFft`. ||
+|| || `NO_SVNREV` || Disables obtaining the current subversion revision number of the source code during compilation. Use it only if the corresponding procedure causes any problems (including significant delays). ||
 
 || `EXTRA_FLAGS` || any || Additional flags to be passed to the compiler (for all languages). For instance, `-m32` to compile 32-bit binaries in a 64-bit environment. ||
 || `FFTW3_INC_PATH` || path || Path to `FFTW3` headers. May be not needed, if `FFTW3` is [InstallingFFTW3 installed] on a whole system. || 
