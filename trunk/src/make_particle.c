@@ -1223,7 +1223,7 @@ static void ReadDipFile(const char * restrict fname)
  */
 {
 	int x,y,z,x0,y0,z0,mat,scanned;
-	size_t index=0;
+	size_t index=0,line=0;
 	char linebuf[BUF_LINE];	
 #ifndef SPARSE
 	// to remove possible overflows
@@ -1247,6 +1247,7 @@ static void ReadDipFile(const char * restrict fname)
 		 * of dipoles) and  possibly 'mat' - domain number. 'scanned' should be set to be tested against EOF below. The
 		 * code is similar to the one in InitDipFile() but can be simpler because no consistency checks are performed.
 		 */
+		line++;
 		// if sscanf returns EOF, that is a blank line -> just skip
 		if (scanned!=EOF) {
 			// shift dipole position to be nonnegative
@@ -1258,6 +1259,8 @@ static void ReadDipFile(const char * restrict fname)
 			for (z=jagged*z0;z<jagged*(z0+1);z++) if (z>=local_z0 && z<local_z1_coer)
 				for (x=jagged*x0;x<jagged*(x0+1);x++) for (y=jagged*y0;y<jagged*(y0+1);y++) {
 					index=(z-local_z0)*boxXY+y*boxX_l+x;
+					if (material_tmp[index]!=Nmat)
+						LogError(ONE_POS,"Duplicate dipole was found at line %zu in dipole file %s",line,fname);
 					material_tmp[index]=(unsigned char)(mat-1);
 			}
 #else
