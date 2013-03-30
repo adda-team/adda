@@ -663,10 +663,8 @@ ITER_FUNC(QMR_CS)
  * SIAM Journal of Scientific Statistics and Computation, 13(1):425-448,1992.
  */
 {
-// !!! TODO: These bounds need to be reconsidered, but they are already working fine
-#define EPS1L  1E-10 // for (vT.v)/(b.b), low bound
-#define EPS1H  1E+20 // for (vT.v)/(b.b), high bound
-#define EPS2   1E-40 // for overflow of exponent number
+#define EPS1 1E-10 // for (vT.v)/(v.v)
+#define EPS2 1E-40 // for overflow of exponent number
 	static double c_old,c_new,omega_old,omega_new,zetaabs,dtmp1,dtmp2;
 	static doublecomplex alpha,beta,theta,eta,zeta,zetatilda,tau,tautilda;
 	static doublecomplex s_new,s_old,temp1,temp2,temp3,temp4;
@@ -719,11 +717,10 @@ ITER_FUNC(QMR_CS)
 			}
 			return;
 		case PHASE_ITER:
-			// check for zero or very high beta
-			dtmp1=cAbs2(beta)*resid_scale;
-			Dz("|vT.v|/(b.b)="GFORM_DEBUG,dtmp1);
-			if (dtmp1<EPS1L || dtmp1>EPS1H)
-				LogError(ONE_POS,"QMR_CS fails: |vT.v|/(b.b) is out of bounds ("GFORM_DEBUG").",dtmp1);
+			// check for very high omega (very small beta/||v||)
+			dtmp1=1/(omega_new*omega_new);
+			Dz("|vT.v|/(v.v)="GFORM_DEBUG,dtmp1);
+			if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS fails: |vT.v|/(v.v) is too small ("GFORM_DEBUG").",dtmp1);
 			// A.v_k; alpha_k=v_k(*).(A.v_k)
 			if (niter==1 && matvec_ready) { // uses that v_1=r_0/beta
 				cInv(beta,temp1);
@@ -755,6 +752,10 @@ ITER_FUNC(QMR_CS)
 			omega_old=omega_new;
 			nDotProdSelf_conj_Norm2(vtilda,temp1,&dtmp1,&Timing_OneIterComm); // dtmp1=||v~||^2
 			cSqrt(temp1,beta);
+			/* Here we do not check for zero beta, since exact zero is very improbable and the following code (until the
+			 * end of iteration) employs only the product omega_k+1*beta_k+1. So the (almost) breakdown is instead
+			 * checked at the beginning of the iteration.
+			 */
 			omega_new=sqrt(dtmp1)/cAbs(beta);
 			// |zeta_k|=sqrt(|zeta~_k|^2+omega_k+1^2*|beta_k+1|^2)
 			dtmp2=cAbs2(zetatilda); // dtmp2=|zeta~_k|^2
@@ -882,7 +883,8 @@ ITER_FUNC(QMR_CS_2)
 			// eps_k = p_k(*).(A.p_k); beta_k = eps_k/delta_k
 			nDotProd_conj(pvec,Avecbuffer,eps,&Timing_OneIterComm);
 			cDiv(eps,delta,beta);
-			Dz("|pT.A.p|="GFORM_DEBUG,cAbs(eps));
+			dtmp1=cAbs(eps);
+			Dz("|pT.A.p|="GFORM_DEBUG,dtmp1);
 			if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS_2 fails: |pT.A.p| is too small ("GFORM_DEBUG").",dtmp1);
 			// v~_k+1 = A.p_k - beta_k*v_k; stored in the same vector v
 			cInvSign2(beta,temp1);

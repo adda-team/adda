@@ -118,6 +118,11 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
 
+# By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
+# ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
+# the functionality can be disabled by uncommenting the following line.
+#override OPTIONS += NO_SVNREV
+
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
 # overriding definition below. To specify a different version of the compiler, e.g. 'gcc-4.7' instead of 'gcc', use
@@ -288,6 +293,15 @@ endif
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Read CL sources at runtime)
+endif
+ifneq ($(filter NO_SVNREV,$(OPTIONS)),)
+  CDEFS += -DNO_SVNREV
+else
+  # Get revision number if possible
+  REV=$(shell sh updsvnrev.sh)
+  ifneq ($(REV),)
+    $(info Revision $(REV))
+  endif
 endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)

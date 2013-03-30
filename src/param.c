@@ -41,6 +41,10 @@
 #	include <clAmdFft.h> // for version information
 #endif
 
+#ifndef NO_SVNREV
+#	include "svnrev.h" // for SVNREV, this file is automatically created during compilation
+#endif
+
 // definitions for file locking
 #ifdef USE_LOCK
 #	ifdef WINDOWS
@@ -1407,7 +1411,11 @@ PARSE_FUNC(V)
 #	define COMPILER "unknown"
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
+#ifdef SVNREV // revision number is printed if available, but only here
+		printf("ADDA v."ADDA_VERSION" (r"SVNREV")\n");
+#else
 		printf("ADDA v."ADDA_VERSION"\n");
+#endif
 #ifdef OPENCL
 #	if defined(CL_VERSION_1_2)
 #		define OCL_VERSION "1.2"
