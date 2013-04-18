@@ -554,17 +554,22 @@ static void fftInitAfterD(void)
 	CL_CH_ERR(clAmdFftGetVersion(&major,&minor,&patch));
 	D("clAmdFft library version - %u.%u.%u",major,minor,patch);
 #	endif
-	/* Unfortunately, clAmdFft (and Apple clFFT as well) currently supports only simple regular batches of transforms
-	 * (similar to fftw_plan_many_dft) but not fully flexible configurations, like offered by fftw_plan_guru_dft. So to
-	 * make X transform as a single plan we have have to cycle over the whole smallY instead of (possibly smaller) boxY.
-	 * This incurs a small performance hit for "non-standard" values of boxY, but should be overall faster than making
-	 * an explicit loop over smaller kernels (like is now done with Temperton FFT).
+	/* Here and further we explicitly set all plan parameters for clAmdFft, even those that are equal to the default
+	 * values (as recommended in clAmdFft manual)
 	 */
-	size_t xdimen[3]={gridX,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanX,context,CLFFT_1D,xdimen));
+	/* Unfortunately, clAmdFft (and Apple clFFT as well) currently supports only simple regular batches of transforms
+	 * (similar to fftw_plan_many_dft) but not fully flexible configurations, like offered by fftw_plan_guru_dft.
+	 * Basically the problem is due to lack of multi-dimensional (non-tightly packed) batches. So to make X transform as
+	 * a single plan we have have to cycle over the whole smallY instead of (possibly smaller) boxY. This incurs a small
+	 * performance hit for "non-standard" values of boxY, but should be overall faster than making an explicit loop over
+	 * smaller kernels (like is now done with Temperton FFT).
+	 */
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanX,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetResultLocation(clplanX,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanX,1,&command_queue,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
@@ -579,11 +584,12 @@ static void fftInitAfterD(void)
 	GetTime(tvp+1);
 #	endif
 #	ifdef CLFFT_AMD
-	size_t ydimen[3]={gridY,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,ydimen));
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ));
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetResultLocation(clplanY,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanY,1,&command_queue,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
@@ -605,11 +611,12 @@ static void fftInitAfterD(void)
 	 * way to address this issue is to either create three separate cl_mem objects or to change the indexing of levels
 	 * inside the array, so that 3 components are stored together.
 	 */
-	size_t zdimen[3]={gridZ,1,1};
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,zdimen));
+	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY));
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetResultLocation(clplanZ,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
