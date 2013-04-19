@@ -1,11 +1,29 @@
 #summary List of journal papers that make use of ADDA
 
-Below we list journal papers that use results of simulations using `ADDA`. Those (review) papers, which only mention `ADDA`, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter]. Similar list of papers with full bibliographic data can be found in [https://www.zotero.org/myurkin/items/collectionKey/QF45ITEJ/order/year Zotero library].
+Below we list journal papers that use results of simulations using `ADDA`. Those (review) papers, which only mention `ADDA`, are not included. If you know a paper that should be included here please leave a comment below or contact [mailto:DaviddeKanterUvA@gmail.com David de Kanter]. Similar list of papers with full bibliographic data can be found in [http://www.zotero.org/myurkin/items/collectionKey/QF45ITEJ/order/date/sort/desc Zotero library].
 
 <wiki:toc />
 
-= 2012 (8) =
- # F. Teschl, W. L. Randeu, R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004  Atmosph. Res. (in press) (2012)].
+= 2013 (8) =
+
+ # L. Bi, P. Yang, G. W. Kattawar, and M. I. Mishchenko, “Efficient implementation of the invariant imbedding T-matrix method and the separation of variables method applied to large nonspherical inhomogeneous particles,” [http://dx.doi.org/10.1016/j.jqsrt.2012.11.014 J. Quant. Spectrosc. Radiat. Transfer 116, 169–183 (2013)].
+ # P. Yang, L. Bi, B. A. Baum, K.-N. Liou, G. W. Kattawar, M. I. Mishchenko, and B. Cole, “Spectrally consistent scattering, absorption, and polarization properties of atmospheric ice crystals at wavelengths from 0.2 to 100 μm,” [http://dx.doi.org/10.1175/JAS-D-12-039.1 J. Atmos. Sci. 70, 330–347 (2013)].
+ # Q. Zhang, J. J. Xiao, X. M. Zhang, Y. Yao, and H. Liu, “Reversal of optical binding force by Fano resonance in plasmonic nanorod heterodimer,” [http://dx.doi.org/10.1364/OE.21.006601 Opt. Express 21, 6601–6608 (2013)].
+ # A. E. Moskalensky, M. A. Yurkin, A. I. Konokhova, D. I. Strokotov, V. M. Nekrasov, A. V. Chernyshev, G. A. Tsvetovskaya, E. D. Chikova, and V. P. Maltsev, “Accurate measurement of volume and shape of resting and activated blood platelets from light scattering,” [http://dx.doi.org/10.1117/1.JBO.18.1.017001 J. Biomed. Opt. 18, 017001 (2013)].
+ # S. Amini, Y. You, G. W. Kattawar, and K. E. Meissner, “Effect of surrounding inhomogeneities on whispering gallery modes in spherical resonators,” [http://dx.doi.org/10.1364/AO.52.000690 Appl. Opt. 52, 690–697 (2013)].
+ # J. Tyynelä, J. Leinonen, C. D. Westbrook, D. Moisseev, and T. Nousiainen, “Applicability of the Rayleigh-Gans approximation for scattering by snowflakes at microwave frequencies in vertical incidence,” [http://dx.doi.org/10.1002/jgrd.50167 J. Geophys. Res.: Atmos. 118, 1826–1839 (2013)].
+ # S. Y. Nikitin, A. V. Priezzhev, and A. E. Lugovtsov, “Analysis of laser beam scattering by an ensemble of particles modeling red blood cells in ektacytometer,” [http://dx.doi.org/10.1016/j.jqsrt.2013.02.014 J. Quant. Spectrosc. Radiat. Transfer 121, 1–8 (2013)].
+ # F. Teschl, W. L. Randeu, and R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004 Atmos. Res. 119, 112–119 (2013)].
+
+= 2012 (14) =
+
+ # Y. Xie, P. Yang, K.-N. Liou, P. Minnis, and D. P. Duda, “Parameterization of contrail radiative properties for climate studies,” [http://dx.doi.org/10.1029/2012GL054043 Geophys. Res. Lett. 39, L00F02 (2012)].
+ # K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
+ # J. Lee, J. Kim, P. Yang, and N. C. Hsu, “Improvement of aerosol optical depth retrieval from MODIS spectral reflectance over the global ocean using new aerosol models archived from AERONET inversion data and tri-axial ellipsoidal dust database,” [http://dx.doi.org/10.5194/acp-12-7087-2012 Atmos. Chem. Phys. 12, 7087–7102 (2012)].
+ # M. Kahnert, T. Nousiainen, M. A. Thomas, and J. Tyynelä, “Light scattering by particles with small-scale surface roughness: Comparison of four classes of model geometries,” [http://dx.doi.org/10.1016/j.jqsrt.2012.03.017 J. Quant. Spectrosc. Radiat. Transfer 113, 2356–2367 (2012)].
+ # M. Gao, Y. You, P. Yang, and G. W. Kattawar, “Backscattering properties of small layered plates: a model for iridosomes,” [http://dx.doi.org/10.1364/OE.20.025111 Opt. Express 20, 25111–25120 (2012)].
+ # K. F. Evans, J. R. Wang, D. O’C Starr, G. Heymsfield, L. Li, L. Tian, R. P. Lawson, A. J. Heymsfield, and A. Bansemer, “Ice hydrometeor profile retrieval algorithm for high-frequency microwave radiometers: application to the CoSSIR instrument during TC4,” [http://dx.doi.org/10.5194/amt-5-2277-2012 Atmos. Meas. Tech. 5, 2277–2306 (2012)].
+ # F. Caramanica, “A method based on particle swarm optimization to retrieve the shape of red blood cells: a preliminary assessment,” _Prog. Electromag. Res. M_ *27*, 109–117 (2012).
  # M. Zimmermann, A. Tausendfreund, S. Patzelt, G. Goch, S. Kieß, M. Z. Shaikh, M. Gregoire, and S. Simon, “In-process measuring procedure for sub-100 nm structures,” [http://dx.doi.org/10.2351/1.4719936 J. Laser Appl. 24, 042010 (2012)].
  # J. Kalkman, A. V. Bykov, G. J. Streekstra, and T. G. van Leeuwen, “Multiple scattering effects in Doppler optical coherence tomography of flowing blood,” [http://dx.doi.org/10.1088/0031-9155/57/7/1907 Phys. Med. Biol. 57, 1907–1917 (2012)].
  # X. Zhang, D. J. Gray, Y. Huot, Y. You, and L. Bi, “Comparison of optically derived particle size distributions: scattering over the full angular range versus diffraction at near forward angles,” [http://dx.doi.org/10.1364/AO.51.005085 Appl. Opt. 51, 5085–5099 (2012)].
