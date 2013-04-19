@@ -27,6 +27,9 @@ M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approxim
 M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585 (2010)].
 
 == Shapes ==
+=== Capsule ===
+D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
+
 === Сhebyshev particle ===
 K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
 
