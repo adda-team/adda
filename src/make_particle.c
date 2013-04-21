@@ -2170,7 +2170,9 @@ void MakeParticle(void)
 	local_nvoid_Ndip=local_nvoid_d1-local_nvoid_d0;
 	local_Ndip=local_nvoid_Ndip;
 	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
-	MALLOC_VECTOR(position_full,int,nvoid_Ndip*3,ALL);
+	// check if 3*nvoid_Ndip can be computed; check is redundant for sequential mode
+	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+	MALLOC_VECTOR(position_full,int,nRows,ALL);
 	memory+=3*sizeof(int)*nvoid_Ndip+sizeof(char)*local_nvoid_Ndip;
 #endif // SPARSE
 	if (shape==SH_READ) ReadDipFile(shape_fname);

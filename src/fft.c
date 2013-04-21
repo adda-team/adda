@@ -35,6 +35,8 @@
 
 #ifdef CLFFT_AMD
 #	include <clAmdFft.h> //external library from AMD
+	// Defines precision of clAmdFft transforms. !!! CLFFT_DOUBLE_FAST should be tested when becomes operational
+#	define PRECISION_CLFFT CLFFT_DOUBLE
 #elif defined(CLFFT_APPLE)
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
 #	ifdef NO_CPP
@@ -566,7 +568,7 @@ static void fftInitAfterD(void)
 	 */
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanX,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanX,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanX,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_FORWARD,1));
@@ -586,7 +588,7 @@ static void fftInitAfterD(void)
 #	ifdef CLFFT_AMD
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanY,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_FORWARD,1));
@@ -613,7 +615,7 @@ static void fftInitAfterD(void)
 	 */
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
 	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,CLFFT_DOUBLE));
+	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanZ,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_FORWARD,1));
