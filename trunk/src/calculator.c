@@ -339,10 +339,10 @@ static void AllocateEverything(void)
 	}
 	memory+=5*tmp;
 #ifdef SPARSE
-	if (!prognosis) {
+	if (!prognosis) { // overflow of 3*nvoid_Ndip is tested in MakeParticle()
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
 	}
-	memory+=3*nvoid_Ndip*sizeof(*arg_full);
+	memory+=3*nvoid_Ndip*sizeof(doublecomplex);
 #endif // !SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
 	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
@@ -477,6 +477,10 @@ static void AllocateEverything(void)
 	 * others - nvoid_Ndip*{271(CGNR,BiCG),367(CSYM,QMR2), or 415(BiCGStab,QMR)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
+	 *
+	 * Sparse mode - each processor needs (265--409, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
+	 *               and division is uniform, i.e. local_nvoid_Ndip = nvoid_Ndip/nprocs
+	 *               Part of the memory is currently not distributed among processors - see issue 160.
 	 */
 	MAXIMIZE(memPeak,memory);
 	double memSum=AccumulateMax(memPeak,&memmax);
@@ -508,6 +512,7 @@ static void FreeEverything(void)
 	Free_general(position); // allocated in MakeParticle();
 #else	
 	Free_general(position_full); // allocated in MakeParticle();
+	Free_cVector(arg_full);
 #endif // SPARSE
 
 	Free_cVector(xvec);
