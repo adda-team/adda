@@ -27,14 +27,33 @@ M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approxim
 M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585 (2010)].
 
 == Shapes ==
+=== Axisymmetric ===
+K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681–5690 (2010)].
+
+=== Bisphere ===
+K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
+
 === Capsule ===
 D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
 
 === Сhebyshev particle ===
 K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
 
+=== Coated spheres ===
+J. Tyynelä, T. Nousiainen, S. Göke, and K. Muinonen, “Modeling C-band single scattering properties of hydrometeors using discrete-dipole approximation and T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2009.02.020 J. Quant. Spectrosc. Radiat. Transfer 110, 1654–1664 (2009)].
+
+=== Cylinder ===
+ * K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
+ * L. Bi, P. Yang, and G. W. Kattawar, “Edge-effect contribution to the extinction of light by dielectric disks and cylindrical particles,” [http://dx.doi.org/10.1364/AO.49.004641 Appl. Opt. 49, 4641–4646 (2010)].
+
+=== Cube (box) ===
+M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
+
 === Egg ===
 D. V. Hahn, D. Limsui, R. I. Joseph, K. C. Baldwin, N. T. Boggs, A. K. Carr, C. C. Carter, T. S. Han, and M. E. Thomas, “Shape characteristics of biological spores,” [http://dx.doi.org/10.1117/12.777637 SPIE Proc. 6954, 69540W (2008)].
+
+=== Ellipsoid ===
+L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114–126 (2009)].
  
 === Red blood cell (RBC) ===
 M. A. Yurkin, “Discrete dipole simulations of light scattering by blood cells,” [http://www.science.uva.nl/research/scs/papers/archive/Yurkin2007c.pdf PhD thesis, University of Amsterdam (2007)].
@@ -57,6 +76,7 @@ A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rah
  * M. A. Yurkin, A. G. Hoekstra, R. S. Brock, and J. Q. Lu, “Systematic comparison of the discrete dipole approximation and the finite difference time domain method for large dielectric scatterers,” [http://dx.doi.org/10.1364/OE.15.017902 Opt. Express 15, 17902–17911 (2007)].
  * K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681–5690 (2010)].
  * C. Liu, L. Bi, R. L. Panetta, P. Yang, and M. A. Yurkin, “Comparison between the pseudo-spectral time domain method and the discrete dipole approximation for light scattering simulations,” [http://dx.doi.org/10.1364/OE.20.016763 Opt. Express 20, 16763–16776 (2012)].
+ * M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
 
 = Additional packages =
 == hyperfun ==
