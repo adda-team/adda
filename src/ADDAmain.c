@@ -51,6 +51,7 @@ void MakeParticle(void);
 void InitVariables(void);
 void ParseParameters(int argc,char **argv);
 void VariablesInterconnect(void);
+void FinalizeSymmetry(void);
 void DirectoryLog(int argc,char **argv);
 void PrintInfo(void);
 
@@ -79,9 +80,10 @@ int main(int argc,char **argv)
 	ParseParameters(argc,argv);
 	D("Reading command line finished");
 	VariablesInterconnect(); // also initializes beam
-	// Initialize symmetries and box's; get number of dipoles; set some variables
+	// Initialize box's; get number of dipoles; set some variables
 	InitShape();
 	D("Initialization of shape finished");
+	FinalizeSymmetry(); // finalize symmetries and check for possible conflicts of symmetries with other options
 	// !!! before this line errors should be printed in simple format, after - in advanced one
 	// Create directory and start logfile (print command line)
 	DirectoryLog(argc,argv);

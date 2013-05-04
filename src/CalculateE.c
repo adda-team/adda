@@ -51,12 +51,8 @@ extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_
 calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_mueller,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,
-Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan;
+extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan,Timing_IncBeam;
 extern size_t TotalEFieldPlane;
-
-// used in iterative.c
-TIME_TYPE tstart_CE;
 
 // LOCAL VARIABLES
 
@@ -76,7 +72,7 @@ TIME_TYPE tstart_CE;
 // GenerateB.c
 void GenerateB(enum incpol which,doublecomplex *x);
 // iterative.c
-int IterativeSolver(enum iter method);
+int IterativeSolver(enum iter method,enum incpol which);
 
 //======================================================================================================================
 
@@ -468,6 +464,10 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
  * are concatenated into the file, which name is build by adding a small suffix to 'fname_preffix'. If CE_PARPER is
  * employed then naturally saves only once; use '-sym no' if needed. 'field_name' is used to build column labels (i.e.
  * there is difference in the first row between different fields). 'fullname' is for standard output.
+ *
+ * This (parallel) algorithm is far from being optimal due to the (redundant) concatenation step. However, this is
+ * mainly the limitation of the text file. The only feasible way to improve it is to use binary format like NetCDF
+ * (which may work on top of MPI_IO).
  */
 {
 	FILE * restrict file; // file to store the fields
@@ -664,17 +664,19 @@ int CalculateE(const enum incpol which,const enum Eftype type)
  */
 {
 	int exit_status;
+	TIME_TYPE tstart;
 
-	tstart_CE=GET_TIME();
+	tstart=GET_TIME();
 	// calculate the incident field Einc; vector b=Einc*cc_sqrt
 	D("Generating B");
-	GenerateB (which, Einc);
+	GenerateB (which,Einc);
 	if (store_beam) StoreFields(which,Einc,NULL,F_BEAM,F_BEAM_TMP,"Einc","Incident beam");
+	Timing_IncBeam = GET_TIME() - tstart;
 	// calculate solution vector x
 	D("Iterative solver started");
-	exit_status=IterativeSolver(IterMethod);
+	exit_status=IterativeSolver(IterMethod,which);
 	D("Iterative solver finished");
-	Timing_IntFieldOne = GET_TIME() - tstart_CE;
+	Timing_IntFieldOne = GET_TIME() - tstart;
 	Timing_IntField += Timing_IntFieldOne;
 	// return if checkpoint (normal) occurred
 	if (exit_status==CHP_EXIT) return CHP_EXIT;

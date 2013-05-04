@@ -35,6 +35,7 @@
 // used in CalculateE.c
 TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total and comm
           Timing_IntField,Timing_IntFieldOne, // for internal fields: total & one calculation
+          Timing_IncBeam,                     // for generation (or reading) and saving (if needed) of incident beam
           Timing_ScatQuan;                    // for integral scattering quantities
 size_t TotalEFieldPlane; // total number of planes for scattered field calculations
 // used in calculator.c
@@ -168,6 +169,8 @@ void FinalStatistics(void)
 			fprintf(logfile,
 				"      communication:       "FFORMT"\n",TO_SEC(Timing_IntFieldOneComm));
 #endif
+			fprintf(logfile,
+				"      incident beam:       "FFORMT"\n",TO_SEC(Timing_IncBeam));
 			fprintf(logfile,
 				"      init solver:         "FFORMT"\n",TO_SEC(Timing_InitIter));
 #ifdef PARALLEL

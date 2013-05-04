@@ -123,14 +123,16 @@ char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
 double iter_eps;           // relative error to reach
 enum init_field InitField; // how to calculate initial field for the iterative solver
+const char *infi_fnameY;   // names of files, defining the initial field (for two polarizations)
+const char *infi_fnameX;
 bool recalc_resid;         // whether to recalculate residual at the end of iterative solver
+enum chpoint chp_type;     // type of checkpoint (to save)
 time_t chp_time;           // time of checkpoint (in sec)
 char const *chp_dir;       // directory name to save/load checkpoint
 // used in make_particle.c
 enum sh shape;                   // particle shape definition
 int sh_Npars;                    // number of shape parameters
 double sh_pars[MAX_N_SH_PARMS];  // storage for shape parameters
-enum sym sym_type;               // how to treat particle symmetries
 double sizeX;                    // size of particle along x-axis
 double dpl;                      // number of dipoles per lambda (wavelength)
 double lambda;                   // incident wavelength (in vacuum)
@@ -156,6 +158,7 @@ static const char *run_name;    // first part of the dir name ('run' or 'test')
 static const char *avg_parms;   // name of file with orientation averaging parameters
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
+static enum sym sym_type;       // how to treat particle symmetries
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -377,7 +380,7 @@ static struct opt_struct options[]={
 		"all SO formulations.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
-		"predefined beam types (if present) are floats."
+		"predefined beam types (if present) are floats.\n"
 		"Default: plane",UNDEF,beam_opt},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
@@ -424,16 +427,20 @@ static struct opt_struct options[]={
 		"name of the option should be given without preceding dash). For some options (e.g. '-beam' or '-shape') "
 		"specific help on a particular suboption <subopt> may be shown.\n"
 		"Example: shape coated",UNDEF,NULL},
-	{PAR(init_field),"{auto|inc|wkb|zero}",
+	{PAR(init_field),"{auto|inc|read <filenameY> [<filenameX>]|wkb|zero}",
 		"Sets prescription to calculate initial (starting) field for the iterative solver.\n"
 		"'auto' - automatically choose from 'zero' and 'inc' based on the lower residual value.\n"
 		"'inc' - equal to the incident field,\n"
+		"'read' - defined by separate files, which names are given as arguments. Normally two files are required for "
+		"Y- and X-polarizations respectively, but a single filename is sufficient if only Y-polarization is used (e.g. "
+		"due to symmetry). Initial field should be specified in a particle reference frame in the same format as used "
+		"by '-store_int_field',\n"
 		"'wkb' - from Wentzel-Kramers-Brillouin approximation,\n"
 #ifdef SPARSE
 		"!!! 'wkb' is not operational in sparse mode\n"
 #endif
 		"'zero' is a zero vector,\n"
-		"Default: auto",1,NULL},
+		"Default: auto",UNDEF,NULL},
 	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
@@ -723,9 +730,7 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 //======================================================================================================================
 
 static inline const char *ScanStrError(const char * restrict str,const unsigned int size)
-/* check if string fits in buffer of size 'size', otherwise produces error message; then content of str is copied into
- * dest
- */
+// check if string fits in buffer of size 'size', otherwise produces error message; returns the passed str (redirects)
 {
 	if (strlen(str)>=size) PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
 		"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
@@ -1050,16 +1055,25 @@ PARSE_FUNC(h)
 }
 PARSE_FUNC(init_field)
 {
+	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"auto")==0) InitField=IF_AUTO;
-	else if (strcmp(argv[1],"zero")==0) InitField=IF_ZERO;
 	else if (strcmp(argv[1],"inc")==0) InitField=IF_INC;
-	else if (strcmp(argv[1],"wkb")==0)
+	else if (strcmp(argv[1],"read")==0) {
+		if (Narg!=2 && Narg!=3)
+			PrintErrorHelp("Illegal number of arguments (%d) to '-init_field read' option (1 or 2 expected)",Narg-1);
+		ScanFnamesError(Narg-1,FNAME_ARG_1_2,argv+2,&infi_fnameY,&infi_fnameX);
+		InitField=IF_READ;
+	}
+	else if (strcmp(argv[1],"wkb")==0) {
 #ifdef SPARSE
 		PrintErrorHelp("Initial field 'wkb' is not supported in sparse mode");
 #else
 		InitField=IF_WKB;
 #endif
+	}
+	else if (strcmp(argv[1],"zero")==0) InitField=IF_ZERO;
 	else NotSupported("Initial field prescription",argv[1]);
+	if (Narg>1 && strcmp(argv[1],"read")!=0) PrintErrorHelp("Additional arguments are allowed only for 'read'");
 }
 PARSE_FUNC(int)
 {
@@ -1163,7 +1177,8 @@ PARSE_FUNC(orient)
 		if (Narg==2) avg_parms=ScanStrError(argv[2],MAX_FNAME);
 	}
 	else {
-		if (Narg!=3) NargError(Narg,"3");
+		if (Narg!=3)
+			PrintErrorHelp("Illegal number of arguments (%d) to '-orient' option (3 or 'avg ...' expected)",Narg);
 		ScanDoubleError(argv[1],&alph_deg);
 		ScanDoubleError(argv[2],&bet_deg);
 		ScanDoubleError(argv[3],&gam_deg);
@@ -1688,6 +1703,9 @@ void InitVariables(void)
 	igt_eps=UNDEF;
 	InitField=IF_AUTO;
 	recalc_resid=false;
+	// sometimes the following two are left uninitialized
+	beam_fnameX=NULL;
+	infi_fnameX=NULL;
 #ifdef OPENCL
 	gpuInd=0;
 #endif
@@ -1872,6 +1890,24 @@ void VariablesInterconnect(void)
 	 * If a new command line option may potentially conflict or interact with other options, add here code to implement
 	 * corresponding tests or cross-dependence.
 	 */
+}
+
+//======================================================================================================================
+
+void FinalizeSymmetry(void) {
+	// finalize symmetries
+	if (sym_type==SYM_NO) symX=symY=symZ=symR=false;
+	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=true;
+	// additional tests in case of two polarization runs
+	if (!(symR && !scat_grid)) {
+		if (beamtype==B_READ && beam_fnameX==NULL)
+			PrintError("Only one beam file is specified, while two incident polarizations need to be considered");
+		if (InitField==IF_READ && infi_fnameX==NULL) PrintError("Only one file with initial field is specified, while "
+			"two incident polarizations need to be considered");
+		// the following limitation should be removed in the future
+		if (chp_type!=CHP_NONE) PrintError("Currently checkpoints can be used when internal fields are calculated only "
+			"once, i.e. for a single incident polarization");
+	}
 }
 
 //======================================================================================================================

@@ -148,50 +148,6 @@ void InitBeam(void)
 	 * define them in the beginning of this function.
 	 */
 }
-//======================================================================================================================
-
-static void ReadBeam(const enum incpol which,doublecomplex *restrict b)
-// Reads beam from file, a separate file is used for each incident polarization
-{
-	char linebuf[BUF_LINE];
-	const char *fname;
-	if (which==INCPOL_Y) fname=beam_fnameY;
-	else { // which==INCPOL_X
-		if (beam_Npars==1)
-			LogError(ONE_POS,"Only one beam file is specified, while X polarization need to be calculated");
-		fname=beam_fnameX;
-	}
-	TIME_TYPE tstart=GET_TIME();
-	FILE *file=FOpenErr(fname,"r",ALL_POS);
-	// the same format as used for saving the beam by StoreFields(...) in make_particle.c
-	const char beam_format[]="%*f %*f %*f %*f %lf %lf %lf %lf %lf %lf";
-	const int mustbe=6;
-	int scanned;
-	size_t i,j;
-	// skips first line with headers and any comments, if present
-	size_t line=SkipNLines(file,1);
-	line+=SkipComments(file);
-
-	i=j=0;
-	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
-		// scan numbers in a line
-		scanned=sscanf(linebuf,beam_format,&(b[j][RE]),&(b[j][IM]),&(b[j+1][RE]),&(b[j+1][IM]),&(b[j+2][RE]),
-			&(b[j+2][IM]));
-		if (scanned!=EOF) { // if sscanf returns EOF, that is a blank line -> just skip
-			if (scanned!=mustbe) // this in most cases indicates wrong format
-				LogError(ALL_POS,"Error occurred during scanning of line %zu from beam file %s",line,fname);
-			if (i==nvoid_Ndip) LogError(ALL_POS,"Beam file %s contains more data rows than number of dipoles (%zu) in "
-				"the particle",fname,nvoid_Ndip);
-			if (i>=local_nvoid_d0) j+=3;
-			i++;
-			/* all processors stop reading file as soon as possible, but the last processor reads one more line to test
-			 * (above) for extra strings in the file
-			 */
-			if(i==local_nvoid_d1 && i!=nvoid_Ndip) break;
-		}
-		Timing_FileIO+=GET_TIME()-tstart;
-	}
-}
 
 //======================================================================================================================
 
@@ -208,6 +164,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
+	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -336,7 +293,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_READ:
-			ReadBeam(which,b);
+			if (which==INCPOL_Y) fname=beam_fnameY;
+			else fname=beam_fnameX; // which==INCPOL_X
+			ReadField(fname,b);
 			return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
