@@ -290,6 +290,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 	IF_AUTO, // automatically choose from ZERO or INC (based on lower residual value)
 	IF_ZERO, // zero
 	IF_INC,  // equal to incident field
+	IF_READ, // read from file
 	IF_WKB   // from WKB approximation (incident field corrected for phase shift in the particle)
 };
 

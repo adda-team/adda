@@ -75,9 +75,6 @@ extern scat_grid_angles angles;
 extern doublecomplex * restrict EgridX,* restrict EgridY;
 extern double * restrict Egrid_buffer;
 
-// checkpoint
-extern enum chpoint chp_type;
-
 extern int nprocs,ringid;
 
 extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid_d1,nvoid_Ndip;

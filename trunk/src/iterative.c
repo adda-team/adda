@@ -38,8 +38,6 @@
 
 // SEMI-GLOBAL VARIABLES
 
-// defined and initialized in CalculateE.c
-extern const TIME_TYPE tstart_CE;
 // defined and initialized in calculator.c
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
 extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
@@ -50,7 +48,9 @@ extern doublecomplex * restrict Xmatrix; // used as storage for arrays in WKB in
 // defined and initialized in param.c
 extern const double iter_eps;
 extern const enum init_field InitField;
+extern const char *infi_fnameY,*infi_fnameX;
 extern const bool recalc_resid;
+extern const enum chpoint chp_type;
 extern const time_t chp_time;
 extern const char *chp_dir;
 // defined and initialized in timing.c
@@ -1004,8 +1004,8 @@ ITER_FUNC(_name_) // only '_name_' should be changed, the macro expansion will d
 
 //======================================================================================================================
 
-static void CalcInitFieldWKB(void)
-// Calculate initial field in the WKB approximation; uses pvec (Einc) and stores the result in xvec
+static void CalcFieldWKB(doublecomplex * restrict Efield)
+// Calculate internal electric field in the WKB approximation; uses Einc and stores the result in Efield
 {
 #ifndef SPARSE	//currently no support for WKB in sparse mode
 	if (prop[2]!=1) LogError(ONE_POS,"WKB initial field currently works only with default incident direction "
@@ -1037,7 +1037,7 @@ static void CalcInitFieldWKB(void)
 		memPeak+=local_Ndip*sizeof(doublecomplex);
 		a_arg=true;
 	}
-	if (local_Ndip*sizeof(char)<=sizeof(doublecomplex)*local_nRows) mat=(unsigned char *)xvec;
+	if (local_Ndip*sizeof(char)<=sizeof(doublecomplex)*local_nRows) mat=(unsigned char *)Efield;
 	else {
 		MALLOC_VECTOR(mat,uchar,local_Ndip,ALL);
 		memPeak+=local_Ndip*sizeof(char);
@@ -1085,10 +1085,10 @@ static void CalcInitFieldWKB(void)
 		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
 			cAdd(arg[dip],bottom[ind],arg[dip]);
 #endif
-	// xvec=pvec*Exp(arg), but arg is defined on a set of all (including void) dipoles
+	// E=Einc*Exp(arg), but arg is defined on a set of all (including void) dipoles
 	for (ind=0;ind<local_nRows;ind+=3) {
 		cExp(arg[INDEX_GRID(ind)],tmpc);
-		cvMultScal_cmplx(tmpc,pvec+ind,xvec+ind);
+		cvMultScal_cmplx(tmpc,Einc+ind,Efield+ind);
 	}
 #ifdef OPENCL // free those buffers that were allocated
 	if (a_arg) Free_cVector(arg);
@@ -1099,12 +1099,33 @@ static void CalcInitFieldWKB(void)
 #else
 	// should never come to this
 	LogError(ONE_POS,"WKB initial field is not supported in sparse mode");
+	Efield[0][RE]=0; // redundant, to eliminate unused parameter warning
 #endif
 }
 
 //======================================================================================================================
 
-static const char *CalcInitField(double zero_resid)
+static void InitFieldfromE(void)
+/* sets starting vector for linear system x_0, as well as A.x_0, r_0=b-A.x_0, and |r_0|^2 from given electric field;
+ * assumes that xvec contains initial electric field, it is then replaced by x_0
+ */
+{
+	// calculate x = (1/cc_sqrt)*V*chi*E (both x and E are stored in xvec)
+	doublecomplex mult[MAX_NMAT][3],temp;
+	int i,j;
+	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) {
+		cMult(cc_sqrt[i][j],chi_inv[i][j],temp);
+		cInv(temp,mult[i][j]);
+	}
+	nMultSelf_mat(xvec,mult);
+	// calculate A.x_0, r_0=b-A.x_0, and |r_0|^2
+	MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+	nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
+}
+
+//======================================================================================================================
+
+static const char *CalcInitField(double zero_resid,const enum incpol which)
 /* Initializes the field as the starting point of the iterative solver. Assumes that pvec contains the right-hand side
  * of equations (b). At the end of this function xvec should contain initial vector for the iterative solver (x_0), rvec
  * - corresponding residual r_0, and inprodR - the norm of the latter residual. Returns string containing description of
@@ -1137,25 +1158,33 @@ static const char *CalcInitField(double zero_resid)
 			inprodR=zero_resid;
 			return "x_0 = 0\n";
 		case IF_INC:
-			nCopy(xvec,pvec); // x_0=b
+			nCopy(xvec,pvec); // x_0=b, i.e. E_exc=E_inc
 			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 			MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
 			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 			return "x_0 = E_inc\n";
 		case IF_WKB:
-			CalcInitFieldWKB();
-			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-			MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
-			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
+			CalcFieldWKB(xvec); // calculate WKB electric field
+			InitFieldfromE(); // transform it into starting vector
 			return "x_0 = result of WKB\n";
+		case IF_READ: {
+			const char *fname;
+			if (which==INCPOL_Y) fname=infi_fnameY;
+			else fname=infi_fnameX; // which==INCPOL_X
+			ReadField(fname,xvec); // read electric field
+			InitFieldfromE(); // transform it into starting vector
+			return dyn_sprintf("x_0 = from file %s\n",fname);
+		}
 	}
 	LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
 }
 
 //======================================================================================================================
 
-int IterativeSolver(const enum iter method_in)
-// choose required iterative method; do common initialization part
+int IterativeSolver(const enum iter method_in,const enum incpol which)
+/* choose required iterative method; do common initialization part;
+ * 'which' is used only if the initial field is read from file
+ */
 {
 	double temp;
 	char tmp_str[MAX_LINE];
@@ -1173,6 +1202,7 @@ int IterativeSolver(const enum iter method_in)
 	 * different vector. To avoid confusion this is done before any other initializations, specific to iterative solvers
 	 */
 	Timing_InitIterComm=0;
+	tstart=GET_TIME();
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
 		nMult_mat(pvec,Einc,cc_sqrt);
@@ -1180,7 +1210,7 @@ int IterativeSolver(const enum iter method_in)
 		resid_scale=1/temp;
 		epsB=iter_eps*iter_eps*temp;
 		// Calculate initial field
-		const char *descr=CalcInitField(temp);
+		const char *descr=CalcInitField(temp,which);
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
@@ -1216,7 +1246,7 @@ int IterativeSolver(const enum iter method_in)
 	if (load_chpoint) LoadIterChpoint();
 	(*params[ind_m].func)(PHASE_INIT);
 	// Initialization time includes generating the incident beam
-	Timing_InitIter = GET_TIME() - tstart_CE;
+	Timing_InitIter = GET_TIME() - tstart;
 	Timing_IntFieldOneComm=Timing_InitIterComm;
 	// main iteration cycle
 	while (inprodR>epsB && niter<=maxiter && counter<=params[ind_m].mc && !chp_exit) {

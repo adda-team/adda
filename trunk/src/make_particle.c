@@ -42,7 +42,6 @@
 
 // defined and initialized in param.c
 extern const enum sh shape;
-extern const enum sym sym_type;
 extern const double lambda;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
@@ -1857,9 +1856,6 @@ void InitShape(void)
 	if (anisotropy) for (i=0;i<Nmat;i++)
 		symR=symR && ref_index[3*i][RE]==ref_index[3*i+1][RE] && ref_index[3*i][IM]==ref_index[3*i+1][IM];
 
-	if (sym_type==SYM_NO) symX=symY=symZ=symR=false;
-	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=true;
-
 	// determine which size to use
 	if (n_sizeX!=UNDEF) {
 		if (size_given_cmd) LogWarning(EC_INFO,ONE_POS,"Particle size specified by command line option '-%s' overrides "
@@ -1950,9 +1946,6 @@ void InitShape(void)
 		else if (Ndip<100000) nTheta=361;
 		else nTheta=721;
 	}
-	// this limitation should be removed in the future
-	if (chp_type!=CHP_NONE && (!symR || scat_grid)) LogError(ONE_POS,"Currently checkpoints can be used when internal "
-		"fields are calculated only once,i.e. for a single incident polarization.");
 	Timing_Particle = GET_TIME() - tstart;
 }
 

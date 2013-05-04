@@ -533,6 +533,71 @@ void SetupLocalD(void)
 
 //======================================================================================================================
 
+void ReadField(const char * restrict fname,doublecomplex *restrict field)
+/* Reads a complex field from file 'fname' and stores into 'field'.
+ *
+ * In MPI mode the algorithm is very far from optimal, since the whole file is read in total nprocs/2 times.
+ * However, this is mainly the limitation of the text file (need to test for blank lines and format consistency).
+ * The only feasible way to improve it is to use binary format like NetCDF (which may work on top of MPI_IO)
+ */
+{
+	char linebuf[BUF_LINE];
+	TIME_TYPE tstart=GET_TIME();
+	FILE *file=FOpenErr(fname,"r",ALL_POS);
+	// the same format as used for saving the beam by StoreFields(...) in make_particle.c
+	const char format[]="%*f %*f %*f %*f %lf %lf %lf %lf %lf %lf";
+	const char test_form[]="%*f"; // a quick test for a blank line, without actual assignment
+	const int mustbe=6;
+	int scanned;
+	size_t i,j;
+
+#if defined(ADDA_MPI) && defined(SYNCHRONIZE_TIMING)
+	MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
+#endif
+	// skips first line with headers and any comments, if present
+	size_t line=SkipNLines(file,1);
+	line+=SkipComments(file);
+	i=j=0;
+	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+		// scan numbers in a line
+		if (i<local_nvoid_d0) { // just count non-blank lines
+			if (sscanf(linebuf,test_form)!=EOF) i++;
+		}
+		else if (i==nvoid_Ndip) { // tests that file doesn't contains extra data rows
+			if (sscanf(linebuf,test_form)!=EOF) LogError(ALL_POS,"Field file %s contains more data rows than number of "
+				"dipoles (%zu) in the particle",fname,nvoid_Ndip);
+		}
+		else { // here local_nvoid_d0 <= i < local_nvoid_d1
+			scanned=sscanf(linebuf,format,&(field[j][RE]),&(field[j][IM]),&(field[j+1][RE]),&(field[j+1][IM]),
+				&(field[j+2][RE]),&(field[j+2][IM]));
+			if (scanned==EOF) {
+				/* in most cases EOF indicates blank line (which we just skip), but it can also be a short (ill-format)
+				 * line, for which we test below. Otherwise, such lines may be interpreted differently b different
+				 * processors
+				 */
+				if (sscanf(linebuf,test_form)!=EOF)
+					LogError(ALL_POS,"Error occurred during scanning of line %zu from field file %s",line,fname);
+			}
+			else {
+				if (scanned!=mustbe) // this in most cases indicates wrong format
+					LogError(ALL_POS,"Error occurred during scanning of line %zu from field file %s",line,fname);
+				j+=3;
+				i++;
+				/* all processors stop reading file as soon as possible, but the last processor reads one more line to
+				 * test (above) for extra strings in the file
+				 */
+				if (i==local_nvoid_d1 && i!=nvoid_Ndip) break;
+			}
+		}
+	}
+#if defined(ADDA_MPI) && defined(SYNCHRONIZE_TIMING)
+	MPI_Barrier(MPI_COMM_WORLD);  // synchronize to get correct timing
+#endif
+	Timing_FileIO+=GET_TIME()-tstart;
+}
+
+//======================================================================================================================
+
 #ifndef SPARSE
 
 void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)

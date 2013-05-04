@@ -93,9 +93,6 @@ scat_grid_angles angles;           // angle sets for scat_grid
 doublecomplex * restrict EgridX,* restrict EgridY;
 double * restrict Egrid_buffer;    // buffer to accumulate Egrid
 
-// checkpoint
-enum chpoint chp_type; // type of checkpoint (to save)
-
 int nprocs;                        // total number of processes
 int ringid;                        // ID of current process
 

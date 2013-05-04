@@ -72,6 +72,7 @@ all -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 ;mgn;
 all -h chp_dir
 all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
 all -h chp_load
+# the following may cause errors in mpi_seq mode
 all -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
@@ -109,9 +110,10 @@ all -h h
 
 all -h init_field
 all -init_field auto ;mgn;
-all -init_field zero ;mgn;
 all -init_field inc ;mgn;
+all -init_field read IncBeam-Y IncBeam-X ;se; ;mgn;
 all -init_field wkb ;mgn;
+all -init_field zero ;mgn;
 
 all -h int
 all -int fcd ;mgn;
