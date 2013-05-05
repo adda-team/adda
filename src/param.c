@@ -430,7 +430,7 @@ static struct opt_struct options[]={
 	{PAR(init_field),"{auto|inc|read <filenameY> [<filenameX>]|wkb|zero}",
 		"Sets prescription to calculate initial (starting) field for the iterative solver.\n"
 		"'auto' - automatically choose from 'zero' and 'inc' based on the lower residual value.\n"
-		"'inc' - equal to the incident field,\n"
+		"'inc' - derived from the incident field,\n"
 		"'read' - defined by separate files, which names are given as arguments. Normally two files are required for "
 		"Y- and X-polarizations respectively, but a single filename is sufficient if only Y-polarization is used (e.g. "
 		"due to symmetry). Initial field should be specified in a particle reference frame in the same format as used "
