@@ -784,7 +784,6 @@ void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex result[
 	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 	double rtemp[3];
-	result[8][RE]=0;
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	if (igt_lim==UNDEF || rn<=igt_lim) {
