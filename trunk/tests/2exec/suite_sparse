@@ -108,6 +108,7 @@ all -int poi ;mgn;
 all -int so ;mgn;
 
 all -h iter
+all -iter bcgs2 ;mgn;
 all -iter bicg ;mgn;
 all -iter bicgstab ;mgn;
 all -iter cgnr ;mgn;

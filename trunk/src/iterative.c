@@ -6,7 +6,7 @@
  *        does not have any effect.
  *
  *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
- *        however they do it much slowly than usually. It is recommended then to use BiCGStab.
+ *        however they do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
@@ -40,7 +40,7 @@
 
 // defined and initialized in calculator.c
 extern doublecomplex *rvec; // can't be declared restrict due to SwapPointers
-extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict Avecbuffer;
+extern doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict vec4,* restrict Avecbuffer;
 // defined and initialized in fft.c
 #if !defined(OPENCL) && !defined(SPARSE)
 extern doublecomplex * restrict Xmatrix; // used as storage for arrays in WKB init field
@@ -96,6 +96,7 @@ static doublecomplex dumb; // dumb variable, used in workaround for issue 146
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
+ITER_FUNC(BCGS2);
 ITER_FUNC(BiCG_CS);
 ITER_FUNC(BiCGStab);
 ITER_FUNC(CGNR);
@@ -108,6 +109,7 @@ ITER_FUNC(QMR_CS_2);
  */
 
 static const struct iter_params_struct params[]={
+	{IT_BCGS2,15000,2,1,BCGS2},
 	{IT_BICG_CS,50000,1,0,BiCG_CS},
 	{IT_BICGSTAB,30000,3,3,BiCGStab},
 	{IT_CGNR,10,1,0,CGNR},
@@ -326,6 +328,171 @@ static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict 
 
 //======================================================================================================================
 
+ITER_FUNC(BCGS2)
+/* Enhanced Bi-CGStab(2) method.
+ * Based on the code by M.A. Botchev and D.R. Fokkema - http://www.math.uu.nl/people/vorst/zbcg2.f90 and
+ * D. R. Fokkema, "Enhanced implementation of BiCGstab(l) for solving linear systems of equations," Preprint 976,
+ * Department of Mathematics, Utrecht University (1996).
+ *
+ * "Reliable update part" was removed, since tests using '-recalc_resid' show that it is (almost) never needed.
+ *
+ * For l=1, the method is equivalent to BiCGStab, rewritten through 2-term recurrences (as QMR2 is equivalent to QMR),
+ * so we use l=2 here. In many cases one iteration of this method is similar to two iterations of BiCGStab, but overall
+ * convergence is slightly better.
+ * Breakdown tests were made to coincide with that for BiCGStab for l=1.
+ */
+{
+#define LL 2 // potentially the method will also work for l=1 (but memory allocation and freeing need to be adjusted)
+#define EPS1 1E-10 // for 1/|beta|
+#define EPS2 1E-10 // for |u_j+1.r~|/|r_j.r~|
+	static doublecomplex * restrict r[LL+1],* restrict u[LL+1];
+	static doublecomplex matrix_z[LL+1][LL+1],y0[LL+1],yl[LL+1],zy0[LL+1],zyl[LL+1];
+	static int i,j;
+	static doublecomplex alpha,beta,omega,rho0,rho1,sigma,varrho,hatgamma,temp1,temp2;
+	static double kappa0,kappal,dtmp;
+
+	switch (ph) {
+		case PHASE_VARS:
+			/* rename some vectors; this doesn't contradict with 'restrict' keyword, since new names are not used
+			 * together with old names
+			 */
+			r[0]=rvec;
+			r[1]=vec1;
+			u[0]=vec2;
+			u[1]=Avecbuffer;
+			if (LL==2) {
+				r[2]=vec3;
+				u[2]=vec4;
+			}
+			// initialize data structure for checkpoints
+			scalars[0].ptr=&rho0;
+			scalars[1].ptr=&alpha;
+			scalars[0].size=scalars[1].size=sizeof(doublecomplex);
+			vectors[0].ptr=vec2; // u[0]
+			vectors[0].size=sizeof(doublecomplex);
+			return;
+		case PHASE_INIT:
+			if (!load_chpoint) {
+				nCopy(pvec,rvec); // (pvec = r~0) = r0
+				rho0[RE]=-1;
+				rho0[IM]=0;
+			}
+			return;
+		case PHASE_ITER:
+			// --- The BiCG part ---
+			for (j=0;j<LL;j++) {
+				nDotProd(r[j],pvec,rho1,&Timing_OneIterComm); // rho1 = r_j.r~0
+				// u_i = r_i - beta*u_i
+				if (niter==1 && j==0) nCopy(u[0],r[0]);
+				else {
+					// test for zero rho0 (1/beta)
+					dtmp=cAbs(rho0)/(cAbs(rho1)*cAbs(alpha)); // assume that rho1 is not exactly zero
+					Dz("1/|beta|="GFORM_DEBUG,dtmp);
+					if (dtmp<EPS1) LogError(ONE_POS,"BCGS2 fails: 1/|beta| is too small ("GFORM_DEBUG").",dtmp);
+					// beta = alpha*rho1/rho0
+					cDiv(rho1,rho0,temp1);
+					cMult(alpha,temp1,beta);
+					cInvSign2(beta,temp1);
+					for (i=0;i<=j;i++) nIncrem10_cmplx(u[i],r[i],temp1,NULL,NULL);
+				}
+				cEqual(rho1,rho0); // rho0=rho1
+				// u_j+1 = A.u_j
+				if (niter==1 && j==0 && matvec_ready) {} // do nothing; u[1]<=>Avecbuffer already contains matvec result
+				else MatVec(u[j],u[j+1],NULL,false,&Timing_OneIterComm);
+				nDotProd(u[j+1],pvec,sigma,&Timing_OneIterComm); // sigma = u_j+1.r~0
+				// test for zero sigma (1/alpha)
+				dtmp=cAbs(sigma)/cAbs(rho1); // assume that rho1 is not exactly zero
+				Dz("|u_%d.r~|/|r_%d.r~|="GFORM_DEBUG,j+1,j,dtmp);
+				if (dtmp<EPS1)
+					LogError(ONE_POS,"BCGS2 fails: |u_%d.r~|/|r_%d.r~| is too small ("GFORM_DEBUG").",j+1,j,dtmp);
+				cDiv(rho1,sigma,alpha); // alpha = rho1/sigma
+				nIncrem01_cmplx(xvec,u[0],alpha,NULL,NULL); // x = x + alpha*u_0
+				// r_i = r_i - alpha*u_i+1
+				cInvSign2(alpha,temp1);
+				for (i=0;i<=j;i++) nIncrem01_cmplx(r[i],u[i+1],temp1,NULL,NULL);
+				MatVec(r[j],r[j+1],NULL,false,&Timing_OneIterComm);
+			}
+			// --- The convex polynomial part ---
+			// Z = R'R
+			for(i=0;i<=LL;i++) for (j=0;j<=i;j++) {
+				nDotProd(r[j],r[i],matrix_z[i][j],&Timing_OneIterComm);
+				if (i!=j) cConj(matrix_z[i][j],matrix_z[j][i]);
+			}
+			// small vectors y0 and yl
+			y0[0][RE]=-1;
+			y0[0][IM]=0;
+			if (LL==2) cDiv(matrix_z[1][0],matrix_z[1][1],y0[1]); // works only for l<=2
+			y0[LL][RE]=y0[LL][IM]=0;
+			yl[0][RE]=yl[0][IM]=0;
+			if (LL==2) cDiv(matrix_z[1][2],matrix_z[1][1],yl[1]); // works only for l<=2
+			yl[LL][RE]=-1;
+			yl[LL][IM]=0;
+			//  Convex combination
+			// compute Zy0 and Zyl
+			for (i=0;i<=LL;i++) {
+				zy0[i][RE]=zy0[i][IM]=zyl[i][0]=zyl[i][IM]=0;
+				for (j=0;j<=LL;j++) {
+					cMult(matrix_z[i][j],y0[j],temp1);
+					cAdd(zy0[i],temp1,zy0[i]);
+					cMult(matrix_z[i][j],yl[j],temp1);
+					cAdd(zyl[i],temp1,zyl[i]);
+				}
+			}
+			// kappa0 = sqrt(y0.Zy0); kappal = sqrt(yl.Zyl); employs that dot products are always real
+			dtmp=0;
+			for (i=0;i<=LL;i++) dtmp+=cMultConRe(zy0[i],y0[i]);
+			kappa0=sqrt(dtmp);
+			dtmp=0;
+			for (i=0;i<=LL;i++) dtmp+=cMultConRe(zyl[i],yl[i]);
+			kappal=sqrt(dtmp);
+			// varrho = yl.Zy0/(kappa0*kappal)
+			temp1[RE]=temp1[IM]=0;
+			for (i=0;i<=LL;i++) {
+				cMultConj(zy0[i],yl[i],temp2);
+				cAdd(temp1,temp2,temp1);
+			}
+			cMultReal(1/(kappa0*kappal),temp1,varrho);
+			// hatgamma = varrho/abs(varrho) * max( abs(varrho),0.7)
+			dtmp=cAbs(varrho);
+			cMultReal(MAX(dtmp,0.7)/dtmp,varrho,hatgamma);
+			// y0 = y0 - (hatgamma*kappa0/kappal)*yl
+			cMultReal(-kappa0/kappal,hatgamma,temp1);
+			for (i=0;i<=LL;i++) {
+				cMult(yl[i],temp1,temp2);
+				cAdd(y0[i],temp2,y0[i]);
+			}
+			// Update
+			cEqual(y0[LL],omega); // omega = y0[l]
+			for (i=1;i<=LL;i++) {
+				cInvSign2(y0[i],temp1);
+				nIncrem01_cmplx(u[0],u[i],temp1,NULL,NULL);   // u_0 = u_0 - y0[i]*u_i
+				nIncrem01_cmplx(xvec,r[i-1],y0[i],NULL,NULL); // x = x + y0[i]*r_i-1
+				nIncrem01_cmplx(r[0],r[i],temp1,NULL,NULL);   // r_0 = r_0 - y0[i]*r_i
+			}
+			// y0 has changed; compute Zy0 once more
+			for (i=0;i<=LL;i++) {
+				zy0[i][RE]=zy0[i][IM]=0;
+				for (j=0;j<=LL;j++) {
+					cMult(matrix_z[i][j],y0[j],temp1);
+					cAdd(zy0[i],temp1,zy0[i]);
+				}
+			}
+			// |r|^2 = y0.Zy0
+			inprodRp1=0;
+			for (i=0;i<=LL;i++) inprodRp1+=cMultConRe(zy0[i],y0[i]);
+			// rho0 = -omega*rho0; moved from the beginning of the iteration
+			cMultSelf(rho0,omega);
+			cInvSign(rho0);
+			return; // end of PHASE_ITER
+	}
+	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
+}
+#undef LL
+#undef EPS1
+#undef EPS2
+
+//======================================================================================================================
+
 ITER_FUNC(BiCG_CS)
 /* Bi-Conjugate Gradient for Complex Symmetric systems, based on:
  * Freund R.W. "Conjugate gradient-type methods for linear systems with complex symmetric coefficient matrices",
@@ -394,8 +561,8 @@ ITER_FUNC(BiCGStab)
  * http://www.netlib.org/templates/Templates.html .
  */
 {
-#define EPS1 1E-16 // for (r~.r)/(r.r)
-#define EPS2 1E-10 // for 1/|beta_k|
+#define EPS1 1E-10 // for 1/|beta|
+#define EPS2 1E-10 // for |v.r~|/|r.r~|
 	static double denumOmega,dtmp;
 	static doublecomplex beta,ro_new,ro_old,omega,alpha,temp1,temp2;
 	static doublecomplex * restrict v,* restrict s,* restrict rtilda;
@@ -424,18 +591,15 @@ ITER_FUNC(BiCGStab)
 		case PHASE_ITER:
 			// ro_k-1=r_k-1.r~ ; check for ro_k-1!=0
 			nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
-			dtmp=cAbs(ro_new)/inprodR;
-			Dz("|r~.r|/(r.r)="GFORM_DEBUG,dtmp);
-			if (dtmp<EPS1) LogError(ONE_POS,"BiCGStab fails: |r~.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 			if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 			else {
 				// beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1)
 				cMult(ro_new,alpha,temp1);
 				cMult(ro_old,omega,temp2);
-				// check that omega_k-1!=0
+				// check that omega_k-1!=0; assume that ro_new is not exactly zero
 				dtmp=cAbs(temp2)/cAbs(temp1);
-				Dz("1/|beta_k|="GFORM_DEBUG,dtmp);
-				if (dtmp<EPS2) LogError(ONE_POS,"Bi-CGStab fails: 1/|beta_k| is too small ("GFORM_DEBUG").",dtmp);
+				Dz("1/|beta|="GFORM_DEBUG,dtmp);
+				if (dtmp<EPS1) LogError(ONE_POS,"BiCGStab fails: 1/|beta| is too small ("GFORM_DEBUG").",dtmp);
 				cDiv(temp1,temp2,beta);
 				// p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1
 				cMult(beta,omega,temp1);
@@ -447,6 +611,9 @@ ITER_FUNC(BiCGStab)
 			else MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
 			// alpha_k=ro_new/(v_k.r~)
 			nDotProd(v,rtilda,temp1,&Timing_OneIterComm);
+			dtmp=cAbs(temp1)/cAbs(ro_new); // assume that ro_new is not exactly zero
+			Dz("|v.r~|/|r.r~|="GFORM_DEBUG,dtmp);
+			if (dtmp<EPS2) LogError(ONE_POS,"BiCGStab fails: |v.r~|/|r.r~| is too small ("GFORM_DEBUG").",dtmp);
 			cDiv(ro_new,temp1,alpha);
 			// s=r_k-1-alpha*v_k-1
 			cInvSign2(alpha,temp1);
