@@ -70,7 +70,7 @@ doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of e
 doublecomplex *rvec;                 // current residual
 doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector products
 // auxiliary vectors, used in some iterative solvers (with more meaningful names)
-doublecomplex * restrict vec1,* restrict vec2,* restrict vec3;
+doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict vec4;
 // used in matvec.c
 #ifdef SPARSE
 doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
@@ -350,6 +350,15 @@ static void AllocateEverything(void)
 	 * should be edited manually when needed.
 	 */
 	switch (IterMethod) {
+		case IT_BCGS2:
+			if (!prognosis) {
+				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
+				MALLOC_VECTOR(vec4,complex,local_nRows,ALL);
+			}
+			memory+=4*tmp;
+			break;
 		case IT_CGNR:
 		case IT_BICG_CS:
 			break;
@@ -474,11 +483,11 @@ static void AllocateEverything(void)
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 *          For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
-	 * others - nvoid_Ndip*{271(CGNR,BiCG),367(CSYM,QMR2), or 415(BiCGStab,QMR)}
+	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
 	 *
-	 * Sparse mode - each processor needs (265--409, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
+	 * Sparse mode - each processor needs (265--457, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
 	 *               and division is uniform, i.e. local_nvoid_Ndip = nvoid_Ndip/nprocs
 	 *               Part of the memory is currently not distributed among processors - see issue 160.
 	 */
@@ -526,6 +535,12 @@ static void FreeEverything(void)
 	 * (e.g. fourth) vector will be added.
 	 */
 	switch (IterMethod) {
+		case IT_BCGS2:
+			Free_cVector(vec1);
+			Free_cVector(vec2);
+			Free_cVector(vec3);
+			Free_cVector(vec4);
+			break;
 		case IT_CGNR:
 		case IT_BICG_CS:
 			break;
