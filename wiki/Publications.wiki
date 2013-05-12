@@ -4,7 +4,10 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2013 (8) =
+= 2013 (11) =
+ # M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
+ # G. Apostolopoulos, S. V. Tsinopoulos, and E. Dermatas, “A methodology for estimating the shape of biconcave red blood cells using multicolor scattering images,” [http://dx.doi.org/10.1016/j.bspc.2012.11.002 Biomed. Signal Proc. Contr. 8, 263–272 (2013)].
+ # L. Bi and P. Yang, “Modeling of light scattering by biconcave and deformed red blood cells with the invariant imbedding T-matrix method,” [http://dx.doi.org/10.1117/1.JBO.18.5.055001 J. Biomed. Opt 18, 055001 (2013)].
  # L. Bi, P. Yang, G. W. Kattawar, and M. I. Mishchenko, “Efficient implementation of the invariant imbedding T-matrix method and the separation of variables method applied to large nonspherical inhomogeneous particles,” [http://dx.doi.org/10.1016/j.jqsrt.2012.11.014 J. Quant. Spectrosc. Radiat. Transfer 116, 169–183 (2013)].
  # P. Yang, L. Bi, B. A. Baum, K.-N. Liou, G. W. Kattawar, M. I. Mishchenko, and B. Cole, “Spectrally consistent scattering, absorption, and polarization properties of atmospheric ice crystals at wavelengths from 0.2 to 100 μm,” [http://dx.doi.org/10.1175/JAS-D-12-039.1 J. Atmos. Sci. 70, 330–347 (2013)].
  # Q. Zhang, J. J. Xiao, X. M. Zhang, Y. Yao, and H. Liu, “Reversal of optical binding force by Fano resonance in plasmonic nanorod heterodimer,” [http://dx.doi.org/10.1364/OE.21.006601 Opt. Express 21, 6601–6608 (2013)].
@@ -14,7 +17,7 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
  # S. Y. Nikitin, A. V. Priezzhev, and A. E. Lugovtsov, “Analysis of laser beam scattering by an ensemble of particles modeling red blood cells in ektacytometer,” [http://dx.doi.org/10.1016/j.jqsrt.2013.02.014 J. Quant. Spectrosc. Radiat. Transfer 121, 1–8 (2013)].
  # F. Teschl, W. L. Randeu, and R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004 Atmos. Res. 119, 112–119 (2013)].
 
-= 2012 (14) =
+= 2012 (15) =
  # Y. Xie, P. Yang, K.-N. Liou, P. Minnis, and D. P. Duda, “Parameterization of contrail radiative properties for climate studies,” [http://dx.doi.org/10.1029/2012GL054043 Geophys. Res. Lett. 39, L00F02 (2012)].
  # K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
  # J. Lee, J. Kim, P. Yang, and N. C. Hsu, “Improvement of aerosol optical depth retrieval from MODIS spectral reflectance over the global ocean using new aerosol models archived from AERONET inversion data and tri-axial ellipsoidal dust database,” [http://dx.doi.org/10.5194/acp-12-7087-2012 Atmos. Chem. Phys. 12, 7087–7102 (2012)].
@@ -29,6 +32,7 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
  # P. Zijlstra, P. M. R. Paulo, and M. Orrit, “Optical detection of single non-absorbing molecules using the surface plasmon resonance of a gold nanorod,” [http://dx.doi.org/10.1038/nnano.2012.51 Nature Nanotechnology 7, 379–382 (2012)].
  # H. Ma, P. M. Bendix, and L. B. Oddershede, “Large-scale orientation dependent heating from a single irradiated gold nanorod,” [http://dx.doi.org/10.1021/nl3010918 Nano Lett. 12, 3954–3960 (2012)].
  # X. Liu, S. Ding, L. Bi, and P. Yang, “On the use of scattering kernels to calculate ice cloud bulk optical properties,” [http://dx.doi.org/10.1175/JTECH-D-11-00034.1 J. Atmos. Oceanic Technol. 29, 50–63 (2012)].
+ # J. Leinonen, S. Kneifel, D. Moisseev, J. Tyynelä, S. Tanelli, and T. Nousiainen, “Evidence of nonspheroidal behavior in millimeter-wavelength radar observations of snowfall,” [http://dx.doi.org/10.1029/2012JD017680 J. Geophys. Res. 117, D18205 (2012)].
 
 = 2011 (21) =
  # V. G. Farafonov, A. A. Vinokurov, and S. V. Barkanov, “Electrostatic solution and rayleigh approximation for small nonspherical particles in a spheroidal basis,” [http://dx.doi.org/10.1134/S0030400X11120071 Opt. Spectrosc. 111, 980–992 (2011)].
