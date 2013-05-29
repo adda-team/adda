@@ -12,6 +12,9 @@ M. A. Yurkin and A. G. Hoekstra,“The discrete-dipole-approximation code ADDA: 
 == OpenCL (GPU-accelerated) version ==
 M. Huntemann, G. Heygster, and G. Hong, “Discrete dipole approximation simulations on GPUs using OpenCL - Application on cloud ice particles,” [http://dx.doi.org/10.1016/j.jocs.2011.05.011 J. Comput. Sci. 2, 262–271 (2011)].
 
+== Sparse (non-FFT) mode ==
+J. Leinonen, D. Moisseev, and T. Nousiainen, “Linking snowflake microstructure to multi-frequency radar observations,” [http://dx.doi.org/10.1002/jgrd.50163 J. Geophys. Res.: Atmos. 118, 3259–3270 (2013)].
+
 == Different implemented DDA formulations ==
 === Filtered coupled dipoles (FCD) ===
  * N. B. Piller and O. J. F. Martin, “Increasing the performance of the coupled-dipole approximation: A spectral approach,” [http://dx.doi.org/10.1109/8.718567 IEEE Trans. Antennas Propag. 46, 1126–1137 (1998)].
