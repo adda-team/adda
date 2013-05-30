@@ -4,7 +4,13 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2013 (11) =
+= 2013 (16) =
+
+ # M. Gao, P. Yang, G.W. Kattawar, "Polarized extinction properties of plates with large aspect ratios", [http://dx.doi.org/10.1016/j.jqsrt.2013.03.010 J. Quant. Spectrosc. Radiat. Transfer (2013)].
+ # S. D’Agostino, F. Della Sala and L. C. Andreani, "Dipole Decay Rates Engineering via Silver Nanocones", [http://dx.doi.org/10.1007/s11468-013-9512-3 Plasmonics 8, 1079-1086 (2013)],
+ # S. Wojtkiewicz, P. Sawosz, M. Kostecki and A. Sokolowska, "Optical method for characterization of nanoplates in lyosol," [http://dx.doi.org/10.1016/j.mee.2013.02.047 Microelectron. Eng. (2013)],
+ # J. Liu, G. W. Kattawar, "Detection of dinoflagellates by the light scattering properties of the chiral structure of their chromosomes," [http://dx.doi.org/10.1016/j.jqsrt.2013.02.012 J. Quant. Spectrosc. Radiat. Transfer (2013)].
+ # J. Leinonen, D. Moisseev and  T. Nousiainen, "Linking snowflake microstructure to multi-frequency radar observations,” [http://dx.doi.org/10.1002/jgrd.50163 J. Geophys. Res. Atmos., 118, 3259–3270 (2013)].
  # M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
  # G. Apostolopoulos, S. V. Tsinopoulos, and E. Dermatas, “A methodology for estimating the shape of biconcave red blood cells using multicolor scattering images,” [http://dx.doi.org/10.1016/j.bspc.2012.11.002 Biomed. Signal Proc. Contr. 8, 263–272 (2013)].
  # L. Bi and P. Yang, “Modeling of light scattering by biconcave and deformed red blood cells with the invariant imbedding T-matrix method,” [http://dx.doi.org/10.1117/1.JBO.18.5.055001 J. Biomed. Opt 18, 055001 (2013)].
@@ -18,6 +24,7 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
  # F. Teschl, W. L. Randeu, and R. Teschl, “Single-scattering of preferentially oriented ice crystals at centimeter and millimeter wavelengths,” [http://dx.doi.org/10.1016/j.atmosres.2011.10.004 Atmos. Res. 119, 112–119 (2013)].
 
 = 2012 (15) =
+
  # Y. Xie, P. Yang, K.-N. Liou, P. Minnis, and D. P. Duda, “Parameterization of contrail radiative properties for climate studies,” [http://dx.doi.org/10.1029/2012GL054043 Geophys. Res. Lett. 39, L00F02 (2012)].
  # K. Schmidt, M. A. Yurkin, and M. Kahnert, “A case study on the reciprocity in light scattering computations,” [http://dx.doi.org/10.1364/OE.20.023253 Opt. Express 20, 23253–23274 (2012)].
  # J. Lee, J. Kim, P. Yang, and N. C. Hsu, “Improvement of aerosol optical depth retrieval from MODIS spectral reflectance over the global ocean using new aerosol models archived from AERONET inversion data and tri-axial ellipsoidal dust database,” [http://dx.doi.org/10.5194/acp-12-7087-2012 Atmos. Chem. Phys. 12, 7087–7102 (2012)].
