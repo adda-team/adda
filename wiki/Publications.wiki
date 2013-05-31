@@ -4,13 +4,16 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2013 (16) =
-
- # M. Gao, P. Yang, G.W. Kattawar, "Polarized extinction properties of plates with large aspect ratios", [http://dx.doi.org/10.1016/j.jqsrt.2013.03.010 J. Quant. Spectrosc. Radiat. Transfer (2013)].
- # S. D’Agostino, F. Della Sala and L. C. Andreani, "Dipole Decay Rates Engineering via Silver Nanocones", [http://dx.doi.org/10.1007/s11468-013-9512-3 Plasmonics 8, 1079-1086 (2013)],
- # S. Wojtkiewicz, P. Sawosz, M. Kostecki and A. Sokolowska, "Optical method for characterization of nanoplates in lyosol," [http://dx.doi.org/10.1016/j.mee.2013.02.047 Microelectron. Eng. (2013)],
- # J. Liu, G. W. Kattawar, "Detection of dinoflagellates by the light scattering properties of the chiral structure of their chromosomes," [http://dx.doi.org/10.1016/j.jqsrt.2013.02.012 J. Quant. Spectrosc. Radiat. Transfer (2013)].
- # J. Leinonen, D. Moisseev and  T. Nousiainen, "Linking snowflake microstructure to multi-frequency radar observations,” [http://dx.doi.org/10.1002/jgrd.50163 J. Geophys. Res. Atmos., 118, 3259–3270 (2013)].
+= 2013 (20) =
+ # M. Gao, P. Yang and G.W. Kattawar, “Polarized extinction properties of plates with large aspect ratios”, [http://dx.doi.org/10.1016/j.jqsrt.2013.03.010 J. Quant. Spectrosc. Radiat. Transfer (2013)].
+ # S. Wojtkiewicz, P. Sawosz, M. Kostecki and A. Sokolowska, “Optical method for characterization of nanoplates in lyosol," [http://dx.doi.org/10.1016/j.mee.2013.02.047 Microelectron. Eng. (2013)].
+ # J. Liu, G. W. Kattawar, “Detection of dinoflagellates by the light scattering properties of the chiral structure of their chromosomes,” [http://dx.doi.org/10.1016/j.jqsrt.2013.02.012 J. Quant. Spectrosc. Radiat. Transfer (2013)].
+ # Q. Zhang, J. J. Xiao, X. M. Zhang, and Y. Yao, “Optical binding force of gold nanorod dimers coupled to a metallic slab,” [http://dx.doi.org/10.1016/j.optcom.2013.04.005 Opt. Commun. 301–302, 121–126 (2013)].
+ # A. I. Konokhova, A. A. Gelash, M. A. Yurkin, A. V. Chernyshev, and V. P. Maltsev, “High-precision characterization of individual E. coli cell morphology by scanning flow cytometry,” [http://dx.doi.org/10.1002/cyto.a.22294 Cytometry A 83A, 568–575 (2013)].
+ # S. Freddi, L. Sironi, R. D’Antuono, D. Morone, A. Donà, E. Cabrini, L. D’Alfonso, M. Collini, P. Pallavicini, et al., “A molecular thermometer for nanoparticles for optical hyperthermia,” [http://dx.doi.org/10.1021/nl400129v Nano Lett. 13, 2004–2010 (2013)].
+ # S. D’Agostino, F. Della Sala, and L. C. Andreani, “Dipole-excited surface plasmons in metallic nanoparticles: Engineering decay dynamics within the discrete-dipole approximation,” [http://dx.doi.org/10.1103/PhysRevB.87.205413 Phys. Rev. B 87, 205413 (2013)].
+ # S. D’Agostino, F. Della Sala and L. C. Andreani, “Dipole decay rates engineering via silver nanocones”, [http://dx.doi.org/10.1007/s11468-013-9512-3 Plasmonics 8, 1079–1086 (2013)],
+ # J. Leinonen, D. Moisseev and  T. Nousiainen, “Linking snowflake microstructure to multi-frequency radar observations,” [http://dx.doi.org/10.1002/jgrd.50163 J. Geophys. Res. Atmos., 118, 3259–3270 (2013)].
  # M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
  # G. Apostolopoulos, S. V. Tsinopoulos, and E. Dermatas, “A methodology for estimating the shape of biconcave red blood cells using multicolor scattering images,” [http://dx.doi.org/10.1016/j.bspc.2012.11.002 Biomed. Signal Proc. Contr. 8, 263–272 (2013)].
  # L. Bi and P. Yang, “Modeling of light scattering by biconcave and deformed red blood cells with the invariant imbedding T-matrix method,” [http://dx.doi.org/10.1117/1.JBO.18.5.055001 J. Biomed. Opt 18, 055001 (2013)].
