@@ -1,0 +1,13 @@
+#summary General description of interconnections between different parts of the code
+
+Modern software tools, like [www.doxygen.org/‎ doxygen], allow automatic generation of docs, call graphs, etc. from the source. Thus, we supply the corresponding config file - `doc/doxy/Doxyfile`. Executing `doxygen` in `doc/doxy/` should produce a folder `html` with a lot of files. The first file in alphabetical order in this folder (`_a_d_d_amain_8c.html`), will be the head file for docs. We also plan to extend this feature in the future (issue 165).
+
+`Doxyfile` is set to use `dot` from [http://www.graphviz.org/ GraphViz package] to produce beautiful call and include graphs. Thus, it is recommended to install `GraphViz` before running `doxygen`.
+
+<wiki:toc />
+
+= main =
+http://a-dda.googlecode.com/svn/wiki/main.svg
+
+= calculator =
+http://a-dda.googlecode.com/svn/wiki/calc.svg
