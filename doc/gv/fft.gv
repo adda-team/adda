@@ -2,8 +2,10 @@ digraph fft
 {
 	rankdir=LR
 	edge [color=midnightblue]
-	node [fontname=Helvetica,shape=box];
+	node [fontname=Helvetica,fontsize=10,shape=box];
 	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
 	
 	subgraph cluster_fft {
 		fftInitBeforeD
