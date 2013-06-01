@@ -8,8 +8,8 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    version="1.1"
-   width="733.75"
-   height="537.5"
+   width="400"
+   height="290.43921"
    id="svg2"
    xml:space="preserve"><metadata
      id="metadata8"><rdf:RDF><cc:Work
@@ -40,7 +40,7 @@
        id="clipPath592"><path
          d="m 108.55,556.16 718.16,0 0,-501.15 -718.16,0 0,501.15 z"
          id="path594" /></clipPath></defs><g
-     transform="matrix(1.25,0,0,-1.25,0,537.5)"
+     transform="matrix(0.68816087,0,0,-0.68816087,-3.0824129,292.00234)"
      id="g10"><g
        transform="matrix(0.749665,0,0,0.749629,-34.59704,-0.25487386)"
        id="g12"><g
@@ -58,12 +58,13 @@
                    id="g36"><g
                      transform="matrix(1,0,0,-1,834,4458)"
                      id="g38"><text
-                       transform="scale(1,-1)"
-                       id="text40"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan42"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0</tspan></text>
+   transform="scale(1,-1)"
+   id="text40"><tspan
+     x="0"
+     y="0"
+     id="tspan42"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0</tspan></text>
+
 </g></g></g><g
                  id="g44" /><g
                  id="g46"><g
@@ -72,12 +73,13 @@
                    id="g50"><g
                      transform="matrix(1,0,0,-1,2217,4458)"
                      id="g52"><text
-                       transform="scale(1,-1)"
-                       id="text54"><tspan
-                         x="0 103"
-                         y="0"
-                         id="tspan56"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">20</tspan></text>
+   transform="scale(1,-1)"
+   id="text54"><tspan
+     x="0 103"
+     y="0"
+     id="tspan56"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">20</tspan></text>
+
 </g></g></g><g
                  id="g58" /><g
                  id="g60"><g
@@ -86,12 +88,13 @@
                    id="g64"><g
                      transform="matrix(1,0,0,-1,3651,4458)"
                      id="g66"><text
-                       transform="scale(1,-1)"
-                       id="text68"><tspan
-                         x="0 103"
-                         y="0"
-                         id="tspan70"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">40</tspan></text>
+   transform="scale(1,-1)"
+   id="text68"><tspan
+     x="0 103"
+     y="0"
+     id="tspan70"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">40</tspan></text>
+
 </g></g></g><g
                  id="g72" /><g
                  id="g74"><g
@@ -100,12 +103,13 @@
                    id="g78"><g
                      transform="matrix(1,0,0,-1,5085,4458)"
                      id="g80"><text
-                       transform="scale(1,-1)"
-                       id="text82"><tspan
-                         x="0 103"
-                         y="0"
-                         id="tspan84"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">60</tspan></text>
+   transform="scale(1,-1)"
+   id="text82"><tspan
+     x="0 103"
+     y="0"
+     id="tspan84"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">60</tspan></text>
+
 </g></g></g><g
                  id="g86" /><g
                  id="g88"><g
@@ -114,12 +118,13 @@
                    id="g92"><g
                      transform="matrix(1,0,0,-1,6519,4458)"
                      id="g94"><text
-                       transform="scale(1,-1)"
-                       id="text96"><tspan
-                         x="0 103"
-                         y="0"
-                         id="tspan98"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">80</tspan></text>
+   transform="scale(1,-1)"
+   id="text96"><tspan
+     x="0 103"
+     y="0"
+     id="tspan98"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">80</tspan></text>
+
 </g></g></g><g
                  id="g100" /><g
                  id="g102"><g
@@ -128,12 +133,13 @@
                    id="g106"><g
                      transform="matrix(1,0,0,-1,443,4281)"
                      id="g108"><text
-                       transform="scale(1,-1)"
-                       id="text110"><tspan
-                         x="0 103 155 258"
-                         y="0"
-                         id="tspan112"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.01</tspan></text>
+   transform="scale(1,-1)"
+   id="text110"><tspan
+     x="0 103 155 258"
+     y="0"
+     id="tspan112"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.01</tspan></text>
+
 </g></g></g><g
                  id="g114" /><g
                  id="g116"><g
@@ -142,12 +148,13 @@
                    id="g120"><g
                      transform="matrix(1,0,0,-1,546,3260)"
                      id="g122"><text
-                       transform="scale(1,-1)"
-                       id="text124"><tspan
-                         x="0 103 155"
-                         y="0"
-                         id="tspan126"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.1</tspan></text>
+   transform="scale(1,-1)"
+   id="text124"><tspan
+     x="0 103 155"
+     y="0"
+     id="tspan126"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.1</tspan></text>
+
 </g></g></g><g
                  id="g128" /><g
                  id="g130"><g
@@ -156,12 +163,13 @@
                    id="g134"><g
                      transform="matrix(1,0,0,-1,701,2238)"
                      id="g136"><text
-                       transform="scale(1,-1)"
-                       id="text138"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan140"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1</tspan></text>
+   transform="scale(1,-1)"
+   id="text138"><tspan
+     x="0"
+     y="0"
+     id="tspan140"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1</tspan></text>
+
 </g></g></g><g
                  id="g142" /><g
                  id="g144"><g
@@ -170,12 +178,13 @@
                    id="g148"><g
                      transform="matrix(1,0,0,-1,598,1217)"
                      id="g150"><text
-                       transform="scale(1,-1)"
-                       id="text152"><tspan
-                         x="0 103"
-                         y="0"
-                         id="tspan154"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">10</tspan></text>
+   transform="scale(1,-1)"
+   id="text152"><tspan
+     x="0 103"
+     y="0"
+     id="tspan154"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">10</tspan></text>
+
 </g></g></g><g
                  id="g156" /><g
                  id="g158"><g
@@ -184,12 +193,13 @@
                    id="g162"><g
                      transform="matrix(1,0,0,-1,495,195)"
                      id="g164"><text
-                       transform="scale(1,-1)"
-                       id="text166"><tspan
-                         x="0 103 206"
-                         y="0"
-                         id="tspan168"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">100</tspan></text>
+   transform="scale(1,-1)"
+   id="text166"><tspan
+     x="0 103 206"
+     y="0"
+     id="tspan168"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">100</tspan></text>
+
 </g></g></g><g
                  id="g170" /><g
                  transform="matrix(0.122617,0,0,-0.122619,-0.092598,573.81366)"
@@ -733,12 +743,13 @@
                    id="g608"><g
                      transform="matrix(1,0,0,-1,3987,2059)"
                      id="g610"><text
-                       transform="scale(1,-1)"
-                       id="text612"><tspan
-                         x="0 114 248 362"
-                         y="0"
-                         id="tspan614"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">FDTD</tspan></text>
+   transform="scale(1,-1)"
+   id="text612"><tspan
+     x="0 114 248 362"
+     y="0"
+     id="tspan614"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">FDTD</tspan></text>
+
 </g></g></g><g
                  id="g616" /><g
                  id="g618"><g
@@ -747,39 +758,43 @@
                    id="g622"><g
                      transform="matrix(0,-1,-1,0,562,2798)"
                      id="g624"><text
-                       transform="scale(1,-1)"
-                       id="text626"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan628"
-                         style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">t</tspan></text>
+   transform="scale(1,-1)"
+   id="text626"><tspan
+     x="0"
+     y="0"
+     id="tspan628"
+     style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">t</tspan></text>
+
 </g><g
                      transform="matrix(0,-1,-1,0,562,2746)"
                      id="g630"><text
-                       transform="scale(1,-1)"
-                       id="text632"><tspan
-                         x="0 62 196 330 454 516 568 620"
-                         y="0"
-                         id="tspan634"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">(DDA) / </tspan></text>
+   transform="scale(1,-1)"
+   id="text632"><tspan
+     x="0 62 196 330 454 516 568 620"
+     y="0"
+     id="tspan634"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">(DDA) / </tspan></text>
+
 </g><g
                      transform="matrix(0,-1,-1,0,562,2074)"
                      id="g636"><text
-                       transform="scale(1,-1)"
-                       id="text638"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan640"
-                         style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">t</tspan></text>
+   transform="scale(1,-1)"
+   id="text638"><tspan
+     x="0"
+     y="0"
+     id="tspan640"
+     style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">t</tspan></text>
+
 </g><g
                      transform="matrix(0,-1,-1,0,562,2022)"
                      id="g642"><text
-                       transform="scale(1,-1)"
-                       id="text644"><tspan
-                         x="0 62 175 309 422 556"
-                         y="0"
-                         id="tspan646"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">(FDTD)</tspan></text>
+   transform="scale(1,-1)"
+   id="text644"><tspan
+     x="0 62 175 309 422 556"
+     y="0"
+     id="tspan646"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">(FDTD)</tspan></text>
+
 </g></g></g><g
                  id="g648" /><g
                  transform="matrix(0.122617,0,0,-0.122619,-0.092598,573.81366)"
@@ -796,12 +811,13 @@
                    id="g660"><g
                      transform="matrix(1,0,0,-1,5266,4615)"
                      id="g662"><text
-                       transform="scale(1,-1)"
-                       id="text664"><tspan
-                         x="0 124 165 258 361 413 516 619 681 784 939 1042 1094 1197"
-                         y="0"
-                         id="tspan666"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">Size parameter</tspan></text>
+   transform="scale(1,-1)"
+   id="text664"><tspan
+     x="0 124 165 258 361 413 516 619 681 784 939 1042 1094 1197"
+     y="0"
+     id="tspan666"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">Size parameter</tspan></text>
+
 </g></g></g><g
                  id="g668" /><g
                  id="g670"><g
@@ -812,21 +828,23 @@
                      id="g676" /><g
                      transform="matrix(1,0,0,-1,5992,470)"
                      id="g678"><text
-                       transform="scale(1,-1)"
-                       id="text680"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan682"
-                         style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">m</tspan></text>
+   transform="scale(1,-1)"
+   id="text680"><tspan
+     x="0"
+     y="0"
+     id="tspan682"
+     style="font-size:187px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:Arial-ItalicMT">m</tspan></text>
+
 </g><g
                      transform="matrix(1,0,0,-1,6145,470)"
                      id="g684"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text686"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan688"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">=</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text686"><tspan
+     x="0"
+     y="0"
+     id="tspan688"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">=</tspan></text>
+
 </g></g><g
                    id="g690"><g
                      id="g692" /><g
@@ -851,12 +869,13 @@
                    id="g712"><g
                      transform="matrix(1,0,0,-1,5884,697)"
                      id="g714"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text716"><tspan
-                         x="0 103 155 258"
-                         y="0"
-                         id="tspan718"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.02</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text716"><tspan
+     x="0 103 155 258"
+     y="0"
+     id="tspan718"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.02</tspan></text>
+
 </g></g><g
                    id="g720"><g
                      id="g722" /><g
@@ -881,12 +900,13 @@
                    id="g742"><g
                      transform="matrix(1,0,0,-1,5884,924)"
                      id="g744"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text746"><tspan
-                         x="0 103 155 258"
-                         y="0"
-                         id="tspan748"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.08</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text746"><tspan
+     x="0 103 155 258"
+     y="0"
+     id="tspan748"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.08</tspan></text>
+
 </g></g><g
                    id="g750"><g
                      id="g752" /><g
@@ -911,12 +931,13 @@
                    id="g772"><g
                      transform="matrix(1,0,0,-1,5884,1151)"
                      id="g774"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text776"><tspan
-                         x="0 103 155"
-                         y="0"
-                         id="tspan778"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.2</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text776"><tspan
+     x="0 103 155"
+     y="0"
+     id="tspan778"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.2</tspan></text>
+
 </g></g><g
                    id="g780"><g
                      id="g782" /><g
@@ -941,12 +962,13 @@
                    id="g802"><g
                      transform="matrix(1,0,0,-1,5884,1378)"
                      id="g804"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text806"><tspan
-                         x="0 103 155"
-                         y="0"
-                         id="tspan808"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.4</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text806"><tspan
+     x="0 103 155"
+     y="0"
+     id="tspan808"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.4</tspan></text>
+
 </g></g><g
                    id="g810"><g
                      id="g812" /><g
@@ -971,12 +993,13 @@
                    id="g832"><g
                      transform="matrix(1,0,0,-1,5884,1605)"
                      id="g834"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text836"><tspan
-                         x="0 103 155"
-                         y="0"
-                         id="tspan838"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.7</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text836"><tspan
+     x="0 103 155"
+     y="0"
+     id="tspan838"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1.7</tspan></text>
+
 </g></g><g
                    id="g840"><g
                      id="g842" /><g
@@ -1001,12 +1024,13 @@
                    id="g862"><g
                      transform="matrix(1,0,0,-1,5884,1832)"
                      id="g864"><text
-                       transform="matrix(1,0,0,-1,52,0)"
-                       id="text866"><tspan
-                         x="0"
-                         y="0"
-                         id="tspan868"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">2</tspan></text>
+   transform="matrix(1,0,0,-1,52,0)"
+   id="text866"><tspan
+     x="0"
+     y="0"
+     id="tspan868"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">2</tspan></text>
+
 </g></g></g><g
                  id="g870" /><g
                  id="g872"><g
@@ -1015,12 +1039,13 @@
                    id="g876"><g
                      transform="matrix(1,0,0,-1,4019,2453)"
                      id="g878"><text
-                       transform="scale(1,-1)"
-                       id="text880"><tspan
-                         x="0 134 268"
-                         y="0"
-                         id="tspan882"
-                         style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">DDA</tspan></text>
+   transform="scale(1,-1)"
+   id="text880"><tspan
+     x="0 134 268"
+     y="0"
+     id="tspan882"
+     style="font-size:187px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">DDA</tspan></text>
+
 </g></g></g><g
                  id="g884" /></g><g
                id="g886" /></g><g

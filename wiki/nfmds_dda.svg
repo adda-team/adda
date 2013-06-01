@@ -8,8 +8,8 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    version="1.1"
-   width="733.75"
-   height="522.5"
+   width="400"
+   height="286.72781"
    id="svg2"
    xml:space="preserve"><metadata
      id="metadata8"><rdf:RDF><cc:Work
@@ -25,7 +25,7 @@
        id="clipPath444"><path
          d="m 99.02,571.98 705.4,0 0,-498.37 -705.4,0 0,498.37 z"
          id="path446" /></clipPath></defs><g
-     transform="matrix(1.25,0,0,-1.25,0,522.5)"
+     transform="matrix(0.68920057,0,0,-0.68920057,-2.0146979,287.74027)"
      id="g10"><g
        transform="matrix(0.749719,0,0,0.749835,-32.665257,-12.049848)"
        id="g12"><g
@@ -50,6 +50,7 @@
      id="tspan42"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0</tspan></text>
 
+
 </g></g></g><g
                  id="g44" /><g
                  id="g46"><g
@@ -64,6 +65,7 @@
      y="0"
      id="tspan56"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">30</tspan></text>
+
 
 </g></g></g><g
                  id="g58" /><g
@@ -80,6 +82,7 @@
      id="tspan70"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">60</tspan></text>
 
+
 </g></g></g><g
                  id="g72" /><g
                  id="g74"><g
@@ -94,6 +97,7 @@
      y="0"
      id="tspan84"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">90</tspan></text>
+
 
 </g></g></g><g
                  id="g86" /><g
@@ -110,6 +114,7 @@
      id="tspan98"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">120</tspan></text>
 
+
 </g></g></g><g
                  id="g100" /><g
                  id="g102"><g
@@ -124,6 +129,7 @@
      y="0"
      id="tspan112"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">150</tspan></text>
+
 
 </g></g></g><g
                  id="g114" /><g
@@ -140,6 +146,7 @@
      id="tspan126"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">180</tspan></text>
 
+
 </g></g></g><g
                  id="g128" /><g
                  id="g130"><g
@@ -154,6 +161,7 @@
      y="0"
      id="tspan140"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.01</tspan></text>
+
 
 </g></g></g><g
                  id="g142" /><g
@@ -170,6 +178,7 @@
      id="tspan154"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">0.1</tspan></text>
 
+
 </g></g></g><g
                  id="g156" /><g
                  id="g158"><g
@@ -185,6 +194,7 @@
      id="tspan168"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">1</tspan></text>
 
+
 </g></g></g><g
                  id="g170" /><g
                  id="g172"><g
@@ -199,6 +209,7 @@
      y="0"
      id="tspan182"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">10</tspan></text>
+
 
 </g></g></g><g
                  id="g184" /><g
@@ -587,6 +598,7 @@
      id="tspan466"
      style="font-size:371px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT Italic">S</tspan></text>
 
+
 </g><g
                      transform="matrix(0,-1,-1,0,1259,4732)"
                      id="g468"><text
@@ -596,6 +608,7 @@
      y="0"
      id="tspan472"
      style="font-size:225px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">11</tspan></text>
+
 
 </g></g></g><g
                  id="g474" /><g
@@ -612,6 +625,7 @@
      id="tspan486"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">Scattering angle, deg (in </tspan></text>
 
+
 </g><g
                      transform="matrix(1,0,0,-1,8944,9590)"
                      id="g488"><text
@@ -622,6 +636,7 @@
      id="tspan492"
      style="font-size:371px;font-style:italic;font-variant:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT Italic">xz</tspan></text>
 
+
 </g><g
                      transform="matrix(1,0,0,-1,9316,9590)"
                      id="g494"><text
@@ -631,6 +646,7 @@
      y="0"
      id="tspan498"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">-plane)</tspan></text>
+
 
 </g></g></g><g
                  id="g500" /><g
@@ -663,6 +679,7 @@
      id="tspan532"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">NFM-DS</tspan></text>
 
+
 </g></g><g
                    id="g534"><g
                      id="g536" /><g
@@ -685,6 +702,7 @@
      y="0"
      id="tspan556"
      style="font-size:371px;font-variant:normal;font-weight:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Arial;-inkscape-font-specification:ArialMT">ADDA</tspan></text>
+
 
 </g></g></g><g
                  id="g558" /></g><g
