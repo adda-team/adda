@@ -2,7 +2,7 @@ digraph fft
 {
 	rankdir=LR
 	edge [color=midnightblue]
-	node [fontname=Helvetica,fontsize=10,shape=box];
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
 	fontname=Helvetica
 	fontsize=10
 	ranksep=.35

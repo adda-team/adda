@@ -2,7 +2,7 @@ digraph calcE
 {
 	rankdir=LR
 	edge [color=midnightblue]
-	node [fontname=Helvetica,fontsize=10,shape=box];
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
 	fontname=Helvetica
 	fontsize=10
 	ranksep=.35
@@ -47,8 +47,8 @@ digraph calcE
 	
 	GenerateB -> ReadField
 	CalcEplane -> CalcField
-	CalcIntegralScatQuantities -> ExtCross -> Romberg2D
-	CalcIntegralScatQuantities -> AbsCross -> Romberg2D
+	CalcIntegralScatQuantities -> ExtCross
+	CalcIntegralScatQuantities -> AbsCross
 	CalcIntegralScatQuantities -> ScaCross -> Romberg2D
 	CalcIntegralScatQuantities -> "AsymParm_[x,y,z]" -> Romberg2D
 	CalcIntegralScatQuantities -> Frp_mat -> AllGather
