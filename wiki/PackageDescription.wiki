@@ -42,7 +42,7 @@ The following description is for latest (stable) version of the released package
      * `Makefile` - makefile for sequential version (called from the main `Makefile`)
    * `Makefile` – main makefile
    * `common.mk` - common part of child makefiles, including all compilation directives.
-   * `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `chebyshev.c`, `cmplx.h`, `comm.c/h`, `const.h`, `crosssec.c/h`, `debug.c/h`, `fft.c/h`, `function.h`, `GenerateB.c`, `io.c/h`, `iterative.c`, `linalg.c/h`, `make_particle.c`, `matvec.c`, `memory.c/h`, `oclcore.c/h`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of `ADDA`
+   * `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `chebyshev.c`, `cmplx.h`, `comm.c/h`, `const.h`, `crosssec.c/h`, `debug.c/h`, `fft.c/h`, `function.h`, `GenerateB.c`, `io.c/h`, `iterative.c`, `linalg.c/h`, `make_particle.c`, `matvec.c`, `memory.c/h`, `oclcore.c/h`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of `ADDA` (see CodeDesign)
    * `oclkernels.cl` - OpenCL kernels for corresponding version of `ADDA`
    * `mt19937ar.c/h` – source and header files for Mersenne twister random generator
  * `tests/` - automatic tools to test `ADDA` executables

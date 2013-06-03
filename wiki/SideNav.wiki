@@ -7,9 +7,9 @@
    * [ComparisonOtherCodes Comparison with other codes]
    * [LargestSimulations Largest simulations]
  * Description of the code
-   * [PackageDescription Description of the packages]<wiki:comment>    
+   * [PackageDescription Description of the packages]
    * [CodeDesign General design of the code]
-   * [CodeStyleGuide Style guide for the code]</wiki:comment>
+   * [CodeStyleGuide Style guide for the code]
    * [EarlyHistory Early history of ADDA development]
  * Compiling and linking
    * [CompilingADDA Compiling ADDA]
