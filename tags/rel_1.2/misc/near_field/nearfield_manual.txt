@@ -1,0 +1,279 @@
+!-----------------------------------------------------------------------------------------------------------------------
+!     NearField MANUAL
+!
+!     Author: Fabio Della Sala, Stefania D'Agostino, 2009
+!     e-mail: fabio.dellasala@unisalento.it
+!
+!     S. D'Agostino, P.P. Pompa, R. Chiuri, R. Phaneuf, D. G. Britti, R. Rinaldi, R. Cingolani and F. Della Sala
+!     "Enhanced fluorescence by metal nanospheres on metal substrates", Optics Letters Vol. 34, pp.2381 (2009)
+!-----------------------------------------------------------------------------------------------------------------------
+
+The NearField program allows to compute the near-field on an arbitrary (i.e. not
+related to the grid used for the dipole) set of points, using dipoles stored by
+the ADDA program
+
+A) COMPILING ===========================================================================================================
+
+   Edit the Makefile selecting your compiler and compiler options and type
+   "gmake" (or "make")
+
+   the following binaries will be created
+    "gendip"
+    "genplane"
+    "genline"
+    "nearfield"
+    "checknfsymm"
+
+   Note that  the "nearfield"  program  is an MPI program. The other ones are serial.
+
+   If everything went ok, type
+
+   "./runexample".
+
+   to check that all programs are working. In some configurations you may first need to specify ADDABIN and MPIEXEC
+   environment variables (see below).
+
+B) RUNNING TESTS =======================================================================================================
+
+   It is REQUIRED that you test the program before using it for your applications.
+
+   First of all select your adda binary (both path and adda name) and command line to invoke MPI:
+
+   export ADDABIN=youraddbinary
+   export MPIEXEC="MPIinvocation"
+
+   You may skip this step if default values "../../src/seq/adda" (relative to path of nearfield executables) and
+   "mpiexec -n 4" respectively fit your system.
+
+   Then cd into the directory RUNTESTS and type
+
+   "./runall"
+
+   The tests wil take 2-10 minutes depending on your architecture. Note that by default "nearfield" will be executed
+   with 4 MPI tasks.
+
+   If all test are passed, you should not see any error message and that all the numbers shown should be zero (or almost
+   zero ,i.e. less than 1.d-6). Then you can compute the nearfield for your application safely!
+
+   Otherwise try to understand what's wrong, looking  at the output files (*.out) in the RUNTESTS subdirectories.
+
+   Note that "runall" will also run adda (version 0.78 or later). Thus errors can also be related to incorrect
+   functioning of your adda version.
+
+   For any queries contact the authors.
+
+C) COMPUTING NEARFIELD =================================================================================================
+
+1) run an adda calculation with the following additional flag
+
+-store_dip_pol
+-save_geom
+
+adda will create the additional files
+
+"<type>.geom"
+"DipPol-Y" (and/or "DipPol-X")
+
+2) rename  "<type>.geom" to "target"
+
+3) run "gendip"
+
+   gendip requires no input. It reads "target" and "DipPol-Y" (and/or "DipPol-X" ) from the current directory and
+   generate the  "DIPY.SAV" (and/or "DIPX.SAV") file, which is the one of the input files for the "nearfield" program.
+   "DIP?.SAV" contains informations stored in "DipPol-?" and "target" and it is a BINARY file, so it cannot be
+   transferred to different machines. For large targets the DipPol-Y file can have very large size while "DIP?.SAV"
+   is much smaller. The files  "target" and "DipPol-?" can be deleted after running "gendip"
+
+
+4) Then you have to specify the list of external points where the near-field need to be computed.
+
+   IMPORTANT: The coordinate systems used by the nearfield program is the one used  for the "target" file, and NOT the
+   internal ADDA coordinate system! This is mostly important when the shape for the ADDA computation is read from a
+   file. The "target" file contains a list of integers representing the dipole locations. The near-field can be computed
+   in the same coordinate system but the coordinate of the point can be any real number (and outside the range of the
+   ADDA dipoles).
+
+   Three types of external list of points are supported:
+
+   << 1. A cartesian plane >>
+
+   You can use the  "genplane" program to generate a file of points in a cartesian plane. The input of "genplane" is:
+      val, whatis
+      xmin,xmax,NGPX
+      ymin,ymax,NGPY
+
+   To generate a cartesian plane defined by
+   the equation  x=val use whatis=1
+   for           y=val use whatis=2
+   for           z=val use whatis=3
+
+   xmin,xmax,ymin,ymax are the initial and final xy coordinate and NGPX,NGPY are the number of points.
+
+   "genplane" writes points to stdout, thus run
+
+   "genplane < input > plane_points "
+
+   the generated "plane_points" file has the format:
+   2
+   numpointsx xmin xmax
+   numpointsy ymin ymax
+   totalnumberofpoints
+   x1 y1 z1
+   x2 y2 z2
+   x3 y3 z3
+   ....
+
+   << 2. A line >>
+
+   You can use the "genline" program. The input of "genline.x" is
+    x0 y0 z0
+    x1 y1 z1
+    min max NGP
+
+    where x0,y0,z0 is the first point
+          x1,y1,z1 is the last point
+          min,max define min,max values to <label> the points over a line
+          NGP is the number of points
+
+   "genline" writes points to stdout, thus run
+
+   "genline.x < input > line_points"
+
+    The generated "line_points" file is of the format:
+    1
+    xmin,xmax,NGP+1
+    x1 y1 z1
+    x2 y2 z2
+    x3 y3 z3
+
+
+    << An arbitrary set of points >>
+
+    Create on your own a file with the format
+    0
+    Numberofpoints
+    x1 y1 z1
+    x2 y2 z2
+    x3 y3 z3
+    .....
+
+5) The main program which compute the nearfield is "nearfield",
+    which is a MPI program.
+
+   The input of "nearfield" has the format:
+
+   filenamedip
+   lambda
+   filepoints
+   fileout
+   eincflag
+   iformat
+   debug
+   calcinternal
+
+   where
+
+    -) filenamedip  is the name of the file generated by "gendip", i.e. DIPY.SAV (or DIPX.SAV)
+
+    -) lambda       is the wavelenght in NANOMETERS (which MUST correspond to the one used to run adda)
+
+    -) filepoints   is the filename containing the external points, (e.g. the file generated by "genplane" or "genline")
+                    the first line of the filepoints file is:
+                      what
+                    if what=2 (2dplaneplot) then the following lines are
+                      NGPX,xf_xmin,xf_xmax
+                      NGPY,xf_ymin,xf_ymax
+                      NGP
+                      x y z
+                      .....
+                    if what=1 (1dlineplot) then the following lines are
+                      xf_xmin,xf_xmax, NGP
+                      x y z
+                      .....
+                    if what=0 (arbitrary points) then the following lines are
+                      NGP
+                      x y z
+                      ....
+
+    -) fileout      is the filename where to store the computed nearfield. Note that the program will add ".DAT" to
+                    fileout. Thus, it must be specified without filename extension
+
+    -) eincflag     0 to compute the nearfield from dipoles,
+                    1 to compute the nearfield frim dipoles plus the incident field
+
+                    If eincflag=1 an additional file "commvar" is required. The format of the "commvar" file is
+                      0.d0
+                      dirx diry dirz
+                      polx poly polz
+
+                    where dirx,diry,dirz represent  the propagation direction (the same as the one specified by -prop
+                    flag in adda) and polx,poly,polz represent the polarization vector see the adda log file)
+                    Note that only the planewave incident beam is supported !!
+
+                    Note that there is no control that these vectors correspond to the one used in adda. The two must
+                    coincide or the computed total nearfield is not the real one.
+
+                    To check this, adda can be ran with the additional flag
+                    -store_beam
+                    and the debuglevel (see after) should be set to 1. In this way nearfield will check that the
+                    incident field on the target stored by adda is identical to the re-computed by nearfield.
+
+    -) iformat      0,1,2 speficied the level of output for the fileout
+
+                    iformat=0 : print x y z and the squared-module of the nearfield, i.e. |EX|^2+|EY|^2+|EZ|^2
+                    fileformat: x y z value
+
+                    iformat=1 : print in addition the components of the field, i.e.
+                    x y z value EX.r EX.i EY.r EY.i EZ.r EZ.i
+
+                    iformat=2 : print in addition the logarithm of the module, i.e.
+                    x y z value log(value) EX.r EX.i EY.r EY.i EZ.r EZ.i
+
+   -) debuglevel    0 (default) 1 (to check incident field)
+
+   -) calcinternal  The near field should NOT be computed on the points of the dipoles (calcinternal=0). When a
+                    plane/line/set of external points is cutting the target, the dipolar nearfield is set to 0.0 in the
+                    points which belong to the target, and it is computed only on the points outside the target. If
+                    eincflag=1 the field inside the target is thus the incident field. If calcinternal=1 the near field
+                    is computed also for points inside the target.
+
+   The "nearfield" program thus reads "DIPY.SAV" (or "DIPX.SAV"), "filepoints" and will create the following file:
+
+      "fileout.DAT" <- main  output file
+
+      The nearfield in "fileout.DAT" can be visulalized with any plotting program (e.g. Matlab, .... )
+
+
+ *********  Visualization on Linux/Unix X11 *********************
+
+       For these architectures, two visualization programs are supported:
+
+       if (what.eq.2) additional files are created:
+
+         "fileout.xf"      <- simple file to plot with "xfarbe"
+         "fileout_log.xf"  <- simple file to plot with "xfarbe" (log scale)
+
+       "xfarbe" is a program to plot 2d arrays. It can be downloaded from:
+       http://www.fhi-berlin.mpg.de/gnz/pub/xfarbe_doc.html
+
+       to visulize the a 2d colormap type
+       "xfarbe   fileout.xf"  and/or
+       "xfarbe fileout_log.xf"
+
+       you can use also the script
+       "xfarbe.sh" to set more color and annotation of axes.
+
+       if (what.eq.1) the additional file are created:
+        "fileout.xmgr"  <- line plot with xmgr
+
+       "xmgr" is a program to plot xy data. It can be downloaded form
+       http://plasma-gate.weizmann.ac.il/Xmgr/
+
+
+
+D) REFERENCE  ==========================================================================================================
+
+     If you use the nearfield program in a publication, you should cite
+
+      S. D'Agostino, P.P. Pompa, R. Chiuri, R. Phaneuf, D. G. Britti, R. Rinaldi, R. Cingolani and F. Della Sala
+      "Enhanced fluorescence by metal nanospheres on metal substrates", Optics Letters Vol. 34, pp.2381 (2009)

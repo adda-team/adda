@@ -1,0 +1,28 @@
+1) test the current source
+> cd adda/src
+> make seq -s
+> cd adda/tests/2exec
+edit comp2exec to compare against previous version
+> sh comp2exec seq, mpi, ocl + mpi_seq, ocl_seq
+> cp adda/src/seq/adda .
+> cp adda/src/mpi/adda_mpi .
+> cd adda/src
+> make seq OPTIONS=SPARSE -s
+> cd adda/tests/2exec
+edit comp2exec to enable SPARSE
+> sh comp2exec seq, mpi
+edit comp2exec to compare against adda and adda_mpi + enable SPARSE_STANDARD
+> sh comp2exec seq, mpi
+
+2) make sure that manual.doc/pdf, history, and const.h are up to date. In particular, version number in const.h should
+not contain "a" or "b".
+
+(on 64-bit Windows)
+3) sh win_all.sh #.#
+
+(on Linux)
+4) ./zip_packages #.#
+
+5) Upload packages to GoogleCode
+6) Update Wiki pages: PackageDescription, ReleaseNotes, Features
+7) Send announcement to users.

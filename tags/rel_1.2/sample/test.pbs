@@ -1,0 +1,55 @@
+# This is sample batch file to run ADDA
+# it was designed for Dutch national compute cluster LISA
+# based on the sample script located at
+# https://subtrac.sara.nl/userdoc/wiki/lisa/usage/batch/jobmpich4
+#
+# $Author$
+# $Date::                            $
+
+# ----- start of PBS parameters
+
+# job name (default is name of pbs script file)
+#PBS -N ADDA
+#
+# request nodes, ppn - processor per node
+#PBS -l nodes=2:ppn=8:cores8
+#
+# max. wall clock time
+#PBS -l walltime=0:05:00
+#
+# Request that regular output and terminal output go to the same file
+#PBS -j oe
+#
+# do not rerun this job if it fails
+#PBS -r n
+#
+# Select shell
+#PBS -S /bin/sh
+#
+# export all my environment variables to the job
+#PBS -V
+
+# ---- end of PBS parameters
+
+# load necessary modules
+module load openmpi/intel
+
+# test if ~/.mpd.conf exists, create it if not:
+if [ ! -e ~/.mpd.conf ]
+  then
+        echo MPD_SECRETWORD=$USER$RANDOM$PPID$$ > ~/.mpd.conf
+        chmod 600 ~/.mpd.conf
+fi
+# determine the number of processes to start:
+nprocs=`wc -l < $PBS_NODEFILE`
+# determine the number of nodes:
+nnodes=`sort -u $PBS_NODEFILE | wc -l`
+
+# cd to the work directory
+cd $PBS_O_WORKDIR
+# show information
+echo "Job executes on $nnodes nodes ($nprocs cores)"
+echo "cores:"
+cat $PBS_NODEFILE
+# execute ADDA
+mpiexec -n $nprocs ./adda_mpi

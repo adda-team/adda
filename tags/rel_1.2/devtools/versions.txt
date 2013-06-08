@@ -1,0 +1,11 @@
+Files having version number in them:
+src/const.h
+doc/manual.doc
+doc/manual.pdf
+doc/history
+
+Files that have release date in them:
+doc/history
+
+Files that has a list of all files in them:
+src/Makefile
