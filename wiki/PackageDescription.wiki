@@ -5,17 +5,17 @@ The following description is for latest (stable) version of the released package
 
 =Source=
 `adda_1.2.zip`
- * `devtools` - tools used by `ADDA` developers
+ * `devtools/` - tools used by `ADDA` developers
     * `default.svnprops` - default Subversion properties (to be used by TortoiseSVN)
     * `make_branch` - script to make new branch in Subversion repository
     * `make_tag` - script to make new tag in Subversion repository
-	* `release_sequence.txt` - a sequence of tasks to be made during release
-	* `versions.txt` - note on files that need to be checked prior to release (e.g. contain version number) 
+    * `release_sequence.txt` - a sequence of tasks to be made during release
+    * `versions.txt` - note on files that need to be checked prior to release (e.g. contain version number) 
     * `win_all.sh` - script to perform all Windows-specific tasks during release
     * `win_build_adda.sh` - script to build `ADDA` Windows binaries and copy to `win32/` or `win64/`
     * `win_build_misc.sh` - script to build `misc/` Windows binaries and copy to `win32/` or `win64/`
     * `win_commit.sh` - script to commit `doc/`, `sample/`, `win32/`, and `win64/`
-	* `zip_packages` - script to checkout and zip packages on Unix system
+    * `zip_packages` - script to checkout and zip packages on Unix system
  * `doc/` – documentation
    * `doxy/Doxyfile` - config file for [http://www.doxygen.org doxygen] to automatically produce code documentation
    * `gv/` - sources for schemes used in CodeDesign, they are processed into svg files using [http://www.graphviz.org/ GraphViz]
@@ -63,8 +63,9 @@ The following description is for latest (stable) version of the released package
    * `2exec/` - extensive test of two `ADDA` executables (in terms of output) against each other
      * `comp2exec` - main script to run the test
      * `diff_numeric.awk` - script to compare two files with given numerical tolerance
+     * `README` - a short description
      * `suite` - the default test suite
-	 * `suite_sparse` - shortened suite for testing sparse mode
+     * `suite_sparse` - shortened suite for testing sparse mode
      * ... - many sample input files to be used in tests
 
 =Windows executables=
