@@ -37,9 +37,10 @@ Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in
 = Fast and accurate =
  * A large linear system is solved by an iterative solver. Matrix-vector product is computed using FFT-convolution method, based on the regular spacing of dipoles. Thus, simulation time is, to some extent, an order of number of dipoles.
  * By default [http://www.fftw.org/ FFTW3 package] is used to perform FFT, which automatically adapts to a particular hardware. A fall-back FFT implementation, not requiring any separate package installation, is also available.
- * Six Krylov-subspace-type iterative solvers are available, four of them directly employ the complex-symmetric structure of the interaction matrix.
+ * Seven Krylov-subspace-type iterative solvers are available, four of them directly employ the complex-symmetric structure of the interaction matrix.
  * Modern DDA formulations, namely filtered coupled dipoles and integration of Green's tensor, are available. They may grossly outperform standard formulations (e.g. lattice dispersion relation) in certain cases.
  * Overall, the code is highly optimized both for speed and memory consumption. This was exemplified by [ComparisonOtherCodes#Comparison_with_other_DDA_codes comparison with other DDA codes].
+ * A special [SparseMode sparse mode] is efficient for very porous particles.
  
 = Easy to use =
  * Powerful command line interface.
@@ -53,7 +54,7 @@ Distinctive feature of `ADDA` is the ability to run a _single_ DDA simulation in
  * Ready-to-use [PackageDescription#Windows_executables executables for Windows] are available.
 
 = Reliable =
- * Tested and trusted by the community. As of summer 2012 it is used by about 60 researchers, who published [Publications more than 70 journal papers], which somehow used `ADDA`.
+ * Tested and trusted by the community. As of summer 2013 it is used by about 60 researchers, who published [Publications more than 100 journal papers], which somehow used `ADDA`.
  * Tested by [ComparisonOtherCodes comparison with other methods and codes].
  * New releases are tested against the previous ones by automatic testing suites.
  * Open development process, including [http://code.google.com/p/a-dda/issues issue tracker] and availability of the [http://code.google.com/p/a-dda/source/browse/ current source], allows pre-release testing.

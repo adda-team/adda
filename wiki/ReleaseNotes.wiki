@@ -5,6 +5,28 @@ Here most important changes are listed grouped by releases in reverse chronologi
 
 <wiki:toc />
 
+=Ver. 1.2 - 08.06.12=
+
+ * [SparseMode Sparse mode] is now fully integrated into `ADDA` and significantly improved (issue 98). It is designed for very porous particles.
+ * Linked to new OpenCL FFT library from AMD ([InstallingclAmdFft clAmdFft]), it is now the default one in OpenCL mode (issue 144). Speed improvement is a few times depending on the GPU. But there are some limitations (issue 157).
+ * New iterative solver `BCGS2` - an improved version of `BICGSTAB` (issue 24).
+ * New command line option argument `-init_field read <filenameY> [<filenameX>]` to initialize an iterative solver by the field read from file (issue 2).
+ * Behavior of WKB initial field was slightly improved. Before WKB result was assigned to *E*,,exc,,, now it is assigned to *E* (similar to the behavior of `-init_field read`).
+ * Subversion revision number was added to the output of `-V` command line option (issue 125).
+ * Timing for generation of incident beam was added.
+ * Memory usage during prognosis was slightly reduced.
+ * Finally removed deprecated options `-Cpr_mat` and `-sg_format ddscat`.
+ * Fixed inaccuracy in `input/scat_params.dat` (r1159).
+ * A few minor bugs were fixed (issue 83, issue 159, issue 162).
+ * Several improvements of tests/2exec to accomodate OpenCL and sparse modes, as well as comparison of different FFT implementations (r1192, r1200, r1203).
+ * Added wiki pages: SparseMode, InstallingclAmdFft, CodeDesign (issue 75), and CodeStyleGuide (issue 74).
+ * Added new folder `devtools`. It contains a couple of text files, bash scripts for preparing files for release and other tasks.
+ * Added [http://www.doxygen.org doxygen] config file (`doc/doxy/Doxyfile`) for automatic generation of extensive docs and [http://www.graphviz.org/ GraphViz] files (`doc/gv/`) with schemes describing `ADDA` design (for `svg` files in CodeDesign).
+ * Several improvements to `Makefile`:
+   * Improved the automatic dependency generation - now it is faster and more robust.
+   * Full support for compilation in 32-bit mode on 64-bit OS, using `EXTRA_FLAGS=-m32`, also for `misc/` packages.
+   * New `make` targets: `cleanfull`, `cleanruns`, `cleanrunsseq`, `cleanrunsmpi`, `cleanrunsocl`. They enable cleaning output from `ADDA` runs.
+
 =Ver. 1.1 - 05.06.12=
 
  * New [OpenCL OpenCL-based] version of `ADDA` to effectively use GPUs for simulations (issue 118).

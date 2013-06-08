@@ -66,5 +66,6 @@ The following describes common auxiliary functions, headers, etc. which are used
  * `param.h` - handy functions for testing the command line arguments
  * `parbas.h` - wrapper for `mpi.h`, which additionally test the version of the MPI
  * `prec_time.c/h` - functionality for precise timing of `initDmatrix` and `MatVec`, used when compiled with `PRECISE_TIMING`
+ * `svnrev.h` - header containing revision number of the source, which is automatically generated (updated) by `updsvnrev.sh` during compilation
  * `types.h` - definitions of a few structures
  * `vars.c/h` - global variables
