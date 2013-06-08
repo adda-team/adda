@@ -381,4 +381,69 @@ Changes to the manual:
 + Section "Geometry files": added warning about shown box size.
 
 ------------------------------------------------------------------------------------------------------------------------
-Ver. 1.2 - XX.XX.2013
+Ver. 1.2 - 08.06.2013
+
++ Sparse mode is now fully integrated into ADDA and significantly improved (issue 98, SparseMode). It is designed for
+  very porous particles. New file sparse_ops.h.
++ Linked to new OpenCL FFT library from AMD (clAmdFft), it is now the default one in OpenCL mode (issue 144,
+  InstallingclAmdFft). Speed improvement is a few times depending on the GPU. A few minor improvements of handling FFTs.
++ New iterative solver BCGS2 - an improved version of BICGSTAB (issue 24).
++ New command line option argument -init_field read <filenameY> [<filenameX>]' to initialize an iterative solver by the
+  field read from file (issue 2).
+* Function to read field was moved from GenerateB.c to comm.c, now it is called ReadFields(). It was also optimized in
+  MPI mode.
+* Behavior of WKB initial field was slightly improved. Before WKB result was assigned to E_exc, now it is assigned to E
+ (similar to the behavior of '-init_field read').
++ Subversion revision number was added to the output of -V command line option (issue 125). New files svnrev.h and
+  updsvnrev.sh. 
++ Several improvements of tests/2exec to accomodate OpenCL and sparse modes, as well as comparison of different FFT
+  implementations (r1192, r1200, r1203).
++ Added tests/2exec/README with basic description of using this test suite.
+* Window width is now 120 throughout the code.
++ New files interaction.c/h, which hold all code concerning the calculation of Green's tensor.
+* Intermediate vector DipoleCoord_tmp is no more used in make_particle.c. This somewhat decreases memory usage during
+  prognosis. Overall, the code in MakeParticle() was significantly changed (a lot of moving parts around).
+* Finally removed deprecated options -Cpr_mat and '-sg_format ddscat'.
+* Outdated INLINE macro removed throughout the code.
+* Many if-else-if sequences in the code were changed to switch.
+* The code for CalcField and SaveGeometry, has been simplified by moving conditions (if and switch) inside the loops.
++ Added test for duplicate dipoles in input shape files.
++ Added function FinalizeSymmetry(), which is called immediately after InitShape().
++ Timing for generation of incident beam was added.
+- Fixed inaccuracy in input/scat_params.dat (r1159).
+- A few minor bugs fixed (issues 83, 159, 162).
++ Added wiki pages: SparseMode, InstallingclAmdFft, CodeDesign (issue 75), and CodeStyleGuide (issue 74, includes code
+  style scheme for Eclipse CDT).
+* Replaced most png images with svg ones in ComparisonOtherCodes.
++ Added new folder devtools. It contains a couple of text files, bash scripts for preparing files for release and other
+  tasks, and default set of svn-properties for new files (to be used with TortoiseSVN).
++ Added doxygen config file (doc/doxy/Doxyfile) for automatic generation of extensive docs and GraphViz files (doc/gv/)
+  with schemes describing ADDA design (for svg files in CodeDesign).
+
+Changes to Makefiles:
++ Full support for compilation in 32-bit mode on 64-bit OS, using 'EXTRA_FLAGS=-m32' (see also 
+  InstallingMinGW#Multilib_configuration_on_Windows).
++ Added comment on possible use of 'CC=...' to specify a different compiler.
+* Improved the automatic dependency generation in Makefile. Now it happens during the compilation (in one go) and also
+  works for C++ sources. It should be faster and produce immediate break if, e.g., header file is missing.
++ Added new targets to Makefile - cleanfull, cleanruns, cleanrunsseq, cleanrunsmpi, cleanrunsocl. They enable cleaning
+  output from ADDA runs (in addition to the output of ADDA compilation, which is cleaned by clean).
+* debug.c and prec_time.c are now only compiled when needed.
++ Makefiles in misc/*/ were improved to allow compilation from another folder (path) and with extra flags (e.g. -m32).
+
+Changes to the manual:
++ Changed "authors" to "developers" throughout the manual. Added link to developer list in Section "Introduction".
++ Section "OpenCL (GPU) mode": added link to wiki page OpenCL.
+* Colors in Fig.1a were adjusted because they caused problems during conversion to pdf. 
++ Added figure with examples of predefined shapes (issue 140).
++ Section "Beam type": added note that '-beam read' cancels symmetry.
++ Section "How to calculate scattering quantities": added discussion of symmetry-based tests of DDA results (issue 143).
++ Section "Integral scattering quantities": added note that the result for unpolarized incident light is equal to that
+  for full-range averaging over alpha.
++ Section "Iterative solver": added description of new iterative solver bcgs2 and new option '-init_field read'. Also
+  the intercomparison of iterative solvers was rewritten in terms of matrix-vector products, and a summary table was
+  added. Section "System Requirements" was updated to refer to this table.
++ Section "Fast Fourier transform": added description of a clAmdFft library.
++ Added section "Sparse mode", a few other sections were also updated.
++ Section "Miscellanea": added link to wrapper script in R language by Baptiste Auguie.
++ Section "References": DOIs and URLs were made into hyperlinks.
