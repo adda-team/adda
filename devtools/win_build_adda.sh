@@ -38,7 +38,7 @@ fi
 # this should be replaced by make install
 cp -p seq/adda.exe mpi/adda_mpi.exe ocl/adda_ocl.exe "$WINDIR"
 
-# Build FFT versions
+# Build sparse versions
 make -s $XFL OPTIONS=SPARSE seq mpi
 if [ $? -ne 0 ]; then
   echo "ERROR: compilation of sparse ADDA failed"
