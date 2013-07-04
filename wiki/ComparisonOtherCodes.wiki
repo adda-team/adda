@@ -66,7 +66,22 @@ Although these conclusions depend on particular scattering quantity and on the i
 
 Bi et al. compared `ADDA` with the improved geometric optics method (IGOM) for simulation of randomly-oriented ellipsoids [[#References 5]] and hexahedra [[#References 6]]. The accuracy of the `ADDA` was assumed good enough (unfortunately, the details of the DDA simulations were not specified), while accuracy of IGOM is tested against it. A particular example from [[#References 6]] is shown in the following figure, depicting integrated scattering properties of randomly oriented nonsymmetric hexahedra versus the size parameter. One can see that both methods agree in intermediate size parameter range, thus effectively closing the gap between geometric-optics and wave-optics methods. However, the deviations for angle-resolved light scattering properties ,e.g. _S_,,11,,, can still be significant (see [[#References 6]] for details).
 
-[http://a-dda.googlecode.com/svn/wiki/igom_dda_large.png http://a-dda.googlecode.com/svn/wiki/igom_dda_small.png] 
+[http://a-dda.googlecode.com/svn/wiki/igom_dda_large.png http://a-dda.googlecode.com/svn/wiki/igom_dda_small.png]
+
+= Comparison with `Tsym` for cubes =
+
+`ADDA` was compared with `Tsym`, a T-matrix code employing discrete symmetries of the scatterer, for a number of cubes with _kD_=0.1 and 8 (_k_ is the wavenumber, _D_ is the cube edge) and refractive index _m_=1.6+0.01i, 0.1+i, and 10+10i [[#References 7]], pushing the accuracy of both codes to the limit. Here we present only the results for one case - _kD_=8 and _m_=1.6+0.01i. The cube is in fixed orientation with edges along the axes. `ADDA` v.0.78.2 was used with default settings, except for the FCD formulation and 10^−10^ convergence threshold for the iterative solver. The command line was the following:
+{{{
+adda -size 8 -m 1.6 0.01 -ntheta 180 -shape box -int fcd -pol fcd -eps 10 -grid <nx>
+}}}
+where 5 grid sizes (`<nx>`) were used from 256 to 512, and extrapolation technique was employed afterwards. Also, a special technique was used for `Tsym` results to estimate computational accuracy. Results for the integral scattering quantities are summarized in the following table. Uncertainties (±) are in the last shown digits of the corresponding value and have nominal confidence level of 95%.
+|| || _Q_,,ext,, || _Q_,,sca,, || _Q_,,abs,, ||
+|| `ADDA` || 4.2480442 ± 3 || 3.9715646 ± 3 || 0.2764796 ± 1 ||
+|| `Tsym` || 4.24775 ± 33 || 3.97156 ± 24 || 0.2757 ± 7 ||
+
+Below is the results for intensity _I_=_S_,,11,, in the _yz_-plane, showing relative differences between the two methods and their internal error estimates.
+
+http://a-dda.googlecode.com/svn/wiki/tsym_dda.svg
 
 = References =
  # A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
@@ -75,3 +90,4 @@ Bi et al. compared `ADDA` with the improved geometric optics method (IGOM) for s
  # C. Liu, L. Bi, R. L. Panetta, P. Yang, and M. A. Yurkin, “Comparison between the pseudo-spectral time domain method and the discrete dipole approximation for light scattering simulations,” [http://dx.doi.org/10.1364/OE.20.016763 Opt. Express 20, 16763–16776 (2012)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114-126 (2009)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
+ # M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
