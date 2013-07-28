@@ -5,7 +5,7 @@ Here most important changes are listed grouped by releases in reverse chronologi
 
 <wiki:toc />
 
-=Ver. 1.2 - 08.06.12=
+=Ver. 1.2 - 08.06.13=
 
  * [SparseMode Sparse mode] is now fully integrated into `ADDA` and significantly improved (issue 98). It is designed for very porous particles.
  * Linked to new OpenCL FFT library from AMD ([InstallingclAmdFft clAmdFft]), it is now the default one in OpenCL mode (issue 144). Speed improvement is a few times depending on the GPU. But there are some limitations (issue 157).
