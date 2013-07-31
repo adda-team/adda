@@ -91,7 +91,6 @@ angle_set alpha_int;               // sets of angles
 scat_grid_angles angles;           // angle sets for scat_grid
 	// E calculated on a grid for many different directions (holds Eper and Epar) for two incident polarizations
 doublecomplex * restrict EgridX,* restrict EgridY;
-double * restrict Egrid_buffer;    // buffer to accumulate Egrid
 
 int nprocs;                        // total number of processes
 int ringid;                        // ID of current process

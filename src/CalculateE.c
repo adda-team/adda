@@ -40,7 +40,6 @@
 // defined and initialized in calculator.c
 extern double * restrict muel_phi,* restrict muel_phi_buf;
 extern doublecomplex * restrict EplaneX, * restrict EplaneY;
-extern double * restrict Eplane_buffer;
 extern const double dtheta_deg,dtheta_rad;
 extern doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY;
 extern double * restrict muel_alpha;
@@ -82,25 +81,25 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
  * Huffman
  */
 {
-	matrix[0][0] = 0.5*(cMultConRe(s1,s1)+cMultConRe(s2,s2)+cMultConRe(s3,s3)+cMultConRe(s4,s4));
-	matrix[0][1] = 0.5*(cMultConRe(s2,s2)-cMultConRe(s1,s1)+cMultConRe(s4,s4)-cMultConRe(s3,s3));
-	matrix[0][2] = cMultConRe(s2,s3)+cMultConRe(s1,s4);
-	matrix[0][3] = cMultConIm(s2,s3)-cMultConIm(s1,s4);
+	matrix[0][0] = 0.5*(cAbs2(s1) + cAbs2(s2) + cAbs2(s3) + cAbs2(s4));
+	matrix[0][1] = 0.5*(cAbs2(s2) - cAbs2(s1) + cAbs2(s4) - cAbs2(s3));
+	matrix[0][2] = creal(s2*conj(s3) + s1*conj(s4));
+	matrix[0][3] = cimag(s2*conj(s3) - s1*conj(s4));
 
-	matrix[1][0] = 0.5*(cMultConRe(s2,s2)-cMultConRe(s1,s1)+cMultConRe(s3,s3)-cMultConRe(s4,s4));
-	matrix[1][1] = 0.5*(cMultConRe(s2,s2)+cMultConRe(s1,s1)-cMultConRe(s3,s3)-cMultConRe(s4,s4));
-	matrix[1][2] = cMultConRe(s2,s3)-cMultConRe(s1,s4);
-	matrix[1][3] = cMultConIm(s2,s3)+cMultConIm(s1,s4);
+	matrix[1][0] = 0.5*(cAbs2(s2) - cAbs2(s1) + cAbs2(s3) - cAbs2(s4));
+	matrix[1][1] = 0.5*(cAbs2(s2) + cAbs2(s1) - cAbs2(s3) - cAbs2(s4));
+	matrix[1][2] = creal(s2*conj(s3) - s1*conj(s4));
+	matrix[1][3] = cimag(s2*conj(s3) + s1*conj(s4));
 
-	matrix[2][0] = cMultConRe(s2,s4)+cMultConRe(s1,s3);
-	matrix[2][1] = cMultConRe(s2,s4)-cMultConRe(s1,s3);
-	matrix[2][2] = cMultConRe(s1,s2)+cMultConRe(s3,s4);
-	matrix[2][3] = cMultConIm(s2,s1)+cMultConIm(s4,s3);
+	matrix[2][0] = creal(s2*conj(s4) + s1*conj(s3));
+	matrix[2][1] = creal(s2*conj(s4) - s1*conj(s3));
+	matrix[2][2] = creal(s1*conj(s2) + s3*conj(s4));
+	matrix[2][3] = cimag(s2*conj(s1) + s4*conj(s3));
 
-	matrix[3][0] = cMultConIm(s4,s2)+cMultConIm(s1,s3);
-	matrix[3][1] = cMultConIm(s4,s2)-cMultConIm(s1,s3);
-	matrix[3][2] = cMultConIm(s1,s2)-cMultConIm(s3,s4);
-	matrix[3][3] = cMultConRe(s1,s2)-cMultConRe(s3,s4);
+	matrix[3][0] = cimag(s4*conj(s2) + s1*conj(s3));
+	matrix[3][1] = cimag(s4*conj(s2) - s1*conj(s3));
+	matrix[3][2] = cimag(s1*conj(s2) - s3*conj(s4));
+	matrix[3][3] = creal(s1*conj(s2) - s3*conj(s4));
 }
 
 //======================================================================================================================
@@ -166,7 +165,7 @@ void MuellerMatrix(void)
 	double * restrict cos2=NULL,* restrict sin2=NULL,* restrict cos4=NULL,* restrict sin4=NULL;
 	double matrix[4][4];
 	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
-	doublecomplex s1,s2,s3,s4,s10,s20,s30,s40;
+	doublecomplex s1,s2,s3,s4;
 	char fname[MAX_FNAME];
 	int i;
 	size_t index,index1,k_or,j,n,ind;
@@ -191,16 +190,11 @@ void MuellerMatrix(void)
 				co=cos(alph);
 				si=sin(alph);
 				for (i=0;i<nTheta;i++) {
-					// read amplitude matrix from memory
-					cEqual(ampl_alphaX[index],s10);
-					cEqual(ampl_alphaX[index+1],s30);
-					cEqual(ampl_alphaY[index],s40);
-					cEqual(ampl_alphaY[index+1],s20);
-					// transform it, multiplying by rotation matrix (-alpha)
-					cLinComb(s20,s30,co,si,s2);  // s2 =  co*s20 + si*s30
-					cLinComb(s20,s30,-si,co,s3); // s3 = -si*s20 + co*s30
-					cLinComb(s40,s10,co,si,s4);  // s4 =  co*s40 + si*s10
-					cLinComb(s40,s10,-si,co,s1); // s1 = -si*s40 + co*s10
+					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
+					s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
+					s3 = -si*ampl_alphaY[index+1] + co*ampl_alphaX[index+1]; // s3 = -si*s20 + co*s30
+					s4 =  co*ampl_alphaY[index] + si*ampl_alphaX[index];     // s4 =  co*s40 + si*s10
+					s1 = -si*ampl_alphaY[index] + co*ampl_alphaX[index];     // s1 = -si*s40 + co*s10
 
 					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
 					index+=2;
@@ -218,9 +212,9 @@ void MuellerMatrix(void)
 				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,EplaneX[2*i][RE],EplaneX[2*i][IM],
-						EplaneY[2*i+1][RE],EplaneY[2*i+1][IM],EplaneX[2*i+1][RE],EplaneX[2*i+1][IM],EplaneY[2*i][RE],
-						EplaneY[2*i][IM]);
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,creal(EplaneX[2*i]),cimag(EplaneX[2*i]),
+						creal(EplaneY[2*i+1]),cimag(EplaneY[2*i+1]),creal(EplaneX[2*i+1]),cimag(EplaneX[2*i+1]),
+						creal(EplaneY[2*i]),cimag(EplaneY[2*i]));
 				}
 				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
@@ -298,17 +292,12 @@ void MuellerMatrix(void)
 					ph=Deg2Rad(phi);
 					co=cos(ph);
 					si=sin(ph);
-					// read amplitude matrix from memory
-					cEqual(EgridY[index],s10);
-					cEqual(EgridY[index+1],s30);
-					cEqual(EgridX[index],s40);
-					cEqual(EgridX[index+1],s20);
+					// transform the amplitude matrix, multiplying by rotation matrix from per-par to X-Y
+					s2 = co*EgridX[index+1] + si*EgridY[index+1]; // s2 =  co*s20 + si*s30
+					s3 = si*EgridX[index+1] - co*EgridY[index+1]; // s3 =  si*s20 - co*s30
+					s4 = co*EgridX[index] + si*EgridY[index]; // s4 =  co*s40 + si*s10
+					s1 = si*EgridX[index] - co*EgridY[index]; // s1 =  si*s40 - co*s10
 					index+=2;
-					// transform it, multiplying by rotation matrix from per-par to X-Y
-					cLinComb(s20,s30,co,si,s2);  // s2 =  co*s20 + si*s30
-					cLinComb(s20,s30,si,-co,s3); // s3 =  si*s20 - co*s30
-					cLinComb(s40,s10,co,si,s4);  // s4 =  co*s40 + si*s10
-					cLinComb(s40,s10,si,-co,s1); // s1 =  si*s40 - co*s10
 
 					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4);
 
@@ -321,8 +310,8 @@ void MuellerMatrix(void)
 								matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],
 								matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
 								matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
-						if (store_ampl) fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",
-								theta,phi,s1[RE],s1[IM],s2[RE],s2[IM],s3[RE],s3[IM],s4[RE],s4[IM]);
+						if (store_ampl) fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,phi,
+							creal(s1),cimag(s1),creal(s2),cimag(s2),creal(s3),cimag(s3),creal(s4),cimag(s4));
 					}
 				}
 				if (phi_integr) {
@@ -434,15 +423,15 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 
 				CalcField(ebuff,robserver);
 				// convert to (l,r) frame
-				crDotProd(ebuff,incPolper,Eplane[2*i]); // Eper[i]=Esca.incPolper
+				Eplane[2*i]=crDotProd(ebuff,incPolper); // Eper[i]=Esca.incPolper
 				LinComb(prop,incPolpar,-si,co,epar);    // epar=-si*prop+co*incPolpar
-				crDotProd(ebuff,epar,Eplane[2*i+1]);    // Epar[i]=Esca.epar
+				Eplane[2*i+1]=crDotProd(ebuff,epar);    // Epar[i]=Esca.epar
 			} //  end for i
 
 			// Accumulate Eplane to root and sum
 			D("Accumulating Eplane started");
 			// accumulate only on processor 0 !, done in one operation
-			Accumulate((double *)Eplane,4*nTheta,Eplane_buffer,&Timing_EPlaneComm);
+			Accumulate(Eplane,cmplx_type,2*nTheta,&Timing_EPlaneComm);
 			D("Accumulating Eplane finished");
 
 			Timing_EPlane = GET_TIME() - tstart;
@@ -507,8 +496,8 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 #endif
 	// saves fields to file
 	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",DipoleCoord[j],DipoleCoord[j+1],
-		DipoleCoord[j+2],cvNorm2(cmplxF+j),cmplxF[j][RE],cmplxF[j][IM],cmplxF[j+1][RE],cmplxF[j+1][IM],cmplxF[j+2][RE],
-		cmplxF[j+2][IM]);
+		DipoleCoord[j+2],cvNorm2(cmplxF+j),creal(cmplxF[j]),cimag(cmplxF[j]),creal(cmplxF[j+1]),cimag(cmplxF[j+1]),
+		creal(cmplxF[j+2]),cimag(cmplxF[j+2]));
 	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],
 		DotProd(realF+j,realF+j),realF[j],realF[j+1],realF[j+2]);
 	FCloseErr(file,fname,ALL_POS);

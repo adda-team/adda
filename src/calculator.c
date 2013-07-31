@@ -54,14 +54,13 @@ double * restrict muel_phi; // used to store values of Mueller matrix for differ
 double * restrict muel_phi_buf; // additional for integrating with different multipliers
 	// scattered E (for scattering in one plane) for two incident polarizations
 doublecomplex * restrict EplaneX, * restrict EplaneY;
-double * restrict Eplane_buffer; // buffer to accumulate Eplane
 double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
 doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY; // amplitude matrix for different values of alpha
 double * restrict muel_alpha; // mueller matrix for different values of alpha
 
 // used in crosssec.c
+doublecomplex * restrict E_ad; // complex field E, calculated for alldir
 double * restrict E2_alldir; // square of E, calculated for alldir
-double * restrict E2_alldir_buffer; // buffer to accumulate E2_alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 #ifndef SPARSE
 doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of exponents along 3 axes (for calc_field)
@@ -98,7 +97,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  */
 {
 	doublecomplex coup_con[3];
-	doublecomplex tempa,tempb,cm,m2,t1;
+	doublecomplex cm,m2,t1;
 	double temp,b1,b2,b3,ka,kd2;
 	int i,imax,j; // counters: i is for 'asym', j is for 'anysotropy'
 	double S,prop2[3];
@@ -131,13 +130,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 	// calculate the CM couple constant CC=(3V/4pi)*(m^2-1)/(m^2+2)
 	temp = 3*dipvol/FOUR_PI;
 	for (j=0;j<Ncomp;j++) {
-		cSquare(mrel[j],m2); // m2=m^2
-		tempa[RE] = m2[RE] - 1.0;
-		tempa[IM] = tempb[IM] = m2[IM];
-		tempb[RE] = m2[RE] + 2.0;
-		cDiv(tempa,tempb,coup_con[j]);
-		coup_con[j][RE] *= temp;
-		coup_con[j][IM] *= temp;
+		m2=mrel[j]*mrel[j];
+		coup_con[j]=temp*(m2-1)/(m2+2);
 
 		if (PolRelation!=POL_CM) {
 			if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
@@ -156,58 +150,46 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					}
 				}
 			}
-			cEqual(coup_con[j],cm);
+			cm=coup_con[j];
 			for (i=0;i<imax;i++) {
 				if (PolRelation==POL_LAK) { // t1=(8pi/3)[(1-ika)exp(ika)-1]
 					ka=LAK_C*kd; // a - radius of volume-equivalent (to cube with size d) sphere
-					imExp(ka,tempa);
-					tempb[RE]=1;
-					tempb[IM]=-ka;
-					cMult(tempa,tempb,t1);
-					t1[RE]-=1;
-					cMultReal(2*FOUR_PI_OVER_THREE,t1,t1);
+					t1=2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1);
 				}
 				else { // other formulations are extensions of RR
 					// RR correction
 					kd2=kd*kd;
-					t1[RE]=0.0;
-					t1[IM]=2*kd2*kd/3; // t1=2/3*i*kd^3
+					t1=I*2*kd2*kd/3; // t1=2/3*i*kd^3
 					// plus more advanced corrections
 					switch (PolRelation) {
-						case POL_DGF: t1[RE]+=DGF_B1*kd2; break;
+						case POL_DGF: t1+=DGF_B1*kd2; break;
 						case POL_FCD: // t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-							t1[RE]+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
+							t1+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
 							break;
-						case POL_IGT_SO: t1[RE]+=SO_B1*kd2; break;
+						case POL_IGT_SO: t1+=SO_B1*kd2; break;
 						case POL_CLDR:
 						case POL_SO:
 							S=prop2[i];
 							// no break
 						case POL_LDR:
-							t1[RE]+=(b1+(b2+b3*S)*m2[RE])*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
-							t1[IM]+=(b2+b3*S)*m2[IM]*kd2;
+							t1+=(b1+(b2+b3*S)*m2)*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
 							break;
 						default: break;
 					}
 				}
 				// CC[i]=cm/(1-(cm/V)*t1); t1 is the M-term
-				cMultReal(1.0/dipvol,t1,t1);
-				cMultSelf(t1,cm);
-				t1[RE]=1-t1[RE];
-				t1[IM]=-t1[IM];
 				// 'i+j' is not robust. It assumes that only one counter is used
-				cDiv(cm,t1,coup_con[i+j]);
+				coup_con[i+j]=cm/(1-(cm/dipvol)*t1);
 			}
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",coup_con[0][RE],coup_con[0][IM],
-			coup_con[1][RE],coup_con[1][IM],coup_con[2][RE],coup_con[2][IM]);
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",creal(coup_con[0]),
+			cimag(coup_con[0]),creal(coup_con[1]),cimag(coup_con[1]),creal(coup_con[2]),cimag(coup_con[2]));
 	}
 	else {
-		cEqual(coup_con[0],coup_con[1]);
-		cEqual(coup_con[0],coup_con[2]);
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",coup_con[0][RE],coup_con[0][IM]);
+		coup_con[2]=coup_con[1]=coup_con[0];
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",creal(coup_con[0]),cimag(coup_con[0]));
 	}
 	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
@@ -218,23 +200,18 @@ static void InitCC(const enum incpol which)
 // calculate cc, cc_sqrt, and chi_inv
 {
 	int i,j;
-	doublecomplex chi;
+	doublecomplex m;
 
 	for(i=0;i<Nmat;i++) {
 		CoupleConstant(ref_index+Ncomp*i,which,cc[i]);
-		for(j=0;j<3;j++) cSqrt(cc[i][j],cc_sqrt[i][j]);
+		for(j=0;j<3;j++) cc_sqrt[i][j]=csqrt(cc[i][j]);
 		// chi_inv=1/(V*chi)=4*PI/(V(m^2-1)); for anisotropic - by components
 		for (j=0;j<Ncomp;j++) {
-			cSquare(ref_index[Ncomp*i+j],chi);
-			chi[RE]-=1;
-			cMultReal(dipvol/FOUR_PI,chi,chi);
-			cInv(chi,chi_inv[i][j]);
+			m=ref_index[Ncomp*i+j];
+			chi_inv[i][j]=FOUR_PI/(dipvol*(m*m-1));
 		}
 		// copy first component of chi_inv[i] into other two, if they are not calculated explicitly
-		if (!anisotropy) {
-			cEqual(chi_inv[i][0],chi_inv[i][1]);
-			cEqual(chi_inv[i][0],chi_inv[i][2]);
-		}
+		if (!anisotropy) chi_inv[i][2]=chi_inv[i][1]=chi_inv[i][0];
 	}
 #ifdef OPENCL
 	/* this is done here, since InitCC can be run between different runs of the iterative solver; write is blocking to
@@ -400,35 +377,20 @@ static void AllocateEverything(void)
 			MALLOC_VECTOR(EplaneY,complex,temp_int,ALL);
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
-#ifdef PARALLEL
-		/* Buffers like Eplane_buffer are defined always (without "ifdef PARALLEL"), so that functions like Accumulate
-		 * may be called even in sequential mode with buffers in their arguments. Such calls are void, but are good for
-		 * generality of the code. So only allocation of these buffers is put inside "ifdef".
-		 */
-		if (IFROOT) { // buffer for accumulate operation
-			if (!prognosis) MALLOC_VECTOR(Eplane_buffer,double,2*temp_int,ONE);
-			memory+=2*tmp*sizeof(double);
-		}
-#endif
 	}
 	if (all_dir) {
 		ReadAlldirParms(alldir_parms);
 		/* calculate size of vectors; 4 - because first it is used to store per and par components of the field, and
 		 * only afterwards - squares.
 		 */
-		tmp=4*((double)theta_int.N)*phi_int.N;
+		tmp=((double)theta_int.N)*phi_int.N;
 		if (!prognosis) {
-			CheckOverflow(tmp,ONE_POS_FUNC);
+			CheckOverflow(2*tmp,ONE_POS_FUNC);
 			temp_int=tmp;
+			MALLOC_VECTOR(E_ad,complex,2*temp_int,ALL);
 			MALLOC_VECTOR(E2_alldir,double,temp_int,ALL);
 		}
-		memory+=tmp*sizeof(double);
-#ifdef PARALLEL
-		if (IFROOT) { // buffer for accumulate operation
-			if (!prognosis) MALLOC_VECTOR(E2_alldir_buffer,double,temp_int,ONE);
-			memory+=tmp*sizeof(double);
-		}
-#endif
+		memory+=tmp*(sizeof(double)+2*sizeof(doublecomplex));
 	}
 	if (scat_grid) {
 		ReadScatGridParms(scat_grid_parms);
@@ -441,12 +403,6 @@ static void AllocateEverything(void)
 			MALLOC_VECTOR(EgridY,complex,temp_int,ALL);
 		}
 		memory+=2*tmp*sizeof(doublecomplex);
-#ifdef PARALLEL
-		if (IFROOT) { // buffer for accumulate operation
-			if (!prognosis) MALLOC_VECTOR(Egrid_buffer,double,2*temp_int,ONE);
-			memory+=2*tmp*sizeof(double);
-		}
-#endif
 		if (phi_integr && IFROOT) {
 			tmp=16*(double)angles.phi.N;
 			if (!prognosis) {
@@ -563,17 +519,12 @@ static void FreeEverything(void)
 	if (yzplane) {
 		Free_cVector(EplaneX);
 		Free_cVector(EplaneY);
-#ifdef PARALLEL
-		Free_general(Eplane_buffer);
-#endif
 	}
 	if (all_dir) {
 		Free_general(theta_int.val);
 		Free_general(phi_int.val);
+		Free_cVector(E_ad);
 		Free_general(E2_alldir);
-#ifdef PARALLEL
-		Free_general(E2_alldir_buffer);
-#endif
 	}
 	if (scat_grid) {
 		Free_general(angles.theta.val);
@@ -584,9 +535,6 @@ static void FreeEverything(void)
 			Free_general(muel_phi);
 			Free_general(muel_phi_buf);
 		}
-#ifdef PARALLEL
-		Free_general(Egrid_buffer);
-#endif
 	}
 	// these 2 were allocated in MakeParticle
 	Free_general(DipoleCoord);

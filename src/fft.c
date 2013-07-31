@@ -47,7 +47,7 @@
  * transform of the D-matrix
  */
 #ifdef FFTW3
-#	include <fftw3.h>
+#	include <fftw3.h> // types.h or cmplx.h should be defined before (to match C99 complex type)
 /* define level of planning for usual and Dmatrix (DM) FFT: FFTW_ESTIMATE (heuristics), FFTW_MEASURE (default),
  * FTW_PATIENT, or FFTW_EXHAUSTIVE
  */
@@ -243,9 +243,7 @@ void TransposeYZ(const int direction)
 				t3=t2;
 				for (y=0;y<y0;y++) {
 					t4=t3+y;
-					for (z=0;z<z0;z++) {
-						cEqual(w3[z],*(t4+=Y));
-					}
+					for (z=0;z<z0;z++) *(t4+=Y)=w3[z];
 					w3+=Z;
 				}
 				w2+=blockTr;
@@ -289,9 +287,7 @@ static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
 			t3=t2;
 			for (y=0;y<y0;y++) {
 				t4=t3+y;
-				for (z=0;z<z0;z++) {
-					cEqual(w3[z],*(t4+=Y));
-				}
+				for (z=0;z<z0;z++) *(t4+=Y)=w3[z];
 				w3+=Z;
 			}
 			w2+=blockTr;
@@ -916,7 +912,7 @@ void InitDmatrix(void)
 	/* fill Dmatrix with 0, this if to fill the possible gap between e.g. boxY and gridY/2; (and for R=0) probably
 	 * faster than using a lot of conditionals
 	 */
-	for (ind=0;ind<Dsize;ind++) Dmatrix[ind][RE]=Dmatrix[ind][IM]=0;
+	for (ind=0;ind<Dsize;ind++) Dmatrix[ind]=0;
 	// fill Dmatrix with values of Green's tensor
 	for(k=nnn*local_z0;k<nnn*local_z1;k++) {
 		// correction of k is relevant only if reduced_FFT is not used
@@ -941,7 +937,7 @@ void InitDmatrix(void)
 		GetTime(tvp+2); // same as the last before cycle
 #endif
 		// fill D2matrix with precomputed values from Dmatrix
-		for (ind=0;ind<D2sizeTot;ind++) cEqual(Dmatrix[NDCOMP*ind+Dcomp],D2matrix[ind]);
+		for (ind=0;ind<D2sizeTot;ind++) D2matrix[ind]=Dmatrix[NDCOMP*ind+Dcomp];
 #ifdef PRECISE_TIMING
 		GetTime(tvp+3);
 		ElapsedInc(tvp+2,tvp+3,&Timing_ar1);
@@ -960,26 +956,26 @@ void InitDmatrix(void)
 #ifdef PRECISE_TIMING
 			GetTime(tvp+6);
 #endif
-			for (ind=0;ind<gridYZ;ind++) slice[ind][RE]=slice[ind][IM]=0.0; // fill slice with 0.0
+			for (ind=0;ind<gridYZ;ind++) slice[ind]=0.0; // fill slice with 0.0
 			for(j=jstart;j<boxY;j++) for(k=kstart;k<boxZ;k++) {
 				indexfrom=IndexGarbledD(x,j,k,lengthN);
 				indexto=IndexSliceD2matrix(j,k);
-				cEqual(D2matrix[indexfrom],slice[indexto]);
+				slice[indexto]=D2matrix[indexfrom];
 			}
 			if (reduced_FFT) {
 				for(j=1;j<boxY;j++) for(k=0;k<boxZ;k++) {
 					// mirror along y
 					indexfrom=IndexSliceD2matrix(j,k);
 					indexto=IndexSliceD2matrix(-j,k);
-					if (Dcomp==1 || Dcomp==4) cInvSign2(slice[indexfrom],slice[indexto]);
-					else cEqual(slice[indexfrom],slice[indexto]);
+					if (Dcomp==1 || Dcomp==4) slice[indexto]=-slice[indexfrom];
+					else slice[indexto]=slice[indexfrom];
 				}
 				for(j=1-boxY;j<boxY;j++) for(k=1;k<boxZ;k++) {
 					// mirror along z
 					indexfrom=IndexSliceD2matrix(j,k);
 					indexto=IndexSliceD2matrix(j,-k);
-					if (Dcomp==2 || Dcomp==4) cInvSign2(slice[indexfrom],slice[indexto]);
-					else cEqual(slice[indexfrom],slice[indexto]);
+					if (Dcomp==2 || Dcomp==4) slice[indexto]=-slice[indexfrom];
+					else slice[indexto]=slice[indexfrom];
 				}
 			}
 #ifdef PRECISE_TIMING
@@ -1004,7 +1000,7 @@ void InitDmatrix(void)
 			for(z=0;z<DsizeZ;z++) for(y=0;y<DsizeY;y++) {
 				indexto=IndexDmatrix(x-local_x0,y,z)+Dcomp;
 				indexfrom=IndexSlice_zyD2matrix(y,z);
-				cMultReal(-invNgrid,slice_tr[indexfrom],Dmatrix[indexto]);
+				Dmatrix[indexto]=-invNgrid*slice_tr[indexfrom];
 			}
 #ifdef PRECISE_TIMING
 			GetTime(tvp+11);

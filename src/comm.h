@@ -34,12 +34,12 @@ typedef enum {uchar_type,int_type,int3_type,sizet_type,double_type,double3_type,
 void Stop(int) ATT_NORETURN;
 void Synchronize(void);
 double AccumulateMax(double data,double *max);
-void Accumulate(double * restrict data,size_t size,double * restrict buffer,TIME_TYPE *timing);
-void MyInnerProduct(void * restrict data,var_type type,size_t n_elem,TIME_TYPE *timing);
+void Accumulate(void * restrict data UOIP,const var_type type UOIP,size_t n UOIP,TIME_TYPE *timing UOIP);
+void MyInnerProduct(void * restrict data,const var_type type,size_t n,TIME_TYPE *timing);
 void InitComm(int *argc_p,char ***argv_p);
 void ParSetup(void);
 void SetupLocalD(void);
-void MyBcast(void * restrict data,var_type type,const size_t n_elem,TIME_TYPE *timing);
+void MyBcast(void * restrict data,const var_type type,const size_t n_elem,TIME_TYPE *timing);
 void BcastOrient(int *i,int *j,int *k);
 void ReadField(const char * restrict fname,doublecomplex *restrict field);
 
@@ -50,7 +50,7 @@ void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ)
 void SetGranulComm(double z0,double z1,double gdZ,int gZ,size_t gXY,size_t buf_size,int *lz0,int *lz1,int sm_gr);
 void CollectDomainGranul(unsigned char * restrict dom,size_t gXY,int lz0,int locgZ,TIME_TYPE *timing);
 void FreeGranulComm(int sm_gr);
-void ExchangeFits(char * restrict data,const size_t n,TIME_TYPE *timing);
+void ExchangeFits(bool * restrict data,const size_t n,TIME_TYPE *timing);
 #endif // !SPARSE
 
 #ifdef PARALLEL

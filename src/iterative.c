@@ -348,7 +348,7 @@ ITER_FUNC(BCGS2)
 	static doublecomplex * restrict r[LL+1],* restrict u[LL+1];
 	static doublecomplex matrix_z[LL+1][LL+1],y0[LL+1],yl[LL+1],zy0[LL+1],zyl[LL+1];
 	static int i,j;
-	static doublecomplex alpha,beta,omega,rho0,rho1,sigma,varrho,hatgamma,temp1,temp2;
+	static doublecomplex alpha,beta,omega,rho0,rho1,sigma,varrho,hatgamma,temp1;
 	static double kappa0,kappal,dtmp;
 
 	switch (ph) {
@@ -374,115 +374,99 @@ ITER_FUNC(BCGS2)
 		case PHASE_INIT:
 			if (!load_chpoint) {
 				nCopy(pvec,rvec); // (pvec = r~0) = r0
-				rho0[RE]=-1;
-				rho0[IM]=0;
+				rho0=-1;
 			}
 			return;
 		case PHASE_ITER:
 			// --- The BiCG part ---
 			for (j=0;j<LL;j++) {
-				nDotProd(r[j],pvec,rho1,&Timing_OneIterComm); // rho1 = r_j.r~0
+				rho1=nDotProd(r[j],pvec,&Timing_OneIterComm); // rho1 = r_j.r~0
 				// u_i = r_i - beta*u_i
 				if (niter==1 && j==0) nCopy(u[0],r[0]);
 				else {
 					// test for zero rho0 (1/beta)
-					dtmp=cAbs(rho0)/(cAbs(rho1)*cAbs(alpha)); // assume that rho1 is not exactly zero
+					dtmp=cabs(rho0)/(cabs(rho1)*cabs(alpha)); // assume that rho1 is not exactly zero
 					Dz("1/|beta|="GFORM_DEBUG,dtmp);
 					if (dtmp<EPS1) LogError(ONE_POS,"BCGS2 fails: 1/|beta| is too small ("GFORM_DEBUG").",dtmp);
-					// beta = alpha*rho1/rho0
-					cDiv(rho1,rho0,temp1);
-					cMult(alpha,temp1,beta);
-					cInvSign2(beta,temp1);
+					beta=alpha*rho1/rho0;
+					// u_i = r_i - beta*u_i
+					temp1=-beta;
 					for (i=0;i<=j;i++) nIncrem10_cmplx(u[i],r[i],temp1,NULL,NULL);
 				}
-				cEqual(rho1,rho0); // rho0=rho1
+				rho0=rho1;
 				// u_j+1 = A.u_j
 				if (niter==1 && j==0 && matvec_ready) {} // do nothing; u[1]<=>Avecbuffer already contains matvec result
 				else MatVec(u[j],u[j+1],NULL,false,&Timing_OneIterComm);
-				nDotProd(u[j+1],pvec,sigma,&Timing_OneIterComm); // sigma = u_j+1.r~0
+				sigma=nDotProd(u[j+1],pvec,&Timing_OneIterComm); // sigma = u_j+1.r~0
 				// test for zero sigma (1/alpha)
-				dtmp=cAbs(sigma)/cAbs(rho1); // assume that rho1 is not exactly zero
+				dtmp=cabs(sigma)/cabs(rho1); // assume that rho1 is not exactly zero
 				Dz("|u_%d.r~|/|r_%d.r~|="GFORM_DEBUG,j+1,j,dtmp);
 				if (dtmp<EPS1)
 					LogError(ONE_POS,"BCGS2 fails: |u_%d.r~|/|r_%d.r~| is too small ("GFORM_DEBUG").",j+1,j,dtmp);
-				cDiv(rho1,sigma,alpha); // alpha = rho1/sigma
+				alpha = rho1/sigma;
 				nIncrem01_cmplx(xvec,u[0],alpha,NULL,NULL); // x = x + alpha*u_0
 				// r_i = r_i - alpha*u_i+1
-				cInvSign2(alpha,temp1);
+				temp1=-alpha;
 				for (i=0;i<=j;i++) nIncrem01_cmplx(r[i],u[i+1],temp1,NULL,NULL);
 				MatVec(r[j],r[j+1],NULL,false,&Timing_OneIterComm);
 			}
 			// --- The convex polynomial part ---
 			// Z = R'R
 			for(i=0;i<=LL;i++) for (j=0;j<=i;j++) {
-				nDotProd(r[j],r[i],matrix_z[i][j],&Timing_OneIterComm);
-				if (i!=j) cConj(matrix_z[i][j],matrix_z[j][i]);
+				matrix_z[i][j]=nDotProd(r[j],r[i],&Timing_OneIterComm);
+				if (i!=j) matrix_z[j][i]=conj(matrix_z[i][j]);
 			}
 			// small vectors y0 and yl
-			y0[0][RE]=-1;
-			y0[0][IM]=0;
-			if (LL==2) cDiv(matrix_z[1][0],matrix_z[1][1],y0[1]); // works only for l<=2
-			y0[LL][RE]=y0[LL][IM]=0;
-			yl[0][RE]=yl[0][IM]=0;
-			if (LL==2) cDiv(matrix_z[1][2],matrix_z[1][1],yl[1]); // works only for l<=2
-			yl[LL][RE]=-1;
-			yl[LL][IM]=0;
+			y0[0]=-1;
+			if (LL==2) y0[1]=matrix_z[1][0]/matrix_z[1][1]; // works only for l<=2
+			y0[LL]=0;
+			yl[0]=0;
+			if (LL==2) yl[1]=matrix_z[1][2]/matrix_z[1][1]; // works only for l<=2
+			yl[LL]=-1;
 			//  Convex combination
 			// compute Zy0 and Zyl
 			for (i=0;i<=LL;i++) {
-				zy0[i][RE]=zy0[i][IM]=zyl[i][0]=zyl[i][IM]=0;
+				zy0[i]=zyl[i]=0;
 				for (j=0;j<=LL;j++) {
-					cMult(matrix_z[i][j],y0[j],temp1);
-					cAdd(zy0[i],temp1,zy0[i]);
-					cMult(matrix_z[i][j],yl[j],temp1);
-					cAdd(zyl[i],temp1,zyl[i]);
+					zy0[i]+=matrix_z[i][j]*y0[j];
+					zyl[i]+=matrix_z[i][j]*yl[j];
 				}
 			}
 			// kappa0 = sqrt(y0.Zy0); kappal = sqrt(yl.Zyl); employs that dot products are always real
 			dtmp=0;
-			for (i=0;i<=LL;i++) dtmp+=cMultConRe(zy0[i],y0[i]);
+			for (i=0;i<=LL;i++) dtmp+=creal(zy0[i]*conj(y0[i]));
 			kappa0=sqrt(dtmp);
 			dtmp=0;
-			for (i=0;i<=LL;i++) dtmp+=cMultConRe(zyl[i],yl[i]);
+			for (i=0;i<=LL;i++) dtmp+=creal(zyl[i]*conj(yl[i]));
 			kappal=sqrt(dtmp);
-			// varrho = yl.Zy0/(kappa0*kappal)
-			temp1[RE]=temp1[IM]=0;
-			for (i=0;i<=LL;i++) {
-				cMultConj(zy0[i],yl[i],temp2);
-				cAdd(temp1,temp2,temp1);
-			}
-			cMultReal(1/(kappa0*kappal),temp1,varrho);
+			// varrho = Zy0.yl/(kappa0*kappal)
+			varrho=0;
+			for (i=0;i<=LL;i++) varrho+=zy0[i]*conj(yl[i]);
+			varrho/=kappa0*kappal;
 			// hatgamma = varrho/abs(varrho) * max( abs(varrho),0.7)
-			dtmp=cAbs(varrho);
-			cMultReal(MAX(dtmp,0.7)/dtmp,varrho,hatgamma);
+			dtmp=cabs(varrho);
+			hatgamma=varrho*MAX(dtmp,0.7)/dtmp;
 			// y0 = y0 - (hatgamma*kappa0/kappal)*yl
-			cMultReal(-kappa0/kappal,hatgamma,temp1);
-			for (i=0;i<=LL;i++) {
-				cMult(yl[i],temp1,temp2);
-				cAdd(y0[i],temp2,y0[i]);
-			}
+			temp1=-hatgamma*kappa0/kappal;
+			for (i=0;i<=LL;i++) y0[i]+=temp1*yl[i];
 			// Update
-			cEqual(y0[LL],omega); // omega = y0[l]
+			omega = y0[LL];
 			for (i=1;i<=LL;i++) {
-				cInvSign2(y0[i],temp1);
+				temp1=-y0[i];
 				nIncrem01_cmplx(u[0],u[i],temp1,NULL,NULL);   // u_0 = u_0 - y0[i]*u_i
 				nIncrem01_cmplx(xvec,r[i-1],y0[i],NULL,NULL); // x = x + y0[i]*r_i-1
 				nIncrem01_cmplx(r[0],r[i],temp1,NULL,NULL);   // r_0 = r_0 - y0[i]*r_i
 			}
 			// y0 has changed; compute Zy0 once more
 			for (i=0;i<=LL;i++) {
-				zy0[i][RE]=zy0[i][IM]=0;
-				for (j=0;j<=LL;j++) {
-					cMult(matrix_z[i][j],y0[j],temp1);
-					cAdd(zy0[i],temp1,zy0[i]);
-				}
+				zy0[i]=0;
+				for (j=0;j<=LL;j++) zy0[i]+=matrix_z[i][j]*y0[j];
 			}
 			// |r|^2 = y0.Zy0
 			inprodRp1=0;
-			for (i=0;i<=LL;i++) inprodRp1+=cMultConRe(zy0[i],y0[i]);
+			for (i=0;i<=LL;i++) inprodRp1+=creal(zy0[i]*conj(y0[i]));
 			// rho0 = -omega*rho0; moved from the beginning of the iteration
-			cMultSelf(rho0,omega);
-			cInvSign(rho0);
+			rho0*=-omega;
 			return; // end of PHASE_ITER
 	}
 	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
@@ -517,15 +501,15 @@ ITER_FUNC(BiCG_CS)
 		case PHASE_INIT: return; // no specific initialization required
 		case PHASE_ITER:
 			// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
-			nDotProdSelf_conj(rvec,ro_new,&Timing_OneIterComm);
-			abs_ro_new=cAbs(ro_new);
+			ro_new=nDotProdSelf_conj(rvec,&Timing_OneIterComm);
+			abs_ro_new=cabs(ro_new);
 			dtmp=abs_ro_new/inprodR;
 			Dz("|rT.r|/(r.r)="GFORM_DEBUG,dtmp);
 			if (dtmp<EPS1) LogError(ONE_POS,"BiCG_CS fails: |rT.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
 			if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 			else {
 				// beta_k-1=ro_k-1/ro_k-2
-				cDiv(ro_new,ro_old,beta);
+				beta=ro_new/ro_old;
 				// p_k=beta_k-1*p_k-1+r_k-1
 				nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
 			}
@@ -533,19 +517,19 @@ ITER_FUNC(BiCG_CS)
 			if (niter==1 && matvec_ready) {} // do nothing, Avecbuffer is ready to use
 			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
-			nDotProd_conj(pvec,Avecbuffer,mu,&Timing_OneIterComm);
-			dtmp=cAbs(mu)/abs_ro_new;
+			mu=nDotProd_conj(pvec,Avecbuffer,&Timing_OneIterComm);
+			dtmp=cabs(mu)/abs_ro_new;
 			Dz("|pT.A.p|/(rT.r)="GFORM_DEBUG,dtmp);
 			if (dtmp<EPS2) LogError(ONE_POS,"BiCG_CS fails: |pT.A.p|/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 			// alpha_k=ro_k/mu_k
-			cDiv(ro_new,mu,alpha);
+			alpha=ro_new/mu;
 			// x_k=x_k-1+alpha_k*p_k
 			nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
 			// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
-			cInvSign2(alpha,temp);
+			temp=-alpha;
 			nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
 			// initialize ro_old -> ro_k-2 for next iteration
-			cEqual(ro_new,ro_old);
+			ro_old=ro_new;
 			return; // end of PHASE_ITER
 	}
 	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
@@ -590,33 +574,32 @@ ITER_FUNC(BiCGStab)
 			return;
 		case PHASE_ITER:
 			// ro_k-1=r_k-1.r~ ; check for ro_k-1!=0
-			nDotProd(rvec,rtilda,ro_new,&Timing_OneIterComm);
+			ro_new=nDotProd(rvec,rtilda,&Timing_OneIterComm);
 			if (niter==1) nCopy(pvec,rvec); // p_1=r_0
 			else {
 				// beta_k-1=(ro_k-1/ro_k-2)*(alpha_k-1/omega_k-1)
-				cMult(ro_new,alpha,temp1);
-				cMult(ro_old,omega,temp2);
+				temp1=ro_new*alpha;
+				temp2=ro_old*omega;
 				// check that omega_k-1!=0; assume that ro_new is not exactly zero
-				dtmp=cAbs(temp2)/cAbs(temp1);
+				dtmp=cabs(temp2)/cabs(temp1);
 				Dz("1/|beta|="GFORM_DEBUG,dtmp);
 				if (dtmp<EPS1) LogError(ONE_POS,"BiCGStab fails: 1/|beta| is too small ("GFORM_DEBUG").",dtmp);
-				cDiv(temp1,temp2,beta);
+				beta=temp1/temp2;
 				// p_k=beta_k-1*(p_k-1-omega_k-1*v_k-1)+r_k-1
-				cMult(beta,omega,temp1);
-				cInvSign(temp1);
+				temp1=-beta*omega;
 				nIncrem110_cmplx(pvec,v,rvec,beta,temp1);
 			}
 			// calculate v_k=A.p_k
 			if (niter==1 && matvec_ready) nCopy(v,Avecbuffer);
 			else MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
 			// alpha_k=ro_new/(v_k.r~)
-			nDotProd(v,rtilda,temp1,&Timing_OneIterComm);
-			dtmp=cAbs(temp1)/cAbs(ro_new); // assume that ro_new is not exactly zero
+			temp1=nDotProd(v,rtilda,&Timing_OneIterComm);
+			dtmp=cabs(temp1)/cabs(ro_new); // assume that ro_new is not exactly zero
 			Dz("|v.r~|/|r.r~|="GFORM_DEBUG,dtmp);
 			if (dtmp<EPS2) LogError(ONE_POS,"BiCGStab fails: |v.r~|/|r.r~| is too small ("GFORM_DEBUG").",dtmp);
-			cDiv(ro_new,temp1,alpha);
+			alpha=ro_new/temp1;
 			// s=r_k-1-alpha*v_k-1
-			cInvSign2(alpha,temp1);
+			temp1=-alpha;
 			nLinComb1_cmplx(s,v,rvec,temp1,&inprodRp1,&Timing_OneIterComm);
 			// check convergence at this step; if yes, checkpoint should not be saved afterwards
 			if (inprodRp1<epsB && chp_type!=CHP_ALWAYS) {
@@ -628,15 +611,14 @@ ITER_FUNC(BiCGStab)
 				// t=Avecbuffer=A.s
 				MatVec(s,Avecbuffer,&denumOmega,false,&Timing_OneIterComm);
 				// omega_k=s.t/|t|^2
-				nDotProd(s,Avecbuffer,temp1,&Timing_OneIterComm);
-				cMultReal(1/denumOmega,temp1,omega);
+				omega=nDotProd(s,Avecbuffer,&Timing_OneIterComm)/denumOmega;
 				// x_k=x_k-1+alpha_k*p_k+omega_k*s
 				nIncrem011_cmplx(xvec,pvec,s,alpha,omega);
 				// r_k=s-omega_k*t and |r_k|^2
-				cInvSign2(omega,temp1);
+				temp1=-omega;
 				nLinComb1_cmplx(rvec,Avecbuffer,s,temp1,&inprodRp1,&Timing_OneIterComm);
 				// initialize ro_old -> ro_k-2 for next iteration
-				cEqual(ro_new,ro_old);
+				ro_old=ro_new;
 			}
 			return; // end of PHASE_ITER
 	}
@@ -732,13 +714,12 @@ ITER_FUNC(CSYM)
 			}
 			else {
 				// tau_1 = ||r_0||; q_1 = r_0(*)/||r_0||; here r_0 is already stored in q_old
-				tau[RE]=sqrt(inprodR);
-				tau[IM]=0;
-				nMultSelf_conj(q_new,1/tau[RE]);
+				tau=sqrt(inprodR);
+				nMultSelf_conj(q_new,1/creal(tau));
 				// c_0=1; c_-1=0; s_0=s_-1=0
 				c_new=1;
 				c_old=0;
-				s_new[RE]=s_new[IM]=s_old[RE]=s_old[IM]=0;
+				s_new=s_old=0;
 			}
 			return;
 		case PHASE_ITER:
@@ -747,17 +728,15 @@ ITER_FUNC(CSYM)
 			 */
 			MatVec(q_new,Avecbuffer,NULL,false,&Timing_OneIterComm);
 			// alpha_k = q_k(T).A.q_k
-			nDotProd_conj(q_new,Avecbuffer,alpha,&Timing_OneIterComm);
+			alpha=nDotProd_conj(q_new,Avecbuffer,&Timing_OneIterComm);
 			// eta_k = c_k-2*c_k-1*beta_k + s_k-1(*)*alpha_k
-			cMultConj(alpha,s_new,eta);
-			dtmp=c_old*beta;
-			eta[RE]+=dtmp*c_new;
+			eta = c_old*c_new*beta + alpha*conj(s_new);
 			// gamma_k = c_k-1*alpha_k - c_k-2*s_k-1*beta_k
-			cLinComb(alpha,s_new,c_new,-dtmp,gamma); // reuses dtmp from previous section
+			gamma = c_new*alpha - c_old*s_new*beta;
 			// theta_k = s_k-2(*)*beta_k
-			cMultRealConj(beta,s_old,theta);
+			theta=beta*conj(s_old);
 			// w = Aq_k - alpha_k*q_k(*) - beta_k*q_k-1(*); w is stored in q_old
-			cInvSign2(alpha,temp1); // temp1 = -alpha_k
+			temp1=-alpha; // temp1 = -alpha_k
 			// use explicitly that q_0=0
 			if (niter==1) nLinComb1_cmplx_conj(q_old,q_new,Avecbuffer,temp1,&dtmp,&Timing_OneIterComm);
 			else nIncrem110_d_c_conj(q_old,q_new,Avecbuffer,-beta,temp1,&dtmp,&Timing_OneIterComm);
@@ -766,16 +745,14 @@ ITER_FUNC(CSYM)
 			beta=sqrt(dtmp);
 			// (k-1)-th values are moved to "old", while new (k-th) values are calculated next
 			c_old=c_new;
-			cEqual(s_new,s_old);
-			dtmp=cAbs(gamma);
+			s_old=s_new;
+			dtmp=cabs(gamma);
 			if (dtmp==0) {
 				// the following condition should never occur
 				if (beta==0) LogError(ONE_POS,"Fatal error in CSYM iterative solver. Interaction matrix is singular");
 				c_new=0;
-				s_new[RE]=1;
-				s_new[IM]=0;
-				invksi[RE]=1/beta;
-				invksi[IM]=0;
+				s_new=1;
+				invksi=1/beta;
 			}
 			else {
 				// c_k = |gamma_k| / sqrt(|gamma_k|^2 + beta_k+1^2), computed to avoid overflows
@@ -788,35 +765,31 @@ ITER_FUNC(CSYM)
 					c_new=1/sqrt(1+dtmp*dtmp);
 				}
 				// 1/ksi_k = c_k/gamma_k
-				cInv(gamma,invksi);
-				cMultReal(c_new,invksi,invksi);
+				invksi=c_new/gamma;
 				// s_k = beta_k+1/ksi_k = beta_k+1*c_k/gamma_k
-				cMultReal(beta,invksi,s_new);
+				s_new=beta*invksi;
 			}
 			// p_k=(-theta_k*p_k-2-eta_k*p_k-1+q_k)/ksi_k
 			if (niter==1) nMult_cmplx(p_new,q_new,invksi); // use implicitly that p_0=p_-1=0
 			else {
-				cMult(eta,invksi,temp1);
-				cInvSign(temp1); // temp1=-eta_k/ksi_k
+				temp1=-eta*invksi;
 				if (niter==2) nLinComb_cmplx(p_old,p_new,q_new,temp1,invksi,NULL,NULL); // use explicitly that p_0=0
 				else {
-					cMult(theta,invksi,temp2);
-					cInvSign(temp2); // temp2=-theta_k/ksi_k
+					temp2=-theta*invksi;
 					nIncrem111_cmplx(p_old,p_new,q_new,temp2,temp1,invksi);
 				}
 				SwapPointers(&p_old,&p_new);
 			}
 			// x_k=x_k-1+tau_k*c_k*p_k
-			cMultReal(c_new,tau,temp1);
+			temp1=c_new*tau;
 			nIncrem01_cmplx(xvec,p_new,temp1,NULL,NULL);
 			// q_k+1 = w(*)/beta_k+1; it is first stored into q_old and then swapped
 			nMultSelf_conj(q_old,1/beta);
 			SwapPointers(&q_old,&q_new);
 			// tau_k+1 = -s_k*tau_k; ||r_k|| = |tau_k+1|
-			cMultSelf(tau,s_new);
-			cInvSign(tau);
+			tau*=-s_new;
 			inprodRp1=cAbs2(tau);
-			cEqual(tau,dumb); // dumb statement to workaround issue 146
+			dumb=tau; // dumb statement to workaround issue 146
 			return; // end of PHASE_ITER
 	}
 	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
@@ -834,7 +807,7 @@ ITER_FUNC(QMR_CS)
 #define EPS2 1E-40 // for overflow of exponent number
 	static double c_old,c_new,omega_old,omega_new,zetaabs,dtmp1,dtmp2;
 	static doublecomplex alpha,beta,theta,eta,zeta,zetatilda,tau,tautilda;
-	static doublecomplex s_new,s_old,temp1,temp2,temp3,temp4;
+	static doublecomplex s_new,s_old,temp1,temp2,temp4;
 	static doublecomplex *v,*vtilda,*p_new,*p_old; // can't be declared restrict due to SwapPointers
 
 	switch (ph) {
@@ -869,18 +842,17 @@ ITER_FUNC(QMR_CS)
 				// omega_0=||v_0||=0
 				omega_old=0.0;
 				// beta_1=sqrt(v~_1(*).v~_1); omega_1=||v~_1||/|beta_1|; (v~_1=r_0)
-				nDotProdSelf_conj(rvec,temp1,&Timing_InitIterComm);
-				cSqrt(temp1,beta);
-				omega_new=sqrt(inprodR)/cAbs(beta); // inprodR=nNorm2(r_0)
+				beta=csqrt(nDotProdSelf_conj(rvec,&Timing_InitIterComm));
+				omega_new=sqrt(inprodR)/cabs(beta); // inprodR=nNorm2(r_0)
 				// v_1=v~_1/beta_1
-				cInv(beta,temp1);
+				temp1=1/beta;
 				nMult_cmplx(v,rvec,temp1);
 				// tau~_1=omega_1*beta_1
-				cMultReal(omega_new,beta,tautilda);
+				tautilda=omega_new*beta;
 				// c_0=c_-1=1; s_0=s_-1=0
 				c_new=c_old=1.0;
-				s_new[RE]=s_new[IM]=s_old[RE]=s_old[IM]=0.0;
-				cEqual(beta,dumb); // dumb statement to workaround issue 146
+				s_new=s_old=0.0;
+				dumb=beta; // dumb statement to workaround issue 146
 			}
 			return;
 		case PHASE_ITER:
@@ -890,84 +862,71 @@ ITER_FUNC(QMR_CS)
 			if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS fails: |vT.v|/(v.v) is too small ("GFORM_DEBUG").",dtmp1);
 			// A.v_k; alpha_k=v_k(*).(A.v_k)
 			if (niter==1 && matvec_ready) { // uses that v_1=r_0/beta
-				cInv(beta,temp1);
+				temp1=1/beta;
 				nMultSelf_cmplx(Avecbuffer,temp1);
 			}
 			else MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
-			nDotProd_conj(v,Avecbuffer,alpha,&Timing_OneIterComm);
+			alpha=nDotProd_conj(v,Avecbuffer,&Timing_OneIterComm);
 			// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
-			cInvSign2(alpha,temp2);
+			temp2=-alpha;
 			if (niter==1) nLinComb1_cmplx(vtilda,v,Avecbuffer,temp2,NULL,NULL); // use explicitly that v_0=0
 			else {
-				cInvSign2(beta,temp1);
+				temp1=-beta;
 				nIncrem110_cmplx(vtilda,v,Avecbuffer,temp1,temp2);
 			}
 			// theta_k=s_k-2(*)*omega_k-1*beta_k
-			cMultReal(omega_old,beta,temp3); // temp3=omega_k-1*beta_k
-			s_old[IM]=-s_old[IM]; // s_old is only used here, hence can be changed
-			cMult(s_old,temp3,theta);
+			theta=conj(s_old)*omega_old*beta;
 			// eta_k=c_k-1*c_k-2*omega_k-1*beta_k+s_k-1(*)*omega_k*alpha_k
-			cMultReal(omega_new,alpha,temp4); // temp4=omega_k*alpha_k
-			cMultReal(c_old*c_new,temp3,eta);
-			cConj(s_new,temp1);
-			cMult(temp1,temp4,temp2);
-			cAdd(eta,temp2,eta);
+			eta = c_old*c_new*omega_old*beta;
+			eta += alpha*conj(s_new)*omega_new;
 			// zeta~_k=c_k-1*omega_k*alpha_k-s_k-1*c_k-2*omega_k-1*beta_k
-			cMult(s_new,temp3,temp1);
-			cLinComb(temp4,temp1,c_new,-c_old,zetatilda);
+			zetatilda = c_new*omega_new*alpha - s_new*c_old*omega_old*beta;
 			// beta_k+1=sqrt(v~_k+1(*).v~_k+1); omega_k+1=||v~_k+1||/|beta_k+1|
 			omega_old=omega_new;
-			nDotProdSelf_conj_Norm2(vtilda,temp1,&dtmp1,&Timing_OneIterComm); // dtmp1=||v~||^2
-			cSqrt(temp1,beta);
+			temp1=nDotProdSelf_conj_Norm2(vtilda,&dtmp1,&Timing_OneIterComm); // dtmp1=||v~||^2
+			beta=csqrt(temp1);
 			/* Here we do not check for zero beta, since exact zero is very improbable and the following code (until the
 			 * end of iteration) employs only the product omega_k+1*beta_k+1. So the (almost) breakdown is instead
 			 * checked at the beginning of the iteration.
 			 */
-			omega_new=sqrt(dtmp1)/cAbs(beta);
+			omega_new=sqrt(dtmp1)/cabs(beta);
 			// |zeta_k|=sqrt(|zeta~_k|^2+omega_k+1^2*|beta_k+1|^2)
 			dtmp2=cAbs2(zetatilda); // dtmp2=|zeta~_k|^2
 			zetaabs=sqrt(dtmp2+dtmp1);
 			dtmp1=sqrt(dtmp2); // dtmp1=|zeta~_k|
 			// if (|zeta~_k|==0) zeta_k=|zeta_k|; else zeta=|zeta_k|*zeta~_k/|zeta~_k|
-			if (dtmp1<EPS2) {
-				zeta[RE]=zetaabs;
-				zeta[IM]=0.0;
-			}
-			else cMultReal(zetaabs/dtmp1,zetatilda,zeta);
+			if (dtmp1<EPS2) zeta=zetaabs;
+			else zeta=(zetaabs/dtmp1)*zetatilda;
 			// c_k=zeta~_k/zeta_k = |zeta~_k|/|zeta_k|
 			c_old=c_new;
 			c_new=dtmp1/zetaabs;
 			// s_k+1=omega_k+1*beta_k+1/zeta_k
-			cEqual(s_new,s_old);
-			cInv(zeta,temp4); // temp4=1/zeta
-			cMult(beta,temp4,temp1);
-			cMultReal(omega_new,temp1,s_new);
+			s_old=s_new;
+			s_new=omega_new*beta/zeta;
 			// p_k=(-theta_k*p_k-2-eta_k*p_k-1+v_k)/zeta_k
+			temp4=1/zeta; // temp4=1/zeta_k;
 			if (niter==1) nMult_cmplx(p_new,v,temp4); // use implicitly that p_0=p_-1=0
 			else {
-				cMult(eta,temp4,temp2);
-				cInvSign(temp2); // temp2=-eta_k/zeta_k
+				temp2=-eta*temp4; // temp2=-eta_k/zeta_k
 				if (niter==2) nLinComb_cmplx(p_old,p_new,v,temp2,temp4,NULL,NULL);
 				else {
-					cMult(theta,temp4,temp1);
-					cInvSign(temp1); // temp1=-theta_k/zeta_k
+					temp1=-theta*temp4; // temp1=-theta_k/zeta_k
 					nIncrem111_cmplx(p_old,p_new,v,temp1,temp2,temp4);
 				}
 				SwapPointers(&p_old,&p_new);
 			}
 			// tau_k=c_k*tau~_k
-			cMultReal(c_new,tautilda,tau);
+			tau=c_new*tautilda;
 			// tau~_k+1=-s_k*tau~_k
-			cMult(s_new,tautilda,temp1);
-			cInvSign2(temp1,tautilda);
+			tautilda=-s_new*tautilda;
 			// x_k=x_k-1+tau_k*p_k
 			nIncrem01_cmplx(xvec,p_new,tau,NULL,NULL);
 			// v_k+1=v~_k+1/beta_k+1
-			cInv(beta,temp1);
+			temp1=1/beta;
 			nMultSelf_cmplx(vtilda,temp1);
 			SwapPointers(&v,&vtilda); // v~ is as v_k-1 at next iteration
 			// r_k = |s_k|^2*r_k-1 + (c_k*tau~_k+1/omega_k+1)*v_k+1
-			cMultReal(c_new/omega_new,tautilda,temp1);
+			temp1=(c_new/omega_new)*tautilda;
 			nIncrem11_d_c(rvec,v,cAbs2(s_new),temp1,&inprodRp1,&Timing_OneIterComm);
 			return; // end of PHASE_ITER
 	}
@@ -1018,12 +977,10 @@ ITER_FUNC(QMR_CS_2)
 				nCopy(v,rvec);
 				// c_0=eps_0=1; theta_0=0; eta_0=-1
 				c_old=1;
-				eps[RE]=1;
-				eps[IM]=0;
+				eps=1;
 				theta_old=0;
-				eta[RE]=-1;
-				eta[IM]=0;
-				cEqual(eps,dumb); // dumb statement to workaround issue 146
+				eta=-1;
+				dumb=eps; // dumb statement to workaround issue 146
 			}
 			return;
 		case PHASE_ITER:
@@ -1031,15 +988,14 @@ ITER_FUNC(QMR_CS_2)
 			// if ro_k=0 then c_k=1,v~_k=0, hence r_k-1=0 and iteration should have stopped by now
 			nMultSelf(v,1/ro_old);
 			// delta_k = v(*).v ; test it to be non zero
-			nDotProdSelf_conj(v,delta,&Timing_OneIterComm);
-			dtmp1=cAbs(delta);
+			delta=nDotProdSelf_conj(v,&Timing_OneIterComm);
+			dtmp1=cabs(delta);
 			Dz("|vT.v|="GFORM_DEBUG,dtmp1);
 			if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS_2 fails: |vT.v| is too small ("GFORM_DEBUG").",dtmp1);
 			// p_k = v_k - p_k-1*ro_k*delta_k/eps_k-1
 			if (niter==1) nCopy(pvec,v); // use explicitly that p_0=0
 			else {
-				cDiv(delta,eps,temp1);
-				cMultReal(-ro_old,temp1,temp1);
+				temp1=-ro_old*delta/eps;
 				nIncrem10_cmplx(pvec,v,temp1,NULL,NULL);
 			}
 			// A.p_k
@@ -1048,25 +1004,24 @@ ITER_FUNC(QMR_CS_2)
 			}
 			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
 			// eps_k = p_k(*).(A.p_k); beta_k = eps_k/delta_k
-			nDotProd_conj(pvec,Avecbuffer,eps,&Timing_OneIterComm);
-			cDiv(eps,delta,beta);
-			dtmp1=cAbs(eps);
+			eps=nDotProd_conj(pvec,Avecbuffer,&Timing_OneIterComm);
+			beta=eps/delta;
+			dtmp1=cabs(eps);
 			Dz("|pT.A.p|="GFORM_DEBUG,dtmp1);
 			if (dtmp1<EPS1) LogError(ONE_POS,"QMR_CS_2 fails: |pT.A.p| is too small ("GFORM_DEBUG").",dtmp1);
 			// v~_k+1 = A.p_k - beta_k*v_k; stored in the same vector v
-			cInvSign2(beta,temp1);
+			temp1=-beta;
 			nIncrem10_cmplx(v,Avecbuffer,temp1,&dtmp1,&Timing_OneIterComm);
 			ro_new=sqrt(dtmp1); // ro_k+1 = ||v~_k+1||
 			// theta_k = ro_k+1/(c_k-1*|beta_k|);
-			theta_new=ro_new/(c_old*cAbs(beta));
+			theta_new=ro_new/(c_old*cabs(beta));
 			// c_k = 1/sqrt(1+theta_k^2), |s_k|^2 = 1-c_k^2
 			dtmp1=theta_new*theta_new;
 			c_new=1/sqrt(1+dtmp1);
 			sabs2=dtmp1/(1+dtmp1);
 			// eta_k = -eta_k-1*ro_k*c_k^2/(beta_k*c_k-1^2)
-			cDiv(eta,beta,temp1);
 			dtmp1=c_new/c_old;
-			cMultReal(-ro_old*dtmp1*dtmp1,temp1,eta);
+			eta=-ro_old*dtmp1*dtmp1*eta/beta;
 			// d_k = p_k*eta_k + d_k-1*(theta_k-1*c_k)^2
 			if (niter==1) nMult_cmplx(d,pvec,eta); // use explicitly that d_0=0
 			else {
@@ -1078,7 +1033,7 @@ ITER_FUNC(QMR_CS_2)
 			/* The following formula to update residual was not given in the original publication, we derived it
 			 * ourselves; r_k = (1-c_k^2)*r_k-1 - eta_k*v~_k+1
 			 */
-			cInvSign2(eta,temp1);
+			temp1=-eta;
 			nIncrem11_d_c(rvec,v,sabs2,temp1,&inprodRp1,&Timing_OneIterComm);
 			// update variables for next iteration
 			ro_old=ro_new;
@@ -1227,11 +1182,8 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 	mat=(unsigned char *)(top + boxXY);
 #endif
 	// calculate function of refractive index
-	for (i=0;i<Nmat;i++) { // vals[i]=i*(ref_index[i]-1)*kd/2;
-		vals[i][IM]=(ref_index[i][RE]-1)*kd/2;
-		vals[i][RE]=-ref_index[i][IM]*kd/2;
-	}
-	vals[Nmat][RE]=vals[Nmat][IM]=0;
+	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kd/2;
+	vals[Nmat]=0;
 	// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
 	for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;
 	for (dip=0,ind=0;dip<local_nvoid_Ndip;dip++,ind+=3) mat[INDEX_GRID(ind)]=material[dip];
@@ -1240,21 +1192,21 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 	 * 'ind' traverses one slice, and 'dip' - all dipoles
 	 */
 	// First, calculate shifts relative to the bottom of current processor
-	for(ind=0;ind<boxXY;ind++) top[ind][RE]=top[ind][IM]=0;
+	for(ind=0;ind<boxXY;ind++) top[ind]=0;
 	for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++) {
-		cAdd(top[ind],vals[mat[dip]],arg[dip]);
-		cAdd(arg[dip],vals[mat[dip]],top[ind]);
+		arg[dip]=top[ind]+vals[mat[dip]];
+		top[ind]=arg[dip]+vals[mat[dip]];
 	}
 #ifdef PARALLEL
 	// Second, fulfill boundary by exchanging shift values at top and bottom
 	if (ExchangePhaseShifts(bottom,top,&Timing_InitIterComm))
 		// Third (if required) update shift from the obtained values on the bottom
 		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
-			cAdd(arg[dip],bottom[ind],arg[dip]);
+			arg[dip]+=bottom[ind];
 #endif
 	// E=Einc*Exp(arg), but arg is defined on a set of all (including void) dipoles
 	for (ind=0;ind<local_nRows;ind+=3) {
-		cExp(arg[INDEX_GRID(ind)],tmpc);
+		tmpc=cexp(arg[INDEX_GRID(ind)]);
 		cvMultScal_cmplx(tmpc,Einc+ind,Efield+ind);
 	}
 #ifdef OPENCL // free those buffers that were allocated
@@ -1266,7 +1218,7 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 #else
 	// should never come to this
 	LogError(ONE_POS,"WKB initial field is not supported in sparse mode");
-	Efield[0][RE]=0; // redundant, to eliminate unused parameter warning
+	Efield[0]=0; // redundant, to eliminate unused parameter warning
 #endif
 }
 
@@ -1278,12 +1230,9 @@ static void InitFieldfromE(void)
  */
 {
 	// calculate x = (1/cc_sqrt)*V*chi*E (both x and E are stored in xvec)
-	doublecomplex mult[MAX_NMAT][3],temp;
+	doublecomplex mult[MAX_NMAT][3];
 	int i,j;
-	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) {
-		cMult(cc_sqrt[i][j],chi_inv[i][j],temp);
-		cInv(temp,mult[i][j]);
-	}
+	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=1/(cc_sqrt[i][j]*chi_inv[i][j]);
 	nMultSelf_mat(xvec,mult);
 	// calculate A.x_0, r_0=b-A.x_0, and |r_0|^2
 	MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);

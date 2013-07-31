@@ -18,6 +18,7 @@
 #define __parbas_h
 
 #ifdef ADDA_MPI
+#	include "os.h" // for awareness of WINDOWS
 #	include <mpi.h>
 // define required version of MPI
 #	define MPI_VER_REQ 2
@@ -29,7 +30,58 @@
 #		error "MPI version is too old."
 #	endif
 
-/* Hopefully MPI_SIZE_T will be defined in the future MPI versions. As of version 2.2 there is only MPI_AINT, which is
+// We require only version 2.0, but use the some extensions from 2.2, if available
+
+/* While MPI 2.2 fully supports bool complex datatypes (including reduce operations), there is lack of the support of
+ * reduction on Windows. The most advanced implementation (for which binaries are available) is MPICH 1.4.1p1 - it
+ * doesn't support reduce on complex numbers, although the same Unix version does.
+ * http://trac.mpich.org/projects/mpich/ticket/1525
+ * Moreover, MPICH2 1.5 and further can't even be compiled on Windows. http://trac.mpich.org/projects/mpich/ticket/1557
+ *
+ * OpenMPI may also be affected by similar inconsistencies - see http://svn.boost.org/trac/ompi/ticket/3127
+ */
+/* whether there is support of reduction for advanced datatypes (like bool and complex):
+ * At least 2.2 and check that MPICH2 version is not deficient (better than 1.4.1p1 on Windows)
+ * TODO: test if that is enough for OpenMPI, or whether a version check should be added
+ */
+#define EXT_MPI_REDUCE ( ((MPI_VERSION>2) || ((MPI_VERSION==2) && (MPI_SUBVERSION>=2))) && \
+		!( defined(MPICH2) && defined(WINDOWS) && (MPICH2_NUMVERSION<=10401301) ) )
+
+#if defined(MPI_C_BOOL) && EXT_MPI_REDUCE
+#	define EXT_MPI_22
+#	define SUPPORT_MPI_BOOL
+#	define mpi_bool MPI_C_BOOL
+#else
+/* this is not perfectly portable, but should work on most hardware. These datatypes do not need to be fully compatible
+ * but should only have the same size and map 0 to 0 and !0 to !0.
+ */
+#	define mpi_bool MPI_SIGNED_CHAR
+#endif
+
+#ifdef MPI_C_DOUBLE_COMPLEX
+#	define EXT_MPI_22
+#	define SUPPORT_MPI_COMPLEX
+#	if EXT_MPI_REDUCE
+#		define SUPPORT_MPI_COMPLEX_REDUCE
+#	endif
+#endif
+
+/* If any extensions are used at compile time, the runtime requirements are incremented to 2.2 or to the MPI version
+ * used for compilation (whichever is smaller). So, if we are using the same MPI for compilation and runtime, this will
+ * introduce no limitations. However, if runtime MPI is different from the one used for compilation, this will prevent
+ * at least some of problems.
+ */
+#ifdef MPI_EXT_22
+#	if (MPI_VERSION==2) && (MPI_SUBVERSION<2)
+#		define RUN_MPI_SUBVER_REQ MPI_SUBVERSION
+#	else
+#		define RUN_MPI_SUBVER_REQ 2
+#	endif
+#else // if no extensions, the requirement is the same as during compilation
+#	define RUN_MPI_SUBVER_REQ MPI_SUBVER_REQ
+#endif
+
+/* Hopefully MPI_SIZE_T will be defined in the future MPI versions. As of version 3.0 there is only MPI_AINT, which is
  * by design similar to size_t. However, there are no guarantees of the precise correspondence. The code below is lame,
  * but should work almost always. Another alternative is to use overloaded functions, but we want to stick with C.
  */

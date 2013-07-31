@@ -27,7 +27,7 @@
 #include <stdlib.h>
 
 #ifdef FFTW3
-#	include <fftw3.h> // for fftw_malloc
+#	include <fftw3.h> // for fftw_malloc; types.h should be defined before (to match C99 complex type)
 #endif
 
 // common error check
@@ -191,7 +191,8 @@ char *charVector(const size_t size,OTHER_ARGUMENTS)
 {
 	char * restrict v;
 
-	v=(char *)malloc(size);
+	CHECK_SIZE(size,char);
+	v=(char *)malloc(size*sizeof(char));
 	CHECK_NULL(size,v);
 	return v;
 }
@@ -216,7 +217,21 @@ unsigned char *ucharVector(const size_t size,OTHER_ARGUMENTS)
 {
 	unsigned char * restrict v;
 
-	v=(unsigned char *)malloc(size);
+	CHECK_SIZE(size,char);
+	v=(unsigned char *)malloc(size*sizeof(char));
+	CHECK_NULL(size,v);
+	return v;
+}
+
+//======================================================================================================================
+
+bool *boolVector(const size_t size,OTHER_ARGUMENTS)
+// allocates bool vector
+{
+	bool * restrict v;
+
+	CHECK_SIZE(size,bool);
+	v=(bool *)malloc(size*sizeof(bool));
 	CHECK_NULL(size,v);
 	return v;
 }

@@ -73,7 +73,6 @@ extern double alph_deg, bet_deg, gam_deg;
 extern angle_set alpha_int;
 extern scat_grid_angles angles;
 extern doublecomplex * restrict EgridX,* restrict EgridY;
-extern double * restrict Egrid_buffer;
 
 extern int nprocs,ringid;
 

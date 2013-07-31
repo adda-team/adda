@@ -20,13 +20,14 @@
 // project headers
 #include "const.h"   // for enum types
 // system headers
+#include <complex.h>
 #include <stdbool.h> // for bool
 #include <stddef.h> // for size_t
 
-// complex numbers
-typedef double doublecomplex[2]; // complies with FFTW3 definition
-#define RE 0
-#define IM 1
+/* complex numbers; they are defined here so that headers that refer to doublecomplex can include only this small file
+ * instead of large cmplx.h
+ */
+typedef double complex doublecomplex;
 
 typedef struct	      // integration parameters
 {

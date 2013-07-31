@@ -42,7 +42,7 @@ void cisi(const double x,double *ci,double *si)
 	int i,k;
 	bool odd;
 	double a,err,fact,sign,sum,sumc,sums,t,term;
-	doublecomplex h,b,c,d,del,tmp;
+	doublecomplex h,b,c,d,del;
 
 	t=fabs(x);
 	// special case
@@ -53,33 +53,22 @@ void cisi(const double x,double *ci,double *si)
 	}
 	// Evaluate continued fraction by modified Lentz's method
 	if (t>TMIN) {
-		b[RE]=1;
-		b[IM]=t;
-		c[RE]=BIG;
-		c[IM]=0;
-		cInv(b,d);
-		cEqual(d,h);
+		b = 1 + I*t;
+		c=BIG;
+		h=d=1/b;
 		for (i=1;i<MAXIT;i++) {
 			a=-i*i;
-			b[RE]+=2;
-			// d=1/(a*d+b)
-			cMultReal(a,d,d);
-			cAdd(b,d,d);
-			cInv(d,d);
-			// c=b+a/c; for i=1 c=+inf, so careful division should be performed to avoid overflows
-			cInv(c,c);
-			cMultReal(a,c,c);
-			cAdd(b,c,c);
-			// del=c*d, h*=del
-			cMult(c,d,del);
-			cMultSelf(h,del);
-			if (fabs(del[RE]-1)+fabs(del[IM])<=EPS) break;
+			b+=2;
+			d=1/(a*d+b);
+			c=b+a/c; // for i=1 c=+inf, so careful division should be performed to avoid overflows
+			del=c*d;
+			h*=del;
+			if (fabs(creal(del)-1)+fabs(cimag(del))<=EPS) break;
 		}
 		if (i>=MAXIT) LogError(ALL_POS,"Failed to converge during calculation of sine integral of "GFORMDEF,x);
-		imExp(-t,tmp);
-		cMultSelf(h,tmp);
-		*ci=-h[RE];
-		*si=PI_OVER_TWO+h[IM];
+		h*=imExp(-t);
+		*ci=-creal(h);
+		*si=PI_OVER_TWO+cimag(h);
 	}
 	else { // Evaluate both series simultaneously
 		// Special case: avoid failure of convergence test because of underflow
