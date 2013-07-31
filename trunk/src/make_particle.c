@@ -549,7 +549,7 @@ static size_t PlaceGranules(void)
 	int sm_gr;                       // whether granules are small (then simpler algorithm is used)
 	unsigned short * restrict tree_index; // index for traversing granules inside one cell (small)
 	double * restrict vgran;              // coordinates of a set of granules
-	char * restrict vfit;                 // results of granule fitting on the grid (boolean)
+	bool * restrict vfit;                 // results of granule fitting on the grid (boolean)
 	int * restrict ginX,* restrict ginY,* restrict ginZ; // indices to find dipoles inside auxiliary grid
 	int indX,indY,indZ;    // indices for doubled auxiliary grid
 	int bit;               // bit position in char of 'dom'
@@ -669,7 +669,7 @@ static size_t PlaceGranules(void)
 	}
 	else if (!sm_gr && locgZ!=0) MALLOC_VECTOR(dom,uchar,gr_locgN,ALL);
 	MALLOC_VECTOR(vgran,double,3*max_Ngr,ALL);
-	MALLOC_VECTOR(vfit,char,max_Ngr,ALL);
+	MALLOC_VECTOR(vfit,bool,max_Ngr,ALL);
 	if (!sm_gr && locgZ!=0) {
 		// build some more indices
 		MALLOC_VECTOR(ginX,int,gX2+1,ALL);
@@ -932,7 +932,7 @@ static size_t PlaceGranules(void)
 				}
 				if (!fits) break;
 			}
-			vfit[ig]=(char)fits;
+			vfit[ig]=fits;
 		}
 		// collect fits
 		ExchangeFits(vfit,cur_Ngr,&Timing_GranulComm);
@@ -1853,8 +1853,7 @@ void InitShape(void)
 	Nmat=Nmat_need;
 
 	// check anisotropic refractive indices for symmetries
-	if (anisotropy) for (i=0;i<Nmat;i++)
-		symR=symR && ref_index[3*i][RE]==ref_index[3*i+1][RE] && ref_index[3*i][IM]==ref_index[3*i+1][IM];
+	if (anisotropy) for (i=0;i<Nmat;i++) symR=symR && ref_index[3*i]==ref_index[3*i+1];
 
 	// determine which size to use
 	if (n_sizeX!=UNDEF) {

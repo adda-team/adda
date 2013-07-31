@@ -21,6 +21,7 @@
 #include "cmplx.h"
 #include "comm.h"
 #include "crosssec.h"
+#include "debug.h"
 #include "fft.h"
 #include "function.h"
 #include "io.h"
@@ -1132,16 +1133,18 @@ PARSE_FUNC(lambda)
 PARSE_FUNC(m)
 {
 	int i;
+	double mre,mim;
 
 	if (!IS_EVEN(Narg) || Narg==0) NargError(Narg,"even");
 	Nmat=Nmat_given=Narg/2;
 	if (Nmat>MAX_NMAT) PrintErrorHelp("Too many materials (%d), maximum %d are supported. You may increase parameter "
 		"MAX_NMAT in const.h and recompile.",Nmat,MAX_NMAT);
 	for (i=0;i<Nmat;i++) {
-		ScanDoubleError(argv[2*i+1],&ref_index[i][RE]);
-		ScanDoubleError(argv[2*i+2],&ref_index[i][IM]);
-		if (ref_index[i][RE]==1 && ref_index[i][IM]==0) PrintErrorHelp("Given refractive index #%d is that of vacuum, "
-			"which is not supported. Consider using, for instance, 1.0001 instead.",i+1);
+		ScanDoubleError(argv[2*i+1],&mre);
+		ScanDoubleError(argv[2*i+2],&mim);
+		ref_index[i] = mre + I*mim;
+		if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
+			"Consider using, for instance, 1.0001 instead.",i+1);
 	}
 }
 PARSE_FUNC(maxiter)
@@ -1447,12 +1450,23 @@ PARSE_FUNC(V)
 		printf("Linked to clAmdFft version %d.%d.%d\n",clAmdFftVersionMajor,clAmdFftVersionMinor,clAmdFftVersionPatch);
 #	endif
 #elif defined(ADDA_MPI)
-		// Version of MPI standard is specified, requires MPI 1.2
+		// Version of MPI standard is specified
 		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
 #	ifdef MPICH2
 		printf("Linked to MPICH2 version "MPICH2_VERSION"\n");
 #	elif defined(OPEN_MPI)
 		printf("Linked to OpenMPI version %d.%d.%d\n",OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION);
+#	endif
+		// Additional debug information about MPI implementation
+#	ifndef SUPPORT_MPI_BOOL
+		D("No full support for MPI_C_BOOL (emulated)");
+#	endif
+#	ifndef SUPPORT_MPI_COMPLEX
+		D("No support for complex MPI datatypes (emulated)");
+#	else
+#		ifndef SUPPORT_MPI_COMPLEX
+		D("Complex MPI datatypes are supported, but their use in reduce operations is not supported (emulated)");
+#		endif
 #	endif
 #else
 		printf("Sequential version\n");
@@ -1638,8 +1652,7 @@ void InitVariables(void)
 	lambda=TWO_PI;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
-	ref_index[0][RE]=1.5;
-	ref_index[0][IM]=0.0;
+	ref_index[0]=1.5;
 	// initialize to null to determine further whether it is initialized
 	logfile=NULL;
 
@@ -1950,7 +1963,7 @@ void DirectoryLog(const int argc,char **argv)
 		 * relevant buffers (for filenames or messages).
 		 */
 		static char sbuffer[MAX_LINE];
-		sprintf(sbuffer,"%s%03i_%s_g%i_m"GFORM_RI_DIRNAME,run_name,Nexp,shapename,boxX,ref_index[0][RE]);
+		sprintf(sbuffer,"%s%03i_%s_g%i_m"GFORM_RI_DIRNAME,run_name,Nexp,shapename,boxX,creal(ref_index[0]));
 #ifdef PARALLEL
 		// add PBS, SGE or SLURM job id to the directory name if available
 		if ((ptmp=getenv("PBS_JOBID"))!=NULL || (ptmp=getenv("JOB_ID"))!=NULL || (ptmp=getenv("SLURM_JOBID"))!=NULL) {
@@ -2029,24 +2042,25 @@ void PrintInfo(void)
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
-			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",ref_index[0][RE],ref_index[0][IM],ref_index[1][RE],
-				ref_index[1][IM],ref_index[2][RE],ref_index[2][IM]);
+			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",creal(ref_index[0]),cimag(ref_index[0]),creal(ref_index[1]),
+				cimag(ref_index[1]),creal(ref_index[2]),cimag(ref_index[2]));
 			else {
 				for (i=0;i<Nmat;i++) {
-					if (i<Nmat_given) fprintf(logfile,"    %d. "CFORM3V"\n",i+1,ref_index[3*i][RE],ref_index[3*i][IM],
-						ref_index[3*i+1][RE],ref_index[3*i+1][IM],ref_index[3*i+2][RE],ref_index[3*i+2][IM]);
+					if (i<Nmat_given) fprintf(logfile,"    %d. "CFORM3V"\n",i+1,creal(ref_index[3*i]),
+						cimag(ref_index[3*i]),creal(ref_index[3*i+1]),cimag(ref_index[3*i+1]),creal(ref_index[3*i+2]),
+						cimag(ref_index[3*i+2]));
 					else fprintf(logfile,"   %d. not specified\n",i+1);
 				}
 			}
 		}
 		else {
 			fprintf(logfile,"refractive index: ");
-			if (Nmat==1) fprintf(logfile,CFORM"\n",ref_index[0][RE],ref_index[0][IM]);
+			if (Nmat==1) fprintf(logfile,CFORM"\n",creal(ref_index[0]),cimag(ref_index[0]));
 			else {
-				fprintf(logfile,"1. "CFORM"\n",ref_index[0][RE],ref_index[0][IM]);
+				fprintf(logfile,"1. "CFORM"\n",creal(ref_index[0]),cimag(ref_index[0]));
 				for (i=1;i<Nmat;i++) {
 					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM"\n",
-						i+1,ref_index[i][RE],ref_index[i][IM]);
+						i+1,creal(ref_index[i]),cimag(ref_index[i]));
 					else fprintf(logfile,"                  %d. not specified\n",i+1);
 				}
 			}

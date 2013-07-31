@@ -62,9 +62,9 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *a
 void cisi(double x,double *ci,double *si);
 
 // this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,result[0][RE],\
-	result[0][IM],result[1][RE],result[1][IM],result[2][RE],result[2][IM],result[3][RE],result[3][IM],result[4][RE],\
-	result[4][IM],result[5][RE],result[5][IM]);*/
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,creal(result[0]),\
+	cimag(result[0]),creal(result[1]),cimag(result[1]),creal(result[2]),cimag(result[2]),creal(result[3]),\
+	cimag(result[3]),creal(result[4]),cimag(result[4]),creal(result[5]),cimag(result[5]));*/
 
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
@@ -88,7 +88,7 @@ static inline void CalcInterParams2(double qvec[static restrict 3],double qmunu[
 // some common variables needed by the interaction functions - needed for all except IGT
 {
 	*invrn = 1.0/rn;
-	vMultScalSelf(*invrn,qvec); // finalize qvec
+	vMultScal(*invrn,qvec,qvec); // finalize qvec
 	double rr=rn*gridspace;
 	*invr3=1/(rr*rr*rr);
 	*kr=WaveNum*rr;
@@ -136,15 +136,17 @@ static inline __m128d accImExp_pd(const double x)
 
 //=====================================================================================================================
 
-static inline void accImExp(const double x, doublecomplex c)
+static inline doublecomplex accImExp(const double x)
 {
-	_mm_store_pd(c,accImExp_pd(x));
+	doublecomplex c;
+	_mm_store_pd(&c,accImExp_pd(x));
+	return c;
 }
 
 //=====================================================================================================================
 
 static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
-	const double qmunu[static restrict 6],doublecomplex expval,doublecomplex result[static restrict 6])
+	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
 	const __m128d ie = accImExp_pd(kr);
@@ -156,16 +158,16 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 	_mm_store_pd(expval,sc);
 
 #undef INTERACT_MUL
-#define INTERACT_DIAG(I) { \
-	qff = _mm_set1_pd(qmunu[I]); \
+#define INTERACT_DIAG(ind) { \
+	qff = _mm_set1_pd(qmunu[ind]); \
 	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff)); \
 	im_re = cmul(sc,im_re); \
-	_mm_store_pd(result[I],im_re); }
-#define INTERACT_NONDIAG(I) { \
-	qff = _mm_set1_pd(qmunu[I]); \
+	_mm_store_pd(result+ind,im_re); }
+#define INTERACT_NONDIAG(ind) { \
+	qff = _mm_set1_pd(qmunu[ind]); \
 	im_re = _mm_mul_pd(v2,qff); \
 	im_re = cmul(sc,im_re); \
-	_mm_store_pd(result[I],im_re); }
+	_mm_store_pd(result+ind,im_re); }
 
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
@@ -180,31 +182,23 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 
 #else //not using SSE3
 
-static inline void accImExp(const double x, doublecomplex c)
+static inline doublecomplex accImExp(const double x)
 // Without SSE3, this is just an alias for imExp
 {
-	imExp(x,c);
+	return imExp(x);
 }
 
 //=====================================================================================================================
 
 static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
-	const double qmunu[static restrict 6],doublecomplex expval,doublecomplex result[static restrict 6])
+	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
-	doublecomplex t;
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	imExp(kr,expval);
-	cMultReal(invr3,expval,expval);
+	*expval=invr3*imExp(kr);
 
-#define INTERACT_DIAG(I) { \
-	t[RE] = t1*qmunu[I] + t3; \
-	t[IM] = kr + t2*qmunu[I]; \
-	cMult(t,expval,result[I]); }
-#define INTERACT_NONDIAG(I) { \
-	t[RE] = t1*qmunu[I]; \
-	t[IM] = t2*qmunu[I]; \
-	cMult(t,expval,result[I]); }
+#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
+#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
 
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
@@ -233,7 +227,7 @@ void CalcInterTerm_poi(const int i,const int j,const int k,doublecomplex result[
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	PRINT_GVAL;
 }
 
@@ -262,10 +256,10 @@ void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
-	accImExp(kfr,eikfr);
+	eikfr=accImExp(kfr);
 
 	// ci,si_1,2 = ci,si_+,- = Ci,Si((k_F +,- k)r)
 	cisi(kfr+kr,&ci1,&si1);
@@ -273,15 +267,15 @@ void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[
 	// ci=ci1-ci2; si=pi-si1-si2
 	ci=ci1-ci2;
 	si=PI-si1-si2;
-	g0=INV_PI*(expval[IM]*ci+expval[RE]*si);
-	g2=INV_PI*(kr*(expval[RE]*ci-expval[IM]*si)+2*ONE_THIRD*invr3*(kfr*eikfr[RE]-4*eikfr[IM]))-g0;
+	g0=INV_PI*(cimag(expval)*ci+creal(expval)*si);
+	g2=INV_PI*(kr*(creal(expval)*ci-cimag(expval)*si)+2*ONE_THIRD*invr3*(kfr*creal(eikfr)-4*cimag(eikfr)))-g0;
 	temp=g0*kr2;
 	for (comp=0;comp<NDCOMP;comp++) {
 		// brd=(delta[mu,nu]*(-g0*kr^2-g2)+qmunu*(g0*kr^2+3g2))/r^3
 		brd=qmunu[comp]*(temp+3*g2);
 		if (dmunu[comp]) brd-=temp+g2;
-		// result=Gp+brd
-		result[comp][RE]+=brd;
+		// result=Gp+brd; only the real part of the Green's tensor is corrected
+		result[comp]+=brd;
 	}
 	PRINT_GVAL;
 }
@@ -302,14 +296,14 @@ void CalcInterTerm_fcd_st(const int i,const int j,const int k,doublecomplex resu
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
-	accImExp(kfr,eikfr);
+	eikfr=accImExp(kfr);
 	// result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi)
 	cisi(kfr,&ci,&si);
-	brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*eikfr[RE]-4*eikfr[IM]);
-	for (comp=0;comp<NDCOMP;comp++) cMultReal(brd,result[comp],result[comp]);
+	brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*creal(eikfr)-4*cimag(eikfr));
+	for (comp=0;comp<NDCOMP;comp++) result[comp]*=brd;
 	PRINT_GVAL;
 }
 
@@ -354,7 +348,7 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 	
 	CalcInterParams1(i,j,k,qvec,&rn);
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
 	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
@@ -416,8 +410,7 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 		memcpy(invord,ord,3*sizeof(int));
 		Permutate_i(invord,ord);
 		if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-		// temp = kr/24; and set some indices
-		temp=kr/24;
+		// set some indices
 		ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
 		ind1=3*ind0;
 		ind2m=6*ind0;
@@ -445,48 +438,36 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 			t6tr=TrSym(tab6+ind4);
 			//====== computing Gc0 =====
 			/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
-			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(i+kr)/24+2*t4q+t6tr)
+			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
 			 */
-			br[RE]=sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr)+temp*qmunu[comp]*kr;
-			br[IM]=3*temp*qmunu[comp];
-			if (dmunu[comp]) {
-				br[RE]+=2*t3q+t5tr-temp*kr-tab9[ind0]/2-tab7[ind0];
-				br[IM]-=temp;
-			}
-			// br*=kd^2
-			cMultReal(kd2,br,br);
+			br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) +(kr/24)*qmunu[comp]*(kr+I*3);
+			if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
+			br*=kd2;
 			// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
-			br[RE]+=sig*tab2[ind2]*(3-kr2);
-			br[IM]-=sig*tab2[ind2]*3*kr;
-			if (dmunu[comp]) {
-				br[RE]+=tab1[ind0]*(kr2-1);
-				br[IM]+=tab1[ind0]*kr;
-			}
+			br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
+			if (dmunu[comp]) br += tab1[ind0]*(-1+I*kr+kr2);
 			// Gc0=expval*br
-			cMult(expval,br,result[comp]);
+			result[comp]=expval*br;
 		}
 	}
 	else {
 		//====== Gfar (and part of Gmedian) for IGT =======
 		// Gf0 = Gp*(1-kd^2/24)
-		for (comp=0;comp<NDCOMP;comp++) cMultReal(1-kd2/24,result[comp],result[comp]);
+		for (comp=0;comp<NDCOMP;comp++) result[comp]*=1-kd2/24;
 		if (kr < G_BOUND_MEDIAN) {
 			//===== G median for IGT ========
-			vSquare(qvec,q2);
+			vMult(qvec,qvec,q2);
 			q4=DotProd(q2,q2);
 			invrn2=invrn*invrn;
 			invrn4=invrn2*invrn2;
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-				// Gm0=expval*br*temp; temp is set anew
+				// Gm0=expval*br*temp; temp is defined below
 				temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
 				if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
 				temp*=7*invrn4/64;
-				br[RE]=-1;
-				br[IM]=kr;
-				cMultReal(temp,br,Gm0);
-				cMultSelf(Gm0,expval);
-				// result = Gf + Gm0 + [ Gm1 ]
-				cAdd(Gm0,result[comp],result[comp]);
+				Gm0=expval*(-1+I*kr)*temp;
+				// result = Gf + Gm0
+				result[comp]+=Gm0;
 			}
 		}
 	}
@@ -522,13 +503,13 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
 	kr3=kr2*kr;
 	// only one refractive index can be used for FFT-compatible algorithm
-	cEqual(ref_index[0],m);
-	cSquare(m,m2);
+	m=ref_index[0];
+	m2=m*m;
 	if (!inter_avg) {
 		qa=DotProd(qvec,prop);
 		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
@@ -601,8 +582,7 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 		memcpy(invord,ord,3*sizeof(int));
 		Permutate_i(invord,ord);
 		if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-		// temp = kr/24; and set some indices
-		temp=kr/24;
+		// set some indices
 		ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
 		ind1=3*ind0;
 		ind2m=6*ind0;			// cycle over tensor components
@@ -640,132 +620,85 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 			}
 			//====== computing Gc0 =====
 			/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
-			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(i+kr)/24+2*t4q+t6tr)
+			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
 			 */
-			br[RE]=sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr)+temp*qmunu[comp]*kr;
-			br[IM]=3*temp*qmunu[comp];
-			if (dmunu[comp]) {
-				br[RE]+=2*t3q+t5tr-temp*kr-tab9[ind0]/2-tab7[ind0];
-				br[IM]-=temp;
-			}
-			// br*=kd^2
-			cMultReal(kd2,br,br);
+			br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) + (kr/24)*qmunu[comp]*(kr+I*3);
+			if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
+			br*=kd2;
 			// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
-			br[RE]+=sig*tab2[ind2]*(3-kr2);
-			br[IM]-=sig*tab2[ind2]*3*kr;
-			if (dmunu[comp]) {
-				br[RE]+=tab1[ind0]*(kr2-1);
-				br[IM]+=tab1[ind0]*kr;
-			}
+			br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
+			if (dmunu[comp]) br+=tab1[ind0]*(-1+I*kr+kr2);
 			// Gc0=expval*br
-			cMult(expval,br,result[comp]);
+			result[comp]=expval*br;
 			//==== computing Gc1 ======
 			if (!inter_avg) {
-				// br=(kd*kr/24)*(qa*(delta[mu,nu]*(-2+ikr)-qmunu*(-6+ikr))-qamunu)
-				br[RE]=6*qmunu[comp];
-				br[IM]=-kr*qmunu[comp];
-				if (dmunu[comp]) {
-					br[RE]-=2;
-					br[IM]+=kr;
-				}
-				cMultReal(qa,br,br);
-				br[RE]-=qamunu[comp];
-				cMultReal(2*temp*kd,br,br);
-				//  br1=(d/r)*(delta[mu,nu]*t3h*(-1+ikr)-sig*t4h*(-3+3ikr))
-				br1[RE]=3*sig*t4a;
-				br1[IM]=-kr*br1[RE];
-				if (dmunu[comp]) {
-					br1[RE]-=t3a;
-					br1[IM]+=t3a*kr;
-				}
-				cMultReal(1/rn,br1,br1);
+				// br=(kd*kr/12)*(qa*(delta[mu,nu]*(-2+ikr)-qmunu*(-6+ikr))-qamunu)
+				br=(6-I*kr)*qmunu[comp];
+				if (dmunu[comp]) br += -2 + I*kr;
+				br=(kr*kd/12)*(qa*br-qamunu[comp]);
+				//  br1=(d/r)*(delta[mu,nu]*t3a*(-1+ikr)-sig*t4a*(-3+3ikr))
+				br1=3*sig*t4a*(1-I*kr);
+				if (dmunu[comp]) br1+=t3a*(-1+I*kr);
+				br1/=rn;
 				// Gc1=expval*i*m*kd*(br1+br)
-				cAdd(br,br1,Gc1);
-				cMultSelf(Gc1,m);
-				cMultReal(kd,Gc1,Gc1);
-				cMultSelf(Gc1,expval);
-				cMult_i(Gc1);
+				Gc1=I*expval*m*kd*(br1+br);
 			}
 			//==== computing Gc2 ======
 			// br=delta[mu,nu]*t5aa-3*sig*t6aa-(kr/12)*(delta[mu,nu]*(i+kr)-qmunu*(3i+kr))
-			br[RE]=-kr*qmunu[comp];
-			br[IM]=-3*qmunu[comp];
-			if (dmunu[comp]) {
-				br[RE]+=kr;
-				br[IM]+=1;
-			}
-			cMultReal(-2*temp,br,br);
-			br[RE]-=3*sig*t6aa;
-			if (dmunu[comp]) br[RE]+=t5aa;
+			br=-(kr+I*3)*qmunu[comp];
+			if (dmunu[comp]) br += kr + I;
+			br = -br*kr/12 - 3*sig*t6aa;
+			if (dmunu[comp]) br+=t5aa;
 			// Gc2=expval*(kd^2/2)*m^2*br
-			cMult(m2,br,Gc2);
-			cMultReal(kd2/2,Gc2,Gc2);
-			cMultSelf(Gc2,expval);
+			Gc2=expval*(kd2/2)*m2*br;
 			// result = Gc0 + [ Gc1 ] + Gc2
-			if (!inter_avg) cAdd(Gc2,Gc1,Gc2);
-			cAdd(Gc2,result[comp],result[comp]);
+			if (!inter_avg) Gc2+=Gc1;
+			result[comp]+=Gc2;
 		}
 	}
 	else {
 		//====== Gfar (and part of Gmedian) =======
-		// temp=kd^2/24
-		temp=kd2/24;
 		// br=1-(1+m^2)*kd^2/24
-		br[RE]=1-(1+m2[RE])*temp;
-		br[IM]=-m2[IM]*temp;
+		br = 1 - (1+m2)*kd2/24;
 		// Gf0 + Gf2 = Gp*br
-		for (comp=0;comp<NDCOMP;comp++) cMultSelf(result[comp],br);
+		for (comp=0;comp<NDCOMP;comp++) result[comp]*=br;
 		//==== compute and add Gf1 ===
 		if (!inter_avg) for (comp=0;comp<NDCOMP;comp++) {
 			// br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa + qamunu*(3-3ikr-kr^2)
-			br[RE]=(6*kr2-15)*qmunu[comp];
-			br[IM]=(15*kr-kr3)*qmunu[comp];
-			if(dmunu[comp]) {
-				br[RE]+=3-2*kr2;
-				br[IM]+=kr3-3*kr;
-			}
-			cMultReal(qa,br,br);
-			br[RE]+=(3-kr2)*qamunu[comp];
-			br[IM]-=3*kr*qamunu[comp];
-			// Gf1=expval*i*m*temp*br
-			cMult(m,br,Gf1);
-			cMultReal(temp*2/kr,Gf1,Gf1);
-			cMultSelf(Gf1,expval);
-			cMult_i(Gf1);
+			br = (6*kr2-15 + I*(15*kr-kr3))*qmunu[comp];
+			if(dmunu[comp]) br += 3 - 2*kr2 + I*(kr3-3*kr);
+			br = br*qa + (3-I*3*kr-kr2)*qamunu[comp];
+			// Gf1=expval*i*m*br*kd^2/12kr
+			Gf1=I*expval*m*br*kd2/(12*kr);
 			// result = Gf
-			cAdd(Gf1,result[comp],result[comp]);
+			result[comp]+=Gf1;
 		}
 		if (kr < G_BOUND_MEDIAN) {
 			//===== G median ========
-			vSquare(qvec,q2);
+			vMult(qvec,qvec,q2);
 			q4=DotProd(q2,q2);
 			invrn2=invrn*invrn;
 			invrn3=invrn2*invrn;
 			invrn4=invrn2*invrn2;
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-				// Gm0=expval*br*temp; temp is set anew
+				// Gm0=expval*br*temp; temp is defined below
 				temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
 				if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
 				temp*=7*invrn4/64;
-				br[RE]=-1;
-				br[IM]=kr;
-				cMultReal(temp,br,Gm0);
-				cMultSelf(Gm0,expval);
+				Gm0=expval*(-1+I*kr)*temp;
 				if (!inter_avg) {
-					// Gm1=expval*i*m*temp; temp is set anew
+					// Gm1=expval*i*m*temp; temp is defined below
 					vMult(qvec,prop,qavec);
 					temp = 3*qa*(dmunu[comp]-7*qmunu[comp]) + 6*dmunu[comp]*qvec[mu]*prop[mu]
 					     - 7*(dmunu[comp]-9*qmunu[comp])*DotProd(qavec,q2)
 					     + 3*(prop[mu]*qvec[nu]*(1-7*q2[mu])+prop[nu]*qvec[mu]*(1-7*q2[nu]));
 					temp*=kd*invrn3/48;
-					cMultReal(temp,m,Gm1);
-					cMult_i(Gm1);
-					cMultSelf(Gm1,expval);
+					Gm1=I*expval*m*temp;
 					// add Gm1 to Gm0
-					cAdd(Gm0,Gm1,Gm0);
+					Gm0+=Gm1;
 				}
 				// result = Gf + Gm0 + [ Gm1 ]
-				cAdd(Gm0,result[comp],result[comp]);
+				result[comp]+=Gm0;
 			}
 		}
 	}
@@ -793,7 +726,7 @@ void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex result[
 	else {
 		// The following is equivalent to CalcInterTerm_poi, except for the 1st part of initialization performed above
 		CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-		CalcInterTerm_core(kr,kr2,invr3,qmunu,expval,result);
+		CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	}
 	PRINT_GVAL;
 }

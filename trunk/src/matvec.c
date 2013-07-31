@@ -120,7 +120,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifndef OPENCL // these variables are not needed for OpenCL
 	size_t i;
 	doublecomplex fmat[6],xv[3],yv[3];
-	doublecomplex temp;
 	size_t index,y,z,Xcomp;
 	unsigned char mat;
 #endif
@@ -200,7 +199,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	clFinish(command_queue); //wait till kernel executions are finished
 #else
 	// fill Xmatrix with 0.0
-	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i][RE]=Xmatrix[i][IM]=0.0;
+	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i]=0.0;
 
 	// transform from coordinates to grid and multiply with coupling constant
 	if (her) nConj(argvec); // conjugated back afterwards
@@ -211,7 +210,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		mat=material[i];
 		index=IndexXmatrix(position[j],position[j+1],position[j+2]);
 		// Xmat=cc_sqrt*argvec
-		for (Xcomp=0;Xcomp<3;Xcomp++) cMult(cc_sqrt[mat][Xcomp],argvec[j+Xcomp],Xmatrix[index+Xcomp*local_Nsmall]);
+		for (Xcomp=0;Xcomp<3;Xcomp++) Xmatrix[index+Xcomp*local_Nsmall]=cc_sqrt[mat][Xcomp]*argvec[j+Xcomp];
 	}
 #endif
 #ifdef PRECISE_TIMING
@@ -244,13 +243,13 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		clFinish(command_queue);
 #else
 		// clear slice
-		for(i=0;i<3*gridYZ;i++) slices[i][RE]=slices[i][IM]=0.0;
+		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
 
 		// fill slices with values from Xmatrix
 		for(y=0;y<boxY_st;y++) for(z=0;z<boxZ_st;z++) {
 			i=IndexSliceYZ(y,z);
 			j=IndexGarbledX(x,y,z);
-			for (Xcomp=0;Xcomp<3;Xcomp++) cEqual(Xmatrix[j+Xcomp*local_Nsmall],slices[i+Xcomp*gridYZ]);
+			for (Xcomp=0;Xcomp<3;Xcomp++) slices[i+Xcomp*gridYZ]=Xmatrix[j+Xcomp*local_Nsmall];
 		}
 #endif
 #ifdef PRECISE_TIMING
@@ -284,23 +283,23 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		// do the product D~*X~ 
 		for(z=0;z<gridZ;z++) for(y=0;y<gridY;y++) {
 			i=IndexSliceZY(y,z);
-			for (Xcomp=0;Xcomp<3;Xcomp++) cEqual(slices_tr[i+Xcomp*gridYZ],xv[Xcomp]);
+			for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridYZ];
 
 			j=IndexDmatrix_mv(x-local_x0,y,z,transposed);
-			memcpy(fmat,Dmatrix[j],6*sizeof(doublecomplex));
+			memcpy(fmat,Dmatrix+j,6*sizeof(doublecomplex));
 			if (reduced_FFT) {
-				if (y>smallY) {
-					cInvSign(fmat[1]);               // fmat[1]*=-1
-					if (z>smallZ) cInvSign(fmat[2]); // fmat[2]*=-1
-					else cInvSign(fmat[4]);          // fmat[4]*=-1
+				if (y>smallY) { // we assume that compiler will optimize x*=-1 into negation of sign
+					fmat[1]*=-1;
+					if (z>smallZ) fmat[2]*=-1;
+					else fmat[4]*=-1;
 				}
 				else if (z>smallZ) {
-					cInvSign(fmat[2]); // fmat[2]*=-1
-					cInvSign(fmat[4]); // fmat[4]*=-1
+					fmat[2]*=-1;
+					fmat[4]*=-1;
 				}
 			}
 			cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
-			for (Xcomp=0;Xcomp<3;Xcomp++) cEqual(yv[Xcomp],slices_tr[i+Xcomp*gridYZ]);
+			for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridYZ]=yv[Xcomp];
 		}
 #endif
 #ifdef PRECISE_TIMING
@@ -333,7 +332,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		for(y=0;y<boxY_st;y++) for(z=0;z<boxZ_st;z++) {
 			i=IndexSliceYZ(y,z);
 			j=IndexGarbledX(x,y,z);
-			for (Xcomp=0;Xcomp<3;Xcomp++) cEqual(slices[i+Xcomp*gridYZ],Xmatrix[j+Xcomp*local_Nsmall]);
+			for (Xcomp=0;Xcomp<3;Xcomp++) Xmatrix[j+Xcomp*local_Nsmall]=slices[i+Xcomp*gridYZ];
 		}
 #endif
 #ifdef PRECISE_TIMING
@@ -380,10 +379,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		j=3*i;
 		mat=material[i];
 		index=IndexXmatrix(position[j],position[j+1],position[j+2]);
-		for (Xcomp=0;Xcomp<3;Xcomp++) {
-			cMult(cc_sqrt[mat][Xcomp],Xmatrix[index+Xcomp*local_Nsmall],temp);
-			cAdd(argvec[j+Xcomp],temp,resultvec[j+Xcomp]); // result=argvec+cc_sqrt*Xmat
-		}
+		for (Xcomp=0;Xcomp<3;Xcomp++) // result=argvec+cc_sqrt*Xmat
+			resultvec[j+Xcomp]=argvec[j+Xcomp]+cc_sqrt[mat][Xcomp]*Xmatrix[index+Xcomp*local_Nsmall];
 		// norm is unaffected by conjugation, hence can be computed here
 		if (ipr) *inprod+=cvNorm2(resultvec+j);
 	}
@@ -468,29 +465,28 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	const bool ipr = (inprod != NULL);
 	size_t i,j,i3;
 
-	if (her) for (j=0; j<local_nRows; j++) argvec[j][IM] = -argvec[j][IM];
+
+	if (her) nConj(argvec);
+	// TODO: can be replaced by nMult_mat
 	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
 #	ifdef PARALLEL
 	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
 #	endif
 	for (i=0; i<local_nvoid_Ndip; i++) {
 		i3 = 3*i;
-		resultvec[i3][RE]=resultvec[i3][IM]=0.0;
-		resultvec[i3+1][RE]=resultvec[i3+1][IM]=0.0;
-		resultvec[i3+2][RE]=resultvec[i3+2][IM]=0.0;
+		resultvec[i3]=0.0;
+		resultvec[i3+1]=0.0;
+		resultvec[i3+2]=0.0;
 		for (j=0; j<local_nvoid_d0+i; j++) AijProd(arg_full,resultvec,i,j);
 		for (j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
-	}		
+	}
+	// TODO: can be replaced by a specially designed function from linalg.c
 	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
-	if (her) for (i=0; i<local_nRows; i++) {
-		resultvec[i][IM] = -resultvec[i][IM];
-		argvec[i][IM] = -argvec[i][IM];
+	if (her) {
+		nConj(resultvec);
+		nConj(argvec);
 	}
-	if (ipr) {
-		*inprod = 0.0;
-		for (i=0; i<local_nRows; i++) *inprod += resultvec[i][RE]*resultvec[i][RE] + resultvec[i][IM]*resultvec[i][IM];
-		MyInnerProduct(inprod,double_type,1,comm_timing);
-	}
+	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing);
 	TotalMatVec++;
 }
 

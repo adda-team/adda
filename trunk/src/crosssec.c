@@ -36,7 +36,8 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in calculator.c
-extern double * restrict E2_alldir,* restrict E2_alldir_buffer;
+extern doublecomplex * restrict E_ad;
+extern double * restrict E2_alldir;
 extern const doublecomplex cc[][3];
 #ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
@@ -481,8 +482,8 @@ void ReadScatGridParms(const char * restrict fname)
 
 //======================================================================================================================*/
 
-void CalcField (doublecomplex * restrict ebuff, // where to write calculated scattering amplitude
-                const double * restrict n)      // scattering direction
+void CalcField(doublecomplex ebuff[static restrict 3], // where to write calculated scattering amplitude
+               const double n[static restrict 3])      // scattering direction
 /* Near-optimal routine to compute the scattered fields at one specific angle (more exactly - scattering amplitude);
  * Specific optimization are possible when e.g. n[0]=0 for scattering in yz-plane, however in this case it is very
  * improbable that the routine will become a bottleneck. The latter happens mostly for cases, when grid of scattering
@@ -490,8 +491,8 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
  */
 {
 	double kkk;
-	doublecomplex a,m2,dpr;
-	doublecomplex sum[3],tbuff[3],tmp={0,0}; // redundant initialization to remove warnings
+	doublecomplex a,dpr;
+	doublecomplex sum[3],tbuff[3],tmp=0; // redundant initialization to remove warnings
 	int i;
 	unsigned short ix,iy1,iy2,iz1,iz2;
 	size_t j,jjj;
@@ -509,14 +510,10 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 		if (scat_avg) na=0;
 		else na=DotProd(n,prop);
 		temp=kd*kd/24;
-		for(i=0;i<Nmat;i++) {
-			cSquare(ref_index[i],m2);
-			// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
-			mult_mat[i][RE]=1-temp*(m2[RE]-2*na*ref_index[i][RE]+1);
-			mult_mat[i][IM]=temp*(2*na*ref_index[i][IM]-m2[IM]);
-		}
+		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
+		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
 	}
-	for(i=0;i<3;i++) sum[i][RE]=sum[i][IM]=0.0;
+	for(i=0;i<3;i++) sum[i]=0.0;
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
 	imExp_arr(-kd*n[0],boxX,expsX);
@@ -541,42 +538,38 @@ void CalcField (doublecomplex * restrict ebuff, // where to write calculated sca
 			iy1=iy2;
 			iz1=iz2;
 #ifndef SPARSE // FFT mode
-			cMult(expsY[iy2],expsZ[iz2],tmp);
+			tmp=expsY[iy2]*expsZ[iz2];
 		}
-		cMult(tmp,expsX[ix],a);
+		a=tmp*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed
-			imExp(-kd*n[1]*iy2,expY);
-			imExp(-kd*n[2]*iz2,expZ);
-			cMult(expY,expZ,tmp);
+			expY=imExp(-kd*n[1]*iy2);
+			expZ=imExp(-kd*n[2]*iz2);
+			tmp=expY*expZ;
 		}
-		imExp(-kd*n[0]*ix,expX);
-		cMult(tmp,expX,a);
+		expX=imExp(-kd*n[0]*ix);
+		a=tmp*expX;
 #endif // SPARSE
 		/* the following line may incur certain overhead (from 0% to 5% depending on tests).
 		 * It is possible to remove this overhead by separating the complete loop for SQ_SO in a separate case (and it
 		 * was like that at r1209). However, the code was much harder to read and maintain. Since there are several
 		 * ideas that may speed up this calculation by a factor of a few times, we should not worry about 5%.
 		 */
-		if (ScatRelation==SQ_SO) cMultSelf(a,mult_mat[material[j]]);
+		if (ScatRelation==SQ_SO) a*=mult_mat[material[j]];
 		// sum(P*exp(-ik*r.n))
-		for(i=0;i<3;i++) {
-			sum[i][RE]+=pvec[jjj+i][RE]*a[RE]-pvec[jjj+i][IM]*a[IM];
-			sum[i][IM]+=pvec[jjj+i][RE]*a[IM]+pvec[jjj+i][IM]*a[RE];
-		}
+		for(i=0;i<3;i++) sum[i]+=pvec[jjj+i]*a;
 	} /* end for j */
 	
 
 	// tbuff=(I-nxn).sum=sum-n*(n.sum)
-	crDotProd(sum,n,dpr);
-	cScalMultRVec(n,dpr,tbuff);
-	cvSubtrSelf(sum,tbuff);
+	dpr=crDotProd(sum,n);
+	cvMultScal_RVec(dpr,n,tbuff);
+	cvSubtr(sum,tbuff,tbuff);
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
-	imExp(-WaveNum*DotProd(box_origin_unif,n),a); // a=exp(-ikr0.n)
+	a=imExp(-WaveNum*DotProd(box_origin_unif,n)); // a=exp(-ikr0.n)
 	kkk=WaveNum*WaveNum*WaveNum;
 	// the following additional multiplier implements IGT_SO
 	if (ScatRelation==SQ_IGT_SO) kkk*=(1-kd*kd/24);
-	tmp[RE]=a[IM]*kkk; // tmp=(-i*k^3)*exp(-ikr0.n)
-	tmp[IM]=-a[RE]*kkk;
+	tmp=-I*a*kkk; // tmp=(-i*k^3)*exp(-ikr0.n)
 	cvMultScal_cmplx(tmp,tbuff,ebuff);
 }
 
@@ -634,8 +627,7 @@ double AbsCross(void)
 	int i,j;
 	unsigned char mat;
 	double sum,temp1,temp2;
-	doublecomplex m2;
-	double *m; // not doublecomplex=double[2] to allow assignment to it
+	doublecomplex m,m2m1;
 	double multdr[MAX_NMAT][3];  // multiplier for draine formulation
 	double multfin[MAX_NMAT][3]; // multiplier for finite dipoles
 	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
@@ -656,7 +648,7 @@ double AbsCross(void)
 			 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
 			 */
 			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cInvIm(cc[i][j])-temp1;
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cimag(1/cc[i][j])-temp1;
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
@@ -671,8 +663,8 @@ double AbsCross(void)
 			 */
 			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
 			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) {
-				multdr[i][j]=-cInvIm(cc[i][j])-temp1;
-				multfin[i][j]=-chi_inv[i][j][IM];
+				multdr[i][j]=-cimag(1/cc[i][j])-temp1;
+				multfin[i][j]=-cimag(chi_inv[i][j]);
 			}
 			for (dip=0,sum=0,dCabs=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
@@ -692,10 +684,9 @@ double AbsCross(void)
 			temp2=FOUR_PI/dipvol;
 			for (i=0;i<Nmat;i++) {
 				m=ref_index[i];
-				cSquare(m,m2);
-				m2[RE]-=1;
+				m2m1=m*m-1;
 				// mult1=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
-				mult1[i]=temp2*m2[IM]*(1+temp1*m[IM]*m[IM])/cAbs2(m2);
+				mult1[i]=temp2*cimag(m2m1)*(1+temp1*cimag(m)*cimag(m))/cAbs2(m2m1);
 			}
 			// main cycle
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
@@ -738,25 +729,29 @@ void CalcAlldir(void)
 			LinComb(prop,robserver,cthet,sthet,robserver);
 			// calculate scattered field - main bottleneck
 			CalcField(ebuff,robserver);
-			// set Epar and Eper - use E2_alldir array to store them (to decrease communications in 1.5 times)
+			/* Set Epar and Eper - use separate E_ad array to store them (to decrease communications in 1.5 times).
+			 * Writing a special case for sequential mode can eliminate the need of E_ad altogether. Moreover,
+			 * E2_alldir can be stored in 1/4 of memory allocated for E_ad. However, we do not do it, because it doesn't
+			 * seem so significant. And, more importantly, complex fields may also be useful in the future, e.g.
+			 * for radiation force calculation through integration of the far-field
+			 */
 			// incPolper = sin(phi)*incPolX - cos(phi)*incPolY;
 			LinComb(incPolX,incPolY,sphi,-cphi,incPolper);
 			// incPolpar = -sin(theta)*prop + cos(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
 			LinComb(incPolX,incPolY,cphi,sphi,incPolpar);
 			LinComb(prop,incPolpar,-sthet,cthet,incPolpar);
 			index=2*point;
-			crDotProd(ebuff,incPolper,((doublecomplex*)E2_alldir)[index]);
-			crDotProd(ebuff,incPolpar,((doublecomplex*)E2_alldir)[index+1]);
+			E_ad[index]=crDotProd(ebuff,incPolper);
+			E_ad[index+1]=crDotProd(ebuff,incPolpar);
 			point++;
 			// show progress
 			if (((10*point)%npoints)<10 && IFROOT) printf(" %d%%",100*point/npoints);
 		}
 	}
 	// accumulate fields
-	Accumulate(E2_alldir,4*npoints,E2_alldir_buffer,&Timing_EFieldADComm);
+	Accumulate(E_ad,cmplx_type,2*npoints,&Timing_EFieldADComm);
 	// calculate square of the field
-	for (point=0;point<npoints;point++)
-		E2_alldir[point] = cAbs2(((doublecomplex*)E2_alldir)[2*point]) + cAbs2(((doublecomplex*)E2_alldir)[2*point+1]);
+	for (point=0;point<npoints;point++) E2_alldir[point] = cAbs2(E_ad[2*point]) + cAbs2(E_ad[2*point+1]);
 	if (IFROOT) printf("  done\n");
 	// timing
 	Timing_EFieldAD = GET_TIME() - tstart;
@@ -805,15 +800,15 @@ void CalcScatGrid(const enum incpol which)
 			LinComb(incPolX,incPolY,cphi,sphi,incPolpar);
 			LinComb(prop,incPolpar,-sthet,cthet,incPolpar);
 			index=2*point;
-			crDotProd(ebuff,incPolper,Egrid[index]);
-			crDotProd(ebuff,incPolpar,Egrid[index+1]);
+			Egrid[index]=crDotProd(ebuff,incPolper);
+			Egrid[index+1]=crDotProd(ebuff,incPolpar);
 			point++;
 			// show progress; the value is always from 0 to 100, so conversion to int is safe
 			if (((10*point)%angles.N)<10 && IFROOT) printf(" %d%%",(int)(100*point/angles.N));
 		}
 	}
 	// accumulate fields; timing
-	Accumulate((double *)Egrid,4*angles.N,Egrid_buffer,&Timing_EFieldSGComm);
+	Accumulate(Egrid,cmplx_type,2*angles.N,&Timing_EFieldSGComm);
 	if (IFROOT) printf("  done\n");
 	Timing_EFieldSG = GET_TIME() - tstart;
 	Timing_EField += Timing_EFieldSG;
@@ -986,8 +981,8 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	double Fsca[3],Finc[3];
 	double *vec;
 	double r,r2; // (squared) absolute distance
+	double n[3]; // unit vector in the direction of r_{jl}
 	doublecomplex
-	n[3],                  // unit vector in the direction of r_{jl}; complex part is always zero
 	a,ab1,ab2,c1[3],c2[3], // see chapter ...
 	x_cg[3], // complex conjugate P*_j
 	Pn_j,    // n_jk.P_k
@@ -1043,60 +1038,29 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	for (j=0,jg=3*local_nvoid_d0;j<local_nRows;j+=3,jg+=3) {
 		for (comp=0;comp<3;++comp) Fsca[comp]=0;
 		for (k=0;k<nRows;k+=3) if (jg!=k) {
-			r2 = 0;
-			Pn_j[RE]=Pn_j[IM]=Pn_k[RE]=Pn_k[IM]=inp[RE]=inp[IM]=0.0;
 			// Set distance related variables
-			for (comp=0;comp<3;++comp) {
-				n[comp][IM] = 0;
-				n[comp][RE] = rdipT[jg+comp] - rdipT[k+comp];
-				r2 += n[comp][RE]*n[comp][RE];
-			}
+			vSubtr(rdipT+jg,rdipT+k,n);
+			r2=DotProd(n,n);
 			r = sqrt(r2);
-			n[0][RE]/=r; n[1][RE]/=r; n[2][RE]/=r;
+			vMultScal(1/r,n,n);
 			// Set the scalar products a.b1 and a.b2
-			a[RE] = cos(WaveNum*r);
-			a[IM] = sin(WaveNum*r);
-			ab1[RE] = 3/(r2*r2) - WaveNum*WaveNum/r2;
-			ab2[RE] = -WaveNum*WaveNum/r2;
-			ab1[IM] = -3*WaveNum/(r*r2);
-			ab2[IM] = WaveNum*WaveNum*WaveNum/r;
-			cMultSelf(ab1,a);
-			cMultSelf(ab2,a);
+			a = imExp(WaveNum*r);
+			ab1 = (3/(r2*r2) - I*3*WaveNum/(r*r2) - WaveNum*WaveNum/r2)*a;
+			ab2 = (-WaveNum*WaveNum/r2 + I*WaveNum*WaveNum*WaveNum/r)*a;
 			// Prepare c1 and c2
-			for (comp=0;comp<3;++comp) {
-				x_cg[comp][RE] = pT[jg+comp][RE];
-				x_cg[comp][IM] = -pT[jg+comp][IM];
-				cMult(x_cg[comp],n[comp],temp);
-				cAdd(Pn_j,temp,Pn_j);
-				cMult(n[comp],pT[k+comp],temp);
-				cAdd(Pn_k,temp,Pn_k);
-				cMult(x_cg[comp],pT[k+comp],temp);
-				cAdd(inp,temp,inp);
-			}
-			for (comp=0;comp<3;++comp) {
-				// Set c1
-				cMult(Pn_j,Pn_k,temp);
-				cMult(n[comp],temp,c1[comp]);
-				c1[comp][RE] *= -5;
-				c1[comp][IM] *= -5;
-				cMult(inp,n[comp],temp);
-				cAdd(c1[comp],temp,c1[comp]);
-				cMult(Pn_j,pT[k+comp],temp);
-				cAdd(c1[comp],temp,c1[comp]);
-				cMult(x_cg[comp],Pn_k,temp);
-				cAdd(c1[comp],temp,c1[comp]);
-				// Set c2
-				cMult(Pn_j,Pn_k,temp);
-				cMult(n[comp],temp,c2[comp]);
-				c2[comp][RE] *= -1;
-				c2[comp][IM] *= -1;
-				cMult(inp,n[comp],temp);
-				cAdd(c2[comp],temp,c2[comp]);
-				// Fsca_{jk} = ...
-				cMultSelf(c1[comp],ab1);
-				cMultSelf(c2[comp],ab2);
-				Fsca[comp] += (c1[comp][RE] + c2[comp][RE])/2;
-			}
+			vConj(pT+jg,x_cg);
+			Pn_j=crDotProd(x_cg,n);
+			Pn_k=crDotProd(pT+k,n);
+			inp=cDotProd(pT+k,pT+jg);
+			temp=-Pn_j*Pn_k;
+			// Set c1
+			cvMultScal_RVec(5*temp+inp,n,c1);
+			cvLinComb1_cmplx(pT+k,c1,Pn_j,c1);
+			cvLinComb1_cmplx(x_cg,c1,Pn_k,c1);
+			// Set c2
+			cvMultScal_RVec(temp+inp,n,c2);
+			// Fsca_{jk} = ...
+			for (comp=0;comp<3;++comp) Fsca[comp] += creal(c1[comp]*ab1 + c2[comp]*ab2)/2;
 		} // end k-loop
 		// Concluding
 		vAdd(Fsca,Fsca_tot,Fsca_tot);

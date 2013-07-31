@@ -69,5 +69,5 @@ void FieldPrint (doublecomplex * restrict x)
 
 	i*=3;
 	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
-	fprintf(logfile,"E = "CFORM3V,x[i][RE],x[i][IM],x[i+1][RE],x[i+1][IM],x[i+2][RE],x[i+2][IM]);
+	fprintf(logfile,"E = "CFORM3V,creal(x[i]),cimag(x[i]),creal(x[i+1]),cimag(x[i+1]),creal(x[i+2]),cimag(x[i+2]));
 }

@@ -328,10 +328,17 @@ ifeq ($(COMPILER),gnu)
   CSTD    := -std=c99
   COPT1   := -O2
   COPT2   := -O3 -ffast-math -funroll-loops
-  CWARN   := -Wall -Wextra -pedantic -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
+  CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
              -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas \
              -Wno-overlength-strings
-
+  # gcc versions prior to 4.7.2 are affected by bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=7263 , which causes
+  # -pedantic flag to generates warnings on every occurence of I (complex i)
+  GCC_GTEQ_472 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \
+    -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40702)
+  ifeq "$(GCC_GTEQ_472)" "1"
+    CWARN += -pedantic
+  endif
+  
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran

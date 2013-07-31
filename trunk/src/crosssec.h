@@ -21,7 +21,7 @@
 #include "const.h" // for enum definition
 #include "types.h" // for doublecomplex
 
-void CalcField(doublecomplex * restrict ebuff,const double * restrict n);
+void CalcField(doublecomplex ebuff[static restrict 3],const double n[static restrict 3]);
 void InitRotation(void);
 double ExtCross(const double * restrict incPol);
 double AbsCross(void);

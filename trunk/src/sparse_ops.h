@@ -106,9 +106,10 @@ static inline void CcMul(doublecomplex * restrict argvec_src,doublecomplex * res
 // Takes the j'th block in argvec_src, multiplies by cc_sqrt at that position and stores the result in argvec_dest.
 {
 	const size_t j3 = j*3;
-	cMult(argvec_src[j3],cc_sqrt[material[j]][0],argvec_dest[j3]);
-	cMult(argvec_src[j3+1],cc_sqrt[material[j]][1],argvec_dest[j3+1]);
-	cMult(argvec_src[j3+2],cc_sqrt[material[j]][2],argvec_dest[j3+2]);
+
+	argvec_dest[j3]=argvec_src[j3]*cc_sqrt[material[j]][0];
+	argvec_dest[j3+1]=argvec_src[j3+1]*cc_sqrt[material[j]][1];
+	argvec_dest[j3+2]=argvec_src[j3+2]*cc_sqrt[material[j]][2];
 }
 
 //=====================================================================================================================
@@ -119,36 +120,15 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
  * to the j'th block of resultvec.
  */
 {
-	doublecomplex tmp1,resX,resY,resZ;
+	doublecomplex res[3];
 	doublecomplex iterm[6];
 	const size_t i3=3*i,j3=3*j;
 
-	//D("%d %d %d %d %d %d %d %d",i,j,position[3*i],position[3*i+1],position[3*i+2],
-	//	position[3*j],position[3*j+1],position[3*j+2]);
 	(*CalcInterTerm)(position[i3]-position_full[j3],position[i3+1]-position_full[j3+1],
 		position[i3+2]-position_full[j3+2],iterm);
 
-	cMult(argvec[j3],iterm[0],resX);
-	cMult(argvec[j3+1],iterm[1],tmp1);
-	cAdd(resX,tmp1,resX);
-	cMult(argvec[j3+2],iterm[2],tmp1);
-	cAdd(resX,tmp1,resX);
-
-	cMult(argvec[j3],iterm[1],resY);
-	cMult(argvec[j3+1],iterm[3],tmp1);
-	cAdd(resY,tmp1,resY);
-	cMult(argvec[j3+2],iterm[4],tmp1);
-	cAdd(resY,tmp1,resY);
-
-	cMult(argvec[j3],iterm[2],resZ);
-	cMult(argvec[j3+1],iterm[4],tmp1);
-	cAdd(resZ,tmp1,resZ);
-	cMult(argvec[j3+2],iterm[5],tmp1);
-	cAdd(resZ,tmp1,resZ);
-
-	cAdd(resX,resultvec[i3],resultvec[i3]);
-	cAdd(resY,resultvec[i3+1],resultvec[i3+1]);
-	cAdd(resZ,resultvec[i3+2],resultvec[i3+2]);
+	cSymMatrVec(iterm,argvec+j3,res);
+	cvAdd(res,resultvec+i3,resultvec+i3);
 }
 
 //=====================================================================================================================
@@ -159,14 +139,10 @@ static inline void DiagProd(doublecomplex * restrict argvec,doublecomplex * rest
  */
 {
 	const size_t i3 = i*3;
-	doublecomplex tmp1, tmp2, tmp3;
 
-	cMult(resultvec[i3],cc_sqrt[material[i]][0],tmp1);
-	cMult(resultvec[i3+1],cc_sqrt[material[i]][1],tmp2);
-	cMult(resultvec[i3+2],cc_sqrt[material[i]][2],tmp3);
-	cSubtr(argvec[i3], tmp1, resultvec[i3]);
-	cSubtr(argvec[i3+1], tmp2, resultvec[i3+1]);
-	cSubtr(argvec[i3+2], tmp3, resultvec[i3+2]);
+	resultvec[i3]   = argvec[i3]   - resultvec[i3]*cc_sqrt[material[i]][0];
+	resultvec[i3+1] = argvec[i3+1] - resultvec[i3+1]*cc_sqrt[material[i]][1];
+	resultvec[i3+2] = argvec[i3+2] - resultvec[i3+2]*cc_sqrt[material[i]][2];
 }
 
 #endif // !USE_SSE3
