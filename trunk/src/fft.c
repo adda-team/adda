@@ -34,7 +34,9 @@
 #include <string.h>
 
 #ifdef CLFFT_AMD
+	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header
 #	include <clAmdFft.h> //external library from AMD
+	STOP_IGNORE
 	// Defines precision of clAmdFft transforms. !!! CLFFT_DOUBLE_FAST should be tested when becomes operational
 #	define PRECISION_CLFFT CLFFT_DOUBLE
 #elif defined(CLFFT_APPLE)
@@ -318,8 +320,15 @@ void fftX(const int isign)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridX,inc=1,jump=nn,lot=boxY;
 	size_t z;
-
+	/* Calls to Temperton FFT cause warnings for translation from doublecomplex to double pointers. However, such a cast
+	 * is perfectly valid in C99. So we set pragmas to remove these warnings.
+	 *
+	 * !!! TODO: Another (ultimate) solution is to remove this routine altogether, since FFTW is perfect in all
+	 * respects. This is also reasonable considering future switch to tgmath.h
+	 */
+	IGNORE_WARNING(-Wstrict-aliasing);
 	for (z=0;z<3*local_Nz;z++) cfft99_((double *)(Xmatrix+z*gridX*smallY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -343,7 +352,9 @@ void fftY(const int isign)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridY,inc=1,jump=nn,lot=3*gridZ;
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	cfft99_((double *)(slices_tr),work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -367,7 +378,9 @@ void fftZ(const int isign)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridZ,inc=1,jump=nn,lot=boxY,Xcomp;
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	for (Xcomp=0;Xcomp<3;Xcomp++) cfft99_((double *)(slices+gridYZ*Xcomp),work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -382,7 +395,9 @@ static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
 	int nn=gridX,inc=1,jump=nn,lot=D2sizeY,isign=FFT_FORWARD;
 	size_t z;
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	for (z=0;z<lengthZ;z++) cfft99_((double *)(D2matrix+z*gridX*D2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -396,7 +411,9 @@ static void fftY_Dm(void)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridY,inc=1,jump=nn,lot=gridZ,isign=FFT_FORWARD;
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	cfft99_((double *)slice_tr,work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -410,7 +427,9 @@ static void fftZ_Dm(void)
 #elif defined(FFT_TEMPERTON)
 	int nn=gridZ,inc=1,jump=nn,lot=gridY,isign=FFT_FORWARD;
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	cfft99_((double *)slice,work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
 #endif
 }
 
@@ -531,6 +550,9 @@ static void fftInitAfterD(void)
  * completely separate code is used for OpenCL and FFTW3, because even precise-timing output is significantly different.
  * In particular, FFTW3 uses separate plans for forward and backward, while clFFT (by Apple or AMD) uses one plan for
  * both directions.
+ *
+ * clFft access the OpenCL buffers directly, so they are not anyhow affected by the definition of complex numbers in the
+ * main part of the code (although, it is consistent with it)
  */
 {
 #ifdef OPENCL
@@ -777,7 +799,7 @@ void InitDmatrix(void)
 	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
 	/* The following are constant device buffers which are initialized with host data. But bufDmatrix is initialized in
-	 * the end of this function (to be compatible with prognosis. And bufcc_sqrt is initialized in InitCC, since it may
+	 * the end of this function (to be compatible with prognosis). And bufcc_sqrt is initialized in InitCC, since it may
 	 * change for every run of the iterative solver.
 	 */
 	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);

@@ -39,7 +39,9 @@
 #include <time.h>
 
 #ifdef CLFFT_AMD
+	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header
 #	include <clAmdFft.h> // for version information
+	STOP_IGNORE
 #endif
 
 #ifndef NO_SVNREV

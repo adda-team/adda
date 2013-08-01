@@ -311,6 +311,10 @@ static void GetDevice(struct string *copt_ptr)
 
 void oclinit(void)
 // initialize OpenCL environment
+/* The whole OpenCL part relies on correspondence between complex and two-part, which is mandated by C99. The data
+ * transfers are done through void pointers, so compiler doesn't generate warnings for casts. So that should be both
+ * convenient and portable.
+ */
 {
 	cl_int err; // error code
 	const char *cssPtr[1]; // pointer to (array of) cSourceString, required to avoid warnings

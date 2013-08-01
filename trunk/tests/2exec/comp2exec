@@ -17,6 +17,8 @@ INPUTDIR="./../../input"
 ADDASEQ="./../../src/seq/adda"
 ADDAMPI="./../../src/mpi/adda_mpi"
 ADDAOCL="./../../src/ocl/adda_ocl"
+#Path to reference binaries, examples: "." or "./../../win64"
+REFPATH=.
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
 
@@ -35,18 +37,18 @@ fi
 
 if [ -n "$SPARSE" ]; then
   DEFSUITE=suite_sparse
-  SEQREF="./adda_sparse" # !!! This should be adjusted
-  MPIREF="./adda_mpi_sparse" # !!! This should be adjusted
-  OCLREF="./adda_ocl_sparse" # !!! This should be adjusted
+  SEQREF="$REFPATH/adda_spa" # !!! This should be adjusted
+  MPIREF="$REFPATH/adda_spa_mpi" # !!! This should be adjusted
+  OCLREF="$REFPATH/adda_spa_ocl" # !!! This should be adjusted
 else
   if [ -n "$SPARSE_STANDARD" ]; then
     DEFSUITE=suite_sparse
   else
     DEFSUITE=suite
   fi
-  SEQREF="./adda_1.1" # !!! This should be adjusted
-  MPIREF="./adda_mpi_1.1.exe" # !!! This should be adjusted
-  OCLREF="./adda_ocl_1.1" # !!! This should be adjusted
+  SEQREF="$REFPATH/adda" # !!! This should be adjusted
+  MPIREF="$REFPATH/adda_mpi" # !!! This should be adjusted
+  OCLREF="$REFPATH/adda_ocl" # !!! This should be adjusted
 fi
 
 MODE=${1:-seq}

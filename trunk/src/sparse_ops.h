@@ -54,9 +54,11 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 
 	__m128d res, tmp;
 
+	IGNORE_WARNING(-Wstrict-aliasing); // cast from doublecomplex* to double* is perfectly valid in C99
 	const __m128d argX = _mm_load_pd((double *)(argvec+j3));
 	const __m128d argY = _mm_load_pd((double *)(argvec+j3+1));
 	const __m128d argZ = _mm_load_pd((double *)(argvec+j3+2));
+	STOP_IGNORE;
 
 	res = cmul(argX, *(__m128d *)&(iterm[0]));
 	tmp = cmul(argY, *(__m128d *)&(iterm[1]));

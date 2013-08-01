@@ -21,14 +21,14 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
+#include "function.h"
 #include "types.h"
 #include "vars.h"
 // system headers
 #include <string.h>
 
 /* There are several optimization ideas used in this file:
- * - pragmas, indicating that the loop is supposed to be very large, are used. However, they are probably understood
- * only by the Intel compiler.
+ * - pragmas for Intel compiler, indicating that the loop is supposed to be very large, are used.
  * - If usage of some function has coinciding arguments, than a special function for such case is created. In
  * particular, this allows consistent usage of 'restrict' keyword almost for all function arguments.
  * - Deeper optimizations, such as loop unrolling, are left to the compiler.
@@ -43,7 +43,7 @@ void nInit(doublecomplex * restrict a)
 {
 	register size_t i;
 	register const size_t n=local_nRows;
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i]=0;
 }
 
@@ -64,7 +64,7 @@ double nNorm2(const doublecomplex * restrict a,TIME_TYPE *comm_timing)
 	register const size_t n=local_nRows;
 	double sum=0;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) sum+=cAbs2(a[i]);
 	// this function is not called inside the main iteration loop
 	MyInnerProduct(&sum,double_type,1,comm_timing);
@@ -82,7 +82,7 @@ doublecomplex nDotProd(const doublecomplex * restrict a,const doublecomplex * re
 	register const size_t n=local_nRows;
 	doublecomplex sum=0;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) sum+=a[i]*conj(b[i]);
 	MyInnerProduct(&sum,cmplx_type,1,comm_timing);
 	return sum;
@@ -99,7 +99,7 @@ doublecomplex nDotProd_conj(const doublecomplex * restrict a,const doublecomplex
 	register const size_t n=local_nRows;
 	doublecomplex sum=0;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) sum+=a[i]*b[i];
 	MyInnerProduct(&sum,cmplx_type,1,comm_timing);
 	return sum;
@@ -114,7 +114,7 @@ doublecomplex nDotProdSelf_conj(const doublecomplex * restrict a,TIME_TYPE *comm
 	register const size_t n=local_nRows;
 	doublecomplex sum=0;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	/* Explicit writing the following through real and imaginary types can lead to delaying the multiplication by two
 	 * until the sum is complete. But that is not believed to be significant
 	 */
@@ -132,7 +132,7 @@ doublecomplex nDotProdSelf_conj_Norm2(const doublecomplex * restrict a,double * 
 	register const size_t n=local_nRows;
 	double buf[3]={0,0,0};
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	// Here the optimization for explicit treatment seems significant, so we keep the old code
 	for (i=0;i<n;i++) {
 		buf[0]+=creal(a[i])*creal(a[i]);
@@ -153,7 +153,7 @@ void nIncrem110_cmplx(doublecomplex * restrict a,const doublecomplex * restrict 
 	register size_t i;
 	register const size_t n=local_nRows;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] = c1*a[i] + c2*b[i] + c[i];
 }
 
@@ -166,7 +166,7 @@ void nIncrem011_cmplx(doublecomplex * restrict a,const doublecomplex * restrict 
 	register size_t i;
 	register const size_t n=local_nRows;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] += c1*b[i] + c2*c[i];
 }
 
@@ -183,11 +183,11 @@ void nIncrem110_d_c_conj(doublecomplex * restrict a,const doublecomplex * restri
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c1*conj(a[i]) + c2*conj(b[i]) + c[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c1*conj(a[i]) + c2*conj(b[i]) + c[i];
 			sum += cAbs2(a[i]);
@@ -206,7 +206,7 @@ void nIncrem111_cmplx(doublecomplex * restrict a,const doublecomplex * restrict 
 	register size_t i;
 	register const size_t n=local_nRows;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] = c1*a[i] + c2*b[i] + c3*c[i];
 }
 
@@ -221,11 +221,11 @@ void nIncrem(doublecomplex * restrict a,const doublecomplex * restrict b,double 
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] += b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] += b[i];
 			sum += cAbs2(a[i]);
@@ -246,11 +246,11 @@ void nDecrem(doublecomplex * restrict a,const doublecomplex * restrict b,double 
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] -= b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] -= b[i];
 			sum += cAbs2(a[i]);
@@ -271,11 +271,11 @@ void nIncrem01(doublecomplex * restrict a,const doublecomplex * restrict b,const
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] += c*b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] += c*b[i];
 			sum += cAbs2(a[i]);
@@ -296,11 +296,11 @@ void nIncrem10(doublecomplex * restrict a,const doublecomplex * restrict b,const
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c*a[i] + b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c*a[i] + b[i];
 			sum += cAbs2(a[i]);
@@ -321,12 +321,12 @@ void nIncrem11_d_c(doublecomplex * restrict a,const doublecomplex * restrict b,c
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c1*a[i] + c2*b[i];
 	}
 	else {
 		*inprod=0.0;
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c1*a[i] + c2*b[i];
 			sum += cAbs2(a[i]);
@@ -347,11 +347,11 @@ void nIncrem01_cmplx(doublecomplex * restrict a,const doublecomplex * restrict b
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] += c*b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] += c*b[i];
 			sum += cAbs2(a[i]);
@@ -372,11 +372,11 @@ void nIncrem10_cmplx(doublecomplex * restrict a,const doublecomplex * restrict b
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c*a[i] + b[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c*a[i] + b[i];
 			sum += cAbs2(a[i]);
@@ -397,11 +397,11 @@ void nLinComb_cmplx(doublecomplex * restrict a,const doublecomplex * restrict b,
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c1*b[i] + c2*c[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c1*b[i] + c2*c[i];
 			sum += cAbs2(a[i]);
@@ -422,11 +422,11 @@ void nLinComb1_cmplx(doublecomplex * restrict a,const doublecomplex * restrict b
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c1*b[i] + c[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c1*b[i] + c[i];
 			sum += cAbs2(a[i]);
@@ -447,11 +447,11 @@ void nLinComb1_cmplx_conj(doublecomplex * restrict a,const doublecomplex * restr
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = c1*conj(b[i]) + c[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = c1*conj(b[i]) + c[i];
 			sum += cAbs2(a[i]);
@@ -473,11 +473,11 @@ void nSubtr(doublecomplex * restrict a,const doublecomplex * restrict b,const do
 	double sum=0;
 
 	if (inprod==NULL) {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) a[i] = b[i] - c[i];
 	}
 	else {
-#pragma loop count (100000)
+		LARGE_LOOP;
 		for (i=0;i<n;i++) {
 			a[i] = b[i] - c[i];
 			sum += cAbs2(a[i]);
@@ -495,7 +495,7 @@ void nMult(doublecomplex * restrict a,const doublecomplex * restrict b,const dou
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] = c*b[i];
 }
 
@@ -507,7 +507,7 @@ void nMult_cmplx(doublecomplex * restrict a,const doublecomplex * restrict b,con
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] = c*b[i];
 }
 //======================================================================================================================
@@ -518,7 +518,7 @@ void nMultSelf(doublecomplex * restrict a,const double c)
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] *= c;
 }
 //======================================================================================================================
@@ -529,7 +529,7 @@ void nMultSelf_conj(doublecomplex * restrict a,const double c)
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] = c*conj(a[i]);
 }
 
@@ -541,7 +541,7 @@ void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i] *= c;
 }
 
@@ -560,7 +560,7 @@ void nMult_mat(doublecomplex * restrict a,const doublecomplex * restrict b,/*con
 	 */
 	const doublecomplex * restrict val;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0,k=0;i<nd;i++,k+=3) {
 		val=c[material[i]];
 		a[k] = val[0]*b[k];
@@ -584,7 +584,7 @@ void nMultSelf_mat(doublecomplex * restrict a,/*const*/ doublecomplex (* restric
 	 */
 	const doublecomplex * restrict val;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0,k=0;i<nd;i++,k+=3) {
 		val=c[material[i]];
 		a[k] *= val[0];
@@ -601,6 +601,6 @@ void nConj(doublecomplex * restrict a)
 	register const size_t n=local_nRows;
 	register size_t i;
 
-#pragma loop count (100000)
+	LARGE_LOOP;
 	for (i=0;i<n;i++) a[i]=conj(a[i]);
 }

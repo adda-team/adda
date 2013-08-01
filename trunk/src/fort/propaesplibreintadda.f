@@ -21,12 +21,14 @@ c     ,wavelength, spacing lattice
       double precision k0a,arretecubem
       double precision x,y,z,arretecube,k0,xx0,yy0,zz0
       double precision Rij(3),result(12)
+c     The structure of the result is the following:
+c     Re(G11),Re(G12),Re(G13),Re(G22),Re(G23),Re(G33),Im(G11),...,Im(G33)
 
 c     Variables needs for the integration
       integer  KEY, N, NF, NDIM, MINCLS, MAXCLS, IFAIL, NEVAL, NW
       parameter (nw=4000000,ndim=3,nf=12)
       double precision A(NDIM), B(NDIM), WRKSTR(NW)
-      double precision  ABSEST(NF), FINEST(NF), ABSREQ, RELREQ,err
+      double precision  ABSEST(NF), ABSREQ, RELREQ,err
       
       double precision Id(3,3),Rab,Rvect(3)
 
@@ -68,21 +70,16 @@ c     definition for the integration
       endif
 
       call  DCUHRE(NDIM,NF,A,B, MINCLS, MAXCLS, fonctionigtadda,
-     $      ABSREQ,RELREQ,KEY,NW,0,finest,ABSEST,NEVAL,IFAIL, WRKSTR) 
+     $      ABSREQ,RELREQ,KEY,NW,0,result,ABSEST,NEVAL,IFAIL, WRKSTR) 
       
       do N = 1,NF
-         FINEST(N)=FINEST(N)/arretecube/arretecube/arretecube
+         result(N)=result(N)/arretecube/arretecube/arretecube
       enddo
 
       if (ifail.ne.0) then
          write(*,*) 'IFAIL in IGT routine',IFAIL
       endif
 
-      do i = 1,6
-        result(2*i-1)=finest(i)
-        result(2*i)=finest(i+6)
-      enddo
-    
       end
 c*************************************************************
       subroutine fonctionigtadda(ndim,zz,nfun,f)
