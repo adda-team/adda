@@ -138,8 +138,18 @@ static inline __m128d accImExp_pd(const double x)
 
 static inline doublecomplex accImExp(const double x)
 {
+	/* Here and further in the SSE3 part it is assumed that doublecomplex is equivalent to two doubles (that is
+	 * specified by the C99 standard). Explicit pointer casts have been put in place, and pragmas to ignore remaining
+	 * warnings from strict aliasing.
+	 *
+	 * !!! TODO: SSE3 code is a nice hack. But it should be considered carefully - is it worth it? In particular, it
+	 * seems that only parts of it are really beneficial (like tabulated evaluation of imaginary exponents), and those
+	 * can be incorporated into the main code (using standard C99 only).
+	 */
 	doublecomplex c;
-	_mm_store_pd(&c,accImExp_pd(x));
+	IGNORE_WARNING(-Wstrict-aliasing);
+	_mm_store_pd((double *)(&c),accImExp_pd(x));
+	STOP_IGNORE;
 	return c;
 }
 
@@ -155,26 +165,30 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 	const __m128d v1 = _mm_set_pd(kr,t3);
 	const __m128d v2 = _mm_set_pd(t2,t1);
 	__m128d qff,im_re;
-	_mm_store_pd(expval,sc);
+	IGNORE_WARNING(-Wstrict-aliasing);
+	_mm_store_pd((double *)expval,sc);
+	STOP_IGNORE;
 
 #undef INTERACT_MUL
 #define INTERACT_DIAG(ind) { \
 	qff = _mm_set1_pd(qmunu[ind]); \
 	im_re = _mm_add_pd(v1,_mm_mul_pd(v2,qff)); \
 	im_re = cmul(sc,im_re); \
-	_mm_store_pd(result+ind,im_re); }
+	_mm_store_pd((double *)(result+ind),im_re); }
 #define INTERACT_NONDIAG(ind) { \
 	qff = _mm_set1_pd(qmunu[ind]); \
 	im_re = _mm_mul_pd(v2,qff); \
 	im_re = cmul(sc,im_re); \
-	_mm_store_pd(result+ind,im_re); }
+	_mm_store_pd((double *)(result+ind),im_re); }
 
+	IGNORE_WARNING(-Wstrict-aliasing);
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
 	INTERACT_NONDIAG(2); // xz
 	INTERACT_DIAG(3);    // yy
 	INTERACT_NONDIAG(4); // yz
 	INTERACT_DIAG(5);    // zz
+	STOP_IGNORE;
 
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
@@ -716,12 +730,18 @@ void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex result[
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
 	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
-	double rtemp[3];
+	double rtemp[3],tmp[12];
+	int comp;
 
 	CalcInterParams1(i,j,k,qvec,&rn);
 	if (igt_lim==UNDEF || rn<=igt_lim) {
 		vMultScal(gridspace,qvec,rtemp);
-		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,(double *)result);
+		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
+		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
+		 * internally for integration in this Fortran routine.
+		 */
+		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,tmp);
+		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {
 		// The following is equivalent to CalcInterTerm_poi, except for the 1st part of initialization performed above
@@ -830,7 +850,7 @@ void InitInteraction(void)
 #ifndef NO_FORTRAN
 		case G_IGT: CalcInterTerm = &CalcInterTerm_igt; break;
 #endif
-		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",IntRelation);
+		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
 			// no break
 	}
 	// read tables if needed

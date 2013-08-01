@@ -329,8 +329,7 @@ ifeq ($(COMPILER),gnu)
   COPT1   := -O2
   COPT2   := -O3 -ffast-math -funroll-loops
   CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-unknown-pragmas \
-             -Wno-overlength-strings
+             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-overlength-strings
   # gcc versions prior to 4.7.2 are affected by bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=7263 , which causes
   # -pedantic flag to generates warnings on every occurence of I (complex i)
   GCC_GTEQ_472 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \

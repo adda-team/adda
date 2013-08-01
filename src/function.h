@@ -1,6 +1,6 @@
 /* File: function.h
  * $Date::                            $
- * Descr: function attributes
+ * Descr: function attributes and compiler pragmas
  *
  * Copyright (C) 2006,2008,2010-2011,2013 ADDA contributors
  * This file is part of ADDA.
@@ -17,7 +17,6 @@
 #ifndef __function_h
 #define __function_h
 
-
 // attribute options for GCC compilers (Intel compiler may also recognize them)
 #ifdef __GNUC__
 	// sets a macro for testing GCC version (copied from _mingw.h)
@@ -26,6 +25,16 @@
 			(__GNUC__ > (major) || (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
 #	else
 #		define GCC_PREREQ(major, minor)  0
+#	endif
+	// pragmas to ignore warnings
+#	if GCC_PREREQ(4,6)
+#		define DO_PRAGMA(x) _Pragma (#x)
+#		define IGNORE_WARNING(x) DO_PRAGMA(GCC diagnostic ignored #x)
+#		// assume that push is not used anywhere
+#		define STOP_IGNORE       _Pragma ("GCC diagnostic pop")
+#	else
+#		define IGNORE_WARNING(x)
+#		define STOP_IGNORE
 #	endif
 	// The following chooses between __printf__ and __gnu_printf__ attributes
 #	if GCC_PREREQ(4,4)
@@ -49,11 +58,19 @@
 #	define ATT_NORETURN __attribute__ ((__noreturn__))
 #	define ATT_UNUSED   __attribute__ ((__unused__))
 #else
+#	define IGNORE_WARNING(x)
+#	define STOP_IGNORE
 #	define ATT_PRINTF(a,b)
 #	define ATT_PURE
 #	define ATT_MALLOC
 #	define ATT_NORETURN
 #	define ATT_UNUSED
+#endif
+
+#ifdef __ICC
+#	define LARGE_LOOP _Pragma ("loop_count (10000)")
+#else
+#	define LARGE_LOOP
 #endif
 
 #endif // __function_h

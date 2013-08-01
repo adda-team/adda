@@ -173,6 +173,7 @@ all -pol cm ;mgn;
 all -pol dgf ;mgn;
 all -pol fcd ;mgn;
 all -pol igt_so ;mgn;
+all -pol lak ;mgn;
 all -pol ldr ;p; ;mgn;
 all -pol ldr avgpol ;p; ;mgn;
 all -pol rrc ;mgn;

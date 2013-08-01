@@ -92,7 +92,7 @@ struct iter_params_struct {
 	int vec_N;        // number of additional vectors to describe the state
 	void (*func)(const enum phase); // pointer to implementation of the iterative solver
 };
-static doublecomplex dumb; // dumb variable, used in workaround for issue 146
+static doublecomplex dumb ATT_UNUSED; // dumb variable, used in workaround for issue 146
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
@@ -340,6 +340,10 @@ ITER_FUNC(BCGS2)
  * so we use l=2 here. In many cases one iteration of this method is similar to two iterations of BiCGStab, but overall
  * convergence is slightly better.
  * Breakdown tests were made to coincide with that for BiCGStab for l=1.
+ *
+ * !!! This iterative solver produces segmentation fault when compiled with icc 11.1. Probably that is related to
+ * issue 146. But we leave it be (assume that this is a compiler bug). Even if someone uses this compiler, he can
+ * live fine without this iterative solver.
  */
 {
 #define LL 2 // potentially the method will also work for l=1 (but memory allocation and freeing need to be adjusted)

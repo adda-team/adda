@@ -154,9 +154,8 @@ static MPI_Datatype MPIVarType(var_type type,bool reduce,int *mult)
  * directly used. In this case we emulate more complex datatypes through multiplication of double, and additional
  * variable 'mult' is returned to account for this factor.
  *
- * Reduction of complex numbers is emulated if not supported; the emulation is not perfectly portable - depends on a
- * particular implementation of complex numbers. The good thing is that it is only used for old (less modern) MPI
- * implementations.
+ * Reduction of complex numbers is emulated if not supported; C99 implies that this emulation is portable. Anyway, it
+ * is only used for old (less modern) MPI implementations.
  */
 {
 	if (reduce) *mult=1; // default value when direct correspondence is possible
