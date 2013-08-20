@@ -44,8 +44,9 @@ extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 #endif
 // defined and initialized in GenerateB.c
 extern const double beam_center_0[3];
+//extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
-extern const double prop_0[3],incPolX_0[3],incPolY_0[3];
+extern const double incPolX_0[3],incPolY_0[3];
 extern const enum scat ScatRelation;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,Timing_EFieldSG,Timing_EFieldSGComm,
@@ -53,6 +54,8 @@ Timing_ScatQuanComm;
 
 // used in CalculateE.c
 Parms_1D phi_sg;
+double ezLab[3]; // basis vector ez of laboratory RF transformed into the RF of particle
+double exSP[3]; // second vector, which determines the scattering plane passing through prop and ez (in particle RF)
 // used in calculator.c
 Parms_1D parms_alpha; // parameters of integration over alpha
 Parms_1D parms[2];    // parameters for integration over theta,phi or beta,gamma
@@ -64,8 +67,9 @@ bool full_al_range; // whether full range of alpha angle is used
 
 // LOCAL VARIABLES
 
-double dCabs;           // difference between Cabs calculated by 'dr' and 'fin' formulations
-bool dCabs_ready=false; // whether dCabs is already calculated
+static double dCabs;             // difference between Cabs calculated by 'dr' and 'fin' formulations
+static bool dCabs_ready=false;   // whether dCabs is already calculated
+static double exLab[3],eyLab[3]; // basis vectors of laboratory RF transformed into the RF of particle
 
 //======================================================================================================================
 
@@ -86,6 +90,7 @@ void InitRotation (void)
 	double ca,sa,cb,sb,cg,sg;
 	double beta_matr[3][3];
 	double alph,bet,gam; // in radians
+	double ex[3]; // second vector of scattering plane in the laboratory RF
 
 	// initialization of angle values in radians
 	alph=Deg2Rad(alph_deg);
@@ -108,10 +113,28 @@ void InitRotation (void)
 	beta_matr[2][0]=ca*sb;
 	beta_matr[2][1]=sa*sb;
 	beta_matr[2][2]=cb;
-	// rotation of incident field
+	// rotation of incident field and basis vectors of laboratory RF
 	MatrVec(beta_matr,prop_0,prop);
 	MatrVec(beta_matr,incPolY_0,incPolY);
 	MatrVec(beta_matr,incPolX_0,incPolX);
+	MatrColumn(beta_matr,0,exLab);
+	MatrColumn(beta_matr,1,eyLab);
+	MatrColumn(beta_matr,2,ezLab);
+	/* define the second vector (x) of the scattering plane (through prop and ez)
+	 * if prop is along ez, we choose the original ex (that is - we generally assume that beam propagates from the left
+	 * side and positive x-direction is in the right side (left and right is with respect to the possible rotation of
+	 * ex,ey over the z-axis
+	 */
+	if (prop_0[2]==1) vCopy(incPolX_0,ex);
+	else if (prop_0[2]==-1) vMultScal(-1,incPolX_0,ex);
+	else {
+		ex[0]=prop_0[0];
+		ex[1]=prop_0[1];
+		ex[2]=0;
+		vNormalize(ex);
+	}
+	MatrVec(beta_matr,ex,exSP);
+	// if needed rotate beam center
 	if (beam_asym) MatrVec(beta_matr,beam_center_0,beam_center);
 }
 
@@ -582,7 +605,7 @@ double ExtCross(const double * restrict incPol)
 	double sum;
 	size_t i;
 
-	if (beamtype==B_PLANE) {
+	if (beamtype==B_PLANE && !surface) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
@@ -703,13 +726,60 @@ double AbsCross(void)
 
 //======================================================================================================================
 
+void SetScatPlane(const double ct,const double st,const double phi,double robs[static restrict 3],
+	double polPer[static restrict 3])
+/* Given theta (cos,sin) and phi, calculates scattering direction and unit vector perpendicular to the scattering plane.
+ * Currently, two alternative definitions are used: theta and phi are either angles in the laboratory reference frame,
+ * or in the beam reference frame. Generally, polPer = robs x prop (normalized to unit vector), but cases when the two
+ * latter vectors are aligned requires special treatment.
+ *
+ * For special cases with prop||ez we assume that the result is continuous for theta changing from 0 to pi. In other
+ * words th=0 and pi is effective replaced by th=+0 and pi-0 respectively. Then phi determines the scattering plane.
+ *
+ * For other special cases (prop not aligned with ez) the scattering plane is taken to include ez (and hence IncPolX).
+ *
+ * Overall, we spend a lot of effort to make consistent definition of polPer. However, its sign is irrelevant because
+ * change of sign (simultaneously for polPer and both incident and scattering polPar) doesn't change the amplitude
+ * (and Mueller) matrix.
+ */
+{
+	double cphi,sphi;
+
+	cphi=cos(phi);
+	sphi=sin(phi);
+	if (surface) { // definitions are in the laboratory reference frame
+		// robs = cos(theta)*ezLab + sin(theta)*[cos(phi)*exLab + sin(phi)*eyLab];
+		LinComb(exLab,eyLab,cphi,sphi,robs);
+		LinComb(ezLab,robs,ct,st,robs);
+	}
+	else { // definitions are with respect to the incident beam
+		// robs = cos(theta)*prop + sin(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
+		LinComb(incPolX,incPolY,cphi,sphi,robs);
+		LinComb(prop,robs,ct,st,robs);
+	}
+	// set unit vectors which defines Eper
+	// two special cases; testing ct is more accurate than st==0
+	// 1) robs has +0 component along exLab (for phi=0): incPolper = (+-)(sin(phi)*exLab - cos(phi)*eyLab)
+	if (surface && propAlongZ && fabs(ct)==1) LinComb(exLab,eyLab,sphi*propAlongZ,-cphi*propAlongZ,polPer);
+	// 2) robs has +0 component along incPolX (for phi=0): incPolper = sin(phi)*incPolX - cos(phi)*incPolY
+	else if (!surface && fabs(ct)==1) LinComb(incPolX,incPolY,sphi,-cphi,polPer);
+	else { // general case: incPolPer = robserver x prop /||...||
+		CrossProd(robs,prop,polPer);
+		// when robs || prop scattering plane contains ez, then polPer = prop x ez/||...|| = -incPolY
+		// currently this may only occur for surface, since otherwise it is handled by a special case above
+		if (DotProd(polPer,polPer)==0) vMultScal(-1,incPolY,polPer);
+		else vNormalize(polPer);
+	}
+}
+//======================================================================================================================
+
 void CalcAlldir(void)
 // calculate scattered field in many directions
 {
 	int index,npoints,point;
 	size_t i,j;
 	TIME_TYPE tstart;
-	double robserver[3],incPolpar[3],incPolper[3],cthet,sthet,cphi,sphi,th,ph;
+	double robserver[3],incPolpar[3],incPolper[3],cthet,sthet,th,ph;
 	doublecomplex ebuff[3];
 
 	// Calculate field
@@ -722,11 +792,13 @@ void CalcAlldir(void)
 		sthet=sin(th);
 		for (j=0;j<phi_int.N;++j) {
 			ph=Deg2Rad(phi_int.val[j]);
-			cphi=cos(ph);
-			sphi=sin(ph);
-			// robserver = cos(theta)*prop + sin(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
-			LinComb(incPolX,incPolY,cphi,sphi,robserver);
-			LinComb(prop,robserver,cthet,sthet,robserver);
+			/* set robserver and unit vector for Eper (determines scattering plane); actually Eper and Epar are
+			 * irrelevant, since we are interested only in |E|^2. But projecting the vector on two axes helps to
+			 * somewhat decrease communication time. We also may need these components in the future.
+			 */
+			SetScatPlane(cthet,sthet,ph,robserver,incPolper);
+			// set unit vector for Epar
+			CrossProd(robserver,incPolper,incPolpar);
 			// calculate scattered field - main bottleneck
 			CalcField(ebuff,robserver);
 			/* Set Epar and Eper - use separate E_ad array to store them (to decrease communications in 1.5 times).
@@ -735,11 +807,6 @@ void CalcAlldir(void)
 			 * seem so significant. And, more importantly, complex fields may also be useful in the future, e.g.
 			 * for radiation force calculation through integration of the far-field
 			 */
-			// incPolper = sin(phi)*incPolX - cos(phi)*incPolY;
-			LinComb(incPolX,incPolY,sphi,-cphi,incPolper);
-			// incPolpar = -sin(theta)*prop + cos(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
-			LinComb(incPolX,incPolY,cphi,sphi,incPolpar);
-			LinComb(prop,incPolpar,-sthet,cthet,incPolpar);
 			index=2*point;
 			E_ad[index]=crDotProd(ebuff,incPolper);
 			E_ad[index+1]=crDotProd(ebuff,incPolpar);
@@ -765,7 +832,7 @@ void CalcScatGrid(const enum incpol which)
 {
 	size_t i,j,n,point,index;
 	TIME_TYPE tstart;
-	double robserver[3],incPolpar[3],incPolper[3],cthet,sthet,cphi,sphi,th,ph;
+	double robserver[3],incPolpar[3],incPolper[3],cthet,sthet,th,ph;
 	doublecomplex ebuff[3];
 	doublecomplex *Egrid; // either EgridX or EgridY
 
@@ -786,19 +853,13 @@ void CalcScatGrid(const enum incpol which)
 		for (j=0;j<n;++j) {
 			if (angles.type==SG_GRID) ph=Deg2Rad(angles.phi.val[j]);
 			else ph=Deg2Rad(angles.phi.val[i]); // angles.type==SG_PAIRS
-			cphi=cos(ph);
-			sphi=sin(ph);
-			// robserver = cos(theta)*prop + sin(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
-			LinComb(incPolX,incPolY,cphi,sphi,robserver);
-			LinComb(prop,robserver,cthet,sthet,robserver);
+			// set robserver and unit vector for Eper (determines scattering plane)
+			SetScatPlane(cthet,sthet,ph,robserver,incPolper);
+			// set unit vector for Epar
+			CrossProd(robserver,incPolper,incPolpar);
 			// calculate scattered field - main bottleneck
 			CalcField(ebuff,robserver);
 			// set Epar and Eper - use Egrid array to store them (to decrease communications in 1.5 times)
-			// incPolper = sin(phi)*incPolX - cos(phi)*incPolY;
-			LinComb(incPolX,incPolY,sphi,-cphi,incPolper);
-			// incPolpar = -sin(theta)*prop + cos(theta)*[cos(phi)*incPolX + sin(phi)*incPolY];
-			LinComb(incPolX,incPolY,cphi,sphi,incPolpar);
-			LinComb(prop,incPolpar,-sthet,cthet,incPolpar);
 			index=2*point;
 			Egrid[index]=crDotProd(ebuff,incPolper);
 			Egrid[index+1]=crDotProd(ebuff,incPolpar);

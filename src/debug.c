@@ -25,6 +25,7 @@
 #include "const.h" // keep this first
 #include "debug.h" // corresponding header
 // project headers
+#include "cmplx.h"
 #include "comm.h"
 #include "io.h"
 #include "types.h"
@@ -68,6 +69,6 @@ void FieldPrint (doublecomplex * restrict x)
 	int i=9810;
 
 	i*=3;
-	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",DipoleCoord[i],DipoleCoord[i+1],DipoleCoord[i+2]);
-	fprintf(logfile,"E = "CFORM3V,creal(x[i]),cimag(x[i]),creal(x[i+1]),cimag(x[i+1]),creal(x[i+2]),cimag(x[i+2]));
+	fprintf(logfile,"Dipole coordinates = "GFORM3V"\n",COMP3V(DipoleCoord+i));
+	fprintf(logfile,"E = "CFORM3V,REIM3V(x+i));
 }

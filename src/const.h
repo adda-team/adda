@@ -142,6 +142,10 @@
 #define GFORM10L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
 #define GFORMDEF3V "("GFORMDEF","GFORMDEF","GFORMDEF")"
 #define CFORM3V "("CFORM","CFORM","CFORM")"
+	// macros to shorten printing of all vector components
+#define COMP3V(a) (a)[0],(a)[1],(a)[2]
+#define COMP16V(a) (a)[0],(a)[1],(a)[2],(a)[3],(a)[4],(a)[5],(a)[6],(a)[7],(a)[8],(a)[9],(a)[10],(a)[11],(a)[12],\
+	(a)[13],(a)[14],(a)[15]
 
 enum sh { // shape types
 	SH_AXISYMMETRIC, // axisymmetric
@@ -198,7 +202,10 @@ enum inter { // how to calculate interaction term
 	G_POINT_DIP, // as point dipoles
 	G_SO         // Second Order formulation
 };
-// in alphabetical order
+enum refl { // how to calculate interaction of dipoles through the nearby surface (reflected G)
+	GR_IMG,       // approximate expression based on a single image dipole
+	GR_SOM        // direct evaluation of Sommerfeld integrals
+};// in alphabetical order
 
 // ldr constants
 #define LDR_B1  1.8915316

@@ -23,7 +23,7 @@
 
 // this are used not always, but only for manual debug (hence can be always defined)
 #define PRINT_REAL(x) printf(#x"=%g\n",x)
-#define PRINT_COMPLEX(x) printf(#x"=%g%+gi\n",creal(x),cimag(x))
+#define PRINT_COMPLEX(x) printf(#x"=%g%+gi\n",REIM(x))
 
 #ifdef DEBUGFULL
 

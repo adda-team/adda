@@ -30,6 +30,10 @@
 #include <pmmintrin.h>
 #endif
 
+// useful macro for printing complex numbers and matrices
+#define REIM(a) creal(a),cimag(a)
+#define REIM3V(a) REIM((a)[0]),REIM((a)[1]),REIM((a)[2])
+
 //======================================================================================================================
 // operations on complex numbers
 
@@ -37,6 +41,18 @@ static inline double cAbs2(const doublecomplex a)
 // square of absolute value of complex number; |a|^2
 {
 	return creal(a)*creal(a) + cimag(a)*cimag(a);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex cSqrtCut(const doublecomplex a)
+// square root of complex number, with explicit handling of branch cut (not to depend on sign of zero of imaginary part)
+{
+	if (cimag(a)==0) {
+		if (creal(a)>=0) return sqrt(a);
+		else return I*sqrt(-a);
+	}
+	else return csqrt(a);
 }
 
 //======================================================================================================================
@@ -90,6 +106,48 @@ static inline void vConj(const doublecomplex a[static 3],doublecomplex b[static 
 	b[0] = conj(a[0]);
 	b[1] = conj(a[1]);
 	b[2] = conj(a[2]);
+}
+
+//======================================================================================================================
+
+static inline void vReal(const doublecomplex a[static 3],double b[static 3])
+// takes real part of the complex vector; b=Re(a)
+{
+	b[0]=creal(a[0]);
+	b[1]=creal(a[1]);
+	b[2]=creal(a[2]);
+}
+
+//======================================================================================================================
+
+static inline void cvBuildRe(const double a[static 3],doublecomplex b[static 3])
+// builds complex vector from real part; b=a + i*0
+{
+	b[0]=a[0];
+	b[1]=a[1];
+	b[2]=a[2];
+}
+
+//======================================================================================================================
+
+static inline void vInvRefl_cr(const double a[static 3],doublecomplex b[static 3])
+/* reflects real vector with respect to the xy-plane and then inverts it, equivalent to reflection about the z-axis
+ * result is stored into the complex vector
+ */
+{
+	b[0]=-a[0];
+	b[1]=-a[1];
+	b[2]=a[2];
+}
+
+//======================================================================================================================
+
+static inline void crCrossProd(const double a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
+// cross product of real and complex vector; c = a x b
+{
+	c[0] = a[1]*b[2] - a[2]*b[1];
+	c[1] = a[2]*b[0] - a[0]*b[2];
+	c[2] = a[0]*b[1] - a[1]*b[0];
 }
 
 //======================================================================================================================
@@ -241,6 +299,17 @@ static inline void cSymMatrVec(const doublecomplex matr[static 6],const doubleco
 //======================================================================================================================
 // operations on real vectors
 
+static inline void vCopy(const double a[static 3],double b[static 3])
+// copies one vector into another; b=a
+{
+	// can be rewritten through memcpy, but compiler should be able to do it itself if needed
+	b[0]=a[0];
+	b[1]=a[1];
+	b[2]=a[2];
+}
+
+//======================================================================================================================
+
 static inline void vAdd(const double a[static 3],const double b[static 3],double c[static 3])
 // adds two real vectors; c=a+b
 {
@@ -270,6 +339,16 @@ static inline void vInvSign(double a[static 3])
 
 //======================================================================================================================
 
+static inline void vRefl(const double inc[static 3],double ref[static 3])
+// reflects the incident vector 'inc' with respect to the xy-plane (inverts z-component)
+{
+	ref[0]=inc[0];
+	ref[1]=inc[1];
+	ref[2]=-inc[2];
+}
+
+//======================================================================================================================
+
 static inline void vMultScal(const double a,const double b[static 3],double c[static 3])
 // multiplication of real vector by scalar; c=a*b;
 {
@@ -294,6 +373,28 @@ static inline double DotProd(const double a[static 3],const double b[static 3])
 // dot product of two real vectors[3]; use DotProd(x,x) to get squared norm
 {
 	return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+}
+
+//======================================================================================================================
+
+static inline void CrossProd(const double a[static 3],const double b[static 3],double c[static 3])
+// cross product of two real vectors; c = a x b
+{
+	c[0] = a[1]*b[2] - a[2]*b[1];
+	c[1] = a[2]*b[0] - a[0]*b[2];
+	c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+//======================================================================================================================
+
+static inline void vNormalize(double a[static 3])
+// normalize real vector to have unit norm
+{
+	double c;
+	c=1/sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+	a[0]*=c;
+	a[1]*=c;
+	a[2]*=c;
 }
 
 //======================================================================================================================
@@ -338,12 +439,23 @@ static inline double QuadForm(const double matr[static 6],const double vec[stati
 }
 
 //======================================================================================================================
+
 static inline void MatrVec(double matr[static 3][3],const double vec[static 3],double res[static 3])
 // multiplication of matrix[3][3] by vec[3] (all real); res=matr.vec;
 {
 	res[0]=matr[0][0]*vec[0]+matr[0][1]*vec[1]+matr[0][2]*vec[2];
 	res[1]=matr[1][0]*vec[0]+matr[1][1]*vec[1]+matr[1][2]*vec[2];
 	res[2]=matr[2][0]*vec[0]+matr[2][1]*vec[1]+matr[2][2]*vec[2];
+}
+
+//======================================================================================================================
+
+static inline void MatrColumn(double matr[static 3][3],const int ind,double vec[static 3])
+// get ind's column of matrix[3][3] and store it into vec[3] (all real, ind starts from zero); vec=matr[.][ind];
+{
+	vec[0]=matr[0][ind];
+	vec[1]=matr[1][ind];
+	vec[2]=matr[2][ind];
 }
 
 //======================================================================================================================
@@ -387,6 +499,51 @@ static inline double Rad2Deg(const double rad)
 // transforms angle in radians to degrees
 {
 	return (INV_PI_180*rad);
+}
+
+//======================================================================================================================
+// functions used for substrate
+
+//======================================================================================================================
+
+static inline doublecomplex FresnelRS(const doublecomplex ki,const doublecomplex kt)
+/* reflection coefficient for s-polarized wave (E perpendicular to the main plane),
+ * ki,kt are normal (positive) components of incident and transmitted wavevector (with arbitrary mutual scaling)
+ */
+{
+	return (ki-kt)/(ki+kt);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex FresnelTS(const doublecomplex ki,const doublecomplex kt)
+/* transmission coefficient for s-polarized wave (E perpendicular to the main plane),
+ * ki,kt are normal (positive) components of incident and transmitted wavevector (with arbitrary mutual scaling)
+ */
+{
+	return 2*ki/(ki+kt);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex FresnelRP(const doublecomplex ki,const doublecomplex kt,const doublecomplex mr)
+/* reflection coefficient for p-polarized wave (E parallel to the main plane),
+ * ki,kt are normal (positive) components of incident and transmitted wavevector (with arbitrary mutual scaling)
+ * mr is the ratio of refractive indices (mt/mi)
+ */
+{
+	return (mr*mr*ki-kt)/(mr*mr*ki+kt);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex FresnelTP(const doublecomplex ki,const doublecomplex kt,const doublecomplex mr)
+/* transmission coefficient for p-polarized wave (E parallel to the main plane),
+ * ki,kt are normal (positive) components of incident and transmitted wavevector (with arbitrary mutual scaling)
+ * mr is the ratio of refractive indices (mt/mi)
+ */
+{
+	return 2*mr*ki/(mr*mr*ki+kt);
 }
 
 #ifdef USE_SSE3

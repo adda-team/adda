@@ -185,7 +185,7 @@ void FinalStatistics(void)
 #endif
 			fprintf(logfile,
 				"  Scattered fields:    "FFORMT"\n",TO_SEC(Timing_EField));
-			if (yzplane) {
+			if (yzplane || scat_plane) {
 				fprintf(logfile,
 					"    one plane:           "FFORMT"\n",TO_SEC(Timing_EPlane));
 #ifdef PARALLEL

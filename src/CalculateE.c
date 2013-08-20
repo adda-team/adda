@@ -39,15 +39,16 @@
 
 // defined and initialized in calculator.c
 extern double * restrict muel_phi,* restrict muel_phi_buf;
-extern doublecomplex * restrict EplaneX, * restrict EplaneY;
+extern doublecomplex * restrict EplaneX, * restrict EplaneY, * restrict EyzplX, * restrict EyzplY;
 extern const double dtheta_deg,dtheta_rad;
 extern doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY;
 extern double * restrict muel_alpha;
 // defined and initialized in crosssec.c
 extern const Parms_1D phi_sg;
+extern const double ezLab[3],exSP[3];
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_mueller,store_ampl;
+	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan,Timing_IncBeam;
@@ -65,6 +66,8 @@ extern size_t TotalEFieldPlane;
 #define AMPL_FORMAT EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM" "EFORM
 #define ANGLE_FORMAT "%.2f"
 #define RMSE_FORMAT "%.3E"
+#define COMP44M(a) (a)[0][0],(a)[0][1],(a)[0][2],(a)[0][3],(a)[1][0],(a)[1][1],(a)[1][2],(a)[1][3],(a)[2][0],\
+	(a)[2][1],(a)[2][2],(a)[2][3],(a)[3][0],(a)[3][1],(a)[3][2],(a)[3][3]
 
 // EXTERNAL FUNCTIONS
 
@@ -138,9 +141,7 @@ static inline void PrintToIntegrFile(const int type,FILE * restrict file,double 
 			err=Romberg1D(phi_sg,16,muel_buf,matrix[0]);
 		}
 		if (err>*maxerr) *maxerr=err;
-		fprintf(file,ANGLE_FORMAT" "MUEL_FORMAT" "RMSE_FORMAT"\n",theta,matrix[0][0],matrix[0][1],matrix[0][2],
-			matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],
-			matrix[2][3],matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3],err);
+		fprintf(file,ANGLE_FORMAT" "MUEL_FORMAT" "RMSE_FORMAT"\n",theta,COMP44M(matrix),err);
 	}
 }
 
@@ -191,11 +192,18 @@ void MuellerMatrix(void)
 				si=sin(alph);
 				for (i=0;i<nTheta;i++) {
 					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
-					s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
-					s3 = -si*ampl_alphaY[index+1] + co*ampl_alphaX[index+1]; // s3 = -si*s20 + co*s30
-					s4 =  co*ampl_alphaY[index] + si*ampl_alphaX[index];     // s4 =  co*s40 + si*s10
-					s1 = -si*ampl_alphaY[index] + co*ampl_alphaX[index];     // s1 = -si*s40 + co*s10
-
+					if (yzplane) { // here the default (alpha=0) is yz-plane, so par=Y, per=X
+						s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
+						s3 = -si*ampl_alphaY[index+1] + co*ampl_alphaX[index+1]; // s3 = -si*s20 + co*s30
+						s4 =  co*ampl_alphaY[index] + si*ampl_alphaX[index];     // s4 =  co*s40 + si*s10
+						s1 = -si*ampl_alphaY[index] + co*ampl_alphaX[index];     // s1 = -si*s40 + co*s10
+					}
+					else { // scat_plane; here the default (alpha=0) is xz-plane, so par=X, per=-Y
+						s2 =  co*ampl_alphaX[index+1] - si*ampl_alphaY[index+1]; // s2 =  co*s20 + si*s30
+						s3 = -si*ampl_alphaX[index+1] - co*ampl_alphaY[index+1]; // s3 = -si*s20 + co*s30
+						s4 =  co*ampl_alphaX[index] - si*ampl_alphaY[index];     // s4 =  co*s40 + si*s10
+						s1 = -si*ampl_alphaX[index] - co*ampl_alphaY[index];     // s1 = -si*s40 + co*s10
+					}
 					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
 					index+=2;
 					index1+=16;
@@ -205,16 +213,15 @@ void MuellerMatrix(void)
 	}
 	else {
 		tstart=GET_TIME(); // here Mueller matrix is saved to file
-		if (yzplane) {
+		if (yzplane) { // par=Y, per=X
 			if (store_ampl) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_AMPL,directory);
 				ampl=FOpenErr(fname,"w",ONE_POS);
 				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,creal(EplaneX[2*i]),cimag(EplaneX[2*i]),
-						creal(EplaneY[2*i+1]),cimag(EplaneY[2*i+1]),creal(EplaneX[2*i+1]),cimag(EplaneX[2*i+1]),
-						creal(EplaneY[2*i]),cimag(EplaneY[2*i]));
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(EyzplX[2*i]),REIM(EyzplY[2*i+1]),
+						REIM(EyzplX[2*i+1]),REIM(EyzplY[2*i]));
 				}
 				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
@@ -224,14 +231,37 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,EplaneX[2*i],EplaneY[2*i+1],EplaneX[2*i+1],EplaneY[2*i]);
-					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,matrix[0][0],matrix[0][1],matrix[0][2],
-						matrix[0][3],matrix[1][0],matrix[1][1],matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],
-						matrix[2][2],matrix[2][3],matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+					ComputeMuellerMatrix(matrix,EyzplX[2*i],EyzplY[2*i+1],EyzplX[2*i+1],EyzplY[2*i]);
+					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
 			}
 		}
+		if (scat_plane) { // par=X, per=-Y
+			if (store_ampl) {
+				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_AMPL,directory);
+				ampl=FOpenErr(fname,"w",ONE_POS);
+				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
+				for (i=0;i<nTheta;i++) {
+					theta=i*dtheta_deg;
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(-EplaneY[2*i]),REIM(EplaneX[2*i+1]),
+						REIM(-EplaneY[2*i+1]),REIM(EplaneX[2*i]));
+				}
+				FCloseErr(ampl,F_AMPL,ONE_POS);
+			}
+			if (store_mueller) {
+				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_MUEL,directory);
+				mueller=FOpenErr(fname,"w",ONE_POS);
+				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
+				for (i=0;i<nTheta;i++) {
+					theta=i*dtheta_deg;
+					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i]);
+					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
+				}
+				FCloseErr(mueller,F_MUEL,ONE_POS);
+			}
+		}
+
 		if (scat_grid) {
 			/* compute Mueller Matrix in full space angle.
 			 * E-fields are stored in arrays EgridX and EgridY for incoming X and Y polarized light.
@@ -283,15 +313,20 @@ void MuellerMatrix(void)
 			// main cycle
 			index=0;
 			max_err=max_err_c2=max_err_s2=max_err_c4=max_err_s4=0;
+			double tmp3[3],incPolper[3],cthet,sthet;
 			for (ind=0;ind<angles.theta.N;++ind) {
 				index1=0;
 				theta=angles.theta.val[ind];
+				cthet=cos(theta);
+				sthet=sin(theta);
 				for (j=0;j<n;++j) {
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
 					ph=Deg2Rad(phi);
-					co=cos(ph);
-					si=sin(ph);
+					// rather complicated (but general) approach to determine rotation angle from XY to scattering plane
+					SetScatPlane(cthet,sthet,ph,tmp3,incPolper);
+					co=-DotProd(incPolper,incPolY);
+					si=DotProd(incPolper,incPolX);
 					// transform the amplitude matrix, multiplying by rotation matrix from per-par to X-Y
 					s2 = co*EgridX[index+1] + si*EgridY[index+1]; // s2 =  co*s20 + si*s30
 					s3 = si*EgridX[index+1] - co*EgridY[index+1]; // s3 =  si*s20 - co*s30
@@ -307,11 +342,9 @@ void MuellerMatrix(void)
 					}
 					if (store_scat_grid) {
 						if (store_mueller) fprintf(mueller,ANGLE_FORMAT" "ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,phi,
-								matrix[0][0],matrix[0][1],matrix[0][2],matrix[0][3],matrix[1][0],matrix[1][1],
-								matrix[1][2],matrix[1][3],matrix[2][0],matrix[2][1],matrix[2][2],matrix[2][3],
-								matrix[3][0],matrix[3][1],matrix[3][2],matrix[3][3]);
+							COMP44M(matrix));
 						if (store_ampl) fprintf(ampl,ANGLE_FORMAT" "ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,phi,
-							creal(s1),cimag(s1),creal(s2),cimag(s2),creal(s3),cimag(s3),creal(s4),cimag(s4));
+							REIM(s1),REIM(s2),REIM(s3),REIM(s4));
 					}
 				}
 				if (phi_integr) {
@@ -349,10 +382,10 @@ void MuellerMatrix(void)
 
 //======================================================================================================================
 
-static void CalcEplane(const enum incpol which,const enum Eftype type)
+static void CalcEplaneYZ(const enum incpol which,const enum Eftype type)
 // calculates scattered electric field in a plane
 {
-	double *incPol,*incPolper,*incPolpar;
+	double incPol[3],incPolper[3],incPolpar[3];
 	// where to store calculated field for one plane (actually points to different other arrays)
 	doublecomplex *Eplane;
 	int i;
@@ -361,15 +394,11 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 	double epar[3];         // unit vector in direction of Epar
 	double theta;           // scattering angle
 	double co,si;           // temporary, cos and sin of some angle
-	double incPol_tmp1[3],incPol_tmp2[3]; // just allocated memory for incPolper, incPolpar
 	double alph;
 	TIME_TYPE tstart;
 	size_t k_or;
 	int orient,Norient;
 	enum incpol choice;
-
-	incPolper=incPol_tmp1; // initialization of per and par polarizations
-	incPolpar=incPol_tmp2;
 
 	if (type==CE_NORMAL) Norient=1; // initialize # orientations
 	else Norient=2;                 // type==CE_PARPER
@@ -383,9 +412,9 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 			LinComb(incPolX,incPolY,co,-si,incPolper); // incPolper = co*incPolX - si*incPolY;
 			LinComb(incPolX,incPolY,si,co,incPolpar);  // incPolpar = si*incPolX + co*incPolY;
 		}
-		else {
-			memcpy(incPolper,incPolX,3*sizeof(double)); // per <=> X
-			memcpy(incPolpar,incPolY,3*sizeof(double)); // par <=> Y
+		else { // special case of the above for alpha=0
+			vCopy(incPolX,incPolper); // per <=> X
+			vCopy(incPolY,incPolpar); // par <=> Y
 		}
 
 		for(orient=0;orient<Norient;orient++) {
@@ -396,14 +425,105 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 				/* Rotation symmetry: calculate per-per from current data. CalculateE is called from calculator with Y
 				 * polarization - we now just assume that we have the x-z plane as the scattering plane, rotating in the
 				 * negative x-direction. This mimics the real case of X polarization with the y-z plane as scattering
-				 * plane. Then IncPolY -> -IncPolX; incPolX -> IncPolY
+				 * plane. Then IncPolY (par) -> -IncPolX; incPolX (per) -> IncPolY
 				 */
 				if (which==INCPOL_Y) choice=INCPOL_X;
 				else choice=INCPOL_Y; // which==INCPOL_X
-				incPol=incPolper;
-				incPolper=incPolpar;
-				incPolpar=incPol;
-				vInvSign(incPolpar);
+				vCopy(incPolper,incPol);
+				vCopy(incPolpar,incPolper);
+				vMultScal(-1,incPol,incPolpar);
+			}
+			// initialize Eplane
+			if (orient_avg) {
+				if (choice==INCPOL_Y) Eplane=ampl_alphaY + 2*nTheta*k_or;
+				else Eplane=ampl_alphaX + 2*nTheta*k_or; // choice==INCPOL_X
+			}
+			else {
+				if (choice==INCPOL_Y) Eplane=EyzplY;
+				else Eplane=EyzplX; // choice==INCPOL_X
+			}
+
+			for (i=0;i<nTheta;i++) {
+				theta = i * dtheta_rad;
+				co=cos(theta);
+				si=sin(theta);
+				LinComb(prop,incPolpar,co,si,robserver); // robserver = co*prop + si*incPolpar;
+				CalcField(ebuff,robserver);
+				// convert to (l,r) frame
+				Eplane[2*i]=crDotProd(ebuff,incPolper); // Eper[i]=Esca.incPolper
+				LinComb(prop,incPolpar,-si,co,epar);    // epar=-si*prop+co*incPolpar
+				Eplane[2*i+1]=crDotProd(ebuff,epar);    // Epar[i]=Esca.epar
+			} //  end for i
+
+			// Accumulate Eplane to root and sum
+			D("Accumulating Eplane started");
+			// accumulate only on processor 0 !, done in one operation
+			Accumulate(Eplane,cmplx_type,2*nTheta,&Timing_EPlaneComm);
+			D("Accumulating Eplane finished");
+
+			Timing_EPlane = GET_TIME() - tstart;
+			Timing_EField += Timing_EPlane;
+			TotalEFieldPlane++;
+		} // end of orient loop
+	} // end of alpha loop
+}
+
+//======================================================================================================================
+
+static void CalcScatPlane(const enum incpol which,const enum Eftype type)
+// calculates scattered electric field in the plane through ez, prop, incPolX - xz-plane by default
+{
+	double incPol[3],incPolper[3],incPolpar[3];
+	// where to store calculated field for one plane (actually points to different other arrays)
+	doublecomplex *Eplane;
+	int i;
+	doublecomplex ebuff[3]; // small vector to hold E fields
+	double robserver[3];    // small vector for observer in E calculation
+	double epar[3];         // unit vector in direction of Epar
+	double theta;           // scattering angle
+	double co,si;           // temporary, cos and sin of some angle
+	double alph;
+	TIME_TYPE tstart;
+	size_t k_or;
+	int orient,Norient;
+	enum incpol choice;
+
+	if (type==CE_NORMAL) Norient=1; // initialize # orientations
+	else Norient=2;                 // type==CE_PARPER
+
+	for (k_or=0;k_or<alpha_int.N;k_or++) {
+		// cycle over alpha - for orientation averaging
+		if (orient_avg) {
+			// rotate polarization basis vectors by -alpha; so per and par are relative to rotated (by -alpha) xz-plane
+			alph=Deg2Rad(alpha_int.val[k_or]);
+			co=cos(alph);
+			si=sin(alph);
+			LinComb(incPolX,incPolY,-si,-co,incPolper);  // incPolper = - si*incPolX - co*incPolY;
+			LinComb(incPolX,incPolY,co,-si,incPolpar);   // incPolpar = co*incPolX - si*incPolY;
+		}
+		else {
+			/* the scattering plane is (ez,prop), which contains X-pol;
+			 * for the default prop this is xz-plane, a special case of the above for alpha=0
+			 */
+			vMultScal(-1,incPolY,incPolper); // per <=> -Y
+			vCopy(incPolX,incPolpar);        // par <=> X
+		}
+
+		for(orient=0;orient<Norient;orient++) {
+			// in case of Rotation symmetry
+			tstart = GET_TIME ();
+			if (orient==0) choice=which;
+			else { // orient==1
+				 /* Rotation symmetry: calculate per-per from current data. CalculateE is called from calculator with Y
+				 * polarization - we now just assume that we have the yz-plane as the scattering plane, rotating in the
+				 * positive y-direction. This mimics the real case of X polarization with the xz plane as scattering
+				 * plane. Then IncPolper = IncPolX = incPolpar(old), incPolpar = IncPolY = -IncPolper(old)
+				 */
+				if (which==INCPOL_Y) choice=INCPOL_X;
+				else choice=INCPOL_Y; // which==INCPOL_X
+				vCopy(incPolper,incPol);
+				vCopy(incPolpar,incPolper);
+				vMultScal(-1,incPol,incPolpar);
 			}
 			// initialize Eplane
 			if (orient_avg) {
@@ -419,12 +539,11 @@ static void CalcEplane(const enum incpol which,const enum Eftype type)
 				theta = i * dtheta_rad;
 				co=cos(theta);
 				si=sin(theta);
-				LinComb(prop,incPolpar,co,si,robserver); // robserver = co*prop + si*incPolpar;
-
+				LinComb(ezLab,exSP,co,si,robserver); // robserver = co*ezLab + si*exSP;
 				CalcField(ebuff,robserver);
 				// convert to (l,r) frame
 				Eplane[2*i]=crDotProd(ebuff,incPolper); // Eper[i]=Esca.incPolper
-				LinComb(prop,incPolpar,-si,co,epar);    // epar=-si*prop+co*incPolpar
+				LinComb(ezLab,exSP,-si,co,epar);        // epar=-si*ezLab+co*exSP
 				Eplane[2*i+1]=crDotProd(ebuff,epar);    // Epar[i]=Esca.epar
 			} //  end for i
 
@@ -495,11 +614,10 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	} // end of if
 #endif
 	// saves fields to file
-	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",DipoleCoord[j],DipoleCoord[j+1],
-		DipoleCoord[j+2],cvNorm2(cmplxF+j),creal(cmplxF[j]),cimag(cmplxF[j]),creal(cmplxF[j+1]),cimag(cmplxF[j+1]),
-		creal(cmplxF[j+2]),cimag(cmplxF[j+2]));
-	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",DipoleCoord[j],DipoleCoord[j+1],DipoleCoord[j+2],
-		DotProd(realF+j,realF+j),realF[j],realF[j+1],realF[j+2]);
+	if (cmplx_mode) for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM10L"\n",COMP3V(DipoleCoord+j),cvNorm2(cmplxF+j),
+		REIM3V(cmplxF+j));
+	else for (j=0;j<local_nRows;j+=3) fprintf(file,GFORM7L"\n",COMP3V(DipoleCoord+j),DotProd(realF+j,realF+j),
+		COMP3V(realF+j));
 	FCloseErr(file,fname,ALL_POS);
 #ifdef PARALLEL
 	// wait for all processes to save their part of geometry
@@ -593,7 +711,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				AsymParm_x(dummy,f_suf);
 				AsymParm_y(dummy+1,f_suf);
 				AsymParm_z(dummy+2,f_suf);
-				PrintBoth(CCfile,"Csca.g\t= "GFORM3V"\n",dummy[0],dummy[1],dummy[2]);
+				PrintBoth(CCfile,"Csca.g\t= "GFORM3V"\n",COMP3V(dummy));
 				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
 		} // end of root
@@ -670,7 +788,8 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// return if checkpoint (normal) occurred
 	if (exit_status==CHP_EXIT) return CHP_EXIT;
 
-	if (yzplane) CalcEplane(which,type); //generally plane of incPolY and prop
+	if (yzplane) CalcEplaneYZ(which,type); //generally plane of incPolY and prop
+	if (scat_plane) CalcScatPlane(which,type); // the scattering plane through ez,prop,incPolX - xz by default
 	// Calculate the scattered field for the whole solid-angle
 	if (all_dir) CalcAlldir();
 	// Calculate the scattered field on the given grid of angles
@@ -707,8 +826,7 @@ void SaveMuellerAndCS(double * restrict in)
 		mueller=FOpenErr(fname,"w",ONE_POS);
 		fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 		for (i=0;i<nTheta;i++) {
-			fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",i*dtheta_deg,muel[0],muel[1],muel[2],muel[3],muel[4],muel[5],
-				muel[6],muel[7],muel[8],muel[9],muel[10],muel[11],muel[12],muel[13],muel[14],muel[15]);
+			fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",i*dtheta_deg,COMP16V(muel));
 			muel+=16;
 		}
 		FCloseErr(mueller,F_MUEL,ONE_POS);
