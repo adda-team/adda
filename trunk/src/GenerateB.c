@@ -47,12 +47,22 @@ extern opt_index opt_beam;
 
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
+/* complex wave amplitudes of secondary waves (with phase relative to particle center);
+ * they satisfy (e,e)=e_x^2+e_y^2+e_z^2=1, which doesn't necessarily means that (e,e*)=||e||^2=|e_x|^2+|e_y|^2+|e_z|^2=1
+ * the latter condition may be broken for eIncTran of inhomogeneous wave (when msub is complex). In that case
+ * for E=E0*e, ||E||!=|E0| (which is counterintuitive)
+ *
+ * !!! TODO: determine whether they are actually needed in crosssec.c, or make them static here
+ */
+doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
 char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
+static doublecomplex ki,kt;   // abs of normal components of k_inc/k0, and ktran/k0
+static doublecomplex ktVec[3]; // k_tran/k0, abs of its normal component
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -76,16 +86,45 @@ void InitBeam(void)
 		case B_PLANE:
 			if (IFROOT) strcpy(beam_descr,"plane wave");
 			beam_asym=false;
+			if (surface) {
+				// Here we set ki,kt,ktVec and propagation directions prIncRefl,prIncTran
+				doublecomplex q2; // square of relative component of k_inc/k0 along the surface
+				if (prop_0[2]>0) { // beam comes from the substrate (below)
+					ki=msub*prop_0[2];
+					q2=msub*msub-ki*ki;
+					kt=cSqrtCut(1-q2);
+					// determine propagation direction and full wavevector of wave transmitted into substrate
+					ktVec[0]=msub*prop_0[0];
+					ktVec[1]=msub*prop_0[1];
+					ktVec[2]=kt;
+				}
+				else if (prop_0[2]<0) { // beam comes from above the substrate
+					vRefl(prop_0,prIncRefl);
+					ki=-prop_0[2];
+					q2=1-ki*ki;
+					kt=cSqrtCut(msub*msub-q2);
+					// determine propagation direction of wave transmitted into substrate
+					ktVec[0]=prop_0[0];
+					ktVec[1]=prop_0[1];
+					ktVec[2]=-kt;
+				}
+				else LogError(ONE_POS,"Ambiguous setting of beam propagating along the surface. Please specify the"
+					"incident direction to have (arbitrary) small positive or negative z-component");
+				vRefl(prop_0,prIncRefl);
+				vReal(ktVec,prIncTran);
+				vNormalize(prIncTran);
+			}
 			return;
 		case B_LMINUS:
 		case B_DAVIS3:
 		case B_BARTON5:
+			if (surface) PrintErrorHelp("Currently, Gaussian incident beam is not supported for '-surf'");
 			// initialize parameters
 			w0=beam_pars[0];
 			TestPositive(w0,"beam width");
 			beam_asym=(beam_Npars==4 && (beam_pars[1]!=0 || beam_pars[2]!=0 || beam_pars[3]!=0));
 			if (beam_asym) {
-				memcpy(beam_center_0,beam_pars+1,3*sizeof(double));
+				vCopy(beam_pars+1,beam_center_0);
 				// if necessary break the symmetry of the problem
 				if (beam_center_0[0]!=0) symX=symR=false;
 				if (beam_center_0[1]!=0) symY=symR=false;
@@ -112,8 +151,8 @@ void InitBeam(void)
 					default: break;
 				}
 				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
-				if (beam_asym) sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,beam_center_0[0],
-					beam_center_0[1],beam_center_0[2]);
+				if (beam_asym)
+					sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,COMP3V(beam_center_0));
 				else strcat(beam_descr,"\tCenter is in the origin");
 			}
 			return;
@@ -177,12 +216,71 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	}
 	else { // which==INCPOL_X
 		ex=incPolX;
-		memcpy(ey,incPolY,3*sizeof(double));
+		vCopy(incPolY,ey);
 	}
 
 	switch (beamtype) {
-		case B_PLANE: // plane is separate to be fast
-			for (i=0;i<local_nvoid_Ndip;i++) {
+		case B_PLANE: // plane is separate to be fast (for non-surface)
+			if (surface) {
+				/* With respect to normalization we use here the same assumption as in the free space - the origin is in
+				 * the particle center, and beam irradiance is equal to that of a unity-amplitude field in the vacuum
+				 * (i.e. 1/8pi in CGS). Thus, original incident beam propagating from the vacuum (above) is
+				 * Exp(i*k*r.a), while - from the substrate (below) is Exp(i*k*msub*r.a)/sqrt(Re(msub)). We assume that
+				 * the incident beam is homogeneous in its original medium.
+				 */
+				doublecomplex rc,tc; // reflection and transmission coefficients
+				if (prop[2]>0) { // beam comes from the substrate (below)
+					//  determine amplitude of the reflected and transmitted waves
+					if (which==INCPOL_Y) { // s-polarized
+						cvBuildRe(ex,eIncRefl);
+						cvBuildRe(ex,eIncTran);
+						rc=FresnelRS(ki,kt);
+						tc=FresnelTS(ki,kt);
+					}
+					else { // p-polarized
+						vInvRefl_cr(ex,eIncRefl);
+						crCrossProd(ey,ktVec,eIncTran);
+						rc=FresnelRP(ki,kt,1/msub);
+						tc=FresnelTP(ki,kt,1/msub);
+					}
+					// phase shift due to the origin at height hsub
+					cvMultScal_cmplx(rc*cexp(-2*I*WaveNum*ki*hsub)/sqrt(creal(msub)),eIncRefl,eIncRefl);
+					cvMultScal_cmplx(tc*cexp(I*WaveNum*(kt-ki)*hsub)/sqrt(creal(msub)),eIncTran,eIncTran);
+					// main part
+					for (i=0;i<local_nvoid_Ndip;i++) {
+						j=3*i;
+						// b[i] = eIncTran*exp(ik*kt.r)
+						cvMultScal_cmplx(cexp(I*WaveNum*crDotProd(ktVec,DipoleCoord+j)),eIncTran,b+j);
+					}
+				}
+				else if (prop[2]<0) { // beam comes from above the substrate
+					// determine amplitude of the reflected and transmitted waves
+					if (which==INCPOL_Y) { // s-polarized
+						cvBuildRe(ex,eIncRefl);
+						cvBuildRe(ex,eIncTran);
+						rc=FresnelRS(ki,kt);
+						tc=FresnelTS(ki,kt);
+					}
+					else { // p-polarized
+						vInvRefl_cr(ex,eIncRefl);
+						crCrossProd(ey,ktVec,eIncTran);
+						cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub
+						rc=FresnelRP(ki,kt,msub);
+						tc=FresnelTP(ki,kt,msub);
+					}
+					// phase shift due to the origin at height hsub
+					cvMultScal_cmplx(rc*imExp(2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
+					cvMultScal_cmplx(tc*cexp(I*WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
+					// main part
+					for (i=0;i<local_nvoid_Ndip;i++) {
+						j=3*i;
+						// b[i] = ex*exp(ik*r.a) + eIncRefl*exp(ik*prIncRefl.r)
+						cvMultScal_RVec(imExp(WaveNum*DotProd(DipoleCoord+j,prop)),ex,b+j);
+						cvLinComb1_cmplx(eIncRefl,b+j,imExp(WaveNum*DotProd(DipoleCoord+j,prIncRefl)),b+j);
+					}
+				}
+			}
+			else for (i=0;i<local_nvoid_Ndip;i++) { // standard (non-surface) plane wave
 				j=3*i;
 				ctemp=imExp(WaveNum*DotProd(DipoleCoord+j,prop)); // ctemp=exp(ik*r.a)
 				cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex

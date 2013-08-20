@@ -2266,13 +2266,23 @@ void MakeParticle(void)
 	// initialize DipoleCoord
 	MALLOC_VECTOR(DipoleCoord,double,local_nRows,ALL);
 	memory+=3*sizeof(double)*local_nvoid_Ndip;
+	double minZco=0; // minimum Z coordinates of dipoles
 	for (index=0; index<local_nvoid_Ndip; index++) {
 		i3=3*index;
 		DipoleCoord[i3] = (position[i3]-cX)*gridspace;
 		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridspace;
 		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridspace;
+		if (minZco>DipoleCoord[i3+2]) minZco=DipoleCoord[i3+2]; // crude way to find the minimum on the way
 	}
-
+	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
+	 * substrate - hsub+minZco>0, while the geometric boundary of the particle may still intersect with the substrate.
+	 * However, the current test is sufficient to ensure that corresponding routines to calculate reflected Green's
+	 * tensor do not fail. And accuracy of the DDA itself is anyway questionable when some of the dipoles are very close
+	 * to the substrate (whether they cross it or not).
+	 */
+	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a"
+		"dipole with z="GFORMDEF" (relative to the center), making specified height of the center ("GFORMDEF") too "
+		"small",minZco,hsub);
 	// save geometry
 	if (save_geom)
 #ifndef SPARSE 

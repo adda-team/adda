@@ -8,7 +8,7 @@
 ;2mgn; ;2m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
-# default addition to make particle completely non-symmetric
+# default addition to make particle completely non-symmetric (can be replaced by ;sc; with two refractive indices below)
 ;sep; ;se; ;p;
 # default for testing of different grids
 ;smn; -size 8 ;m; ;n;
@@ -21,6 +21,8 @@
 ;n; -ntheta 5
 ;p; -prop 1 2 3
 ;se; -shape ellipsoid 0.5 1.5
+;sc; -shape coated 0.3 0.2 0.2 0.2
+
 #----------------------------- List of tests ---------------------------------------------------------------------------
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
@@ -50,19 +52,21 @@ all -h anisotr
 all -anisotr ;3m; ;g; ;n;
 
 all -h asym
-all -asym ;sep; ;mgn;
+# nontrivial propagation direction make the results different
+#all -asym ;sep; ;mgn;
+all -asym ;sc; ;2mgn;
 
 all -h beam
 all -h beam plane
 all -beam plane ;mgn;
 all -h beam lminus
-all -beam lminus 2 1 2 3 ;mgn;
+#all -beam lminus 2 1 2 3 ;mgn;
 all -h beam davis3
-all -beam davis3 2 1 2 3 ;mgn;
+#all -beam davis3 2 1 2 3 ;mgn;
 all -h beam barton5
-all -beam barton5 2 1 2 3 ;mgn;
+#all -beam barton5 2 1 2 3 ;mgn;
 all -h beam read
-all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
+#all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
 
 all -h chpoint
 all -chpoint 1s -eps 3 ;mgn;
@@ -76,8 +80,9 @@ all -h chp_load
 all -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
-all -Cpr ;mgn;
-all -Cpr ;sep; ;mgn;
+# radiative forces are not yet supported with surf
+#all -Cpr ;mgn;
+#all -Cpr ;sep; ;mgn;
 
 all -h Csca
 all -Csca ;se; ;mgn;
@@ -109,7 +114,8 @@ all -h init_field
 all -init_field auto ;mgn;
 all -init_field inc ;mgn;
 all -init_field read IncBeam-Y IncBeam-X ;se; ;mgn;
-all -init_field wkb ;mgn;
+# WKB incident field is not yet suppoted with surf
+#all -init_field wkb ;mgn;
 all -init_field zero ;mgn;
 
 all -h int
@@ -157,13 +163,16 @@ all -opt speed ;mgn;
 all -opt mem ;mgn;
 
 all -h orient
-all -orient 10 20 30 ;se; ;mgn;
-all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
-all -orient avg ;se; ;mg4n;
-all -orient avg ap.dat ;se; ;mg4n;
+# changing particle orientation is not yet suppoted with surf
+#all -orient 10 20 30 ;se; ;mgn;
+#all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
+#all -orient avg ;se; ;mg4n;
+#all -orient avg ap.dat ;se; ;mg4n;
 
 all -h phi_integr
-all -phi_integr 31 ;sep; ;mgn;
+# nontrivial propagation direction make the results different 
+#all -phi_integr 31 ;sep; ;mgn;
+all -phi_integr 31 ;sc; ;2mgn;
 
 all -h pol
 all -pol cldr ;p; ;mgn;
@@ -198,7 +207,8 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-all -scat so ;mgn;
+# the results for so are indeed different, because surf uses formulae for non-plane beams
+#all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;
@@ -207,7 +217,8 @@ all -h scat_matr
 all -scat_matr muel ;mgn;
 all -scat_matr ampl ;mgn;
 all -scat_matr both ;mgn;
-all -scat_matr none ;m; ;g;
+# for equivalent runs with surface we additionally add -yz, which is incompatible with the following
+#all -scat_matr none ;m; ;g;
 
 all -h shape
 all -h shape axisymmetric
@@ -262,7 +273,8 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mgn;
 
 all -h store_force
-all -store_force ;sep; ;mgn;
+# radiative forces are not yet supported with surf
+#all -store_force ;sep; ;mgn;
 
 all -h store_grans
 granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
@@ -271,7 +283,9 @@ all -h store_int_field
 all -store_int_field ;se; ;mgn;
 
 all -h store_scat_grid
-all -store_scat_grid ;sep; ;mgn;
+# nontrivial propagation direction make the results different 
+#all -store_scat_grid ;sep; ;mgn;
+all -store_scat_grid ;sc; ;2mgn;
 
 all -h sym
 all -sym auto ;mgn;
@@ -288,7 +302,10 @@ all -h V
 all -V
 
 all -h vec
-all -vec ;sep; ;mgn;
+# nontrivial propagation direction make the results different
+#all -vec ;sep; ;mgn;
+all -vec ;sc; ;2mgn;
 
 all -h yz
-all -yz -store_scat_grid ;mgn;
+# for equivalent runs with surface we additionally add -yz, which is incompatible with the following
+#all -yz -store_scat_grid ;mgn;

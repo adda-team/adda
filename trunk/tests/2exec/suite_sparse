@@ -143,6 +143,7 @@ all -opt mem ;mgn;
 
 all -h orient
 all -orient 10 20 30 ;se; ;mn;
+all -orient 10 20 30 ;se; ;mn; ;p; -scat_matr both
 all -orient avg ;se; ;mn;
 all -orient avg ap.dat ;se; ;mn;
 

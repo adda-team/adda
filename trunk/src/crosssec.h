@@ -29,6 +29,8 @@ double ScaCross(const char *f_suf);
 void ReadAlldirParms(const char * restrict fname);
 void ReadAvgParms(const char * restrict fname);
 void ReadScatGridParms(const char * restrict fname);
+void SetScatPlane(const double ct,const double st,const double phi,double robs[static restrict 3],
+	double polPer[static restrict 3]);
 void CalcAlldir(void);
 void CalcScatGrid(enum incpol which);
 void AsymParm(double *vec,const char *f_suf);

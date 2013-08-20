@@ -52,8 +52,9 @@ extern size_t TotalEval;
 // used in CalculateE.c
 double * restrict muel_phi; // used to store values of Mueller matrix for different phi (to integrate)
 double * restrict muel_phi_buf; // additional for integrating with different multipliers
-	// scattered E (for scattering in one plane) for two incident polarizations
+	// scattered E (for scattering in the default scattering plane) for two incident polarizations
 doublecomplex * restrict EplaneX, * restrict EplaneY;
+doublecomplex * restrict EyzplX, * restrict EyzplY; // same for scattering in yz-plane
 double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
 doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY; // amplitude matrix for different values of alpha
 double * restrict muel_alpha; // mueller matrix for different values of alpha
@@ -184,12 +185,11 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",creal(coup_con[0]),
-			cimag(coup_con[0]),creal(coup_con[1]),cimag(coup_con[1]),creal(coup_con[2]),cimag(coup_con[2]));
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(coup_con));
 	}
 	else {
 		coup_con[2]=coup_con[1]=coup_con[0];
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",creal(coup_con[0]),cimag(coup_con[0]));
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(coup_con[0]));
 	}
 	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
@@ -263,10 +263,7 @@ static void calculate_one_orientation(double * restrict res)
 	D("MuellerMatrix finished");
 	if (IFROOT && orient_avg) {
 		tstart=GET_TIME();
-		/* it is more logical to use store_mueller in the following test, but for orientation averaging these two flags
-		 * are identical
-		 */
-		if (yzplane) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
+		if (store_mueller) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
 		D("Integration over alpha completed on root");
@@ -373,6 +370,16 @@ static void AllocateEverything(void)
 		if (!prognosis) {
 			CheckOverflow(2*tmp,ONE_POS_FUNC);
 			temp_int=tmp;
+			MALLOC_VECTOR(EyzplX,complex,temp_int,ALL);
+			MALLOC_VECTOR(EyzplY,complex,temp_int,ALL);
+		}
+		memory+=2*tmp*sizeof(doublecomplex);
+	}
+	if (scat_plane) {
+		tmp=2*(double)nTheta;
+		if (!prognosis) {
+			CheckOverflow(2*tmp,ONE_POS_FUNC);
+			temp_int=tmp;
 			MALLOC_VECTOR(EplaneX,complex,temp_int,ALL);
 			MALLOC_VECTOR(EplaneY,complex,temp_int,ALL);
 		}
@@ -419,7 +426,7 @@ static void AllocateEverything(void)
 		if (!prognosis) {
 			// this covers these 2 and next 2 malloc calls
 			CheckOverflow(8*tmp+2,ONE_POS_FUNC);
-			if (yzplane) {
+			if (store_mueller) {
 				temp_int=tmp;
 				MALLOC_VECTOR(ampl_alphaX,complex,temp_int,ONE);
 				MALLOC_VECTOR(ampl_alphaY,complex,temp_int,ONE);
@@ -517,6 +524,10 @@ static void FreeEverything(void)
 	 * in AllocateEverything() above.
 	 */
 	if (yzplane) {
+		Free_cVector(EyzplX);
+		Free_cVector(EyzplY);
+	}
+	if (scat_plane) {
 		Free_cVector(EplaneX);
 		Free_cVector(EplaneY);
 	}
@@ -542,7 +553,7 @@ static void FreeEverything(void)
 
 	if (orient_avg) {
 		if (IFROOT) {
-			if (yzplane) {
+			if (store_mueller) {
 				Free_cVector(ampl_alphaX);
 				Free_cVector(ampl_alphaY);
 			}

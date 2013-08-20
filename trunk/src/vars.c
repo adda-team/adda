@@ -40,24 +40,27 @@ bool symX,symY,symZ;
 bool symR;         // symmetry of 90-degrees rotation about z axes
 
 // flags (true or false)
-bool prognosis;    // make a prognosis about needed ram
-bool yzplane;      // Calculate the field in the yz-plane
-bool all_dir;      /* Calculate the field for all directions on a theta-phi grid (internal parameter - initialized by
-                      other options: calculation of Csca and asym) */
-bool scat_grid;    // calculate field on a grid of scattering angles
-bool phi_integr;   // integrate over the phi angle
-bool reduced_FFT;  // reduced number of storage for FFT, when matrix is symmetric
-bool orient_avg;   // whether to use orientation averaging
-bool load_chpoint; // whether to load checkpoint
-bool beam_asym;    // whether the beam center is shifted relative to the origin
-bool sh_granul;    // whether to fill one domain with granules
-bool anisotropy;   // whether the scattering medium is anisotropic
-bool save_memory;  // whether to sacrifice some speed for memory
-bool ipr_required; /* whether inner product in MatVec will be used by iterative solver (causes additional
-                      initialization, e.g., for OpenCL) */
+bool prognosis;     // make a prognosis about needed ram
+bool yzplane;       // Calculate the field in the yz-plane
+bool scat_plane;    // Calculate the scattering in plane through ez (in lab RF), prop, incPolX
+bool store_mueller; // Calculate and write Mueller matrix to file
+bool all_dir;       /* Calculate the field for all directions on a theta-phi grid (internal parameter - initialized by
+                       other options: calculation of Csca and asym) */
+bool scat_grid;     // calculate field on a grid of scattering angles
+bool phi_integr;    // integrate over the phi angle
+bool reduced_FFT;   // reduced number of storage for FFT, when matrix is symmetric
+bool orient_avg;    // whether to use orientation averaging
+bool load_chpoint;  // whether to load checkpoint
+bool beam_asym;     // whether the beam center is shifted relative to the origin
+bool sh_granul;     // whether to fill one domain with granules
+bool anisotropy;    // whether the scattering medium is anisotropic
+bool save_memory;   // whether to sacrifice some speed for memory
+bool ipr_required;  /* whether inner product in MatVec will be used by iterative solver (causes additional
+                       initialization, e.g., for OpenCL) */
+double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
 
 // 3D vectors (in particle reference frame)
-double prop[3];               // incident direction (in particle reference frame)
+double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
 double incPolX[3],incPolY[3]; // incident polarizations (in particle RF)
 double beam_center[3];        // coordinates of the beam center
 double box_origin_unif[3];    /* coordinates of the center of the first dipole in the local computational box (after
@@ -117,6 +120,18 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_Integration, // time for all integrations (with precomputed values)
           tstart_main;        // starting time of the program (after MPI_Init in parallel)
           
+
+// related to a nearby surface
+bool surface;           // whether nearby surface is present
+enum refl ReflRelation; // method to calculate reflected Green's tensor
+doublecomplex msub;     // complex refractive index of the substrate
+double hsub;            // height of particle center above surface
+/* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
+ * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
+ * given by the complex wavenumber ktVec
+ */
+double prIncRefl[3],prIncTran[3];
+
 #ifndef SPARSE //These variables are exclusive to the FFT mode
 
 // position of the dipoles; in the very end of make_particle() z-components are adjusted to be relative to the local_z0

@@ -62,9 +62,8 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *a
 void cisi(double x,double *ci,double *si);
 
 // this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,creal(result[0]),\
-	cimag(result[0]),creal(result[1]),cimag(result[1]),creal(result[2]),cimag(result[2]),creal(result[3]),\
-	cimag(result[3]),creal(result[4]),cimag(result[4]),creal(result[5]),cimag(result[5]));*/
+#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,REIM(result[0]),\
+	REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5]));*/
 
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
@@ -536,7 +535,7 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
 		//====== G close =============
 		// av is copy of propagation vector
-		if (!inter_avg) memcpy(av,prop,3*sizeof(double));
+		if (!inter_avg) vCopy(prop,av);
 		ivec[0]=i;
 		ivec[1]=j;
 		ivec[2]=k;

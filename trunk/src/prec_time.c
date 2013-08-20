@@ -29,7 +29,7 @@
 #ifdef WINDOWS
 static double inv_freq;
 #elif defined(POSIX)
-# define MICRO 1E-6
+#  define MICRO 1E-6
 #endif
 
 //======================================================================================================================

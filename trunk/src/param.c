@@ -101,7 +101,6 @@ bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
 bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
-bool store_mueller;   // Calculate and write Mueller matrix to file
 bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type; // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
@@ -109,7 +108,6 @@ bool avg_inc_pol;                 // whether to average CC over incident polariz
 const char *alldir_parms;         // name of file with alldir parameters
 const char *scat_grid_parms;      // name of file with parameters of scattering grid
 // used in crosssec.c
-double prop_0[3];                 // initial incident direction (in laboratory reference frame)
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
 // used in GenerateB.c
@@ -162,6 +160,10 @@ static const char *avg_parms;   // name of file with orientation averaging param
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
+static bool prop_used;          // whether '-prop ...' was used in the command line
+static bool orient_used;        // whether '-orient ...' was used in the command line
+static bool yz_used;            // whether '-yz ...' was used in the command line
+static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -330,6 +332,7 @@ PARSE_FUNC(grid);
 PARSE_FUNC(h) ATT_NORETURN;
 PARSE_FUNC(init_field);
 PARSE_FUNC(int);
+PARSE_FUNC(int_surf);
 PARSE_FUNC(iter);
 PARSE_FUNC(jagged);
 PARSE_FUNC(lambda);
@@ -351,6 +354,7 @@ PARSE_FUNC(save_geom);
 PARSE_FUNC(scat);
 PARSE_FUNC(scat_grid_inp);
 PARSE_FUNC(scat_matr);
+PARSE_FUNC(scat_plane);
 #ifndef SPARSE
 PARSE_FUNC(sg_format);
 #endif
@@ -364,6 +368,7 @@ PARSE_FUNC(store_grans);
 #endif
 PARSE_FUNC(store_int_field);
 PARSE_FUNC(store_scat_grid);
+PARSE_FUNC(surf);
 PARSE_FUNC(sym);
 PARSE_FUNC(test);
 PARSE_FUNC(V) ATT_NORETURN;
@@ -461,6 +466,14 @@ static struct opt_struct options[]={
 		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
 #endif
 		"Default: poi",UNDEF,NULL},
+	{PAR(int_surf),"{img|som}",
+			"Sets prescription to calculate the interaction term.\n"
+			"'img' - approximation based on a single image dipole (fast but inaccurate).\n"
+			"'som' - direct evaluation of Sommerfeld integrals.\n"
+	#ifdef SPARSE
+			"!!! In sparse mode 'som' is expected to be very slow.\n"
+	#endif
+			"Default: som",1,NULL},
 	{PAR(iter),"{bcgs2|bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 		/* TO ADD NEW ITERATIVE SOLVER
@@ -546,6 +559,9 @@ static struct opt_struct options[]={
 	{PAR(scat_matr),"{muel|ampl|both|none}","Specifies which scattering matrices (from Mueller and amplitude) should "
 		"be saved to file. Amplitude matrix is never integrated (in combination with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
+	{PAR(scat_plane),"","Explicitly enables calculation of the scattering in the plane through e_z (in laboratory "
+		"reference frame) and propagation direction of incident wave. For default incidence, this is the xz-plane. It "
+		"can also be implicitly enabled by other options.",0,NULL},
 #ifndef SPARSE
 	{PAR(sg_format),"{text|text_ext|ddscat6|ddscat7}","Specifies format for saving geometry files. First two are ADDA "
 		"default formats for single- and multi-domain particles respectively. 'text' is automatically changed to "
@@ -573,6 +589,10 @@ static struct opt_struct options[]={
 #endif
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
 	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
+	{PAR(surf),"<mre> <mim> <h>","Specifies that scatterer is located above the plane surface, parallel to the "
+		"xy-plane. First two arguments specify the refractive index of the substrate (below the surface), assuming that "
+		"the vacuum is above the surface. <h> specifies the height of particle center above the surface (along the "
+		"z-axis, in um). Particle must be entirely above the substrate.",3,NULL},
 	{PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take them into account "
 		"('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
@@ -1107,6 +1127,12 @@ PARSE_FUNC(int)
 	else NotSupported("Interaction term prescription",argv[1]);
 	if (Narg>1 && strcmp(argv[1],"igt")!=0) PrintErrorHelp("Additional arguments are allowed only for 'igt'");
 }
+PARSE_FUNC(int_surf)
+{
+	if (strcmp(argv[1],"img")==0) ReflRelation=GR_IMG;
+	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
+	else NotSupported("Interaction term prescription",argv[1]);
+}
 PARSE_FUNC(iter)
 {
 	if (strcmp(argv[1],"bcgs2")==0) IterMethod=IT_BCGS2;
@@ -1189,6 +1215,10 @@ PARSE_FUNC(orient)
 		ScanDoubleError(argv[2],&bet_deg);
 		ScanDoubleError(argv[3],&gam_deg);
 	}
+	/* this will catch even trivial cases like '-orient 0 0 0', but we still want to point the user to existent
+	 * incompatibilities. This may help to prevent misunderstanding on the user's side.
+	 */
+	orient_used=true;
 }
 PARSE_FUNC(phi_integr)
 {
@@ -1231,10 +1261,8 @@ PARSE_FUNC(prop)
 	ScanDoubleError(argv[3],prop_0+2);
 	tmp=DotProd(prop_0,prop_0);
 	if (tmp==0) PrintErrorHelp("Given propagation vector is null");
-	tmp=1/sqrt(tmp);
-	prop_0[0]*=tmp;
-	prop_0[1]*=tmp;
-	prop_0[2]*=tmp;
+	vMultScal(1/sqrt(tmp),prop_0,prop_0);
+	prop_used=true;
 }
 PARSE_FUNC(recalc_resid)
 {
@@ -1273,6 +1301,11 @@ PARSE_FUNC(scat_matr)
 	else if (strcmp(argv[1],"both")==0) store_mueller=store_ampl=true;
 	else if (strcmp(argv[1],"none")==0) store_mueller=store_ampl=false;
 	else NotSupported("Scattering matrix specifier",argv[1]);
+}
+PARSE_FUNC(scat_plane)
+{
+	scat_plane_used = true;
+	scat_plane = true;
 }
 #ifndef SPARSE
 PARSE_FUNC(sg_format)
@@ -1356,6 +1389,18 @@ PARSE_FUNC(store_int_field)
 PARSE_FUNC(store_scat_grid)
 {
 	store_scat_grid = true;
+}
+PARSE_FUNC(surf)
+{
+	double mre,mim;
+
+	ScanDoubleError(argv[1],&mre);
+	ScanDoubleError(argv[2],&mim);
+	msub = mre + I*mim;
+	ScanDoubleError(argv[3],&hsub);
+	TestPositive(hsub,"height above surface");
+	surface = true;
+	symZ=false;
 }
 PARSE_FUNC(sym)
 {
@@ -1548,6 +1593,7 @@ PARSE_FUNC(vec)
 }
 PARSE_FUNC(yz)
 {
+	yz_used = true;
 	yzplane = true;
 }
 /* TO ADD NEW COMMAND LINE OPTION
@@ -1647,9 +1693,8 @@ static void RemoveLockFile(FILEHANDLE fd ONLY_FOR_LOCK,const char * restrict fna
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
-	prop_0[0]=0; // by default beam propagates along z-axis
-	prop_0[1]=0;
-	prop_0[2]=1;
+	prop_used=false;
+	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
 	// initialize ref_index of scatterer
@@ -1657,7 +1702,6 @@ void InitVariables(void)
 	ref_index[0]=1.5;
 	// initialize to null to determine further whether it is initialized
 	logfile=NULL;
-
 	boxX=boxY=boxZ=UNDEF;
 	sizeX=UNDEF;
 	a_eq=UNDEF;
@@ -1692,6 +1736,9 @@ void InitVariables(void)
 	save_geom=false;
 	save_geom_fname="";
 	yzplane=false;
+	yz_used=false;
+	scat_plane=false;
+	scat_plane_used=false;
 	all_dir=false;
 	scat_grid=false;
 	phi_integr=false;
@@ -1719,6 +1766,8 @@ void InitVariables(void)
 	igt_eps=UNDEF;
 	InitField=IF_AUTO;
 	recalc_resid=false;
+	surface=false;
+	ReflRelation=GR_SOM;
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
@@ -1788,6 +1837,11 @@ void VariablesInterconnect(void)
 
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI/lambda;
+	// set default incident direction, which is +z for all configurations
+	if (!prop_used) {
+		prop_0[0]=prop_0[1]=0;
+		prop_0[2] = 1;
+	}
 	// parameter interconnections
 	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
 	 * when SQ_FINDIP is used
@@ -1795,14 +1849,18 @@ void VariablesInterconnect(void)
 	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
 	if (IntRelation==G_SO) reduced_FFT=false;
 	if (calc_Csca || calc_vec) all_dir = true;
-	// yzplane is true except when this case is true and when not forced by -yz option
+	// by default, one of the scattering options is activated
 	if (store_scat_grid || phi_integr) scat_grid = true;
-	else yzplane = true;
+	else if (!scat_plane_used && !yz_used) { // default values when no scattering plane is explicitly specified
+		if (surface) scat_plane = true;
+		else yzplane = true;
+	}
 	// if not initialized before, IGT precision is set to that of the iterative solver
 	if (igt_eps==UNDEF) igt_eps=iter_eps;
 	// parameter incompatibilities
+	if (scat_plane && yzplane) PrintError("Currently '-scat_plane' and '-yz' cannot be used together.");
 	if (orient_avg) {
-		if (prop_0[2]!=1) PrintError("'-prop' and '-orient avg' can not be used together");
+		if (prop_used) PrintError("'-prop' and '-orient avg' can not be used together");
 		if (store_int_field) PrintError("'-store_int_field' and '-orient avg' can not be used together");
 		if (store_dip_pol) PrintError("'-store_dip_pol' and '-orient avg' can not be used together");
 		if (store_beam) PrintError("'-store_beam' and '-orient avg' can not be used together");
@@ -1817,6 +1875,8 @@ void VariablesInterconnect(void)
 			LogWarning(EC_WARN,ONE_POS,"Amplitude matrix can not be averaged over orientations. So switching off "
 				"calculation of Mueller matrix results in no calculation of scattering matrices at all.");
 		}
+		if (scat_plane && yzplane) PrintError("Only one scattering plane can be used during orientation averaging, so "
+			"a combination of '-scat_plane' and '-yz' cannot be used together with '-orient avg'.");
 	}
 	if (phi_integr && !store_mueller) PrintError("Integration over phi can only be performed for Mueller matrix. "
 		"Hence, '-phi_integr' is incompatible with '-scat_matr {ampl|none}'");
@@ -1825,8 +1885,13 @@ void VariablesInterconnect(void)
 			"'-ntheta' irrelevant. Hence, these two options are incompatible.");
 		if (store_scat_grid) PrintError("'-scat_matr none' turns off calculation of angle-resolved quantities. Hence, "
 			"it is incompatible with '-store_scat_grid'.");
+		if (yz_used) PrintError("'-scat_matr none' turns off calculation of angle-resolved quantities. Hence, it is "
+			"incompatible with '-yz'.");
+		if (scat_plane_used) PrintError("'-scat_matr none' turns off calculation of angle-resolved quantities. Hence, "
+			"it is incompatible with '-scat_plane'.");
 		nTheta=0;
 		yzplane=false;
+		scat_plane=false;
 		scat_grid=false;
 	}
 	if (anisotropy) {
@@ -1846,6 +1911,18 @@ void VariablesInterconnect(void)
 	if (sizeX!=UNDEF && a_eq!=UNDEF) PrintError("'-size' and '-eq_rad' can not be used together");
 	if (calc_mat_force && beamtype!=B_PLANE)
 		PrintError("Currently radiation forces can not be calculated for non-plane incident wave");
+	if (InitField==IF_WKB) {
+		if (prop_used) PrintError("Currently '-init_field wkb' and '-prop' can not be used together");
+		if (beamtype!=B_PLANE) PrintError("'-init_field wkb' is incompatible with non-plane incident wave");
+	}
+	if (surface) { // currently a lot of limitations for particles near surface
+		if (orient_used) PrintError("Currently '-orient' and '-surf' can not be used together");
+		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
+		if (beamtype!=B_PLANE) PrintError("Currently non-plane incident wave is incompatible with '-surf'");
+		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
+		if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify the"
+			"incident direction to have (arbitrary) small positive or negative z-component");
+	}
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
 #endif
@@ -1866,12 +1943,13 @@ void VariablesInterconnect(void)
 	/* Determine two incident polarizations. Equivalent to rotation of X,Y,Z basis by angles theta and phi from (0,0,1)
 	 * to given propagation vector.
 	 */
-	if (fabs(prop_0[2])>=1) { // can not be >1 except for machine precision
-		incPolX_0[0]=prop_0[2];
+	if ((prop_0[0]==0 && prop_0[1]==0) || fabs(prop_0[2])==1) { // a robust test of propagation along the z-axis
+		propAlongZ=incPolX_0[0]=copysign(1.0,prop_0[2]);
 		incPolY_0[1]=1;
 		incPolX_0[1]=incPolX_0[2]=incPolY_0[0]=incPolY_0[2]=0.0;
 	}
 	else {
+		propAlongZ=0;
 		temp=sqrt(1-prop_0[2]*prop_0[2]);
 		incPolX_0[0]=prop_0[0]*prop_0[2]/temp;
 		incPolX_0[1]=prop_0[1]*prop_0[2]/temp;
@@ -1891,10 +1969,11 @@ void VariablesInterconnect(void)
 	else {
 		// else - initialize rotation stuff
 		InitRotation();
-		/* if not default incidence, break the symmetry completely. This can be improved to account for some special
-		 * cases, however, then symmetry of Gaussian beam should be treated more thoroughly than now.
+		/* if not default incidence (generally, along z-axis), break the symmetry completely. This can be improved to
+		 * account for some special cases, however, then symmetry of Gaussian beam should be treated more thoroughly
+		 * than now.
 		 */
-		if (prop[2]!=1 && sym_type==SYM_AUTO) sym_type=SYM_NO;
+		if (!propAlongZ && sym_type==SYM_AUTO) sym_type=SYM_NO;
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 	/* TO ADD NEW ITERATIVE SOLVER
@@ -2044,29 +2123,27 @@ void PrintInfo(void)
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
-			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",creal(ref_index[0]),cimag(ref_index[0]),creal(ref_index[1]),
-				cimag(ref_index[1]),creal(ref_index[2]),cimag(ref_index[2]));
+			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
 			else {
 				for (i=0;i<Nmat;i++) {
-					if (i<Nmat_given) fprintf(logfile,"    %d. "CFORM3V"\n",i+1,creal(ref_index[3*i]),
-						cimag(ref_index[3*i]),creal(ref_index[3*i+1]),cimag(ref_index[3*i+1]),creal(ref_index[3*i+2]),
-						cimag(ref_index[3*i+2]));
+					if (i<Nmat_given) fprintf(logfile,"    %d. "CFORM3V"\n",i+1,REIM3V(ref_index+3*i));
 					else fprintf(logfile,"   %d. not specified\n",i+1);
 				}
 			}
 		}
 		else {
 			fprintf(logfile,"refractive index: ");
-			if (Nmat==1) fprintf(logfile,CFORM"\n",creal(ref_index[0]),cimag(ref_index[0]));
+			if (Nmat==1) fprintf(logfile,CFORM"\n",REIM(ref_index[0]));
 			else {
-				fprintf(logfile,"1. "CFORM"\n",creal(ref_index[0]),cimag(ref_index[0]));
+				fprintf(logfile,"1. "CFORM"\n",REIM(ref_index[0]));
 				for (i=1;i<Nmat;i++) {
-					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM"\n",
-						i+1,creal(ref_index[i]),cimag(ref_index[i]));
+					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM"\n",i+1,REIM(ref_index[i]));
 					else fprintf(logfile,"                  %d. not specified\n",i+1);
 				}
 			}
 		}
+		if (surface) fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n"
+				"  height of the particle center: "GFORMDEF"\n",REIM(msub),hsub);
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
@@ -2078,9 +2155,16 @@ void PrintInfo(void)
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
-		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",prop_0[0],prop_0[1],prop_0[2]);
-		fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",incPolY_0[0],incPolY_0[1],incPolY_0[2]);
-		fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n\n",incPolX_0[0],incPolX_0[1],incPolX_0[2]);
+		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop_0));
+		fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY_0));
+		fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX_0));
+		if (surface) { // include surface-specific vectors
+			fprintf(logfile,"Reflected propagation vector: "GFORMDEF3V"\n",COMP3V(prIncRefl));
+			fprintf(logfile,"Transmitted propagation vector: "GFORMDEF3V,COMP3V(prIncTran));
+			if (prIncTran[2]==0) fprintf(logfile," (evanescent)\n");
+			else fprintf(logfile,"\n");
+		}
+		fprintf(logfile,"\n");
 		// log particle orientation
 		if (orient_avg) fprintf(logfile,"Particle orientation - averaged\n%s\n",avg_string);
 		else {
@@ -2090,9 +2174,9 @@ void PrintInfo(void)
 					"---In particle reference frame:---\n",alph_deg,bet_deg,gam_deg);
 				if (beam_asym) fprintf(logfile,"Incident Beam center position: "GFORMDEF3V"\n",
 					beam_center[0],beam_center[1],beam_center[2]);
-				fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",prop[0],prop[1],prop[2]);
-				fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",incPolY[0],incPolY[1],incPolY[2]);
-				fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n\n",incPolX[0],incPolX[1],incPolX[2]);
+				fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop));
+				fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY));
+				fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n\n",COMP3V(incPolX));
 			}
 			else fprintf(logfile,"Particle orientation: default\n\n");
 		}
@@ -2143,6 +2227,14 @@ void PrintInfo(void)
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
+		}
+		// log reflected Green'tensor formulae
+		if (surface) {
+			fprintf(logfile,"Reflected Green's tensor formulae: ");
+			switch (ReflRelation) {
+				case GR_IMG: fprintf(logfile,"'Image-dipole approximation'\n"); break;
+				case GR_SOM: fprintf(logfile,"'Sommerfeld integrals'\n"); break;
+			}
 		}
 		// log FFT and (if needed) clFFT method
 		fprintf(logfile,"FFT algorithm: ");

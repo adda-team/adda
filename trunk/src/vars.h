@@ -45,10 +45,12 @@ extern enum beam beamtype;
 extern bool symX,symY,symZ,symR;
 
 // flags
-extern bool prognosis,yzplane,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,load_chpoint,beam_asym,
-	anisotropy,save_memory,ipr_required;
+extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
+	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required;
+extern double propAlongZ;
+
 // 3D vectors
-extern double prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
+extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
 
 // file info
 extern const char * restrict directory;
@@ -81,6 +83,13 @@ extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid
 // timing
 extern time_t wt_start,last_chp_wt;
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
+
+// related to a nearby surface
+extern bool surface;
+extern enum refl ReflRelation;
+extern doublecomplex msub;
+extern double hsub;
+extern double prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE //These variables are exclusive to the FFT mode
 
