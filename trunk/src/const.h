@@ -309,7 +309,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define DEF_GRID       (16*jagged)
 #define MIN_AUTO_GRID  16 // minimum grid, when set from default dpl
 
-// numbers less than this value (compared to unity) are considered to be zero
+// numbers less than this value (compared to unity) are considered to be zero (approximately 10*DBL_EPSILON)
 #define ROUND_ERR 1E-15
 
 // output and input file and directory names (can only be changed at compile time)

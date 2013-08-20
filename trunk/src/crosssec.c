@@ -760,9 +760,9 @@ void SetScatPlane(const double ct,const double st,const double phi,double robs[s
 	// set unit vectors which defines Eper
 	// two special cases; testing ct is more accurate than st==0
 	// 1) robs has +0 component along exLab (for phi=0): incPolper = (+-)(sin(phi)*exLab - cos(phi)*eyLab)
-	if (surface && propAlongZ && fabs(ct)==1) LinComb(exLab,eyLab,sphi*propAlongZ,-cphi*propAlongZ,polPer);
+	if (surface && propAlongZ && fabs(st)<ROUND_ERR) LinComb(exLab,eyLab,sphi*propAlongZ,-cphi*propAlongZ,polPer);
 	// 2) robs has +0 component along incPolX (for phi=0): incPolper = sin(phi)*incPolX - cos(phi)*incPolY
-	else if (!surface && fabs(ct)==1) LinComb(incPolX,incPolY,sphi,-cphi,polPer);
+	else if (!surface && fabs(st)<ROUND_ERR) LinComb(incPolX,incPolY,sphi,-cphi,polPer);
 	else { // general case: incPolPer = robserver x prop /||...||
 		CrossProd(robs,prop,polPer);
 		// when robs || prop scattering plane contains ez, then polPer = prop x ez/||...|| = -incPolY

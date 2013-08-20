@@ -1830,6 +1830,14 @@ void ParseParameters(const int argc,char **argv)
 
 //======================================================================================================================
 
+static inline bool vAlongZ(double a[static 3])
+// a robust (with respect to round-off errors) way to test that vector is along the z-axis (+ or -)
+{
+	return fabs(a[0])<ROUND_ERR && fabs(a[1])<ROUND_ERR;
+}
+
+//======================================================================================================================
+
 void VariablesInterconnect(void)
 // finish parameters initialization based on their interconnections
 {
@@ -1943,7 +1951,7 @@ void VariablesInterconnect(void)
 	/* Determine two incident polarizations. Equivalent to rotation of X,Y,Z basis by angles theta and phi from (0,0,1)
 	 * to given propagation vector.
 	 */
-	if ((prop_0[0]==0 && prop_0[1]==0) || fabs(prop_0[2])==1) { // a robust test of propagation along the z-axis
+	if (vAlongZ(prop_0)) {
 		propAlongZ=incPolX_0[0]=copysign(1.0,prop_0[2]);
 		incPolY_0[1]=1;
 		incPolX_0[1]=incPolX_0[2]=incPolY_0[0]=incPolY_0[2]=0.0;
@@ -1973,7 +1981,7 @@ void VariablesInterconnect(void)
 		 * account for some special cases, however, then symmetry of Gaussian beam should be treated more thoroughly
 		 * than now.
 		 */
-		if (!propAlongZ && sym_type==SYM_AUTO) sym_type=SYM_NO;
+		if (!vAlongZ(prop) && sym_type==SYM_AUTO) sym_type=SYM_NO;
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 	/* TO ADD NEW ITERATIVE SOLVER
