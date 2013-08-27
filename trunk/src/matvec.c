@@ -474,9 +474,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #	endif
 	for (i=0; i<local_nvoid_Ndip; i++) {
 		i3 = 3*i;
-		resultvec[i3]=0.0;
-		resultvec[i3+1]=0.0;
-		resultvec[i3+2]=0.0;
+		cvInit(resultvec+i3);
 		for (j=0; j<local_nvoid_d0+i; j++) AijProd(arg_full,resultvec,i,j);
 		for (j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
 	}
