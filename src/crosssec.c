@@ -503,10 +503,10 @@ void ReadScatGridParms(const char * restrict fname)
 	Timing_FileIO+=GET_TIME()-tstart;
 }
 
-//======================================================================================================================*/
+//======================================================================================================================
 
-void CalcField(doublecomplex ebuff[static restrict 3], // where to write calculated scattering amplitude
-               const double n[static restrict 3])      // scattering direction
+static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to write calculated scattering amplitude
+                          const double n[static restrict 3])      // scattering direction
 /* Near-optimal routine to compute the scattered fields at one specific angle (more exactly - scattering amplitude);
  * Specific optimization are possible when e.g. n[0]=0 for scattering in yz-plane, however in this case it is very
  * improbable that the routine will become a bottleneck. The latter happens mostly for cases, when grid of scattering
@@ -536,7 +536,7 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
 		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
 	}
-	for(i=0;i<3;i++) sum[i]=0.0;
+	cvInit(sum);
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
 	imExp_arr(-kd*n[0],boxX,expsX);
@@ -594,6 +594,210 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 	if (ScatRelation==SQ_IGT_SO) kkk*=(1-kd*kd/24);
 	tmp=-I*a*kkk; // tmp=(-i*k^3)*exp(-ikr0.n)
 	cvMultScal_cmplx(tmp,tbuff,ebuff);
+}
+
+//======================================================================================================================
+
+static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to write calculated scattering amplitude
+                          const double nF[static restrict 3])     // scattering direction (at infinity)
+/* Same as CalcFieldFree but for particle near surface; the code is rather similar but we keep it separate
+ * For absorbing substrate and scattering below the surface we assume that nF determines the phase direction, i.e. that
+ * of the real part of the complex wave vector.
+ * The calculated electric field is always the correct one, but the par and per directions used throughout the code
+ * to project this field are not exactly correct, when scattered field inside substrate with complex msub is considered.
+ * In that case ep is complex (see below), while everywhere in the code a real vector is used. To solve this problem
+ * completely we first need to stop using scattering plane and switch to the separate incident and scattering planes
+ * (like in book by Mishchenko et al.).
+ */
+{
+	doublecomplex aF,aN,cs,cp,ki,kt,phSh;
+	doublecomplex sumF[3],sumN[3],t3[3],tmpF=0,tmpN=0; // redundant initialization to remove warnings
+	double nN[3]; // scattering direction at near field (which is further reflected or transmitted)
+	double epN[3],es[3]; // unit vectors of s- and p-polarization, ep differs for near- and far-field
+	doublecomplex epF[3]; // in general ep at far-field is complex
+	int i;
+	unsigned short ix,iy1,iy2,iz1,iz2;
+	size_t j,jjj;
+#ifdef SPARSE
+	doublecomplex expX, expY, expZ;
+#endif
+
+	const bool above=(nF[2]>-ROUND_ERR); // we assume above-the-surface scattering for all boundary cases
+	// Using SQ_SO for particles near surface seems even beyond "under development"
+	if (ScatRelation==SQ_SO) LogError(ONE_POS,"Incompatibility error in CalcFieldSurf");
+	cvInit(sumN);
+	if (above) cvInit(sumF); //additional storage for directly propagated scattering
+	// calculate nN
+	if (above) { // simple reflection
+		vCopy(nF,nN);
+		nN[2]*=-1;
+	}
+	else { // transmission
+		doublecomplex eps=msub*msub;
+		// effective eps and (real part of) refractive index
+		doublecomplex epsEff=(creal(eps) + I*cimag(eps)/nF[2]);
+		double Neff=creal(cSqrtCut(epsEff));
+		double kpar2=Neff*Neff*(1-nF[2]*nF[2]); // square of k_par/k0 (parallel to the surface)
+		if (kpar2>1) { // no transmission at this direction => zero result
+			cvInit(ebuff);
+			return;
+		}
+		nN[0]=nF[0]*sqrt(epsEff);
+		nN[1]=nF[1]*sqrt(epsEff);
+		nN[2]=-sqrt(1-kpar2);
+	}
+#ifndef SPARSE
+	// prepare values of exponents, along each of the coordinates
+	imExp_arr(-kd*nN[0],boxX,expsX);
+	imExp_arr(-kd*nN[1],boxY,expsY);
+	imExp_arr(-kd*nN[2],local_Nz_unif,expsZ);
+#endif // !SPARSE
+	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
+	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
+	 * porous particles though, but for them this part of code is anyway fast relative to the FFT on a large grid;
+	 * Further optimization is possible using some kind of plans, i.e. by preliminary analyzing the position of the
+	 * real dipoles on the grid.
+	 */
+	iy1=iz1=UNDEF;
+	if (above) for (j=0;j<local_nvoid_Ndip;++j) { // two sums need to be calculated
+		jjj=3*j;
+		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		ix=position[jjj];
+		iy2=position[jjj+1];
+		iz2=position[jjj+2];
+		// the second part is very improbable, but needed for robustness
+		if (iy2!=iy1 || iz2!=iz1) {
+			iy1=iy2;
+			iz1=iz2;
+#ifndef SPARSE // FFT mode
+			tmpN=expsY[iy2]*expsZ[iz2];
+			tmpF=expsY[iy2]*conj(expsZ[iz2]);
+		}
+		aN=tmpN*expsX[ix];
+		aF=tmpF*expsX[ix];
+#else // sparse mode - the difference is that exponents are not precomputed
+			expY=imExp(-kd*nN[1]*iy2);
+			expZ=imExp(-kd*nN[2]*iz2);
+			tmpN=expY*expZ;
+			tmpF=expY*conj(expZ);
+		}
+		expX=imExp(-kd*nN[0]*ix);
+		aN=tmpN*expX;
+		aF=tmpF*expX;
+#endif // SPARSE
+		// sum(P*exp(-ik*r.nN,F))
+		for(i=0;i<3;i++) {
+			sumN[i]+=pvec[jjj+i]*aN;
+			sumF[i]+=pvec[jjj+i]*aF;
+		}
+	} /* end for j above surface */
+	else for (j=0;j<local_nvoid_Ndip;++j) { // below surface, single sum - similar to free-space scattering
+		jjj=3*j;
+		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		ix=position[jjj];
+		iy2=position[jjj+1];
+		iz2=position[jjj+2];
+		// the second part is very improbable, but needed for robustness
+		if (iy2!=iy1 || iz2!=iz1) {
+			iy1=iy2;
+			iz1=iz2;
+#ifndef SPARSE // FFT mode
+			tmpN=expsY[iy2]*expsZ[iz2];
+		}
+		aN=tmpN*expsX[ix];
+#else // sparse mode - the difference is that exponents are not precomputed
+			expY=imExp(-kd*nN[1]*iy2);
+			expZ=imExp(-kd*nN[2]*iz2);
+			tmpN=expY*expZ;
+		}
+		expX=imExp(-kd*nN[0]*ix);
+		aN=tmpN*expX;
+#endif // SPARSE
+		// sum(P*exp(-ik*r.nN))
+		for(i=0;i<3;i++) sumN[i]+=pvec[jjj+i]*aN;
+	} /* end for j below surface */
+	// Reflected or transmitted light phSh*(Rs*es(es.sumN) + Rp*epF(epN.sumN))
+		// calculate cs and cp (either reflection of transmission coefficients)
+	/* There is an inherent discontinuity for msub approaching 1 and scattering angle 90 degrees (nF[2]=0). The problem
+	 * is that for m=1+-0, but |m-1|>>(nF[2])^2, ki<<kt<<1 => rs=rp=-1
+	 * while for m=1 (exactly) the limit of nF[2]->0 results in kt=ki => rs=rp=0
+	 * Therefore, below is a certain logic, which behaves in an intuitively expected way, for common special cases.
+	 * However, it is still not expected to be continuous for fine-changing parameters (like msub approaching 1).
+	 * In particular, the jump occurs when msub crosses 1+-ROUND_ERR boundary.
+	 * Still, the discontinuity should apply only to scattering at exactly 90 degrees, but not to, e.g., integral
+	 * quantities, like Csca (if sufficient very number of integration points is chosen)
+	 */
+	ki=-nN[2];
+	if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki; // special case to avoid randomness due to round-off errors
+	else kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
+	if (above) {
+		/* here we test only the exact zero, since for other cases (when msub=1, and very small values of ki,kt) the
+		 * above assignment kt=ki guarantees correct results through standard functions
+		 */
+		if (ki==0 && kt==0) cs=cp=0;
+		else {
+			cs=FresnelRS(ki,kt);
+			cp=FresnelRP(ki,kt,msub);
+		}
+	}
+	else { // below surface
+		cs=FresnelTS(ki,kt);
+		cp=FresnelTP(ki,kt,msub);
+	}
+		// set unit vectors for s- and p-polarizations; es is the same for all cases
+	if (vAlongZ(nF)) { // special case - es=ey
+		es[0]=0;
+		es[1]=1;
+		es[2]=0;
+	}
+	else { // general case: es = ez x nF /||...||; here we implicitly use that lab RF coincides with particle RF
+		CrossProd(ezLab,nF,es);
+		vNormalize(es);
+	}
+	CrossProd(es,nN,epN); // epN = es x nN
+		// epF is different for reflected and transmitted (similar to the code in GenerateB.c)
+	if (above || cimag(msub)==0) { // epF = es x nF; also includes simple case with real ktVec
+		double epFRe[3];
+		CrossProd(es,nF,epFRe);
+		cvBuildRe(epFRe,epF);
+	}
+	else {
+		doublecomplex ktVec[3];
+		ktVec[0]=nN[0];
+		ktVec[1]=nN[1];
+		ktVec[2]=-kt;
+		crCrossProd(es,ktVec,epF);
+		// here msub!=0 due to the special condition above
+		cvMultScal_cmplx(1/msub,epF,epF); // after that (epF,epF)=1, in agreement with definition of transmission coef
+	}
+		// finalize phase shifts (phSh) and fields
+	if (above) phSh=imExp(2*WaveNum*hsub*ki);
+	else phSh=cexp(I*WaveNum*hsub*(ki-kt)); // below surface
+	cvMultScal_RVec(phSh*cs*crDotProd(sumN,es),es,ebuff);
+	cvMultScal_cmplx(phSh*cp*crDotProd(sumN,epN),epF,t3);
+	cvAdd(t3,ebuff,ebuff);
+	// add directly scattered light, when above the surface (phase shift due to main direction being nN)
+	if (above) { // ebuff+= [(I-nxn).sum=sum-nF*(nF.sum)] * exp(-2ik*r0*nz), where r0=box_origin_unif
+		cvMultScal_RVec(crDotProd(sumF,nF),nF,t3);
+		cvSubtr(sumF,t3,t3);
+		cvMultScal_cmplx(imExp(-2*WaveNum*ki*box_origin_unif[2]),t3,t3);
+		cvAdd(t3,ebuff,ebuff);
+	}
+	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
+	doublecomplex sc=-I*WaveNum*WaveNum*WaveNum*imExp(-WaveNum*DotProd(box_origin_unif,nN)); // sc=(-i*k^3)*exp(-ikr0.n)
+	// the following additional multiplier implements IGT_SO
+	if (ScatRelation==SQ_IGT_SO) sc*=(1-kd*kd/24);
+	cvMultScal_cmplx(sc,ebuff,ebuff);
+}
+
+//======================================================================================================================*/
+
+void CalcField(doublecomplex ebuff[static restrict 3], // where to write calculated scattering amplitude
+               const double n[static restrict 3])      // scattering direction
+// wrapper, which redirects the calculation of the field to one of two functions
+{
+	if (surface) CalcFieldSurf(ebuff,n);
+	else CalcFieldFree(ebuff,n);
 }
 
 //======================================================================================================================
@@ -881,6 +1085,15 @@ static double CscaIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating Csca
 {
 	res[0]=E2_alldir[AlldirIndex(theta,phi)];
+	/* when below surface we scale E2 by msub in accordance with formula for the Poynting vector. After that Csca
+	 * computed using the standard formula should correctly describe the energy balance for _real_ msub.
+	 * For complex msub the situation is much more complicated. A general formula of 2(S.n) looks something like
+	 * N*{||Es||^2 + ||Ep||^2*[1-2*K^2*npar^2/(N^2+K^2)]}, where N+iK - effective eps (see CalcFieldSurf), and
+	 * Es, Ep are vectors (not amplitudes). However, the energy balance in the presence of absorbing medium is
+	 * still unclear (especially for strong absorption). So we use Re[msub]*||E||^2 in all cases, which should be
+	 * exact for real msub, and a good approximation in the case of (weakly) absorbing medium.
+	 */
+	if (surface && cos(Deg2Rad(theta_int.val[theta]))<=-ROUND_ERR) res[0]*=creal(msub);
 	return 0;
 }
 
@@ -912,6 +1125,16 @@ static double gIntegrand(const int theta,const int phi,double * restrict res)
 	ph=Deg2Rad(phi_int.val[phi]);
 
 	E_square=E2_alldir[AlldirIndex(theta,phi)];
+	/* when below surface we scale E2 by msub^2 in accordance with formula for the momentum of the wave.
+	 * After that for _real_ msub g*Csca correspond to the total momentum carried away by the scattered field. But
+	 * even then it is not enough to compute the radiation forces, because a) momentum extracted from the incident field
+	 * is no more proportional to Cext, b) momentum is also absorbed by the substrate through reflection/refraction of
+	 * both incident and scattered fields. In case of complex msub the situation is much more complicated (see
+	 * discussion in CscaIntegrand, but (Re[msub])^2 should be a good first approximation.
+	 *
+	 * Moreover, after such modification g = (gCsca)/Csca has very little sense, in particular it is not <cos(th)>
+	 */
+	if (surface && cos(th)<=-ROUND_ERR) E_square*=creal(msub)*creal(msub);
 	res[0] = E_square*sin(th)*cos(ph);
 	res[1] = E_square*sin(th)*sin(ph);
 	res[2] = E_square*cos(th);
@@ -920,7 +1143,8 @@ static double gIntegrand(const int theta,const int phi,double * restrict res)
 
 //======================================================================================================================
 
-void AsymParm(double *vec,const char *f_suf)
+static void AsymParm(double *vec,const char *f_suf) ATT_UNUSED;
+static void AsymParm(double *vec,const char *f_suf)
 // Calculate the unnormalized asymmetry parameter, i.e. not yet normalized by Csca
 {
 	int comp;
@@ -946,7 +1170,11 @@ static double gxIntegrand(const int theta,const int phi,double * restrict res)
 	 * errors in integration log
 	 */
 	if (th==180) res[0]=0;
-	else res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*cos(Deg2Rad(phi_int.val[phi]));
+	else {
+		res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*cos(Deg2Rad(phi_int.val[phi]));
+		// the following correction is explained in gIntegrand()
+		if (surface && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
+	}
 	return 0;
 }
 
@@ -977,7 +1205,11 @@ static double gyIntegrand(const int theta,const int phi,double * restrict res)
 	 * errors in integration log
 	 */
 	if (th==180) res[0]=0;
-	else res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*sin(Deg2Rad(phi_int.val[phi]));
+	else {
+		res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*sin(Deg2Rad(phi_int.val[phi]));
+		// the following correction is explained in gIntegrand()
+		if (surface && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
+	}
 	return 0;
 }
 
@@ -1002,7 +1234,10 @@ void AsymParm_y(double *vec,const char *f_suf)
 static double gzIntegrand(const int theta,const int phi,double * restrict res)
 // function that is transferred to integration module when calculating g_z
 {
-	res[0]=E2_alldir[AlldirIndex(theta,phi)]*cos(Deg2Rad(theta_int.val[theta]));
+	double th=Deg2Rad(theta_int.val[theta]);
+	res[0]=E2_alldir[AlldirIndex(theta,phi)]*cos(th);
+	// the following correction is explained in gIntegrand()
+	if (surface && cos(th)<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
 	return 0;
 }
 
@@ -1051,7 +1286,9 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	inp;     // P*_j.P_k
 	size_t mem=0; // memory count
 
-	for (comp=0;comp<3;++comp) Fsca_tot[comp]=Finc_tot[comp]=0.0; // initialize
+	// initialize
+	vInit(Fsca_tot);
+	vInit(Finc_tot);
 	// Calculate incoming force per dipole
 	if (Frp==NULL) vec=Finc;
 	else mem+=sizeof(double)*local_nRows; // memory allocated before for Frp
@@ -1097,7 +1334,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	 * cases.
 	 */
 	for (j=0,jg=3*local_nvoid_d0;j<local_nRows;j+=3,jg+=3) {
-		for (comp=0;comp<3;++comp) Fsca[comp]=0;
+		vInit(Fsca);
 		for (k=0;k<nRows;k+=3) if (jg!=k) {
 			// Set distance related variables
 			vSubtr(rdipT+jg,rdipT+k,n);

@@ -1,4 +1,7 @@
-#!bin/bash
+#!bin/sh
+# Since the script is run by 'sh ...' from the Makefile to be compatible with both Unix and Windows (MinGW), we
+# define its shebang also as 'sh', which means that it is supposed to be compatible with any posix-compliant shell
+# like dash on Ubuntu.
 # Tests subversion revision number of current directory (where script is located) and stores it as a C macro, like
 # #define SVNREV "1234"
 # in a special file (see variables below). Outputs obtained revision number to stdout. 
@@ -17,14 +20,18 @@ macro=SVNREV
 # awk searches for string starting with number, and removes something like "123:" from the beginning (if present)
 REV=`svnversion -c . 2> /dev/null | awk '/^[0-9].*/ {sub(/^[0-9]*:/,"",$1); print $1}'`
 if [ "$REV" != "" ]; then
-  line="#define $macro \"$REV\""
-  if [[ (! -s $file) || (`cat $file` != "$line") ]]; then
+  line="#define $macro \"$REV\""  
+  if [ -s $file ]; then
+    if [ "$(cat $file)" != "$line" ]; then
+      echo "$line" > $file
+    fi
+  else
     echo "$line" > $file
   fi
   echo $REV
 else
   # produces empty file, but only if it is not already empty (and existent)
-  if [[ (! -f $file) || (-s $file) ]]; then
-	> $file
+  if [ \( ! -f $file \) -o \( -s $file \) ]; then
+    > $file
   fi
 fi

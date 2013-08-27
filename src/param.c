@@ -1830,14 +1830,6 @@ void ParseParameters(const int argc,char **argv)
 
 //======================================================================================================================
 
-static inline bool vAlongZ(double a[static 3])
-// a robust (with respect to round-off errors) way to test that vector is along the z-axis (+ or -)
-{
-	return fabs(a[0])<ROUND_ERR && fabs(a[1])<ROUND_ERR;
-}
-
-//======================================================================================================================
-
 void VariablesInterconnect(void)
 // finish parameters initialization based on their interconnections
 {

@@ -33,7 +33,6 @@ void SetScatPlane(const double ct,const double st,const double phi,double robs[s
 	double polPer[static restrict 3]);
 void CalcAlldir(void);
 void CalcScatGrid(enum incpol which);
-void AsymParm(double *vec,const char *f_suf);
 void AsymParm_x(double *vec,const char *f_suf);
 void AsymParm_y(double *vec,const char *f_suf);
 void AsymParm_z(double *vec,const char *f_suf);

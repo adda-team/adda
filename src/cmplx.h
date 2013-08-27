@@ -100,6 +100,16 @@ static inline void imExp_arr(const double arg,const int size,doublecomplex *c)
 //======================================================================================================================
 // operations on complex vectors
 
+static inline void cvInit(doublecomplex a[static 3])
+// set complex vector[3] to zero; a=0
+{
+	a[0] = 0;
+	a[1] = 0;
+	a[2] = 0;
+}
+
+//======================================================================================================================
+
 static inline void vConj(const doublecomplex a[static 3],doublecomplex b[static 3])
 // complex conjugate of vector[3]; b=a*
 {
@@ -299,6 +309,16 @@ static inline void cSymMatrVec(const doublecomplex matr[static 6],const doubleco
 //======================================================================================================================
 // operations on real vectors
 
+static inline void vInit(double a[static 3])
+// set real vector[3] to zero; a=0
+{
+	a[0] = 0;
+	a[1] = 0;
+	a[2] = 0;
+}
+
+//======================================================================================================================
+
 static inline void vCopy(const double a[static 3],double b[static 3])
 // copies one vector into another; b=a
 {
@@ -365,6 +385,14 @@ static inline void vMult(const double a[static 3],const double b[static 3],doubl
 	c[0]=a[0]*b[0];
 	c[1]=a[1]*b[1];
 	c[2]=a[2]*b[2];
+}
+
+//======================================================================================================================
+
+static inline bool vAlongZ(const double a[static 3])
+// a robust (with respect to round-off errors) way to test that vector is along the z-axis (+ or -)
+{
+	return fabs(a[0])<ROUND_ERR && fabs(a[1])<ROUND_ERR;
 }
 
 //======================================================================================================================

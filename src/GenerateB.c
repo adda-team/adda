@@ -48,9 +48,11 @@ extern opt_index opt_beam;
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
 /* complex wave amplitudes of secondary waves (with phase relative to particle center);
- * they satisfy (e,e)=e_x^2+e_y^2+e_z^2=1, which doesn't necessarily means that (e,e*)=||e||^2=|e_x|^2+|e_y|^2+|e_z|^2=1
- * the latter condition may be broken for eIncTran of inhomogeneous wave (when msub is complex). In that case
- * for E=E0*e, ||E||!=|E0| (which is counterintuitive)
+ * The transmitted wave can be inhomogeneous wave (when msub is complex), then eIncTran (e) is normalized
+ * counter-intuitively. Before multiplying by tc/sqrt(msub), it satisfies (e,e)=1!=||e||^2. This normalization is
+ * consistent with used formulae for transmission coefficients. So this transmission coefficient is not (generally)
+ * equal to the ratio of amplitudes of the electric fields.
+ * In particular, when E=E0*e, ||E||!=|E0|*||e||, where ||e||^2=(e,e*)=|e_x|^2+|e_y|^2+|e_z|^2=1
  *
  * !!! TODO: determine whether they are actually needed in crosssec.c, or make them static here
  */
@@ -62,7 +64,7 @@ char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;   // abs of normal components of k_inc/k0, and ktran/k0
-static doublecomplex ktVec[3]; // k_tran/k0, abs of its normal component
+static doublecomplex ktVec[3]; // k_tran/k0
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -88,11 +90,9 @@ void InitBeam(void)
 			beam_asym=false;
 			if (surface) {
 				// Here we set ki,kt,ktVec and propagation directions prIncRefl,prIncTran
-				doublecomplex q2; // square of relative component of k_inc/k0 along the surface
 				if (prop_0[2]>0) { // beam comes from the substrate (below)
 					ki=msub*prop_0[2];
-					q2=msub*msub-ki*ki;
-					kt=cSqrtCut(1-q2);
+					kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction and full wavevector of wave transmitted into substrate
 					ktVec[0]=msub*prop_0[0];
 					ktVec[1]=msub*prop_0[1];
@@ -101,8 +101,7 @@ void InitBeam(void)
 				else if (prop_0[2]<0) { // beam comes from above the substrate
 					vRefl(prop_0,prIncRefl);
 					ki=-prop_0[2];
-					q2=1-ki*ki;
-					kt=cSqrtCut(msub*msub-q2);
+					kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction of wave transmitted into substrate
 					ktVec[0]=prop_0[0];
 					ktVec[1]=prop_0[1];
@@ -130,7 +129,7 @@ void InitBeam(void)
 				if (beam_center_0[1]!=0) symY=symR=false;
 				if (beam_center_0[2]!=0) symZ=false;
 			}
-			else beam_center[0]=beam_center[1]=beam_center[2]=0;
+			else vInit(beam_center);
 			s=1/(WaveNum*w0);
 			s2=s*s;
 			scale_x=1/w0;
