@@ -1950,6 +1950,8 @@ void VariablesInterconnect(void)
 	}
 	else {
 		propAlongZ=0;
+		if (sym_type==SYM_ENF && scat_plane) PrintError("Enforcing symmetry for incident propagation not along the "
+			"z-axis in combination with defining scattering directions relative to z-axis is not supported");
 		temp=sqrt(1-prop_0[2]*prop_0[2]);
 		incPolX_0[0]=prop_0[0]*prop_0[2]/temp;
 		incPolX_0[1]=prop_0[1]*prop_0[2]/temp;

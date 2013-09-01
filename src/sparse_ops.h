@@ -42,8 +42,8 @@ static inline void CcMul(doublecomplex * restrict argvec_src,doublecomplex * res
 
 static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restrict resultvec,const size_t i,
 	const size_t j)
-/* Handles the multiplication of the i'th block of argvec with the G_ij block of the G-matrix, and adds the result
- * to the j'th block of resultvec.
+/* Handles the multiplication of the j'th block of argvec with the G_ij block of the G-matrix, and adds the result
+ * to the i'th block of resultvec.
  */
 {	
 	doublecomplex iterm[6];
@@ -60,26 +60,52 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 	const __m128d argZ = _mm_load_pd((double *)(argvec+j3+2));
 	STOP_IGNORE;
 
-	res = cmul(argX, *(__m128d *)&(iterm[0]));
-	tmp = cmul(argY, *(__m128d *)&(iterm[1]));
-	res = cadd(tmp,res);
-	tmp = cmul(argZ, *(__m128d *)&(iterm[2]));
-	res = cadd(tmp,res);
-	*(__m128d *)&(resultvec[i3]) = cadd(res, *(__m128d *)&(resultvec[i3]));
+	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding dipoles
+		res = cmul(argX, *(__m128d *)&(iterm[0]));
+		tmp = cmul(argY, *(__m128d *)&(iterm[1]));
+		res = cadd(tmp,res);
+		tmp = cmul(argZ, *(__m128d *)&(iterm[2]));
+		res = cadd(tmp,res);
+		*(__m128d *)&(resultvec[i3]) = cadd(res, *(__m128d *)&(resultvec[i3]));
 
-	res = cmul(argX, *(__m128d *)&(iterm[1]));
-	tmp = cmul(argY, *(__m128d *)&(iterm[3]));
-	res = cadd(tmp,res);
-	tmp = cmul(argZ, *(__m128d *)&(iterm[4]));
-	res = cadd(tmp,res);
-	*(__m128d *)&(resultvec[i3+1]) = cadd(res, *(__m128d *)&(resultvec[i3+1]));
+		res = cmul(argX, *(__m128d *)&(iterm[1]));
+		tmp = cmul(argY, *(__m128d *)&(iterm[3]));
+		res = cadd(tmp,res);
+		tmp = cmul(argZ, *(__m128d *)&(iterm[4]));
+		res = cadd(tmp,res);
+		*(__m128d *)&(resultvec[i3+1]) = cadd(res, *(__m128d *)&(resultvec[i3+1]));
 
-	res = cmul(argX, *(__m128d *)&(iterm[2]));
-	tmp = cmul(argY, *(__m128d *)&(iterm[4]));
-	res = cadd(tmp,res);
-	tmp = cmul(argZ, *(__m128d *)&(iterm[5]));
-	res = cadd(tmp,res);
-	*(__m128d *)&(resultvec[i3+2]) = cadd(res, *(__m128d *)&(resultvec[i3+2]));
+		res = cmul(argX, *(__m128d *)&(iterm[2]));
+		tmp = cmul(argY, *(__m128d *)&(iterm[4]));
+		res = cadd(tmp,res);
+		tmp = cmul(argZ, *(__m128d *)&(iterm[5]));
+		res = cadd(tmp,res);
+		*(__m128d *)&(resultvec[i3+2]) = cadd(res, *(__m128d *)&(resultvec[i3+2]));
+	}
+	if (surface) { // surface interaction is computed always
+		(*CalcReflTerm)(position[i3]-position_full[j3], position[i3+1]-position_full[j3+1],
+			position[i3+2]+position_full[j3+2], iterm);
+		res = cmul(argX, *(__m128d *)&(iterm[0]));
+		tmp = cmul(argY, *(__m128d *)&(iterm[1]));
+		res = cadd(tmp,res);
+		tmp = cmul(argZ, *(__m128d *)&(iterm[2]));
+		res = cadd(tmp,res);
+		*(__m128d *)&(resultvec[i3]) = cadd(res, *(__m128d *)&(resultvec[i3]));
+
+		res = cmul(argX, *(__m128d *)&(iterm[1]));
+		tmp = cmul(argY, *(__m128d *)&(iterm[3]));
+		res = cadd(tmp,res);
+		tmp = cmul(argZ, *(__m128d *)&(iterm[4]));
+		res = cadd(tmp,res);
+		*(__m128d *)&(resultvec[i3+1]) = cadd(res, *(__m128d *)&(resultvec[i3+1]));
+
+		res = cmul(argZ, *(__m128d *)&(iterm[5]));
+		tmp = cmul(argX, *(__m128d *)&(iterm[2]));
+		res=_mm_sub_pd(res,tmp);
+		tmp = cmul(argY, *(__m128d *)&(iterm[4]));
+		res=_mm_sub_pd(res,tmp);
+		*(__m128d *)&(resultvec[i3+2]) = cadd(res, *(__m128d *)&(resultvec[i3+2]));
+	}
 }
 
 //=====================================================================================================================
@@ -118,19 +144,26 @@ static inline void CcMul(doublecomplex * restrict argvec_src,doublecomplex * res
 
 static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restrict resultvec,const size_t i,
 	const size_t j)
-/* Handles the multiplication of the i'th block of argvec with the G_ij block of the G-matrix, and adds the result
- * to the j'th block of resultvec.
+/* Handles the multiplication of the j'th block of argvec with the G_ij block of the G-matrix, and adds the result
+ * to the i'th block of resultvec.
  */
 {
 	doublecomplex res[3];
 	doublecomplex iterm[6];
 	const size_t i3=3*i,j3=3*j;
 
-	(*CalcInterTerm)(position[i3]-position_full[j3],position[i3+1]-position_full[j3+1],
-		position[i3+2]-position_full[j3+2],iterm);
-
-	cSymMatrVec(iterm,argvec+j3,res);
-	cvAdd(res,resultvec+i3,resultvec+i3);
+	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding dipoles
+		(*CalcInterTerm)(position[i3]-position_full[j3],position[i3+1]-position_full[j3+1],
+			position[i3+2]-position_full[j3+2],iterm);
+		cSymMatrVec(iterm,argvec+j3,res);
+		cvAdd(res,resultvec+i3,resultvec+i3);
+	}
+	if (surface) { // surface interaction is computed always
+		(*CalcReflTerm)(position[i3]-position_full[j3],position[i3+1]-position_full[j3+1],
+			position[i3+2]+position_full[j3+2],iterm);
+		cReflMatrVec(iterm,argvec+j3,res);
+		cvAdd(res,resultvec+i3,resultvec+i3);
+	}
 }
 
 //=====================================================================================================================

@@ -18,7 +18,22 @@
 
 #include "cmplx.h"
 
+/* Calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). The acting
+ * dipole is placed in the origin, while the field is calculated at position given as argument. All six components of
+ * the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
+ */
 void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+
+/* Calculates reflection term between two dipoles; given integer distance vector {i,j,k} (in units of d). k is the _sum_
+ * of dipole indices along z with respect to the center of bottom dipoles of the particle (position_full in SPARSE mode)
+ * The acting dipole is placed in the origin, while the field is calculated at position given as argument.
+ * Six components of the matrix are computed at once: [GR11, GR12, GR13, GR22, GR23, GR33].
+ * The matrix is not symmetric, but satisfies: GR21=GR12, GR31=-GR13, GR32=-GR23. However the large matrix GR, which
+ * acts on the total vector of dipole polarizations is still complex-symmetric, since GR[i,j]=GR^T[j,i] (interchange of
+ * i and j changes only the sign of x and y components, but not z, which leads to sign change of 13,31,23,32 components)
+ */
+void (*CalcReflTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+
 void InitInteraction(void);
 void FreeInteraction(void);
 

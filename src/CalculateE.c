@@ -473,15 +473,16 @@ static void CalcEplaneYZ(const enum incpol which,const enum Eftype type)
 static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 // calculates scattered electric field in the plane through ez, prop, incPolX - xz-plane by default
 {
-	double incPol[3],incPolper[3],incPolpar[3];
+	double tmp3[3],incPolper[3],incPolpar[3];
 	// where to store calculated field for one plane (actually points to different other arrays)
 	doublecomplex *Eplane;
 	int i;
 	doublecomplex ebuff[3]; // small vector to hold E fields
 	double robserver[3];    // small vector for observer in E calculation
-	double epar[3];         // unit vector in direction of Epar
+	double epar[3];         // unit vector in direction of Epar (for scattered field)
 	double theta;           // scattering angle
 	double co,si;           // temporary, cos and sin of some angle
+	double unitSP[3];       // unit vector (perpendicular to ezLab), which determines the scattering plane
 	double alph;
 	TIME_TYPE tstart;
 	size_t k_or;
@@ -500,6 +501,7 @@ static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 			si=sin(alph);
 			LinComb(incPolX,incPolY,-si,-co,incPolper);  // incPolper = - si*incPolX - co*incPolY;
 			LinComb(incPolX,incPolY,co,-si,incPolpar);   // incPolpar = co*incPolX - si*incPolY;
+			vCopy(incPolpar,unitSP); // for orientation averaging prop=ez, and epar determines the scattering plane
 		}
 		else {
 			/* the scattering plane is (ez,prop), which contains X-pol;
@@ -507,6 +509,7 @@ static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 			 */
 			vMultScal(-1,incPolY,incPolper); // per <=> -Y
 			vCopy(incPolX,incPolpar);        // par <=> X
+			vCopy(exSP,unitSP);              // use exSP defined before
 		}
 
 		for(orient=0;orient<Norient;orient++) {
@@ -515,15 +518,26 @@ static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 			if (orient==0) choice=which;
 			else { // orient==1
 				 /* Rotation symmetry: calculate per-per from current data. CalculateE is called from calculator with Y
-				 * polarization - we now just assume that we have the yz-plane as the scattering plane, rotating in the
-				 * positive y-direction. This mimics the real case of X polarization with the xz plane as scattering
-				 * plane. Then IncPolper = IncPolX = incPolpar(old), incPolpar = IncPolY = -IncPolper(old)
+				 * polarization. To mimic the result for X-polarization, we rotate everything (scattering plane and per,
+				 * par directions) by 90 degrees over prop (since that transforms eX into eY).
+				 * Since, per,par,prop is RHS orthonormal basis, the rotation is equivalent to
+				 * IncPolper=incPolpar(old), incPolpar=-IncPolper(old)
 				 */
 				if (which==INCPOL_Y) choice=INCPOL_X;
 				else choice=INCPOL_Y; // which==INCPOL_X
-				vCopy(incPolper,incPol);
+				// redefine the scattering plane (relative to the code above)
+				vCopy(incPolper,tmp3);
 				vCopy(incPolpar,incPolper);
-				vMultScal(-1,incPol,incPolpar);
+				vMultScal(-1,tmp3,incPolpar);
+				/* This part can be executed only if prop is along eZ (+ or -).
+				 * TODO: remove this limitation, but that requires considering a completely different scattering plane
+				 * (rotated with respect to prop), which no more contains ez. That is similar to calculating scat_grid
+				 * from a single incident polarization.
+				 */
+				if (!propAlongZ) LogError(ONE_POS,"Incompatibility error in CalcScatPlane");
+				// a general formula, implementing rotation of scattering plane for both prop=+-ez: v->prop x v
+				CrossProd(prop,unitSP,tmp3);
+				vCopy(tmp3,unitSP);
 			}
 			// initialize Eplane
 			if (orient_avg) {
@@ -539,11 +553,11 @@ static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 				theta = i * dtheta_rad;
 				co=cos(theta);
 				si=sin(theta);
-				LinComb(ezLab,exSP,co,si,robserver); // robserver = co*ezLab + si*exSP;
+				LinComb(ezLab,unitSP,co,si,robserver); // robserver = co*ezLab + si*unitSP;
 				CalcField(ebuff,robserver);
 				// convert to (l,r) frame
 				Eplane[2*i]=crDotProd(ebuff,incPolper); // Eper[i]=Esca.incPolper
-				LinComb(ezLab,exSP,-si,co,epar);        // epar=-si*ezLab+co*exSP
+				LinComb(ezLab,unitSP,-si,co,epar);        // epar=-si*ezLab+co*unitSP
 				Eplane[2*i+1]=crDotProd(ebuff,epar);    // Epar[i]=Esca.epar
 			} //  end for i
 
