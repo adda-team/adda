@@ -475,8 +475,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	for (i=0; i<local_nvoid_Ndip; i++) {
 		i3 = 3*i;
 		cvInit(resultvec+i3);
-		for (j=0; j<local_nvoid_d0+i; j++) AijProd(arg_full,resultvec,i,j);
-		for (j=local_nvoid_d0+i+1; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
+		for (j=0; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
 	}
 	// TODO: can be replaced by a specially designed function from linalg.c
 	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);

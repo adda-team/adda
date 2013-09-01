@@ -182,6 +182,7 @@ all -prognosis
 
 all -h prop
 all -prop 5 1 3 ;se; ;mgn;
+all -prop 0 0 -1 ;mgn;
 
 all -h recalc_resid
 all -recalc_resid ;mgn;

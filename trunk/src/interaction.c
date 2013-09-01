@@ -24,7 +24,7 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in make_particle.c
-extern double gridspace;
+extern double gridspace,ZsumShift;
 // defined and initialized in param.c
 extern double igt_lim,igt_eps;
 
@@ -45,6 +45,7 @@ static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* 
 static int ** restrict tab_index; // matrix for indexing of table arrays
 // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
+static doublecomplex surfRCn; // reflection coefficient for normal incidence
 
 #ifdef USE_SSE3
 static __m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
@@ -229,9 +230,7 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 //=====================================================================================================================
 
 void CalcInterTerm_poi(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). All six
- * components of the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
- */
+// Interaction term between two dipoles using the point-dipoles formulation; arguments are described in .h file
 {
 	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
@@ -836,6 +835,48 @@ static void FreeTables(void)
 
 //=====================================================================================================================
 
+void CalcReflTerm_img(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Reflection term using the image-dipole approximation; arguments are described in .h file
+{
+	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)*rc/|R|^3
+
+	// Starting code is slightly different from CalcInterParams1
+	qvec[0]=i; // qvec is normalized below
+	qvec[1]=j;
+	qvec[2]=k+ZsumShift;
+	rn=sqrt(DotProd(qvec,qvec)); // normalized r
+	// here we can use existing code
+	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
+	// this is also a modification of simple Green's tensor, multiplying by refl. coef. and inverting z-components
+	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	expval=surfRCn*invr3*imExp(kr);
+#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*expval; }
+#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*expval; }
+	INTERACT_DIAG(0);    // xx
+	INTERACT_NONDIAG(1); // xy
+	INTERACT_NONDIAG(2); // xz
+	INTERACT_DIAG(3);    // yy
+	INTERACT_NONDIAG(4); // yz
+	INTERACT_DIAG(5);    // zz
+#undef INTERACT_DIAG
+#undef INTERACT_NONDIAG
+	// invert sign of *z components
+	result[2]*=-1;
+	result[4]*=-1;
+	result[5]*=-1;
+	PRINT_GVAL;
+}
+
+//=====================================================================================================================
+
+void CalcReflTerm_som(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Reflection term using the Sommerfeld integrals; arguments are described in .h file
+{
+}
+//=====================================================================================================================
+
 void InitInteraction(void)
 // Initialize the interaction calculations
 {
@@ -854,6 +895,15 @@ void InitInteraction(void)
 	}
 	// read tables if needed
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
+
+	// Interaction through reflection from surface
+	if (surface) {
+		switch (ReflRelation) {
+			case GR_IMG: CalcReflTerm = &CalcReflTerm_img; break;
+			case GR_SOM: CalcReflTerm = &CalcReflTerm_som; break;
+		}
+		surfRCn=(1-msub*msub)/(1+msub*msub);
+	}
 
 #ifdef USE_SSE3
 	c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);

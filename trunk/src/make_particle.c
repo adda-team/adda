@@ -67,6 +67,7 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 
 // used in interaction.c
 double gridspace; // interdipole distance (dipole size)
+double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d)
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
 const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
@@ -2314,5 +2315,6 @@ void MakeParticle(void)
 #	endif
 #endif // SPARSE
 	
+	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
 	Timing_Particle += GET_TIME() - tstart;
 }

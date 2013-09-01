@@ -153,7 +153,7 @@ static inline void vInvRefl_cr(const double a[static 3],doublecomplex b[static 3
 //======================================================================================================================
 
 static inline void crCrossProd(const double a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
-// cross product of real and complex vector; c = a x b
+// cross product of real and complex vector; c = a x b; !!! vectors must not alias
 {
 	c[0] = a[1]*b[2] - a[2]*b[1];
 	c[1] = a[2]*b[0] - a[0]*b[2];
@@ -299,11 +299,25 @@ static inline void cvLinComb1_cmplx(doublecomplex a[static 3],doublecomplex b[st
 
 static inline void cSymMatrVec(const doublecomplex matr[static 6],const doublecomplex vec[static 3],
 	doublecomplex res[static 3])
-// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec; !!! vec and res must not alias
 {
 	res[0] = matr[0]*vec[0] + matr[1]*vec[1] + matr[2]*vec[2];
 	res[1] = matr[1]*vec[0] + matr[3]*vec[1] + matr[4]*vec[2];
 	res[2] = matr[2]*vec[0] + matr[4]*vec[1] + matr[5]*vec[2];
+}
+
+//======================================================================================================================
+
+static inline void cReflMatrVec(const doublecomplex matr[static 6],const doublecomplex vec[static 3],
+	doublecomplex res[static 3])
+/* multiplication of matrix[6] by complex vec[3]; res=matr.vec; passed components are the same as for symmetric matrix:
+ * 11,12,13,22,23,33, but the matrix has the following symmetry - M21=M12, M31=-M13, M32=-M23
+ * !!! vec and res must not alias
+ */
+{
+	res[0] = matr[0]*vec[0] + matr[1]*vec[1] + matr[2]*vec[2];
+	res[1] = matr[1]*vec[0] + matr[3]*vec[1] + matr[4]*vec[2];
+	res[2] = - matr[2]*vec[0] - matr[4]*vec[1] + matr[5]*vec[2];
 }
 
 //======================================================================================================================
@@ -349,6 +363,7 @@ static inline void vSubtr(const double a[static 3],const double b[static 3],doub
 }
 
 //======================================================================================================================
+
 static inline void vInvSign(double a[static 3])
 // inverts the sign in the double vector[3]
 {
@@ -406,7 +421,7 @@ static inline double DotProd(const double a[static 3],const double b[static 3])
 //======================================================================================================================
 
 static inline void CrossProd(const double a[static 3],const double b[static 3],double c[static 3])
-// cross product of two real vectors; c = a x b
+// cross product of two real vectors; c = a x b; !!! vectors must not alias
 {
 	c[0] = a[1]*b[2] - a[2]*b[1];
 	c[1] = a[2]*b[0] - a[0]*b[2];
