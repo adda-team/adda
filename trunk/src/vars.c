@@ -125,6 +125,7 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
 bool surface;           // whether nearby surface is present
 enum refl ReflRelation; // method to calculate reflected Green's tensor
 doublecomplex msub;     // complex refractive index of the substrate
+bool msubInf;           // whether msub is infinite (perfectly reflecting surface)
 double hsub;            // height of particle center above surface
 /* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
  * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,

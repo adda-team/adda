@@ -43,6 +43,7 @@ unsigned short *ushortVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 char *charVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 unsigned char *ucharVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 bool *boolVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
+size_t *sizetVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 void *voidVector(size_t size,OTHER_ARGUMENTS) ATT_MALLOC;
 // reallocate; only two for now, more can be easily added
 double *doubleRealloc(double *ptr,const size_t size,OTHER_ARGUMENTS) ATT_MALLOC;

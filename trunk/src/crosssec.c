@@ -633,6 +633,10 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		nN[2]*=-1;
 	}
 	else { // transmission
+		if (msubInf) { // no transmission for perfectly reflecting substrate => zero result
+			cvInit(ebuff);
+			return;
+		}
 		doublecomplex eps=msub*msub;
 		// effective eps and (real part of) refractive index
 		doublecomplex epsEff=(creal(eps) + I*cimag(eps)/nF[2]);
@@ -728,21 +732,28 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	 * quantities, like Csca (if sufficient very number of integration points is chosen)
 	 */
 	ki=-nN[2];
-	if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki; // special case to avoid randomness due to round-off errors
-	else kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
-	if (above) {
-		/* here we test only the exact zero, since for other cases (when msub=1, and very small values of ki,kt) the
-		 * above assignment kt=ki guarantees correct results through standard functions
-		 */
-		if (ki==0 && kt==0) cs=cp=0;
-		else {
-			cs=FresnelRS(ki,kt);
-			cp=FresnelRP(ki,kt,msub);
-		}
+	if (msubInf) {
+		cs=-1;
+		cp=1;
+		kt=NAN; // redundant to remove warnings below
 	}
-	else { // below surface
-		cs=FresnelTS(ki,kt);
-		cp=FresnelTP(ki,kt,msub);
+	else {
+		if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki; // special case to avoid randomness due to round-off errors
+		else kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
+		if (above) {
+			/* here we test only the exact zero, since for other cases (when msub=1, and very small values of ki,kt) the
+			 * above assignment kt=ki guarantees correct results through standard functions
+			 */
+			if (ki==0 && kt==0) cs=cp=0;
+			else {
+				cs=FresnelRS(ki,kt);
+				cp=FresnelRP(ki,kt,msub);
+			}
+		}
+		else { // below surface
+			cs=FresnelTS(ki,kt);
+			cp=FresnelTP(ki,kt,msub);
+		}
 	}
 		// set unit vectors for s- and p-polarizations; es is the same for all cases
 	if (vAlongZ(nF)) { // special case - es=ey
@@ -756,7 +767,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	}
 	CrossProd(es,nN,epN); // epN = es x nN
 		// epF is different for reflected and transmitted (similar to the code in GenerateB.c)
-	if (above || cimag(msub)==0) { // epF = es x nF; also includes simple case with real ktVec
+	if (above || cimag(msub)==0) { // epF = es x nF; also includes simple cases with real ktVec and msubInf
 		double epFRe[3];
 		CrossProd(es,nF,epFRe);
 		cvBuildRe(epFRe,epF);
@@ -1093,7 +1104,7 @@ static double CscaIntegrand(const int theta,const int phi,double * restrict res)
 	 * still unclear (especially for strong absorption). So we use Re[msub]*||E||^2 in all cases, which should be
 	 * exact for real msub, and a good approximation in the case of (weakly) absorbing medium.
 	 */
-	if (surface && cos(Deg2Rad(theta_int.val[theta]))<=-ROUND_ERR) res[0]*=creal(msub);
+	if (surface && !msubInf && cos(Deg2Rad(theta_int.val[theta]))<=-ROUND_ERR) res[0]*=creal(msub);
 	return 0;
 }
 
@@ -1134,7 +1145,7 @@ static double gIntegrand(const int theta,const int phi,double * restrict res)
 	 *
 	 * Moreover, after such modification g = (gCsca)/Csca has very little sense, in particular it is not <cos(th)>
 	 */
-	if (surface && cos(th)<=-ROUND_ERR) E_square*=creal(msub)*creal(msub);
+	if (surface && !msubInf && cos(th)<=-ROUND_ERR) E_square*=creal(msub)*creal(msub);
 	res[0] = E_square*sin(th)*cos(ph);
 	res[1] = E_square*sin(th)*sin(ph);
 	res[2] = E_square*cos(th);
@@ -1173,7 +1184,7 @@ static double gxIntegrand(const int theta,const int phi,double * restrict res)
 	else {
 		res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*cos(Deg2Rad(phi_int.val[phi]));
 		// the following correction is explained in gIntegrand()
-		if (surface && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
+		if (surface && !msubInf && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
 	}
 	return 0;
 }
@@ -1208,7 +1219,7 @@ static double gyIntegrand(const int theta,const int phi,double * restrict res)
 	else {
 		res[0]=E2_alldir[AlldirIndex(theta,phi)]*sin(Deg2Rad(th))*sin(Deg2Rad(phi_int.val[phi]));
 		// the following correction is explained in gIntegrand()
-		if (surface && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
+		if (surface && !msubInf && cos(Deg2Rad(th))<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
 	}
 	return 0;
 }
@@ -1237,7 +1248,7 @@ static double gzIntegrand(const int theta,const int phi,double * restrict res)
 	double th=Deg2Rad(theta_int.val[theta]);
 	res[0]=E2_alldir[AlldirIndex(theta,phi)]*cos(th);
 	// the following correction is explained in gIntegrand()
-	if (surface && cos(th)<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
+	if (surface && !msubInf  && cos(th)<=-ROUND_ERR) res[0]*=creal(msub)*creal(msub);
 	return 0;
 }
 

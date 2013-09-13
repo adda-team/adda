@@ -85,11 +85,10 @@ extern time_t wt_start,last_chp_wt;
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 
 // related to a nearby surface
-extern bool surface;
+extern bool surface,msubInf;
 extern enum refl ReflRelation;
 extern doublecomplex msub;
-extern double hsub;
-extern double prIncRefl[3],prIncTran[3];
+extern double hsub,prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE //These variables are exclusive to the FFT mode
 
