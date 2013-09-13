@@ -160,10 +160,14 @@ static const char *avg_parms;   // name of file with orientation averaging param
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
+/* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.
+ * However, the latter can't be easily addressed by the option name (a search over the whole options is required).
+ */
 static bool prop_used;          // whether '-prop ...' was used in the command line
 static bool orient_used;        // whether '-orient ...' was used in the command line
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
+static bool int_surf_used;      // whether '-int_surf ...' was used in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -473,7 +477,7 @@ static struct opt_struct options[]={
 	#ifdef SPARSE
 			"!!! In sparse mode 'som' is expected to be very slow.\n"
 	#endif
-			"Default: som",1,NULL},
+			"Default: som (but 'img' if surface is perfectly reflecting)",1,NULL},
 	{PAR(iter),"{bcgs2|bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 		/* TO ADD NEW ITERATIVE SOLVER
@@ -589,10 +593,12 @@ static struct opt_struct options[]={
 #endif
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
 	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
-	{PAR(surf),"<mre> <mim> <h>","Specifies that scatterer is located above the plane surface, parallel to the "
-		"xy-plane. First two arguments specify the refractive index of the substrate (below the surface), assuming that "
-		"the vacuum is above the surface. <h> specifies the height of particle center above the surface (along the "
-		"z-axis, in um). Particle must be entirely above the substrate.",3,NULL},
+	{PAR(surf),"<h> {<mre> <mim>|inf}","Specifies that scatterer is located above the plane surface, parallel to the "
+		"xy-plane. <h> specifies the height of particle center above the surface (along the z-axis, in um). Particle "
+		"must be entirely above the substrate. Following argument(s) specify the refractive index of the substrate "
+		"(below the surface), assuming that the vacuum is above the surface. It is done either by two values (real and "
+		"imaginary parts of the complex value) or as effectively infinite 'inf' which corresponds to perfectly"
+		"reflective surface. The latter implies certain simplifications during calculations.",UNDEF,NULL},
 	{PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take them into account "
 		"('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
@@ -1132,6 +1138,7 @@ PARSE_FUNC(int_surf)
 	if (strcmp(argv[1],"img")==0) ReflRelation=GR_IMG;
 	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
 	else NotSupported("Interaction term prescription",argv[1]);
+	int_surf_used=true;
 }
 PARSE_FUNC(iter)
 {
@@ -1393,12 +1400,19 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
-
-	ScanDoubleError(argv[1],&mre);
-	ScanDoubleError(argv[2],&mim);
-	msub = mre + I*mim;
-	ScanDoubleError(argv[3],&hsub);
+	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
+	ScanDoubleError(argv[1],&hsub);
 	TestPositive(hsub,"height above surface");
+	if (Narg==2) {
+		if (strcmp(argv[2],"inf")==0) msubInf=true;
+		else PrintErrorHelp(
+			"Illegal number of arguments (%d) to '-surf' option (total 3 or second argument 'inf' is expected)",Narg);
+	}
+	else { // Narg==3
+		ScanDoubleError(argv[2],&mre);
+		ScanDoubleError(argv[3],&mim);
+		msub = mre + I*mim;
+	}
 	surface = true;
 	symZ=false;
 }
@@ -1767,7 +1781,8 @@ void InitVariables(void)
 	InitField=IF_AUTO;
 	recalc_resid=false;
 	surface=false;
-	ReflRelation=GR_SOM;
+	msubInf=false;
+	int_surf_used=false;
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
@@ -1840,7 +1855,7 @@ void VariablesInterconnect(void)
 	// set default incident direction, which is +z for all configurations
 	if (!prop_used) {
 		prop_0[0]=prop_0[1]=0;
-		prop_0[2] = 1;
+		prop_0[2]=1;
 	}
 	// parameter interconnections
 	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
@@ -1920,8 +1935,13 @@ void VariablesInterconnect(void)
 		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
 		if (beamtype!=B_PLANE) PrintError("Currently non-plane incident wave is incompatible with '-surf'");
 		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
-		if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify the"
+		if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify the "
 			"incident direction to have (arbitrary) small positive or negative z-component");
+		if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible with "
+			"incident direction from below (including the default one)");
+		if (!int_surf_used) ReflRelation = msubInf ? GR_IMG : GR_SOM;
+		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
+			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
 	}
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
@@ -2144,8 +2164,11 @@ void PrintInfo(void)
 				}
 			}
 		}
-		if (surface) fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n"
-				"  height of the particle center: "GFORMDEF"\n",REIM(msub),hsub);
+		if (surface) {
+			if (msubInf) fprintf(logfile,"Particle is placed near the perfectly reflecting substrate\n");
+			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n",REIM(msub));
+			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
+		}
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
@@ -2162,9 +2185,13 @@ void PrintInfo(void)
 		fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX_0));
 		if (surface) { // include surface-specific vectors
 			fprintf(logfile,"Reflected propagation vector: "GFORMDEF3V"\n",COMP3V(prIncRefl));
-			fprintf(logfile,"Transmitted propagation vector: "GFORMDEF3V,COMP3V(prIncTran));
-			if (prIncTran[2]==0) fprintf(logfile," (evanescent)\n");
-			else fprintf(logfile,"\n");
+			fprintf(logfile,"Transmitted propagation vector: ");
+			if (msubInf) fprintf (logfile,"none\n");
+			else {
+				fprintf(logfile,GFORMDEF3V,COMP3V(prIncTran));
+				if (prIncTran[2]==0) fprintf(logfile," (evanescent)\n");
+				else fprintf(logfile,"\n");
+			}
 		}
 		fprintf(logfile,"\n");
 		// log particle orientation

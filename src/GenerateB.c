@@ -91,6 +91,7 @@ void InitBeam(void)
 			if (surface) {
 				// Here we set ki,kt,ktVec and propagation directions prIncRefl,prIncTran
 				if (prop_0[2]>0) { // beam comes from the substrate (below)
+					// here msub should always be defined
 					ki=msub*prop_0[2];
 					kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction and full wavevector of wave transmitted into substrate
@@ -101,17 +102,21 @@ void InitBeam(void)
 				else if (prop_0[2]<0) { // beam comes from above the substrate
 					vRefl(prop_0,prIncRefl);
 					ki=-prop_0[2];
-					kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
-					// determine propagation direction of wave transmitted into substrate
-					ktVec[0]=prop_0[0];
-					ktVec[1]=prop_0[1];
-					ktVec[2]=-kt;
+					if (!msubInf) {
+						kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+						// determine propagation direction of wave transmitted into substrate
+						ktVec[0]=prop_0[0];
+						ktVec[1]=prop_0[1];
+						ktVec[2]=-kt;
+					}
 				}
 				else LogError(ONE_POS,"Ambiguous setting of beam propagating along the surface. Please specify the"
 					"incident direction to have (arbitrary) small positive or negative z-component");
 				vRefl(prop_0,prIncRefl);
-				vReal(ktVec,prIncTran);
-				vNormalize(prIncTran);
+				if (!msubInf) {
+					vReal(ktVec,prIncTran);
+					vNormalize(prIncTran);
+				}
 			}
 			return;
 		case B_LMINUS:
@@ -229,7 +234,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				 */
 				doublecomplex rc,tc; // reflection and transmission coefficients
 				if (prop[2]>0) { // beam comes from the substrate (below)
-					//  determine amplitude of the reflected and transmitted waves
+					//  determine amplitude of the reflected and transmitted waves; here msub is always defined
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncRefl);
 						cvBuildRe(ex,eIncTran);
@@ -256,20 +261,26 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine amplitude of the reflected and transmitted waves
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncRefl);
-						cvBuildRe(ex,eIncTran);
-						rc=FresnelRS(ki,kt);
-						tc=FresnelTS(ki,kt);
+						if (msubInf) rc=-1;
+						else {
+							cvBuildRe(ex,eIncTran);
+							rc=FresnelRS(ki,kt);
+							tc=FresnelTS(ki,kt);
+						}
 					}
 					else { // p-polarized
 						vInvRefl_cr(ex,eIncRefl);
-						crCrossProd(ey,ktVec,eIncTran);
-						cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub
-						rc=FresnelRP(ki,kt,msub);
-						tc=FresnelTP(ki,kt,msub);
+						if (msubInf) rc=1;
+						else {
+							crCrossProd(ey,ktVec,eIncTran);
+							cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub
+							rc=FresnelRP(ki,kt,msub);
+							tc=FresnelTP(ki,kt,msub);
+						}
 					}
 					// phase shift due to the origin at height hsub
 					cvMultScal_cmplx(rc*imExp(2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
-					cvMultScal_cmplx(tc*cexp(I*WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
+					if (!msubInf) cvMultScal_cmplx(tc*cexp(I*WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;

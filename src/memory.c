@@ -238,6 +238,19 @@ bool *boolVector(const size_t size,OTHER_ARGUMENTS)
 
 //======================================================================================================================
 
+size_t *sizetVector(const size_t size,OTHER_ARGUMENTS)
+// allocates bool vector
+{
+	size_t * restrict v;
+
+	CHECK_SIZE(size,size_t);
+	v=(size_t *)malloc(size*sizeof(size_t));
+	CHECK_NULL(size,v);
+	return v;
+}
+
+//======================================================================================================================
+
 void *voidVector(const size_t size,OTHER_ARGUMENTS)
 // allocates void vector
 {

@@ -171,8 +171,8 @@ override EXTRA_FLAGS +=
 
 # C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c GenerateB.c interaction.c io.c \
-           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c Romberg.c sinint.c timing.c \
-           vars.c
+           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
+           timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
            propaesplibreintadda.f

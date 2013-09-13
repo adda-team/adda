@@ -81,7 +81,7 @@ fi
 
 if [ -n "$SURF_STANDARD" ]; then
   DEFSUITE=suite_surf
-  EXECTEST="$EXECTEST -surf 1 0 10 -yz"
+  EXECTEST="$EXECTEST -surf 10 1 0 -yz"
 fi
 
 SUITEFILE=${2:-$DEFSUITE}

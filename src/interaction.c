@@ -17,6 +17,7 @@
 #include "interaction.h" // corresponding headers
 // project headers
 #include "cmplx.h"
+#include "comm.h"
 #include "io.h"
 #include "memory.h"
 #include "vars.h"
@@ -46,6 +47,9 @@ static int ** restrict tab_index; // matrix for indexing of table arrays
 // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
 static doublecomplex surfRCn; // reflection coefficient for normal incidence
+static bool XlessY; // whether boxX is not larger than boxY (used for SomTable)
+static doublecomplex * restrict somTable; // table of Sommerfeld integrals
+static size_t * restrict somIndex; // array for indexing somTable (in the xy-plane)
 
 #ifdef USE_SSE3
 static __m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
@@ -61,10 +65,13 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *a
 #endif
 // sinint.c
 void cisi(double x,double *ci,double *si);
+// somnec.c (copied from somnec.h, but we do not include the whole header to avoid conflicts)
+void som_init(complex double epscf);
+void evlua(double zphIn,double rhoIn,complex double *erv, complex double *ezv,complex double *erh, complex double *eph);
 
 // this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",i,j,k,REIM(result[0]),\
-	REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5]));*/
+#define PRINT_GVAL /*printf("%s: %d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",__func__,i,j,k,\
+	REIM(result[0]),REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5]));*/
 
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
@@ -851,7 +858,7 @@ void CalcReflTerm_img(const int i,const int j,const int k,doublecomplex result[s
 	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
 	// this is also a modification of simple Green's tensor, multiplying by refl. coef. and inverting z-components
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	expval=surfRCn*invr3*imExp(kr);
+	expval=surfRCn*invr3*accImExp(kr);
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*expval; }
 #define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*expval; }
 	INTERACT_DIAG(0);    // xx
@@ -871,10 +878,127 @@ void CalcReflTerm_img(const int i,const int j,const int k,doublecomplex result[s
 
 //=====================================================================================================================
 
+static void evluaWrapper(const double x,const double y,const double z,const double scale,const double isc,
+	doublecomplex *vals)
+{
+	double rho=sqrt(x*x+y*y)*scale;
+	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
+	evlua(z,rho,vals,vals+1,vals+2,vals+3);
+	// scale integrals (this can be removed by changes in som_init to use proper wavenumber instead of 2*pi)
+	vals[0]*=isc;
+	vals[1]*=isc;
+	vals[2]*=isc;
+	vals[3]*=isc;
+}
+
+//=====================================================================================================================
+
+static void CalcSomTable(void)
+/* calculates a table of (essential Sommerfeld integrals), which are further combined into reflected Green's tensor
+ * For z values - all local grid; for x- and y-values only positive values are considered and additionally y<=x.
+ *
+ * That is good for FFT code, since all these values are required anyway. A minor improvement can be achieved by
+ * locating different pairs of i,j that lead to the same rho (like 3,4 and 5,0), but the fraction of such matching pairs
+ * is very small (also see below). Another way for improvement is to set a (coarser) 2D grid in plane of z-rho and
+ * perform interpolation on it (as done in Schmehl's thesis). But that will add another free parameter affecting the
+ * final accuracy.
+ *
+ * However, in sparse mode this procedure is inefficient, since incurs (potentially) a lot of unnecessary evaluations
+ * of Sommerfeld integrals. For really sparse aggregates the better way is to buildup a lookup table, using only
+ * actually used pairs of (z,rho), as is done in DDA-SI code. A hash table can be used for that.
+ * TODO: Implement such improvement for the sparse mode
+ */
+{
+	// TOSO: those ranges are correct for SPARSE, but should be modified for the FFT version
+	int i,j,k;
+	const double scale=kd/TWO_PI;
+	const double isc=pow(WaveNum/TWO_PI,3); // this is subject to under/overflow
+	double y,z;
+	size_t ind;
+
+	XlessY=(boxX<=boxY);
+	// create index for plane x,y; if boxX<=boxY the space above the main diagonal is indexed (so x<=y) and vice versa
+	MALLOC_VECTOR(somIndex,sizet,boxY+1,ALL);
+	memory+=(boxY+1)*sizeof(size_t);
+	somIndex[0]=0;
+	for (j=0;j<boxY;j++) somIndex[j+1]=somIndex[j] + (XlessY ? MIN(j+1,boxX) : (boxX-j));
+	// allocate and fill the table
+	// TODO: add the required memory to calculator.c (and the manual)
+	const size_t tmp=4*(2*boxZ-1)*somIndex[boxY];
+	MALLOC_VECTOR(somTable,complex,tmp,ALL);
+	memory+=tmp*sizeof(doublecomplex);
+	if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
+	ind=0;
+	for (k=0;k<(2*boxZ-1);k++) {
+		z=(k+ZsumShift)*scale;
+		for (j=0;j<boxY;j++) {
+			y=j;
+			if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+			else for (i=j;i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+		}
+	}
+}
+
+//=====================================================================================================================
+
+static void GetSomIntegral(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Get Sommerfeld-integral part of the reflected Green's tensor; result is _incremented_ by the new value
+{
+	double x,y;   // coordinates in units of d
+	double rho;   // cylindrical coordinate
+	double xr,yr; // relative (scaled by ro) transverse coordinates
+	doublecomplex Irv,Izv,Irh,Iph; // values of Sommerfeld integrals
+	size_t ind;   // index for the table
+	int iT,jT;    // transformed indices
+
+	// compute xr,yr
+	x=i;
+	y=j;
+	rho=sqrt(x*x+y*y);
+	if (rho==0) { // particular direction doesn't matter in this case
+		xr=1;
+		yr=0;
+	}
+	else {
+		xr=x/rho;
+		yr=y/rho;
+	}
+	// compute table index
+	iT=abs(i);
+	jT=abs(j);
+	if (XlessY) {
+		if (iT<=jT) ind=somIndex[jT]+iT;
+		else ind=somIndex[iT]+jT; // effectively swap iT and jT
+	}
+	else {
+		if (iT>=jT) ind=somIndex[jT]+iT-jT;
+		else ind=somIndex[iT]+jT-iT; // effectively swap iT and jT
+	}
+	ind=4*(ind+k*somIndex[boxY]);
+	// index tables
+	Irv=somTable[ind];
+	Izv=somTable[ind+1];
+	Irh=somTable[ind+2];
+	Iph=somTable[ind+3];
+	// update result
+	result[0] += xr*xr*Irh - yr*yr*Iph;
+	result[1] += xr*yr*(Irh+Iph);
+	result[2] += xr*Irv;
+	result[3] += yr*yr*Irh - xr*xr*Iph;
+	result[4] += yr*Irv;
+	result[5] += Izv;
+}
+
+//=====================================================================================================================
+
 void CalcReflTerm_som(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 // Reflection term using the Sommerfeld integrals; arguments are described in .h file
 {
+	CalcReflTerm_img(i,j,k,result);
+	GetSomIntegral(i,j,k,result);
+	PRINT_GVAL;
 }
+
 //=====================================================================================================================
 
 void InitInteraction(void)
@@ -900,9 +1024,13 @@ void InitInteraction(void)
 	if (surface) {
 		switch (ReflRelation) {
 			case GR_IMG: CalcReflTerm = &CalcReflTerm_img; break;
-			case GR_SOM: CalcReflTerm = &CalcReflTerm_som; break;
+			case GR_SOM:
+				CalcReflTerm = &CalcReflTerm_som;
+				som_init(msub*msub);
+				CalcSomTable();
+				break;
 		}
-		surfRCn=(1-msub*msub)/(1+msub*msub);
+		surfRCn=msubInf ? -1 : ((1-msub*msub)/(1+msub*msub));
 	}
 
 #ifdef USE_SSE3
@@ -927,4 +1055,8 @@ void FreeInteraction(void)
 // Free buffers used for interaction calculation
 {
 	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
+	if (surface && ReflRelation==GR_SOM) {
+		Free_general(somIndex);
+		Free_cVector(somTable);
+	}
 }

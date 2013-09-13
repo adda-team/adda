@@ -49,9 +49,6 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 	doublecomplex iterm[6];
 	const size_t i3 = 3*i, j3 = 3*j;
 
-	(*CalcInterTerm)(position[i3]-position_full[j3], position[i3+1]-position_full[j3+1],
-		position[i3+2]-position_full[j3+2], iterm);
-
 	__m128d res, tmp;
 
 	IGNORE_WARNING(-Wstrict-aliasing); // cast from doublecomplex* to double* is perfectly valid in C99
@@ -61,6 +58,8 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 	STOP_IGNORE;
 
 	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding dipoles
+		(*CalcInterTerm)(position[i3]-position_full[j3], position[i3+1]-position_full[j3+1],
+			position[i3+2]-position_full[j3+2], iterm);
 		res = cmul(argX, *(__m128d *)&(iterm[0]));
 		tmp = cmul(argY, *(__m128d *)&(iterm[1]));
 		res = cadd(tmp,res);
