@@ -1400,6 +1400,9 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
+#ifdef OPENCL
+	PrintError("Currently surface is not supported in OpenCL mode");
+#endif
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
 	ScanDoubleError(argv[1],&hsub);
 	TestPositive(hsub,"height above surface");
@@ -1945,6 +1948,20 @@ void VariablesInterconnect(void)
 	}
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
+#endif
+#if defined(PARALLEL) && !defined(SPARSE)
+	/* Transpose of the non-symmetric interaction matrix can't be done in MPI mode, due to existing memory distribution
+	 * among different processors. This causes problems for iterative solvers, which require a product of Hermitian
+	 * transpose (calculated through the standard transpose) of the matrix with vector (currently, only CGNR). To remove
+	 * this limitation (issue 174) memory distribution should be changed to have both x and gridX-x on the same
+	 * processor.
+	 */
+	if (!reduced_FFT && IterMethod==IT_CGNR) PrintError("Non-symmetric interaction matrix (e.g., -no_reduced_fft) "
+		"can not be used together with CGNR iterative solver in the MPI mode");
+	/* TO ADD NEW ITERATIVE SOLVER
+	 * add the new iterative solver to the above line, if it requires calculation of product of Hermitian transpose
+	 * of the matrix with vector (i.e. calls MatVec function with 'true' as the fourth argument)
+	 */
 #endif
 	// scale boxes by jagged; should be completely robust to overflows
 #define JAGGED_BOX(a) { \

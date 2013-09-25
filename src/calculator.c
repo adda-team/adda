@@ -43,7 +43,7 @@ extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 extern const int avg_inc_pol;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_Init;
+extern TIME_TYPE Timing_Init,Timing_Init_Int;
 #ifdef OPENCL
 extern TIME_TYPE Timing_OCL_Init;
 #endif
@@ -445,14 +445,17 @@ static void AllocateEverything(void)
 	/* estimate of the memory (only the fastest scaling part):
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
-	 *          For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
+	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
+	 * 			+ for Sommerfeld table: 64*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2)
+	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
 	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
 	 *
 	 * Sparse mode - each processor needs (265--457, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
 	 *               and division is uniform, i.e. local_nvoid_Ndip = nvoid_Ndip/nprocs
-	 *               Part of the memory is currently not distributed among processors - see issue 160.
+	 *               Sommerfeld table - same as above, but it is not divided among processors.
+	 *               Part of the memory is currently not distributed among processors - see issues 160,175.
 	 */
 	MAXIMIZE(memPeak,memory);
 	double memSum=AccumulateMax(memPeak,&memmax);
@@ -592,7 +595,9 @@ void Calculator (void)
 	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;
 	// Do preliminary setup for MatVec
+	TIME_TYPE startInitInt=GET_TIME();
 	InitInteraction();
+	Timing_Init_Int=GET_TIME()-startInitInt;
 #ifndef SPARSE
 	// initialize D matrix (for matrix-vector multiplication)
 	D("InitDmatrix started");

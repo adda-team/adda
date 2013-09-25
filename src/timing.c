@@ -39,7 +39,8 @@ TIME_TYPE Timing_EPlane,Timing_EPlaneComm,    // for Eplane calculation: total a
           Timing_ScatQuan;                    // for integral scattering quantities
 size_t TotalEFieldPlane; // total number of planes for scattered field calculations
 // used in calculator.c
-TIME_TYPE Timing_Init; // for total initialization of the program (before CalculateE)
+TIME_TYPE Timing_Init, // for total initialization of the program (before CalculateE)
+          Timing_Init_Int; // for initialization of interaction routines (including computing tables)
 size_t TotalEval;      // total number of orientation evaluations
 #ifdef OPENCL
 TIME_TYPE Timing_OCL_Init; // for initialization of OpenCL (including building program)
@@ -139,6 +140,8 @@ void FinalStatistics(void)
 				"    init OpenCL          "FFORMT"\n",TO_SEC(Timing_OCL_Init));
 
 #endif
+			fprintf(logfile,
+				"    init interaction     "FFORMT"\n",TO_SEC(Timing_Init_Int));
 #ifndef SPARSE
 			fprintf(logfile,
 				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));

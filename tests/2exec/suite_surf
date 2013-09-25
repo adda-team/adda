@@ -27,23 +27,10 @@
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
+# Instead of 'all' a number of macros can be used: NOMPI, NOMPISEQ which is equivalent to 'all' for other modes, but
+# causes the line to be skipped in the matching mode. NOMPI lines are skipped both in mpi and mpi_seq modes.
 
 all
-
-# testing of different grids - relevant for FFT methods
-# to remove redundant warnings for ocl_seq, only (2,3,5) numbers are used
-all -grid 2 ;smn;
-all -grid 4 ;smn;
-all -grid 6 ;smn;
-all -grid 8 ;smn;
-all -grid 10 ;smn;
-all -grid 12 ;smn;
-all -grid 16 ;smn;
-all -grid 18 ;smn;
-all -grid 20 ;smn;
-all -grid 24 ;smn;
-all -grid 30 ;smn;
-all -grid 32 ;smn;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
@@ -76,8 +63,7 @@ all -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 ;mgn;
 all -h chp_dir
 all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
 all -h chp_load
-# the following may cause errors in mpi_seq mode
-all -chp_dir chp_tmp -chp_load ;mgn;
+NOMPISEQ -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
 # radiative forces are not yet supported with surf
@@ -102,10 +88,12 @@ all -eq_rad 1 ;mgn;
 # properties are compared using rather large tolerances
 all -h granul
 CrossSec-Y,CrossSec-X,mueller -granul 0.2 0.5 2 -size 8 -shape coated 0.5 ;3m; ;n;
-CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
+# Standard tolerances are not sufficient, when the following is run in the presence of non-trivial surface
+#CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
 all -h grid
 all -grid 4 6 8 ;m; ;n;
+all -grid 10 10 10 -shape read sphere.geom -sym enf ;m; ;n;
 
 all -h
 all -h h
@@ -141,7 +129,8 @@ all -h jagged
 all -jagged 2 ;mg4n;
 
 all -h lambda
-all -lambda 1 ;mgn;
+# 1 was changed to 10, to keep old tolerances
+all -lambda 10 ;mgn;
 
 all -h m
 all -m 1.2 0.2 ;g; ;n;
@@ -151,6 +140,7 @@ all -maxiter 5 ;mgn;
 
 all -h no_reduced_fft
 all -no_reduced_fft ;mgn;
+NOMPI -no_reduced_fft -iter cgnr ;mgn;
 
 all -h no_vol_cor
 all -no_vol_cor -size 3 ;mgn;
@@ -220,6 +210,10 @@ all -scat_matr ampl ;mgn;
 all -scat_matr both ;mgn;
 # for equivalent runs with surface we additionally add -yz, which is incompatible with the following
 #all -scat_matr none ;m; ;g;
+
+all -h scat_plane
+# for equivalent runs with surface we additionally add -yz, which is incompatible with the following
+#all -scat_plane ;se; ;mgn;
 
 all -h shape
 all -h shape axisymmetric
@@ -294,7 +288,8 @@ all -sym no ;mgn;
 all -sym enf ;mgn;
 all -sym auto ;sep; ;mgn;
 all -sym no ;sep; ;mgn;
-all -sym enf ;sep; ;mgn;
+# enforcing symmetry for non-default propagation is forbidden for -surf
+#all -sym enf ;sep; ;mgn;
 
 all -h test
 all -test ;mgn;

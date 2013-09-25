@@ -43,7 +43,7 @@ extern const int beam_Npars;
 extern const double beam_pars[];
 extern const char *beam_fnameY;
 extern const char *beam_fnameX;
-extern opt_index opt_beam;
+extern const opt_index opt_beam;
 
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame

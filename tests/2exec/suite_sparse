@@ -26,6 +26,8 @@
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
+# Instead of 'all' a number of macros can be used: NOMPI, NOMPISEQ which is equivalent to 'all' for other modes, but
+# causes the line to be skipped in the matching mode. NOMPI lines are skipped both in mpi and mpi_seq modes.
 
 all ;g;
 
@@ -58,8 +60,7 @@ all -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 ;mgn;
 all -h chp_dir
 all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
 all -h chp_load
-# the following may cause errors in mpi_seq mode
-all -chp_dir chp_tmp -chp_load ;mgn;
+NOMPISEQ -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
 all -Cpr ;sep; ;mn;
@@ -85,7 +86,7 @@ all -eq_rad 1 ;mgn;
 #CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
 all -h grid
-#all -grid 4 6 8 ;m; ;n;
+all -grid 6 6 8 ;mg4n;
 
 all -h
 all -h h
@@ -106,6 +107,10 @@ all -int igt 3 0.01 ;mg4n;
 all -int igt_so ;mgn;
 all -int poi ;mgn;
 all -int so ;mgn;
+
+all -h int_surf
+all -int_surf img -surf 4 2 0 ;mgn;
+all -int_surf som -surf 4 2 0 ;mgn;
 
 all -h iter
 all -iter bcgs2 ;mgn;
@@ -130,6 +135,7 @@ all -maxiter 5 ;mgn;
 
 all -h no_reduced_fft
 all -no_reduced_fft ;mgn;
+NOMPI -no_reduced_fft -iter cgnr ;mgn; 
 
 all -h no_vol_cor
 all -no_vol_cor -size 3 ;mgn;
@@ -194,6 +200,9 @@ all -scat_matr ampl ;mgn;
 all -scat_matr both ;mgn;
 all -scat_matr none ;m; ;g; 
 
+all -h scat_plane
+all -scat_plane ;se; ;mn;
+
 all -h shape
 #all -h shape axisymmetric
 #all -shape axisymmetric 196.txt ;mgn;
@@ -257,6 +266,14 @@ all -store_int_field ;se; ;mn;
 
 all -h store_scat_grid
 all -store_scat_grid ;sep; ;mn;
+
+all -h surf
+all -surf 4 2 0 ;mgn;
+all -surf 4 3 4 -prop 1 2 3 -shape read sphere.geom ;mn;
+all -surf 4 3 4 -prop 1 2 -3 ;se; ;mn;
+all -surf 4 inf -prop 1 2 -3 ;se; ;mn;
+all -surf 4 2 0 -no_reduced_fft ;mgn;
+NOMPI -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
 
 all -h sym 
 all -sym auto ;mn; -shape read sphere.geom

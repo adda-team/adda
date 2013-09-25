@@ -39,9 +39,9 @@
 extern doublecomplex * restrict arg_full;
 #elif !defined(OPENCL)
 // defined and initialized in fft.c
-extern const doublecomplex * restrict Dmatrix;
-extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr;
-extern const size_t DsizeY,DsizeZ,DsizeYZ;
+extern const doublecomplex * restrict Dmatrix,* restrict Rmatrix;
+extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr,* restrict slicesR,* restrict slicesR_tr;
+extern const size_t DsizeY,DsizeZ,RsizeY;
 #endif // !SPARSE && !OPENCL
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
@@ -53,14 +53,14 @@ extern size_t TotalMatVec;
 
 static inline size_t IndexSliceZY(const size_t y,const size_t z)
 {
-	return (z*gridY+y);
+	return z*gridY+y;
 }
 
 //======================================================================================================================
 
 static inline size_t IndexSliceYZ(const size_t y,const size_t z)
 {
-	return(y*gridZ+z);
+	return y*gridZ+z;
 }
 
 //======================================================================================================================
@@ -68,9 +68,9 @@ static inline size_t IndexSliceYZ(const size_t y,const size_t z)
 static inline size_t IndexGarbledX(const size_t x,const size_t y,const size_t z)
 {
 #ifdef PARALLEL
-	return(((z%local_Nz)*smallY+y)*gridX+(z/local_Nz)*local_Nx+x%local_Nx);
+	return ((z%local_Nz)*smallY+y)*gridX+(z/local_Nz)*local_Nx+x%local_Nx;
 #else
-	return((z*smallY+y)*gridX+x);
+	return (z*smallY+y)*gridX+x;
 #endif
 }
 
@@ -78,7 +78,7 @@ static inline size_t IndexGarbledX(const size_t x,const size_t y,const size_t z)
 
 static inline size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 {
-	return((z*smallY+y)*gridX+x);
+	return (z*smallY+y)*gridX+x;
 }
 
 //======================================================================================================================
@@ -86,6 +86,9 @@ static inline size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
 	if (transposed) { // used only for G_SO
+		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
+		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
+		 */
 		if (x>0) x=gridX-x;
 		if (y>0) y=gridY-y;
 		if (z>0) z=gridZ-z;
@@ -95,8 +98,27 @@ static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool trans
 		if (z>=DsizeZ) z=gridZ-z;
 	}
 
-	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
+	return NDCOMP*((x*DsizeZ+z)*DsizeY+y);
 }
+
+//======================================================================================================================
+
+static inline size_t IndexRmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
+{
+	if (transposed) { // used only for G_SO !!!
+		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
+		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
+		 */
+		if (x>0) x=gridX-x;
+		if (y>0) y=gridY-y;
+	}
+	else {
+		if (y>=RsizeY) y=gridY-y;
+	}
+
+	return NDCOMP*((x*gridZ+z)*RsizeY+y);
+}
+
 #endif // OPENCL
 #endif // SPARSE
 
@@ -119,7 +141,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
 #ifndef OPENCL // these variables are not needed for OpenCL
 	size_t i;
-	doublecomplex fmat[6],xv[3],yv[3];
+	doublecomplex fmat[6],xv[3],yv[3],xvR[3],yvR[3];
 	size_t index,y,z,Xcomp;
 	unsigned char mat;
 #endif
@@ -145,6 +167,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
  *
  * G_SO: F(D(T)) (k) =  F(D) (-k)
  *       k - vector index
+ *
+ * For reflected matrix the situation is similar.
+ * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom dipoles.
+ * H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be computed
+ * along with F(X).
+ * Matrix R is symmetric (as a whole), but not in small parts, so R(i,j)=R(j,i)(T). Hence, in contrast to D, for
+ * 'transpose' actual transpose (changing sign of a few elements) of 3x3 submatrix is required along with addressing
+ * different elements of F(R).
  *
  * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
  * complex code.
@@ -232,6 +262,11 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	// following is done by slices
 	for(x=local_x0;x<local_x1;x++) {
+		/* TODO: if z and y FFTs are interchanged, then computing reflected interaction can be optimized even further.
+		 * Moreover, the typical situation of particles near surfaces, like large particulate slabs, correspond to the
+		 * smallest dimension along z, which will also benefit from such interchange (then gridZ do not have to divide
+		 * nprocs) - issue 177
+		 */
 #ifdef PRECISE_TIMING
 		GetTime(tvp+4);
 #endif
@@ -241,33 +276,35 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL));
 		clFinish(command_queue);
+		// TODO: add corresponding surface code (issue 101)
 #else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
-
 		// fill slices with values from Xmatrix
 		for(y=0;y<boxY_st;y++) for(z=0;z<boxZ_st;z++) {
 			i=IndexSliceYZ(y,z);
 			j=IndexGarbledX(x,y,z);
 			for (Xcomp=0;Xcomp<3;Xcomp++) slices[i+Xcomp*gridYZ]=Xmatrix[j+Xcomp*local_Nsmall];
 		}
+		// create a copy of slice, which is further transformed differently
+		if (surface) memcpy(slicesR,slices,3*gridYZ*sizeof(doublecomplex));
 #endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+5);
 		ElapsedInc(tvp+4,tvp+5,&Timing_Mult2);
 #endif
 		// FFT z&y
-		fftZ(FFT_FORWARD); // fftZ (buf)slices
+		fftZ(FFT_FORWARD); // fftZ (buf)slices (and reflected terms)
 #ifdef PRECISE_TIMING
 		GetTime(tvp+6);
 		ElapsedInc(tvp+5,tvp+6,&Timing_FFTZf);
 #endif
-		TransposeYZ(FFT_FORWARD);
+		TransposeYZ(FFT_FORWARD); // including reflecting terms
 #ifdef PRECISE_TIMING
 		GetTime(tvp+7);
 		ElapsedInc(tvp+6,tvp+7,&Timing_TYZf);
 #endif
-		fftY(FFT_FORWARD); // fftY (buf)slices_tr
+		fftY(FFT_FORWARD); // fftY (buf)slices_tr (and reflected terms)
 #ifdef PRECISE_TIMING//
 		GetTime(tvp+8);
 		ElapsedInc(tvp+7,tvp+8,&Timing_FFTYf);
@@ -280,25 +317,40 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		clFinish(command_queue); //wait till kernel executions are finished
 #else
 		// arith3 on host
-		// do the product D~*X~ 
+		// do the product D~*X~  and R~*X'~
 		for(z=0;z<gridZ;z++) for(y=0;y<gridY;y++) {
 			i=IndexSliceZY(y,z);
 			for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridYZ];
-
 			j=IndexDmatrix_mv(x-local_x0,y,z,transposed);
 			memcpy(fmat,Dmatrix+j,6*sizeof(doublecomplex));
-			if (reduced_FFT) {
-				if (y>smallY) { // we assume that compiler will optimize x*=-1 into negation of sign
+			if (reduced_FFT) { // symmetry with respect to reflection (x_i -> x_2N-i) is the same as in r-space
+				if (y>=DsizeY) { // we assume that compiler will optimize x*=-1 into negation of sign
 					fmat[1]*=-1;
-					if (z>smallZ) fmat[2]*=-1;
+					if (z>=DsizeZ) fmat[2]*=-1;
 					else fmat[4]*=-1;
 				}
-				else if (z>smallZ) {
+				else if (z>=DsizeZ) {
 					fmat[2]*=-1;
 					fmat[4]*=-1;
 				}
 			}
-			cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
+			cSymMatrVec(fmat,xv,yv); // yv=fmat.xv
+			if (surface) {
+				for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+Xcomp*gridYZ];
+				j=IndexRmatrix_mv(x-local_x0,y,z,transposed);
+				memcpy(fmat,Rmatrix+j,6*sizeof(doublecomplex));
+				if (reduced_FFT && y>=RsizeY) {
+					fmat[1]*=-1;
+					fmat[4]*=-1;
+				}
+				if (transposed) { // corresponds to transpose of 3x3 matrix
+					fmat[2]*=-1;
+					fmat[4]*=-1;
+				}
+				// yv+=fmat.xvR
+				cReflMatrVec(fmat,xvR,yvR);
+				cvAdd(yvR,yv,yv);
+			}
 			for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridYZ]=yv[Xcomp];
 		}
 #endif

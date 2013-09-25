@@ -154,7 +154,7 @@ int local_z0,local_z1;    // starting and ending z for current processor
 size_t local_Nz;          // number of z layers (based on the division of smallZ)
 int local_Nz_unif;        /* number of z layers (distance between max and min values), belonging to this processor,
                              after all non_void dipoles are uniformly distributed between all processors */
-int local_z1_coer;        // ending z, coerced to be not greater than boxZ
+int local_z1_coer;        // ending z, coerced to be not greater than boxZ (and not smaller than local_z0)
 	// starting, ending x for current processor and number of x layers (based on the division of smallX)
 size_t local_x0,local_x1,local_Nx;
 

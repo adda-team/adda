@@ -25,7 +25,9 @@
 void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
 
 /* Calculates reflection term between two dipoles; given integer distance vector {i,j,k} (in units of d). k is the _sum_
- * of dipole indices along z with respect to the center of bottom dipoles of the particle (position_full in SPARSE mode)
+ * of dipole indices along z with respect to the center of bottom dipoles of the particle. Bottom is considered for the
+ * current processor (position) and the whole particle (position_full) in FFT and SPARSE modes respectively. The latter
+ * behavior is determined by ZsumShift.
  * The acting dipole is placed in the origin, while the field is calculated at position given as argument.
  * Six components of the matrix are computed at once: [GR11, GR12, GR13, GR22, GR23, GR33].
  * The matrix is not symmetric, but satisfies: GR21=GR12, GR31=-GR13, GR32=-GR23. However the large matrix GR, which
