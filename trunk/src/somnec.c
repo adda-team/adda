@@ -11,7 +11,7 @@
 
 /* TODO: Systematic accuracy study of this code is required. At least 7 digits of precision are desired (for test runs)
  * However, the urgent thing is that for some reason the accuracy of this code is very bad (few percent errors for
- * rho=0, exactly).
+ * rho=0, exactly). (issue 176)
  */
 
 // ADDA: the cycling to generate interpolation grid was removed, now it is a single-run routine

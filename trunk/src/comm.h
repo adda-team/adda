@@ -45,7 +45,7 @@ void ReadField(const char * restrict fname,doublecomplex *restrict field);
 
 #ifndef SPARSE
 void BlockTranspose(doublecomplex * restrict X,TIME_TYPE *timing);
-void BlockTranspose_Dm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ);
+void BlockTranspose_DRm(doublecomplex * restrict X,size_t lengthY,size_t lengthZ);
 // used by granule generator
 void SetGranulComm(double z0,double z1,double gdZ,int gZ,size_t gXY,size_t buf_size,int *lz0,int *lz1,int sm_gr);
 void CollectDomainGranul(unsigned char * restrict dom,size_t gXY,int lz0,int locgZ,TIME_TYPE *timing);

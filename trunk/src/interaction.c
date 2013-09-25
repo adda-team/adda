@@ -25,9 +25,12 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in make_particle.c
-extern double gridspace,ZsumShift;
+extern const double gridspace,ZsumShift;
 // defined and initialized in param.c
-extern double igt_lim,igt_eps;
+extern const double igt_lim,igt_eps;
+
+// used in fft.c
+int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1 (also used in SPARSE)
 
 // LOCAL VARIABLES
 
@@ -906,10 +909,17 @@ static void CalcSomTable(void)
  * However, in sparse mode this procedure is inefficient, since incurs (potentially) a lot of unnecessary evaluations
  * of Sommerfeld integrals. For really sparse aggregates the better way is to buildup a lookup table, using only
  * actually used pairs of (z,rho), as is done in DDA-SI code. A hash table can be used for that.
- * TODO: Implement such improvement for the sparse mode
+ * TODO: Implement such improvement for the sparse mode (issue 175)
+ *
+ * Using only actually used value of (z,rho) can be also relevant for FFT mode (consider, e.g. a sphere and z close to 0
+ * and to 2*boxZ-1). However, searching through such pairs seems to be O(N^2) operation, which is unacceptable in FFT
+ * mode.
+ *
+ * Another problem in SPARSE mode is that currently all values of z are computed on each processor (in MPI mode). This
+ * is related to the current parallelization mode (issue 160), but it can be improved by computing all values in chunks
+ * and then gathering them on each processor. Better to combine it with the hash table above.
  */
 {
-	// TOSO: those ranges are correct for SPARSE, but should be modified for the FFT version
 	int i,j,k;
 	const double scale=kd/TWO_PI;
 	const double isc=pow(WaveNum/TWO_PI,3); // this is subject to under/overflow
@@ -924,17 +934,19 @@ static void CalcSomTable(void)
 	for (j=0;j<boxY;j++) somIndex[j+1]=somIndex[j] + (XlessY ? MIN(j+1,boxX) : (boxX-j));
 	// allocate and fill the table
 	// TODO: add the required memory to calculator.c (and the manual)
-	const size_t tmp=4*(2*boxZ-1)*somIndex[boxY];
-	MALLOC_VECTOR(somTable,complex,tmp,ALL);
+	const size_t tmp=4*local_Nz_Rm*somIndex[boxY];
 	memory+=tmp*sizeof(doublecomplex);
-	if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
-	ind=0;
-	for (k=0;k<(2*boxZ-1);k++) {
-		z=(k+ZsumShift)*scale;
-		for (j=0;j<boxY;j++) {
-			y=j;
-			if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
-			else for (i=j;i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+	if (!prognosis) {
+		MALLOC_VECTOR(somTable,complex,tmp,ALL);
+		if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
+		ind=0;
+		for (k=0;k<local_Nz_Rm;k++) {
+			z=(k+ZsumShift)*scale;
+			for (j=0;j<boxY;j++) {
+				y=j;
+				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+				else for (i=j;i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+			}
 		}
 	}
 }
@@ -1022,11 +1034,16 @@ void InitInteraction(void)
 
 	// Interaction through reflection from surface
 	if (surface) {
+#ifdef SPARSE
+		local_Nz_Rm=2*boxZ-1;
+#else
+		local_Nz_Rm=MAX(MIN(2*local_z1,2*boxZ-1)-2*local_z0,0);
+#endif
 		switch (ReflRelation) {
 			case GR_IMG: CalcReflTerm = &CalcReflTerm_img; break;
 			case GR_SOM:
 				CalcReflTerm = &CalcReflTerm_som;
-				som_init(msub*msub);
+				if (!prognosis) som_init(msub*msub);
 				CalcSomTable();
 				break;
 		}

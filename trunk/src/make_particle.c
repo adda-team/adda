@@ -48,7 +48,7 @@ extern const int jagged;
 extern const char *shape_fname;
 extern const char *shapename;
 extern const bool volcor,save_geom;
-extern opt_index opt_sh;
+extern const opt_index opt_sh;
 #ifndef SPARSE
 extern const int sh_Npars;
 extern const double sh_pars[];
@@ -57,7 +57,7 @@ extern const double gr_vf;
 extern double gr_d;
 extern const int gr_mat;
 extern enum shform sg_format;
-extern bool store_grans;
+extern const bool store_grans;
 #endif
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Particle;
@@ -2281,7 +2281,7 @@ void MakeParticle(void)
 	 * tensor do not fail. And accuracy of the DDA itself is anyway questionable when some of the dipoles are very close
 	 * to the substrate (whether they cross it or not).
 	 */
-	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a"
+	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "
 		"dipole with z="GFORMDEF" (relative to the center), making specified height of the center ("GFORMDEF") too "
 		"small",minZco,hsub);
 	// save geometry
@@ -2308,13 +2308,14 @@ void MakeParticle(void)
 	box_origin_unif[1]=-gridspace*cY;
 #ifndef SPARSE
 	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
+	if (surface) ZsumShift=2*((hsub/gridspace)-cZ+local_z0);
 #else
 	box_origin_unif[2]=-gridspace*cZ;
+	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif
 #endif // SPARSE
 	
-	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
 	Timing_Particle += GET_TIME() - tstart;
 }

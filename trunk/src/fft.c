@@ -70,18 +70,23 @@
 
 // SEMI-GLOBAL VARIABLES
 
+// defined and initialized in interaction.c
+extern const int local_Nz_Rm;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
 // used in matvec.c
 doublecomplex * restrict Dmatrix; // holds FFT of the interaction matrix
+doublecomplex * restrict Rmatrix; // holds FFT of the reflection matrix
 #ifndef OPENCL
 	// holds input vector (on expanded grid) to matvec, also used as storage space in iterative.c
 doublecomplex * restrict Xmatrix;
 doublecomplex * restrict slices; // used in inner cycle of matvec - holds 3 components (for fixed x)
 doublecomplex * restrict slices_tr; // additional storage space for slices to accelerate transpose
+doublecomplex * restrict slicesR,* restrict slicesR_tr; // same as above, but for reflected interaction
 #endif
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D
+size_t RsizeY; // size of the 'matrix' R
 // used in comm.c
 double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspose
 
@@ -89,7 +94,13 @@ double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspos
 
 // D2 matrix and its two slices; used only temporary for InitDmatrix
 static doublecomplex * restrict slice,* restrict slice_tr,* restrict D2matrix;
-static size_t D2sizeX,D2sizeY,D2sizeZ; // size of the 'matrix' D2
+static doublecomplex * restrict R2matrix; // same for surface (slice and slice_tr are reused from Dmatrix)
+static size_t D2sizeY,D2sizeZ; // size of the 'matrix' D2 (x-size is gridX)
+static size_t R2sizeY; // size of the 'matrix' R2 (x- and z-sizes are corresponding grids)
+static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
+// the following two lines are defined in InitDmatrix but used in InitRmatrix, they are analogous to Dm values
+static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
+static int jstartR; // starting index for y
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
 static bool weird_nprocs;              // whether weird number of processors is used
 #ifdef OPENCL
@@ -101,9 +112,9 @@ static clFFT_Plan clplanX,clplanY,clplanZ; // clFFT plans
 #endif
 #ifdef FFTW3
 // FFTW3 plans: f - FFT_FORWARD; b - FFT_BACKWARD
-static fftw_plan planXf_Dm,planYf_Dm,planZf_Dm;
+static fftw_plan planXf_Dm,planYf_slice,planZf_slice,planXf_Rm;
 #	ifndef OPENCL // these plans are used only if OpenCL is not used
-static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb;
+static fftw_plan planXf,planXb,planYf,planYb,planZf,planZb,planYRf,planZRf; // last two for reflected interaction
 #	endif
 #elif defined(FFT_TEMPERTON)
 #	ifdef NO_FORTRAN
@@ -122,23 +133,22 @@ void cfft99_(double * restrict data,double * restrict _work,const double * restr
 //======================================================================================================================
 
 static inline size_t IndexDmatrix(const size_t x,size_t y,size_t z)
-// index D matrix to store final result
+// index D matrix to store final result (symmetric with respect to center for y and z)
 {
 	if (y>=DsizeY) y=gridY-y;
 	if (z>=DsizeZ) z=gridZ-z;
-
-	return(NDCOMP*(x*DsizeYZ+z*DsizeY+y));
+	return(NDCOMP*((x*DsizeZ+z)*DsizeY+y));
 }
 
 //======================================================================================================================
 
-static inline size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengthN UOIP)
-// index D2 matrix after BlockTranspose
+static inline size_t IndexGarbledD(const size_t x,int y,int z)
+// index D2 matrix after BlockTranspose (periodic over y and z)
 {
-	if (y<0) y+=D2sizeY;
-	if (z<0) z+=D2sizeZ;
+	if (y<0) y+=gridY;
+	if (z<0) z+=gridZ;
 #ifdef PARALLEL
-	return(((z%lengthN)*D2sizeY+y)*gridX+(z/lengthN)*local_Nx+x%local_Nx);
+	return(((z%lz_Dm)*D2sizeY+y)*gridX+(z/lz_Dm)*local_Nx+x%local_Nx);
 #else
 	return((z*D2sizeY+y)*gridX+x);
 #endif
@@ -146,32 +156,101 @@ static inline size_t IndexGarbledD(const size_t x,int y,int z,const size_t lengt
 
 //======================================================================================================================
 
-static inline size_t IndexD2matrix(int x,int y,int z,const int nnn)
-// index D2 matrix to store calculated elements
-{
-	if (x<0) x+=gridX;
-	if (y<0) y+=D2sizeY;
-	//  if (z<0) z+=D2sizeZ;
-	return(((z-nnn*local_z0)*D2sizeY+y)*gridX+x);
-}
-
-//======================================================================================================================
-
 static inline size_t IndexSliceD2matrix(int y,int z)
-// index slice of D2 matrix
+// index slice of D2 matrix (periodic over y and z)
 {
 	if (y<0) y+=gridY;
 	if (z<0) z+=gridZ;
-
 	return(y*gridZ+z);
 }
 
 //======================================================================================================================
 
-static inline size_t IndexSlice_zyD2matrix(const size_t y,const size_t z)
-// index transposed slice of D2 matrix
+static inline size_t Index2matrix(int x,int y,const int z,const int sizeY)
+// index D2 or R2 matrix to store calculated elements (periodic over x and y), z should already be shifted
+{
+	if (x<0) x+=gridX;
+	if (y<0) y+=gridY;
+	return((z*sizeY+y)*gridX+x);
+}
+
+//======================================================================================================================
+
+static inline size_t IndexSlice_zy(const size_t y,const size_t z)
+// index transposed slice of D2 (or R2) matrix
 {
 	return (z*gridY+y);
+}
+
+//======================================================================================================================
+
+static inline size_t IndexRmatrix(const size_t x,size_t y,const size_t z)
+// index R matrix to store final result (symmetric with respect to center for y)
+{
+	if (y>=RsizeY) y=gridY-y;
+	return(NDCOMP*((x*gridZ+z)*RsizeY+y));
+}
+
+//======================================================================================================================
+
+static inline size_t IndexGarbledR(const size_t x,int y,const int z)
+// index R2 matrix after BlockTranspose (periodic over y)
+{
+	if (y<0) y+=gridY;
+#ifdef PARALLEL
+	return(((z%lz_Rm)*R2sizeY+y)*gridX+(z/lz_Rm)*local_Nx+x%local_Nx);
+#else
+	return((z*R2sizeY+y)*gridX+x);
+#endif
+}
+
+//======================================================================================================================
+
+static inline size_t IndexSliceR2matrix(int y,const int z)
+// index slice of R2 matrix (periodic over y)
+{
+	if (y<0) y+=gridY;
+	return(y*gridZ+z);
+}
+
+//======================================================================================================================
+
+static void transpose(const doublecomplex * restrict data,doublecomplex * restrict trans,const size_t Y,const size_t Z)
+// optimized routine to transpose complex matrix with dimensions YxZ: data -> trans
+{
+	size_t y,z,y1,y2,z1,z2,i,j,y0,z0;
+	doublecomplex *t1,*t2,*t3,*t4;
+	const doublecomplex *w1,*w2,*w3;
+
+	y1=Y/blockTr;
+	y2=Y%blockTr;
+	z1=Z/blockTr;
+	z2=Z%blockTr;
+
+	w1=data;
+	t1=trans-Y;
+
+	for(i=0;i<=y1;i++) {
+		if (i==y1) y0=y2;
+		else y0=blockTr;
+		w2=w1;
+		t2=t1;
+		for(j=0;j<=z1;j++) {
+			if (j==z1) z0=z2;
+			else z0=blockTr;
+			w3=w2;
+			t3=t2;
+			for (y=0;y<y0;y++) {
+				t4=t3+y;
+				for (z=0;z<z0;z++) *(t4+=Y)=w3[z];
+				w3+=Z;
+			}
+			w2+=blockTr;
+			t2+=blockTr*Y;
+		}
+		w1+=blockTr*Z;
+		t1+=blockTr;
+	}
 }
 
 //======================================================================================================================
@@ -209,95 +288,18 @@ void TransposeYZ(const int direction)
 	}
 	clFinish(command_queue);
 #else
-	size_t y,z,Y,Z,y1,y2,z1,z2,i,j,y0,z0,Xcomp;
-	doublecomplex *t0,*t1,*t2,*t3,*t4,*w0,*w1,*w2,*w3;
+	size_t Xcomp,ind;
 
-	if (direction==FFT_FORWARD) {
-		Y=gridY;
-		Z=gridZ;
-		w0=slices;
-		t0=slices_tr-Y;
+	if (direction==FFT_FORWARD) for (Xcomp=0;Xcomp<3;Xcomp++) {
+		ind=Xcomp*gridYZ;
+		transpose(slices+ind,slices_tr+ind,gridY,gridZ);
+		if (surface) transpose(slicesR+ind,slicesR_tr+ind,gridY,gridZ);
 	}
-	else { // direction==FFT_BACKWARD
-		Y=gridZ;
-		Z=gridY;
-		w0=slices_tr;
-		t0=slices-Y;
-	}
-
-	y1=Y/blockTr;
-	y2=Y%blockTr;
-	z1=Z/blockTr;
-	z2=Z%blockTr;
-
-	for(Xcomp=0;Xcomp<3;Xcomp++) {
-		w1=w0+Xcomp*gridYZ;
-		t1=t0+Xcomp*gridYZ;
-		for(i=0;i<=y1;i++) {
-			if (i==y1) y0=y2;
-			else y0=blockTr;
-			w2=w1;
-			t2=t1;
-			for(j=0;j<=z1;j++) {
-				if (j==z1) z0=z2;
-				else z0=blockTr;
-				w3=w2;
-				t3=t2;
-				for (y=0;y<y0;y++) {
-					t4=t3+y;
-					for (z=0;z<z0;z++) *(t4+=Y)=w3[z];
-					w3+=Z;
-				}
-				w2+=blockTr;
-				t2+=blockTr*Y;
-			}
-			w1+=blockTr*Z;
-			t1+=blockTr;
-		}
+	else for (Xcomp=0;Xcomp<3;Xcomp++) { // direction==FFT_BACKWARD
+		ind=Xcomp*gridYZ;
+		transpose(slices_tr+ind,slices+ind,gridZ,gridY);
 	}
 #endif
-}
-
-//======================================================================================================================
-
-static void transposeYZ_Dm(doublecomplex *data,doublecomplex *trans)
-// optimized routine to transpose y and z for Dmatrix: data -> trans
-{
-	size_t y,z,Y,Z,y1,y2,z1,z2,i,j,y0,z0;
-	doublecomplex *t1,*t2,*t3,*t4,*w1,*w2,*w3;
-
-	Y=gridY;
-	Z=gridZ;
-
-	y1=Y/blockTr;
-	y2=Y%blockTr;
-	z1=Z/blockTr;
-	z2=Z%blockTr;
-
-	w1=data;
-	t1=trans-Y;
-
-	for(i=0;i<=y1;i++) {
-		if (i==y1) y0=y2;
-		else y0=blockTr;
-		w2=w1;
-		t2=t1;
-		for(j=0;j<=z1;j++) {
-			if (j==z1) z0=z2;
-			else z0=blockTr;
-			w3=w2;
-			t3=t2;
-			for (y=0;y<y0;y++) {
-				t4=t3+y;
-				for (z=0;z<z0;z++) *(t4+=Y)=w3[z];
-				w3+=Z;
-			}
-			w2+=blockTr;
-			t2+=blockTr*Y;
-		}
-		w1+=blockTr*Z;
-		t1+=blockTr;
-	}
 }
 
 //======================================================================================================================
@@ -347,13 +349,18 @@ void fftY(const int isign)
 #	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
-	if (isign==FFT_FORWARD) fftw_execute(planYf);
+	if (isign==FFT_FORWARD) {
+		fftw_execute(planYf);
+		if (surface) fftw_execute(planYRf);
+	}
 	else fftw_execute(planYb);
 #elif defined(FFT_TEMPERTON)
 	int nn=gridY,inc=1,jump=nn,lot=3*gridZ;
 
 	IGNORE_WARNING(-Wstrict-aliasing);
 	cfft99_((double *)(slices_tr),work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
+	// the same operation is applied to sliceR_tr, when required
+	if (surface && isign==FFT_FORWARD) cfft99_((double *)(slicesR_tr),work,trigsY,ifaxY,&inc,&jump,&nn,&lot,&isign);
 	STOP_IGNORE;
 #endif
 }
@@ -373,20 +380,28 @@ void fftZ(const int isign)
 #	endif
 	clFinish(command_queue);
 #elif defined(FFTW3)
-	if (isign==FFT_FORWARD) fftw_execute(planZf);
+	if (isign==FFT_FORWARD) {
+		fftw_execute(planZf);
+		if (surface) fftw_execute(planZRf);
+	}
 	else fftw_execute(planZb);
 #elif defined(FFT_TEMPERTON)
 	int nn=gridZ,inc=1,jump=nn,lot=boxY,Xcomp;
 
 	IGNORE_WARNING(-Wstrict-aliasing);
 	for (Xcomp=0;Xcomp<3;Xcomp++) cfft99_((double *)(slices+gridYZ*Xcomp),work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&isign);
+	if (surface && isign==FFT_FORWARD) { // the same operation is applied to slicesR, but with inverse transform
+		const int invSign=FFT_BACKWARD;
+		for (Xcomp=0;Xcomp<3;Xcomp++)
+			cfft99_((double *)(slicesR+gridYZ*Xcomp),work,trigsZ,ifaxZ,&inc,&jump,&nn,&lot,&invSign);
+	}
 	STOP_IGNORE;
 #endif
 }
 
 //======================================================================================================================
 
-static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
+static void fftX_Dm(void)
 // FFT(forward) D2matrix(x) for all y,z; used for Dmatrix calculation
 {
 #ifdef FFTW3
@@ -396,18 +411,36 @@ static void fftX_Dm(const size_t lengthZ ONLY_FOR_TEMPERTON)
 	size_t z;
 
 	IGNORE_WARNING(-Wstrict-aliasing);
-	for (z=0;z<lengthZ;z++) cfft99_((double *)(D2matrix+z*gridX*D2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	for (z=0;z<lz_Dm;z++) cfft99_((double *)(D2matrix+z*gridX*D2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
 	STOP_IGNORE;
 #endif
 }
 
 //======================================================================================================================
 
-static void fftY_Dm(void)
-// FFT(forward) slice_tr(y) for all z; used for Dmatrix calculation
+static void fftX_Rm(void)
+// FFT(forward) D2matrix(x) for all y,z; used for Rmatrix calculation
 {
 #ifdef FFTW3
-	fftw_execute(planYf_Dm);
+	fftw_execute(planXf_Rm);
+#elif defined(FFT_TEMPERTON)
+	int nn=gridX,inc=1,jump=nn,lot=R2sizeY,isign=FFT_FORWARD;
+	size_t z;
+	const size_t zlim=local_Nz_Rm; // can be smaller by 1 than lz_Rm
+
+	IGNORE_WARNING(-Wstrict-aliasing);
+	for (z=0;z<zlim;z++) cfft99_((double *)(R2matrix+z*gridX*R2sizeY),work,trigsX,ifaxX,&inc,&jump,&nn,&lot,&isign);
+	STOP_IGNORE;
+#endif
+}
+
+//======================================================================================================================
+
+static void fftY_slice(void)
+// FFT(forward) slice_tr(y) for all z; used for Dmatrix and Rmatrix calculation
+{
+#ifdef FFTW3
+	fftw_execute(planYf_slice);
 #elif defined(FFT_TEMPERTON)
 	int nn=gridY,inc=1,jump=nn,lot=gridZ,isign=FFT_FORWARD;
 
@@ -419,11 +452,11 @@ static void fftY_Dm(void)
 
 //======================================================================================================================
 
-static void fftZ_Dm(void)
-// FFT(forward) slice(z) for all y; used for Dmatrix calculation
+static void fftZ_slice(void)
+// FFT(forward) slice(z) for all y; used for Dmatrix and Rmatrix calculation
 {
 #ifdef FFTW3
-	fftw_execute(planZf_Dm);
+	fftw_execute(planZf_slice);
 #elif defined(FFT_TEMPERTON)
 	int nn=gridZ,inc=1,jump=nn,lot=gridY,isign=FFT_FORWARD;
 
@@ -512,7 +545,7 @@ int fftFit(int x,int divis)
 
 //======================================================================================================================
 
-static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
+static void fftInitBeforeD(void)
 // initialize fft before initialization of Dmatrix
 {
 #ifdef FFTW3
@@ -520,18 +553,24 @@ static void fftInitBeforeD(const int lengthZ ONLY_FOR_FFTW3)
 
 	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",fftw_version,fftw_cc,
 		fftw_codelet_optim);
-	planYf_Dm=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,slice_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW_DM);
-	planZf_Dm=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
-	planXf_Dm=fftw_plan_many_dft(1,&grXint,lengthZ*D2sizeY,D2matrix,NULL,1,gridX,D2matrix,NULL,1,gridX,FFT_FORWARD,
+	planYf_slice=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,slice_tr,NULL,1,gridY,FFT_FORWARD,
 		PLAN_FFTW_DM);
+	planZf_slice=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
+	planXf_Dm=fftw_plan_many_dft(1,&grXint,lz_Dm*D2sizeY,D2matrix,NULL,1,gridX,D2matrix,NULL,1,gridX,FFT_FORWARD,
+		PLAN_FFTW_DM);
+	// very similar to Dm, but local_Nz_Rm can be smaller by 1 than lz_Rm
+	if (surface) planXf_Rm=fftw_plan_many_dft(1,&grXint,local_Nz_Rm*R2sizeY,R2matrix,NULL,1,gridX,R2matrix,NULL,1,gridX,
+		FFT_FORWARD,PLAN_FFTW_DM);
 #elif defined(FFT_TEMPERTON)
-	int size,nn;
+	int nn;
+	size_t size;
 
 	// allocate memory
 	MALLOC_VECTOR(trigsX,double,2*gridX,ALL);
 	MALLOC_VECTOR(trigsY,double,2*gridY,ALL);
 	MALLOC_VECTOR(trigsZ,double,2*gridZ,ALL);
 	size=MAX(gridX*D2sizeY,3*gridYZ);
+	if (surface) size=MAX(size,gridX*R2sizeY);
 	MALLOC_VECTOR(work,double,2*size,ALL);
 	// initialize ifax and trigs
 	nn=gridX;
@@ -672,6 +711,8 @@ static void fftInitAfterD(void)
 #	endif
 	lot=3*gridZ;
 	planYf=fftw_plan_many_dft(1,&grYint,lot,slices_tr,NULL,1,gridY,slices_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW);
+	if (surface) // same operation, but applied to slicesR_tr
+		planYRf=fftw_plan_many_dft(1,&grYint,lot,slicesR_tr,NULL,1,gridY,slicesR_tr,NULL,1,gridY,FFT_FORWARD,PLAN_FFTW);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 #	endif
@@ -686,6 +727,8 @@ static void fftInitAfterD(void)
 	howmany_dims[1].n=boxY;
 	howmany_dims[1].is=howmany_dims[1].os=gridZ;
 	planZf=fftw_plan_guru_dft(1,&dims,2,howmany_dims,slices,slices,FFT_FORWARD,PLAN_FFTW);
+	// same operation but for slicesR and inverse transform (since correlation is computed instead of convolution)
+	if (surface) planZRf=fftw_plan_guru_dft(1,&dims,2,howmany_dims,slicesR,slicesR,FFT_BACKWARD,PLAN_FFTW);
 #	ifdef PRECISE_TIMING
 	GetTime(tvp+3);
 #	endif
@@ -722,10 +765,93 @@ static void fftInitAfterD(void)
 #	endif
 	// destroy old plans
 	fftw_destroy_plan(planXf_Dm);
-	fftw_destroy_plan(planYf_Dm);
-	fftw_destroy_plan(planZf_Dm);
+	fftw_destroy_plan(planYf_slice);
+	fftw_destroy_plan(planZf_slice);
+	if (surface) fftw_destroy_plan(planXf_Rm);
 #endif
 }
+
+//======================================================================================================================
+
+static void InitRmatrix(const double invNgrid)
+/* Initializes the matrix R. R[i][j][k]=GR[i1-i2][j1-j2][k1+k2]. Actually R=-FFT(GR)/Ngrid. Then -GR.x=invFFT(R*FFT(x))
+ * for practical implementation of FFT such that invFFT(FFT(x))=Ngrid*x. GR is exactly reflected Green's tensor. The
+ * routine is very similar to the corresponding part of InitDmatrix. Moreover, some initialization is delegated to the
+ * latter function.
+ */
+{
+	int i,j,k,Rcomp;
+	size_t x,y,z,indexfrom,indexto,ind,index;
+
+	// allocate memory for Rmatrix (R2matrix is allocated earlier in InitDmatrix)
+	MALLOC_VECTOR(Rmatrix,complex,Rsize,ALL);
+#ifdef PARALLEL
+	// allocate buffer for BlockTranspose_DRm
+	size_t bufsize = 2*lz_Rm*R2sizeY*local_Nx;
+	MALLOC_VECTOR(BT_buffer,double,bufsize,ALL);
+	MALLOC_VECTOR(BT_rbuffer,double,bufsize,ALL);
+#endif
+	if (IFROOT) printf("Calculating reflected Green's function (Rmatrix)\n");
+	/* Interaction matrix values are calculated all at once for performance reasons. They are stored in Rmatrix with
+	 * indexing corresponding to R2matrix (to facilitate copying) but NDCOMP elements instead of one. Afterwards they
+	 * are replaced by Fourier transforms (with different indexing) component-wise (in cycle over NDCOMP)
+	 */
+	/* fill Rmatrix with 0, this if to fill the possible gap between e.g. boxY and gridY/2; (and for R=0) probably
+	 * faster than using a lot of conditionals
+	 */
+	for (ind=0;ind<Rsize;ind++) Rmatrix[ind]=0;
+	// fill Rmatrix with values of reflected Green's tensor
+	for(k=0;k<local_Nz_Rm;k++) for (j=jstartR;j<boxY;j++) for (i=1-boxX;i<boxX;i++) {
+			index=NDCOMP*Index2matrix(i,j,k,R2sizeY);
+			(*CalcReflTerm)(i,j,k,Rmatrix+index);
+	} // end of i,j,k loop
+	if (IFROOT) printf("Fourier transform of Rmatrix");
+	for(Rcomp=0;Rcomp<NDCOMP;Rcomp++) { // main cycle over components of Rmatrix
+		// fill R2matrix with precomputed values from Rmatrix
+		for (ind=0;ind<R2sizeTot;ind++) R2matrix[ind]=Rmatrix[NDCOMP*ind+Rcomp];
+		fftX_Rm(); // fftX R2matrix
+		BlockTranspose_DRm(R2matrix,R2sizeY,lz_Rm);
+		for(x=local_x0;x<local_x1;x++) {
+			for (ind=0;ind<gridYZ;ind++) slice[ind]=0.0; // fill slice with 0.0
+			for(j=jstartR;j<boxY;j++) for(k=0;k<2*boxZ-1;k++) {
+				indexfrom=IndexGarbledR(x,j,k);
+				indexto=IndexSliceR2matrix(j,k);
+				slice[indexto]=R2matrix[indexfrom];
+			}
+			/* here a specific symmetry is used, that elements of R depend on direction y/|rho| either as even order
+			 * (0 or 2) or as odd (1) - the latter are elements 1 and 4 (see GetSomIntegral in interaction.c)
+			 */
+			if (reduced_FFT) for(j=1;j<boxY;j++) for(k=0;k<2*boxZ-1;k++) {
+				// mirror along y
+				indexfrom=IndexSliceR2matrix(j,k);
+				indexto=IndexSliceR2matrix(-j,k);
+				if (Rcomp==1 || Rcomp==4) slice[indexto]=-slice[indexfrom];
+				else slice[indexto]=slice[indexfrom];
+			}
+			fftZ_slice(); // fftZ slice
+			transpose(slice,slice_tr,gridY,gridZ);
+			fftY_slice(); // fftY slice_tr
+			for(z=0;z<gridZ;z++) for(y=0;y<RsizeY;y++) {
+				indexto=IndexRmatrix(x-local_x0,y,z)+Rcomp;
+				indexfrom=IndexSlice_zy(y,z);
+				Rmatrix[indexto]=-invNgrid*slice_tr[indexfrom];
+			}
+		} // end slice X
+		if (IFROOT) printf(".");
+	} // end of Rcomp
+	if (IFROOT) printf("\n");
+#ifdef PARALLEL
+	// deallocate buffers for BlockTranspose_DRm
+	Free_general(BT_buffer);
+	Free_general(BT_rbuffer);
+#endif
+#ifdef OPENCL
+	// copy Rmatrix to OpenCL buffer, blocking to ensure completion before function end
+	//CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufRmatrix,CL_TRUE,0,Dsize*sizeof(*Rmatrix),Rmatrix,0,NULL,NULL));
+	Free_cVector(Rmatrix);
+#endif
+}
+
 
 //======================================================================================================================
 
@@ -739,15 +865,14 @@ void InitDmatrix(void)
 	size_t x,y,z,indexfrom,indexto,ind,index,Dsize,D2sizeTot;
 	double invNgrid;
 	int nnn; // multiplier used for reduced_FFT or not reduced; 1 or 2
-	int jstart, kstart;
-	size_t lengthN;
+	int jstart,kstart;
 	TIME_TYPE start,time1;
 #ifdef PRECISE_TIMING
 	// precise timing of the Dmatrix computation
-	SYSTEM_TIME tvp[13];
+	SYSTEM_TIME tvp[15];
 	SYSTEM_TIME Timing_fftX,Timing_fftY,Timing_fftZ,Timing_Gcalc,Timing_ar1,Timing_ar2,Timing_ar3,Timing_BT,Timing_TYZ,
 		Timing_beg;
-	double t_fftX,t_fftY,t_fftZ,t_ar1,t_ar2,t_ar3,t_TYZ,t_beg,t_Gcalc,t_Arithm,t_FFT,t_BT,t_InitMV;
+	double t_fftX,t_fftY,t_fftZ,t_ar1,t_ar2,t_ar3,t_TYZ,t_beg,t_Gcalc,t_Arithm,t_FFT,t_BT,t_InitMV,t_Rm,t_Tot;
 
 	// This should be the first occurrence of PRECISE_TIMING in the program
 	SetTimerFreq();
@@ -765,7 +890,6 @@ void InitDmatrix(void)
 	start=GET_TIME();
 
 	// initialize sizes of D and D2 matrices
-	D2sizeX=gridX;
 	if (reduced_FFT) {
 		D2sizeY=gridY/2;
 		D2sizeZ=gridZ/2;
@@ -783,13 +907,13 @@ void InitDmatrix(void)
 		kstart=1-boxZ;
 	}
 	// auxiliary parameters
-	lengthN=nnn*local_Nz;
+	lz_Dm=nnn*local_Nz;
 	DsizeYZ=DsizeY*DsizeZ;
 	invNgrid=1.0/(gridX*((double)gridYZ));
 	local_Nsmall=(gridX/2)*(gridYZ/(2*nprocs)); // size of X vector (for 1 component)
 	// potentially this may cause unnecessary error during prognosis, but makes code cleaner
 	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS_FUNC);
-	D2sizeTot=nnn*local_Nz*D2sizeY*D2sizeX; // this should be approximately equal to Dsize/NDCOMP
+	D2sizeTot=nnn*local_Nz*D2sizeY*gridX; // this should be approximately equal to Dsize/NDCOMP
 	if (IFROOT) fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
 #ifdef OPENCL // perform setting up of buffers and kernels
 	// create all Buffers needed on Device in MatVec; When prognosis, the following code just counts required memory
@@ -886,14 +1010,44 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
 	}
 #endif
+	// part of the code for InitRmatrix is here to be compatible with prognosis and FFT init
+	if (surface) {
+		/* We keep option to turn off reduced_FFT for Rmatrix (at least for tests). However, its usefulness for some
+		 * weird Green's tensors (non-symmetric) is limited, because certain symmetry along the z-axis is still assumed
+		 * - that is R({i1,j1,k1},{i2,j2,k2})=R({i1,j1,k2},{i2,j2,k1}). Without this limitation the whole FFT part will
+		 * be broken (or need significant revision).
+		 *
+		 * Moreover the savings by using reduced_FFT is only a factor of two for Rmatrix (in contrast to 4 for Dmatrix)
+		 */
+		if (reduced_FFT) {
+			R2sizeY=gridY/2;
+			RsizeY=gridY/2+1;
+			jstartR=0;
+		}
+		else {
+			R2sizeY=RsizeY=gridY;
+			jstartR=1-boxY;
+		}
+		lz_Rm=2*local_Nz;
+		// potentially this may cause unnecessary error during prognosis, but makes code cleaner
+		Rsize=MultOverflow(NDCOMP*local_Nx,RsizeY*gridZ,ONE_POS_FUNC);
+		R2sizeTot=lz_Rm*R2sizeY*gridX; // this should be approximately equal to Rsize/NDCOMP
+	}
+	// memory estimation and exit for prognosis
 	MAXIMIZE(memPeak,memory);
-	// objects which are always allocated (at least temporarily): Dmatrix,D2matrix,slice,slice_tr
-	memPeak+=sizeof(doublecomplex)*((double)Dsize+D2sizeTot+2*gridYZ);
+	/* objects which are always allocated (at least temporarily): Dmatrix,D2matrix,slice,slice_tr
+	 * for surface, the peak is either by D2matrix & R2matrix, or by R2matrix & Rmatrix (the latter is mostly probable)
+	 */
+	memPeak+=sizeof(doublecomplex)*((double)Dsize+2*gridYZ+(surface ? (MAX(Rsize,D2sizeTot)+R2sizeTot) : D2sizeTot));
 #ifndef OPENCL
-	// allocated memory that is used further on, not relevant for OpenCL version
+	/* allocated memory that is used further on (Dmatrix,Xmatrix,slices,slices_tr), not relevant for OpenCL version;
+	 * we assume that it is always larger than memPeak above (so memPeak doesn't have to be adjusted). In particular,
+	 * we ignore the memory, which is temporarily allocated for BlockTranspose buffers of Dm and Rm.
+	 */
 	double mem=sizeof(doublecomplex)*((double)Dsize+3*local_Nsmall+6*gridYZ);
+	if (surface) mem+=sizeof(doublecomplex)*((double)Rsize+6*gridYZ); // for Rmatrix, slicesR, and slicesR_tr
 #ifdef PARALLEL
-	size_t BTsize = 6*smallY*local_Nz*local_Nx; // in doubles
+	const size_t BTsize = 6*smallY*local_Nz*local_Nx; // in doubles
 	mem+=2*BTsize*sizeof(double);
 #endif
 	// printout some information
@@ -913,15 +1067,20 @@ void InitDmatrix(void)
 	MALLOC_VECTOR(D2matrix,complex,D2sizeTot,ALL);
 	MALLOC_VECTOR(slice,complex,gridYZ,ALL);
 	MALLOC_VECTOR(slice_tr,complex,gridYZ,ALL);
+	/* allocate memory for R2matrix components. In principle, this can be done after D2 matrix is freed. However, this
+	 * way allows us to init all FFT routines (in particular, build FFTW plans) in one go. Moreover, this should not
+	 * increase the peak memory, since Rmatrix is allocated further on (see above).
+	 */
+	if (surface) MALLOC_VECTOR(R2matrix,complex,R2sizeTot,ALL);
 	// actually allocation of Xmatrix, slices, slices_tr is below after freeing of Dmatrix and its slice
 #ifdef PARALLEL
 	// allocate buffer for BlockTranspose_Dm
-	size_t bufsize = 2*lengthN*D2sizeY*local_Nx;
+	size_t bufsize = 2*lz_Dm*D2sizeY*local_Nx;
 	MALLOC_VECTOR(BT_buffer,double,bufsize,ALL);
 	MALLOC_VECTOR(BT_rbuffer,double,bufsize,ALL);
 #endif
 	D("Initialize FFT (1st part)");
-	fftInitBeforeD(lengthN);
+	fftInitBeforeD();
 #ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 	Elapsed(tvp,tvp+1,&Timing_beg); // it includes a lot of OpenCL stuff
@@ -941,7 +1100,7 @@ void InitDmatrix(void)
 		if (k>(int)smallZ) kcor=k-gridZ;
 		else kcor=k;
 		for (j=jstart;j<boxY;j++) for (i=1-boxX;i<boxX;i++) {
-			index=NDCOMP*IndexD2matrix(i,j,k,nnn);
+			index=NDCOMP*Index2matrix(i,j,k-nnn*local_z0,D2sizeY);
 			/* The test for zero distance is somewhat non-optimal. However, other alternatives are not perfect either:
 			 * 1) complicate the loops to remove the zero element in the beginning (move tests to the upper level)
 			 * 2) call the function with zero - it will produce NaN. Then set this element to zero after the loop.
@@ -964,12 +1123,12 @@ void InitDmatrix(void)
 		GetTime(tvp+3);
 		ElapsedInc(tvp+2,tvp+3,&Timing_ar1);
 #endif
-		fftX_Dm(lengthN); // fftX D2matrix
+		fftX_Dm(); // fftX D2matrix
 #ifdef PRECISE_TIMING
 		GetTime(tvp+4);
 		ElapsedInc(tvp+3,tvp+4,&Timing_fftX);
 #endif
-		BlockTranspose_Dm(D2matrix,D2sizeY,lengthN);
+		BlockTranspose_DRm(D2matrix,D2sizeY,lz_Dm);
 #ifdef PRECISE_TIMING
 		GetTime(tvp+5);
 		ElapsedInc(tvp+4,tvp+5,&Timing_BT);
@@ -980,11 +1139,11 @@ void InitDmatrix(void)
 #endif
 			for (ind=0;ind<gridYZ;ind++) slice[ind]=0.0; // fill slice with 0.0
 			for(j=jstart;j<boxY;j++) for(k=kstart;k<boxZ;k++) {
-				indexfrom=IndexGarbledD(x,j,k,lengthN);
+				indexfrom=IndexGarbledD(x,j,k);
 				indexto=IndexSliceD2matrix(j,k);
 				slice[indexto]=D2matrix[indexfrom];
 			}
-			if (reduced_FFT) {
+			if (reduced_FFT) { // here a specific symmetry is used, that G is a combination of tensors I and RR/|R|^2
 				for(j=1;j<boxY;j++) for(k=0;k<boxZ;k++) {
 					// mirror along y
 					indexfrom=IndexSliceD2matrix(j,k);
@@ -1004,24 +1163,24 @@ void InitDmatrix(void)
 			GetTime(tvp+7);
 			ElapsedInc(tvp+6,tvp+7,&Timing_ar2);
 #endif
-			fftZ_Dm(); // fftZ slice
+			fftZ_slice(); // fftZ slice
 #ifdef PRECISE_TIMING
 			GetTime(tvp+8);
 			ElapsedInc(tvp+7,tvp+8,&Timing_fftZ);
 #endif
-			transposeYZ_Dm(slice,slice_tr);
+			transpose(slice,slice_tr,gridY,gridZ);
 #ifdef PRECISE_TIMING
 			GetTime(tvp+9);
 			ElapsedInc(tvp+8,tvp+9,&Timing_TYZ);
 #endif
-			fftY_Dm(); // fftY slice_tr
+			fftY_slice(); // fftY slice_tr
 #ifdef PRECISE_TIMING
 			GetTime(tvp+10);
 			ElapsedInc(tvp+9,tvp+10,&Timing_fftY);
 #endif
 			for(z=0;z<DsizeZ;z++) for(y=0;y<DsizeY;y++) {
 				indexto=IndexDmatrix(x-local_x0,y,z)+Dcomp;
-				indexfrom=IndexSlice_zyD2matrix(y,z);
+				indexfrom=IndexSlice_zy(y,z);
 				Dmatrix[indexto]=-invNgrid*slice_tr[indexfrom];
 			}
 #ifdef PRECISE_TIMING
@@ -1031,36 +1190,54 @@ void InitDmatrix(void)
 		} // end slice X
 		if (IFROOT) printf(".");
 	} // end of Dcomp
-	// free vectors used for computation of Dmatrix
+	if (IFROOT) printf("\n");
+	// free vectors used for computation of Dmatrix; slice and slice_tr are freed after InitRmatrix
 	Free_cVector(D2matrix);
-	Free_cVector(slice);
-	Free_cVector(slice_tr);
 #ifdef PARALLEL
-	// deallocate buffers for BlockTranspose_Dm
+	// deallocate buffers for BlockTranspose_DRm
 	Free_general(BT_buffer);
 	Free_general(BT_rbuffer);
-	// allocate buffers for BlockTranspose
-	MALLOC_VECTOR(BT_buffer,double,BTsize,ALL);
-	MALLOC_VECTOR(BT_rbuffer,double,BTsize,ALL);
 #endif
 #ifdef OPENCL
 	// copy Dmatrix to OpenCL buffer, blocking to ensure completion before function end
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufDmatrix,CL_TRUE,0,Dsize*sizeof(*Dmatrix),Dmatrix,0,NULL,NULL));
 	Free_cVector(Dmatrix);
-#else
+#endif
+	if (surface) { // only the total execution time of InitRmatrix is timed
+#ifdef PRECISE_TIMING
+			GetTime(tvp+12);
+#endif
+			InitRmatrix(invNgrid);
+			Free_cVector(R2matrix); // free it here since it was allocated above
+#ifdef PRECISE_TIMING
+			GetTime(tvp+13);
+			t_Rm=DiffSec(tvp+12,tvp+13);
+#endif
+	}
+	Free_cVector(slice);
+	Free_cVector(slice_tr);
+#ifdef PARALLEL
+	// allocate buffers for BlockTranspose
+	MALLOC_VECTOR(BT_buffer,double,BTsize,ALL);
+	MALLOC_VECTOR(BT_rbuffer,double,BTsize,ALL);
+#endif
+#ifndef OPENCL
 	// allocate memory for Xmatrix, slices and slices_tr - used in matvec
 	MALLOC_VECTOR(Xmatrix,complex,3*local_Nsmall,ALL);
 	MALLOC_VECTOR(slices,complex,3*gridYZ,ALL);
 	MALLOC_VECTOR(slices_tr,complex,3*gridYZ,ALL);
+	if (surface) { // additional slices for reflection interaction
+		MALLOC_VECTOR(slicesR,complex,3*gridYZ,ALL);
+		MALLOC_VECTOR(slicesR_tr,complex,3*gridYZ,ALL);
+	}
 #endif
-	if (IFROOT) printf("\n");
 	time1=GET_TIME();
 	Timing_Dm_Init=time1-start;
 
 #ifdef PRECISE_TIMING
-	GetTime(tvp+12);
+	GetTime(tvp+14);
 	// time for extra initialization required for MatVec; it includes copying Dmatrix to GPU
-	t_InitMV=DiffSec(tvp+11,tvp+12);
+	t_InitMV=DiffSec(tvp+11,tvp+14);
 	// analyze and print precise timing information
 	t_beg=TimerToSec(&Timing_beg);
 	t_Gcalc=TimerToSec(&Timing_Gcalc);
@@ -1074,6 +1251,12 @@ void InitDmatrix(void)
 	t_BT=TimerToSec(&Timing_BT);
 	t_Arithm=t_beg+t_Gcalc+t_ar1+t_ar2+t_ar3+t_TYZ;
 	t_FFT=t_fftX+t_fftY+t_fftZ;
+	t_Tot=DiffSec(tvp,tvp+14);
+
+	if (surface) { // correct InitMV and Total time by that of InitRmatrix
+		t_InitMV-=t_Rm;
+		t_Tot-=t_Rm;
+	}
 
 	if (IFROOT) PrintBoth(logfile,
 		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
@@ -1090,8 +1273,9 @@ void InitDmatrix(void)
 		"FFTY   = "FFORMPT"\n"
 		"Arith3 = "FFORMPT"\n"
 		"InitMV = "FFORMPT"\n\n",
-		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_InitMV,t_BT,t_ar2,DiffSec(tvp,tvp+12),t_fftZ,t_TYZ,t_fftY,
+		t_beg,t_Arithm,t_Gcalc,t_FFT,t_ar1,t_BT,t_fftX,t_InitMV,t_BT,t_ar2,t_Tot,t_fftZ,t_TYZ,t_fftY,
 		t_ar3,t_InitMV);
+	if (surface && IFROOT) PrintBoth(logfile,"Additionally time for initialization of Rmatrix = "FFORMPT"\n\n",t_Rm);
 #endif
 
 	fftInitAfterD();
@@ -1131,6 +1315,11 @@ void Free_FFT_Dmat(void)
 	Free_cVector(Xmatrix);
 	Free_cVector(slices);
 	Free_cVector(slices_tr);
+	if (surface) {
+		Free_cVector(Rmatrix);
+		Free_cVector(slicesR);
+		Free_cVector(slicesR_tr);
+	}
 #	ifdef PARALLEL
 	Free_general(BT_buffer);
 	Free_general(BT_rbuffer);
@@ -1142,6 +1331,10 @@ void Free_FFT_Dmat(void)
 	fftw_destroy_plan(planYb);
 	fftw_destroy_plan(planZf);
 	fftw_destroy_plan(planZb);
+	if (surface) {
+		fftw_destroy_plan(planYRf);
+		fftw_destroy_plan(planZRf);
+	}
 #	endif
 #endif
 #ifdef FFT_TEMPERTON // these vectors are used even with OpenCL

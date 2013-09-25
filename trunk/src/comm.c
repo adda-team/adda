@@ -676,10 +676,10 @@ void BlockTranspose(doublecomplex * restrict X UOIP,TIME_TYPE *timing UOIP)
 
 //======================================================================================================================
 
-void BlockTranspose_Dm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,const size_t lengthZ UOIP)
-/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D matrix. It can be updated to
- * accept timing argument for generality. But, since this is a specialized function, we keep the timing variable
- * hard-wired in the code.
+void BlockTranspose_DRm(doublecomplex * restrict X UOIP,const size_t lengthY UOIP,const size_t lengthZ UOIP)
+/* do the data-transposition, i.e. exchange, between fftX and fftY&fftZ; specialized for D or R matrix. It can be
+ * updated to accept timing argument for generality. But, since this is a specialized function, we keep the timing
+ * variable hard-wired in the code.
  */
 {
 #ifdef ADDA_MPI

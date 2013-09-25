@@ -631,6 +631,11 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	if (above) { // simple reflection
 		vCopy(nF,nN);
 		nN[2]*=-1;
+		// no scattering at exactly 90 degrees for non-trivial surface (to avoid randomness for this case)
+		if (fabs(nN[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {
+			cvInit(ebuff);
+			return;
+		}
 	}
 	else { // transmission
 		if (msubInf) { // no transmission for perfectly reflecting substrate => zero result
@@ -738,11 +743,13 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		kt=NAN; // redundant to remove warnings below
 	}
 	else {
-		if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki; // special case to avoid randomness due to round-off errors
+		// special case to avoid randomness due to round-off errors
+		if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki;
 		else kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
 		if (above) {
 			/* here we test only the exact zero, since for other cases (when msub=1, and very small values of ki,kt) the
-			 * above assignment kt=ki guarantees correct results through standard functions
+			 * above assignment kt=ki guarantees correct results through standard functions. Also the case of
+			 * 90deg-scattering (for msub!=1) is taken care of in the beginning of this function.
 			 */
 			if (ki==0 && kt==0) cs=cp=0;
 			else {
