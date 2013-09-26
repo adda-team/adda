@@ -308,7 +308,32 @@ static inline void cSymMatrVec(const doublecomplex matr[static 6],const doubleco
 
 //======================================================================================================================
 
+static inline void cSymMatrVecReal(const doublecomplex matr[static 6],const double vec[static 3],
+	doublecomplex res[static 3])
+// multiplication of complex symmetric matrix[6] by  vec[3]; res=matr.vec; !!! vec and res must not alias
+{
+	res[0] = matr[0]*vec[0] + matr[1]*vec[1] + matr[2]*vec[2];
+	res[1] = matr[1]*vec[0] + matr[3]*vec[1] + matr[4]*vec[2];
+	res[2] = matr[2]*vec[0] + matr[4]*vec[1] + matr[5]*vec[2];
+}
+
+//======================================================================================================================
+
 static inline void cReflMatrVec(const doublecomplex matr[static 6],const doublecomplex vec[static 3],
+	doublecomplex res[static 3])
+/* multiplication of matrix[6] by complex vec[3]; res=matr.vec; passed components are the same as for symmetric matrix:
+ * 11,12,13,22,23,33, but the matrix has the following symmetry - M21=M12, M31=-M13, M32=-M23
+ * !!! vec and res must not alias
+ */
+{
+	res[0] = matr[0]*vec[0] + matr[1]*vec[1] + matr[2]*vec[2];
+	res[1] = matr[1]*vec[0] + matr[3]*vec[1] + matr[4]*vec[2];
+	res[2] = - matr[2]*vec[0] - matr[4]*vec[1] + matr[5]*vec[2];
+}
+
+//======================================================================================================================
+
+static inline void cReflMatrVecReal(const doublecomplex matr[static 6],const double vec[static 3],
 	doublecomplex res[static 3])
 /* multiplication of matrix[6] by complex vec[3]; res=matr.vec; passed components are the same as for symmetric matrix:
  * 11,12,13,22,23,33, but the matrix has the following symmetry - M21=M12, M31=-M13, M32=-M23
@@ -416,6 +441,14 @@ static inline double DotProd(const double a[static 3],const double b[static 3])
 // dot product of two real vectors[3]; use DotProd(x,x) to get squared norm
 {
 	return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+}
+
+//======================================================================================================================
+
+static inline double vNorm(const double a[static 3])
+// norm of a real vector[3]
+{
+	return sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
 }
 
 //======================================================================================================================

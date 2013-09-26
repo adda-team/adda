@@ -119,6 +119,7 @@ const char *beam_fnameX;
 // used in interaction.c
 double igt_lim; // limit (threshold) for integration in IGT
 double igt_eps; // relative error of integration in IGT
+bool InteractionRealArgs; // whether interaction (or reflection) routines can be called with real arguments
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
 // used in iterative.c
@@ -213,6 +214,9 @@ static const struct subopt_struct beam_opt[]={
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
+	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
+		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
+		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},
@@ -1936,16 +1940,12 @@ void VariablesInterconnect(void)
 	if (surface) { // currently a lot of limitations for particles near surface
 		if (orient_used) PrintError("Currently '-orient' and '-surf' can not be used together");
 		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
-		if (beamtype!=B_PLANE) PrintError("Currently non-plane incident wave is incompatible with '-surf'");
 		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
-		if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify the "
-			"incident direction to have (arbitrary) small positive or negative z-component");
-		if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible with "
-			"incident direction from below (including the default one)");
 		if (!int_surf_used) ReflRelation = msubInf ? GR_IMG : GR_SOM;
 		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
 			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
 	}
+	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
 #endif

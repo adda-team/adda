@@ -803,7 +803,7 @@ static void InitRmatrix(const double invNgrid)
 	// fill Rmatrix with values of reflected Green's tensor
 	for(k=0;k<local_Nz_Rm;k++) for (j=jstartR;j<boxY;j++) for (i=1-boxX;i<boxX;i++) {
 			index=NDCOMP*Index2matrix(i,j,k,R2sizeY);
-			(*CalcReflTerm)(i,j,k,Rmatrix+index);
+			(*ReflTerm_int)(i,j,k,Rmatrix+index);
 	} // end of i,j,k loop
 	if (IFROOT) printf("Fourier transform of Rmatrix");
 	for(Rcomp=0;Rcomp<NDCOMP;Rcomp++) { // main cycle over components of Rmatrix
@@ -1105,7 +1105,7 @@ void InitDmatrix(void)
 			 * 1) complicate the loops to remove the zero element in the beginning (move tests to the upper level)
 			 * 2) call the function with zero - it will produce NaN. Then set this element to zero after the loop.
 			 */
-			if (i!=0 || j!=0 || kcor!=0) (*CalcInterTerm)(i,j,kcor,Dmatrix+index);
+			if (i!=0 || j!=0 || kcor!=0) (*InterTerm_int)(i,j,kcor,Dmatrix+index);
 		}
 	} // end of i,j,k loop
 	if (IFROOT) printf("Fourier transform of Dmatrix");

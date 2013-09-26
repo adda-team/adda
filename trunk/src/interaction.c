@@ -28,6 +28,7 @@
 extern const double gridspace,ZsumShift;
 // defined and initialized in param.c
 extern const double igt_lim,igt_eps;
+extern const bool InteractionRealArgs;
 
 // used in fft.c
 int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1 (also used in SPARSE)
@@ -68,7 +69,7 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *a
 #endif
 // sinint.c
 void cisi(double x,double *ci,double *si);
-// somnec.c (copied from somnec.h, but we do not include the whole header to avoid conflicts)
+// somnec.c
 void som_init(complex double epscf);
 void evlua(double zphIn,double rhoIn,complex double *erv, complex double *ezv,complex double *erh, complex double *eph);
 
@@ -76,30 +77,81 @@ void evlua(double zphIn,double rhoIn,complex double *erv, complex double *ezv,co
 #define PRINT_GVAL /*printf("%s: %d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",__func__,i,j,k,\
 	REIM(result[0]),REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5]));*/
 
+/* the following wrappers incur a lot of redundant compilation (since each of them inlines the same functional part),
+ * however this way all the code is visible to compiler in one place, avoiding extra function calls and allowing full
+ * optimizations. Overall, this looks like trying to implement C++ features in C.
+ */
+// wrapper for <name> (direct interaction), based on integer input; arguments are described in .h file
+# define INT_WRAPPER_INTER(name) \
+void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
+	double qvec[3]; \
+	vCopyIntReal(i,j,k,qvec); \
+	name(qvec,result,true); }
+
+// wrapper for <name> (reflected interaction), based on integer input; arguments are described in .h file
+# define INT_WRAPPER_REFL(name) \
+void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
+	double qvec[3]; \
+	vCopyIntRealShift(i,j,k,qvec); \
+	name(qvec,result,true); }
+
+/* wrapper for <name>, based on real input; arguments are described in .h file
+ * to keep the input argument const, it has to be duplicated since some of the formulations of InterTerms may change it
+ */
+# define REAL_WRAPPER_INTER(name) \
+void name##_real(const double qvec_in[restrict 3],doublecomplex result[static restrict 6]) { \
+	double qvec[3]; \
+	vCopy(qvec_in,qvec); \
+	name(qvec,result,false); }
+
+// wrapper for <name>, based on real input; arguments are described in .h file
+# define REAL_WRAPPER_REFL(name) \
+void name##_real(const double qvec[restrict 3],doublecomplex result[static restrict 6]) \
+	{ name(qvec,result,false); }
+
+// aggregate defines
+#define WRAPPERS_INTER(name) INT_WRAPPER_INTER(name) REAL_WRAPPER_INTER(name)
+#define WRAPPERS_REFL(name) INT_WRAPPER_REFL(name) REAL_WRAPPER_REFL(name)
+
+/* this macro defines a void (error generating) real-input wrapper for Green's tensor formulations, which are, for
+ * instance, based on tables. Doesn't generate 'int' wrapper, since the function itself is used for it.
+ */
+# define NO_REAL_WRAPPER(name) \
+void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex result[static restrict 6] ATT_UNUSED ) { \
+	LogError(ALL_POS,"Function "#name" to compute dipole interaction does not support real input"); }
+
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
  * same set of parameters - in this respect they can be replaced by macros. But inline functions are probably easier to
  * maintain.
  */
 
-static inline void CalcInterParams1(const int i,const int j,const int k,double qvec[static restrict 3],double *rn)
-// some common variables needed by the interaction functions - needed always
+//=====================================================================================================================
+
+static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static restrict 3])
+// initialize real vector with integer values
 {
-	qvec[0]=i; // qvec is normalized below
+	qvec[0]=i;
 	qvec[1]=j;
 	qvec[2]=k;
-	*rn=sqrt(DotProd(qvec,qvec)); // normalized r
 }
 
 //=====================================================================================================================
 
-static inline void CalcInterParams2(double qvec[static restrict 3],double qmunu[static restrict 6],const double rn,
-	double *invrn,double *invr3,double *kr,double *kr2)
+static inline void InterParams(double qvec[static restrict 3],double qmunu[static restrict 6],double *rn,
+	double *invr3,double *kr,double *kr2,const bool unitsGrid)
 // some common variables needed by the interaction functions - needed for all except IGT
 {
-	*invrn = 1.0/rn;
-	vMultScal(*invrn,qvec,qvec); // finalize qvec
-	double rr=rn*gridspace;
+	double invrn,rr;
+
+	*rn=vNorm(qvec);
+	invrn = 1.0/(*rn);
+	vMultScal(invrn,qvec,qvec); // finalize qvec (to have unity amplitude)
+	if (unitsGrid) rr=(*rn)*gridspace;
+	else {
+		rr=(*rn);
+		(*rn)=rr/gridspace;
+	}
 	*invr3=1/(rr*rr*rr);
 	*kr=WaveNum*rr;
 	*kr2=(*kr)*(*kr);
@@ -165,7 +217,7 @@ static inline doublecomplex accImExp(const double x)
 
 //=====================================================================================================================
 
-static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
+static inline void InterTerm_core(const double kr,const double kr2,const double invr3,
 	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
@@ -214,7 +266,7 @@ static inline doublecomplex accImExp(const double x)
 
 //=====================================================================================================================
 
-static void CalcInterTerm_core(const double kr,const double kr2,const double invr3,
+static inline void InterTerm_core(const double kr,const double kr2,const double invr3,
 	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
@@ -239,24 +291,30 @@ static void CalcInterTerm_core(const double kr,const double kr2,const double inv
 
 //=====================================================================================================================
 
-void CalcInterTerm_poi(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-// Interaction term between two dipoles using the point-dipoles formulation; arguments are described in .h file
+static inline void InterTerm_poi(double qvec[static restrict 3],doublecomplex result[static restrict 6],
+	const bool unitsGrid)
+/* Interaction term between two dipoles using the point-dipoles formulation;
+ * qvec is  a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
+ * controlled by unitsGrid (true of false respectively), result is for produced output
+ */
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	// standard variable definitions used for functions InterParams and InterTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
-	CalcInterParams1(i,j,k,qvec,&rn);
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	PRINT_GVAL;
 }
 
+WRAPPERS_INTER(InterTerm_poi)
+
 //=====================================================================================================================
 
-void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* Interaction term between two dipoles for FCD. See CalcInterTerm_poi for more details.
+static inline void InterTerm_fcd(double qvec[static restrict 3],doublecomplex result[static restrict 6],
+	const bool unitsGrid)
+/* Interaction term between two dipoles for FCD. See InterTerm_poi for more details.
  *
  * FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D Green's tensor
  * associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120 (2002), and
@@ -267,18 +325,17 @@ void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[
  * done in GSL library). But currently extra time for this computation is already smaller than one main iteration.
  */
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	// standard variable definitions used for functions InterParams and InterTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
 	int comp;
 	doublecomplex eikfr; // exp(i*k_F*R)
 
-	CalcInterParams1(i,j,k,qvec,&rn);
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
 	eikfr=accImExp(kfr);
@@ -302,23 +359,25 @@ void CalcInterTerm_fcd(const int i,const int j,const int k,doublecomplex result[
 	PRINT_GVAL;
 }
 
+WRAPPERS_INTER(InterTerm_fcd)
+
 //=====================================================================================================================
 
-void CalcInterTerm_fcd_st(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-// Interaction term between two dipoles for static FCD (in the limit of k->inf). See CalcInterTerm_fcd for more details.
+static inline void InterTerm_fcd_st(double qvec[static restrict 3],doublecomplex result[static restrict 6],
+	const bool unitsGrid)
+// Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	// standard variable definitions used for functions InterParams and InterTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double kfr,ci,si,brd;
 	int comp;
 	doublecomplex eikfr;
 
-	CalcInterParams1(i,j,k,qvec,&rn);
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
 	eikfr=accImExp(kfr);
@@ -328,6 +387,8 @@ void CalcInterTerm_fcd_st(const int i,const int j,const int k,doublecomplex resu
 	for (comp=0;comp<NDCOMP;comp++) result[comp]*=brd;
 	PRINT_GVAL;
 }
+
+WRAPPERS_INTER(InterTerm_fcd_st)
 
 //=====================================================================================================================
 
@@ -349,16 +410,17 @@ static inline bool TestTableSize(const double rn)
 
 //=====================================================================================================================
 
-void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* Interaction term between two dipoles for approximate IGT. See CalcInterTerm_poi for more details.
+void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+/* Interaction term between two dipoles for approximate IGT. arguments are described in .h file
+ * Can't be easily made operational for arbitrary real distance due to predefined tables.
  *
  * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
  * components).
  */
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double q2[3];
@@ -368,9 +430,9 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
 	double t3q,t4q,t5tr,t6tr;
 	
-	CalcInterParams1(i,j,k,qvec,&rn);
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	vCopyIntReal(i,j,k,qvec);
+	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,true);
+	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
 	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
@@ -480,7 +542,7 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 			//===== G median for IGT ========
 			vMult(qvec,qvec,q2);
 			q4=DotProd(q2,q2);
-			invrn2=invrn*invrn;
+			invrn2=1/(rn*rn);
 			invrn4=invrn2*invrn2;
 			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
 				// Gm0=expval*br*temp; temp is defined below
@@ -496,24 +558,27 @@ void CalcInterTerm_igt_so(const int i,const int j,const int k,doublecomplex resu
 	PRINT_GVAL;
 }
 
+NO_REAL_WRAPPER(InterTerm_igt_so);
+
 //=====================================================================================================================
 
-void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* Interaction term between two dipoles with second-order corrections. See CalcInterTerm_poi for more details.
+void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+/* Interaction term between two dipoles with second-order corrections. arguments are described in .h file
+ * Can't be easily made operational for arbitrary real distance due to predefined tables.
  *
  * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
  * components). But now extra time is equivalent to 2-3 main iterations. So first priority is to make something useful
  * out of SO.
  */
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
+	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double q2[3],qavec[3],av[3];
 	double kr3,kd2,q4;
-	double temp,qa,qamunu[6],invrn2,invrn3,invrn4;
+	double temp,qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
 	doublecomplex br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
 	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
@@ -521,11 +586,11 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 	const bool inter_avg=true; // temporary fixed option for SO formulation
 
 	// next line should never happen
-	if (anisotropy) LogError(ONE_POS,"Incompatibility error in CalcInterTerm");
+	if (anisotropy) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
 
-	CalcInterParams1(i,j,k,qvec,&rn);
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	vCopyIntReal(i,j,k,qvec);
+	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,true);
+	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
 	kr3=kr2*kr;
@@ -699,6 +764,7 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 			//===== G median ========
 			vMult(qvec,qvec,q2);
 			q4=DotProd(q2,q2);
+			invrn=1/rn;
 			invrn2=invrn*invrn;
 			invrn3=invrn2*invrn;
 			invrn4=invrn2*invrn2;
@@ -727,37 +793,41 @@ void CalcInterTerm_so(const int i,const int j,const int k,doublecomplex result[s
 	PRINT_GVAL;
 }
 
+NO_REAL_WRAPPER(InterTerm_so);
+
 //=====================================================================================================================
 #ifndef NO_FORTRAN
 
-void CalcInterTerm_igt(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* Interaction term between two dipoles with integration of Green's tensor. See CalcInterTerm_poi for more details.
- */
+static inline void InterTerm_igt(double qvec[static restrict 3],doublecomplex result[static restrict 6],
+	const bool unitsGrid)
+// Interaction term between two dipoles with integration of Green's tensor. See InterTerm_poi for more details.
 {
-	// standard variable definitions used for functions CalcInterParams1,2 and CalcInterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
+	// standard variable definitions used for functions InterParams and InterTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
-	double rtemp[3],tmp[12];
+	double tmp[12];
 	int comp;
 
-	CalcInterParams1(i,j,k,qvec,&rn);
-	if (igt_lim==UNDEF || rn<=igt_lim) {
-		vMultScal(gridspace,qvec,rtemp);
+	// the following looks complicated, but should be easy to optimize by compiler
+	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
+		if (unitsGrid) vMultScal(gridspace,qvec,qvec);
 		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
 		 */
-		propaespacelibreintadda_(rtemp,&WaveNum,&gridspace,&igt_eps,tmp);
+		propaespacelibreintadda_(qvec,&WaveNum,&gridspace,&igt_eps,tmp);
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {
-		// The following is equivalent to CalcInterTerm_poi, except for the 1st part of initialization performed above
-		CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-		CalcInterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+		// The following is equivalent to InterTerm_poi, except for the 1st part of initialization performed above
+		InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+		InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	}
 	PRINT_GVAL;
 }
+
+WRAPPERS_INTER(InterTerm_igt)
 
 #endif
 
@@ -845,25 +915,44 @@ static void FreeTables(void)
 
 //=====================================================================================================================
 
-void CalcReflTerm_img(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-// Reflection term using the image-dipole approximation; arguments are described in .h file
+static inline void vCopyIntRealShift(const int i,const int j,const int k,double qvec[static restrict 3])
+// initialize real vector with integer values
 {
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invrn,invr3,kr,kr2; // |R/d|, 1/|R/d|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)*rc/|R|^3
-
-	// Starting code is slightly different from CalcInterParams1
-	qvec[0]=i; // qvec is normalized below
+	qvec[0]=i;
 	qvec[1]=j;
 	qvec[2]=k+ZsumShift;
-	rn=sqrt(DotProd(qvec,qvec)); // normalized r
-	// here we can use existing code
-	CalcInterParams2(qvec,qmunu,rn,&invrn,&invr3,&kr,&kr2);
-	// this is also a modification of simple Green's tensor, multiplying by refl. coef. and inverting z-components
+}
+
+//=====================================================================================================================
+
+static inline void ReflParams(const double qvec[static restrict 3],double qmunu[static restrict 6],
+	double *invr3,double *kr,double *kr2,const bool unitsGrid)
+// some common variables needed by the reflection functions
+{
+	double rr,qv[3];
+
+	rr=vNorm(qvec);
+	vMultScal(1/rr,qvec,qv); // qv is normalized qvec
+	OuterSym(qv,qmunu);
+	if (unitsGrid) rr*=gridspace;
+	*invr3=1/(rr*rr*rr);
+	*kr=WaveNum*rr;
+	*kr2=(*kr)*(*kr);
+}
+
+//=====================================================================================================================
+
+static inline void ReflTerm_core(const double kr,const double kr2,const double invr3,
+	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
+// Core routine that calculates the reflection interaction between probe dipole and image of source dipole
+{
+	// this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	expval=surfRCn*invr3*accImExp(kr);
-#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*expval; }
-#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*expval; }
+	*expval=invr3*imExp(kr);
+	doublecomplex scale=surfRCn*(*expval);
+
+#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*scale; }
+#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*scale; }
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
 	INTERACT_NONDIAG(2); // xz
@@ -878,16 +967,41 @@ void CalcReflTerm_img(const int i,const int j,const int k,doublecomplex result[s
 	result[5]*=-1;
 	PRINT_GVAL;
 }
+//=====================================================================================================================
+
+static inline void ReflTerm_img(const double qvec[static restrict 3],doublecomplex result[static restrict 6],
+	const bool unitsGrid)
+/* Reflection term using the image-dipole approximation;
+ * qvec is a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
+ * controlled by unitsGrid (true of false respectively). This distance is considered between probe and image of source,
+ * so its z-component is the sum of heights of source and probe points above the surface.
+ * result is for produced output
+ */
+{
+	// standard variable definitions used for functions ReflParams and ReflTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double invr3,kr,kr2; // |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
+
+	ReflParams(qvec,qmunu,&invr3,&kr,&kr2,unitsGrid);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+}
+
+WRAPPERS_REFL(ReflTerm_img)
 
 //=====================================================================================================================
 
-static void evluaWrapper(const double x,const double y,const double z,const double scale,const double isc,
-	doublecomplex *vals)
+static inline void SingleSomIntegral(double rho,const double z,doublecomplex vals[static restrict 4])
+/* computes a single Sommerfeld integral (4-element array); arguments are in real units (um)
+ * currently it is a wrapper around evlua, but in the future it may be replaced by use of interpolation table
+ */
 {
-	double rho=sqrt(x*x+y*y)*scale;
+	// TODO: these scales can be removed by changes in som_init to use proper wavenumber instead of 2*pi
+	const double scale=WaveNum/TWO_PI;
+	const double isc=pow(scale,3); // this is subject to under/overflow
+
 	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
-	evlua(z,rho,vals,vals+1,vals+2,vals+3);
-	// scale integrals (this can be removed by changes in som_init to use proper wavenumber instead of 2*pi)
+	evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3);
 	vals[0]*=isc;
 	vals[1]*=isc;
 	vals[2]*=isc;
@@ -921,9 +1035,7 @@ static void CalcSomTable(void)
  */
 {
 	int i,j,k;
-	const double scale=kd/TWO_PI;
-	const double isc=pow(WaveNum/TWO_PI,3); // this is subject to under/overflow
-	double y,z;
+	double z;
 	size_t ind;
 
 	XlessY=(boxX<=boxY);
@@ -933,7 +1045,6 @@ static void CalcSomTable(void)
 	somIndex[0]=0;
 	for (j=0;j<boxY;j++) somIndex[j+1]=somIndex[j] + (XlessY ? MIN(j+1,boxX) : (boxX-j));
 	// allocate and fill the table
-	// TODO: add the required memory to calculator.c (and the manual)
 	const size_t tmp=4*local_Nz_Rm*somIndex[boxY];
 	memory+=tmp*sizeof(doublecomplex);
 	if (!prognosis) {
@@ -941,11 +1052,10 @@ static void CalcSomTable(void)
 		if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
 		ind=0;
 		for (k=0;k<local_Nz_Rm;k++) {
-			z=(k+ZsumShift)*scale;
+			z=(k+ZsumShift)*gridspace;
 			for (j=0;j<boxY;j++) {
-				y=j;
-				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
-				else for (i=j;i<boxX;i++,ind++) evluaWrapper(i,y,z,scale,isc,somTable+4*ind);
+				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i,j)*gridspace,z,somTable+4*ind);
+				else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i,j)*gridspace,z,somTable+4*ind);
 			}
 		}
 	}
@@ -953,31 +1063,63 @@ static void CalcSomTable(void)
 
 //=====================================================================================================================
 
-static void GetSomIntegral(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-// Get Sommerfeld-integral part of the reflected Green's tensor; result is _incremented_ by the new value
+static inline void CombineSomTensor(const double x, const double y,const double rho,
+	const doublecomplex Ivals[static restrict 4],doublecomplex result[static restrict 6])
+/* combine Sommerfeld integrals in the Sommerfeld tensor and add it to the result (increment)
+ * x,y coordinates can be in any units (only relative values matter), rho should be equal to hypot(x,y)
+ */
 {
-	double x,y;   // coordinates in units of d
-	double rho;   // cylindrical coordinate
 	double xr,yr; // relative (scaled by ro) transverse coordinates
 	doublecomplex Irv,Izv,Irh,Iph; // values of Sommerfeld integrals
-	size_t ind;   // index for the table
-	int iT,jT;    // transformed indices
 
-	// compute xr,yr
-	x=i;
-	y=j;
-	rho=sqrt(x*x+y*y);
-	if (rho==0) { // particular direction doesn't matter in this case
-		xr=1;
-		yr=0;
+	// index tables
+	Irv=Ivals[0];
+	Izv=Ivals[1];
+	Irh=Ivals[2];
+	Iph=Ivals[3];
+
+	if (rho==0) {
+		/* particular direction doesn't matter in this case; this special case can be obtained from
+		 * general case by taking, e.g. xr=1, yr=0 (since Iph+Irh=Irv=0 for rho=0).
+		 */
+		result[0] += Irh;
+		result[3] += Irh;
+		result[5] += Izv;
 	}
 	else {
 		xr=x/rho;
 		yr=y/rho;
+		result[0] += xr*xr*Irh - yr*yr*Iph;
+		result[1] += xr*yr*(Irh+Iph);
+		result[2] += xr*Irv;
+		result[3] += yr*yr*Irh - xr*xr*Iph;
+		result[4] += yr*Irv;
+		result[5] += Izv;
 	}
+}
+
+
+//=====================================================================================================================
+
+void ReflTerm_som_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Reflection term using the Sommerfeld integrals for integer input; arguments are described in .h file
+// we do not use wrappers here, since both integer and real values are required
+{
+	// first, image-dipole part
+	// standard variable definitions used for functions ReflParams and ReflTerm_core
+	double qvec[3],qmunu[6]; // distance vector (in units of d) and normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
+	vCopyIntRealShift(i,j,k,qvec);
+	ReflParams(qvec,qmunu,&invr3,&kr,&kr2,true);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+
+	// second, Sommerfeld integral part
 	// compute table index
-	iT=abs(i);
-	jT=abs(j);
+	int iT=abs(i);
+	int jT=abs(j);
+	size_t ind;
+	// index for the table
 	if (XlessY) {
 		if (iT<=jT) ind=somIndex[jT]+iT;
 		else ind=somIndex[iT]+jT; // effectively swap iT and jT
@@ -987,27 +1129,33 @@ static void GetSomIntegral(const int i,const int j,const int k,doublecomplex res
 		else ind=somIndex[iT]+jT-iT; // effectively swap iT and jT
 	}
 	ind=4*(ind+k*somIndex[boxY]);
-	// index tables
-	Irv=somTable[ind];
-	Izv=somTable[ind+1];
-	Irh=somTable[ind+2];
-	Iph=somTable[ind+3];
-	// update result
-	result[0] += xr*xr*Irh - yr*yr*Iph;
-	result[1] += xr*yr*(Irh+Iph);
-	result[2] += xr*Irv;
-	result[3] += yr*yr*Irh - xr*xr*Iph;
-	result[4] += yr*Irv;
-	result[5] += Izv;
+	double x=qvec[0];
+	double y=qvec[1];
+	double rho=hypot(x,y);
+	CombineSomTensor(x,y,rho,somTable+ind,result);
+	PRINT_GVAL;
 }
 
 //=====================================================================================================================
 
-void CalcReflTerm_som(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-// Reflection term using the Sommerfeld integrals; arguments are described in .h file
+void ReflTerm_som_real(const double qvec[static restrict 3],doublecomplex result[static restrict 6])
+// Reflection term using the Sommerfeld integrals for real input; arguments are described in .h file
 {
-	CalcReflTerm_img(i,j,k,result);
-	GetSomIntegral(i,j,k,result);
+	// first, image-dipole part
+	// standard variable definitions used for functions InterParams and ReflTerm_core
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	doublecomplex expval; // exp(ikR)/|R|^3
+	ReflParams(qvec,qmunu,&invr3,&kr,&kr2,false);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+
+	// second, Sommerfeld integral part
+	double x=qvec[0];
+	double y=qvec[1];
+	double rho=hypot(x,y);
+	doublecomplex Ivals[4];
+	SingleSomIntegral(rho,qvec[2],Ivals);
+	CombineSomTensor(x,y,rho,Ivals,result);
 	PRINT_GVAL;
 }
 
@@ -1016,15 +1164,24 @@ void CalcReflTerm_som(const int i,const int j,const int k,doublecomplex result[s
 void InitInteraction(void)
 // Initialize the interaction calculations
 {
-	// set CalcInterTerm to point at the right function
+#define SET_FUNC_POINTERS(type,name) { type##_int = &type##_##name##_int; type##_real = &type##_##name##_real; }
+	// set InterTerm_int (real) to point at the right functions
 	switch (IntRelation) {
-		case G_POINT_DIP: CalcInterTerm = &CalcInterTerm_poi; break;
-		case G_FCD: CalcInterTerm = &CalcInterTerm_fcd; break;
-		case G_FCD_ST: CalcInterTerm = &CalcInterTerm_fcd_st; break;
-		case G_IGT_SO: CalcInterTerm = &CalcInterTerm_igt_so; break;
-		case G_SO: CalcInterTerm = &CalcInterTerm_so; break;
+		case G_POINT_DIP: SET_FUNC_POINTERS(InterTerm,poi); break;
+		case G_FCD: SET_FUNC_POINTERS(InterTerm,fcd); break;
+		case G_FCD_ST: SET_FUNC_POINTERS(InterTerm,fcd_st); break;
+		case G_IGT_SO:
+			if (InteractionRealArgs) PrintError("'-int igt_so' does not support calculation of interaction tensor for "
+				"arbitrary real arguments");
+			SET_FUNC_POINTERS(InterTerm,igt_so);
+			break;
+		case G_SO:
+			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
+				"arbitrary real arguments");
+			SET_FUNC_POINTERS(InterTerm,so);
+			break;
 #ifndef NO_FORTRAN
-		case G_IGT: CalcInterTerm = &CalcInterTerm_igt; break;
+		case G_IGT: SET_FUNC_POINTERS(InterTerm,igt); break;
 #endif
 		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
 			// no break
@@ -1040,9 +1197,9 @@ void InitInteraction(void)
 		local_Nz_Rm=MAX(MIN(2*local_z1,2*boxZ-1)-2*local_z0,0);
 #endif
 		switch (ReflRelation) {
-			case GR_IMG: CalcReflTerm = &CalcReflTerm_img; break;
+			case GR_IMG:  SET_FUNC_POINTERS(ReflTerm,img); break;
 			case GR_SOM:
-				CalcReflTerm = &CalcReflTerm_som;
+				SET_FUNC_POINTERS(ReflTerm,som);
 				if (!prognosis) som_init(msub*msub);
 				CalcSomTable();
 				break;
@@ -1064,6 +1221,8 @@ void InitInteraction(void)
 		exptbl[i] = _mm_set_pd(sin(x),cos(x));
 	}
 #endif
+
+#undef SET_FUNC_POINTERS
 }
 
 //=====================================================================================================================

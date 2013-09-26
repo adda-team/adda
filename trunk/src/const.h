@@ -18,7 +18,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.3b1"
+#define ADDA_VERSION "1.3b2"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -256,6 +256,7 @@ enum incpol {
 enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
+	B_DIPOLE,  // field of a point dipole
 	B_LMINUS,  // 1st order description of the Gaussian beam
 	B_PLANE,   // infinite plane wave
 	B_READ     // read from file
