@@ -17,7 +17,8 @@
 ;m; -m 1.1 0.1
 ;2m; -m 1.1 0.1 1.2 0.2
 ;3m; -m 1.05 0.1 1.1 0.2 1.2 0.3
-;g; -shape read sphere.geom -sym enf
+;g; ;ss; -sym enf
+;ss; -shape read sphere.geom
 ;n; -ntheta 5
 ;p; -prop 1 2 3
 ;se; -shape read ellipsoid.geom
@@ -49,6 +50,8 @@ all -h beam davis3
 all -beam davis3 2 1 2 3 ;mgn;
 all -h beam barton5
 all -beam barton5 2 1 2 3 ;mgn;
+all -beam barton5 2 ;mgn;
+all -beam dipole 3 2 1 ;p; ;mgn;
 all -h beam read
 all -beam read IncBeam-Y IncBeam-X ;se; ;mn;
 
@@ -269,16 +272,18 @@ all -store_scat_grid ;sep; ;mn;
 
 all -h surf
 all -surf 4 2 0 ;mgn;
-all -surf 4 3 4 -prop 1 2 3 -shape read sphere.geom ;mn;
+all -surf 4 3 4 ;p; ;ss; ;mn;
 all -surf 4 3 4 -prop 1 2 -3 ;se; ;mn;
 all -surf 4 inf -prop 1 2 -3 ;se; ;mn;
+all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;ss; ;mn;
+all -surf 4 inf -beam dipole 3 2 1 ;p; ;ss; ;mn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
 NOMPI -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
 
 all -h sym 
-all -sym auto ;mn; -shape read sphere.geom
-all -sym no ;mn; -shape read sphere.geom
-all -sym enf ;mn; -shape read sphere.geom
+all -sym auto ;mn; ;ss;
+all -sym no ;mn; ;ss;
+all -sym enf ;mn; ;ss;
 all -sym auto ;sep; ;mn;
 all -sym no ;sep; ;mn;
 all -sym enf ;sep; ;mn;

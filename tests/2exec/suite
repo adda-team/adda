@@ -63,6 +63,8 @@ all -h beam davis3
 all -beam davis3 2 1 2 3 ;mgn;
 all -h beam barton5
 all -beam barton5 2 1 2 3 ;mgn;
+all -beam barton5 2 ;mgn;
+all -beam dipole 3 2 1 ;p; ;mgn;
 all -h beam read
 all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
 
@@ -286,10 +288,12 @@ all -store_scat_grid ;sep; ;mgn;
 
 all -h surf
 all -surf 4 2 0 ;mgn;
-all -surf 4 3 4 -prop 1 2 3 ;mgn;
+all -surf 4 3 4 ;p; ;mgn;
 all -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn;
 all -surf 4 inf -prop 1 2 -3 ;se; ;mgn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
+all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn;
+all -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn;
 NOMPI -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
 
 all -h sym

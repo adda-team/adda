@@ -22,7 +22,9 @@
  * dipole is placed in the origin, while the field is calculated at position given as argument. All six components of
  * the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
-void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+void (*InterTerm_int)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+// same as above, but distance is passed as a double vector (in um)
+void (*InterTerm_real)(const double qvec[static restrict 3],doublecomplex result[static restrict 6]);
 
 /* Calculates reflection term between two dipoles; given integer distance vector {i,j,k} (in units of d). k is the _sum_
  * of dipole indices along z with respect to the center of bottom dipoles of the particle. Bottom is considered for the
@@ -34,7 +36,12 @@ void (*CalcInterTerm)(const int i,const int j,const int k,doublecomplex result[s
  * acts on the total vector of dipole polarizations is still complex-symmetric, since GR[i,j]=GR^T[j,i] (interchange of
  * i and j changes only the sign of x and y components, but not z, which leads to sign change of 13,31,23,32 components)
  */
-void (*CalcReflTerm)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+void (*ReflTerm_int)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
+/* same as above, but distance is passed as a double vector (in um) and its z-component is the sum of heights of
+ * source and probe points above the surface. So qvec_in is the actual distance between probe point and the image of the
+ * source point.
+ */
+void (*ReflTerm_real)(const double qvec[static restrict 3],doublecomplex result[static restrict 6]);
 
 void InitInteraction(void);
 void FreeInteraction(void);

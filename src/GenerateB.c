@@ -30,6 +30,7 @@
 #include "cmplx.h"
 #include "comm.h"
 #include "io.h"
+#include "interaction.h"
 #include "param.h"
 #include "vars.h"
 // system headers
@@ -89,6 +90,10 @@ void InitBeam(void)
 			if (IFROOT) strcpy(beam_descr,"plane wave");
 			beam_asym=false;
 			if (surface) {
+				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
+					"the incident direction to have (arbitrary) small positive or negative z-component");
+				if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
+					"with incident direction from below (including the default one)");
 				// Here we set ki,kt,ktVec and propagation directions prIncRefl,prIncTran
 				if (prop_0[2]>0) { // beam comes from the substrate (below)
 					// here msub should always be defined
@@ -119,17 +124,30 @@ void InitBeam(void)
 				}
 			}
 			return;
+		case B_DIPOLE:
+			vCopy(beam_pars,beam_center_0);
+			if (surface && beam_center_0[2]<=-hsub)
+				PrintErrorHelp("External dipole should be placed strictly above the surface");
+			// in weird scenarios the dipole can be positioned exactly at the origin; reused code from Gaussian beams
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			if (beam_asym) { // if necessary break the symmetry of the problem
+				if (beam_center_0[0]!=0) symX=symR=false;
+				if (beam_center_0[1]!=0) symY=symR=false;
+				if (beam_center_0[2]!=0) symZ=false;
+			}
+			else vInit(beam_center);
+			if (IFROOT) sprintf(beam_descr,"point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
+			return;
 		case B_LMINUS:
 		case B_DAVIS3:
 		case B_BARTON5:
-			if (surface) PrintErrorHelp("Currently, Gaussian incident beam is not supported for '-surf'");
+			if (surface) PrintError("Currently, Gaussian incident beam is not supported for '-surf'");
 			// initialize parameters
 			w0=beam_pars[0];
 			TestPositive(w0,"beam width");
-			beam_asym=(beam_Npars==4 && (beam_pars[1]!=0 || beam_pars[2]!=0 || beam_pars[3]!=0));
-			if (beam_asym) {
-				vCopy(beam_pars+1,beam_center_0);
-				// if necessary break the symmetry of the problem
+			vCopy(beam_pars+1,beam_center_0);
+			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
+			if (beam_asym) { // if necessary break the symmetry of the problem
 				if (beam_center_0[0]!=0) symX=symR=false;
 				if (beam_center_0[1]!=0) symY=symR=false;
 				if (beam_center_0[2]!=0) symZ=false;
@@ -154,10 +172,8 @@ void InitBeam(void)
 						break;
 					default: break;
 				}
-				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n",w0,s);
-				if (beam_asym)
-					sprintf(beam_descr+strlen(beam_descr),"\tCenter position: "GFORMDEF3V,COMP3V(beam_center_0));
-				else strcat(beam_descr,"\tCenter is in the origin");
+				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
+				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
 			}
 			return;
 		case B_READ:
@@ -186,6 +202,8 @@ void InitBeam(void)
 	 *    beam_asym - whether beam center does not coincide with the reference frame origin. If it is set to true, then
 	 *                set also beam_center_0 - 3D radius-vector of beam center in the laboratory reference frame (it
 	 *                will be then automatically transformed to particle reference frame, if required).
+	 * 5) Consider the case of surface (substrate near the particle). If the new beam type is incompatible with it, add
+	 *    an explicit exception, like "if (surface) PrintErrorHelp(...);".
 	 * All other auxiliary variables, which are used in beam generation (GenerateB(), see below), should be defined in
 	 * the beginning of this file. If you need temporary local variables (which are used only in this part of the code),
 	 * define them in the beginning of this function.
@@ -200,7 +218,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3];
+	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro2,ro4;
 	double x,y,z,x2_s,xy_s;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
@@ -296,6 +314,20 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 			}
 			return;
+		case B_DIPOLE:
+			for (i=0;i<local_nvoid_Ndip;i++) { // here we explicitly use that dipole moment (prop) is real
+				j=3*i;
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				(*InterTerm_real)(r1,gt);
+				cSymMatrVecReal(gt,prop,b+j);
+				if (surface) { // add reflected field
+					r1[2]=DipoleCoord[j+2]+beam_center[2]+2*hsub;
+					(*ReflTerm_real)(r1,gt);
+					cReflMatrVecReal(gt,prop,v1);
+					cvAdd(v1,b+j,b+j);
+				}
+			}
+			return;
 		case B_LMINUS:
 		case B_DAVIS3:
 		case B_BARTON5:
@@ -372,6 +404,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	 * 4) 'ey' – complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
 	 * 5) 'beam_center' – beam center in the particle reference frame (automatically calculated from 'beam_center_0'
 	 *                    defined in InitBeam).
+	 * If the new beam type is compatible with '-surf', include here the corresponding code. For that you will need
+	 * the variables, related to surface - see vars.c after "// related to a nearby surface".
 	 * If you need temporary local variables (which are used only in this part of the code), either use 't1'-'t8' or
 	 * define your own (with more informative names) in the beginning of this function.
 	 */
