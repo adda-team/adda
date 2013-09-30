@@ -544,7 +544,7 @@ static struct opt_struct options[]={
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only estimate the required "
 		"RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. Normalization (to the unity "
-		"vector) is performed automatically.\n"
+		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 #ifndef SPARSE
@@ -2198,9 +2198,12 @@ void PrintInfo(void)
 		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
 		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop_0));
-		fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY_0));
-		fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX_0));
-		if (surface) { // include surface-specific vectors
+		if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
+		else { // polarizations are not shown for dipole incident field
+			fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY_0));
+			fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX_0));
+		}
+		if (surface && beamtype==B_DIPOLE) { // include surface-specific vectors
 			fprintf(logfile,"Reflected propagation vector: "GFORMDEF3V"\n",COMP3V(prIncRefl));
 			fprintf(logfile,"Transmitted propagation vector: ");
 			if (msubInf) fprintf (logfile,"none\n");
@@ -2221,10 +2224,14 @@ void PrintInfo(void)
 				if (beam_asym) fprintf(logfile,"Incident Beam center position: "GFORMDEF3V"\n",
 					beam_center[0],beam_center[1],beam_center[2]);
 				fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop));
-				fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY));
-				fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n\n",COMP3V(incPolX));
+				if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
+				else { // polarizations are not shown for dipole incident field
+					fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY));
+					fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX));
+				}
 			}
-			else fprintf(logfile,"Particle orientation: default\n\n");
+			else fprintf(logfile,"Particle orientation: default\n");
+			fprintf(logfile,"\n");
 		}
 		// log type of scattering matrices
 		if (store_mueller) {

@@ -46,6 +46,8 @@ extern double * restrict muel_alpha;
 // defined and initialized in crosssec.c
 extern const Parms_1D phi_sg;
 extern const double ezLab[3],exSP[3];
+// defined and initialized in GenerateB.c
+extern const double C0dipole,C0dipole_refl;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
 	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
@@ -716,6 +718,22 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+			if (beamtype==B_DIPOLE) {
+				double self=1;
+				if (surface) self+=C0dipole_refl/C0dipole;
+				double tot=self+DecayCross()/C0dipole;
+				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
+				printf("\nDecay-rate enhancement:\n");
+				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
+				if (calc_Cabs) { // for simplicity we keep a single condition here
+					double nonrad=Cabs/C0dipole;
+					double rad=tot-nonrad;
+					// TODO: !!! how nonrad should account for absorption inside the surface???
+					PrintBoth(CCfile,"Radiat\t= "GFORM"\n",rad);
+					PrintBoth(CCfile,"Nonrad\t= "GFORM"\n",nonrad);
+				}
+				if (surface) PrintBoth(CCfile,"Surface\t= "GFORM"\n",self);
+			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
 				Csca=ScaCross(f_suf);
