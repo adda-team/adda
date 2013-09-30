@@ -46,6 +46,9 @@ extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
 
+// used in CalculateE.c
+double C0dipole,C0dipole_refl; // inherent cross sections of exciting dipole (in free space and addition due to surface)
+
 // used in crosssec.c
 double beam_center_0[3]; // position of the beam center in laboratory reference frame
 /* complex wave amplitudes of secondary waves (with phase relative to particle center);
@@ -326,6 +329,31 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					cReflMatrVecReal(gt,prop,v1);
 					cvAdd(v1,b+j,b+j);
 				}
+			}
+			/* calculate dipole inherent cross sections (for decay rate enhancements)
+			 * General formula is C0=4pi*k*Im(p0*.G(r0,r0).p0) and it is used for reflection; but for direct
+			 * interaction it is expected to be singular, so we use an explicit formula for point dipole:
+			 * C0=(8pi/3)*k^4*|p0|^2. Thus we discard the choice of "-int ...", but still the used value should be
+			 * correct for most formulations, e.g. poi, fcd, fcd_st, igt_so. Moreover, it is also logical, since the
+			 * exciting dipole is really point one, in contrast to the dipoles composing the particle.
+			 */
+			C0dipole=2*FOUR_PI_OVER_THREE*WaveNum*WaveNum*WaveNum*WaveNum;
+			printf("C0=%g\n",C0dipole);
+			if (surface) {
+				r1[0]=r1[1]=0;
+				r1[2]=2*(beam_center[2]+hsub);
+				(*ReflTerm_real)(r1,gt);
+				double tmp;
+				/* the following expression uses that prop is real and a specific (anti-)symmetry of the gt
+				 * a general expression is commented out below
+				 */
+				tmp=prop[0]*prop[0]*cimag(gt[0])+2*prop[0]*prop[1]*cimag(gt[1])+prop[1]*prop[1]*cimag(gt[3])
+				   +prop[2]*prop[2]*cimag(gt[5]);
+//				v1[0]=prop[0]; v1[1]=prop[1]; v1[2]=prop[2];
+//				cReflMatrVec(gt,v1,v2);
+//				tmp=cDotProd_Im(v2,v1);
+				C0dipole_refl=FOUR_PI*WaveNum*tmp;
+				printf("C0refl=%g\n",C0dipole_refl);
 			}
 			return;
 		case B_LMINUS:

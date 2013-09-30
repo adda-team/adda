@@ -948,6 +948,29 @@ double AbsCross(void)
 
 //======================================================================================================================
 
+double DecayCross(void)
+// computes total cross section for the dipole incident field; similar to Cext
+// 4pi*k*Im[p0(*).Escat(r0)]
+{
+	double sum;
+	size_t i;
+
+	/* This is a correct expression only _if_ exciting p0 is real, then
+	 * (using G(r1,r2) = G(r2,r1)^T, valid also for surface)
+	 * p0(*).Escat_i(r0) = p0(*).G_0i.p_i = p_i.G_i0.p0(*) = p_i.G_i0.p0 = p_i.Einc_i
+	 * => Im(p0(*).Escat(r0)) = sum{Im(P.E_inc)}
+	 *
+	 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
+	 * of G_i0.p0(*) together with Einc and use it here afterwards.
+	 */
+	sum=0;
+	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
+	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	return FOUR_PI*WaveNum*sum;
+}
+
+//======================================================================================================================
+
 void SetScatPlane(const double ct,const double st,const double phi,double robs[static restrict 3],
 	double polPer[static restrict 3])
 /* Given theta (cos,sin) and phi, calculates scattering direction and unit vector perpendicular to the scattering plane.
