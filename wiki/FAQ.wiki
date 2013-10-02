@@ -30,7 +30,7 @@ This list is far from being complete, therefore please send your questions to [m
 The simplest is to specify your particle by a shape file. However, if your shape can easily be described in some parametric form and you are going to simulate a lot of particles with shapes from this class or if you think other users will probably simulate the same shapes, you are encouraged to [AddingShape implement new shape inside ADDA].
 
 To produce a shape file you can use any programming language/software. `ADDA` contains a couple of auxiliary packages to alleviate this problem:
-  * Point-in-polyhedron (`misc/pip`, see [http://a-dda.googlecode.com/svn/trunk/misc/pip/README description]) allows transformation of [http://en.wikipedia.org/wiki/Wavefront_.obj_file .obj] format (and several other common 3D formats) into the format readable by `ADDA`.
+  * Point-in-polyhedron (`misc/pip`, see [http://a-dda.googlecode.com/svn/trunk/misc/pip/README description]) allows transformation of [http://en.wikipedia.org/wiki/Wavefront_.obj_file .obj] format (and several other common 3D formats) into the format readable by `ADDA`. There is also [http://nanohub.org/resources/ddaconvert/ another code] (related) with similar functionality.
   * Hyperfun (`misc/hyperfun`, see [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description]) provides a toolchain for working with [http://hyperfun.org Hyperfun models].
 
 == How to visualize shape files of `ADDA`? ==
