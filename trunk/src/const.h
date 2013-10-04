@@ -86,6 +86,7 @@
 #define ONE_THIRD           0.33333333333333333333333333333333
 #define PI_OVER_180         0.017453292519943295769236907684886
 #define INV_PI_180          57.295779513082320876798154814105
+#define SQRT_PI             1.7724538509055160272981674833411
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
 
@@ -199,12 +200,19 @@ enum inter { // how to calculate interaction term
 	G_FCD_ST,    // quasi-static version of FCD
 	G_IGT,       // (direct) integration of Green's tensor
 	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
+	G_NON_LOC,   // non-local extension (interaction of Gaussian dipole-densities)
 	G_POINT_DIP, // as point dipoles
 	G_SO         // Second Order formulation
+	/* TO ADD NEW INTERACTION FORMULATION
+	 * add an identifier starting with 'G_' and a descriptive comment to this list in the alphabetical order.
+	 */
 };
 enum refl { // how to calculate interaction of dipoles through the nearby surface (reflected G)
 	GR_IMG,       // approximate expression based on a single image dipole
 	GR_SOM        // direct evaluation of Sommerfeld integrals
+	/* TO ADD NEW REFLECTION FORMULATION
+	 * add an identifier starting with 'GR_' and a descriptive comment to this list in the alphabetical order.
+	 */
 };// in alphabetical order
 
 // ldr constants

@@ -119,6 +119,7 @@ const char *beam_fnameX;
 // used in interaction.c
 double igt_lim; // limit (threshold) for integration in IGT
 double igt_eps; // relative error of integration in IGT
+double nloc_Rp; // Gaussian width for non-local interaction
 bool InteractionRealArgs; // whether interaction (or reflection) routines can be called with real arguments
 // used in io.c
 char logfname[MAX_FNAME]=""; // name of logfile
@@ -457,7 +458,7 @@ static struct opt_struct options[]={
 #endif
 		"'zero' is a zero vector,\n"
 		"Default: auto",UNDEF,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|poi|so}",
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|poi|so}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
@@ -468,20 +469,34 @@ static struct opt_struct options[]={
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
 		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
+		"'nloc' - non-local interaction of two Gaussian dipole densities, <Rp> is the width of the latter in um (must "
+		"be non-negative).\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 #ifdef SPARSE
 		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
 #endif
 		"Default: poi",UNDEF,NULL},
+		/* TO ADD NEW INTERACTION FORMULATION
+		 * Modify string constants after 'PAR(int)': add new argument (possibly with additional sub-arguments) to list
+		 * {...} and its description to the next string. If the new interaction formulation requires unusually large
+		 * computational time, add a special note for sparse mode (after '#ifdef SPARSE').
+		 */
 	{PAR(int_surf),"{img|som}",
-			"Sets prescription to calculate the interaction term.\n"
-			"'img' - approximation based on a single image dipole (fast but inaccurate).\n"
-			"'som' - direct evaluation of Sommerfeld integrals.\n"
+		"Sets prescription to calculate the interaction term.\n"
+		"'img' - approximation based on a single image dipole (fast but inaccurate).\n"
+		"'som' - direct evaluation of Sommerfeld integrals.\n"
 	#ifdef SPARSE
-			"!!! In sparse mode 'som' is expected to be very slow.\n"
+		"!!! In sparse mode 'som' is expected to be very slow.\n"
 	#endif
-			"Default: som (but 'img' if surface is perfectly reflecting)",1,NULL},
+		"Default: som (but 'img' if surface is perfectly reflecting)",1,NULL},
+		/* TO ADD NEW REFLECTION FORMULATION
+		 * Modify string constants after 'PAR(int_surf)': add new argument (possibly with additional sub-arguments) to
+		 * list {...} and its description to the next string. If the new reflection formulation requires unusually
+		 * large computational time, add a special note for sparse mode (after '#ifdef SPARSE').
+		 * !!! If subarguments are added, second-to-last argument should be changed from 1 to UNDEF, and consistency
+		 * test for number of arguments should be implemented in PARSE_FUNC(int_surf) below.
+		 */
 	{PAR(iter),"{bcgs2|bicg|bicgstab|cgnr|csym|qmr|qmr2}","Sets the iterative solver.\n"
 		"Default: qmr",1,NULL},
 		/* TO ADD NEW ITERATIVE SOLVER
@@ -728,9 +743,28 @@ static void NargError(const int Narg,const char *expec)
 	PrintErrorHelp("Illegal number of arguments (%d) to '-%s' option (%s expected)",Narg,OptionName(),expec);
 }
 
+
 //======================================================================================================================
 
-static inline void TestNarg(const int Narg,const int need)
+static void NargErrorSub(const int Narg,const char *option,const char *expec)
+/* Print error of illegal number of arguments to an option (usually with suboption) and display correct usage
+ * information. Narg is decremented before printing.
+ */
+{
+	PrintErrorHelp("Illegal number of arguments (%d) to '-%s' option (%s expected)",Narg-1,option,expec);
+}
+
+//======================================================================================================================
+
+static void TestExtraNarg(const int Narg, const bool notAllowed,const char *subopt)
+// check if Narg is larger than 1 for suboption, which doesn't allow that
+{
+	if (Narg>1 && notAllowed) PrintErrorHelp("Additional arguments are not allowed for '-%s %s'",OptionName(),subopt);
+}
+
+//======================================================================================================================
+
+static void TestNarg(const int Narg,const int need)
 // check if Narg given to an option (or suboption) is correct; interface to NargError
 {
 	if (need>=0) { // usual case
@@ -762,7 +796,7 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 
 //======================================================================================================================
 
-static inline const char *ScanStrError(const char * restrict str,const unsigned int size)
+static const char *ScanStrError(const char * restrict str,const unsigned int size)
 // check if string fits in buffer of size 'size', otherwise produces error message; returns the passed str (redirects)
 {
 	if (strlen(str)>=size) PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
@@ -772,7 +806,7 @@ static inline const char *ScanStrError(const char * restrict str,const unsigned 
 
 //======================================================================================================================
 
-static inline void ScanDoubleError(const char * restrict str,double *res)
+static void ScanDoubleError(const char * restrict str,double *res)
 // scanf an option argument and checks for errors
 {
 	if (sscanf(str,"%lf",res)!=1)
@@ -781,7 +815,7 @@ static inline void ScanDoubleError(const char * restrict str,double *res)
 
 //======================================================================================================================
 
-static inline void ScanIntError(const char * restrict str,int *res)
+static void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
 	double tmp;
@@ -798,7 +832,7 @@ static inline void ScanIntError(const char * restrict str,int *res)
 
 //======================================================================================================================
 
-static inline bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,const char **fname2)
+static bool ScanFnamesError(const int Narg,const int need,char **argv,const char **fname1,const char **fname2)
 /* If 'need' corresponds to one of FNAME_ARG, scan Narg<=2 filenames from argv into fname1 and fname2. All consistency
  * checks are left to the caller (in particular, whether Narg corresponds to need). argv should be shifted to contain
  * only filenames. fname2 can be NULL, but it will produce an error in combination with Narg=2)
@@ -822,7 +856,7 @@ static inline bool ScanFnamesError(const int Narg,const int need,char **argv,con
 
 //======================================================================================================================
 
-static inline bool IsOption(const char * restrict str)
+static bool IsOption(const char * restrict str)
 /* checks if string is an option. First should be '-' and then letter (any case); it enables use of negative numbers
  * as sub-parameters
  */
@@ -832,7 +866,7 @@ static inline bool IsOption(const char * restrict str)
 }
 //======================================================================================================================
 
-static inline int TimeField(const char c)
+static int TimeField(const char c)
 // analyze one time multiplier
 {
 	switch (c) {
@@ -1088,14 +1122,16 @@ PARSE_FUNC(h)
 }
 PARSE_FUNC(init_field)
 {
+	bool noExtraArgs=true;
+
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"auto")==0) InitField=IF_AUTO;
 	else if (strcmp(argv[1],"inc")==0) InitField=IF_INC;
 	else if (strcmp(argv[1],"read")==0) {
-		if (Narg!=2 && Narg!=3)
-			PrintErrorHelp("Illegal number of arguments (%d) to '-init_field read' option (1 or 2 expected)",Narg-1);
+		if (Narg!=2 && Narg!=3) NargErrorSub(Narg,"init_field read","1 or 2");
 		ScanFnamesError(Narg-1,FNAME_ARG_1_2,argv+2,&infi_fnameY,&infi_fnameX);
 		InitField=IF_READ;
+		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"wkb")==0) {
 #ifdef SPARSE
@@ -1106,11 +1142,12 @@ PARSE_FUNC(init_field)
 	}
 	else if (strcmp(argv[1],"zero")==0) InitField=IF_ZERO;
 	else NotSupported("Initial field prescription",argv[1]);
-	if (Narg>1 && strcmp(argv[1],"read")!=0) PrintErrorHelp("Additional arguments are allowed only for 'read'");
+	TestExtraNarg(Narg,noExtraArgs,argv[1]);
 }
 PARSE_FUNC(int)
 {
 	double tmp;
+	bool noExtraArgs=true;
 	
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
@@ -1121,6 +1158,7 @@ PARSE_FUNC(int)
 			           "'CFLAGS += -DNO_FORTRAN' in Makefile and recompile");
 #endif
 		IntRelation=G_IGT;
+		if (Narg<1 || Narg>3) NargErrorSub(Narg,"int igt","from 0 to 2");
 		if (Narg>=2) {
 			ScanDoubleError(argv[2],&igt_lim);
 			TestNonNegative(igt_lim,"distance limit for IGT");
@@ -1130,12 +1168,26 @@ PARSE_FUNC(int)
 				igt_eps=pow(10,-tmp);
 			}
 		}
+		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"igt_so")==0) IntRelation=G_IGT_SO;
+	else if (strcmp(argv[1],"nloc")==0) {
+		IntRelation=G_NON_LOC;
+		if (Narg!=2) NargErrorSub(Narg,"int nloc","1");
+		ScanDoubleError(argv[2],&nloc_Rp);
+		TestNonNegative(nloc_Rp,"Gaussian width");
+		noExtraArgs=false;
+	}
 	else if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
 	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
+	/* TO ADD NEW INTERACTION FORMULATION
+	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
+	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
+	 * subarguments are used, test their quantity explicitly, process (scan) subarguments, and set noExtraArgs to false.
+	 * See "igt" for example. You may also need to change the test for Narg in the beginning of this function.
+	 */
 	else NotSupported("Interaction term prescription",argv[1]);
-	if (Narg>1 && strcmp(argv[1],"igt")!=0) PrintErrorHelp("Additional arguments are allowed only for 'igt'");
+	TestExtraNarg(Narg,noExtraArgs,argv[1]);
 }
 PARSE_FUNC(int_surf)
 {
@@ -1143,6 +1195,12 @@ PARSE_FUNC(int_surf)
 	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
 	else NotSupported("Interaction term prescription",argv[1]);
 	int_surf_used=true;
+	/* TO ADD NEW REFLECTION FORMULATION
+	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
+	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h.
+	 * !!! If subarguments need to be used a test for them should be implemented throughout the function, similar to
+	 * PARSE_FUNC(int) above
+	 */
 }
 PARSE_FUNC(iter)
 {
@@ -1215,13 +1273,12 @@ PARSE_FUNC(orient)
 {
 	if (Narg==0) NargError(Narg,"at least 1");
 	if (strcmp(argv[1],"avg")==0) {
-		if (Narg>2) PrintErrorHelp("Illegal number of arguments (%d) to '-orient avg' option (0 or 1 expected)",Narg-1);
+		if (Narg>2) NargErrorSub(Narg,"orient avg","0 or 1");
 		orient_avg=true;
 		if (Narg==2) avg_parms=ScanStrError(argv[2],MAX_FNAME);
 	}
 	else {
-		if (Narg!=3)
-			PrintErrorHelp("Illegal number of arguments (%d) to '-orient' option (3 or 'avg ...' expected)",Narg);
+		if (Narg!=3) NargError(Narg,"3 or 'avg ...'");
 		ScanDoubleError(argv[1],&alph_deg);
 		ScanDoubleError(argv[2],&bet_deg);
 		ScanDoubleError(argv[3],&gam_deg);
@@ -1239,6 +1296,8 @@ PARSE_FUNC(phi_integr)
 }
 PARSE_FUNC(pol)
 {
+	bool noExtraArgs=true;
+
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
 	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
@@ -1248,15 +1307,17 @@ PARSE_FUNC(pol)
 	else if (strcmp(argv[1],"lak")==0) PolRelation=POL_LAK;
 	else if (strcmp(argv[1],"ldr")==0) {
 		PolRelation=POL_LDR;
+		if (Narg!=1 && Narg!=2) NargErrorSub(Narg,"pol ldr","from 0 to 1");
 		if (Narg==2) {
 			if (strcmp(argv[2],"avgpol")==0) avg_inc_pol=true;
 			else PrintErrorHelpSafe("Unknown argument '%s' to '-pol ldr' option",argv[2]);
 		}
+		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
 	else NotSupported("Polarizability relation",argv[1]);
-	if (Narg==2 && strcmp(argv[1],"ldr")!=0) PrintErrorHelp("Second argument is allowed only for 'ldr'");
+	TestExtraNarg(Narg,noExtraArgs,argv[1]);
 }
 PARSE_FUNC(prognosis)
 {
@@ -1410,12 +1471,12 @@ PARSE_FUNC(surf)
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
 	ScanDoubleError(argv[1],&hsub);
 	TestPositive(hsub,"height above surface");
-	if (Narg==2) {
-		if (strcmp(argv[2],"inf")==0) msubInf=true;
-		else PrintErrorHelp(
-			"Illegal number of arguments (%d) to '-surf' option (total 3 or second argument 'inf' is expected)",Narg);
+	if (strcmp(argv[2],"inf")==0) {
+		if (Narg>2) PrintErrorHelp("Additional arguments are not allowed for '-surf ... inf'");
+		msubInf=true;
 	}
-	else { // Narg==3
+	else {
+		if (Narg!=3) NargError(Narg,"total 3 or second argument 'inf'");
 		ScanDoubleError(argv[2],&mre);
 		ScanDoubleError(argv[3],&mim);
 		msub = mre + I*mim;
@@ -1870,6 +1931,9 @@ void VariablesInterconnect(void)
 	 */
 	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
 	if (IntRelation==G_SO) reduced_FFT=false;
+	/* TO ADD NEW INTERACTION FORMULATION
+	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the definition of reduced_FFT
+	 */
 	if (calc_Csca || calc_vec) all_dir = true;
 	// by default, one of the scattering options is activated
 	if (store_scat_grid || phi_integr) scat_grid = true;
@@ -1944,6 +2008,9 @@ void VariablesInterconnect(void)
 		if (!int_surf_used) ReflRelation = msubInf ? GR_IMG : GR_SOM;
 		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
 			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
+		/* TO ADD NEW REFLECTION FORMULATION
+		 * Take a look at the above logic, and revise if the new formulation is not fully consistent with it
+		 */
 	}
 	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE
@@ -2203,7 +2270,7 @@ void PrintInfo(void)
 			fprintf(logfile,"Incident polarization Y(par): "GFORMDEF3V"\n",COMP3V(incPolY_0));
 			fprintf(logfile,"Incident polarization X(per): "GFORMDEF3V"\n",COMP3V(incPolX_0));
 		}
-		if (surface && beamtype==B_DIPOLE) { // include surface-specific vectors
+		if (surface && beamtype!=B_DIPOLE) { // include surface-specific vectors
 			fprintf(logfile,"Reflected propagation vector: "GFORMDEF3V"\n",COMP3V(prIncRefl));
 			fprintf(logfile,"Transmitted propagation vector: ");
 			if (msubInf) fprintf (logfile,"none\n");
@@ -2278,9 +2345,15 @@ void PrintInfo(void)
 				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
+			case G_NON_LOC: fprintf(logfile,"'Non-local interaction' (Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
+		/* TO ADD NEW INTERACTION FORMULATION
+		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
+		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
+		 * in log).
+		 */
 		// log reflected Green'tensor formulae
 		if (surface) {
 			fprintf(logfile,"Reflected Green's tensor formulae: ");
@@ -2289,6 +2362,11 @@ void PrintInfo(void)
 				case GR_SOM: fprintf(logfile,"'Sommerfeld integrals'\n"); break;
 			}
 		}
+		/* TO ADD NEW REFLECTION FORMULATION
+		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
+		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
+		 * in log).
+		 */
 		// log FFT and (if needed) clFFT method
 		fprintf(logfile,"FFT algorithm: ");
 #ifdef FFTW3

@@ -18,6 +18,7 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
+#include "float.h" // for DBL_EPSILON
 #include "io.h"
 #include "memory.h"
 #include "vars.h"
@@ -27,7 +28,7 @@
 // defined and initialized in make_particle.c
 extern const double gridspace,ZsumShift;
 // defined and initialized in param.c
-extern const double igt_lim,igt_eps;
+extern const double igt_lim,igt_eps,nloc_Rp;
 extern const bool InteractionRealArgs;
 
 // used in fft.c
@@ -128,7 +129,7 @@ void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex resu
 
 //=====================================================================================================================
 
-static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static restrict 3])
+static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static 3])
 // initialize real vector with integer values
 {
 	qvec[0]=i;
@@ -138,22 +139,22 @@ static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[
 
 //=====================================================================================================================
 
-static inline void InterParams(double qvec[static restrict 3],double qmunu[static restrict 6],double *rn,
-	double *invr3,double *kr,double *kr2,const bool unitsGrid)
+static inline void InterParams(double qvec[static 3],double qmunu[static 6],double *rr,double *rn,double *invr3,
+	double *kr,double *kr2,const bool unitsGrid)
 // some common variables needed by the interaction functions - needed for all except IGT
 {
-	double invrn,rr;
+	double invrn;
 
 	*rn=vNorm(qvec);
 	invrn = 1.0/(*rn);
 	vMultScal(invrn,qvec,qvec); // finalize qvec (to have unity amplitude)
-	if (unitsGrid) rr=(*rn)*gridspace;
+	if (unitsGrid) (*rr)=(*rn)*gridspace;
 	else {
-		rr=(*rn);
-		(*rn)=rr/gridspace;
+		(*rr)=(*rn);
+		(*rn)=(*rr)/gridspace;
 	}
-	*invr3=1/(rr*rr*rr);
-	*kr=WaveNum*rr;
+	*invr3=1/((*rr)*(*rr)*(*rr));
+	*kr=WaveNum*(*rr);
 	*kr2=(*kr)*(*kr);
 	OuterSym(qvec,qmunu);
 }
@@ -217,8 +218,8 @@ static inline doublecomplex accImExp(const double x)
 
 //=====================================================================================================================
 
-static inline void InterTerm_core(const double kr,const double kr2,const double invr3,
-	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
+static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
+	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
 	const __m128d ie = accImExp_pd(kr);
@@ -266,8 +267,8 @@ static inline doublecomplex accImExp(const double x)
 
 //=====================================================================================================================
 
-static inline void InterTerm_core(const double kr,const double kr2,const double invr3,
-	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
+static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
+	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
@@ -291,8 +292,7 @@ static inline void InterTerm_core(const double kr,const double kr2,const double 
 
 //=====================================================================================================================
 
-static inline void InterTerm_poi(double qvec[static restrict 3],doublecomplex result[static restrict 6],
-	const bool unitsGrid)
+static inline void InterTerm_poi(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 /* Interaction term between two dipoles using the point-dipoles formulation;
  * qvec is  a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
  * controlled by unitsGrid (true of false respectively), result is for produced output
@@ -300,10 +300,10 @@ static inline void InterTerm_poi(double qvec[static restrict 3],doublecomplex re
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
-	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	PRINT_GVAL;
 }
@@ -312,8 +312,7 @@ WRAPPERS_INTER(InterTerm_poi)
 
 //=====================================================================================================================
 
-static inline void InterTerm_fcd(double qvec[static restrict 3],doublecomplex result[static restrict 6],
-	const bool unitsGrid)
+static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 /* Interaction term between two dipoles for FCD. See InterTerm_poi for more details.
  *
  * FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D Green's tensor
@@ -327,14 +326,14 @@ static inline void InterTerm_fcd(double qvec[static restrict 3],doublecomplex re
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
 	int comp;
 	doublecomplex eikfr; // exp(i*k_F*R)
 
-	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
@@ -363,20 +362,19 @@ WRAPPERS_INTER(InterTerm_fcd)
 
 //=====================================================================================================================
 
-static inline void InterTerm_fcd_st(double qvec[static restrict 3],doublecomplex result[static restrict 6],
-	const bool unitsGrid)
+static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 // Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double kfr,ci,si,brd;
 	int comp;
 	doublecomplex eikfr;
 
-	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kfr=PI*rn; // k_F*r, for FCD
@@ -420,7 +418,7 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double q2[3];
@@ -431,7 +429,7 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
 	double t3q,t4q,t5tr,t6tr;
 	
 	vCopyIntReal(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,true);
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
@@ -558,7 +556,122 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
 	PRINT_GVAL;
 }
 
-NO_REAL_WRAPPER(InterTerm_igt_so);
+NO_REAL_WRAPPER(InterTerm_igt_so)
+
+//=====================================================================================================================
+
+static inline void lower_gamma(const double x,double res[static 3])
+/* computes the values of lower incomplete gamma function of orders 1/2,3/2, and 5/2 at x^2 by upward recursion
+ * it is numerically stable (up to all digits) for x>1
+ * if extension to complex input is required, cerf can be obtained from http://apps.jcns.fz-juelich.de/doku/sc/libcerf
+ */
+{
+	double te=exp(-x*x);
+	res[0]=SQRT_PI*erf(x);
+	res[1]=0.5*res[0]-x*te;
+	res[2]=1.5*res[1]-x*x*x*te;
+}
+
+//=====================================================================================================================
+
+static inline void gamma_scaled(const double x,double res[static 3])
+/* computes the values of scaled lower incomplete gamma function of orders 1/2,3/2, and 5/2 at x by downward recursion
+ * f[s-1/2,x] = g[s,x]/x^s = M(s,s+1,-x)/s = exp(-x)M(1,s+1,x)/s, where M is Kummer's confluent hypergeometric function
+ */
+{
+	/* First compute f[2,x]*exp(x) by series summation, the code is based on Numerical Recipes, 3rd ed. There it is
+	 * mentioned that such series are more efficient than continuous fraction for x < 5/2.
+	 * Series is f[s-1/2,x]*exp(x) = Sum{k=0->inf,Gamma(s)*x^k/Gamma(s+k+1)}, we use s=5/2
+	 * To reach double precision it requires from 9 to 16 iterations when 0.1<=x<=1 (and even smaller - for smaller x)
+	 */
+#define SVAL 2.5
+	double ap,del,sum;
+	ap=SVAL;
+	del=sum=1.0/SVAL;
+	do {
+		ap++;
+		del*=x/ap;
+		sum+=del;
+	} while (fabs(del) > fabs(sum)*DBL_EPSILON);
+#undef SVAL
+	// downward recursion
+	double te=exp(-x);
+	res[2]=sum*te;
+	res[1]=(x*res[2]+te)/1.5;
+	// currently res[0] is not used
+	// res[0]=(x*res[1]+te)/0.5;
+}
+
+//=====================================================================================================================
+
+static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
+/* Interaction term between two dipoles using the non-local interaction;
+ * qvec is  a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
+ * controlled by unitsGrid (true of false respectively), result is for produced output
+ *
+ * !!! Currently only static version is implemented
+ * G = 2/[sqrt(PI)*R^3] * {I*g(3/2,x) - 2*(RR/R^2)*g(5/2,x)}, where x=(R/Rp)^2 and g is lower incomplete
+ * gamma-function. For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
+ * g(1/2,y^2) = sqrt(pi)*erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)*x^(-s)
+ *
+ * For small x to save significant digits, we define f(m,x) = g(m+1/2,x)/x^(m+1/2) [no additional coefficient 1/2]
+ * and compute them by downward recursion starting from f[2,x] (computed by series representation)
+ * Then we use the following expression for G (with R^3 replaced by Rp^3), which is regular for :
+ * G = 2/[sqrt(PI)*Rp^3] * {I*f(1,x) - 2*(RR/R^2)*x*f(2,x)}
+ */
+{
+	// standard variable definitions used for functions InterParams
+	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+
+	double x,y,ar[3],expval;
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
+	if (rr>=nloc_Rp) {
+		if (nloc_Rp==0) {
+			if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
+			// same as lower_gamma but explicitly using erf(inf)=1, exp(-inf)=0
+			ar[0]=SQRT_PI;
+			ar[1]=0.5*ar[0];
+			ar[2]=1.5*ar[1];
+		}
+		else lower_gamma(rr/nloc_Rp,ar);
+		expval=invr3;
+	}
+	else {
+		y=rr/nloc_Rp;
+		x=y*y;
+		gamma_scaled(x,ar);
+		ar[2]*=x;
+		expval=1/(nloc_Rp*nloc_Rp*nloc_Rp);
+	}
+	expval*=2/SQRT_PI;
+
+//#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
+//#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
+#define INTERACT_DIAG(ind) { result[ind] = (ar[1]-2*ar[2]*qmunu[ind])*expval; }
+#define INTERACT_NONDIAG(ind) { result[ind] = -2*ar[2]*qmunu[ind]*expval; }
+
+	INTERACT_DIAG(0);    // xx
+	INTERACT_NONDIAG(1); // xy
+	INTERACT_NONDIAG(2); // xz
+	INTERACT_DIAG(3);    // yy
+	INTERACT_NONDIAG(4); // yz
+	INTERACT_DIAG(5);    // zz
+
+#undef INTERACT_DIAG
+#undef INTERACT_NONDIAG
+
+//	double t1=expval*ar[1];
+//	doubel t2=-2*expval*ar[2];
+//	res = t1*I + t2*(RR/R^2)
+//	for (int i=0;i<6;i++) result[i]=t2*qmunu[i];
+//	result[0]+=t1;
+//	result[3]+=t1;
+//	result[5]+=t1;
+	PRINT_GVAL;
+}
+
+WRAPPERS_INTER(InterTerm_nloc)
 
 //=====================================================================================================================
 
@@ -573,7 +686,7 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	double q2[3],qavec[3],av[3];
@@ -589,7 +702,7 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 	if (anisotropy) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
 
 	vCopyIntReal(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,true);
+	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
 	kd2=kd*kd;
@@ -793,18 +906,17 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 	PRINT_GVAL;
 }
 
-NO_REAL_WRAPPER(InterTerm_so);
+NO_REAL_WRAPPER(InterTerm_so)
 
 //=====================================================================================================================
 #ifndef NO_FORTRAN
 
-static inline void InterTerm_igt(double qvec[static restrict 3],doublecomplex result[static restrict 6],
-	const bool unitsGrid)
+static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 // Interaction term between two dipoles with integration of Green's tensor. See InterTerm_poi for more details.
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rn,invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
+	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 	double tmp[12];
 	int comp;
@@ -821,7 +933,7 @@ static inline void InterTerm_igt(double qvec[static restrict 3],doublecomplex re
 	}
 	else {
 		// The following is equivalent to InterTerm_poi, except for the 1st part of initialization performed above
-		InterParams(qvec,qmunu,&rn,&invr3,&kr,&kr2,unitsGrid);
+		InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 		InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 	}
 	PRINT_GVAL;
@@ -830,6 +942,25 @@ static inline void InterTerm_igt(double qvec[static restrict 3],doublecomplex re
 WRAPPERS_INTER(InterTerm_igt)
 
 #endif
+/* TO ADD NEW INTERACTION FORMULATION
+ * Add above functions that actually perform the calculation of the interaction term, according to the new formulae. At
+ * the end you need to have two functions according to the declarations InterTerm_int and InterTerm_real in
+ * interaction.h. Their input and output arguments are described there as well. Precise definition of Green's tensor is
+ * given in the manual, in particular, it is based on CGS system of units. There are two ways to proceed:
+ *
+ * 1) Recommended. You create one main function with the following declaration
+ * static inline void InterTerm_<name>(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
+ * which works for double input vector and accepts additional bool argument, specifying the units.
+ * After the function definition you specify "WRAPPERS_INTER(InterTerm_<name>)", which automatically produces wrappers
+ * compatible with declarations in interaction.h. See InterTerm_poi() for example.
+ *
+ * 2) Create two separate functions named InterTerm_<name>_int and InterTerm_<name>_real. If the new formulation does
+ * not support arbitrary real input vector (e.g. it is based on tables), then use
+ * "NO_REAL_WRAPPER(InterTerm_<name>)" instead of the real-input declaration. See InterTerm_igt_so_int() for example.
+ *
+ * In any case you may benefit from existing utility functions InterParams() and InterTerm_core(). Adhering to the
+ * naming conventions is important to be able to use macros here and below in InitInteraction().
+ */
 
 //=====================================================================================================================
 
@@ -915,7 +1046,7 @@ static void FreeTables(void)
 
 //=====================================================================================================================
 
-static inline void vCopyIntRealShift(const int i,const int j,const int k,double qvec[static restrict 3])
+static inline void vCopyIntRealShift(const int i,const int j,const int k,double qvec[static 3])
 // initialize real vector with integer values
 {
 	qvec[0]=i;
@@ -925,8 +1056,8 @@ static inline void vCopyIntRealShift(const int i,const int j,const int k,double 
 
 //=====================================================================================================================
 
-static inline void ReflParams(const double qvec[static restrict 3],double qmunu[static restrict 6],
-	double *invr3,double *kr,double *kr2,const bool unitsGrid)
+static inline void ReflParams(const double qvec[static 3],double qmunu[static 6],double *invr3,double *kr,double *kr2,
+	const bool unitsGrid)
 // some common variables needed by the reflection functions
 {
 	double rr,qv[3];
@@ -942,8 +1073,8 @@ static inline void ReflParams(const double qvec[static restrict 3],double qmunu[
 
 //=====================================================================================================================
 
-static inline void ReflTerm_core(const double kr,const double kr2,const double invr3,
-	const double qmunu[static restrict 6],doublecomplex * restrict expval,doublecomplex result[static restrict 6])
+static inline void ReflTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
+	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the reflection interaction between probe dipole and image of source dipole
 {
 	// this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
@@ -969,8 +1100,7 @@ static inline void ReflTerm_core(const double kr,const double kr2,const double i
 }
 //=====================================================================================================================
 
-static inline void ReflTerm_img(const double qvec[static restrict 3],doublecomplex result[static restrict 6],
-	const bool unitsGrid)
+static inline void ReflTerm_img(const double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 /* Reflection term using the image-dipole approximation;
  * qvec is a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
  * controlled by unitsGrid (true of false respectively). This distance is considered between probe and image of source,
@@ -991,7 +1121,7 @@ WRAPPERS_REFL(ReflTerm_img)
 
 //=====================================================================================================================
 
-static inline void SingleSomIntegral(double rho,const double z,doublecomplex vals[static restrict 4])
+static inline void SingleSomIntegral(double rho,const double z,doublecomplex vals[static 4])
 /* computes a single Sommerfeld integral (4-element array); arguments are in real units (um)
  * currently it is a wrapper around evlua, but in the future it may be replaced by use of interpolation table
  */
@@ -1063,8 +1193,8 @@ static void CalcSomTable(void)
 
 //=====================================================================================================================
 
-static inline void CombineSomTensor(const double x, const double y,const double rho,
-	const doublecomplex Ivals[static restrict 4],doublecomplex result[static restrict 6])
+static inline void CombineSomTensor(const double x, const double y,const double rho,const doublecomplex Ivals[static 4],
+	doublecomplex result[static 6])
 /* combine Sommerfeld integrals in the Sommerfeld tensor and add it to the result (increment)
  * x,y coordinates can be in any units (only relative values matter), rho should be equal to hypot(x,y)
  */
@@ -1159,6 +1289,26 @@ void ReflTerm_som_real(const double qvec[static restrict 3],doublecomplex result
 	PRINT_GVAL;
 }
 
+/* TO ADD NEW REFLECTION FORMULATION
+ * Add here functions that actually perform the calculation of the reflection term, according to the new formulae. At
+ * the end you need to have two functions according to the declarations ReflTerm_int and ReflTerm_real in
+ * interaction.h. Their input and output arguments are described there as well. Precise definition of reflected Green's
+ * tensor is given in the manual, in particular, it is based on CGS system of units. There are two ways to proceed:
+ *
+ * 1) Recommended. You create one main function with the following declaration
+ * static inline void ReflTerm_<name>(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
+ * which works for double input vector and accepts additional bool argument, specifying the units.
+ * After the function definition you specify "WRAPPERS_REFL(ReflTerm_<name>)", which automatically produces
+ * declarations compatible to that in interaction.h. See ReflTerm_img() for example.
+ *
+ * 2) Create two separate functions named ReflTerm_<name>_int and ReflTerm_<name>_real. If the new formulation does
+ * not support arbitrary real input vector (e.g. it is based on tables), then use
+ * "NO_REAL_WRAPPER(ReflTerm_<name>)" instead. See ReflTerm_som_int/real() for example.
+ *
+ * In any case you may benefit from existing utility functions ReflParams() and ReflTerm_core(). Adhering to the
+ * naming conventions is important to be able to use macros here and below in InitInteraction().
+ */
+
 //=====================================================================================================================
 
 void InitInteraction(void)
@@ -1175,6 +1325,7 @@ void InitInteraction(void)
 				"arbitrary real arguments");
 			SET_FUNC_POINTERS(InterTerm,igt_so);
 			break;
+		case G_NON_LOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
 		case G_SO:
 			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
 				"arbitrary real arguments");
@@ -1183,6 +1334,14 @@ void InitInteraction(void)
 #ifndef NO_FORTRAN
 		case G_IGT: SET_FUNC_POINTERS(InterTerm,igt); break;
 #endif
+		/* TO ADD NEW INTERACTION FORMULATION
+		 * Add here the assignment of function pointers for the new formulation. It is recommended to use special macro,
+		 * assuming that you conformed to naming conventions for functions themselves. If new formulation requires
+		 * initialization, add it here, preferably by a separate function. Initialization should honor the 'prognosis'
+		 * flag. Additional memory should be counted always, but allocated only when not prognosis. See ReadTables()
+		 * for example (called below). If the new formulation does not support arbitrary real input vector (e.g. it is
+		 * based on tables), then test for InteractionRealArgs and add an exception (see G_IGT_SO for example).
+		 */
 		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
 			// no break
 	}
@@ -1203,6 +1362,17 @@ void InitInteraction(void)
 				if (!prognosis) som_init(msub*msub);
 				CalcSomTable();
 				break;
+			/* TO ADD NEW REFLECTION FORMULATION
+			 * Add here the assignment of function pointers for the new formulation. It is recommended to use special
+			 * macro, assuming that you conformed to naming conventions for functions themselves. If new formulation
+			 * requires initialization add it here, preferably by a separate function. Initialization should honor the
+			 * 'prognosis' flag. Additional memory should be counted always, but allocated only when not prognosis. See
+			 * CalcSomTable() for example. If the new formulation does not support arbitrary real input vector (e.g. it
+			 * is based on tables), then test for InteractionRealArgs and add an exception (for example, see G_IGT_SO in
+			 * IntRelation above).
+			 */
+			default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
+				// no break
 		}
 		surfRCn=msubInf ? -1 : ((1-msub*msub)/(1+msub*msub));
 	}
@@ -1235,4 +1405,8 @@ void FreeInteraction(void)
 		Free_general(somIndex);
 		Free_cVector(somTable);
 	}
+	/* TO ADD NEW INTERACTION FORMULATION
+	 * TO ADD NEW REFLECTION FORMULATION
+	 * If you allocate any memory (for tables, etc.), free it here
+	 */
 }
