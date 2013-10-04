@@ -176,6 +176,7 @@ CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c Ge
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
            propaesplibreintadda.f
+F90SOURCE := 
 # C++ files are located in src/cpp folder, other files may be added below
 CPPSOURCE :=
 
@@ -275,6 +276,7 @@ ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   $(info Without Fortran sources)
   CDEFS += -DNO_FORTRAN
   FSOURCE =
+  F90SOURCE =
 endif
 ifneq ($(filter NO_CPP,$(OPTIONS)),)
   $(info Without C++ sources)
@@ -343,6 +345,7 @@ ifeq ($(COMPILER),gnu)
     CF    := gfortran
     FLIBS += -lgfortran
   else
+    # This is not expected to work for f90 sources but we keep it for now
     CF    := g77
     FLIBS += -lg2c
   endif

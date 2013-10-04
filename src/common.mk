@@ -21,6 +21,7 @@
 COBJECTS   := $(CSOURCE:.c=.o)
 CDEPEND    := $(CSOURCE:.c=.d)
 FOBJECTS   := $(FSOURCE:.f=.o)
+F90OBJECTS := $(F90SOURCE:.f90=.o)
 CPPOBJECTS := $(CPPSOURCE:.cpp=.o)
 
 # if Fortran sources are used, Fortran libraries are added
@@ -59,6 +60,7 @@ vpath %.c $(PARENT)
 vpath %.cpp $(PARENT)/$(CPPFOLDER)
 vpath %.h $(PARENT)
 vpath %.f $(PARENT)/$(FFOLDER)
+vpath %.f90 $(PARENT)/$(FFOLDER)
 #=======================================================================================================================
 # Main action part
 #=======================================================================================================================
@@ -66,9 +68,9 @@ vpath %.f $(PARENT)/$(FFOLDER)
 .DELETE_ON_ERROR:
 
 # C linker is used, while Fortran and C++ is handled by addition of libraries for linking
-$(PROG): $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDOPTSFILE)
+$(PROG): $(COBJECTS) $(FOBJECTS) $(F90OBJECTS) $(CPPOBJECTS) $(LDOPTSFILE)
 	@echo "Building $@"
-	$(MYCC) -o $@ $(COBJECTS) $(FOBJECTS) $(CPPOBJECTS) $(LDFLAGS)
+	$(MYCC) -o $@ $(COBJECTS) $(FOBJECTS) $(F90OBJECTS) $(CPPOBJECTS) $(LDFLAGS)
 
 $(COBJECTS): %.o: %.c $(COPTSFILE)
 	$(MYCC) -c $(CFLAGS) $(DEPFLAG) $<
@@ -76,6 +78,9 @@ $(COBJECTS): %.o: %.c $(COPTSFILE)
 # Dependencies are only generated for C and C++ sources; we assume that each Fortran file is completely independent or
 # all of the files from dependent set are compiled at once.
 $(FOBJECTS): %.o: %.f $(FOPTSFILE)
+	$(MYCF) -c $(FFLAGS) $<
+	
+$(F90OBJECTS): %.o: %.f90 $(FOPTSFILE)
 	$(MYCF) -c $(FFLAGS) $<
 
 $(CPPOBJECTS): %.o: %.cpp $(CPPOPTSFILE)

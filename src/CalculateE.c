@@ -109,7 +109,7 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 
 //======================================================================================================================
 
-static inline void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
+static void InitMuellerIntegrFile(const int type,const char * restrict fname,FILE * restrict * file,
 	char * restrict buf,const size_t buf_size,double * restrict *mult)
 /* If 'phi_int_type' matches 'type', appropriate file (name given by 'fname') is created (with handle '*file'), and
  * heading line is put into it. String buffer 'buf' is used. Vector of multipliers '*mult' is allocated if its pointer
@@ -149,8 +149,7 @@ static inline void PrintToIntegrFile(const int type,FILE * restrict file,double 
 
 //======================================================================================================================
 
-static inline void CloseIntegrFile(const int type,FILE * restrict file,const char * restrict fname,
-	double * restrict mult)
+static void CloseIntegrFile(const int type,FILE * restrict file,const char * restrict fname,double * restrict mult)
 // If 'phi_int_type' matches 'type', appropriate 'file' (named 'fname') is closed and array 'mult' is freed.
 {
 	if (phi_int_type & type) {
@@ -646,7 +645,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 
 //======================================================================================================================
 
-static inline void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
+static void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
 // transform real vector vp from particle to beam reference frame, vb and vp must not alias!!!
 {
 	vb[0]=DotProd(vp,incPolX);
