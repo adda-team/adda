@@ -92,10 +92,10 @@ First test is for Fe prolate spheroid (semi-axes 25nm and 50nm, refractive index
 adda -shape ellipsoid 1 2 -size 0.05 -lambda 0.488 -surf 0.05 4.37 0.08 -m 1.35 1.97 -grid <nx> -prop 1 0 -1 -ntheta 180
 }}}
 where `<nx>` varied between 16 and 64. Shown below is normalized (to have maximum value of 1) perpendicular and parallel (to scattering plane) scattering intensities. Scattering angle corresponds to the spherical angle _θ_ of laboratory reference frame inside the main scattering plane (given by incident and reflected direction).
- 
+
 http://a-dda.googlecode.com/svn/wiki/Fe_spheroid.svg
 
-Reference results are T-matrix simulations, digitized from Fig.4.7 of [[#References 8]] with appropriate modification of scattering angle definition. The agreement is perfect for perpendicular intensity, but there are some discrepancies for parallel. The latter, however, clearly diminish with refining discretization.
+Reference results are T-matrix simulations, digitized from Fig.4.7 of [[#References 8]] with appropriate modification of scattering angle definition. The agreement is perfect for perpendicular intensity, but there are some discrepancies for parallel. The latter, however, clearly diminish with refining discretization, and the remaining difference is compared to that between the T-matrix and discrete-sources-method in [[#References 8]] (data not shown).
 
 = References =
  # A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
