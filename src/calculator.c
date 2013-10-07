@@ -41,6 +41,7 @@ extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
 extern const int avg_inc_pol;
+extern const double polNlocRp;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_Init,Timing_Init_Int;
@@ -91,107 +92,113 @@ void SaveMuellerAndCS(double * restrict in);
 
 //======================================================================================================================
 
-static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex *res)
-/* hard to maintain. It is better to separate different polarizability relations to make the resulting expressions more
- * understandable.
- * Recent changes from if-else-if to switch does not significantly improves clarity
+static inline doublecomplex polCM(const doublecomplex m)
+// computes CM polarizability from given refractive index m - (3V/4pi)*(m^2-1)/(m^2+2)
+{
+	doublecomplex m2=m*m;
+	return (3/FOUR_PI)*dipvol*(m2-1)/(m2+2);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex polM(const doublecomplex M,const doublecomplex m)
+// computes polarizability, given the M term and refractive index m
+{
+	doublecomplex cm=polCM(m);
+	return cm/(1-(cm/dipvol)*M);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex polMplusRR(const doublecomplex M,const doublecomplex m)
+// computes polarizability, given the M term (without RR part - ) and refractive index m
+{
+	return polM(M+I*2*kd*kd*kd/3,m);
+}
+
+//======================================================================================================================
+
+static inline doublecomplex pol3coef(const double b1,const double b2,const double b3,const double S,
+	const doublecomplex m)
+/* computes polarizability, using the common formula, based on 3 coefs, S-term and refractive index m
+ * M0=(b1+(b2+b3*S)*m^2)*kd^2.   Important feature is that M0 depends on m.
  */
 {
-	doublecomplex coup_con[3];
-	doublecomplex cm,m2,t1;
-	double temp,b1,b2,b3,ka,kd2;
-	int i,imax,j; // counters: i is for 'asym', j is for 'anysotropy'
-	double S,prop2[3];
-	int asym; // whether polarizability is asymmetric (for isotropic m)
+	return polMplusRR((b1+(b2+b3*S)*m*m)*kd*kd,m);
+}
+//======================================================================================================================
+
+static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
+/* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
+ * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
+ * *
+ * TO ADD NEW POLARIZABILITY FORMULATION
+ * This function implements calculations of polarizability. It should be updated to support new formulations.
+ * The corresponding case should either be added to 'asym' list (then three components of polarizability are
+ * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
+ */
+{
+	double ka,kd2,S;
+	int i;
+	bool asym; // whether polarizability is asymmetric (for isotropic m)
 	const double *incPol;
 	bool pol_avg=true; // temporary fixed value for SO polarizability
 
-	// redundant initialization to remove warnings
-	b1=b2=b3=S=0;
-
-	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO);
+	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
 	// !!! this should never happen
 	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-	if (asym) imax=3;
-	else imax=1;
-	switch (PolRelation) {
-		case POL_LDR:
-		case POL_CLDR:
-			b1=LDR_B1;
-			b2=LDR_B2;
-			b3=LDR_B3;
-			break;
-		case POL_SO:
-			b1=SO_B1;
-			b2=SO_B2;
-			b3=SO_B3;
-			break;
-		default: break;
-	}
-	// calculate the CM couple constant CC=(3V/4pi)*(m^2-1)/(m^2+2)
-	temp = 3*dipvol/FOUR_PI;
-	for (j=0;j<Ncomp;j++) {
-		m2=mrel[j]*mrel[j];
-		coup_con[j]=temp*(m2-1)/(m2+2);
 
-		if (PolRelation!=POL_CM) {
-			if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_SO) {
-				// set prop_i^2
-				for (i=0;i<3;i++) {
-					if (pol_avg && PolRelation==POL_SO) prop2[i]=ONE_THIRD;
-					else prop2[i]=prop[i]*prop[i];
+	kd2=kd*kd;
+	if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
+		switch (PolRelation) {
+			case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
+			case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
+			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+				// no break
+		}
+	}
+	else for (i=0;i<Ncomp;i++) { // loop over components of input m
+		switch (PolRelation) {
+			case POL_CM: res[i]=polCM(mrel[i]); break;
+			case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
+			case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+				res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+				break;
+			case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
+			case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
+				ka=LAK_C*kd;
+				res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
+				break;
+			case POL_LDR:
+				if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
+				else {
+					if (which==INCPOL_Y) incPol=incPolY;
+					else incPol=incPolX; // which==INCPOL_X
+					S = DotProdSquare(prop,incPol);
 				}
-				// determine S coefficient for LDR
-				if (PolRelation==POL_LDR) {
-					if (avg_inc_pol) S=0.5*(1-DotProd(prop2,prop2));
-					else {
-						if (which==INCPOL_Y) incPol=incPolY;
-						else incPol=incPolX; // which==INCPOL_X
-						S = prop2[0]*incPol[0]*incPol[0] + prop2[1]*incPol[1]*incPol[1] + prop2[2]*incPol[2]*incPol[2];
-					}
+				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
+				break;
+			case POL_NLOC:
+				if (polNlocRp==0) res[i]=0;
+				else {
+					double g0=sqrt(2/(9*PI))/(polNlocRp*polNlocRp*polNlocRp);
+					//res[i]=1/(FOUR_PI/(dipvol*(mrel[i]*mrel[i]-1)) + g0);
+					// !!! not clear what to do with radiation correction
+					res[i]=polM(FOUR_PI_OVER_THREE-g0*dipvol,mrel[i]);
 				}
-			}
-			cm=coup_con[j];
-			for (i=0;i<imax;i++) {
-				if (PolRelation==POL_LAK) { // t1=(8pi/3)[(1-ika)exp(ika)-1]
-					ka=LAK_C*kd; // a - radius of volume-equivalent (to cube with size d) sphere
-					t1=2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1);
-				}
-				else { // other formulations are extensions of RR
-					// RR correction
-					kd2=kd*kd;
-					t1=I*2*kd2*kd/3; // t1=2/3*i*kd^3
-					// plus more advanced corrections
-					switch (PolRelation) {
-						case POL_DGF: t1+=DGF_B1*kd2; break;
-						case POL_FCD: // t1+={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-							t1+=2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd)));
-							break;
-						case POL_IGT_SO: t1+=SO_B1*kd2; break;
-						case POL_CLDR:
-						case POL_SO:
-							S=prop2[i];
-							// no break
-						case POL_LDR:
-							t1+=(b1+(b2+b3*S)*m2)*kd2; // t1+=(b1+(b2+b3*S)*m^2)*kd^2
-							break;
-						default: break;
-					}
-				}
-				// CC[i]=cm/(1-(cm/V)*t1); t1 is the M-term
-				// 'i+j' is not robust. It assumes that only one counter is used
-				coup_con[i+j]=cm/(1-(cm/dipvol)*t1);
-			}
+				break;
+			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
+			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+				// no break
 		}
 	}
 	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(coup_con));
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
 	}
 	else {
-		coup_con[2]=coup_con[1]=coup_con[0];
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(coup_con[0]));
+		res[2]=res[1]=res[0];
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
 	}
-	memcpy(res,coup_con,3*sizeof(doublecomplex));
 }
 
 //======================================================================================================================
@@ -254,7 +261,10 @@ static void calculate_one_orientation(double * restrict res)
 			printf("\nhere we go, calc X\n\n");
 			if (!orient_avg) fprintf(logfile,"\nhere we go, calc X\n\n");
 		}
-		if(PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
+		if (PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
+		/* TO ADD NEW POLARIZABILITY FORMULATION
+		 * If new formulation depends on the incident polarization (unlikely) update the test above.
+		 */
 
 		if(CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
 	}

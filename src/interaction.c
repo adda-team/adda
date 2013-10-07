@@ -1325,7 +1325,7 @@ void InitInteraction(void)
 				"arbitrary real arguments");
 			SET_FUNC_POINTERS(InterTerm,igt_so);
 			break;
-		case G_NON_LOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
+		case G_NLOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
 		case G_SO:
 			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
 				"arbitrary real arguments");
