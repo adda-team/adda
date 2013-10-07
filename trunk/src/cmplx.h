@@ -445,6 +445,14 @@ static inline double DotProd(const double a[static 3],const double b[static 3])
 
 //======================================================================================================================
 
+static inline double DotProdSquare(const double a[static 3],const double b[static 3])
+// dot product of element-wise squares of two real vectors[3]
+{
+	return a[0]*a[0]*b[0]*b[0] + a[1]*a[1]*b[1]*b[1] + a[2]*a[2]*b[2]*b[2];
+}
+
+//======================================================================================================================
+
 static inline double vNorm(const double a[static 3])
 // norm of a real vector[3]
 {

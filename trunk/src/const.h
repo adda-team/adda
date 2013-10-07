@@ -179,10 +179,14 @@ enum pol { // which way to calculate coupleconstant
 	POL_DGF,    // Digitized Green's Function (second order approximation of LAK)
 	POL_FCD,    // Filtered Coupled Dipoles
 	POL_IGT_SO, // Second order approximation to Green's tensor integrated over a cube
-	POL_RRC,    // Radiative Reaction correction
 	POL_LAK,    // Exact result of IGT for sphere
 	POL_LDR,    // Lattice Dispersion Relation
+	POL_NLOC,   // non-local extension (Gaussian dipole-density)
+	POL_RRC,    // Radiative Reaction correction
 	POL_SO      // Second Order formulation
+	/* TO ADD NEW POLARIZABILITY FORMULATION
+	 * add an identifier starting with 'POL_' and a descriptive comment to this list in the alphabetical order.
+	 */
 };
 // in alphabetical order
 
@@ -200,7 +204,7 @@ enum inter { // how to calculate interaction term
 	G_FCD_ST,    // quasi-static version of FCD
 	G_IGT,       // (direct) integration of Green's tensor
 	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
-	G_NON_LOC,   // non-local extension (interaction of Gaussian dipole-densities)
+	G_NLOC,      // non-local extension (interaction of Gaussian dipole-densities)
 	G_POINT_DIP, // as point dipoles
 	G_SO         // Second Order formulation
 	/* TO ADD NEW INTERACTION FORMULATION

@@ -105,6 +105,7 @@ bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type; // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;                 // whether to average CC over incident polarization
+double polNlocRp;                 // Gaussian width for non-local polarizability
 const char *alldir_parms;         // name of file with alldir parameters
 const char *scat_grid_parms;      // name of file with parameters of scattering grid
 // used in crosssec.c
@@ -543,7 +544,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
@@ -553,9 +554,14 @@ static struct opt_struct options[]={
 		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
+		"'nloc' - non-local (Gaussian dipole density), <Rp> is the width of the latter in um (must be non-negative).\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
+		/* TO ADD NEW POLARIZABILITY FORMULATION
+		 * Modify string constants after 'PAR(pol)': add new argument (possibly with additional sub-arguments) to list
+		 * {...} and its description to the next string.
+		 */
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only estimate the required "
 		"RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. Normalization (to the unity "
@@ -1172,7 +1178,7 @@ PARSE_FUNC(int)
 	}
 	else if (strcmp(argv[1],"igt_so")==0) IntRelation=G_IGT_SO;
 	else if (strcmp(argv[1],"nloc")==0) {
-		IntRelation=G_NON_LOC;
+		IntRelation=G_NLOC;
 		if (Narg!=2) NargErrorSub(Narg,"int nloc","1");
 		ScanDoubleError(argv[2],&nloc_Rp);
 		TestNonNegative(nloc_Rp,"Gaussian width");
@@ -1314,8 +1320,21 @@ PARSE_FUNC(pol)
 		}
 		noExtraArgs=false;
 	}
+	else if (strcmp(argv[1],"nloc")==0) {
+		PolRelation=POL_NLOC;
+		if (Narg!=2) NargErrorSub(Narg,"pol nloc","1");
+		ScanDoubleError(argv[2],&polNlocRp);
+		TestNonNegative(polNlocRp,"Gaussian width");
+		noExtraArgs=false;
+	}
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
+	/* TO ADD NEW POLARIZABILITY FORMULATION
+	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
+	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
+	 * subarguments are used, test their quantity explicitly, process (scan) subarguments, and set noExtraArgs to false.
+	 * See "nloc" for example. You may also need to change the test for Narg in the beginning of this function.
+	 */
 	else NotSupported("Polarizability relation",argv[1]);
 	TestExtraNarg(Narg,noExtraArgs,argv[1]);
 }
@@ -1985,6 +2004,9 @@ void VariablesInterconnect(void)
 		if (PolRelation==POL_SO) PrintError("'-anisotr' is incompatible with '-pol so'");
 		if (ScatRelation==SQ_SO) PrintError("'-anisotr' is incompatible with '-scat so'");
 		if (IntRelation==G_SO) PrintError("'-anisotr' is incompatible with '-int so'");
+		/* TO ADD NEW POLARIZABILITY FORMULATION
+		 * If the new polarizability formulation is incompatible with anisotropic material, add an exception here
+		 */
 		if (Nmat%3!=0)
 			PrintError("When '-anisotr' is used 6 numbers (3 complex values) should be given per each domain");
 		else Nmat=Nmat/3;
@@ -2323,9 +2345,14 @@ void PrintInfo(void)
 				if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
 				fprintf(logfile,"\n");
 				break;
+			case POL_NLOC: fprintf(logfile,"'Non-local' (Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
+		/* TO ADD NEW POLARIZABILITY FORMULATION
+		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
+		 * case are descriptor, defined in const.h, and its plain-text description (to be shown in log).
+		 */
 		// log Scattering Quantities formulae
 		fprintf(logfile,"Scattering quantities formulae: ");
 		switch (ScatRelation) {
@@ -2345,14 +2372,13 @@ void PrintInfo(void)
 				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
-			case G_NON_LOC: fprintf(logfile,"'Non-local interaction' (Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
+			case G_NLOC: fprintf(logfile,"'Non-local interaction' (Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
-		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
-		 * in log).
+		 * case are descriptor, defined in const.h, and its plain-text description (to be shown in log).
 		 */
 		// log reflected Green'tensor formulae
 		if (surface) {
@@ -2364,8 +2390,7 @@ void PrintInfo(void)
 		}
 		/* TO ADD NEW REFLECTION FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
-		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
-		 * in log).
+		 * case are descriptor, defined in const.h, and its plain-text description (to be shown in log).
 		 */
 		// log FFT and (if needed) clFFT method
 		fprintf(logfile,"FFT algorithm: ");
@@ -2397,8 +2422,7 @@ void PrintInfo(void)
 		}
 		/* TO ADD NEW ITERATIVE SOLVER
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
-		 * case are descriptor of the iterative solver, defined in const.h, and its plain-text description (to be shown
-		 * in log).
+		 * case are descriptor, defined in const.h, and its plain-text description (to be shown in log).
 		 */
 		// log Symmetry options
 		switch (sym_type) {
