@@ -131,7 +131,10 @@ static inline doublecomplex pol3coef(const double b1,const double b2,const doubl
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
 /* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
  * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
- * *
+ *
+ * !!! TODO: if this function will be executed many times, it can be optimized by moving time-consuming calculation of
+ * certain coefficients to one-call initialization function.
+ *
  * TO ADD NEW POLARIZABILITY FORMULATION
  * This function implements calculations of polarizability. It should be updated to support new formulations.
  * The corresponding case should either be added to 'asym' list (then three components of polarizability are
@@ -179,11 +182,28 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
 				break;
 			case POL_NLOC:
+				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
+				else {
+					double x=gridspace/(2*sqrt(2)*polNlocRp);
+					double g0,t;
+					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
+					if (x<1) {
+						t=erf(x);
+						g0=1-t*t*t;
+					}
+					else {
+						t=erfc(x);
+						g0=t*(3-3*t+t*t);
+					}
+					// !!! dynamic part should be added here
+					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
+				}
+				break;
+			case POL_NLOC0:
 				if (polNlocRp==0) res[i]=0;
 				else {
 					double g0=sqrt(2/(9*PI))/(polNlocRp*polNlocRp*polNlocRp);
-					//res[i]=1/(FOUR_PI/(dipvol*(mrel[i]*mrel[i]-1)) + g0);
-					// !!! not clear what to do with radiation correction
+					// !!! additionally dynamic part of Gh(0) should be added
 					res[i]=polM(FOUR_PI_OVER_THREE-g0*dipvol,mrel[i]);
 				}
 				break;

@@ -22,6 +22,7 @@
 // basic variables
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
 size_t boxXY;             // boxX*boxY, used for indexing
+double gridspace;         // dipole size (d)
 double dipvol;            // dipole volume
 double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter

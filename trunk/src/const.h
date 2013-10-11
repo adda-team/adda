@@ -182,6 +182,7 @@ enum pol { // which way to calculate coupleconstant
 	POL_LAK,    // Exact result of IGT for sphere
 	POL_LDR,    // Lattice Dispersion Relation
 	POL_NLOC,   // non-local extension (Gaussian dipole-density)
+	POL_NLOC0,  // same as NLOC, but based on Gh(0)
 	POL_RRC,    // Radiative Reaction correction
 	POL_SO      // Second Order formulation
 	/* TO ADD NEW POLARIZABILITY FORMULATION
