@@ -26,7 +26,7 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in make_particle.c
-extern const double gridspace,ZsumShift;
+extern const double ZsumShift;
 // defined and initialized in param.c
 extern const double igt_lim,igt_eps,nloc_Rp;
 extern const bool InteractionRealArgs;
@@ -610,14 +610,15 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
  * controlled by unitsGrid (true of false respectively), result is for produced output
  *
  * !!! Currently only static version is implemented
- * G = 2/[sqrt(PI)*R^3] * {I*g(3/2,x) - 2*(RR/R^2)*g(5/2,x)}, where x=(R/Rp)^2 and g is lower incomplete
+ * !!! Mind the difference in sign with term in quantum-mechanical simulations, which defines the interaction energy
+ * G = 2/[sqrt(PI)*R^3] * {2*(RR/R^2)*g(5/2,x) - I*g(3/2,x)}, where x=(R/Rp)^2 and g is lower incomplete
  * gamma-function. For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
  * g(1/2,y^2) = sqrt(pi)*erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)*x^(-s)
  *
  * For small x to save significant digits, we define f(m,x) = g(m+1/2,x)/x^(m+1/2) [no additional coefficient 1/2]
  * and compute them by downward recursion starting from f[2,x] (computed by series representation)
  * Then we use the following expression for G (with R^3 replaced by Rp^3), which is regular for :
- * G = 2/[sqrt(PI)*Rp^3] * {I*f(1,x) - 2*(RR/R^2)*x*f(2,x)}
+ * G = 2/[sqrt(PI)*Rp^3] * {2*(RR/R^2)*x*f(2,x) - I*f(1,x)}
  */
 {
 	// standard variable definitions used for functions InterParams
@@ -648,8 +649,8 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
 
 //#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
 //#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
-#define INTERACT_DIAG(ind) { result[ind] = (ar[1]-2*ar[2]*qmunu[ind])*expval; }
-#define INTERACT_NONDIAG(ind) { result[ind] = -2*ar[2]*qmunu[ind]*expval; }
+#define INTERACT_DIAG(ind) { result[ind] = (2*ar[2]*qmunu[ind] - ar[1])*expval; }
+#define INTERACT_NONDIAG(ind) { result[ind] = 2*ar[2]*qmunu[ind]*expval; }
 
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
@@ -661,8 +662,8 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
 
-//	double t1=expval*ar[1];
-//	doubel t2=-2*expval*ar[2];
+//	double t1=-expval*ar[1];
+//	doubel t2=2*expval*ar[2];
 //	res = t1*I + t2*(RR/R^2)
 //	for (int i=0;i<6;i++) result[i]=t2*qmunu[i];
 //	result[0]+=t1;

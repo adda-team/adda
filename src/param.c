@@ -544,7 +544,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc0 <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
@@ -555,6 +555,7 @@ static struct opt_struct options[]={
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
 		"'nloc' - non-local (Gaussian dipole density), <Rp> is the width of the latter in um (must be non-negative).\n"
+		"'nloc0' - same as 'nloc' but based on value Gh(0) (not averaged over the self-cell).\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
@@ -1323,6 +1324,13 @@ PARSE_FUNC(pol)
 	else if (strcmp(argv[1],"nloc")==0) {
 		PolRelation=POL_NLOC;
 		if (Narg!=2) NargErrorSub(Narg,"pol nloc","1");
+		ScanDoubleError(argv[2],&polNlocRp);
+		TestNonNegative(polNlocRp,"Gaussian width");
+		noExtraArgs=false;
+	}
+	else if (strcmp(argv[1],"nloc0")==0) {
+		PolRelation=POL_NLOC0;
+		if (Narg!=2) NargErrorSub(Narg,"pol nloc0","1");
 		ScanDoubleError(argv[2],&polNlocRp);
 		TestNonNegative(polNlocRp,"Gaussian width");
 		noExtraArgs=false;
@@ -2346,6 +2354,9 @@ void PrintInfo(void)
 				fprintf(logfile,"\n");
 				break;
 			case POL_NLOC: fprintf(logfile,"'Non-local' (Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
+			case POL_NLOC0:
+				fprintf(logfile,"'Non-local' (based on Gh(0), Gaussian width Rp="GFORMDEF")\n",polNlocRp);
+				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}

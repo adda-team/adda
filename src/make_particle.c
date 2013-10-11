@@ -66,7 +66,6 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 #endif
 
 // used in interaction.c
-double gridspace; // interdipole distance (dipole size)
 double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d)
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
