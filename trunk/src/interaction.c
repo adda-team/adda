@@ -613,7 +613,7 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
  * !!! Mind the difference in sign with term in quantum-mechanical simulations, which defines the interaction energy
  * G = 2/[sqrt(PI)*R^3] * {2*(RR/R^2)*g(5/2,x) - I*g(3/2,x)}, where x=R^2/(2*Rp^2) and g is lower incomplete
  * gamma-function. For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
- * g(1/2,y^2) = sqrt(pi)*erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)*x^(-s)
+ * g(1/2,y^2) = sqrt(pi)*erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)*x^s
  *
  * For small x to save significant digits, we define f(m,x) = g(m+1/2,x)/x^(m+1/2) [no additional coefficient 1/2]
  * and compute them by downward recursion starting from f[2,x] (computed by series representation)
@@ -643,7 +643,7 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
 		x=y*y;
 		gamma_scaled(x,ar);
 		ar[2]*=x;
-		expval=1/(SQRT2*SQRT_PI*nloc_Rp*nloc_Rp*nloc_Rp);
+		expval=SQRT1_2PI/(nloc_Rp*nloc_Rp*nloc_Rp);
 	}
 
 //#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }

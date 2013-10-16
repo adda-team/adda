@@ -126,6 +126,39 @@ static inline doublecomplex pol3coef(const double b1,const double b2,const doubl
 {
 	return polMplusRR((b1+(b2+b3*S)*m*m)*kd*kd,m);
 }
+
+//======================================================================================================================
+
+static inline double ellTheta(const double a)
+/* computes the following expression: a^3(theta_3(0,exp(-pi*a^2))^3-1), where
+ * theta_3 is elliptic theta function of 3rd kind, in particular
+ * theta_3(0,exp(-pi*a^2)) = 1 + Sum[exp(-pi*a^2*k,{k,1,inf}]
+ * it obeys the following relation theta_3(0,exp(-pi*a^2)) = (1/a)*theta_3(0,exp(-pi/a^2)),
+ * see e.g. J.D. Fenton and R.S. Gardiner-Garden, "Rapidly-convergent methods for evaluating elliptic integrals and
+ * theta and elliptic functions," J. Austral. Math. Soc. B 24, 47-58 (1982).
+ * so the sum need to be taken only for a>=1, then three terms are sufficient to obtain 10^-22 accuracy
+ */
+{
+	double q,q2,q3,t,a2,a3,res;
+	a2=a*a;
+	a3=a*a2;
+	if (a>=1) {
+		q=exp(-PI*a2);
+		q2=q*q;
+		q3=q*q2;
+		t=2*q*(1+q3*(1+q2*q3)); // t = 1 - theta_3(0,exp(-pi*a^2)) = 2*(q + q^4 + q^9)
+		res=a3*t*(3+t*(3+t)); // a^3*(t^3-1)
+	}
+	else { // a<1, employ transformation a->1/a
+		q=exp(-PI/a2);
+		q2=q*q;
+		q3=q*q2;
+		t=1+2*q*(1+q3*(1+q2*q3)); // t = theta_3(0,exp(-pi/a^2)) = 1+ 2*(q + q^4 + q^9)
+		res=t*t*t - a3; // a^3*(t^3-1)
+	}
+	return res;
+}
+
 //======================================================================================================================
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
@@ -184,7 +217,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			case POL_NLOC:
 				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
 				else {
-					double x=gridspace/(2*sqrt(2)*polNlocRp);
+					double x=gridspace/(2*SQRT2*polNlocRp);
 					double g0,t;
 					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
 					if (x<1) {
@@ -199,13 +232,15 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
 				}
 				break;
-			case POL_NLOC0:
-				if (polNlocRp==0) res[i]=0;
-				else {
-					double g0=sqrt(2/(9*PI))/(polNlocRp*polNlocRp*polNlocRp);
-					// !!! additionally dynamic part of Gh(0) should be added
-					res[i]=polM(FOUR_PI_OVER_THREE-g0*dipvol,mrel[i]);
-				}
+			case POL_NLOC0: // !!! additionally dynamic part should be added (if needed)
+				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+				 */
+
+				if (polNlocRp==0) res[i]=polCM(mrel[i]);
+				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
 				break;
 			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
 			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
