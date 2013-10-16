@@ -555,7 +555,7 @@ static struct opt_struct options[]={
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
 		"'nloc' - non-local (Gaussian dipole density), <Rp> is the width of the latter in um (must be non-negative).\n"
-		"'nloc0' - same as 'nloc' but based on value Gh(0) (not averaged over the self-cell).\n"
+		"'nloc0' - same as 'nloc' but based on lattice sums of Gh.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
@@ -2355,7 +2355,7 @@ void PrintInfo(void)
 				break;
 			case POL_NLOC: fprintf(logfile,"'Non-local' (Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
 			case POL_NLOC0:
-				fprintf(logfile,"'Non-local' (based on Gh(0), Gaussian width Rp="GFORMDEF")\n",polNlocRp);
+				fprintf(logfile,"'Non-local' (based on lattice sums, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
