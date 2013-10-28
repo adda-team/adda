@@ -18,7 +18,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.3b2"
+#define ADDA_VERSION "1.3b3"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -89,8 +89,10 @@
 #define SQRT_PI             1.7724538509055160272981674833411
 #define TWO_OVER_SQRT_PI    1.1283791670955125738961589031215
 #define SQRT2               1.4142135623730950488016887242097
+#define SQRT3               1.7320508075688772935274463415059
 #define SQRT1_2             0.70710678118654752440084436210485
 #define SQRT1_2PI           0.39894228040143267793994605993438
+#define SQRT2_9PI           0.26596152026762178529329737328959
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
 
@@ -186,7 +188,7 @@ enum pol { // which way to calculate coupleconstant
 	POL_LAK,    // Exact result of IGT for sphere
 	POL_LDR,    // Lattice Dispersion Relation
 	POL_NLOC,   // non-local extension (Gaussian dipole-density)
-	POL_NLOC0,  // same as NLOC, but based on Gh(0)
+	POL_NLOC0,  // same as NLOC, but based on lattice sum
 	POL_RRC,    // Radiative Reaction correction
 	POL_SO      // Second Order formulation
 	/* TO ADD NEW POLARIZABILITY FORMULATION
@@ -210,6 +212,7 @@ enum inter { // how to calculate interaction term
 	G_IGT,       // (direct) integration of Green's tensor
 	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
 	G_NLOC,      // non-local extension (interaction of Gaussian dipole-densities)
+	G_NLOC0,     // non-local extension (interaction of Gaussian dipole-densities)
 	G_POINT_DIP, // as point dipoles
 	G_SO         // Second Order formulation
 	/* TO ADD NEW INTERACTION FORMULATION
