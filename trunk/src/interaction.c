@@ -89,6 +89,13 @@ void name##_int(const int i,const int j,const int k,doublecomplex result[static 
 	vCopyIntReal(i,j,k,qvec); \
 	name(qvec,result,true); }
 
+// same as above, but calling function is different from name and accepts additional argument
+# define INT_WRAPPER_INTER_3(name,func,arg) \
+void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
+	double qvec[3]; \
+	vCopyIntReal(i,j,k,qvec); \
+	func(qvec,result,true,arg); }
+
 // wrapper for <name> (reflected interaction), based on integer input; arguments are described in .h file
 # define INT_WRAPPER_REFL(name) \
 void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
@@ -105,6 +112,13 @@ void name##_real(const double qvec_in[restrict 3],doublecomplex result[static re
 	vCopy(qvec_in,qvec); \
 	name(qvec,result,false); }
 
+// same as above, but calling function is different from name and accepts additional argument
+# define REAL_WRAPPER_INTER_3(name,func,arg) \
+void name##_real(const double qvec_in[restrict 3],doublecomplex result[static restrict 6]) { \
+	double qvec[3]; \
+	vCopy(qvec_in,qvec); \
+	func(qvec,result,true,arg); }
+
 // wrapper for <name>, based on real input; arguments are described in .h file
 # define REAL_WRAPPER_REFL(name) \
 void name##_real(const double qvec[restrict 3],doublecomplex result[static restrict 6]) \
@@ -112,6 +126,7 @@ void name##_real(const double qvec[restrict 3],doublecomplex result[static restr
 
 // aggregate defines
 #define WRAPPERS_INTER(name) INT_WRAPPER_INTER(name) REAL_WRAPPER_INTER(name)
+#define WRAPPERS_INTER_3(name,func,arg) INT_WRAPPER_INTER_3(name,func,arg) REAL_WRAPPER_INTER_3(name,func,arg)
 #define WRAPPERS_REFL(name) INT_WRAPPER_REFL(name) REAL_WRAPPER_REFL(name)
 
 /* this macro defines a void (error generating) real-input wrapper for Green's tensor formulations, which are, for
@@ -141,7 +156,10 @@ static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[
 
 static inline void InterParams(double qvec[static 3],double qmunu[static 6],double *rr,double *rn,double *invr3,
 	double *kr,double *kr2,const bool unitsGrid)
-// some common variables needed by the interaction functions - needed for all except IGT
+/* some common variables needed by the interaction functions - needed for all except IGT
+ * It will probably break down for qvec=0, so if any interaction term is required for zero argument, a new function need
+ * to be created, which will avoid this singularity
+ */
 {
 	double invrn;
 
@@ -323,6 +341,7 @@ static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[stat
  * speed of FCD can be improved by using faster version of sici routine, using predefined tables, etc (e.g. as is
  * done in GSL library). But currently extra time for this computation is already smaller than one main iteration.
  */
+// If needed, it can be updated to work fine for qvec==0
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
@@ -364,6 +383,7 @@ WRAPPERS_INTER(InterTerm_fcd)
 
 static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 // Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
+// If needed, it can be updated to work fine for qvec==0
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
@@ -560,96 +580,112 @@ NO_REAL_WRAPPER(InterTerm_igt_so)
 
 //=====================================================================================================================
 
-static inline void lower_gamma(const double x,double res[static 3])
-/* computes the values of lower incomplete gamma function of orders 1/2,3/2, and 5/2 at x^2 by upward recursion
+static inline double lower_gamma52(const double sx,const double expMx)
+/* computes the values of lower incomplete gamma function of order 5/2 at sx^2 by upward recursion from erf(x),
+ * i.e. sx = sqrt(x) is given together with exp(-sx^2)=exp(-x)
  * it is numerically stable (up to all digits) for x>1
  * if extension to complex input is required, cerf can be obtained from http://apps.jcns.fz-juelich.de/doku/sc/libcerf
  */
 {
-	double te=exp(-x*x);
-	res[0]=SQRT_PI*erf(x);
-	res[1]=0.5*res[0]-x*te;
-	res[2]=1.5*res[1]-x*x*x*te;
+	return 0.75*SQRT_PI*erf(sx) - sx*(1.5+sx*sx)*expMx;
 }
 
 //=====================================================================================================================
 
-static inline void gamma_scaled(const double x,double res[static 3])
-/* computes the values of scaled lower incomplete gamma function of orders 1/2,3/2, and 5/2 at x by downward recursion
+static inline double gamma_scaled(const double s,const double x,const double expMx)
+/* computes the values of scaled lower incomplete gamma function, using given value of exp(-x)
  * f[s-1/2,x] = g[s,x]/x^s = M(s,s+1,-x)/s = exp(-x)M(1,s+1,x)/s, where M is Kummer's confluent hypergeometric function
+ *
+ * The code is based on Numerical Recipes, 3rd ed. There it is mentioned that such series are more efficient than
+ * continuous fraction for x < s. Series is f[s-1/2,x] = exp(-x)*Sum{k=0->inf,Gamma(s)*x^k/Gamma(s+k+1)}.
+ * For s=5/2 to reach double precision it requires from 9 to 16 iterations when 0.1<=x<=1 (and even smaller -
+ * for smaller x)
  */
 {
-	/* First compute f[2,x]*exp(x) by series summation, the code is based on Numerical Recipes, 3rd ed. There it is
-	 * mentioned that such series are more efficient than continuous fraction for x < 5/2.
-	 * Series is f[s-1/2,x]*exp(x) = Sum{k=0->inf,Gamma(s)*x^k/Gamma(s+k+1)}, we use s=5/2
-	 * To reach double precision it requires from 9 to 16 iterations when 0.1<=x<=1 (and even smaller - for smaller x)
-	 */
-#define SVAL 2.5
 	double ap,del,sum;
-	ap=SVAL;
-	del=sum=1.0/SVAL;
+	ap=s;
+	del=sum=1.0/s;
 	do {
 		ap++;
 		del*=x/ap;
 		sum+=del;
 	} while (fabs(del) > fabs(sum)*DBL_EPSILON);
-#undef SVAL
-	// downward recursion
-	double te=exp(-x);
-	res[2]=sum*te;
-	res[1]=(x*res[2]+te)/1.5;
-	// currently res[0] is not used
-	// res[0]=(x*res[1]+te)/0.5;
+	return sum*expMx;
 }
 
 //=====================================================================================================================
 
-static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
+static inline double AverageGaussCube(double x)
+/* computes one component of Gaussian averaging over a cube: (multiplied by 2)
+ * [2/(sqrt(2pi)*d*Rp)]*Integral[exp(-(x+t)^2/(2Rp^2)),{t,-d/2,d/2}]
+ */
+{
+	double dif;
+	if (x<0) x=-x; // for convenience work only with non-negative input
+	const double y=x/(SQRT2*nloc_Rp);
+	const double z=gridspace/(2*SQRT2*nloc_Rp);
+	// two branches not to lose precision
+	if (x<1) dif = erf(y+z) - erf(y-z);
+	else dif = erfc(y-z) - erfc(y+z);
+	return dif/gridspace;
+}
+
+//=====================================================================================================================
+
+static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid,
+	const bool averageH)
 /* Interaction term between two dipoles using the non-local interaction;
  * qvec is  a distance given by either integer-valued vector (in units of d) or arbitrary-valued in real units (um),
  * controlled by unitsGrid (true of false respectively), result is for produced output
+ * averageH specifies if the h function should be averaged over the dipole (cube) volume
  *
  * !!! Currently only static version is implemented
  * !!! Mind the difference in sign with term in quantum-mechanical simulations, which defines the interaction energy
- * G = 2/[sqrt(PI)*R^3] * {2*(RR/R^2)*g(5/2,x) - I*g(3/2,x)}, where x=R^2/(2*Rp^2) and g is lower incomplete
- * gamma-function. For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
- * g(1/2,y^2) = sqrt(pi)*erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)*x^s
- *
+ * G = 4/[3sqrt(PI)R^3]g(5/2,x)[3(RR/R^2)-I] - (4pi/3)h(R), where x=R^2/(2Rp^2), g is lower incomplete  gamma-function.
+ * For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
+ * g(1/2,y^2) = sqrt(pi)erf(y) and g(s+1,x) = s*g(s,x) - exp(-x)x^s
  * For small x to save significant digits, we define f(m,x) = g(m+1/2,x)/x^(m+1/2) [no additional coefficient 1/2]
- * and compute them by downward recursion starting from f[2,x] (computed by series representation)
- * Then we use the following expression for G (with R^3 replaced by Rp^3), which is regular for x->0
- * G = 1/[sqrt(2*PI)*Rp^3] * {2*(RR/R^2)*x*f(2,x) - I*f(1,x)}
+ * (computed by series representation), then g(5/2,x)/R^3 = f(2,x)/[sqrt(2)*Rp]^3
+ *
+ * (4pi/3)h(R)=exp(-x)*sqrt(2/pi)/(3*Rp^3) - is the non-locality function. If averageH, it is replaced by its integral
+ * over cube, which can be easily expressed through erf.
+ *
+ * Currently this function is faster than FCD, so we should not worry about speed. But if needed, calculation of both
+ * h(R) and its integrals can be optimized by tabulating 1D functions (either exp, or combinations of erf)
  */
+// If needed, it can be updated to work fine for qvec==0
 {
 	// standard variable definitions used for functions InterParams
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
 	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 
-	double x,y,ar[3],expval;
+	double sx,x,t1,t2,expMx,invRp3;
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
-	if (rr>=nloc_Rp) {
-		if (nloc_Rp==0) {
-			if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
-			// same as lower_gamma but explicitly using erf(inf)=1, exp(-inf)=0
-			ar[0]=SQRT_PI;
-			ar[1]=0.5*ar[0];
-			ar[2]=1.5*ar[1];
-		}
-		else lower_gamma(SQRT1_2*rr/nloc_Rp,ar);
-		expval=TWO_OVER_SQRT_PI*invr3;
+	if (nloc_Rp==0) {
+		if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
+		t1=invr3;
+		// when averaging, we check if the point r is inside the cube around r0. Conforms with general formula below
+		if (averageH && rn<=SQRT3*0.5 && fabs(qvec[0])*rn<=0.5 && fabs(qvec[1])*rn<=0.5 && fabs(qvec[2])*rn<=0.5)
+			t2=FOUR_PI_OVER_THREE;
+		else t2=0;
 	}
 	else {
-		y=SQRT1_2*rr/nloc_Rp;
-		x=y*y;
-		gamma_scaled(x,ar);
-		ar[2]*=x;
-		expval=SQRT1_2PI/(nloc_Rp*nloc_Rp*nloc_Rp);
+		invRp3=1/(nloc_Rp*nloc_Rp*nloc_Rp);
+		sx=SQRT1_2*rr/nloc_Rp;
+		x=sx*sx;
+		expMx=exp(-sx*sx);
+		// the threshold for x is somewhat arbitrary
+		if (x>1) t1=(4/(3*SQRT_PI))*lower_gamma52(sx,expMx)*invr3;
+		else t1=SQRT2_9PI*x*gamma_scaled(2.5,x,expMx)*invRp3;
+		if (averageH)
+			t2=PI_OVER_SIX*AverageGaussCube(qvec[0]*rr)*AverageGaussCube(qvec[1]*rr)*AverageGaussCube(qvec[2]*rr);
+		else t2=expMx*invRp3*SQRT2_9PI;
 	}
 
 //#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
 //#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
-#define INTERACT_DIAG(ind) { result[ind] = (2*ar[2]*qmunu[ind] - ar[1])*expval; }
-#define INTERACT_NONDIAG(ind) { result[ind] = 2*ar[2]*qmunu[ind]*expval; }
+#define INTERACT_DIAG(ind) { result[ind] = 3*t1*qmunu[ind] - (t1+t2); }
+#define INTERACT_NONDIAG(ind) { result[ind] = 3*t1*qmunu[ind]; }
 
 	INTERACT_DIAG(0);    // xx
 	INTERACT_NONDIAG(1); // xy
@@ -661,17 +697,12 @@ static inline void InterTerm_nloc(double qvec[static 3],doublecomplex result[sta
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
 
-//	double t1=-expval*ar[1];
-//	doubel t2=2*expval*ar[2];
-//	res = t1*I + t2*(RR/R^2)
-//	for (int i=0;i<6;i++) result[i]=t2*qmunu[i];
-//	result[0]+=t1;
-//	result[3]+=t1;
-//	result[5]+=t1;
 	PRINT_GVAL;
 }
 
-WRAPPERS_INTER(InterTerm_nloc)
+// wrappers both for nloc and nloc0
+WRAPPERS_INTER_3(InterTerm_nloc,InterTerm_nloc_both,true)
+WRAPPERS_INTER_3(InterTerm_nloc0,InterTerm_nloc_both,false)
 
 //=====================================================================================================================
 
@@ -1326,6 +1357,7 @@ void InitInteraction(void)
 			SET_FUNC_POINTERS(InterTerm,igt_so);
 			break;
 		case G_NLOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
+		case G_NLOC0: SET_FUNC_POINTERS(InterTerm,nloc0); break;
 		case G_SO:
 			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
 				"arbitrary real arguments");

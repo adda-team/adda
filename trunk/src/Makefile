@@ -1,6 +1,7 @@
 # Main makefile for ADDA package
-# Requires GNU make to execute. Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI),
-# and OpenCL (GPU accelerated) version respectively
+# Requires GNU make (at least 3.81) to execute. 
+# Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI), and OpenCL (GPU accelerated)
+# version respectively
 # $Date::                            $
 #
 # Copyright (C) 2006-2013 ADDA contributors
@@ -24,6 +25,14 @@
 # command line option to make. In particular, this can be relevant for specifying a different version of the compiler
 # (see below).
 #=======================================================================================================================
+
+# Test version and features of GNU make
+ifeq ($(.FEATURES),)
+  $(error GNU make version 3.81 or higher is required)
+endif
+ifeq ($(filter else-if,$(.FEATURES)),)
+  $(error make does not support else-if)
+endif
 
 #=======================================================================================================================
 # Fixed definitions for non-compilation targets

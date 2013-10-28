@@ -459,7 +459,7 @@ static struct opt_struct options[]={
 #endif
 		"'zero' is a zero vector,\n"
 		"Default: auto",UNDEF,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|poi|so}",
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc0 <Rp>|poi|so}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
@@ -470,8 +470,9 @@ static struct opt_struct options[]={
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
 		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
-		"'nloc' - non-local interaction of two Gaussian dipole densities, <Rp> is the width of the latter in um (must "
-		"be non-negative).\n"
+		"'nloc' - non-local interaction of two Gaussian dipole densities (averaged over the cube volume), <Rp> is the "
+		"width of the latter in um (must be non-negative).\n"
+		"'nloc0' - same as 'nloc' but based on point value of Gh.\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 #ifdef SPARSE
@@ -1181,6 +1182,13 @@ PARSE_FUNC(int)
 	else if (strcmp(argv[1],"nloc")==0) {
 		IntRelation=G_NLOC;
 		if (Narg!=2) NargErrorSub(Narg,"int nloc","1");
+		ScanDoubleError(argv[2],&nloc_Rp);
+		TestNonNegative(nloc_Rp,"Gaussian width");
+		noExtraArgs=false;
+	}
+	else if (strcmp(argv[1],"nloc0")==0) {
+		IntRelation=G_NLOC0;
+		if (Narg!=2) NargErrorSub(Narg,"int nloc0","1");
 		ScanDoubleError(argv[2],&nloc_Rp);
 		TestNonNegative(nloc_Rp,"Gaussian width");
 		noExtraArgs=false;
@@ -2353,9 +2361,9 @@ void PrintInfo(void)
 				if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
 				fprintf(logfile,"\n");
 				break;
-			case POL_NLOC: fprintf(logfile,"'Non-local' (Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
+			case POL_NLOC: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
 			case POL_NLOC0:
-				fprintf(logfile,"'Non-local' (based on lattice sums, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
+				fprintf(logfile,"'Non-local' (based on lattice sum, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
@@ -2383,7 +2391,12 @@ void PrintInfo(void)
 				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
-			case G_NLOC: fprintf(logfile,"'Non-local interaction' (Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
+			case G_NLOC:
+				fprintf(logfile,"'Non-local interaction' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp);
+				break;
+			case G_NLOC0:
+				fprintf(logfile,"'Non-local interaction' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp);
+				break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}

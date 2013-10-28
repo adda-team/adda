@@ -136,6 +136,7 @@ static inline double ellTheta(const double a)
  * it obeys the following relation theta_3(0,exp(-pi*a^2)) = (1/a)*theta_3(0,exp(-pi/a^2)),
  * see e.g. J.D. Fenton and R.S. Gardiner-Garden, "Rapidly-convergent methods for evaluating elliptic integrals and
  * theta and elliptic functions," J. Austral. Math. Soc. B 24, 47-58 (1982).
+ * or http://en.wikipedia.org/wiki/Theta_function#Jacobi_identities
  * so the sum need to be taken only for a>=1, then three terms are sufficient to obtain 10^-22 accuracy
  */
 {
@@ -511,7 +512,7 @@ static void AllocateEverything(void)
 	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
-	 * 			+ for Sommerfeld table: 64*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2)
+	 * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
 	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
 	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
