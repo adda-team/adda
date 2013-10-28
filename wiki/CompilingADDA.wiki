@@ -5,7 +5,7 @@
 
 = Introduction =
 
-The simplest way to compile `ADDA` is using the provided `Makefile`. This can be done on any system with [http://www.gnu.org/software/make/ GNU make] and C, Fortran, and C++ compilers installed, which includes but not limited to almost all Unix-type systems. Core parts of `ADDA` are written in C, while Fortran and C++ are used for relatively small parts that are not always required (see below).
+The simplest way to compile `ADDA` is using the provided `Makefile`. This can be done on any system with [http://www.gnu.org/software/make/ GNU make] (version 3.81 or higher) and C, Fortran, and C++ compilers installed, which includes but not limited to almost all Unix-type systems. Core parts of `ADDA` are written in C, while Fortran and C++ are used for relatively small parts that are not always required (see below).
 
 Position yourself in the `src/` directory of the [PackageDescription ADDA package] and type "`make seq`", "`make mpi`", or "`make ocl`" to compile the sequential, MPI, or OpenCL version respectively (on some systems, GNU `make` is available under a different name, e.g. `gmake`) . Compiled executables are then `src/seq/adda`, `src/mpi/adda_mpi`, and `src/ocl/adda_ocl` respectively. Full list of possible targets (arguments to `make`) is the following:
 
