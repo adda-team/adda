@@ -71,6 +71,10 @@ A. G. Hoekstra, M. Frijlink, L. B. F. M. Waters, and P. M. A. Sloot, “Radiatio
 === Internal fields ===
 A. G. Hoekstra, J. Rahola, and P. M. A. Sloot, “Accuracy of internal fields in volume integral equation simulations of light scattering,” [http://dx.doi.org/10.1364/AO.37.008482 Appl. Opt. 37, 8482–8497 (1998)].
 
+=== Mueller matrix integrated over the azimuthal angle ===
+M. A. Yurkin, “Symmetry relations for the Mueller scattering matrix integrated over the azimuthal angle,” [http://dx.doi.org/10.1016/j.jqsrt.2012.11.023 J. Quant. Spectrosc. Radiat. Transfer 131, 82–87 (2013)].
+
+
 == Comparisons ==
 === with other DDA codes ===
 A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417–436 (2007)].
