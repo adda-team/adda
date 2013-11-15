@@ -12,8 +12,11 @@ A variety of links to different application examples of `ADDA` and to related co
 Here we do not list tools/workflows that are supplied in [http://code.google.com/p/a-dda/source/browse/#svn%2Ftrunk%2Fmisc misc/] folder ([PackageDescription short overview]).
 
  * [http://albin.abo.fi/~jkniivil/litebil/ LiteBil] allows visualization of `ADDA` and `DDSCAT` shape files.
- * [http://nanohub.org/resources/ddaconvert DDSCAT File Conversion Tool] converts `.obj` files to `DDSCAT` shape files, which can also be read by `ADDA`. Similar to [http://a-dda.googlecode.com/svn/trunk/misc/pip/ misc/pip].
- * [http://www.fisica.unam.mx/cecilia/codes.html DDA polyhedral targets] - a collection of codes to generate shape files for `DDSCAT`, which can also be read by `ADDA`. 
+
+ * The following tools produce shape files for `DDSCAT` that can also be read by `ADDA`:
+   * [http://nanohub.org/resources/ddaconvert DDSCAT File Conversion Tool] converts `.obj` files to shape files. Similar to [http://a-dda.googlecode.com/svn/trunk/misc/pip/ misc/pip].
+   * [http://www.fisica.unam.mx/cecilia/codes.html DDA polyhedral targets] - a collection of codes to generate shape files of polyhedra.
+   * [http://github.com/feranick/ddscat-tools DDSCAT-tools] generate a sphere randomly covered by smaller spheres, and a slab with a sphere on top of it.
 
 = Other related (DDA) codes =
  * [http://code.google.com/p/ddscat/ DDSCAT] - popular general-purpose DDA code.
