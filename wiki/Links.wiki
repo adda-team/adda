@@ -1,0 +1,34 @@
+#summary Links
+
+A variety of links to different application examples of `ADDA` and to related codes.
+
+<wiki:toc />
+
+= Codes that use `ADDA` =
+ * [http://launchpad.net/holopy HoloPy] can be used as a python wrapper for `ADDA`.
+ * [http://github.com/baptiste/adda/wiki/wrapper_primer R wrapper for ADDA].
+
+= Tools that operate with `ADDA` input/output =
+Here we do not list tools/workflows that are supplied in [http://code.google.com/p/a-dda/source/browse/#svn%2Ftrunk%2Fmisc misc/] folder ([PackageDescription short overview]).
+
+ * [http://albin.abo.fi/~jkniivil/litebil/ LiteBil] allows visualization of `ADDA` and `DDSCAT` shape files.
+ * [http://nanohub.org/resources/ddaconvert DDSCAT File Conversion Tool] converts `.obj` files to `DDSCAT` shape files, which can also be read by `ADDA`. Similar to [http://a-dda.googlecode.com/svn/trunk/misc/pip/ misc/pip].
+ * [http://www.fisica.unam.mx/cecilia/codes.html DDA polyhedral targets] - a collection of codes to generate shape files for `DDSCAT`, which can also be read by `ADDA`. 
+
+= Other related (DDA) codes =
+ * [http://code.google.com/p/ddscat/ DDSCAT] - popular general-purpose DDA code.
+ * [http://www.opendda.org/ OpenDDA] - highly-optimized DDA code, uses both MPI and OpenMP parallelization.
+ * [http://github.com/steffen-kiess/dda DDA-GPU] - GPU-accelerated (using OpenCL) DDA code. Algorithms are partly based on `ADDA`.
+ * [http://code.google.com/p/dda-si/ DDA-SI] - Matlab DDA code which includes surface interaction (by Sommerfeld integrals), but lacks FFT acceleration.
+
+See also
+ * [http://en.wikipedia.org/wiki/Discrete_dipole_approximation_codes List of DDA codes at Wikipedia].
+ * [http://www.scattport.org/index.php/light-scattering-software/volume-integral Volume-integral section at Scattport].
+
+= University courses =
+ * [http://wiki.helsinki.fi/display/53825/Electromagnetic+Scattering+II Electromagnetic Scattering II], University of Helsinki.
+ * [http://wiki.helsinki.fi/display/PSR/Comets Small bodies in the Solar system I, comets], University of Helsinki.
+ * [http://irina.eas.gatech.edu/EAS8803_SPRING2012/ Atmospheric Radiative Transfer] ([http://irina.eas.gatech.edu/EAS8803_SPRING2012/Lec18.pdf lecture 18]), Georgia Institute of Technology.
+
+= Media =
+ * [http://www.opennet.ru/docs/RUS/fss_history2/ History of Russian market of open-source software] (in Russian, May 2010)
