@@ -12,6 +12,9 @@ This list is far from being complete, therefore please send your questions to [m
   * In particular, go through the [Tutorial Tutorial] to understand basic `ADDA` functionality.
   * Scan through the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] to understand where to get more details if needed.
 
+== Do you have GUI/wrapper for `ADDA`? Can `ADDA` plot its results? ==
+Development of `ADDA` is focused on its core functionality (that is efficient and large-scale simulations of interaction of electromagnetic waves with particles). Any kind of pre- and post-processing can be implemented by scripts or independent programs without changing the core code. Some examples can be found in [http://code.google.com/p/a-dda/source/browse/#svn%2Ftrunk%2Fmisc misc/] folder ([PackageDescription short overview]). Also a few [https://code.google.com/p/a-dda/wiki/Links#Codes_that_use_ADDA wrappers] are available.
+
 == I run `ADDA` and get strange output (different from my expectations). What should I do? ==
   * Make sure you are using the latest version of `ADDA`. Read carefully the relevant parts of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual].
   * Check this FAQ.
