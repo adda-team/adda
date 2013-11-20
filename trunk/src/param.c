@@ -1772,7 +1772,7 @@ static FILEHANDLE CreateLockFile(const char * restrict fname ONLY_FOR_LOCK)
 			if (i++ == MAX_LOCK_WAIT_CYCLES) LogError(ONE_POS,"Lock file %s permanently exists",fname);
 		}
 		else { // otherwise produce a message and continue
-			if (errno==EOPNOTSUPP || errno==ENOLCK)
+			if (errno==EOPNOTSUPP || errno==ENOLCK || errno==ENOSYS)
 				LogWarning(EC_WARN,ONE_POS,"Advanced file locking is not supported by the file system");
 			else LogWarning(EC_WARN,ONE_POS,"Unknown problem with file locking ('%s').",strerror(errno));
 			break;
