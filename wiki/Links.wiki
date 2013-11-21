@@ -5,7 +5,7 @@ A variety of links to different application examples of `ADDA` and to related co
 <wiki:toc />
 
 = Codes that use `ADDA` =
- * [http://launchpad.net/holopy HoloPy] can be used as a python wrapper for `ADDA`.
+ * [http://launchpad.net/holopy HoloPy] can be used as a python wrapper for `ADDA` ([http://manoharan.seas.harvard.edu/holopy/users/dda_tutorial.html tutorial]).
  * [http://github.com/baptiste/adda/wiki/wrapper_primer R wrapper for ADDA].
 
 = Tools that operate with `ADDA` input/output =
