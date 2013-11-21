@@ -279,7 +279,7 @@ ifneq ($(filter NOT_USE_LOCK,$(OPTIONS)),)
   endif
 else ifneq ($(filter ONLY_LOCKFILE,$(OPTIONS)),)
   $(info Only lock files (without system locks))
-  CDEFS += -DDONLY_LOCKFILE
+  CDEFS += -DONLY_LOCKFILE
 endif
 ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   $(info Without Fortran sources)
