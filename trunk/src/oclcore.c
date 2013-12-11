@@ -39,10 +39,12 @@
  */
 cl_context context;
 cl_command_queue command_queue;
-cl_kernel clarith1,clarith2,clarith3,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,cltransposeb,cltransposeof,
-	cltransposeob;
+cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,cltransposeb,cltransposeof,
+	cltransposeob,cltransposefR,cltransposebR,cltransposeofR,cltransposeobR;
+
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
+cl_mem bufRmatrix,bufslicesR,bufslicesR_tr; //for surface
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)
 size_t oclMem,oclMemPeak,oclMemMaxObj;
@@ -78,6 +80,7 @@ struct string {
 
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
 //#define OCL_READ_SOURCE_RUNTIME
+
 
 #ifndef OCL_READ_SOURCE_RUNTIME
 	const char stringifiedSourceCL[]=""
@@ -392,6 +395,8 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	clarith3=clCreateKernel(program,"arith3",&err);
 	CL_CH_ERR(err);
+	clarith3_surface=clCreateKernel(program,"arith3_surface",&err);
+	CL_CH_ERR(err);
 	clarith4=clCreateKernel(program,"arith4",&err);
 	CL_CH_ERR(err);
 	clarith5=clCreateKernel(program,"arith5",&err);
@@ -402,11 +407,19 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	cltransposef=clCreateKernel(program,"transpose",&err);
 	CL_CH_ERR(err);
+	cltransposefR=clCreateKernel(program,"transpose",&err);
+	CL_CH_ERR(err);
 	cltransposeb=clCreateKernel(program,"transpose",&err);
+	CL_CH_ERR(err);
+	cltransposebR=clCreateKernel(program,"transpose",&err);
 	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
+	cltransposeofR=clCreateKernel(program,"transposeo",&err);
+	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
+	CL_CH_ERR(err);
+	cltransposeobR=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 #ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
@@ -460,6 +473,7 @@ void oclunload(void)
 	clReleaseKernel(clarith1);
 	clReleaseKernel(clarith2);
 	clReleaseKernel(clarith3);
+	clReleaseKernel(clarith3_surface);
 	clReleaseKernel(clarith4);
 	clReleaseKernel(clarith5);
 	clReleaseKernel(clnConj);
