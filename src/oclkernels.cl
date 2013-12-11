@@ -19,6 +19,9 @@
 //#	error "OpenCL version at least 1.0 is required"
 //#endif
 
+//enable printf for debugging purposes on amd devices
+//#pragma OPENCL EXTENSION cl_amd_printf : enable
+
 #ifdef USE_DOUBLE
 #	ifdef DOUBLE_AMD
 #		pragma OPENCL EXTENSION cl_amd_fp64 : enable
@@ -144,9 +147,43 @@ void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 	          + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
 }
 
+void cReflMatrVec(const double2 *matr,const double2 *vec,double2 *res)
+// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+{
+	res[0].s0 = matr[0].s0*vec[0].s0 - matr[0].s1*vec[0].s1
+	          + matr[1].s0*vec[1].s0 - matr[1].s1*vec[1].s1
+	          + matr[2].s0*vec[2].s0 - matr[2].s1*vec[2].s1;
+	res[0].s1 = matr[0].s0*vec[0].s1 + matr[0].s1*vec[0].s0
+	          + matr[1].s0*vec[1].s1 + matr[1].s1*vec[1].s0
+	          + matr[2].s0*vec[2].s1 + matr[2].s1*vec[2].s0;
+
+	res[1].s0 = matr[1].s0*vec[0].s0 - matr[1].s1*vec[0].s1
+	          + matr[3].s0*vec[1].s0 - matr[3].s1*vec[1].s1
+	          + matr[4].s0*vec[2].s0 - matr[4].s1*vec[2].s1;
+	res[1].s1 = matr[1].s0*vec[0].s1 + matr[1].s1*vec[0].s0
+	          + matr[3].s0*vec[1].s1 + matr[3].s1*vec[1].s0
+	          + matr[4].s0*vec[2].s1 + matr[4].s1*vec[2].s0;
+
+	res[2].s0 = - matr[2].s0*vec[0].s0 + matr[2].s1*vec[0].s1
+	            - matr[4].s0*vec[1].s0 + matr[4].s1*vec[1].s1
+	            + matr[5].s0*vec[2].s0 - matr[5].s1*vec[2].s1;
+	res[2].s1 = - matr[2].s0*vec[0].s1 - matr[2].s1*vec[0].s0
+	            - matr[4].s0*vec[1].s1 - matr[4].s1*vec[1].s0
+	            + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
+}
+
+void cvAdd(const double2 *a, const double2 *b,double2 *c)
+//adding two vectors c=a+b
+//note: addition should work with opencl vector types
+{
+	c[0] = a[0] + b[0];
+	c[1] = a[1] + b[1];
+	c[2] = a[2] + b[2];
+}
+
 //======================================================================================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet local_x0,
+__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,
 	const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,
 	const char NDCOMP,const char reduced_FFT,const char transposed,const in_sizet x)
 {
@@ -166,7 +203,6 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 
 	// works, because of the double2 vector type
 	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
-
 	if (transposed==1) { // used only for G_SO
 		if (x>0) xa=gridX-x;
 		if (y>0) ya=gridY-y;
@@ -192,6 +228,88 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 		}
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
+	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
+}
+
+__kernel void arith3_surface(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,
+	const char NDCOMP,const char reduced_FFT,const char transposed,const in_sizet x,const in_sizet RsizeY,__global double2 *slicesR_tr,__global const double2 *Rmatrix)
+
+{
+	size_t const z = get_global_id(0);
+	size_t const y = get_global_id(1);
+	size_t const gridZ = get_global_size(0);
+	size_t const gridY = get_global_size(1);
+	double2 xv[3];
+	double2 yv[3];
+	double2 xvR[3];
+	double2 yvR[3];
+	double2 fmat[6];
+	int Xcomp;
+	const size_t i=z *gridY + y; // indexSliceZY
+	size_t j;
+	size_t xa=x;
+	size_t ya=y;
+	size_t za=z;
+
+	// works, because of the double2 vector type
+	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
+	if (transposed==1) { // used only for G_SO
+		if (x>0) xa=gridX-x;
+		if (y>0) ya=gridY-y;
+		if (z>0) za=gridZ-z;
+	}
+	else {
+		if (y>=DsizeY) ya=gridY-y;
+		if (z>=DsizeZ) za=gridZ-z;
+	}
+	j=NDCOMP*(xa*DsizeY*DsizeZ+za*DsizeY+ya);
+
+	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f]; // maybe could be done more efficient TODO
+
+	if (reduced_FFT==1) {
+		if (y>smallY) {
+			fmat[1]*=-1;
+			if (z>smallZ) fmat[2]*=-1;
+			else fmat[4]*=-1;
+		}
+		else if (z>smallZ) {
+			fmat[2]*=-1;
+			fmat[4]*=-1;
+		}
+	}
+	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
+	//surface part
+	for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+Xcomp*gridY*gridZ];
+	//resetting indices for idexing of Rmatrix
+	xa=x;
+	ya=y;
+	za=z;
+	if (transposed==1) { // used only for G_SO
+		if ((x)>0) xa=gridX-x;
+		else xa=x;
+		if (y>0) ya=gridY-y;
+		else ya=y;
+	}
+	else {
+		if (y>=RsizeY) ya=gridY-y;
+		else ya=y;
+	}
+
+	j=NDCOMP*((xa*gridZ+za )*RsizeY+ya);
+
+	for (int f=0;f<6;f++) fmat[f]=Rmatrix[j+f]; // maybe could be done more efficient TODO
+	if (reduced_FFT==1 && y>=RsizeY) {
+		fmat[1]*=-1;
+		fmat[4]*=-1;
+	}
+	if (transposed) {
+		fmat[2]*=-1;
+		fmat[4]*=-1;
+	}
+	// yv+=fmat.xvR
+	cReflMatrVec(fmat,xvR,yvR);
+	cvAdd(yvR,yv,yv);
+	//surface part finished
 	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
 }
 

@@ -41,8 +41,9 @@ extern doublecomplex * restrict arg_full;
 // defined and initialized in fft.c
 extern const doublecomplex * restrict Dmatrix,* restrict Rmatrix;
 extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr,* restrict slicesR,* restrict slicesR_tr;
-extern const size_t DsizeY,DsizeZ,RsizeY;
+extern const size_t DsizeY,DsizeZ;
 #endif // !SPARSE && !OPENCL
+extern const size_t RsizeY;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
 
@@ -207,9 +208,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	/* following two calls to clSetKernelArg can be moved to fft.c, since the arguments are constant. However, this
 	 * requires setting auxiliary variables redfft and ndcomp as globals, since the kernel is called below.
 	 */
-	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_char),&ndcomp));
-	CL_CH_ERR(clSetKernelArg(clarith3,9,sizeof(cl_char),&redfft));
-	CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(cl_char),&transp));
+	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(cl_char),&ndcomp));
+	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_char),&redfft));
+	CL_CH_ERR(clSetKernelArg(clarith3,9,sizeof(cl_char),&transp));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,7,sizeof(cl_char),&ndcomp));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,8,sizeof(cl_char),&redfft));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
+	//argument 10 is x so it is changing for every run inside the loop
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,11,sizeof(size_t),&RsizeY));
 	// for arith2 and arith4
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
@@ -275,8 +281,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL));
+		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices, bufslicesR,0,0,3*gridYZ*sizeof(doublecomplex),0,NULL,NULL));
 		clFinish(command_queue);
-		// TODO: add corresponding surface code (issue 101)
 #else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
@@ -311,9 +317,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif//
 #ifdef OPENCL
 		// arith3 on Device
-		CL_CH_ERR(clSetKernelArg(clarith3,11,sizeof(size_t),&x));
+		CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(size_t),&x));
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&x));
+
 		// enqueueing kernel for arith3
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
+		if (surface)
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
+		else
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
 		clFinish(command_queue); //wait till kernel executions are finished
 #else
 		// arith3 on host
@@ -360,7 +371,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 		// inverse FFT y&z
 		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
-#ifdef PRECISE_TIMING //       
+#ifdef PRECISE_TIMING //
 		GetTime(tvp+10);
 		ElapsedInc(tvp+9,tvp+10,&Timing_FFTYb);
 #endif
@@ -513,7 +524,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
-{	
+{
 	const bool ipr = (inprod != NULL);
 	size_t i,j,i3;
 

@@ -37,10 +37,11 @@
 // global OpenCL variables; names should not interfere with other parts of the code
 extern cl_context context;
 extern cl_command_queue command_queue;
-extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith4,clarith5,clnConj,clinprod,cltransposef,cltransposeb,
-	cltransposeof,cltransposeob;
+extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposef,cltransposeb,
+	cltransposeof,cltransposeob,cltransposeofR,cltransposefR,cltransposebR,cltransposeobR;
 extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
+extern cl_mem bufRmatrix,bufslicesR,bufslicesR_tr;
 extern double *inprodhlp;
 extern size_t oclMem,oclMemPeak,oclMemMaxObj;
 extern int gpuInd;
