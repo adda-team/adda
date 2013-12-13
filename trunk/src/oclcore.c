@@ -39,8 +39,8 @@
  */
 cl_context context;
 cl_command_queue command_queue;
-cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,cltransposeb,cltransposeof,
-	cltransposeob,cltransposefR,cltransposebR,cltransposeofR,cltransposeobR;
+cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
+	cltransposeb,cltransposeof,cltransposeob,cltransposefR,cltransposeofR;
 
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
@@ -80,7 +80,6 @@ struct string {
 
 // The kernel source is either loaded from oclkernels.cl at runtime or included at compile time
 //#define OCL_READ_SOURCE_RUNTIME
-
 
 #ifndef OCL_READ_SOURCE_RUNTIME
 	const char stringifiedSourceCL[]=""
@@ -395,8 +394,6 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	clarith3=clCreateKernel(program,"arith3",&err);
 	CL_CH_ERR(err);
-	clarith3_surface=clCreateKernel(program,"arith3_surface",&err);
-	CL_CH_ERR(err);
 	clarith4=clCreateKernel(program,"arith4",&err);
 	CL_CH_ERR(err);
 	clarith5=clCreateKernel(program,"arith5",&err);
@@ -405,26 +402,30 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	clinprod=clCreateKernel(program,"inpr",&err);
 	CL_CH_ERR(err);
+	/* In principle a single kernel (and one optimized one) can be used for all transpose operations, including surface
+	 * ones. However, this will require setting the kernel arguments just before the execution. Thus, using multiple
+	 * kernels seem to be a bit faster.
+	 */
 	cltransposef=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
-	cltransposefR=clCreateKernel(program,"transpose",&err);
 	CL_CH_ERR(err);
 	cltransposeb=clCreateKernel(program,"transpose",&err);
 	CL_CH_ERR(err);
-	cltransposebR=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
-	CL_CH_ERR(err);
-	cltransposeofR=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
-	cltransposeobR=clCreateKernel(program,"transposeo",&err);
-	CL_CH_ERR(err);
+	if (surface) { // kernels for surface
+		clarith3_surface=clCreateKernel(program,"arith3_surface",&err);
+		CL_CH_ERR(err);
+		cltransposefR=clCreateKernel(program,"transpose",&err);
+		CL_CH_ERR(err);
+		cltransposeofR=clCreateKernel(program,"transposeo",&err);
+		CL_CH_ERR(err);
+	}
 #ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
-	clUnloadCompiler();
+	CL_CH_ERR(clUnloadCompiler());
 	D("OpenCL init complete");
 }
 
@@ -452,15 +453,15 @@ void my_clReleaseBuffer(cl_mem buffer)
 // wrapper to release buffer and decrease memory count
 {
 	cl_uint count;
-	clGetMemObjectInfo(buffer,CL_MEM_REFERENCE_COUNT,sizeof(count),&count,NULL);
+	CL_CH_ERR(clGetMemObjectInfo(buffer,CL_MEM_REFERENCE_COUNT,sizeof(count),&count,NULL));
 	if (count==1) {
 		size_t size;
-		clGetMemObjectInfo(buffer,CL_MEM_SIZE,sizeof(size),&size,NULL);
+		CL_CH_ERR(clGetMemObjectInfo(buffer,CL_MEM_SIZE,sizeof(size),&size,NULL));
 		if (oclMem<size) LogWarning(EC_WARN,ALL_POS,"Inconsistency detected in handling OpenCL memory: remaining "
 			"memory (%zu) is smaller than size of the object to be freed (%zu)",oclMem,size);
 		else oclMem-=size;
 	}
-	clReleaseMemObject(buffer);
+	CL_CH_ERR(clReleaseMemObject(buffer));
 }
 
 //======================================================================================================================
@@ -468,20 +469,24 @@ void my_clReleaseBuffer(cl_mem buffer)
 void oclunload(void)
 // unload all OpenCL kernels and similar stuff; buffers are released in Free_FFT_Dmat()
 {
-	clReleaseProgram(program);
-	clReleaseKernel(clzero);
-	clReleaseKernel(clarith1);
-	clReleaseKernel(clarith2);
-	clReleaseKernel(clarith3);
-	clReleaseKernel(clarith3_surface);
-	clReleaseKernel(clarith4);
-	clReleaseKernel(clarith5);
-	clReleaseKernel(clnConj);
-	clReleaseKernel(clinprod);
-	clReleaseKernel(cltransposef);
-	clReleaseKernel(cltransposeb);
-	clReleaseKernel(cltransposeof);
-	clReleaseKernel(cltransposeob);
-	clReleaseCommandQueue(command_queue);
-	clReleaseContext(context);
+	CL_CH_ERR(clReleaseProgram(program));
+	CL_CH_ERR(clReleaseKernel(clzero));
+	CL_CH_ERR(clReleaseKernel(clarith1));
+	CL_CH_ERR(clReleaseKernel(clarith2));
+	CL_CH_ERR(clReleaseKernel(clarith3));
+	CL_CH_ERR(clReleaseKernel(clarith4));
+	CL_CH_ERR(clReleaseKernel(clarith5));
+	CL_CH_ERR(clReleaseKernel(clnConj));
+	CL_CH_ERR(clReleaseKernel(clinprod));
+	CL_CH_ERR(clReleaseKernel(cltransposef));
+	CL_CH_ERR(clReleaseKernel(cltransposeb));
+	CL_CH_ERR(clReleaseKernel(cltransposeof));
+	CL_CH_ERR(clReleaseKernel(cltransposeob));
+	if (surface) { // kernels for surface
+		CL_CH_ERR(clReleaseKernel(clarith3_surface));
+		CL_CH_ERR(clReleaseKernel(cltransposefR));
+		CL_CH_ERR(clReleaseKernel(cltransposeofR));
+	}
+	CL_CH_ERR(clReleaseCommandQueue(command_queue));
+	CL_CH_ERR(clReleaseContext(context));
 }

@@ -147,8 +147,12 @@ void cSymMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 	          + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
 }
 
+//======================================================================================================================
+
 void cReflMatrVec(const double2 *matr,const double2 *vec,double2 *res)
-// multiplication of complex symmetric matrix[6] by complex vec[3]; res=matr.vec
+/* multiplication of matrix[6] by complex vec[3]; res=matr.vec; passed components are the same as for symmetric matrix:
+ * 11,12,13,22,23,33, but the matrix has the following symmetry - M21=M12, M31=-M13, M32=-M23
+ */
 {
 	res[0].s0 = matr[0].s0*vec[0].s0 - matr[0].s1*vec[0].s1
 	          + matr[1].s0*vec[1].s0 - matr[1].s1*vec[1].s1
@@ -172,9 +176,10 @@ void cReflMatrVec(const double2 *matr,const double2 *vec,double2 *res)
 	            + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
 }
 
+//======================================================================================================================
+
 void cvAdd(const double2 *a, const double2 *b,double2 *c)
-//adding two vectors c=a+b
-//note: addition should work with opencl vector types
+// adding two vectors c=a+b; addition is supported by opencl vector types
 {
 	c[0] = a[0] + b[0];
 	c[1] = a[1] + b[1];
@@ -183,9 +188,9 @@ void cvAdd(const double2 *a, const double2 *b,double2 *c)
 
 //======================================================================================================================
 
-__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,
-	const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,
-	const char NDCOMP,const char reduced_FFT,const char transposed,const in_sizet x)
+__kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,
+	const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,
+	const char reduced_FFT,const char transposed,const in_sizet x)
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
@@ -203,6 +208,7 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 
 	// works, because of the double2 vector type
 	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
+	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (x>0) xa=gridX-x;
 		if (y>0) ya=gridY-y;
@@ -231,9 +237,12 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
 }
 
-__kernel void arith3_surface(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,
-	const char NDCOMP,const char reduced_FFT,const char transposed,const in_sizet x,const in_sizet RsizeY,__global double2 *slicesR_tr,__global const double2 *Rmatrix)
+//======================================================================================================================
 
+__kernel void arith3_surface(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,
+	const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,
+	const char reduced_FFT,const char transposed,const in_sizet x,const in_sizet RsizeY,__global double2 *slicesR_tr,
+	__global const double2 *Rmatrix)
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
@@ -253,6 +262,7 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 
 	// works, because of the double2 vector type
 	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
+	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (x>0) xa=gridX-x;
 		if (y>0) ya=gridY-y;
@@ -278,9 +288,9 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 		}
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
-	//surface part
+	// surface part
 	for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+Xcomp*gridY*gridZ];
-	//resetting indices for idexing of Rmatrix
+	// indexRmatrix_mv; first resetting indices
 	xa=x;
 	ya=y;
 	za=z;
@@ -309,7 +319,7 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	// yv+=fmat.xvR
 	cReflMatrVec(fmat,xvR,yvR);
 	cvAdd(yvR,yv,yv);
-	//surface part finished
+	// surface part finished
 	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
 }
 
