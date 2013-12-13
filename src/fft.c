@@ -103,12 +103,12 @@ static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
 static int jstartR; // starting index for y
 static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
 static bool weird_nprocs;              // whether weird number of processors is used
+// clFFT plans
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-static clAmdFftPlanHandle clplanX,clplanY,clplanZ,clplanYR,clplanZR;
+static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
 #	elif defined(CLFFT_APPLE)
-static clFFT_Plan clplanX,clplanY,clplanZ,clplanYR,clplanZR;
-; // clFFT plans
+static clFFT_Plan clplanX,clplanY,clplanZ;
 #	endif
 #endif
 #ifdef FFTW3
@@ -274,30 +274,30 @@ void TransposeYZ(const int direction)
 	 * it to kernel during its compilation. But using small block size is not efficient anyway, so falling back to
 	 * noncached kernel is logical.
 	 */
+	/* the following assumes that tblock[0]=tblock[1]. Otherwise a separate variable (instead of 'cached') is required
+	 * for backward transpose. The latter should be computed using enqtglobalyz instead of enqtglobalzy.
+	 */
 	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
 	cached&=(gridZ%16==0 && gridY%16==0); // this is required due to current limitation of cached kernel
 
 	if (direction==FFT_FORWARD) {
 		if (cached) {
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeof,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
-			if (surface) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeofR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
+			if (surface) 
+				CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeofR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
 		}
 		else {
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
-			if (surface) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposefR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
+			if (surface) 
+				CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposefR,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
 		}
 	}
 	else {
-		if (cached) {
+		if (cached)
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL));
-			if (surface) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeobR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
-		}
-		else {
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
-			if (surface) CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposebR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
-		}
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
 	}
-	clFinish(command_queue);
+	CL_CH_ERR(clFinish(command_queue));
 #else
 	size_t Xcomp,ind;
 
@@ -326,7 +326,7 @@ void fftX(const int isign)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,(clFFT_Direction)isign,bufXmatrix,
 		bufXmatrix,0,NULL,NULL));
 #	endif
-	clFinish(command_queue);
+	CL_CH_ERR(clFinish(command_queue));
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planXf);
 	else fftw_execute(planXb);
@@ -355,16 +355,16 @@ void fftY(const int isign)
 	CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD)
-		CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,NULL,
-		NULL));
+		CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
+			NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslices_tr,
 		bufslices_tr,0,NULL,NULL));
 	if (surface && isign==FFT_FORWARD)
 		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslicesR_tr,
-		bufslicesR_tr,0,NULL,NULL));
+			bufslicesR_tr,0,NULL,NULL));
 #	endif
-	clFinish(command_queue);
+	CL_CH_ERR(clFinish(command_queue));
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) {
 		fftw_execute(planYf);
@@ -392,16 +392,16 @@ void fftZ(const int isign)
 	CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD) // the same operation is applied to bufslicesR, but with inverse transform
-		CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)(-isign),1,&command_queue,0,NULL,NULL,&bufslicesR,NULL,
-		NULL));
+		CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
+			&bufslicesR,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,bufslices,bufslices,0,
 		NULL,NULL));
 	if (surface && isign==FFT_FORWARD) // the same operation is applied to bufslicesR, but with inverse transform
-		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)(-isign),bufslicesR,bufslicesR,0,
-		NULL,NULL));
+		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)FFT_BACKWARD,bufslicesR,
+			bufslicesR,0,NULL,NULL));
 #	endif
-	clFinish(command_queue);
+	CL_CH_ERR(clFinish(command_queue));
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) {
 		fftw_execute(planZf);
@@ -869,15 +869,31 @@ static void InitRmatrix(const double invNgrid)
 	Free_general(BT_rbuffer);
 #endif
 #ifdef OPENCL
-	if (surface) {
-		CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
-		CREATE_CL_BUFFER(bufslicesR,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-		CREATE_CL_BUFFER(bufslicesR_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-		clFinish(command_queue);
-		// copy Rmatrix to OpenCL buffer, blocking to ensure completion before function end
-		CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufRmatrix,CL_TRUE,0,Rsize*sizeof(*Rmatrix),Rmatrix,0,NULL,NULL));
-		Free_cVector(Rmatrix);
-	}
+	// Setting kernel arguments which are always the same
+	// for arith3_surface
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,0,sizeof(cl_mem),&bufslices_tr));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,1,sizeof(cl_mem),&bufDmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,2,sizeof(size_t),&smallY));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,3,sizeof(size_t),&smallZ));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,4,sizeof(size_t),&gridX));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,5,sizeof(size_t),&DsizeY));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,6,sizeof(size_t),&DsizeZ));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,12,sizeof(cl_mem),&bufslicesR_tr));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,13,sizeof(cl_mem),&bufRmatrix));
+	// for transpose forward (backward are not needed for surface)
+	CL_CH_ERR(clSetKernelArg(cltransposefR,0,sizeof(cl_mem),&bufslicesR));
+	CL_CH_ERR(clSetKernelArg(cltransposefR,1,sizeof(cl_mem),&bufslicesR_tr));
+	CL_CH_ERR(clSetKernelArg(cltransposefR,2,sizeof(size_t),&gridZ));
+	CL_CH_ERR(clSetKernelArg(cltransposefR,3,sizeof(size_t),&gridY));
+	// faster transpose kernel with cache
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,0,sizeof(cl_mem),&bufslicesR));
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,1,sizeof(cl_mem),&bufslicesR_tr));
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,2,sizeof(size_t),&gridZ));
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,3,sizeof(size_t),&gridY));
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,4,17*16*3*sizeof(doublecomplex),NULL));
+	// copy Rmatrix to OpenCL buffer, blocking to ensure completion before function end
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufRmatrix,CL_TRUE,0,Rsize*sizeof(*Rmatrix),Rmatrix,0,NULL,NULL));
+	Free_cVector(Rmatrix);
 #endif
 }
 
@@ -994,16 +1010,6 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(clarith3,4,sizeof(size_t),&gridX));
 		CL_CH_ERR(clSetKernelArg(clarith3,5,sizeof(size_t),&DsizeY));
 		CL_CH_ERR(clSetKernelArg(clarith3,6,sizeof(size_t),&DsizeZ));
-		// for arith3_surface
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,0,sizeof(cl_mem),&bufslices_tr));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,1,sizeof(cl_mem),&bufDmatrix));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,2,sizeof(size_t),&smallY));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,3,sizeof(size_t),&smallZ));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,4,sizeof(size_t),&gridX));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,5,sizeof(size_t),&DsizeY));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,6,sizeof(size_t),&DsizeZ));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,12,sizeof(cl_mem),&bufslicesR_tr));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,13,sizeof(cl_mem),&bufRmatrix));
 		// for arith4
 		CL_CH_ERR(clSetKernelArg(clarith4,0,sizeof(cl_mem),&bufXmatrix));
 		CL_CH_ERR(clSetKernelArg(clarith4,1,sizeof(cl_mem),&bufslices));
@@ -1022,7 +1028,7 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(clarith5,6,sizeof(size_t),&smallY));
 		CL_CH_ERR(clSetKernelArg(clarith5,7,sizeof(size_t),&gridX));
 		CL_CH_ERR(clSetKernelArg(clarith5,8,sizeof(cl_mem),&bufresultvec));
-		// for transpose forward
+		// transpose kernels, first for transpose forward
 		CL_CH_ERR(clSetKernelArg(cltransposef,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clSetKernelArg(cltransposef,1,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposef,2,sizeof(size_t),&gridZ));
@@ -1041,36 +1047,12 @@ void InitDmatrix(void)
 		 * avoid bank conflicts
 		 */
 		CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
+		
 		CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(size_t),&gridY));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(size_t),&gridZ));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
-		// same transpose kernels but for slicesr_tr
-		CL_CH_ERR(clSetKernelArg(cltransposefR,0,sizeof(cl_mem),&bufslicesR));
-		CL_CH_ERR(clSetKernelArg(cltransposefR,1,sizeof(cl_mem),&bufslicesR_tr));
-		CL_CH_ERR(clSetKernelArg(cltransposefR,2,sizeof(size_t),&gridZ));
-		CL_CH_ERR(clSetKernelArg(cltransposefR,3,sizeof(size_t),&gridY));
-		// for transpose backward
-		CL_CH_ERR(clSetKernelArg(cltransposebR,0,sizeof(cl_mem),&bufslicesR_tr));
-		CL_CH_ERR(clSetKernelArg(cltransposebR,1,sizeof(cl_mem),&bufslicesR));
-		CL_CH_ERR(clSetKernelArg(cltransposebR,2,sizeof(size_t),&gridY));
-		CL_CH_ERR(clSetKernelArg(cltransposebR,3,sizeof(size_t),&gridZ));
-		// faster transpose kernel with cache; (maybe not always faster so keep the old kernel for special conditions)
-		CL_CH_ERR(clSetKernelArg(cltransposeofR,0,sizeof(cl_mem),&bufslicesR));
-		CL_CH_ERR(clSetKernelArg(cltransposeofR,1,sizeof(cl_mem),&bufslicesR_tr));
-		CL_CH_ERR(clSetKernelArg(cltransposeofR,2,sizeof(size_t),&gridZ));
-		CL_CH_ERR(clSetKernelArg(cltransposeofR,3,sizeof(size_t),&gridY));
-		/* setting up local cache size as 17*16*3 elements; note: a block is only 16*16, but 1*16 stride is needed to
-		 * avoid bank conflicts
-		 */
-		CL_CH_ERR(clSetKernelArg(cltransposeofR,4,17*16*3*sizeof(doublecomplex),NULL));
-
-		CL_CH_ERR(clSetKernelArg(cltransposeobR,0,sizeof(cl_mem),&bufslicesR_tr));
-		CL_CH_ERR(clSetKernelArg(cltransposeobR,1,sizeof(cl_mem),&bufslicesR));
-		CL_CH_ERR(clSetKernelArg(cltransposeobR,2,sizeof(size_t),&gridY));
-		CL_CH_ERR(clSetKernelArg(cltransposeobR,3,sizeof(size_t),&gridZ));
-		CL_CH_ERR(clSetKernelArg(cltransposeobR,4,17*16*3*sizeof(doublecomplex),NULL));
 	}
 #endif
 	// part of the code for InitRmatrix is here to be compatible with prognosis and FFT init
@@ -1095,6 +1077,11 @@ void InitDmatrix(void)
 		// potentially this may cause unnecessary error during prognosis, but makes code cleaner
 		Rsize=MultOverflow(NDCOMP*local_Nx,RsizeY*gridZ,ONE_POS_FUNC);
 		R2sizeTot=lz_Rm*R2sizeY*gridX; // this should be approximately equal to Rsize/NDCOMP
+#ifdef OPENCL // perform setting up of buffers (kernel arguments are set in InitRmatrix)
+		CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
+		CREATE_CL_BUFFER(bufslicesR,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
+		CREATE_CL_BUFFER(bufslicesR_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
+#endif
 	}
 	// memory estimation and exit for prognosis
 	MAXIMIZE(memPeak,memory);
@@ -1371,8 +1358,9 @@ void Free_FFT_Dmat(void)
 		my_clReleaseBuffer(bufslicesR_tr);
 	}
 #	ifdef CLFFT_AMD
-	clAmdFftTeardown();
+	CL_CH_ERR(clAmdFftTeardown());
 #	elif defined(CLFFT_APPLE)
+	// the following do not return error status
 	clFFT_DestroyPlan(clplanX);
 	clFFT_DestroyPlan(clplanY);
 	clFFT_DestroyPlan(clplanZ);

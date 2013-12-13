@@ -211,11 +211,13 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(cl_char),&ndcomp));
 	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_char),&redfft));
 	CL_CH_ERR(clSetKernelArg(clarith3,9,sizeof(cl_char),&transp));
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,7,sizeof(cl_char),&ndcomp));
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,8,sizeof(cl_char),&redfft));
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
-	//argument 10 is x so it is changing for every run inside the loop
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,11,sizeof(size_t),&RsizeY));
+	if (surface) { // arguments for surface-version of the arith3 kernel
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,7,sizeof(cl_char),&ndcomp));
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,8,sizeof(cl_char),&redfft));
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
+		//argument 10 is x so it is changing for every run inside the loop
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,11,sizeof(size_t),&RsizeY));
+	}
 	// for arith2 and arith4
 	const size_t gwsarith24[2]={boxY_st,boxZ_st};
 	const size_t slicesize=gridYZ*3;
@@ -232,7 +234,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-	clFinish(command_queue); //wait till kernel executions are finished
+	CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished
 #else
 	// fill Xmatrix with 0.0
 	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i]=0.0;
@@ -281,8 +283,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL));
-		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices, bufslicesR,0,0,3*gridYZ*sizeof(doublecomplex),0,NULL,NULL));
-		clFinish(command_queue);
+		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
+			3*gridYZ*sizeof(doublecomplex),0,NULL,NULL));
+		CL_CH_ERR(clFinish(command_queue));
 #else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
@@ -317,15 +320,15 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif//
 #ifdef OPENCL
 		// arith3 on Device
-		CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(size_t),&x));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&x));
-
-		// enqueueing kernel for arith3
-		if (surface)
+		if (surface) {
+			CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&x));
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
-		else
+		}
+		else {
+			CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(size_t),&x));
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
-		clFinish(command_queue); //wait till kernel executions are finished
+		}
+		CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished
 #else
 		// arith3 on host
 		// do the product D~*X~  and R~*X'~
@@ -371,12 +374,12 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 		// inverse FFT y&z
 		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
-#ifdef PRECISE_TIMING //
+#ifdef PRECISE_TIMING
 		GetTime(tvp+10);
 		ElapsedInc(tvp+9,tvp+10,&Timing_FFTYb);
 #endif
 		TransposeYZ(FFT_BACKWARD);
-#ifdef PRECISE_TIMING//
+#ifdef PRECISE_TIMING
 		GetTime(tvp+11);
 		ElapsedInc(tvp+10,tvp+11,&Timing_TYZb);
 #endif
@@ -388,7 +391,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 		CL_CH_ERR(clSetKernelArg(clarith4,7,sizeof(size_t),&x));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,NULL));
-		clFinish(command_queue);
+		CL_CH_ERR(clFinish(command_queue));
 #else
 		//arith4 on host
 		// copy slice back to Xmatrix

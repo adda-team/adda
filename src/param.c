@@ -485,7 +485,7 @@ static struct opt_struct options[]={
 		 * computational time, add a special note for sparse mode (after '#ifdef SPARSE').
 		 */
 	{PAR(int_surf),"{img|som}",
-		"Sets prescription to calculate the interaction term.\n"
+		"Sets prescription to calculate the reflection term.\n"
 		"'img' - approximation based on a single image dipole (fast but inaccurate).\n"
 		"'som' - direct evaluation of Sommerfeld integrals.\n"
 	#ifdef SPARSE
@@ -591,7 +591,7 @@ static struct opt_struct options[]={
 		"be saved to file. Amplitude matrix is never integrated (in combination with '-orient avg' or '-phi_integr').\n"
 		"Default: muel",1,NULL},
 	{PAR(scat_plane),"","Explicitly enables calculation of the scattering in the plane through e_z (in laboratory "
-		"reference frame) and propagation direction of incident wave. For default incidence, this is the xz-plane. It "
+		"reference frame) and propagation direction of incident wave. For default incidence this is the xz-plane. It "
 		"can also be implicitly enabled by other options.",0,NULL},
 #ifndef SPARSE
 	{PAR(sg_format),"{text|text_ext|ddscat6|ddscat7}","Specifies format for saving geometry files. First two are ADDA "
@@ -633,8 +633,8 @@ static struct opt_struct options[]={
 	{PAR(V),"","Show ADDA version, compiler used to build this executable, build options, and copyright information",
 		0,NULL},
 	{PAR(vec),"","Calculate the not-normalized asymmetry vector",0,NULL},
-	{PAR(yz),"","Calculate the Mueller matrix in yz-plane even if it is calculated for a scattering grid. If the "
-		"latter option is not enabled, scattering in yz-plane is always calculated.",0,NULL}
+	{PAR(yz),"","Explicitly enables calculation of the scattering in the yz-plane (in incident-wave reference frame). "
+		"It can also be implicitly enabled by other options.",0,NULL}
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * add a row to this list, initializing an option. It should contain: PAR(option_name), usage string, help string,
 	 * number of arguments, pointer to suboption (if exist, NULL otherwise). Usage and help string are shown either
@@ -1500,9 +1500,6 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
-#ifdef OPENCL
-	PrintError("Currently surface is not supported in OpenCL mode");
-#endif
 	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
 	ScanDoubleError(argv[1],&hsub);
 	TestPositive(hsub,"height above surface");
