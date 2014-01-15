@@ -1,0 +1,42 @@
+all data is saved in 'run000_sphere_g16_m1.5'
+box dimensions: 16x16x16
+lambda: 6.283185307   Dipoles/lambda: 15
+Required relative residual norm: 1e-005
+Total number of occupied dipoles: 2176
+Memory usage for MatVec matrices: 1.3 MB
+Calculating Green's function (Dmatrix)
+Fourier transform of Dmatrix......
+Initializing FFTW3
+Total memory usage: 2.2 MB
+
+here we go, calc Y
+
+CoupleConstant:0.005259037197+1.843854148e-005i
+x_0 = 0
+RE_000 = 1.0000000000E+000
+RE_001 = 8.4752662637E-001  + 
+RE_002 = 8.2113292044E-001  + 
+RE_003 = 4.2639057157E-001  + 
+RE_004 = 3.0639031825E-001  + 
+RE_005 = 2.2448283848E-001  + 
+RE_006 = 2.2740255145E-001  - 
+RE_007 = 1.5952149116E-001  + 
+RE_008 = 6.1602401377E-002  + 
+RE_009 = 3.5443250606E-002  + 
+RE_010 = 2.9898244022E-002  + 
+RE_011 = 2.4111231314E-002  + 
+RE_012 = 3.8307716443E-003  + 
+RE_013 = 3.0434605425E-003  + 
+RE_014 = 1.3101400521E-003  + 
+RE_015 = 8.2588869759E-004  + 
+RE_016 = 5.0452779442E-004  + 
+RE_017 = 1.1339754906E-004  + 
+RE_018 = 9.3640480043E-005  + 
+RE_019 = 6.8748670242E-005  + 
+RE_020 = 2.2386393363E-005  + 
+RE_021 = 1.5170006983E-005  + 
+RE_022 = 3.1673391134E-006  + 
+Cext	= 135.0449041
+Qext	= 3.791149597
+Cabs	= -0
+Qabs	= -0
