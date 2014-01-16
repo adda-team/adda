@@ -240,7 +240,7 @@ static inline void cvAdd(const doublecomplex a[static 3],const doublecomplex b[s
 //======================================================================================================================
 
 static inline void cvSubtr(const doublecomplex a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
-// add two complex vector[3]; c=a-b;
+// subtract two complex vector[3]; c=a-b;
 {
 	c[0] = a[0] - b[0];
 	c[1] = a[1] - b[1];
@@ -583,6 +583,88 @@ static inline double Rad2Deg(const double rad)
 // transforms angle in radians to degrees
 {
 	return (INV_PI_180*rad);
+}
+
+//======================================================================================================================
+// Bessel function calculations as per http://www.aip.de/groups/soe/local/numres/bookcpdf/c6-6.pdf
+
+//======================================================================================================================
+
+static inline double besseli0(const double x)
+// returns the modifield Bessel function I0(x) for any real x.
+{
+    double y, ax, ans;
+    ax = abs(x);
+    if (ax < 3.75) {
+        y = x/3.75;
+        y *= y;
+        ans = BESI0_P1+y*(BESI0_P2+y*(BESI0_P3+y*(BESI0_P4+y*(BESI0_P5+y*(BESI0_P6+y*BESI0_P7)))));
+    }
+    else {
+        y = 3.75 / ax;
+        ans = (exp(ax)/sqrt(ax))*(BESI0_Q1+y*(BESI0_Q2+y*(BESI0_Q3+y*(BESI0_Q4+y*(BESI0_Q5+y*
+                                (BESI0_Q6+y*(BESI0_Q7+y*(BESI0_Q8+y*BESI0_Q9))))))));
+    }
+    return ans;
+}
+
+//======================================================================================================================
+
+static inline double besseli1(const double x)
+// returns the modifield Bessel function I1(x) for any real x.
+{
+    double y, ax, ans;
+    ax = abs(x);
+    if (ax < 3.75) {
+        y = x/3.75;
+        y *= y;
+        ans =  BESI1_P1+y*(BESI1_P2+y*(BESI1_P3+y*(BESI1_P4+y*(BESI1_P5+y*(BESI1_P6+y*BESI1_P7)))));
+    }
+    else {
+        ax = abs(x);
+        y = 3.75 / ax;
+        ans = (exp(ax)/sqrt(ax))*(BESI1_Q1+y*(BESI1_Q2+y*(BESI1_Q3+y*(BESI1_Q4+y*(BESI1_Q5+y*
+                                (BESI1_Q6+y*(BESI1_Q7+y*(BESI1_Q8+y*BESI1_Q9))))))));
+    }
+    return x < 0.0 ? -ans:ans;
+}
+
+//======================================================================================================================
+
+static inline double besselk0(const double x)
+// returns the modifield Bessel function K0(x) for any real x.
+{
+    double y, ans;
+    if (x <= 2.0){
+        y = x*x/4.0;
+        ans = (-log(x/2.0)*besseli0(x)) + (BESK0_P1+y*(BESK0_P2+y*(BESK0_P2+y*(BESK0_P3+y*
+                            (BESK0_P4+y*(BESK0_P5+y*(BESK0_P6+y*BESK0_P7)))))));
+    }
+    else {
+        y = 2.0/x;
+        ans = (exp(-x)/sqrt(x))*(BESK0_Q1+y*(BESK0_Q2+y*(BESK0_Q2+y*(BESK0_Q3+y*
+                            (BESK0_Q4+y*(BESK0_Q5+y*(BESK0_Q6+y*BESK0_Q7)))))));
+    }
+    return ans;
+}
+
+//======================================================================================================================
+
+static inline double besselk1(const double x)
+// returns the modifield Bessel function K1(x) for any real x.
+{
+    double y, ans;
+    if (x <= 2.0){
+        y = x*x/4.0;
+        ans = (log(x/2.0)*besseli1(x)) + (1.0/x)*(BESK1_P1+y*(BESK1_P2+y*(BESK1_P2+y*(BESK1_P3+y*
+                            (BESK1_P4+y*(BESK1_P5+y*(BESK1_P6+y*BESK1_P7)))))));
+    }
+    else {
+        y = 2.0/x;
+        ans = (exp(-x)/sqrt(x))*(BESK1_Q1+y*(BESK1_Q2+y*(BESK1_Q2+y*(BESK1_Q3+y*
+                            (BESK1_Q4+y*(BESK1_Q5+y*(BESK1_Q6+y*BESK1_Q7)))))));
+    }
+    return ans;
 }
 
 //======================================================================================================================

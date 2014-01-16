@@ -219,6 +219,9 @@ static const struct subopt_struct beam_opt[]={
 	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
+	{"electron","<energy> <x> <y> <z>","Field of an electron of specified energy, passing  x, y, z coordinates " 
+		"(in laboratory reference frame). Energy is in keV, while corrdinates are in um. Orientation of the "
+        "trajectory is determined by -prop command line option. Implies '-scat_matr none'", 4, B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},

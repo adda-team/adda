@@ -245,6 +245,91 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 #define G_BOUND_CLOSE  1 // k*R^2/d < GB_CLOSE => 'close'
 #define G_BOUND_MEDIAN 1 // k*R < GB_MEDIAN => 'median'
 
+// Constants for modified Bessel function calculations (probably not high enough precission though!!! )
+// For Bessel function I0:
+#define BESI0_P1  1.0
+#define BESI0_P2  3.5156229
+#define BESI0_P3  3.0899424
+#define BESI0_P4  1.2067492
+#define BESI0_P5  0.2659732
+#define BESI0_P6  0.0360768
+#define BESI0_P7  0.0045813
+
+#define BESI0_Q1  0.39894228
+#define BESI0_Q2  0.01328592
+#define BESI0_Q3  0.00225319
+#define BESI0_Q4  -0.00157565
+#define BESI0_Q5  0.00916281
+#define BESI0_Q6  -0.02057706
+#define BESI0_Q7  0.02635537
+#define BESI0_Q8  -0.01647633
+#define BESI0_Q9  0.00392377
+
+// For Bessel function I1:
+#define BESI1_P1  0.5
+#define BESI1_P2  0.87890594
+#define BESI1_P3  0.51498869
+#define BESI1_P4  0.15084934
+#define BESI1_P5  0.02658733
+#define BESI1_P6  0.00301532
+#define BESI1_P7  0.00032411
+
+#define BESI1_Q1  0.39894228
+#define BESI1_Q2  -0.03988024
+#define BESI1_Q3  -0.00362018
+#define BESI1_Q4  0.00163801
+#define BESI1_Q5  -0.01031555
+#define BESI1_Q6  0.02282967
+#define BESI1_Q7  -0.02895312
+#define BESI1_Q8  0.01787654
+#define BESI1_Q9  -0.00420059
+
+// For Bessel function K0:
+#define BESK0_P1  -0.57721566
+#define BESK0_P2  0.42278420
+#define BESK0_P3  0.23069756
+#define BESK0_P4  0.03488590
+#define BESK0_P5  0.00262698
+#define BESK0_P6  0.00010750
+#define BESK0_P7  0.0000074
+//might need another 0 in front! ^^
+#define BESK0_Q1  1.25331414
+#define BESK0_Q2  -0.07832358
+#define BESK0_Q3  0.02189568
+#define BESK0_Q4  -0.01062446
+#define BESK0_Q5  0.00587872
+#define BESK0_Q6  -0.00251540
+#define BESK0_Q7  0.00053208
+
+// For Bessel function K1:
+#define BESK1_P1  1.0
+#define BESK1_P2  0.15443144
+#define BESK1_P3  -0.67278579
+#define BESK1_P4  -0.18156897
+#define BESK1_P5  -0.01919402
+#define BESK1_P6  -0.00110404
+#define BESK1_P7  -0.00004686
+
+#define BESK1_Q1  1.25331414
+#define BESK1_Q2  0.23498619
+#define BESK1_Q3  -0.03655620
+#define BESK1_Q4  0.01504268
+#define BESK1_Q5  -0.00780353
+#define BESK1_Q6  0.00325614
+#define BESK1_Q7  -0.00068245
+
+// Physical constants:
+// from http://www1.bipm.org/en/si/si_brochure/chapter4/table7.html
+
+#define keV 1.60217653e-16                          // kJ
+#define c0 299792458                                // m/s (exact)
+#define i_c0 3.335640951981520495755767144749185e-9 // s/m
+#define hbar 1.05457168e-34                         // J s
+#define hbar_eV 6.582119e-16                        // eV s
+#define electron_mass 9.1093826e-31                 // kg
+#define i_electron_mass 1.0977692e30                // 1/kg
+#define electron_charge 1.60217653e-19              // C
+
 enum iter { // iterative methods
 	IT_BCGS2,    // Enhanced Bi-Conjugate Gradient Stabilized (2)
 	IT_BICG_CS,  // Bi-Conjugate Gradient for Complex-Symmetric matrices
@@ -277,6 +362,7 @@ enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_DIPOLE,  // field of a point dipole
+    B_ELECTRON,// a single electron
 	B_LMINUS,  // 1st order description of the Gaussian beam
 	B_PLANE,   // infinite plane wave
 	B_READ     // read from file
