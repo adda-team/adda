@@ -69,6 +69,7 @@ static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;   // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
+static double el_energy;        // electron beam energy (in keV)
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -188,6 +189,19 @@ void InitBeam(void)
 			}
 			// we do not define beam_asym here, because beam_center is not defined anyway
 			return;
+        case B_ELECTRON:
+			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
+			// initialize parameters
+			el_energy=beam_pars[0];
+			TestPositive(el_energy,"Electron energy");
+			vCopy(beam_pars+1,beam_center_0);
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			if (beam_asym) { // if necessary break the symmetry of the problem
+				if (beam_center_0[0]!=0) symX=symR=false;
+				if (beam_center_0[1]!=0) symY=symR=false;
+				if (beam_center_0[2]!=0) symZ=false;
+			}
+            strcat(beam_descr, "Electron beam\n");
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM
@@ -222,13 +236,14 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double ro2,ro4;
+	double ro2,ro4,ro;
 	double x,y,z,x2_s,xy_s;
-	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
+	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,eps_ambient;
 	const double *ex; // coordinate axis of the beam reference frame
-	double ey[3];
+	double ey[3],tv1[3],tv2[3],tv3[3];
 	double r1[3];
 	const char *fname;
+    eps_ambient = 1.0;      // hard-coded vacuum ambient permittivity (permeability?)
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -420,6 +435,41 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			else fname=beam_fnameX; // which==INCPOL_X
 			ReadField(fname,b);
 			return;
+        case B_ELECTRON:
+            /* Calculations based on Garcia de Abajo paper
+             * "Optical Excitations in electron microscopy", Rev. Mod. Phys. v. 82 p. 213 equations (4) and (5)
+             */
+            t1 = el_energy * keV * i_c0 * i_c0 * i_electron_mass + 1;
+            t1 *= t1;
+            t2 = 1.0 - 1.0/t1;
+            t1 = c0 * cSqrtCut(1-t2);   // electron velocity in m/s
+            t2 = cSqrtCut(1 - t1*t1*i_c0*i_c0*eps_ambient);
+            t2 = 1.0 / t2;                  /* gamma, Lorentz contraction factor !! actually need velocity of light
+                                             * in material, i.e epsilon/c_0^2 instead of ic_0^2
+                                             */
+            t3 = c0 / WaveNum;      // omega
+            t4 = 2*electron_charge * t3 / (t1*t1 * t2*eps_ambient); // prefactor for E(r, omega)
+			for (i=0;i<local_nvoid_Ndip;i++) { 
+                j=3*i;
+				// set relative coordinates (in beam's coordinate system)
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				x=DotProd(r1,ex)*scale_x;
+				y=DotProd(r1,ey)*scale_x;
+				z=DotProd(r1,prop)*scale_z;
+				ro=sqrt(x*x+y*y);
+                t5 = t3*ro / (t1 * t2);                         // argument for Bessel's functions
+                ctemp = cexp(t3*z/t1);                          // exponential prefactor for g(r)
+                t6 = ctemp * I * besselk0(creal(t5))/t2;        // for "prop" direction
+                t7 = ctemp * besselk1(creal(t5));               // coefficient for R vector
+                vMultScal(x,ex,tv1);
+                vMultScal(y,ey,tv2);
+                vAdd(tv1,tv2,tv3);
+                vNormalize(tv3);                                // direction of R vector (for t7 coeff)
+                cvMultScal_RVec(t6, prop, v1);
+                cvMultScal_RVec(t7, tv3, v2);
+                cvAdd(v1,v2,b+j);
+            }
+
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM
