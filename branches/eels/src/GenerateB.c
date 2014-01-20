@@ -13,6 +13,9 @@
  *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
  *        Eqs.(25)-(28) - complex conjugate.
  *
+ *        Electron beam is based on: Garcia de Abajo "Optical Excitations in electron microscopy", 
+ *        Rev. Mod. Phys. v. 82 p. 213 equations (4) and (5)
+ *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
  *
@@ -202,6 +205,7 @@ void InitBeam(void)
 				if (beam_center_0[2]!=0) symZ=false;
 			}
             strcat(beam_descr, "Electron beam\n");
+            return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM
@@ -436,9 +440,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			ReadField(fname,b);
 			return;
         case B_ELECTRON:
-            /* Calculations based on Garcia de Abajo paper
-             * "Optical Excitations in electron microscopy", Rev. Mod. Phys. v. 82 p. 213 equations (4) and (5)
-             */
             t1 = el_energy * keV * i_c0 * i_c0 * i_electron_mass + 1;
             t1 *= t1;
             t2 = 1.0 - 1.0/t1;
@@ -469,7 +470,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 cvMultScal_RVec(t7, tv3, v2);
                 cvAdd(v1,v2,b+j);
             }
-
+            return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM

@@ -130,6 +130,15 @@ static inline void vReal(const doublecomplex a[static 3],double b[static 3])
 
 //======================================================================================================================
 
+static inline void vImag(const doublecomplex a[static 3],double b[static 3])
+// takes imaginary part of the complex vector; b=Re(a)
+{
+	b[0]=cimag(a[0]);
+	b[1]=cimag(a[1]);
+	b[2]=cimag(a[2]);
+}
+//======================================================================================================================
+
 static inline void cvBuildRe(const double a[static 3],doublecomplex b[static 3])
 // builds complex vector from real part; b=a + i*0
 {

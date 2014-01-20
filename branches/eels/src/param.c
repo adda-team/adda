@@ -100,6 +100,7 @@ bool calc_Csca;       // Calculate the scattering cross-section by integration
 bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
 bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
+bool calc_EELS;       // Calculate electron energy loss probability
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type; // type of phi integration (each bit determines whether to calculate with different multipliers)
@@ -1866,6 +1867,7 @@ void InitVariables(void)
 	calc_vec=false;
 	calc_asym=false;
 	calc_mat_force=false;
+    calc_EELS=false;
 	store_force=false;
 	store_mueller=true;
 	store_ampl=false;
@@ -1964,6 +1966,10 @@ void VariablesInterconnect(void)
 	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
 	 * when SQ_FINDIP is used
 	 */
+    if (beamtype == B_ELECTRON) {
+        calc_Cabs = calc_Cext = calc_Csca =false;
+        calc_EELS = true;
+    }
 	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
 	if (IntRelation==G_SO) reduced_FFT=false;
 	/* TO ADD NEW INTERACTION FORMULATION
