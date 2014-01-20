@@ -820,6 +820,24 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 
 //======================================================================================================================
 
+double EELSProb()
+// Calculate EELS probability
+{   
+    double sum;
+    size_t i;
+    
+    sum=0;
+
+    for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
+        //creal(field)*cimag(polarisation) - creal(polarisation)*cimag(field); 
+    sum *= INV_PI*i_hbar * i_hbar_eV*1e-18;  /* (* 1e-18) for correction, and then ihbar2 might not be required actually... just
+                                        * scaling?
+                                        */   
+    return sum;
+}
+
+//======================================================================================================================
+
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {

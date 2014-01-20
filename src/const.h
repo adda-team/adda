@@ -325,7 +325,9 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 #define c0 299792458                                // m/s (exact)
 #define i_c0 3.335640951981520495755767144749185e-9 // s/m
 #define hbar 1.05457168e-34                         // J s
+#define i_hbar 9.48252238230708499036287462018439e33// 1/(J s)
 #define hbar_eV 6.582119e-16                        // eV s
+#define i_hbar_eV 1.519267514356120682222856796461111e15 // 1/(eV s)
 #define electron_mass 9.1093826e-31                 // kg
 #define i_electron_mass 1.0977692e30                // 1/kg
 #define electron_charge 1.60217653e-19              // C
@@ -428,6 +430,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 #define F_DIPPOL        "DipPol"
 #define F_BEAM          "IncBeam"
 #define F_GRANS         "granules"
+#define F_EELS          "EELSProb"
 	// suffixes
 #define F_XSUF          "-X"
 #define F_YSUF          "-Y"
