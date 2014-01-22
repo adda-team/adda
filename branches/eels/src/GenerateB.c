@@ -198,13 +198,15 @@ void InitBeam(void)
 			el_energy=beam_pars[0];
 			TestPositive(el_energy,"Electron energy");
 			vCopy(beam_pars+1,beam_center_0);
-			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
-			if (beam_asym) { // if necessary break the symmetry of the problem
-				if (beam_center_0[0]!=0) symX=symR=false;
-				if (beam_center_0[1]!=0) symY=symR=false;
-				if (beam_center_0[2]!=0) symZ=false;
-			}
+            beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+            if (beam_asym) { // if necessary break the symmetry of the problem
+                if (beam_center_0[0]!=0) symX=symR=false;
+                if (beam_center_0[1]!=0) symY=symR=false;
+                if (beam_center_0[2]!=0) symZ=false;
+            }
+            else vInit(beam_center);
             strcat(beam_descr, "Electron beam\n");
+            scale_x = 1e-6; // um/m
             return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
@@ -384,6 +386,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				x=DotProd(r1,ex)*scale_x;
 				y=DotProd(r1,ey)*scale_x;
+                if (i<10) printf("scale x = %.60f \n\t x = %.60f\n", scale_x, x);
 				z=DotProd(r1,prop)*scale_z;
 				ro2=x*x+y*y;
 				Q=1/(2*z-I);
@@ -440,26 +443,27 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			ReadField(fname,b);
 			return;
         case B_ELECTRON:
-            t1 = el_energy * keV * i_c0 * i_c0 * i_electron_mass + 1;
+            t1 = (el_energy * keV * i_c0 * i_c0 * i_electron_mass) + 1;
             t1 *= t1;
             t2 = 1.0 - 1.0/t1;
-            t1 = c0 * cSqrtCut(1-t2);   // electron velocity in m/s
+            t1 = c0 * cSqrtCut(t2);   // electron velocity in m/s
             t2 = cSqrtCut(1 - t1*t1*i_c0*i_c0*eps_ambient);
             t2 = 1.0 / t2;                  /* gamma, Lorentz contraction factor !! actually need velocity of light
                                              * in material, i.e epsilon/c_0^2 instead of ic_0^2
                                              */
-            t3 = c0 / WaveNum;      // omega
+            t3 = c0 * WaveNum * 1e6;      // omega
             t4 = 2*electron_charge * t3 / (t1*t1 * t2*eps_ambient); // prefactor for E(r, omega)
-			for (i=0;i<local_nvoid_Ndip;i++) { 
-                j=3*i;
+			for (i=0;i<local_nvoid_Ndip;i++) {
+				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				x=DotProd(r1,ex)*scale_x;
 				y=DotProd(r1,ey)*scale_x;
-				z=DotProd(r1,prop)*scale_z;
+				z=DotProd(r1,prop)*scale_x;
 				ro=sqrt(x*x+y*y);
                 t5 = t3*ro / (t1 * t2);                         // argument for Bessel's functions
-                ctemp = cexp(t3*z/t1);                          // exponential prefactor for g(r)
+                ctemp = imExp(t3*z/t1)* t4;                          // exponential prefactor for g(r)
+                printf("\n");
                 t6 = ctemp * I * besselk0(creal(t5))/t2;        // for "prop" direction
                 t7 = ctemp * besselk1(creal(t5));               // coefficient for R vector
                 vMultScal(x,ex,tv1);
@@ -469,6 +473,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 cvMultScal_RVec(t6, prop, v1);
                 cvMultScal_RVec(t7, tv3, v2);
                 cvAdd(v1,v2,b+j);
+
             }
             return;
 	}

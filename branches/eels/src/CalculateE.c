@@ -667,7 +667,7 @@ static void CalcEELS()
     tstart = GET_TIME();
     EELS = EELSProb();
     if (IFROOT){
-        SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_EELS"%s",directory,"-vienas");
+        SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_EELS"%s",directory,"");
         CCfile=FOpenErr(fname_cs,"w",ONE_POS);
         if (calc_EELS) PrintBoth(CCfile,"gamma\t= "GFORM"\n",EELS);
         FCloseErr(CCfile,fname_cs,ONE_POS);
