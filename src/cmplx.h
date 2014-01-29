@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: inline complex functions, functions on length-3 real and complex vectors, and several auxiliary functions
  *
- * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -47,6 +47,22 @@ static inline double cAbs2(const doublecomplex a)
 
 static inline doublecomplex cSqrtCut(const doublecomplex a)
 // square root of complex number, with explicit handling of branch cut (not to depend on sign of zero of imaginary part)
+/* It is designed for calculating normal component of the transmitted wavevector when passing through the plane
+ * interface. However, such choice of branch cut (while physically correct) leads to all kind of weird consequences.
+ *
+ * For instance, the electric field above the interface for plane wave propagating from a slightly absorbing substrate
+ * at large incident angle (larger than critical angle for purely real refractive index) is unexpectedly large. This
+ * happens because the wave in the vacuum is inhomogeneous and the real part of wavevector is almost parallel to the
+ * surface. So the field above the surface actually comes from distant points on the surface, which has much larger
+ * amplitude of the incident wave from below (compared to that under the observation point). Since the distance along
+ * the surface (or the corresponding slope) is inversely proportional to the imaginary part of the substrate refractive
+ * index, the effect remains finite even in the limit of absorption going to zero. Therefore, in this case there exist
+ * a discontinuity when switching from non-absorbing to absorbing substrate. Physically, this fact is a consequence of
+ * the infinite lateral extent of the plane wave.
+ *
+ * Exactly the same issue exist when scattering into the absorbing medium is calculated. At large scattering angles the
+ * amplitude becomes very large, which also amplifies a lot the calculated Csca.
+ */
 {
 	if (cimag(a)==0) {
 		if (creal(a)>=0) return sqrt(a);
@@ -66,21 +82,25 @@ static inline doublecomplex imExp(const double arg)
 
 //======================================================================================================================
 
-static inline void imExp_arr(const double arg,const int size,doublecomplex *c)
-/* construct an array of exponent of imaginary argument c=Exp(i*k*arg), where k=0,1,...,size-1. Uses stable recurrence
- * from Numerical Recipes. Optimization of the initial simultaneous calculation of sin and cos is performed by compiler;
- * It is assumed that size is at least 1
+static inline void imExp_arr(const doublecomplex arg,const int size,doublecomplex *c)
+/* construct an array of exponent of imaginary argument c=Exp(i*k*arg), where k=0,1,...,size-1. arg can be complex.
+ * Uses stable recurrence from Numerical Recipes. Optimization of the initial simultaneous calculation of sin and cos is
+ * performed by compiler; It is assumed that size is at least 1
  */
 {
 	int k;
 	double a,b;
 	doublecomplex d,tmp;
+	double re,im;
 
+	re=creal(arg);
+	im=cimag(arg);
+	// handles real part, no special case for re=0
 	c[0]=1;
 	if (size>1) {
 		// set a=2*sin^2(arg/2), b=sin(arg), d = 1 - exp(i*arg)
-		a=sin(arg/2);
-		b=cos(arg/2);
+		a=sin(re/2);
+		b=cos(re/2);
 		b*=2*a;
 		a*=2*a;
 		d= a - I*b;
@@ -93,6 +113,19 @@ static inline void imExp_arr(const double arg,const int size,doublecomplex *c)
 			 */
 			tmp=c[k-1]*d;
 			c[k]=c[k-1]-tmp;
+		}
+	}
+	// handles imaginary part
+	if (im!=0) {
+		a=exp(-fabs(im));
+		b=a;
+		if (im>0) for (k=1;k<size;k++) {
+			c[k]*=b;
+			b*=a;
+		}
+		else for (k=size-1,b*=exp(-(size-1)*im);k>0;k--) {
+			c[k]*=b;
+			b*=a;
 		}
 	}
 }
@@ -583,6 +616,16 @@ static inline double Rad2Deg(const double rad)
 // transforms angle in radians to degrees
 {
 	return (INV_PI_180*rad);
+}
+
+//======================================================================================================================
+
+static inline bool TestBelowDeg(const double deg)
+/* tests if the direction is below the substrate using the degree theta in degrees;
+ * if unsure (within rounded error) returns false (above)
+ */
+{
+	return fabs(fmod(fabs(deg),360)-180) < 90*(1-ROUND_ERR);
 }
 
 //======================================================================================================================

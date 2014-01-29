@@ -5,7 +5,7 @@
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -81,9 +81,11 @@ int IterativeSolver(enum iter method,enum incpol which);
 //======================================================================================================================
 
 static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,const doublecomplex s2,
-	const doublecomplex s3,const doublecomplex s4)
-/* computer mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula 3.16 from Bohren and
+	const doublecomplex s3,const doublecomplex s4,const double theta)
+/* compute Mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula 3.16 from Bohren and
  * Huffman
+ * In surface mode the result is additionally multiplied by factor Re(m_sca)/Re(m_inc) to account for corresponding
+ * factor relating squared amplitude of the field and Stokes vector (irradiance). For that theta (in deg) is used.
  */
 {
 	matrix[0][0] = 0.5*(cAbs2(s1) + cAbs2(s2) + cAbs2(s3) + cAbs2(s4));
@@ -105,6 +107,12 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 	matrix[3][1] = cimag(s4*conj(s2) - s1*conj(s3));
 	matrix[3][2] = cimag(s1*conj(s2) - s3*conj(s4));
 	matrix[3][3] = creal(s1*conj(s2) - s3*conj(s4));
+
+	if (surface) {
+		double scale=inc_scale;
+		if (TestBelowDeg(theta)) scale*=creal(msub);
+		if (fabs(scale-1)>ROUND_ERR) for (int i=0;i<4;i++) for (int j=0;j<4;j++) matrix[i][j]*=scale;
+	}
 }
 
 //======================================================================================================================
@@ -205,7 +213,8 @@ void MuellerMatrix(void)
 						s4 =  co*ampl_alphaX[index] - si*ampl_alphaY[index];     // s4 =  co*s40 + si*s10
 						s1 = -si*ampl_alphaX[index] - co*ampl_alphaY[index];     // s1 = -si*s40 + co*s10
 					}
-					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
+					theta=i*dtheta_deg;
+					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4,theta);
 					index+=2;
 					index1+=16;
 				}
@@ -232,7 +241,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,EyzplX[2*i],EyzplY[2*i+1],EyzplX[2*i+1],EyzplY[2*i]);
+					ComputeMuellerMatrix(matrix,EyzplX[2*i],EyzplY[2*i+1],EyzplX[2*i+1],EyzplY[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
@@ -256,7 +265,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i]);
+					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
@@ -314,12 +323,13 @@ void MuellerMatrix(void)
 			// main cycle
 			index=0;
 			max_err=max_err_c2=max_err_s2=max_err_c4=max_err_s4=0;
-			double tmp3[3],incPolper[3],cthet,sthet;
+			double tmp3[3],incPolper[3],th,cthet,sthet;
 			for (ind=0;ind<angles.theta.N;++ind) {
 				index1=0;
 				theta=angles.theta.val[ind];
-				cthet=cos(theta);
-				sthet=sin(theta);
+				th=Deg2Rad(theta);
+				cthet=cos(th);
+				sthet=sin(th);
 				for (j=0;j<n;++j) {
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
@@ -335,7 +345,7 @@ void MuellerMatrix(void)
 					s1 = si*EgridX[index] - co*EgridY[index]; // s1 =  si*s40 - co*s10
 					index+=2;
 
-					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4);
+					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4,theta);
 
 					if (phi_integr) {
 						memcpy(muel_phi+index1,matrix[0],16*sizeof(double));
