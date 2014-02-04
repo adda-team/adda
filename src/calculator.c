@@ -215,7 +215,16 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				}
 				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
 				break;
-			case POL_NLOC:
+			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
+				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+				 */
+				if (polNlocRp==0) res[i]=polCM(mrel[i]);
+				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
+				break;
+			case POL_NLOC_AV:
 				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
 				else {
 					double x=gridspace/(2*SQRT2*polNlocRp);
@@ -232,16 +241,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					// !!! dynamic part should be added here
 					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
 				}
-				break;
-			case POL_NLOC0: // !!! additionally dynamic part should be added (if needed)
-				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
-				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
-				 */
-
-				if (polNlocRp==0) res[i]=polCM(mrel[i]);
-				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
 				break;
 			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
 			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
