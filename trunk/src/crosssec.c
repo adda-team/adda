@@ -67,8 +67,6 @@ bool full_al_range; // whether full range of alpha angle is used
 
 // LOCAL VARIABLES
 
-static double dCabs;             // difference between Cabs calculated by 'dr' and 'fin' formulations
-static bool dCabs_ready=false;   // whether dCabs is already calculated
 static double exLab[3],eyLab[3]; // basis vectors of laboratory RF transformed into the RF of particle
 
 //======================================================================================================================
@@ -851,11 +849,6 @@ double ExtCross(const double * restrict incPol)
 	 * The formulae above works only if the amplitude of the beam is unity at the focal point. Either make sure that new
 	 * beam satisfies this condition or add another case here with different formulae.
 	*/
-	if (ScatRelation==SQ_FINDIP) {
-		if (dCabs_ready) sum+=dCabs;
-		else LogError(ONE_POS,
-			"When using 'fin' scattering quantities formulation, Cabs should be calculated before Cext");
-	}
 	if (surface) sum*=inc_scale;
 	return sum;
 }
@@ -870,9 +863,8 @@ double AbsCross(void)
 	unsigned char mat;
 	double sum,temp1,temp2;
 	doublecomplex m,m2m1;
-	double multdr[MAX_NMAT][3];  // multiplier for draine formulation
-	double multfin[MAX_NMAT][3]; // multiplier for finite dipoles
-	double mult1[MAX_NMAT];    // multiplier, which is always isotropic
+	double mult[MAX_NMAT][3]; // multiplier (possibly anisotropic)
+	double mult1[MAX_NMAT];   // multiplier, which is always isotropic
 
 	// Cabs = 4*pi*sum
 	/* In this function IGT_SO is equivalent to DRAINE. It may seem more logical to make IGT_SO same as FINDIP. However,
@@ -890,32 +882,23 @@ double AbsCross(void)
 			 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
 			 */
 			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) multdr[i][j]=-cimag(1/cc[i][j])-temp1;
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=-cimag(1/cc[i][j])-temp1;
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
-				for(i=0;i<3;i++) sum+=multdr[mat][i]*cAbs2(pvec[index+i]);
+				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
 			break;
 		case SQ_FINDIP:
 			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
 			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
-			 * Difference between this formulation and the classical one is also calculated, which is further used to
-			 * correct Cext.
 			 */
 			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) {
-				multdr[i][j]=-cimag(1/cc[i][j])-temp1;
-				multfin[i][j]=-cimag(chi_inv[i][j]);
-			}
-			for (dip=0,sum=0,dCabs=0;dip<local_nvoid_Ndip;++dip) {
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=-cimag(chi_inv[i][j]);
+			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
-				for(i=0;i<3;i++) {
-					temp1=cAbs2(pvec[index+i]);
-					sum+=multfin[mat][i]*temp1;
-					dCabs+=(multfin[mat][i]-multdr[mat][i])*temp1;
-				}
+				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
 			break;
 		case SQ_SO:
@@ -933,11 +916,6 @@ double AbsCross(void)
 			// main cycle
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
 			break;
-	}
-	if (ScatRelation==SQ_FINDIP) {
-		MyInnerProduct(&dCabs,double_type,1,&Timing_ScatQuanComm);
-		dCabs*=(FOUR_PI*WaveNum);
-		dCabs_ready=true;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	if (surface) sum*=inc_scale;

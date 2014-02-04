@@ -459,7 +459,7 @@ static struct opt_struct options[]={
 #endif
 		"'zero' is a zero vector,\n"
 		"Default: auto",UNDEF,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc0 <Rp>|poi|so}",
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc_av <Rp>|poi|so}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
@@ -470,9 +470,9 @@ static struct opt_struct options[]={
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
 		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
-		"'nloc' - non-local interaction of two Gaussian dipole densities (averaged over the cube volume), <Rp> is the "
+		"'nloc' - non-local interaction of two Gaussian dipole densities (based on point value of Gh), <Rp> is the "
 		"width of the latter in um (must be non-negative).\n"
-		"'nloc0' - same as 'nloc' but based on point value of Gh.\n"
+		"'nloc_av' - same as 'nloc' but based on averaging over the cube volume.\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 #ifdef SPARSE
@@ -545,7 +545,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc0 <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
@@ -555,8 +555,9 @@ static struct opt_struct options[]={
 		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
-		"'nloc' - non-local (Gaussian dipole density), <Rp> is the width of the latter in um (must be non-negative).\n"
-		"'nloc0' - same as 'nloc' but based on lattice sums of Gh.\n"
+		"'nloc' - non-local (Gaussian dipole density, based on lattice sums), <Rp> is the width of the latter in um "
+		"(must be non-negative).\n"
+		"'nloc_av' - same as 'nloc' but based on averaging of Gh over the dipole volume.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Default: ldr (without averaging).",UNDEF,NULL},
@@ -1186,9 +1187,9 @@ PARSE_FUNC(int)
 		TestNonNegative(nloc_Rp,"Gaussian width");
 		noExtraArgs=false;
 	}
-	else if (strcmp(argv[1],"nloc0")==0) {
-		IntRelation=G_NLOC0;
-		if (Narg!=2) NargErrorSub(Narg,"int nloc0","1");
+	else if (strcmp(argv[1],"nloc_av")==0) {
+		IntRelation=G_NLOC_AV;
+		if (Narg!=2) NargErrorSub(Narg,"int nloc_av","1");
 		ScanDoubleError(argv[2],&nloc_Rp);
 		TestNonNegative(nloc_Rp,"Gaussian width");
 		noExtraArgs=false;
@@ -1336,9 +1337,9 @@ PARSE_FUNC(pol)
 		TestNonNegative(polNlocRp,"Gaussian width");
 		noExtraArgs=false;
 	}
-	else if (strcmp(argv[1],"nloc0")==0) {
-		PolRelation=POL_NLOC0;
-		if (Narg!=2) NargErrorSub(Narg,"pol nloc0","1");
+	else if (strcmp(argv[1],"nloc_av")==0) {
+		PolRelation=POL_NLOC_AV;
+		if (Narg!=2) NargErrorSub(Narg,"pol nloc_av","1");
 		ScanDoubleError(argv[2],&polNlocRp);
 		TestNonNegative(polNlocRp,"Gaussian width");
 		noExtraArgs=false;
@@ -1958,10 +1959,6 @@ void VariablesInterconnect(void)
 		prop_0[2]=1;
 	}
 	// parameter interconnections
-	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
-	 * when SQ_FINDIP is used
-	 */
-	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
 	if (IntRelation==G_SO) reduced_FFT=false;
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the definition of reduced_FFT
@@ -2358,9 +2355,11 @@ void PrintInfo(void)
 				if (avg_inc_pol) fprintf(logfile," (averaged over incident polarization)");
 				fprintf(logfile,"\n");
 				break;
-			case POL_NLOC: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",polNlocRp); break;
-			case POL_NLOC0:
+			case POL_NLOC:
 				fprintf(logfile,"'Non-local' (based on lattice sum, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
+				break;
+			case POL_NLOC_AV:
+				fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
@@ -2388,12 +2387,8 @@ void PrintInfo(void)
 				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
-			case G_NLOC:
-				fprintf(logfile,"'Non-local interaction' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp);
-				break;
-			case G_NLOC0:
-				fprintf(logfile,"'Non-local interaction' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp);
-				break;
+			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
+			case G_NLOC_AV: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}

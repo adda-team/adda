@@ -1,4 +1,6 @@
-Additionally to ADDA executables, this folder contains all required DLLs. Hence, these executables are ready to run.
+This folder contains ADDA executables for 32-bit Windows and all required DLLs. Hence, these executables are ready to
+run. However, all auxilliary files, like the manual or sample input files, are supplied with the main ADDA package, 
+which should be obtained separately.
 
 Executables of misc/ packages are located in separate folders for convenience, but they may also require some of these
 DLLs. For instance, those based on Fortran code require:

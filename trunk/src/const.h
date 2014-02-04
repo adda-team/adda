@@ -180,17 +180,17 @@ enum sh { // shape types
 };
 
 enum pol { // which way to calculate coupleconstant
-	POL_CLDR,   // Corrected Lattice Dispersion Relation
-	POL_CM,     // Clausius-Mossotti
-	POL_DGF,    // Digitized Green's Function (second order approximation of LAK)
-	POL_FCD,    // Filtered Coupled Dipoles
-	POL_IGT_SO, // Second order approximation to Green's tensor integrated over a cube
-	POL_LAK,    // Exact result of IGT for sphere
-	POL_LDR,    // Lattice Dispersion Relation
-	POL_NLOC,   // non-local extension (Gaussian dipole-density)
-	POL_NLOC0,  // same as NLOC, but based on lattice sum
-	POL_RRC,    // Radiative Reaction correction
-	POL_SO      // Second Order formulation
+	POL_CLDR,    // Corrected Lattice Dispersion Relation
+	POL_CM,      // Clausius-Mossotti
+	POL_DGF,     // Digitized Green's Function (second order approximation of LAK)
+	POL_FCD,     // Filtered Coupled Dipoles
+	POL_IGT_SO,  // Second order approximation to Green's tensor integrated over a cube
+	POL_LAK,     // Exact result of IGT for sphere
+	POL_LDR,     // Lattice Dispersion Relation
+	POL_NLOC,    // non-local extension (Gaussian dipole-density, formula based on lattice sums)
+	POL_NLOC_AV, // same as NLOC, but based on averaging of Gaussian over the dipole volume
+	POL_RRC,     // Radiative Reaction correction
+	POL_SO       // Second Order formulation
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add an identifier starting with 'POL_' and a descriptive comment to this list in the alphabetical order.
 	 */
@@ -212,7 +212,7 @@ enum inter { // how to calculate interaction term
 	G_IGT,       // (direct) integration of Green's tensor
 	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
 	G_NLOC,      // non-local extension (interaction of Gaussian dipole-densities)
-	G_NLOC0,     // non-local extension (interaction of Gaussian dipole-densities)
+	G_NLOC_AV,   // same as NLOC, but based on averaging of Gaussian over the dipole volume
 	G_POINT_DIP, // as point dipoles
 	G_SO         // Second Order formulation
 	/* TO ADD NEW INTERACTION FORMULATION
