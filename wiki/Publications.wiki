@@ -4,10 +4,26 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2013 (20) =
- # M. Gao, P. Yang and G.W. Kattawar, “Polarized extinction properties of plates with large aspect ratios”, [http://dx.doi.org/10.1016/j.jqsrt.2013.03.010 J. Quant. Spectrosc. Radiat. Transfer (2013)].
- # S. Wojtkiewicz, P. Sawosz, M. Kostecki and A. Sokolowska, “Optical method for characterization of nanoplates in lyosol," [http://dx.doi.org/10.1016/j.mee.2013.02.047 Microelectron. Eng. (2013)].
- # J. Liu, G. W. Kattawar, “Detection of dinoflagellates by the light scattering properties of the chiral structure of their chromosomes,” [http://dx.doi.org/10.1016/j.jqsrt.2013.02.012 J. Quant. Spectrosc. Radiat. Transfer (2013)].
+= 2014 (4) =
+ # H. Lindqvist, O. Jokinen, K. Kandler, D. Scheuvens, and T. Nousiainen, “Single scattering by realistic, inhomogeneous mineral dust particles with stereogrammetric shapes,” [http://dx.doi.org/10.5194/acp-14-143-2014 Atmos. Chem. Phys. 14, 143–157 (2014)].
+ # E. Massa, T. Roschuk, S. A. Maier, and V. Giannini, “Discrete-dipole approximation on a rectangular cuboidal point lattice: considering dynamic depolarization,” [http://dx.doi.org/10.1364/JOSAA.31.000135 J. Opt. Soc. Am. A 31, 135–140 (2014)].
+ # J. Tyynelä, J. Leinonen, D. Moisseev, T. Nousiainen, and A. von Lerber, “Modeling radar backscattering from melting snowflakes using spheroids with nonuniform distribution of water,” [http://dx.doi.org/10.1016/j.jqsrt.2013.09.013 J. Quant. Spectrosc. Radiat. Transfer 133, 504–519 (2014)].
+ # C. M. Sorensen, E. Zubko, W. R. Heinson, and A. Chakrabarti, “Q-space analysis of scattering by small irregular particles,” [http://dx.doi.org/10.1016/j.jqsrt.2013.07.020 J. Quant. Spectrosc. Radiat. Transfer 133, 99–105 (2014)].
+
+= 2013 (30) =
+ # S. D’Agostino, F. Alpeggiani, and L. C. Andreani, “Strong coupling between a dipole emitter and localized plasmons: enhancement by sharp silver tips,” [http://dx.doi.org/10.1364/OE.21.027602 Opt. Express 21, 27602–27610 (2013)].
+ # S. D’Agostino, F. Della Sala, and L. C. Andreani, “Radiative coupling of high-order plasmonic modes with far-field,” [http://dx.doi.org/10.1016/j.photonics.2013.06.003 Photon. Nanostruct. Fundam. Applic. 11, 335–344 (2013)].
+ # J. Zhang, Y. Feng, M. S. Moran, J. Q. Lu, L. V. Yang, Y. Sa, N. Zhang, L. Dong, and X.-H. Hu, “Analysis of cellular objects through diffraction images acquired by flow cytometry,” [http://dx.doi.org/10.1364/OE.21.024819 Opt. Express 21, 24819–24828 (2013)].
+ # C. Yuen and Q. Liu, “Optimization of !Fe3O4@Ag nanoshells in magnetic field-enriched surface-enhanced resonance Raman scattering for malaria diagnosis,” [http://dx.doi.org/10.1039/C3AN00872J Analyst 138, 6494–6500 (2013)].
+ # J. Um and G. M. !McFarquhar, “Optimal numerical methods for determining the orientation averages of single-scattering properties of atmospheric ice crystals,” [http://dx.doi.org/10.1016/j.jqsrt.2013.05.020 J. Quant. Spectrosc. Radiat. Transfer 127, 207–223 (2013)].
+ # B. Sun, P. Yang, and G. W. Kattawar, “Many-body iterative T-matrix method for large aspect ratio particles,” [http://dx.doi.org/10.1016/j.jqsrt.2013.05.012 J. Quant. Spectrosc. Radiat. Transfer 127, 165–175 (2013)].
+ # Y. Xie, L. Carbone, C. Nobile, V. Grillo, S. D’Agostino, F. Della Sala, C. Giannini, D. Altamura, C. Oelsner, et al., “Metallic-like stoichiometric copper sulfide nanocrystals: phase- and shape-selective synthesis, near-infrared surface plasmon resonance properties, and their modeling,” [http://dx.doi.org/10.1021/nn403035s ACS Nano 7, 7352–7369 (2013)].
+ # P.-W. Zhai, Y. Hu, C. R. Trepte, D. M. Winker, D. B. Josset, P. L. Lucker, and G. W. Kattawar, “Inherent optical properties of the coccolithophore: Emiliania huxleyi,” [http://dx.doi.org/10.1364/OE.21.017625 Opt. Express 21, 17625–17638 (2013)].
+ # M. Gao, P. Yang, D. !McKee, and G. W. Kattawar, “Mueller matrix holographic method for small particle characterization: theory and numerical studies,” [http://dx.doi.org/10.1364/AO.52.005289 Appl. Opt. 52, 5289–5296 (2013)].
+ # M. A. Yurkin, “Symmetry relations for the Mueller scattering matrix integrated over the azimuthal angle,” [http://dx.doi.org/10.1016/j.jqsrt.2012.11.023 J. Quant. Spectrosc. Radiat. Transfer 131, 82–87 (2013)].
+ # M. Gao, P. Yang, and G. W. Kattawar, “Polarized extinction properties of plates with large aspect ratios,” [http://dx.doi.org/10.1016/j.jqsrt.2013.03.010 J. Quant. Spectrosc. Radiat. Transfer 131, 72–81 (2013)].
+ # S. Wojtkiewicz, P. Sawosz, M. Kostecki, and A. Sokolowska, “Optical method for characterization of nanoplates in lyosol,” [http://dx.doi.org/10.1016/j.mee.2013.02.047 Microel. Engin. 108, 121–126 (2013)].
+ # J. Liu and G. W. Kattawar, “Detection of dinoflagellates by the light scattering properties of the chiral structure of their chromosomes,” [http://dx.doi.org/10.1016/j.jqsrt.2013.02.012 J. Quant. Spectrosc. Radiat. Transfer 131, 24–33 (2013)].
  # Q. Zhang, J. J. Xiao, X. M. Zhang, and Y. Yao, “Optical binding force of gold nanorod dimers coupled to a metallic slab,” [http://dx.doi.org/10.1016/j.optcom.2013.04.005 Opt. Commun. 301–302, 121–126 (2013)].
  # A. I. Konokhova, A. A. Gelash, M. A. Yurkin, A. V. Chernyshev, and V. P. Maltsev, “High-precision characterization of individual E. coli cell morphology by scanning flow cytometry,” [http://dx.doi.org/10.1002/cyto.a.22294 Cytometry A 83A, 568–575 (2013)].
  # S. Freddi, L. Sironi, R. D’Antuono, D. Morone, A. Donà, E. Cabrini, L. D’Alfonso, M. Collini, P. Pallavicini, et al., “A molecular thermometer for nanoparticles for optical hyperthermia,” [http://dx.doi.org/10.1021/nl400129v Nano Lett. 13, 2004–2010 (2013)].
