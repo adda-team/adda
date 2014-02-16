@@ -1805,6 +1805,17 @@ static void RemoveLockFile(FILEHANDLE fd ONLY_FOR_LOCK,const char * restrict fna
 
 //======================================================================================================================
 
+static void UpdateSymVec(const double a[static 3])
+// tests whether vector a satisfies a number of symmetries (with round-off errors) and cancels the failing symmetries
+{
+	if (fabs(a[0])>ROUND_ERR) symX=false;
+	if (fabs(a[1])>ROUND_ERR) symY=false;
+	if (fabs(a[2])>ROUND_ERR) symZ=false;
+	if (!vAlongZ(a)) symR=false;
+}
+
+//======================================================================================================================
+
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
@@ -1959,7 +1970,11 @@ void VariablesInterconnect(void)
 		prop_0[2]=1;
 	}
 	// parameter interconnections
-	if (IntRelation==G_SO) reduced_FFT=false;
+	if (IntRelation==G_SO) {
+		reduced_FFT=false;
+		// this limitation is due to assumption of reciprocity in DecayCross()
+		if (beamtype==B_DIPOLE) PrintError("'-beam dipole' and '-int so' can not be used together");
+	}
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the definition of reduced_FFT
 	 */
@@ -2101,17 +2116,13 @@ void VariablesInterconnect(void)
 	// initialize averaging over orientation
 	if (orient_avg) {
 		ReadAvgParms(avg_parms);
-		if (sym_type==SYM_AUTO) sym_type=SYM_NO;
+		symX=symY=symZ=symR=false;
 		avg_inc_pol=true;
 	}
-	else {
-		// else - initialize rotation stuff
+	else { // initialize rotation stuff and test symmetries of the beam in particle reference frame
 		InitRotation();
-		/* if not default incidence (generally, along z-axis), break the symmetry completely. This can be improved to
-		 * account for some special cases, however, then symmetry of Gaussian beam should be treated more thoroughly
-		 * than now.
-		 */
-		if (!vAlongZ(prop) && sym_type==SYM_AUTO) sym_type=SYM_NO;
+		UpdateSymVec(prop);
+		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 	/* TO ADD NEW ITERATIVE SOLVER
@@ -2131,6 +2142,8 @@ void FinalizeSymmetry(void) {
 	// finalize symmetries
 	if (sym_type==SYM_NO) symX=symY=symZ=symR=false;
 	else if (sym_type==SYM_ENF) symX=symY=symZ=symR=true;
+	// test based on SR^2 = SX*SY; uses handmade XOR
+	if (symR && ((symX&&!symY) || (symY&&!symX))) LogError(ONE_POS,"Inconsistency in internally defined symmetries");
 	// additional tests in case of two polarization runs
 	if (!(symR && !scat_grid)) {
 		if (beamtype==B_READ && beam_fnameX==NULL)
@@ -2442,9 +2455,17 @@ void PrintInfo(void)
 		 */
 		// log Symmetry options
 		switch (sym_type) {
-			case SYM_AUTO: break; //  do not print anything in this case
-			case SYM_NO: fprintf(logfile,"No symmetries are used\n"); break;
-			case SYM_ENF: fprintf(logfile,"Symmetry is enforced by user (warning!)\n"); break;
+			case SYM_AUTO:
+				fprintf(logfile,"Symmetries: ");
+				if (symX) fprintf(logfile,"X");
+				if (symY) fprintf(logfile,"Y");
+				if (symZ) fprintf(logfile,"Z");
+				if (symR) fprintf(logfile,"R");
+				if (!(symX||symY||symZ||symR)) fprintf(logfile,"none");
+				fprintf(logfile,"\n");
+				break;
+			case SYM_NO: fprintf(logfile,"Symmetries: cancelled by user\n"); break;
+			case SYM_ENF: fprintf(logfile,"Symmetries: enforced by user (warning!)\n"); break;
 		}
 		// log optimization method
 		if (save_memory) fprintf(logfile,"Optimization is done for minimum memory usage\n");

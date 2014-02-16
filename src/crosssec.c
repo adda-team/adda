@@ -630,7 +630,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	doublecomplex expX, expY, expZ;
 #endif
 
-	const bool above=(nF[2]>-ROUND_ERR); // we assume above-the-surface scattering for all boundary cases
+	const bool above=(nF[2]>-ROUND_ERR); // we assume above-the-surface scattering for all boundary cases (like 90 deg)
 	// Using SQ_SO for particles near surface seems even beyond "under development"
 	if (ScatRelation==SQ_SO) LogError(ONE_POS,"Incompatibility error in CalcFieldSurf");
 	cvInit(sumN);
@@ -662,20 +662,13 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		if (msubInf) {
 			cs=-1;
 			cp=1;
-			kt=NAN; // redundant to remove warnings below
 		}
-		else {
-			if (cabs(msub-1)<ROUND_ERR && fabs(ki)<ROUND_ERR) kt=ki;
-			else kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
-			/* here we test only the exact zero, since for other cases (when msub=1, and very small values of ki,kt)
-			 * the above assignment kt=ki guarantees correct results through standard functions. Also the case of
-			 * 90deg-scattering (for msub!=1) is taken care above.
-			 */
-			if (ki==0 && kt==0) cs=cp=0;
-			else {
-				cs=FresnelRS(ki,kt);
-				cp=FresnelRP(ki,kt,msub);
-			}
+		  // since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
+		else if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) cs=cp=0;
+		else { // no special treatment here, since other cases, including 90deg-scattering, are taken care above.
+			kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
+			cs=FresnelRS(ki,kt);
+			cp=FresnelRP(ki,kt,msub);
 		}
 		phSh=imExp(2*WaveNum*hsub*ki);
 	}
@@ -685,13 +678,14 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cvInit(ebuff);
 			return;
 		}
-		// here no special treatment is required, since all boundary cases are treated as 'above'
 		kt=-msub*nF[2];
-		ki=cSqrtCut(1 - msub*msub*(nF[0]*nF[0]+nF[1]*nF[1]));
+		if (cabs(msub-1)<ROUND_ERR && fabs(kt)<SQRT_RND_ERR) ki=kt;
+		else ki=cSqrtCut(1 - msub*msub*(nF[0]*nF[0]+nF[1]*nF[1]));
 		// here nN may be complex, but normalized to n.n=1
 		nN[0]=msub*nF[0];
 		nN[1]=msub*nF[1];
 		nN[2]=-ki;
+		// these formulae works fine for ki=kt (even very small), and ki=kt=0 is impossible here
 		cs=FresnelTS(kt,ki);
 		cp=FresnelTP(kt,ki,1/msub);
 		// coefficient comes from  k0->k in definition of F(n) (in denominator)

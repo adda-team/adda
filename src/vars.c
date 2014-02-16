@@ -35,8 +35,8 @@ enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarizability relation)
 enum beam beamtype;       // type of incident beam
 
-// symmetries
-	// symmetries of reflection relative to the planes perpendicular to x, y, and z axes. Only Y is actually used
+// symmetries (in particle reference frame)
+	// symmetries of reflection relative to the planes perpendicular to x, y, and z axes
 bool symX,symY,symZ;
 bool symR;         // symmetry of 90-degrees rotation about z axes
 
