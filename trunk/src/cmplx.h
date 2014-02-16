@@ -118,12 +118,11 @@ static inline void imExp_arr(const doublecomplex arg,const int size,doublecomple
 	// handles imaginary part
 	if (im!=0) {
 		a=exp(-fabs(im));
-		b=a;
-		if (im>0) for (k=1;k<size;k++) {
+		if (im>0) for (k=1,b=a;k<size;k++) {
 			c[k]*=b;
 			b*=a;
 		}
-		else for (k=size-1,b*=exp(-(size-1)*im);k>0;k--) {
+		else for (k=size-1,b=exp(-(size-1)*im);k>0;k--) {
 			c[k]*=b;
 			b*=a;
 		}

@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: all the constants used by ADDA code, including enum constants, also defines some useful macros
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -18,7 +18,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.3b3"
+#define ADDA_VERSION "1.3b4"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -332,6 +332,7 @@ enum init_field { // how to calculate initial field to be used in the iterative 
 
 // numbers less than this value (compared to unity) are considered to be zero (approximately 10*DBL_EPSILON)
 #define ROUND_ERR 1E-15
+#define SQRT_RND_ERR 3E-8 // sqrt(ROUND_ERR)
 
 // output and input file and directory names (can only be changed at compile time)
 #define F_EXPCOUNT      "ExpCount"

@@ -87,6 +87,7 @@ static double * restrict out; // used to collect both mueller matrix and integra
 
 // CalculateE.c
 int CalculateE(enum incpol which,enum Eftype type);
+bool TestExtendThetaRange(void);
 void MuellerMatrix(void);
 void SaveMuellerAndCS(double * restrict in);
 
@@ -302,6 +303,7 @@ static void calculate_one_orientation(double * restrict res)
 		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
 	}
 	InitCC(INCPOL_Y);
+	// symR implies that prop is along z (in particle RF). Then it is fine for both definitions of scattering angles
 	if (symR && !scat_grid) {
 		if (CalculateE(INCPOL_Y,CE_PARPER)==CHP_EXIT) return;
 	}
@@ -654,8 +656,7 @@ void Calculator (void)
 		dtheta_deg = 180.0 / ((double)(nTheta-1));
 		dtheta_rad = Deg2Rad(dtheta_deg);
 		block_theta= 16*(size_t)nTheta;
-		// if not enough symmetry, calculate for +- theta (for single scattering plane)
-		if (!((yzplane&&symY) || (scat_plane&&symX) || orient_avg)) nTheta=2*(nTheta-1);
+		if (TestExtendThetaRange()) nTheta=2*(nTheta-1);
 	}
 	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;

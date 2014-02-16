@@ -3,7 +3,7 @@
  * Descr: initialization of all FFT for matrix-vector products; and FFT procedures themselves; not used in sparse mode
  *        TODO: A lot of indirect indexing used - way to optimize.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -95,7 +95,7 @@ double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspos
 // D2 matrix and its two slices; used only temporary for InitDmatrix
 static doublecomplex * restrict slice,* restrict slice_tr,* restrict D2matrix;
 static doublecomplex * restrict R2matrix; // same for surface (slice and slice_tr are reused from Dmatrix)
-static size_t D2sizeY,D2sizeZ; // size of the 'matrix' D2 (x-size is gridX)
+static size_t D2sizeY; // size of the 'matrix' D2 (x-size is gridX), Z size is not used
 static size_t R2sizeY; // size of the 'matrix' R2 (x- and z-sizes are corresponding grids)
 static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
 // the following two lines are defined in InitDmatrix but used in InitRmatrix, they are analogous to Dm values
@@ -937,7 +937,7 @@ void InitDmatrix(void)
 	// initialize sizes of D and D2 matrices
 	if (reduced_FFT) {
 		D2sizeY=gridY/2;
-		D2sizeZ=gridZ/2;
+		// D2sizeZ=gridZ/2;
 		DsizeY=gridY/2+1;
 		DsizeZ=gridZ/2+1;
 		nnn=1;
@@ -946,7 +946,7 @@ void InitDmatrix(void)
 	}
 	else {
 		D2sizeY=DsizeY=gridY;
-		D2sizeZ=DsizeZ=gridZ;
+		DsizeZ=gridZ; // also =D2sizeZ
 		nnn=2;
 		jstart=1-boxY;
 		kstart=1-boxZ;

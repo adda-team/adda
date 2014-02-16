@@ -160,6 +160,7 @@ all -opt mem ;mgn;
 
 all -h orient
 # changing particle orientation is not yet suppoted with surf
+#all -orient 30 0 0 ;mgn;
 #all -orient 10 20 30 ;se; ;mgn;
 #all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
 #all -orient avg ;se; ;mg4n;
@@ -192,6 +193,9 @@ all -prognosis
 all -h prop
 all -prop 5 1 3 ;se; ;mgn;
 all -prop 0 0 -1 ;mgn;
+#for grazing incidence very small z-component is required
+all -prop 1 0 -1e-16 ;mgn;
+all -prop 0 1 -1e-16 ;mgn;
 
 all -h recalc_resid
 all -recalc_resid ;mgn;

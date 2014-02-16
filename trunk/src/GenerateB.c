@@ -67,8 +67,9 @@ char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
-static doublecomplex ki,kt;   // abs of normal components of k_inc/k0, and ktran/k0
+static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
+static double p0;              // amplitude of the incident dipole moment
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -102,7 +103,11 @@ void InitBeam(void)
 					// here msub should always be defined
 					inc_scale=1/creal(msub);
 					ki=msub*prop_0[2];
-					kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+					/* Special case for msub near 1 to remove discontinuities for near-grazing incidence. The details
+					 * are discussed in CalcFieldSurf() in crosssec.c.
+					 */
+					if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+					else kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction and full wavevector of wave transmitted into substrate
 					ktVec[0]=msub*prop_0[0];
 					ktVec[1]=msub*prop_0[1];
@@ -113,7 +118,9 @@ void InitBeam(void)
 					vRefl(prop_0,prIncRefl);
 					ki=-prop_0[2];
 					if (!msubInf) {
-						kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+						// same special case as above
+						if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+						else kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 						// determine propagation direction of wave transmitted into substrate
 						ktVec[0]=prop_0[0];
 						ktVec[1]=prop_0[1];
@@ -138,12 +145,12 @@ void InitBeam(void)
 			}
 			// in weird scenarios the dipole can be positioned exactly at the origin; reused code from Gaussian beams
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
-			if (beam_asym) { // if necessary break the symmetry of the problem
-				if (beam_center_0[0]!=0) symX=symR=false;
-				if (beam_center_0[1]!=0) symY=symR=false;
-				if (beam_center_0[2]!=0) symZ=false;
-			}
-			else vInit(beam_center);
+			if (!beam_asym) vInit(beam_center);
+			/* definition of p0 is important for scaling of many scattering quantities (that are normalized to incident
+			 * irradiance). Alternative definition is p0=1, but then the results will scale with unit of length
+			 * (breaking scale invariance)
+			 */
+			p0=1/(WaveNum*WaveNum*WaveNum);
 			if (IFROOT) sprintf(beam_descr,"point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
 			return;
 		case B_LMINUS:
@@ -155,12 +162,7 @@ void InitBeam(void)
 			TestPositive(w0,"beam width");
 			vCopy(beam_pars+1,beam_center_0);
 			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
-			if (beam_asym) { // if necessary break the symmetry of the problem
-				if (beam_center_0[0]!=0) symX=symR=false;
-				if (beam_center_0[1]!=0) symY=symR=false;
-				if (beam_center_0[2]!=0) symZ=false;
-			}
-			else vInit(beam_center);
+			if (!beam_asym) vInit(beam_center);
 			s=1/(WaveNum*w0);
 			s2=s*s;
 			scale_x=1/w0;
@@ -202,8 +204,9 @@ void InitBeam(void)
 	 *    source files)
 	 * 2) test all input parameters (for that you're encouraged to use functions from param.h since they would
 	 *    automatically produce informative output in case of error).
-	 * 3) if shape breaks any symmetry, corresponding variable should be set to false. Do not set any of them to true,
-	 *    as they can be set to false by other factors.
+	 * 3) the symmetry breaking due to prop or beam_center is taken care of in VariablesInterconnect() in param.c.
+	 *    But if there are other reasons why beam would break any symmetry, corresponding variable should be set to
+	 *    false here. Do not set any of them to true, as they can be set to false by other factors.
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
 	 *    symR - symmetry of rotation for 90 degrees over the Z axis
 	 * 4) initialize the following:
@@ -324,16 +327,18 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 			}
 			return;
-		case B_DIPOLE:
-			for (i=0;i<local_nvoid_Ndip;i++) { // here we explicitly use that dipole moment (prop) is real
+		case B_DIPOLE: {
+			double dip_p[3]; // dipole moment, = p0*prop
+			vMultScal(p0,prop,dip_p);
+			for (i=0;i<local_nvoid_Ndip;i++) { // here we explicitly use that dip_p is real
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				(*InterTerm_real)(r1,gt);
-				cSymMatrVecReal(gt,prop,b+j);
+				cSymMatrVecReal(gt,dip_p,b+j);
 				if (surface) { // add reflected field
 					r1[2]=DipoleCoord[j+2]+beam_center[2]+2*hsub;
 					(*ReflTerm_real)(r1,gt);
-					cReflMatrVecReal(gt,prop,v1);
+					cReflMatrVecReal(gt,dip_p,v1);
 					cvAdd(v1,b+j,b+j);
 				}
 			}
@@ -344,25 +349,25 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			 * correct for most formulations, e.g. poi, fcd, fcd_st, igt_so. Moreover, it is also logical, since the
 			 * exciting dipole is really point one, in contrast to the dipoles composing the particle.
 			 */
-			C0dipole=2*FOUR_PI_OVER_THREE*WaveNum*WaveNum*WaveNum*WaveNum;
-			printf("C0=%g\n",C0dipole);
+			double temp=p0*WaveNum*WaveNum; // in principle, t1=1/k, but we keep a general formula
+			C0dipole=2*FOUR_PI_OVER_THREE*temp*temp;
 			if (surface) {
 				r1[0]=r1[1]=0;
 				r1[2]=2*(beam_center[2]+hsub);
 				(*ReflTerm_real)(r1,gt);
 				double tmp;
-				/* the following expression uses that prop is real and a specific (anti-)symmetry of the gt
+				/* the following expression uses that dip_p is real and a specific (anti-)symmetry of the gt
 				 * a general expression is commented out below
 				 */
-				tmp=prop[0]*prop[0]*cimag(gt[0])+2*prop[0]*prop[1]*cimag(gt[1])+prop[1]*prop[1]*cimag(gt[3])
-				   +prop[2]*prop[2]*cimag(gt[5]);
-//				v1[0]=prop[0]; v1[1]=prop[1]; v1[2]=prop[2];
+				tmp=dip_p[0]*dip_p[0]*cimag(gt[0])+2*dip_p[0]*dip_p[1]*cimag(gt[1])+dip_p[1]*dip_p[1]*cimag(gt[3])
+				   +dip_p[2]*dip_p[2]*cimag(gt[5]);
+//				v1[0]=dip_p[0]; v1[1]=dip_p[1]; v1[2]=dip_p[2];
 //				cReflMatrVec(gt,v1,v2);
 //				tmp=cDotProd_Im(v2,v1);
 				C0dipole_refl=FOUR_PI*WaveNum*tmp;
-				printf("C0refl=%g\n",C0dipole_refl);
 			}
 			return;
+		}
 		case B_LMINUS:
 		case B_DAVIS3:
 		case B_BARTON5:
