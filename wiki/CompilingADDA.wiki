@@ -42,7 +42,7 @@ Note that multi-word value of `OPTIONS` need to be enclosed in quotes.
 || *Name* || *Value* || *Description* ||
 || `COMPILER` || one of || ||
 || || `gnu` || [http://www.gnu.org/software/gcc/ GNU compilers]. The default value. ||
-|| || `intel` || [http://software.intel.com/en-us/intel-compilers/ Intel compilers]. ||
+|| || `intel` || [http://software.intel.com/en-us/intel-compilers/ Intel compilers]. There are [http://code.google.com/p/a-dda/issues/detail?id=146 problems] with v.11.1. ||
 || || `compaq` || [http://h30097.www3.hp.com/dtk/compaqc_ov.html Compaq compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
 || || `ibm` || [http://www-142.ibm.com/software/products/us/en/subcategory/SW760 IBM compilers]. Has not been recently tested, hence may need modification of compiler flags. ||
 || || `hpux` || Specific options for HP-UX ia64 environment ||
