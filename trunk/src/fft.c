@@ -59,8 +59,6 @@
 #else
 #	define ONLY_FOR_FFTW3 ATT_UNUSED
 #endif
-// for transpose YZ
-#define TR_BLOCK 64
 
 #ifdef FFT_TEMPERTON
 #	define ONLY_FOR_TEMPERTON // this is used in function argument declarations
@@ -100,9 +98,8 @@ static size_t R2sizeY; // size of the 'matrix' R2 (x- and z-sizes are correspond
 static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
 // the following two lines are defined in InitDmatrix but used in InitRmatrix, they are analogous to Dm values
 static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
-static int jstartR; // starting index for y
-static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
-static bool weird_nprocs;              // whether weird number of processors is used
+static int jstartR;            // starting index for y
+static bool weird_nprocs;      // whether weird number of processors is used
 // clFFT plans
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
@@ -222,6 +219,12 @@ static void transpose(const doublecomplex * restrict data,doublecomplex * restri
 	size_t y,z,y1,y2,z1,z2,i,j,y0,z0;
 	doublecomplex *t1,*t2,*t3,*t4;
 	const doublecomplex *w1,*w2,*w3;
+	const size_t blockTr=64; // block size
+	/* Intel compiler 11.1 seems to produce broken code for this function whenever blockTr>1, at least when the function
+	 * is called in row of three from TransposeYZ(). So maybe the bug is due to incorrect inlining. This bug appears
+	 * only for -O3 compilation, but not for -O2. Moreover, the bug is not present for icc 13.0.
+	 * We have no idea what can be done on our side.
+	 */
 
 	y1=Y/blockTr;
 	y2=Y%blockTr;
@@ -300,7 +303,6 @@ void TransposeYZ(const int direction)
 	CL_CH_ERR(clFinish(command_queue));
 #else
 	size_t Xcomp,ind;
-
 	if (direction==FFT_FORWARD) for (Xcomp=0;Xcomp<3;Xcomp++) {
 		ind=Xcomp*gridYZ;
 		transpose(slices+ind,slices_tr+ind,gridY,gridZ);
