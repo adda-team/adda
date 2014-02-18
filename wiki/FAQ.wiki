@@ -45,10 +45,7 @@ There are also tools developed by Roman Schuh, which are available upon request.
 Just apply `ADDA` to an equivalent problem of a particle in vacuum with both wavelength and particle refractive index divided by the refractive index of the medium. Most of the calculated scattering quantities can then be used without modification. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
 
 == How to calculate scattering by a particle near or inside the infinite plane-parallel plane substrate? =
-`ADDA` can not rigorously solve such light scattering problem. Such a rigorous solution requires a significant modification of the code, therefore it will not be implemented in the near future (but there is issue 101). However, you may approach this problem using the current version of `ADDA`:
- * You may completely ignore the substrate; this may be accurate enough if particle is far from the substrate and the refractive index change between substrate and upper medium is small.
- * A little more accurate approach is to consider the "incident field" in `ADDA` as a sum of incident and reflected plane waves. The latter can be easily obtained analytically for infinite plane-parallel substrate. However, currently such incident field is not implemented, therefore it need first to be [AddingBeam coded into ADDA].
- * Another approach is to take a large computational box around the particle, and discretize the substrate that falls into it. This is rigorous in the limit of infinite size of computational box, but requires much larger computer resources than that for the initial problem. It also requires one to specify the shape files for all different sizes of the computational box. See section _Applicability of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for details.
+Starting from v.1.3b4 `ADDA` can rigorously and efficiently handle particles near the plane homogeneous substrate. Possible approximate approaches for more complicated cases, like multi-layered substrates or particles crossing the substrate, are discussed in Section _Extensions of the DDA_ of the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual].
 
 = Calculated quantities =
 
