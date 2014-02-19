@@ -303,6 +303,7 @@ void TransposeYZ(const int direction)
 	CL_CH_ERR(clFinish(command_queue));
 #else
 	size_t Xcomp,ind;
+
 	if (direction==FFT_FORWARD) for (Xcomp=0;Xcomp<3;Xcomp++) {
 		ind=Xcomp*gridYZ;
 		transpose(slices+ind,slices_tr+ind,gridY,gridZ);

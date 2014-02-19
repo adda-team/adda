@@ -229,20 +229,21 @@ all -h scat_plane
 # for equivalent runs with surface we additionally add -yz, which is incompatible with the following
 #all -scat_plane ;se; ;mgn;
 
+# below "-size 2" is added to some shapes to fit them near the surface
 all -h shape
 all -h shape axisymmetric
 all -shape axisymmetric 196.txt ;mgn;
 all -h shape bicoated
-all -shape bicoated 3 0.5 ;2mgn;
+all -shape bicoated 3 0.5 ;2mgn; -size 2
 all -h shape biellipsoid
-all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn;
+all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn; -size 2
 all -h shape bisphere
-all -shape bisphere 2 ;mgn;
+all -shape bisphere 2 ;mgn; -size 2
 all -h shape box
 all -shape box ;mgn;
 all -shape box 0.5 1.5 ;mgn;
 all -h shape capsule
-all -shape capsule 1.5 ;mgn;
+all -shape capsule 1.5 ;mgn; -size 2
 all -h shape chebyshev
 all -shape chebyshev 0.3 5 ;mgn;
 all -h shape coated
