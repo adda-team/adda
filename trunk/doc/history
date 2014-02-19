@@ -447,3 +447,79 @@ Changes to the manual:
 + Added section "Sparse mode", a few other sections were also updated.
 + Section "Miscellanea": added link to wrapper script in R language by Baptiste Auguie.
 + Section "References": DOIs and URLs were made into hyperlinks.
+
+------------------------------------------------------------------------------------------------------------------------
+Ver. 1.3b4 - 19.02.2014
+
++ Major changes to the code due to switch to complex types of C99 (issue 70).
++ Major new feature: DDA for particle near surface (substrate) - issue 101. Command line options: '-surf ...', 
+  '-int_surf ...'.
++ New command line option -scat_plane, which defines that the scattering should be calculate in the scattering plane
+  (issue 170).
++ Implementation of point-dipole incident field (issue 149). Should work both for free space and in the presence of
+  surface (dipole should be above the surface). Controlled by new beam type: '-beam dipole ...'.
++ New DDA formulation for non-local (spatially dispersive) materials (two different flavors: point-value and averaged 
+  over dipole volume) - issue 190. Command line options '-int {nloc|nloc_av} ...' and '-pol {nloc|nloc_av} ...'.
+  Currently assumes quasi-static case (particles are much smaller than the wavelength).
+ 
+* E2_alldir is now used to store only the final result, while (intermediary) complex fields are stored in a new vector
+  E_ad. This slightly increases required memory (proportional to number of angles).
++ MPI_C_DOUBLE_COMPLEX and MPI_C_BOOL are used, where possible (and supported).
++ Accumulate() now operates in place and operates on any datatype. Corresponding buffers Egrid_buffer, Eplane_buffer,
+  and E2alldir_buffer were removed (somewhat decreasing the memory footprint in MPI mode).
+* MatVec in sparse mode was updated to use standard functions from linalg.c.
+* Calling of IGT Fortran routines was slightly changed, conversion from double to complex has been moved inside the C
+  file from Fortran routine.
++ Added defines to simplify adding pragmas to ignore warnings in gcc and loop_count in icc.
++ Several improvements of tests/2exec to accomodate new features and test modes (r1254, r1255, r1263, r1265, r1285).
++ Several functions have been added to cmplx.h.
+* Handling of scattering directions based on angles theta and phi (alldir and scat_grid) was localized to a separate
+  function SetScatPlane in crosssec.c.
+* The logic in interaction.c/h was significantly modified. Now two types of functions are defined (visible outside) for
+  both direct and reflected interaction, accepting either integers or real values.
++ Parsing and testing of command line arguments was simplified, by adding several utility functions
++ Function CoupleConstant in calculator.c was rewritten to separate the code for different formulations.
++ Removed compensation of Cext for '-scat fin' (issue 188).
++ README files in win32/ and win64/ were improved to refer to the main package.
++ Added a test to timing.c, which will notify the user of (potential) timer overflow in timing results in log.
++ Symmetries are now mentioned in the log not only in 'no' or 'enf' regime, but also in 'auto'. Then the specific set
+  of used symmetries is given.
+- A few minor bugs fixed or addressed (issues 172, 174, 182).
++ Added wiki pages: AddingInteraction, AddingReflection, AddingPolarizability (issue 106), Links.
+
+Changes to Makefiles:
++ Added test of gcc version, '-pedantic' is used only for versions >= 4.7.2.
++ Added test to require version 3.81 of make, including support for else-if (r1285).
++ Now compilation of *.f90 is allowed in the general framework (not yet used).
+
+Changes to the manual:
++ New Sections: "Surface Mode", "Incident Beam", "Reflection term", "Decay rate enhancement", "Sommerfeld integrals".
+* Section "System Requirements": memory and processor time requirements updated, including surface mode.
++ Section "Reference frames": added discussion on different definition of scattering angles for free-space and surface
+  modes.
+* Section "Partition over processors in parallel mode": better explained the partition, which is performed along both 
+  the z- and x-axes. Related changes were made in Section "Fast Fourier transform".
++ Section "Particle symmetries": added explanation of symmetries codes as saved to log.
++ Section "Single orientation": mentioned incompatibility of rotation with -surf.
++ Section "Propagation direction": added note of different definition of scattering angles and about special meaning of
+  -prop for dipole incident beam (or the one read from file).
++ Section "Beam type": added explicit formulae for incident field of the plane wave, added explanation of incident wave
+  in surface mode and of point-dipole field, added a table with all possible beam types.
++ Section "DDA formulation": added discussion of differences between direct and total interaction terms (related to
+  reflection term).
++ Section "Polarizability Prescription": added a brief note on non-local formulations.
++ Section "Interaction Term": added a brief note on non-local formulations.
++ Section "How to calculate scattering quantities": extended formulae to include surface-mode, added expression for
+  Poynting vector, removed compensation of Cext for '-scat fin'.
++ New Section "Definition of scattering plane and angles". Some material was moved here from several other sections.
+  Also numerous changes throughout the manual to refer to this section for scattering plane definition.
++ Section "Mueller matrix and its derivatives": added explicit definition of the Mueller matrix with discussion of
+  peculiarities related to the surface mode, added expression for circular depolarization ratio, formulae updated to
+  comply with both definitions of the scattering plane.
++ Section "Amplitude matrix": added explicit definition of the amplitude scattering matrix.
+- Section "Radiation forces": removed incorrect statement on calculation of optical torques. Instead it now refers to a
+  workaround. Described incompatibilities with the surface mode.
++ Section "Iterative Solver": mentioned incompatibility of 'init_field wkb' with -surf. In formulae matrix G is
+  replaced by H.
++ Section "Fast Fourier transform": specified additional time for FFTs in surface mode.
++ Section "Parallel performance": minor changes, it now explicitly refers to optimal partition of FFT grid.
