@@ -1,0 +1,53 @@
+digraph fft
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_fft {
+		fftInitBeforeD
+		"fft[X,Y,Z]_Dm"
+		fftInitAfterD
+		"fft[X,Y,Z]"
+		label = "fft.c"
+	}
+	subgraph cluster_fftw {
+		fftw_plan_many_dft
+		fftw_plan_guru_dft
+		fftw_execute
+		label = "fftw3.h"
+	}
+	subgraph cluster_cfft99 {
+		cftfax_
+		cfft99_
+		label = "cfft99D.f"
+	}
+	subgraph cluster_apple {
+		ApplePlan [label="clFFT_CreatePlan\n(fft_setup.cpp)"]
+		AppleExec [label="clFFT_ExecuteInterleaved\n(fft_execute.cpp)"]
+		label = "Apple clFFT"
+	}
+	subgraph cluster_clamd {
+		clAmdFftSetup
+		clAmdFftBakePlan
+		clAmdFftEnqueueTransform
+		label = "clAmdFft.h"
+	}
+	
+	"fft[X,Y,Z]_Dm" -> cfft99_
+	"fft[X,Y,Z]_Dm" -> fftw_execute
+	"fft[X,Y,Z]" -> cfft99_
+	"fft[X,Y,Z]" -> fftw_execute
+	"fft[X,Y,Z]" -> clAmdFftEnqueueTransform
+	"fft[X,Y,Z]" -> AppleExec
+	fftInitBeforeD -> fftw_plan_many_dft
+	fftInitBeforeD -> cftfax_
+	fftInitAfterD -> fftw_plan_many_dft
+	fftInitAfterD -> fftw_plan_guru_dft
+	fftInitAfterD -> ApplePlan
+	fftInitAfterD -> clAmdFftSetup
+	fftInitAfterD -> clAmdFftBakePlan
+}

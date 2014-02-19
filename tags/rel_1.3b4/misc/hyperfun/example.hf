@@ -1,0 +1,10 @@
+my_model(x[3],a[1])
+{
+  array center[3];
+  center = [0,0,0];
+  
+  el1=hfEllipsoid(x,center,1.,1.,2.4);
+
+  my_model = el1 + hfNoiseG(x,0.5,4.,1.4);
+
+}

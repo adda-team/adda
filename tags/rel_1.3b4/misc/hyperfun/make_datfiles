@@ -1,0 +1,36 @@
+#!/bin/bash
+# Bash script for generating shape file for ADDA with different number of dipoles for the different
+# size parameters (keeeping the same number of dipoles per wavelength - dpl).
+# It requires 
+#   a) calc_pip_arg: executable compiled from calc_pip_arg.f90 or included in Windows package
+#   b) pip: executable of "Point in Polyhedron" - see misc/pip
+# suggestions may be sent to josef.gasteiger@lmu.de
+
+# first argument is the filename of the OBJ file, without appendix
+shape=$1
+
+# argument for the reference pip run
+pip_arg_ref=100
+
+# minimum number of dipoles per wavelength in the dat files
+dpl=11
+
+# size parameters, the dat files should be created for
+size_array=(10.0 11.0 12.0 13.1 14.4 15.8 17.3 19.0 20.8 22.8 25.0)
+
+# prepare files...
+cp ${shape}.obj shape.obj
+
+./pip $pip_arg_ref > pip_temp.txt
+
+num_ref=`tail -n 1 pip_temp.txt`
+
+rm pip_temp.txt
+
+# now do the work
+for size in ${size_array[@]}
+do
+  pip_arg=`./calc_pip_arg $pip_arg_ref $num_ref $size $dpl`
+  ./pip $pip_arg
+  mv shape.dat ${shape}_${size}.dat
+done

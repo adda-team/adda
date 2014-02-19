@@ -1,0 +1,383 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[     15341,        374]
+NotebookOptionsPosition[     13531,        312]
+NotebookOutlinePosition[     14494,        346]
+CellTagsIndexPosition[     14286,        338]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Set", " ", "current", " ", "directory", " ", "as", " ", "working", " ", 
+    "one", " ", "and", " ", "load", " ", "package"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"SetDirectory", "[", 
+    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Needs", "[", "\"\<ParseADDAlog`\>\"", "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.538101953415*^9, 3.538101968686*^9}, 3.53810214526*^9, {
+   3.5381023126949997`*^9, 3.538102375428*^9}, {3.538102549609*^9, 
+   3.5381025650550003`*^9}, 3.538104226668*^9, {3.5381044790480003`*^9, 
+   3.538104479421*^9}, {3.538104527131*^9, 3.5381045983710003`*^9}, {
+   3.538104636675*^9, 3.538104662076*^9}, {3.5381088783929996`*^9, 
+   3.53810890542*^9}, {3.538111402144*^9, 3.538111407619*^9}, 
+   3.538113137477*^9}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Information", " ", "about", " ", "functions"}], ",", " ", 
+    RowBox[{"provided", " ", "by", " ", "the", " ", "package"}]}], " ", 
+   "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"?", "ParseLog"}], "\n", 
+   RowBox[{"?", "EntryNames"}], "\n", 
+   RowBox[{"?", "EntryIndex"}], "\n", 
+   RowBox[{"?", "EntryValue"}]}]}]], "Input",
+ CellChangeTimes->{{3.538108532472*^9, 3.538108537785*^9}, {
+  3.5381092735290003`*^9, 3.538109324316*^9}, {3.538109419318*^9, 
+  3.5381094302060003`*^9}, {3.538110256508*^9, 3.538110267493*^9}, {
+  3.538112263524*^9, 3.538112263824*^9}, {3.5381123471400003`*^9, 
+  3.5381123522460003`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ StyleBox["\<\"ParseLog[\\\"fname\\\"] parses ADDA log file, extracting the \
+values of all recognized entries. A full list of names of supported entries \
+is available via EntryNames. The main part of parsing is based on table \
+LogFormat inside the private package section.\"\>", "MSG"]], "Print", \
+"PrintUsage",
+ CellChangeTimes->{3.538113350932*^9},
+ CellTags->"Info3538138550-2017391"],
+
+Cell[BoxData[
+ StyleBox["\<\"EntryNames[] returns a full list of entry names, scanned by \
+ParseLog.\"\>", "MSG"]], "Print", "PrintUsage",
+ CellChangeTimes->{3.5381133510220003`*^9},
+ CellTags->"Info3538138550-1377556"],
+
+Cell[BoxData[
+ StyleBox["\<\"EntryIndex[\\\"name(s)\\\"] returns index of the entry, which \
+can be furhter used to index data block returned by ParseLog. If a list of \
+names is given, the function returns a list of indices.\"\>", "MSG"]], "Print",\
+ "PrintUsage",
+ CellChangeTimes->{3.538113351109*^9},
+ CellTags->"Info3538138551-1380104"],
+
+Cell[BoxData[
+ StyleBox["\<\"EntryValue[data,\\\"name(s)\\\"] provides a direct method to \
+extract entry values from data returned by ParseLog. If a list of names is \
+given, the function returns a list of values.\"\>", "MSG"]], "Print", \
+"PrintUsage",
+ CellChangeTimes->{3.538113351201*^9},
+ CellTags->"Info3538138551-9511216"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "full", " ", "list", " ", "of", " ", "supported", " ", "entries", " ", 
+    "to", " ", "scan"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"EntryNames", "[", "]"}]}]], "Input",
+ CellChangeTimes->{{3.5381087021429996`*^9, 3.538108732803*^9}, {
+  3.538108766366*^9, 3.538108767374*^9}, {3.538112904275*^9, 
+  3.538112924176*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"\<\"version\"\>", ",", "\<\"Ncores\"\>", ",", "\<\"command\"\>", 
+   ",", "\<\"lambda\"\>", ",", "\<\"shape\"\>", ",", "\<\"dipoleGrid\"\>", 
+   ",", "\<\"refIndex\"\>", ",", "\<\"dpl\"\>", ",", "\<\"reqEps\"\>", 
+   ",", "\<\"Ndipoles\"\>", ",", "\<\"incBeamType\"\>", 
+   ",", "\<\"incProp\"\>", ",", "\<\"incPolY\"\>", ",", "\<\"incPolX\"\>", 
+   ",", "\<\"orient\"\>", ",", "\<\"polRel\"\>", ",", "\<\"scatQuan\"\>", 
+   ",", "\<\"intTerm\"\>", ",", "\<\"FFT\"\>", ",", "\<\"iterMethod\"\>", 
+   ",", "\<\"fftGrid\"\>", ",", "\<\"memoryFFTeach\"\>", 
+   ",", "\<\"memoryTotal\"\>", ",", "\<\"memoryMaxEach\"\>", 
+   ",", "\<\"Niter\"\>", ",", "\<\"NcalcEfield\"\>", ",", "\<\"timeWall\"\>", 
+   ",", "\<\"timeSinceInit\"\>", ",", "\<\"timeInit\"\>", 
+   ",", "\<\"timeInitDmatrix\"\>", ",", "\<\"timeInitDmatrixComm\"\>", 
+   ",", "\<\"timeInitFFT\"\>", ",", "\<\"timeInitParticle\"\>", 
+   ",", "\<\"timeIF\"\>", ",", "\<\"timeIFsingleRun\"\>", 
+   ",", "\<\"timeIFinitSolver\"\>", ",", "\<\"timeIFinitSolverComm\"\>", 
+   ",", "\<\"timeIFoneIter\"\>", ",", "\<\"timeIFoneIterComm\"\>", 
+   ",", "\<\"timeSF\"\>", ",", "\<\"timeSFonePlane\"\>", 
+   ",", "\<\"timeSFonePlaneComm\"\>", ",", "\<\"timeOtherSQ\"\>", 
+   ",", "\<\"timeOtherSQint\"\>", ",", "\<\"timeFileIO\"\>", 
+   ",", "\<\"timeIntegration\"\>"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538108724958*^9, 3.538108733278*^9}, 3.538108777318*^9, 
+   3.5381129073450003`*^9, {3.5381133441099997`*^9, 3.538113351262*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "simple", " ", "example", " ", "or", " ", "parsing", " ", "a", " ", 
+    "single", " ", "log", " ", "file"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"vals", "=", 
+    RowBox[{"ParseLog", "[", 
+     RowBox[{"ToFileName", "[", 
+      RowBox[{"\"\<run1\>\"", ",", "\"\<log\>\""}], "]"}], "]"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"EntryValue", "[", 
+    RowBox[{"vals", ",", 
+     RowBox[{"{", 
+      RowBox[{"\"\<refIndex\>\"", ",", "\"\<Ndipoles\>\""}], "}"}]}], 
+    "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.53810854388*^9, 3.538108578928*^9}, {3.538108676328*^9, 
+  3.538108699273*^9}, {3.538108770531*^9, 3.538108833133*^9}, {
+  3.538109127302*^9, 3.538109127727*^9}, {3.538111428368*^9, 
+  3.538111447326*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"\<\"1.1b5\"\>", ",", "1", 
+   ",", "\<\"D:\\\\Maxim\\\\Current\\\\adda\\\\src\\\\seq\\\\adda.exe -grid \
+32 -m 1.05 0 \"\>", ",", "6.283185307`", 
+   ",", "\<\"sphere; diameter:19.18540946\"\>", ",", 
+   RowBox[{"{", 
+    RowBox[{"32", ",", "32", ",", "32"}], "}"}], ",", "1.05`", ",", "10.5`", 
+   ",", "0.00001`", ",", "17256", ",", "\<\"plane wave\"\>", ",", 
+   RowBox[{"{", 
+    RowBox[{"0", ",", "0", ",", "1"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"0", ",", "1", ",", "0"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"1", ",", "0", ",", "0"}], "}"}], ",", "\<\"default\"\>", 
+   ",", "\<\"'Lattice Dispersion Relation'\"\>", ",", "\<\"'by Draine'\"\>", 
+   ",", "\<\"'as Point dipoles'\"\>", ",", "\<\"FFTW3\"\>", 
+   ",", "\<\"QMR (complex symmetric)\"\>", ",", 
+   RowBox[{"{", 
+    RowBox[{"64", ",", "64", ",", "64"}], "}"}], ",", "9.8`", ",", "16.6`", 
+   ",", "\<\"None\"\>", ",", "7", ",", 
+   RowBox[{"{", 
+    RowBox[{"361", ",", "2"}], "}"}], ",", "2", ",", "\<\"None\"\>", ",", 
+   "0.636`", ",", "0.16`", ",", "\<\"None\"\>", ",", "0.447`", ",", "0.002`", 
+   ",", "0.956`", ",", "0.956`", ",", "0.122`", ",", "\<\"None\"\>", ",", 
+   "0.116`", ",", "\<\"None\"\>", ",", "0.283`", ",", "0.141`", 
+   ",", "\<\"None\"\>", ",", "0.011`", ",", "\<\"None\"\>", ",", "0.055`", 
+   ",", "0.`"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538108772395*^9, 3.5381087785360003`*^9}, 
+   3.5381088335179996`*^9, 3.538109130481*^9, {3.5381114621619997`*^9, 
+   3.538111475373*^9}, 3.5381117796809998`*^9, {3.538111860009*^9, 
+   3.538111871917*^9}, 3.538112084075*^9, 3.538113351303*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1.05`", ",", "17256"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538108772395*^9, 3.5381087785360003`*^9}, 
+   3.5381088335179996`*^9, 3.538109130481*^9, {3.5381114621619997`*^9, 
+   3.538111475373*^9}, 3.5381117796809998`*^9, {3.538111860009*^9, 
+   3.538111871917*^9}, 3.538112084075*^9, 3.538113351316*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"More", " ", "complex", " ", "example"}], ",", " ", 
+    RowBox[{
+    "which", " ", "parses", " ", "multiple", " ", "directories", " ", "with", 
+     " ", "log", " ", "files", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+       "typical", " ", "case", " ", "for", " ", "running", " ", "ADDA", " ", 
+        "simulations"}], ")"}], ".", " ", "The"}], " ", "output", " ", "is", 
+     " ", "exported", " ", "in", " ", "table", " ", "format", " ", "to", " ", 
+     "a", " ", "text", " ", "file"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"dirList", "=", 
+    RowBox[{"Cases", "[", 
+     RowBox[{
+      RowBox[{"FileNames", "[", "\"\<run*\>\"", "]"}], ",", 
+      RowBox[{"_", "?", "DirectoryQ"}]}], "]"}]}], "\[IndentingNewLine]", 
+   RowBox[{"names", "=", 
+    RowBox[{"{", 
+     RowBox[{
+     "\"\<refIndex\>\"", ",", "\"\<Ndipoles\>\"", ",", "\"\<Niter\>\"", ",", 
+      "\"\<timeWall\>\""}], "}"}]}], "\[IndentingNewLine]", 
+   RowBox[{"inds", "=", 
+    RowBox[{"EntryIndex", "[", "names", "]"}]}], "\[IndentingNewLine]", 
+   RowBox[{"vals", "=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"ParseLog", "[", 
+        RowBox[{"ToFileName", "[", 
+         RowBox[{"#", ",", "\"\<log\>\""}], "]"}], "]"}], 
+       "\[LeftDoubleBracket]", "inds", "\[RightDoubleBracket]"}], "&"}], "/@",
+      "dirList"}]}], "\[IndentingNewLine]", 
+   RowBox[{"Export", " ", "[", 
+    RowBox[{"\"\<sample.dat\>\"", ",", 
+     RowBox[{"Prepend", "[", " ", 
+      RowBox[{"vals", ",", "names"}], "]"}]}], "]"}]}]}]], "Input",
+ CellChangeTimes->{
+  3.4323867576167345`*^9, {3.4323868282683263`*^9, 3.4323868543358097`*^9}, {
+   3.432386973286853*^9, 3.4323869743383646`*^9}, {3.432387014105547*^9, 
+   3.4323871194870787`*^9}, {3.43238721517467*^9, 3.432387367653925*^9}, {
+   3.4323874336988926`*^9, 3.4323874381452866`*^9}, {3.432387558308072*^9, 
+   3.4323875596199584`*^9}, {3.432388018650011*^9, 3.432388050736149*^9}, {
+   3.4323881014991426`*^9, 3.4323881181230464`*^9}, {3.432388161225024*^9, 
+   3.4323881734926643`*^9}, {3.4323882585549774`*^9, 3.432388259165856*^9}, {
+   3.4323892141991262`*^9, 3.4323893158452864`*^9}, {3.432389441866496*^9, 
+   3.4323894756751103`*^9}, {3.43238962882533*^9, 3.4323896293560925`*^9}, {
+   3.432389751581845*^9, 3.432389752142651*^9}, {3.432389813951528*^9, 
+   3.4323898196797647`*^9}, 3.43238985014357*^9, 3.432427487282005*^9, {
+   3.4324276753424225`*^9, 3.4324276944999695`*^9}, {3.432429542617432*^9, 
+   3.432429548345669*^9}, {3.4324296058683825`*^9, 3.432429609693883*^9}, {
+   3.432429748503482*^9, 3.4324297486036253`*^9}, {3.4324317195477037`*^9, 
+   3.432431722942586*^9}, {3.4331540454259853`*^9, 3.4331540556607027`*^9}, {
+   3.4331541056626015`*^9, 3.433154144909035*^9}, {3.4331541769150577`*^9, 
+   3.4331541783270884`*^9}, {3.4331542463849506`*^9, 
+   3.4331542780404687`*^9}, {3.433154315394181*^9, 3.4331543161953325`*^9}, {
+   3.433154349483198*^9, 3.433154391483592*^9}, {3.433154538344768*^9, 
+   3.433154550622422*^9}, {3.43315648553469*^9, 3.4331565188726273`*^9}, {
+   3.4331614771322546`*^9, 3.433161509468752*^9}, {3.4352190072613726`*^9, 
+   3.435219017285787*^9}, 3.4352191548135424`*^9, {3.435219308494525*^9, 
+   3.435219311548917*^9}, {3.4352195800049376`*^9, 3.4352195906101875`*^9}, {
+   3.4352201231359215`*^9, 3.4352201248583984`*^9}, {3.4352211674776115`*^9, 
+   3.4352212393109026`*^9}, {3.538098790355*^9, 3.538098823223*^9}, {
+   3.5380988630559998`*^9, 3.538098870016*^9}, {3.538099231288*^9, 
+   3.53809923198*^9}, {3.5381012336949997`*^9, 3.5381012341280003`*^9}, {
+   3.538101584241*^9, 3.538101592309*^9}, 3.538101761059*^9, {
+   3.538102595609*^9, 3.538102602234*^9}, {3.5381120965620003`*^9, 
+   3.538112105624*^9}, {3.53811236329*^9, 3.5381123947320004`*^9}, {
+   3.538112741619*^9, 3.538112867862*^9}, {3.538112945729*^9, 
+   3.53811294648*^9}, {3.5381129977860003`*^9, 3.538113129883*^9}, {
+   3.5381131795620003`*^9, 3.538113214303*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"\<\"run1\"\>", ",", "\<\"run2\"\>"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538113115881*^9, 3.5381131303129997`*^9}, 
+   3.538113222885*^9, 3.5381133513450003`*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"\<\"refIndex\"\>", ",", "\<\"Ndipoles\"\>", ",", "\<\"Niter\"\>", 
+   ",", "\<\"timeWall\"\>"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538113115881*^9, 3.5381131303129997`*^9}, 
+   3.538113222885*^9, 3.538113351359*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"7", ",", "10", ",", "25", ",", "27"}], "}"}]], "Output",
+ CellChangeTimes->{{3.538113115881*^9, 3.5381131303129997`*^9}, 
+   3.538113222885*^9, 3.538113351366*^9}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"1.05`", ",", "17256", ",", "7", ",", "2"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"1.5`", ",", "4224", ",", "91", ",", "3"}], "}"}]}], 
+  "}"}]], "Output",
+ CellChangeTimes->{{3.538113115881*^9, 3.5381131303129997`*^9}, 
+   3.538113222885*^9, 3.5381133513719997`*^9}],
+
+Cell[BoxData["\<\"sample.dat\"\>"], "Output",
+ CellChangeTimes->{{3.538113115881*^9, 3.5381131303129997`*^9}, 
+   3.538113222885*^9, 3.5381133514040003`*^9}]
+}, Open  ]]
+},
+WindowSize->{1196, 722},
+WindowMargins->{{0, Automatic}, {0, Automatic}},
+ShowSelection->True,
+FrontEndVersion->"7.0 for Microsoft Windows (32-bit) (November 10, 2008)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{
+ "Info3538138550-2017391"->{
+  Cell[2159, 61, 405, 7, 58, "Print",
+   CellTags->"Info3538138550-2017391"]},
+ "Info3538138550-1377556"->{
+  Cell[2567, 70, 219, 4, 40, "Print",
+   CellTags->"Info3538138550-1377556"]},
+ "Info3538138551-1380104"->{
+  Cell[2789, 76, 341, 6, 40, "Print",
+   CellTags->"Info3538138551-1380104"]},
+ "Info3538138551-9511216"->{
+  Cell[3133, 84, 330, 6, 40, "Print",
+   CellTags->"Info3538138551-9511216"]}
+ }
+*)
+(*CellTagsIndex
+CellTagsIndex->{
+ {"Info3538138550-2017391", 13860, 323},
+ {"Info3538138550-1377556", 13968, 326},
+ {"Info3538138551-1380104", 14076, 329},
+ {"Info3538138551-9511216", 14184, 332}
+ }
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[545, 20, 863, 17, 72, "Input"],
+Cell[CellGroupData[{
+Cell[1433, 41, 701, 16, 112, "Input"],
+Cell[CellGroupData[{
+Cell[2159, 61, 405, 7, 58, "Print",
+ CellTags->"Info3538138550-2017391"],
+Cell[2567, 70, 219, 4, 40, "Print",
+ CellTags->"Info3538138550-1377556"],
+Cell[2789, 76, 341, 6, 40, "Print",
+ CellTags->"Info3538138551-1380104"],
+Cell[3133, 84, 330, 6, 40, "Print",
+ CellTags->"Info3538138551-9511216"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3512, 96, 393, 9, 52, "Input"],
+Cell[3908, 107, 1526, 23, 88, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5471, 135, 802, 20, 72, "Input"],
+Cell[6276, 157, 1639, 31, 88, "Output"],
+Cell[7918, 190, 348, 6, 30, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8303, 201, 4028, 74, 152, "Input"],
+Cell[12334, 277, 207, 4, 30, "Output"],
+Cell[12544, 283, 261, 5, 30, "Output"],
+Cell[12808, 290, 203, 4, 30, "Output"],
+Cell[13014, 296, 341, 9, 30, "Output"],
+Cell[13358, 307, 157, 2, 30, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

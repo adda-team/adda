@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for j in *; do
+  if [ -d $j ]; then 
+  echo "Cleaning Test $j"
+  cd $j
+  ./clean
+  cd ..
+  fi
+done
