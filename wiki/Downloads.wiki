@@ -1,0 +1,18 @@
+#summary Downloadable packages of ADDA
+#labels Featured
+
+All ADDA packages released since version 0.73 are available at [https://drive.google.com/folderview?id=0B-b8kzeJFSENaFRWMXhINHJvMDA external repository]. Below we provide direct download links for latest versions. 
+
+= Latest stable version (1.2) =
+This version is recommended for general use. See PackageDescription and ReleaseNotes for more information.
+ 	
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSm9oclhMbjhGRkE Main package] (sources, sample input and output files, and miscellaneous packages)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENc1FFVzQ4R3gxWm8 Win32 executables] (also requires the main package)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENZlRQQXJrRFduWFU Win64 executables] (also requires the main package)
+
+= Latest beta version (1.3b4) =
+This version is for testing the newest features. Use it with caution! See [history] and [manual] for more information.
+
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Main package] (sources, sample input and output files, and miscellaneous packages)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Win32 executables] (also requires the main package)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Win64 executables] (also requires the main package)
