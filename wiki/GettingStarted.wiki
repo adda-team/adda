@@ -3,7 +3,7 @@
 
 If you are not sure, what is `ADDA` and whether it suits your needs, look first at its [Features]. If your are still unsure and have questions like "Can I use `ADDA` to ...?", look at the [FAQ Frequently asked questions]. 
 
-When you decide to give `ADDA` a try, obtain one of the [PackageDescription packages]. You may either get the source code and [CompilingADDA compile] it yourself or get compiled executables for your platform (if available). All packages are available from [http://code.google.com/p/a-dda/downloads/list Downloads], the source code can also be obtained directly from the [http://code.google.com/p/a-dda/source/checkout repository].
+When you decide to give `ADDA` a try, obtain one of the [PackageDescription packages]. You may either get the source code and [CompilingADDA compile] it yourself or get compiled executables for your platform (if available). All packages are available from [Downloads Downloads], the source code can also be obtained directly from the [http://code.google.com/p/a-dda/source/checkout repository].
 
 After that you may immediately proceed to the hands-on [Tutorial] and make a few quick simulations. If you prefer a more thorough approach, please take a look at the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual], which covers all aspects of performing light scattering simulations with `ADDA`.
 

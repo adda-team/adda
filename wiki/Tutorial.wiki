@@ -1,6 +1,6 @@
 #summary A hands-on tutorial highlighting basic features of ADDA.
 
-This tutorial is a slightly modified version of the one, carried out for participants of the DDA workshop in Bremen at 23.03.2007. It was based on the `ADDA` v.0.76, but we try to ensure that it applies to the current version. The tutorial is designed to be self-contained and we believe it is best enjoyed this way. However, feel free to refer to the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual], if you are stuck. It is assumed that you [CompilingADDA have compiled] the sequential version of `ADDA` or [http://code.google.com/p/a-dda/downloads/list have downloaded] executables. Before starting please make sure that you have the following files in your working directory:
+This tutorial is a slightly modified version of the one, carried out for participants of the DDA workshop in Bremen at 23.03.2007. It was based on the `ADDA` v.0.76, but we try to ensure that it applies to the current version. The tutorial is designed to be self-contained and we believe it is best enjoyed this way. However, feel free to refer to the [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual], if you are stuck. It is assumed that you [CompilingADDA have compiled] the sequential version of `ADDA` or [Downloads have downloaded] executables. Before starting please make sure that you have the following files in your working directory:
 {{{
 adda or adda.exe
 alldir_params.dat
