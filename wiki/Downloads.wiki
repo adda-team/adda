@@ -1,7 +1,7 @@
 #summary Downloadable packages of ADDA
 #labels Featured
 
-All ADDA packages released since version 0.73 are available at [https://drive.google.com/folderview?id=0B-b8kzeJFSENaFRWMXhINHJvMDA#list external repository]. Below we provide direct download links for the latest versions. 
+All `ADDA` packages released since version 0.73 are available at [https://drive.google.com/folderview?id=0B-b8kzeJFSENaFRWMXhINHJvMDA#list external repository]. Below we provide direct download links for the latest versions. 
 
 = Latest stable version (1.2) =
 This version is recommended for general use. See PackageDescription and ReleaseNotes for more information.
