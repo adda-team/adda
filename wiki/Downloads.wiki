@@ -11,8 +11,8 @@ This version is recommended for general use. See PackageDescription and ReleaseN
  * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENZlRQQXJrRFduWFU Win64 executables] (also requires the main package)
 
 = Latest beta version (1.3b4) =
-This version is for testing the newest features. Use it with caution! See [history] and [manual] for more information.
+This version is for testing the newest features. Use it with caution! See [http://a-dda.googlecode.com/svn/trunk/doc/history doc/history] and [http://a-dda.googlecode.com/svn/trunk/doc/manual.pdf manual] for more information.
 
- * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Main package] (sources, sample input and output files, and miscellaneous packages)
- * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Win32 executables] (also requires the main package)
- * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENSkxUTklZRmN3Zjg Win64 executables] (also requires the main package)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENbFJsS3E0dTFMa2c Main package] (sources, sample input and output files, and miscellaneous packages)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENWGZfV2Fxd1BILUE Win32 executables] (also requires the main package)
+ * [https://drive.google.com/uc?export=download&id=0B-b8kzeJFSENUTNtdE82NEJyVTg Win64 executables] (also requires the main package)
