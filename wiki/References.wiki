@@ -29,6 +29,10 @@ M. A. Yurkin, V. P. Maltsev, and A. G. Hoekstra, “The discrete dipole approxim
 == Gold nanoparticles ==
 M. A. Yurkin, D. de Kanter, and A. G. Hoekstra, “Accuracy of the discrete dipole approximation for simulation of optical properties of gold nanoparticles,” [http://dx.doi.org/10.1117/1.3335329 J. Nanophoton. 4, 041585 (2010)].
 
+== Surface mode ==
+ * (2D-FFT implementation) R. Schmehl, B. M. Nebeker, and E. D. Hirleman, “Discrete-dipole approximation for scattering by features on surfaces by means of a two-dimensional fast Fourier transform technique,” [http://dx.doi.org/10.1364/JOSAA.14.003026 J. Opt. Soc. Am. A 14, 3026–3036 (1997)].
+ * (full 3D-FFT acceleration) to be published.
+
 == Shapes ==
 === Axisymmetric ===
 K. V. Gilev, E. Eremina, M. A. Yurkin, and V. P. Maltsev, “Comparison of the discrete dipole approximation and the discrete source method for simulation of light scattering by red blood cells,” [http://dx.doi.org/10.1364/OE.18.005681 Opt. Express 18, 5681–5690 (2010)].
@@ -74,6 +78,8 @@ A. G. Hoekstra, J. Rahola, and P. M. A. Sloot, “Accuracy of internal fields in
 === Mueller matrix integrated over the azimuthal angle ===
 M. A. Yurkin, “Symmetry relations for the Mueller scattering matrix integrated over the azimuthal angle,” [http://dx.doi.org/10.1016/j.jqsrt.2012.11.023 J. Quant. Spectrosc. Radiat. Transfer 131, 82–87 (2013)].
 
+=== Decay rate (emission) enhancement ===
+S. D’Agostino, F. D. Sala, and L. C. Andreani, “Dipole decay rates engineering via silver nanocones,” [http://dx.doi.org/10.1007/s11468-013-9512-3 Plasmonics 8, 1079–1086 (2013)].
 
 == Comparisons ==
 === with other DDA codes ===
