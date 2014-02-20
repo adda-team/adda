@@ -1,6 +1,7 @@
  * [GettingStarted Getting started]
  * [FAQ Frequently asked questions]
  * [Features]
+ * [Downloads Downloads]
  * [ReleaseNotes Release notes] 
  * [Tutorial]
  * Simulation results
