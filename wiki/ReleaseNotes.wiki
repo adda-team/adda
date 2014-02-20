@@ -1,7 +1,7 @@
 #summary The history of most important changes in ADDA, grouped by releases.
 #labels Featured
 
-Here most important changes are listed grouped by releases in reverse chronological order. Full history with all hardly significant details can be found in [http://code.google.com/p/a-dda/source/browse/trunk/doc/history doc/history]. Very early history starting from 1990 is [EarlyHistory documented separately]. Packages of versions starting from 0.78.2 are listed in [http://code.google.com/p/a-dda/downloads/list?can=1 Downloads], while earlier versions can be either downloaded from the [http://www.science.uva.nl/research/scs/Software/adda/history.html old ADDA history page] (0.73 - 0.78) or extracted from the [http://code.google.com/p/a-dda/source/browse/tags/ Subversion repository] (starting from [http://code.google.com/p/a-dda/source/browse/tags/rel_0_5 0.5]).
+Here most important changes are listed grouped by releases in reverse chronological order. Full history with all hardly significant details can be found in [http://a-dda.googlecode.com/svn/trunk/doc/history doc/history]. Very early history starting from 1990 is [EarlyHistory documented separately]. Packages of versions starting from 0.78.2 are listed in [http://code.google.com/p/a-dda/downloads/list?can=1 Downloads], while earlier versions can be either downloaded from the [http://www.science.uva.nl/research/scs/Software/adda/history.html old ADDA history page] (0.73 - 0.78) or extracted from the [http://code.google.com/p/a-dda/source/browse/tags/ Subversion repository] (starting from [http://code.google.com/p/a-dda/source/browse/tags/rel_0_5 0.5]).
 
 <wiki:toc />
 
