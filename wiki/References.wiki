@@ -1,6 +1,6 @@
 #summary Papers describing different aspects of ADDA.
 
-Development of `ADDA` is mostly performed in the framework of scientific projects. In the following, a list of publications, relevant to different parts of `ADDA`, is presented. These publications contain detailed information about corresponding parts. We also recommend one to select papers from this list for citation in publications that use `ADDA`.
+Development of `ADDA` is mostly performed in the framework of scientific projects. In the following, a list of publications, relevant to different parts of `ADDA`, is presented. Although the manual provides a brief description of all `ADDA` functionality, we recommend citing the original papers listed below (containing more details) when you use the corresponding functions of `ADDA`. Please cite the manual only for those parts which are not published elsewhere.
 
 <wiki:toc />
 
