@@ -19,6 +19,7 @@
  * Josef Gasteiger contributed tool chain to work with Hyperfun models ([http://code.google.com/p/a-dda/source/browse/trunk/misc/hyperfun misc/hyperfun]).
  * Code for iterative solver `bcgs2` is based on [http://www.math.uu.nl/people/vorst/zbcg2.f90 zbcg2.f90] by M.A. Botchev and D.R. Fokkema.
  * Neoklis Kyriazis is the author of NEC2C, from which Sommerfeld integration routines are used.
+ * Stefania D'Agostino contributed the first version of the code to calculate dipole decay-rate enhancement.
 
 The above list doesn't include [http://code.google.com/p/a-dda/people/list current contributors].
 
