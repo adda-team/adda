@@ -253,6 +253,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro2,ro4,ro;
 	double x,y,z,x2_s,xy_s;
+    double td1, td2, td3, td4, td5, td6, td7;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,eps_ambient;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3],tv1[3],tv2[3],tv3[3];
@@ -455,16 +456,16 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			ReadField(fname,b);
 			return;
         case B_ELECTRON:
-            t1 = (el_energy * keV * i_c0 * i_c0 * i_electron_mass) + 1;
-            t1 *= t1;
-            t2 = 1.0 - 1.0/t1;
-            t1 = c0 * cSqrtCut(t2);   // electron velocity in m/s
-            t2 = cSqrtCut(1 - t1*t1*i_c0*i_c0*eps_ambient);
-            t2 = 1.0 / t2;                  /* gamma, Lorentz contraction factor !! actually need velocity of light
+            td1 = (el_energy * keV * i_c0 * i_c0 * i_electron_mass) + 1;
+            td1 *= td1;
+            td2 = 1.0 - 1.0/td1;
+            td1 = c0 * cSqrtCut(td2);   // electron velocity in m/s
+            td2 = sqrt(1 - td1*td1*i_c0*i_c0*eps_ambient);
+            td2 = 1.0 / td2;                  /* gamma, Lorentz contraction factor !! actually need velocity of light
                                              * in material, i.e epsilon/c_0^2 instead of ic_0^2
                                              */
-            t3 = c0 * WaveNum * 1e6;      // omega
-            t4 = 2*electron_charge * t3 / (t1*t1 * t2*eps_ambient); // prefactor for E(r, omega)
+            td3 = c0 * WaveNum * 1e6;      // omega
+            td4 = INV_PI*0.5*i_epsilon_0*electron_charge * td3 / (td1*td1 * td2*eps_ambient); // prefactor for E(r, omega)
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
@@ -473,11 +474,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				y=DotProd(r1,ey)*scale_x;
 				z=DotProd(r1,prop)*scale_x;
 				ro=sqrt(x*x+y*y);
-                t5 = t3*ro / (t1 * t2);                         // argument for Bessel's functions
-                ctemp = imExp(t3*z/t1)* t4;                          // exponential prefactor for g(r)
-                printf("\n");
-                t6 = ctemp * I * besselk0(creal(t5))/t2;        // for "prop" direction
-                t7 = ctemp * besselk1(creal(t5));               // coefficient for R vector
+                td5 = td3*ro / (td1 * td2);                         // argument for Bessel's functions
+                ctemp = imExp(td3*z/td1)* td4;                          // exponential prefactor for g(r)
+                t6 = -ctemp * I * besselk0(td5)/td2;        // for "prop" direction
+                t7 = ctemp * besselk1(td5);               // coefficient for R vector
                 vMultScal(x,ex,tv1);
                 vMultScal(y,ey,tv2);
                 vAdd(tv1,tv2,tv3);
