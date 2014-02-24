@@ -5,7 +5,7 @@
  *        'Global' means used in three or more source files. Variables that are used in only two source files are called
  *        'semi-global' and not listed here. They are defined in one file and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -35,8 +35,8 @@ enum inter IntRelation;   // type of formula for interaction term
 enum pol PolRelation;     // type of formula for self-term (polarizability relation)
 enum beam beamtype;       // type of incident beam
 
-// symmetries
-	// symmetries of reflection relative to the planes perpendicular to x, y, and z axes. Only Y is actually used
+// symmetries (in particle reference frame)
+	// symmetries of reflection relative to the planes perpendicular to x, y, and z axes
 bool symX,symY,symZ;
 bool symR;         // symmetry of 90-degrees rotation about z axes
 
@@ -126,6 +126,7 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
 bool surface;           // whether nearby surface is present
 enum refl ReflRelation; // method to calculate reflected Green's tensor
 doublecomplex msub;     // complex refractive index of the substrate
+double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(msub)
 bool msubInf;           // whether msub is infinite (perfectly reflecting surface)
 double hsub;            // height of particle center above surface
 /* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)

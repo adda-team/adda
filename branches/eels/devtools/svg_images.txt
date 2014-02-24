@@ -1,0 +1,19 @@
+This describes a typical workflow for producing *.svg files with some data to be used in wiki pages, e.g.
+ComparisonOtherCodes. The main issue is the default (at no scaling) size of the figure, which is now set to 400px.
+
+1) Produce the preliminary figure in data processing software. If you can export it to SVG directly specifying the
+size, that is all. Otherwise save it to any vector format, e.g. PDF.
+
+2) Open PDF file in Inkscape, using default import settings.
+
+3) Select everything, press lock icon above (lock aspect ratios), check the units to the right of the icon to be "px",
+then set the width to 400 (field to the left of the icon).
+
+4) Press Shift+Ctrl+D (File->Document Properties...), the section (above) should be "Page", look for second box (named
+"Custom Size") in the section "Page Size". Expand there "Resize page to content..." and press the button 
+"Resize page to drawing or selection".
+
+5) Save the file using "Plain SVG" as format (not "Inkscape SVG" for compatibility).
+
+6) Close Inkscape. You will get a warning "The file was saved with a format that may cause data loss" (due to the
+chosen format above). Ignore it and press "Close without saving".

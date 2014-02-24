@@ -125,8 +125,8 @@ all -int igt 3 0.01 ;mgn;
 all -int igt_so ;mgn;
 all -int nloc 0.1 ;mgn;
 all -int nloc 1 ;mgn;
-all -int nloc0 0.1 ;mgn;
-all -int nloc0 1 ;mgn;
+all -int nloc_av 0.1 ;mgn;
+all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
 all -int so ;mgn;
 
@@ -170,6 +170,7 @@ all -opt speed ;mgn;
 all -opt mem ;mgn;
 
 all -h orient
+all -orient 30 0 0 ;mgn;
 all -orient 10 20 30 ;se; ;mgn;
 all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
 all -orient avg ;se; ;mg4n;
@@ -189,8 +190,8 @@ all -pol ldr ;p; ;mgn;
 all -pol ldr avgpol ;p; ;mgn;
 all -pol nloc 0.1 ;mgn;
 all -pol nloc 1 ;mgn;
-all -pol nloc0 0.1 ;mgn;
-all -pol nloc0 1 ;mgn;
+all -pol nloc_av 0.1 ;mgn;
+all -pol nloc_av 1 ;mgn;
 all -pol rrc ;mgn;
 all -pol so ;p; ;mgn;
 
@@ -200,6 +201,8 @@ all -prognosis
 all -h prop
 all -prop 5 1 3 ;se; ;mgn;
 all -prop 0 0 -1 ;mgn;
+all -prop 1 0 0 ;mgn;
+all -prop 0 1 0 ;mgn;
 
 all -h recalc_resid
 all -recalc_resid ;mgn;

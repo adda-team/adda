@@ -3,7 +3,7 @@
  * Descr: initialization of all FFT for matrix-vector products; and FFT procedures themselves; not used in sparse mode
  *        TODO: A lot of indirect indexing used - way to optimize.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -59,8 +59,6 @@
 #else
 #	define ONLY_FOR_FFTW3 ATT_UNUSED
 #endif
-// for transpose YZ
-#define TR_BLOCK 64
 
 #ifdef FFT_TEMPERTON
 #	define ONLY_FOR_TEMPERTON // this is used in function argument declarations
@@ -95,14 +93,13 @@ double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspos
 // D2 matrix and its two slices; used only temporary for InitDmatrix
 static doublecomplex * restrict slice,* restrict slice_tr,* restrict D2matrix;
 static doublecomplex * restrict R2matrix; // same for surface (slice and slice_tr are reused from Dmatrix)
-static size_t D2sizeY,D2sizeZ; // size of the 'matrix' D2 (x-size is gridX)
+static size_t D2sizeY; // size of the 'matrix' D2 (x-size is gridX), Z size is not used
 static size_t R2sizeY; // size of the 'matrix' R2 (x- and z-sizes are corresponding grids)
 static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
 // the following two lines are defined in InitDmatrix but used in InitRmatrix, they are analogous to Dm values
 static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
-static int jstartR; // starting index for y
-static size_t blockTr=TR_BLOCK;        // block size for TransposeYZ
-static bool weird_nprocs;              // whether weird number of processors is used
+static int jstartR;            // starting index for y
+static bool weird_nprocs;      // whether weird number of processors is used
 // clFFT plans
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
@@ -222,6 +219,12 @@ static void transpose(const doublecomplex * restrict data,doublecomplex * restri
 	size_t y,z,y1,y2,z1,z2,i,j,y0,z0;
 	doublecomplex *t1,*t2,*t3,*t4;
 	const doublecomplex *w1,*w2,*w3;
+	const size_t blockTr=64; // block size
+	/* Intel compiler 11.1 seems to produce broken code for this function whenever blockTr>1, at least when the function
+	 * is called in row of three from TransposeYZ(). So maybe the bug is due to incorrect inlining. This bug appears
+	 * only for -O3 compilation, but not for -O2. Moreover, the bug is not present for icc 13.0.
+	 * We have no idea what can be done on our side.
+	 */
 
 	y1=Y/blockTr;
 	y2=Y%blockTr;
@@ -937,7 +940,7 @@ void InitDmatrix(void)
 	// initialize sizes of D and D2 matrices
 	if (reduced_FFT) {
 		D2sizeY=gridY/2;
-		D2sizeZ=gridZ/2;
+		// D2sizeZ=gridZ/2;
 		DsizeY=gridY/2+1;
 		DsizeZ=gridZ/2+1;
 		nnn=1;
@@ -946,7 +949,7 @@ void InitDmatrix(void)
 	}
 	else {
 		D2sizeY=DsizeY=gridY;
-		D2sizeZ=DsizeZ=gridZ;
+		DsizeZ=gridZ; // also =D2sizeZ
 		nnn=2;
 		jstart=1-boxY;
 		kstart=1-boxZ;

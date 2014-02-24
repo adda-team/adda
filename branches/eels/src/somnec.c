@@ -6,7 +6,7 @@
  * This code is incorporated into ADDA with several changes, which are explicitly indicated by comments. Those include:
  * - no generation of interpolation grid, only single run
  * - numerical precision was changed to double
- * - conjugation (that was in plance to couple with other parts of nec2 code) was removed
+ * - conjugation (that was in place to couple with other parts of nec2 code) was removed
  */
 
 /* TODO: Systematic accuracy study of this code is required. At least 7 digits of precision are desired (for test runs)
