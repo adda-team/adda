@@ -101,11 +101,11 @@ A second test is for Ag sphere (radius _R_=50nm, refractive index 0.25+3.14i) pl
 {{{
 adda -size 0.1 -lambda 0.488 -surf 0.05 1.5 0 -m 0.25 3.14 -prop 1 0 0.577350 -ntheta 180
 }}}
-Shown below is perpendicular and parallel scattering intensities (_S_,,11,,−_S_,,12,, and _S_,,11,,+_S_,,12,, respectively) in the main scattering plane.
+Shown below are perpendicular and parallel scattering intensities (_S_,,11,,−_S_,,12,, and _S_,,11,,+_S_,,12,, respectively) in the main scattering plane.
 
 http://a-dda.googlecode.com/svn/wiki/Ag_sphere.svg
 
-Reference T-matrix results are given in Fig.4.10 of [[#References 8]], but they were recalculated by Vladimir Schmidt. The latter raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
+Reference T-matrix results are given in Fig.4.10 of [[#References 8]], but they were recalculated by Vladimir Schmidt using [http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]. The latter raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
 
 = References =
  # A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
