@@ -635,7 +635,7 @@ static inline double besseli0(const double x)
 // returns the modifield Bessel function I0(x) for any real x.
 {
     double y, ax, ans;
-    ax = abs(x);
+    ax = fabs(x);
     if (ax < 3.75) {
         y = x/3.75;
         y *= y;
@@ -655,14 +655,13 @@ static inline double besseli1(const double x)
 // returns the modifield Bessel function I1(x) for any real x.
 {
     double y, ax, ans;
-    ax = abs(x);
+    ax = fabs(x);
     if (ax < 3.75) {
         y = x/3.75;
         y *= y;
         ans =  BESI1_P1+y*(BESI1_P2+y*(BESI1_P3+y*(BESI1_P4+y*(BESI1_P5+y*(BESI1_P6+y*BESI1_P7)))));
     }
     else {
-        ax = abs(x);
         y = 3.75 / ax;
         ans = (exp(ax)/sqrt(ax))*(BESI1_Q1+y*(BESI1_Q2+y*(BESI1_Q3+y*(BESI1_Q4+y*(BESI1_Q5+y*
                                 (BESI1_Q6+y*(BESI1_Q7+y*(BESI1_Q8+y*BESI1_Q9))))))));

@@ -331,6 +331,8 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 #define electron_mass 9.1093826e-31                 // kg
 #define i_electron_mass 1.0977692e30                // 1/kg
 #define electron_charge 1.60217653e-19              // C
+#define epsilon_0 8.85418781762038985053656303171075e-12 // F/m
+#define i_epsilon_0 1.129409066758147138350823392936757e11 // m/F
 
 enum iter { // iterative methods
 	IT_BCGS2,    // Enhanced Bi-Conjugate Gradient Stabilized (2)
