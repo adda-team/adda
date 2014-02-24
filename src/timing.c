@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: basic timing and statistics routines
  *
- * Copyright (C) 2006,2008-2013 ADDA contributors
+ * Copyright (C) 2006,2008-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -21,6 +21,7 @@
 #include "io.h"
 #include "vars.h"
 // system headers
+#include <math.h>
 #include <time.h>
 #include <stdio.h>
 
@@ -99,6 +100,7 @@ void FinalStatistics(void)
 // print final output and statistics
 {
 	time_t wt_end;
+	double totTime;
 	TIME_TYPE Timing_TotalTime;
 
 	// wait for all processes to show correct execution time
@@ -122,16 +124,22 @@ void FinalStatistics(void)
 				TotalIter,TotalMatVec,nTheta,TotalEFieldPlane);
 		}
 		fprintf(logfile,
-			"Total wall time:     %.0f\n",difftime(wt_end,wt_start));
-		fprintf(logfile,
+			"Total wall time:     %.0f\n",totTime=difftime(wt_end,wt_start));
 #ifdef ADDA_MPI
+		fprintf(logfile,
 			"--Everything below is also wall times--\n"
-			"Time since MPI_Init: "FFORMT"\n",
-#else
-			"--Everything below is processor times--\n"
-			"Total time:          "FFORMT"\n",
+			"Time since MPI_Init: "FFORMT"\n",TO_SEC(Timing_TotalTime));
+#else // standard clock
+		fprintf(logfile,
+			"--Everything below is processor times--\n");
+		/* Here we test for possible overflow of clock. If clock_t is only 4 bytes (e.g. long) and CLOCLS_PER_SEC = 10^6
+		 * (not 1000), the overflow is expected whenever total time is larger than 72 min.
+		 */
+		if (CLOCKS_PER_SEC*totTime > pow(256,sizeof(clock_t))-1) fprintf(logfile,
+			"--(some values are affected by timer overflow)--\n");
+		fprintf(logfile,
+			"Total time:          "FFORMT"\n",TO_SEC(Timing_TotalTime));
 #endif
-			TO_SEC(Timing_TotalTime));
 		fprintf(logfile,
 			"  Initialization time: "FFORMT"\n",TO_SEC(Timing_Init));
 		if (!prognosis) {

@@ -1,7 +1,7 @@
 /* FILE : interaction.c
  * Descr: the functions used to calculate the interaction term
  *
- * Copyright (C) 2011-2013 ADDA contributors
+ * Copyright (C) 2011-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -18,10 +18,12 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
-#include "float.h" // for DBL_EPSILON
 #include "io.h"
 #include "memory.h"
 #include "vars.h"
+// system headers
+#include <float.h> // for DBL_EPSILON
+#include <stdlib.h>
 
 // SEMI-GLOBAL VARIABLES
 
@@ -117,7 +119,7 @@ void name##_real(const double qvec_in[restrict 3],doublecomplex result[static re
 void name##_real(const double qvec_in[restrict 3],doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
 	vCopy(qvec_in,qvec); \
-	func(qvec,result,true,arg); }
+	func(qvec,result,false,arg); }
 
 // wrapper for <name>, based on real input; arguments are described in .h file
 # define REAL_WRAPPER_REFL(name) \
@@ -700,9 +702,9 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
 	PRINT_GVAL;
 }
 
-// wrappers both for nloc and nloc0
-WRAPPERS_INTER_3(InterTerm_nloc,InterTerm_nloc_both,true)
-WRAPPERS_INTER_3(InterTerm_nloc0,InterTerm_nloc_both,false)
+// wrappers both for nloc and nloc_av
+WRAPPERS_INTER_3(InterTerm_nloc,InterTerm_nloc_both,false)
+WRAPPERS_INTER_3(InterTerm_nloc_av,InterTerm_nloc_both,true)
 
 //=====================================================================================================================
 
@@ -1357,7 +1359,7 @@ void InitInteraction(void)
 			SET_FUNC_POINTERS(InterTerm,igt_so);
 			break;
 		case G_NLOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
-		case G_NLOC0: SET_FUNC_POINTERS(InterTerm,nloc0); break;
+		case G_NLOC_AV: SET_FUNC_POINTERS(InterTerm,nloc_av); break;
 		case G_SO:
 			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
 				"arbitrary real arguments");

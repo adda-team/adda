@@ -5,7 +5,7 @@
  *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
  *        file (optional).
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -81,9 +81,11 @@ int IterativeSolver(enum iter method,enum incpol which);
 //======================================================================================================================
 
 static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,const doublecomplex s2,
-	const doublecomplex s3,const doublecomplex s4)
-/* computer mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula 3.16 from Bohren and
+	const doublecomplex s3,const doublecomplex s4,const double theta)
+/* compute Mueller matrix from scattering matrix elements s1, s2, s3, s4, according to formula 3.16 from Bohren and
  * Huffman
+ * In surface mode the result is additionally multiplied by factor Re(m_sca)/Re(m_inc) to account for corresponding
+ * factor relating squared amplitude of the field and Stokes vector (irradiance). For that theta (in deg) is used.
  */
 {
 	matrix[0][0] = 0.5*(cAbs2(s1) + cAbs2(s2) + cAbs2(s3) + cAbs2(s4));
@@ -105,6 +107,12 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 	matrix[3][1] = cimag(s4*conj(s2) - s1*conj(s3));
 	matrix[3][2] = cimag(s1*conj(s2) - s3*conj(s4));
 	matrix[3][3] = creal(s1*conj(s2) - s3*conj(s4));
+
+	if (surface) {
+		double scale=inc_scale;
+		if (TestBelowDeg(theta)) scale*=creal(msub);
+		if (fabs(scale-1)>ROUND_ERR) for (int i=0;i<4;i++) for (int j=0;j<4;j++) matrix[i][j]*=scale;
+	}
 }
 
 //======================================================================================================================
@@ -205,7 +213,8 @@ void MuellerMatrix(void)
 						s4 =  co*ampl_alphaX[index] - si*ampl_alphaY[index];     // s4 =  co*s40 + si*s10
 						s1 = -si*ampl_alphaX[index] - co*ampl_alphaY[index];     // s1 = -si*s40 + co*s10
 					}
-					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4);
+					theta=i*dtheta_deg;
+					ComputeMuellerMatrix((double (*)[4])(muel_alpha+index1),s1,s2,s3,s4,theta);
 					index+=2;
 					index1+=16;
 				}
@@ -232,7 +241,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,EyzplX[2*i],EyzplY[2*i+1],EyzplX[2*i+1],EyzplY[2*i]);
+					ComputeMuellerMatrix(matrix,EyzplX[2*i],EyzplY[2*i+1],EyzplX[2*i+1],EyzplY[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
@@ -256,7 +265,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i]);
+					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
 				FCloseErr(mueller,F_MUEL,ONE_POS);
@@ -314,12 +323,13 @@ void MuellerMatrix(void)
 			// main cycle
 			index=0;
 			max_err=max_err_c2=max_err_s2=max_err_c4=max_err_s4=0;
-			double tmp3[3],incPolper[3],cthet,sthet;
+			double tmp3[3],incPolper[3],th,cthet,sthet;
 			for (ind=0;ind<angles.theta.N;++ind) {
 				index1=0;
 				theta=angles.theta.val[ind];
-				cthet=cos(theta);
-				sthet=sin(theta);
+				th=Deg2Rad(theta);
+				cthet=cos(th);
+				sthet=sin(th);
 				for (j=0;j<n;++j) {
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
@@ -335,7 +345,7 @@ void MuellerMatrix(void)
 					s1 = si*EgridX[index] - co*EgridY[index]; // s1 =  si*s40 - co*s10
 					index+=2;
 
-					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4);
+					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4,theta);
 
 					if (phi_integr) {
 						memcpy(muel_phi+index1,matrix[0],16*sizeof(double));
@@ -383,8 +393,35 @@ void MuellerMatrix(void)
 
 //======================================================================================================================
 
+static bool TestSymVec(const double a[static 3])
+/* tests whether a and -a are equivalent under existing symmetries of the scattering problem, i.e. if there exist a
+ * combination of symmetries that transforms a into -a. In particular, symR is sufficient for any vector in xy-plane,
+ * since double such rotation is equivalent to the in-plane inversion.
+ */
+{
+	return ( ( ((symX||fabs(a[0])<ROUND_ERR) && (symY||fabs(a[1])<ROUND_ERR)) || symR )
+		     && (symZ||fabs(a[2])<ROUND_ERR) );
+}
+
+//======================================================================================================================
+
+bool TestExtendThetaRange(void)
+/* Decides whether the range of [0,180] deg should be extended to 360 deg (for a scattering plane). The test is based on
+ * orient_avg and the symmetry of the used scattering plane (either yz or scat_plane). The latter corresponds to logic
+ * of calling CalcEplaneYZ() and CalcScatPlane() from CalculateE() below
+ */
+{
+	/* we test the scattering planes by incPolY and exSP assuming one-run-one-SP regime. If two SPs are used for one run
+	 * then symR is already valid, which implies that symmetry condition is the same for both scattering planes
+	 */
+	return !( orient_avg || (yzplane&&TestSymVec(incPolY)) || (scat_plane&&TestSymVec(exSP)) );
+
+}
+
+//======================================================================================================================
+
 static void CalcEplaneYZ(const enum incpol which,const enum Eftype type)
-// calculates scattered electric field in a plane
+// calculates scattered electric field in a yz-plane (through prop and incPolY)
 {
 	double incPol[3],incPolper[3],incPolpar[3];
 	// where to store calculated field for one plane (actually points to different other arrays)
@@ -645,12 +682,15 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 
 //======================================================================================================================
 
-static void ParticleToBeamRF(const double vp[static restrict 3],double vb[static restrict 3])
-// transform real vector vp from particle to beam reference frame, vb and vp must not alias!!!
+static void ParticleToBeamRF(double vec[static restrict 3])
+// transform real vector from particle to beam reference frame
 {
-	vb[0]=DotProd(vp,incPolX);
-	vb[1]=DotProd(vp,incPolY);
-	vb[2]=DotProd(vp,prop);
+	double tmp[3];
+
+	tmp[0]=DotProd(vec,incPolX);
+	tmp[1]=DotProd(vec,incPolY);
+	tmp[2]=DotProd(vec,prop);
+	vCopy(tmp,vec);
 }
 
 //======================================================================================================================
@@ -684,10 +724,9 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 {
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
-	double Cext,Cabs,Csca,   // Cross sections
+	double Cext,Cabs,Csca,Cdec, // Cross sections
 	dummy[3],                // asymmetry parameter*Csca
-	Finc_tot[3],Fsca_tot[3], // total extinction and scattering force in particle reference frame
-	Finc_brf[3],Fsca_brf[3],Frp_brf[3], // extinction, scattering, and sum in beam reference frame
+	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
 	Qnorm;            // normalizing factor from force to efficiency
 	FILE * restrict CCfile;
@@ -697,7 +736,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	const char *f_suf;
 
 	// redundant initialization to remove warnings
-	Cext=Cabs=Csca=0;
+	Cext=Cabs=Csca=Cdec=0;
 	CCfile=NULL;
 
 	D("Calculation of cross sections started");
@@ -734,6 +773,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		}
 	}
 	else { // not orient_avg
+		if (beamtype==B_DIPOLE) Cdec=DecayCross(); // this is here to be run by all processors
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
@@ -742,7 +782,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
-				double tot=self+DecayCross()/C0dipole;
+				double tot=self+Cdec/C0dipole;
 				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
 				printf("\nDecay-rate enhancement:\n");
 				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
@@ -781,18 +821,23 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			if (IFROOT) {
 				Cnorm = EIGHT_PI;
 				Qnorm = EIGHT_PI*inv_G;
-				ParticleToBeamRF(Finc_tot,Finc_brf);
-				ParticleToBeamRF(Fsca_tot,Fsca_brf);
-				vAdd(Finc_brf,Fsca_brf,Frp_brf);
+				/* in surface mode we keep the result in particle RF that is equal to laboratory one
+				 * in free-space mode, the force is transformed into the beam reference frame
+				 */
+				if (!surface) {
+					ParticleToBeamRF(Finc_tot);
+					ParticleToBeamRF(Fsca_tot);
+				}
+				vAdd(Finc_tot,Fsca_tot,Frp_tot);
 				PrintBoth(CCfile,"\nBased on radiation forces:\n"
 				                 "Cext.a\t= "GFORM3V"\n"
 				                 "Csca.g\t= "GFORM3V"\n"
 				                 "Cpr\t= "GFORM3V"\n"
 				                 "Qpr\t= "GFORM3V"\n",
-				                 Cnorm*Finc_brf[0],Cnorm*Finc_brf[1],Cnorm*Finc_brf[2],
-				                 -Cnorm*Fsca_brf[0],-Cnorm*Fsca_brf[1],-Cnorm*Fsca_brf[2],
-				                 Cnorm*Frp_brf[0],Cnorm*Frp_brf[1],Cnorm*Frp_brf[2],
-				                 Qnorm*Frp_brf[0],Qnorm*Frp_brf[1],Qnorm*Frp_brf[2]);
+				                 Cnorm*Finc_tot[0],Cnorm*Finc_tot[1],Cnorm*Finc_tot[2],
+				                 -Cnorm*Fsca_tot[0],-Cnorm*Fsca_tot[1],-Cnorm*Fsca_tot[2],
+				                 Cnorm*Frp_tot[0],Cnorm*Frp_tot[1],Cnorm*Frp_tot[2],
+				                 Qnorm*Frp_tot[0],Qnorm*Frp_tot[1],Qnorm*Frp_tot[2]);
 			}
 			if (store_force) {
 				StoreFields(which,NULL,Frp,F_FRP,F_FRP_TMP,"F","Radiation forces");
@@ -841,7 +886,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// return if checkpoint (normal) occurred
 	if (exit_status==CHP_EXIT) return CHP_EXIT;
 
-	if (yzplane) CalcEplaneYZ(which,type); //generally plane of incPolY and prop
+	if (yzplane) CalcEplaneYZ(which,type);     // generally plane of incPolY and prop
 	if (scat_plane) CalcScatPlane(which,type); // the scattering plane through ez,prop,incPolX - xz by default
 	// Calculate the scattered field for the whole solid-angle
 	if (all_dir) CalcAlldir();

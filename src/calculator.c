@@ -3,7 +3,7 @@
  * Descr: all the initialization is done here before actually calculating internal fields;
  *        includes calculation of couple constants
  *
- * Copyright (C) 2006-2010,2013 ADDA contributors
+ * Copyright (C) 2006-2010,2013-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -62,7 +62,7 @@ double * restrict muel_alpha; // mueller matrix for different values of alpha
 
 // used in crosssec.c
 doublecomplex * restrict E_ad; // complex field E, calculated for alldir
-double * restrict E2_alldir; // square of E, calculated for alldir
+double * restrict E2_alldir; // square of E (scaled with msub, so ~ Poynting vector or dC/dOmega), calculated for alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 #ifndef SPARSE
 doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of exponents along 3 axes (for calc_field)
@@ -87,6 +87,7 @@ static double * restrict out; // used to collect both mueller matrix and integra
 
 // CalculateE.c
 int CalculateE(enum incpol which,enum Eftype type);
+bool TestExtendThetaRange(void);
 void MuellerMatrix(void);
 void SaveMuellerAndCS(double * restrict in);
 
@@ -215,7 +216,16 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				}
 				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
 				break;
-			case POL_NLOC:
+			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
+				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+				 */
+				if (polNlocRp==0) res[i]=polCM(mrel[i]);
+				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
+				break;
+			case POL_NLOC_AV:
 				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
 				else {
 					double x=gridspace/(2*SQRT2*polNlocRp);
@@ -232,16 +242,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					// !!! dynamic part should be added here
 					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
 				}
-				break;
-			case POL_NLOC0: // !!! additionally dynamic part should be added (if needed)
-				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
-				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
-				 */
-
-				if (polNlocRp==0) res[i]=polCM(mrel[i]);
-				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
 				break;
 			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
 			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
@@ -303,6 +303,7 @@ static void calculate_one_orientation(double * restrict res)
 		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
 	}
 	InitCC(INCPOL_Y);
+	// symR implies that prop is along z (in particle RF). Then it is fine for both definitions of scattering angles
 	if (symR && !scat_grid) {
 		if (CalculateE(INCPOL_Y,CE_PARPER)==CHP_EXIT) return;
 	}
@@ -513,7 +514,7 @@ static void AllocateEverything(void)
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
 	 * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
-	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory
+	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors)
 	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
@@ -655,8 +656,7 @@ void Calculator (void)
 		dtheta_deg = 180.0 / ((double)(nTheta-1));
 		dtheta_rad = Deg2Rad(dtheta_deg);
 		block_theta= 16*(size_t)nTheta;
-		// if not enough symmetry, calculate for +- theta (for one plane)
-		if (!(symY || orient_avg)) nTheta=2*(nTheta-1);
+		if (TestExtendThetaRange()) nTheta=2*(nTheta-1);
 	}
 	else dtheta_deg=dtheta_rad=block_theta=0;
 	finish_avg=false;

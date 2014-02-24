@@ -5,7 +5,7 @@
  *        'Global' means used in three or more source files. Variables that are used in only two source files are called
  *        'semi-global' and not listed here. They are defined in one file and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -88,7 +88,7 @@ extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 extern bool surface,msubInf;
 extern enum refl ReflRelation;
 extern doublecomplex msub;
-extern double hsub,prIncRefl[3],prIncTran[3];
+extern double inc_scale,hsub,prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE //These variables are exclusive to the FFT mode
 
