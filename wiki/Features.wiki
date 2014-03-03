@@ -1,7 +1,7 @@
 #summary Features of the ADDA code.
 #labels Featured
 
-`ADDA` is an open-source parallel implementation of the discrete dipole approximation, capable to simulate light scattering by particles of arbitrary shape and composition in a wide range of particle sizes.
+`ADDA` is an open-source parallel implementation of the discrete dipole approximation, capable to simulate light scattering by particles of arbitrary shape and composition in a wide range of particle sizes. The following list of features corresponds to [Downloads the latest stable version] (1.2).
 
 <wiki:toc />
 
