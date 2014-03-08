@@ -234,7 +234,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL));
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-	CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished
+	/*CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished*/
 #else
 	// fill Xmatrix with 0.0
 	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i]=0.0;
@@ -285,7 +285,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL));
 		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
 			3*gridYZ*sizeof(doublecomplex),0,NULL,NULL));
-		CL_CH_ERR(clFinish(command_queue));
+		/*CL_CH_ERR(clFinish(command_queue));*/
 #else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
@@ -328,7 +328,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(size_t),&x));
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
 		}
-		CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished
+		/*CL_CH_ERR(clFinish(command_queue)); //wait till kernel executions are finished*/
 #else
 		// arith3 on host
 		// do the product D~*X~  and R~*X'~
@@ -391,7 +391,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef OPENCL
 		CL_CH_ERR(clSetKernelArg(clarith4,7,sizeof(size_t),&x));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,NULL));
-		CL_CH_ERR(clFinish(command_queue));
+		/*CL_CH_ERR(clFinish(command_queue));*/
 #else
 		//arith4 on host
 		// copy slice back to Xmatrix

@@ -300,7 +300,7 @@ void TransposeYZ(const int direction)
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL));
 		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
 	}
-	CL_CH_ERR(clFinish(command_queue));
+	/*CL_CH_ERR(clFinish(command_queue));*/
 #else
 	size_t Xcomp,ind;
 
@@ -329,7 +329,7 @@ void fftX(const int isign)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,(clFFT_Direction)isign,bufXmatrix,
 		bufXmatrix,0,NULL,NULL));
 #	endif
-	CL_CH_ERR(clFinish(command_queue));
+	/*CL_CH_ERR(clFinish(command_queue));*/
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) fftw_execute(planXf);
 	else fftw_execute(planXb);
@@ -367,7 +367,7 @@ void fftY(const int isign)
 		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslicesR_tr,
 			bufslicesR_tr,0,NULL,NULL));
 #	endif
-	CL_CH_ERR(clFinish(command_queue));
+	/*CL_CH_ERR(clFinish(command_queue));*/
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) {
 		fftw_execute(planYf);
@@ -404,7 +404,7 @@ void fftZ(const int isign)
 		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)FFT_BACKWARD,bufslicesR,
 			bufslicesR,0,NULL,NULL));
 #	endif
-	CL_CH_ERR(clFinish(command_queue));
+	/*CL_CH_ERR(clFinish(command_queue));*/
 #elif defined(FFTW3)
 	if (isign==FFT_FORWARD) {
 		fftw_execute(planZf);
