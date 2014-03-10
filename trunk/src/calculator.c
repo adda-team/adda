@@ -540,9 +540,9 @@ static void AllocateEverything(void)
 
 //======================================================================================================================
 
-static void FreeEverything(void)
+void FreeEverything(void)
 /* frees all allocated vectors; should not be called in prognosis mode, since arrays are not
- * actually allocated.
+ * actually allocated. Also called from matvec.c in PRECISE_TIMING.
  */
 {
 	FreeInteraction();
