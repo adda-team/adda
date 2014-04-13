@@ -84,7 +84,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
 # are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
-              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_PROFILE
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
@@ -126,6 +126,9 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
+
+#ocl profile mode limits execution to 10 MatVecs
+#override OPTIONS += OCL_PROFILE
 
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
 # ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
@@ -270,6 +273,10 @@ ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
   $(info Precise timing)
   CDEFS += -DPRECISE_TIMING
   CSOURCE += prec_time.c
+endif
+ifneq ($(filter OCL_PROFILE,$(OPTIONS)),)
+  $(info OpenCL profile mode (stops after 10 MatVec))
+  CDEFS += -DOCL_PROFILE
 endif
 ifneq ($(filter NOT_USE_LOCK,$(OPTIONS)),)
   $(info No locks at all)

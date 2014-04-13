@@ -70,7 +70,7 @@ enum platname platformname; // also used in cpp/fft_setup.cpp
 // ids of program, platform and device
 static cl_program program;
 static cl_platform_id used_platform_id;
-static cl_device_id device_id;
+cl_device_id device_id;
 
 struct string {
 	char *text; // text of string

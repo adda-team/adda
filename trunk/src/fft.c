@@ -100,8 +100,14 @@ static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
 static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
 static int jstartR;            // starting index for y
 static bool weird_nprocs;      // whether weird number of processors is used
-// clFFT plans
+
 #ifdef OPENCL
+//clxslices represents the number of slices required in MatVec so that 
+//more GPU memory is used and kernels can run over larger arrays
+size_t clxslices;
+size_t local_gridX; // 'thickness' in x direction of a slice*
+size_t slicesize; // total number of complexdouble values per slice
+// clFFT plans
 #	ifdef CLFFT_AMD
 static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
 #	elif defined(CLFFT_APPLE)
@@ -266,8 +272,8 @@ void TransposeYZ(const int direction)
  */
 {
 #ifdef OPENCL
-	const size_t enqtglobalzy[3]={gridZ,gridY,3};
-	const size_t enqtglobalyz[3]={gridY,gridZ,3};
+	const size_t enqtglobalzy[3]={gridZ,gridY,3*local_gridX};
+	const size_t enqtglobalyz[3]={gridY,gridZ,3*local_gridX};
 	const size_t tblock[3]={16,16,1}; // this corresponds to BLOCK_DIM in oclkernels.cl
 	/* TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or to remove
 	 * cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
@@ -290,15 +296,15 @@ void TransposeYZ(const int direction)
 				CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeofR,3,NULL,enqtglobalzy,tblock,0,NULL,NULL));
 		}
 		else {
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposef,3,NULL,enqtglobalzy,NULL,0,NULL,NULL));
 			if (surface) 
-				CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposefR,2,NULL,enqtglobalzy,NULL,0,NULL,NULL));
+				CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposefR,3,NULL,enqtglobalzy,NULL,0,NULL,NULL));
 		}
 	}
 	else {
 		if (cached)
 			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeob,3,NULL,enqtglobalyz,tblock,0,NULL,NULL));
-		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,2,NULL,enqtglobalyz,NULL,0,NULL,NULL));
+		else CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,cltransposeb,3,NULL,enqtglobalyz,NULL,0,NULL,NULL));
 	}
 #else
 	size_t Xcomp,ind;
@@ -359,10 +365,10 @@ void fftY(const int isign)
 		CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
 			NULL,NULL));
 #	elif defined(CLFFT_APPLE)
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslices_tr,
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ*local_gridX,(clFFT_Direction)isign,bufslices_tr,
 		bufslices_tr,0,NULL,NULL));
 	if (surface && isign==FFT_FORWARD)
-		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ,(clFFT_Direction)isign,bufslicesR_tr,
+		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ*local_gridX,(clFFT_Direction)isign,bufslicesR_tr,
 			bufslicesR_tr,0,NULL,NULL));
 #	endif
 #elif defined(FFTW3)
@@ -395,10 +401,10 @@ void fftZ(const int isign)
 		CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
 			&bufslicesR,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
-	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)isign,bufslices,bufslices,0,
+	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY*local_gridX,(clFFT_Direction)isign,bufslices,bufslices,0,
 		NULL,NULL));
 	if (surface && isign==FFT_FORWARD) // the same operation is applied to bufslicesR, but with inverse transform
-		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY,(clFFT_Direction)FFT_BACKWARD,bufslicesR,
+		CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY*local_gridX,(clFFT_Direction)FFT_BACKWARD,bufslicesR,
 			bufslicesR,0,NULL,NULL));
 #	endif
 #elif defined(FFTW3)
@@ -666,7 +672,7 @@ static void fftInitAfterD(void)
 #	endif
 #	ifdef CLFFT_AMD
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ));
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ*local_gridX));
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanY,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
@@ -693,7 +699,11 @@ static void fftInitAfterD(void)
 	 * inside the array, so that 3 components are stored together.
 	 */
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY));
+	// TODO: last slices can be very slightly thinner than the previeos ones, 
+	//but since the batchsize is part of the plan, another plan would be needed to adress this.
+	//however, we ignore this currently and assume that every slice has a thickness of local_gridX.
+	//This issue also applies to clplanY
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY*local_gridX)); 
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanZ,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
@@ -877,8 +887,8 @@ static void InitRmatrix(const double invNgrid)
 	CL_CH_ERR(clSetKernelArg(clarith3_surface,4,sizeof(size_t),&gridX));
 	CL_CH_ERR(clSetKernelArg(clarith3_surface,5,sizeof(size_t),&DsizeY));
 	CL_CH_ERR(clSetKernelArg(clarith3_surface,6,sizeof(size_t),&DsizeZ));
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,12,sizeof(cl_mem),&bufslicesR_tr));
-	CL_CH_ERR(clSetKernelArg(clarith3_surface,13,sizeof(cl_mem),&bufRmatrix));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,11,sizeof(cl_mem),&bufslicesR_tr));
+	CL_CH_ERR(clSetKernelArg(clarith3_surface,12,sizeof(cl_mem),&bufRmatrix));
 	// for transpose forward (backward are not needed for surface)
 	CL_CH_ERR(clSetKernelArg(cltransposefR,0,sizeof(cl_mem),&bufslicesR));
 	CL_CH_ERR(clSetKernelArg(cltransposefR,1,sizeof(cl_mem),&bufslicesR_tr));
@@ -889,7 +899,7 @@ static void InitRmatrix(const double invNgrid)
 	CL_CH_ERR(clSetKernelArg(cltransposeofR,1,sizeof(cl_mem),&bufslicesR_tr));
 	CL_CH_ERR(clSetKernelArg(cltransposeofR,2,sizeof(size_t),&gridZ));
 	CL_CH_ERR(clSetKernelArg(cltransposeofR,3,sizeof(size_t),&gridY));
-	CL_CH_ERR(clSetKernelArg(cltransposeofR,4,17*16*3*sizeof(doublecomplex),NULL));
+	CL_CH_ERR(clSetKernelArg(cltransposeofR,4,17*16*sizeof(doublecomplex),NULL));
 	// copy Rmatrix to OpenCL buffer, blocking to ensure completion before function end
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufRmatrix,CL_TRUE,0,Rsize*sizeof(*Rmatrix),Rmatrix,0,NULL,NULL));
 	Free_cVector(Rmatrix);
@@ -959,21 +969,47 @@ void InitDmatrix(void)
 	Dsize=MultOverflow(NDCOMP*local_Nx,DsizeYZ,ONE_POS_FUNC);
 	D2sizeTot=nnn*local_Nz*D2sizeY*gridX; // this should be approximately equal to Dsize/NDCOMP
 	if (IFROOT) fprintf(logfile,"The FFT grid is: %zux%zux%zu\n",gridX,gridY,gridZ);
+
+	// part of the code for InitRmatrix is here to be compatible with prognosis and FFT init
+	if (surface) {
+		/* We keep option to turn off reduced_FFT for Rmatrix (at least for tests). However, its usefulness for some
+		 * weird Green's tensors (non-symmetric) is limited, because certain symmetry along the z-axis is still assumed
+		 * - that is R({i1,j1,k1},{i2,j2,k2})=R({i1,j1,k2},{i2,j2,k1}). Without this limitation the whole FFT part will
+		 * be broken (or need significant revision).
+		 *
+		 * Moreover the savings by using reduced_FFT is only a factor of two for Rmatrix (in contrast to 4 for Dmatrix)
+		 */
+		if (reduced_FFT) {
+			R2sizeY=gridY/2;
+			RsizeY=gridY/2+1;
+			jstartR=0;
+		}
+		else {
+			R2sizeY=RsizeY=gridY;
+			jstartR=1-boxY;
+		}
+		lz_Rm=2*local_Nz;
+		// potentially this may cause unnecessary error during prognosis, but makes code cleaner
+		Rsize=MultOverflow(NDCOMP*local_Nx,RsizeY*gridZ,ONE_POS_FUNC);
+		R2sizeTot=lz_Rm*R2sizeY*gridX; // this should be approximately equal to Rsize/NDCOMP
+	}
+
 #ifdef OPENCL // perform setting up of buffers and kernels
+
+	/* note: restructured the order of allocation to have all bufslices* at the end
+	 * to spent whatever memory is still available on the GPU on 'thickness' of 3D slices
+	 * This enables to have a 3D FFT and longer kernel runs but less number of kernel calls
+	 */
+
 	// create all Buffers needed on Device in MatVec; When prognosis, the following code just counts required memory
 	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
-	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
 	/* The following are constant device buffers which are initialized with host data. But bufDmatrix is initialized in
 	 * the end of this function (to be compatible with prognosis). And bufcc_sqrt is initialized in InitCC, since it may
 	 * change for every run of the iterative solver.
 	 */
-	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
-	CREATE_CL_BUFFER(bufDmatrix,CL_MEM_READ_ONLY,Dsize*sizeof(*Dmatrix),NULL);
-	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
-	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
+
 	if (ipr_required) { // for inner product (only if it will be used afterwards)
 		memory+=local_nvoid_Ndip*sizeof(double);
 		CREATE_CL_BUFFER(bufinproduct,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL);
@@ -983,6 +1019,57 @@ void InitDmatrix(void)
 			CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
 		}
 	}
+	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
+	CREATE_CL_BUFFER(bufDmatrix,CL_MEM_READ_ONLY,Dsize*sizeof(*Dmatrix),NULL);
+	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
+	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
+
+	if (surface)
+		CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
+	
+	
+
+	//all buffers except bufslices* allocated, getting free space on GPU memory
+	cl_ulong mtot;
+	CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
+	cl_ulong mobj;
+	CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,NULL));
+	//getting number of slices
+	int slbufnum;
+	if (surface)	
+		slbufnum=4;
+	else
+		slbufnum=2;
+
+	float mem_left=(float)(mtot-oclMem)/(1024*1024);
+	float tot_fftmem=(float)(gridYZ*gridX*3*sizeof(doublecomplex))/1024./1024.*2;
+
+
+	//calculating how many slice buffer can be used 
+	clxslices=MAX((int)(tot_fftmem/(mem_left-100)),(int)((tot_fftmem/slbufnum)/mobj))+1;
+	if (gridX%clxslices==0)
+		local_gridX=gridX/clxslices;
+	else
+		local_gridX=(gridX/clxslices)+1; //ensure that there are enough slices cover all data
+	slicesize=local_gridX*gridYZ*3;
+
+#ifndef DEBUGFULL
+	printf("currently used OpenCL mem: %.1f MB/ mem free: %.1f MB\n",(float)oclMem/(1024*1024), mem_left);
+	printf("totlal mem required for full 3D FFT: %.1f MB\n",tot_fftmem);
+	if ((mem_left-tot_fftmem)>0 && (tot_fftmem/slbufnum) < mobj) 
+		printf("Enough mem left for complete 3D FFT mode\n");
+	else
+		printf("No complete 3D FFT, splitting gridX of %i into into %i slices\n" ,gridX, clxslices);
+#endif
+
+	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
+	if (surface)
+	{
+		CREATE_CL_BUFFER(bufslicesR,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
+		CREATE_CL_BUFFER(bufslicesR_tr,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
+	}
+
 	if (!prognosis) { // Setting kernel arguments which are always the same
 		// for arith1
 		CL_CH_ERR(clSetKernelArg(clarith1,0,sizeof(cl_mem),&bufmaterial));
@@ -1042,46 +1129,18 @@ void InitDmatrix(void)
 		CL_CH_ERR(clSetKernelArg(cltransposeof,1,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposeof,2,sizeof(size_t),&gridZ));
 		CL_CH_ERR(clSetKernelArg(cltransposeof,3,sizeof(size_t),&gridY));
-		/* setting up local cache size as 17*16*3 elements; note: a block is only 16*16, but 1*16 stride is needed to
+		/* setting up local cache size as 17*16 elements; note: a block is only 16*16, but 1*16 stride is needed to
 		 * avoid bank conflicts
 		 */
-		CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*3*sizeof(doublecomplex),NULL));
+		CL_CH_ERR(clSetKernelArg(cltransposeof,4,17*16*sizeof(doublecomplex),NULL));
 		
 		CL_CH_ERR(clSetKernelArg(cltransposeob,0,sizeof(cl_mem),&bufslices_tr));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,1,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,2,sizeof(size_t),&gridY));
 		CL_CH_ERR(clSetKernelArg(cltransposeob,3,sizeof(size_t),&gridZ));
-		CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*3*sizeof(doublecomplex),NULL));
+		CL_CH_ERR(clSetKernelArg(cltransposeob,4,17*16*sizeof(doublecomplex),NULL));
 	}
 #endif
-	// part of the code for InitRmatrix is here to be compatible with prognosis and FFT init
-	if (surface) {
-		/* We keep option to turn off reduced_FFT for Rmatrix (at least for tests). However, its usefulness for some
-		 * weird Green's tensors (non-symmetric) is limited, because certain symmetry along the z-axis is still assumed
-		 * - that is R({i1,j1,k1},{i2,j2,k2})=R({i1,j1,k2},{i2,j2,k1}). Without this limitation the whole FFT part will
-		 * be broken (or need significant revision).
-		 *
-		 * Moreover the savings by using reduced_FFT is only a factor of two for Rmatrix (in contrast to 4 for Dmatrix)
-		 */
-		if (reduced_FFT) {
-			R2sizeY=gridY/2;
-			RsizeY=gridY/2+1;
-			jstartR=0;
-		}
-		else {
-			R2sizeY=RsizeY=gridY;
-			jstartR=1-boxY;
-		}
-		lz_Rm=2*local_Nz;
-		// potentially this may cause unnecessary error during prognosis, but makes code cleaner
-		Rsize=MultOverflow(NDCOMP*local_Nx,RsizeY*gridZ,ONE_POS_FUNC);
-		R2sizeTot=lz_Rm*R2sizeY*gridX; // this should be approximately equal to Rsize/NDCOMP
-#ifdef OPENCL // perform setting up of buffers (kernel arguments are set in InitRmatrix)
-		CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
-		CREATE_CL_BUFFER(bufslicesR,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-		CREATE_CL_BUFFER(bufslicesR_tr,CL_MEM_READ_WRITE,gridYZ*3*sizeof(doublecomplex),NULL);
-#endif
-	}
 	// memory estimation and exit for prognosis
 	MAXIMIZE(memPeak,memory);
 	/* objects which are always allocated (at least temporarily): Dmatrix,D2matrix,slice,slice_tr

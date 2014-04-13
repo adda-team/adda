@@ -53,6 +53,12 @@ extern size_t TotalMatVec;
 // calculator.c
 void FreeEverything(void); // for proper finalization
 #endif
+#ifdef OPENCL
+extern size_t clxslices;
+extern size_t local_gridX;//ensure that there are enough slices to 
+extern size_t slicesize;//total number of complexdouble values per slice
+#endif
+
 
 #ifndef SPARSE
 #ifndef OPENCL // the following inline functions are not used in OpenCL or sparse mode
@@ -205,8 +211,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	// FFT_matvec code
 	if (ipr) *inprod = 0.0;
 #ifdef OPENCL
-	// needed for Arith3 but declared here since Arith3 is called inside a loop
-	const size_t gwsclarith3[2]={gridZ,gridY};
 	const cl_char ndcomp=NDCOMP;
 	// little workaround for kernel cannot take bool arguments
 	const cl_char transp=(cl_char)transposed;
@@ -222,12 +226,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,7,sizeof(cl_char),&ndcomp));
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,8,sizeof(cl_char),&redfft));
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
-		//argument 10 is x so it is changing for every run inside the loop
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,11,sizeof(size_t),&RsizeY));
+		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&RsizeY));
 	}
-	// for arith2 and arith4
-	const size_t gwsarith24[2]={boxY_st,boxZ_st};
-	const size_t slicesize=gridYZ*3;
 	// write into buffers eg upload to device; non-blocking
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
 		NULL));
@@ -274,7 +274,75 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+3);
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
 #endif
-	// following is done by slices
+
+	// following is done by slices in CPU mode.
+	// In OpenCL mode the free memory on the GPU was determined 
+	// during fft.c and if enough memory is available slices* 
+	// contain the full fft grid. If not, FFT grid is split into
+	// "clxslices" parts with "local_gridX" length and kernels 
+	// run with offsets inside a loop.
+#ifdef OPENCL
+	// setting arith2, arith4 and arith3 run slices global work 
+	// sizes and offsets
+	size_t gwsarith24[3]={local_gridX,boxY_st,boxZ_st};
+	size_t gwsclarith3[3]={gridZ,gridY,local_gridX};
+	size_t gwo24[3]={0,0,0};
+	size_t gwo3[3]={0,0,0};
+	for (int xsect=0; xsect<clxslices; xsect++)
+	{
+		//global work size offset in x axis, when not in first slice
+
+		gwo24[0]=xsect*local_gridX;
+		gwo3[2]=xsect*local_gridX;
+
+		//last bunch of slices reached 
+		//ensure that arith2,3,4 do not run over border of gridX
+		if (xsect+1==clxslices && gridX%local_gridX!=0)
+		{
+			gwsarith24[0]=gridX%local_gridX; 
+			gwsclarith3[2]=gridX%local_gridX; 
+		}
+		
+		//every index and argument prepared, starting arith2
+
+		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
+
+		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
+			slicesize*sizeof(doublecomplex),0,NULL,NULL));
+
+
+		fftZ(FFT_FORWARD); // fftZ (buf)slices (and reflected terms)
+		TransposeYZ(FFT_FORWARD); // including reflecting terms
+		fftY(FFT_FORWARD); // fftY (buf)slices_tr (and reflected terms)
+		// arith3 on Device
+		if (surface) 
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
+		else 
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
+		// inverse FFT y&z
+		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
+		TransposeYZ(FFT_BACKWARD);
+		fftZ(FFT_BACKWARD); // fftZ (buf)slices
+
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
+	}
+		
+#else
+
+
+
+
+
+
+
+
+
+
+
+
+
 	for(x=local_x0;x<local_x1;x++) {
 		/* TODO: if z and y FFTs are interchanged, then computing reflected interaction can be optimized even further.
 		 * Moreover, the typical situation of particles near surfaces, like large particulate slabs, correspond to the
@@ -284,14 +352,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #ifdef PRECISE_TIMING
 		GetTime(tvp+4);
 #endif
-#ifdef OPENCL
-		CL_CH_ERR(clSetKernelArg(clarith2,7,sizeof(size_t),&x));
-		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,2,NULL,gwsarith24,NULL,0,NULL,NULL));
-		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
-			3*gridYZ*sizeof(doublecomplex),0,NULL,NULL));
-#else
 		// clear slice
 		for(i=0;i<3*gridYZ;i++) slices[i]=0.0;
 		// fill slices with values from Xmatrix
@@ -302,7 +362,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		}
 		// create a copy of slice, which is further transformed differently
 		if (surface) memcpy(slicesR,slices,3*gridYZ*sizeof(doublecomplex));
-#endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+5);
 		ElapsedInc(tvp+4,tvp+5,&Timing_Mult2);
@@ -323,18 +382,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		GetTime(tvp+8);
 		ElapsedInc(tvp+7,tvp+8,&Timing_FFTYf);
 #endif//
-#ifdef OPENCL
-		// arith3 on Device
-		if (surface) {
-			CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&x));
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
-		}
-		else {
-			CL_CH_ERR(clSetKernelArg(clarith3,10,sizeof(size_t),&x));
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,2,NULL,gwsclarith3,NULL,0,NULL,NULL));
-		}
-#else
-		// arith3 on host
 		// do the product D~*X~  and R~*X'~
 		for(z=0;z<gridZ;z++) for(y=0;y<gridY;y++) {
 			i=IndexSliceZY(y,z);
@@ -371,7 +418,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			}
 			for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridYZ]=yv[Xcomp];
 		}
-#endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+9);
 		ElapsedInc(tvp+8,tvp+9,&Timing_Mult3);
@@ -392,10 +438,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		GetTime(tvp+12);
 		ElapsedInc(tvp+11,tvp+12,&Timing_FFTZb);
 #endif
-#ifdef OPENCL
-		CL_CH_ERR(clSetKernelArg(clarith4,7,sizeof(size_t),&x));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,2,NULL,gwsarith24,NULL,0,NULL,NULL));
-#else
 		//arith4 on host
 		// copy slice back to Xmatrix
 		for(y=0;y<boxY_st;y++) for(z=0;z<boxZ_st;z++) {
@@ -403,12 +445,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			j=IndexGarbledX(x,y,z);
 			for (Xcomp=0;Xcomp<3;Xcomp++) Xmatrix[j+Xcomp*local_Nsmall]=slices[i+Xcomp*gridYZ];
 		}
-#endif
 #ifdef PRECISE_TIMING
 		GetTime(tvp+13);
 		ElapsedInc(tvp+12,tvp+13,&Timing_Mult4);
 #endif
 	} // end of loop over slices
+
+#endif // OPENCL
+
 	// FFT-X back the result
 #ifdef PARALLEL
 	BlockTranspose(Xmatrix,comm_timing);
@@ -526,6 +570,15 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	Stop(EXIT_SUCCESS);
 #endif
 	TotalMatVec++;
+#ifdef OCL_PROFILE
+#ifdef OPENCL
+	if (TotalMatVec>10)
+	{
+	FreeEverything();
+	exit(0);
+	}
+#endif
+#endif
 }
 
 #else // SPARSE is defined
