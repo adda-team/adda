@@ -45,6 +45,7 @@ extern cl_mem bufRmatrix,bufslicesR,bufslicesR_tr;
 extern double *inprodhlp;
 extern size_t oclMem,oclMemPeak,oclMemMaxObj;
 extern int gpuInd;
+extern cl_device_id device_id;
 
 /* checks error status of CL functions; can either be used as a wrapper that returns error status or applied to return
  * error value. It is defined as a macro to incorporate exact position in a source file where it was called.

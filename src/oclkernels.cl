@@ -106,17 +106,20 @@ __kernel void arith1(__global const uchar *material,__global const ushort *posit
 // Arith2 kernel
 
 __kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,const in_sizet gridZ,
-	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,const in_sizet x)
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall)
 {
-	const size_t y=get_global_id(0);
-	const size_t z=get_global_id(1);
+	const size_t xa=get_global_id(0);
+	const size_t x=get_global_id(0)-get_global_offset(0);
+	const size_t y=get_global_id(1);
+	const size_t z=get_global_id(2);
+	const size_t local_gridX=get_global_size(0);
 	size_t i;
 	size_t j;
 	int xcomp;
 
-	i = y*gridZ+z;
-	j = (z*smallY+y)*gridX+x;
-	for (xcomp=0;xcomp<3;xcomp++) slices[i+xcomp*gridYZ]=Xmatrix[j+xcomp*local_Nsmall];
+	i = y*gridZ+z+x*gridYZ;
+	j = (z*smallY+y)*gridX+xa;
+	for (xcomp=0;xcomp<3;xcomp++) slices[i+xcomp*gridYZ*local_gridX]=Xmatrix[j+xcomp*local_Nsmall];
 }
 
 //======================================================================================================================
@@ -190,27 +193,31 @@ void cvAdd(const double2 *a, const double2 *b,double2 *c)
 
 __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,
 	const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,
-	const char reduced_FFT,const char transposed,const in_sizet x)
+	const char reduced_FFT,const char transposed)
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
+	//xl (local) is the index for the slices 
+	size_t const xl = get_global_id(2)-get_global_offset(2);
+	//xa is the x index for Dmatrix
+	size_t xa=get_global_id(2);
 	size_t const gridZ = get_global_size(0);
 	size_t const gridY = get_global_size(1);
+	size_t const local_gridX = get_global_size(2);
 	double2 xv[3];
 	double2 yv[3];
 	double2 fmat[6];
 	int Xcomp;
 	const size_t i=z *gridY + y; // indexSliceZY
 	size_t j;
-	size_t xa=x;
 	size_t ya=y;
 	size_t za=z;
 
 	// works, because of the double2 vector type
-	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
+	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+xl*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
 	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
-		if (x>0) xa=gridX-x;
+		if (xa>0) xa=gridX-xa;
 		if (y>0) ya=gridY-y;
 		if (z>0) za=gridZ-z;
 	}
@@ -234,20 +241,22 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 		}
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
-	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
+	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+xl*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX]=yv[Xcomp];
 }
 
 //======================================================================================================================
 
 __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 *Dmatrix,const in_sizet smallY,
 	const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,
-	const char reduced_FFT,const char transposed,const in_sizet x,const in_sizet RsizeY,__global double2 *slicesR_tr,
+	const char reduced_FFT,const char transposed,const in_sizet RsizeY,__global double2 *slicesR_tr,
 	__global const double2 *Rmatrix)
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
+	size_t const x = get_global_id(2)-get_global_offset(2);
 	size_t const gridZ = get_global_size(0);
 	size_t const gridY = get_global_size(1);
+	size_t const local_gridX = get_global_size(2);
 	double2 xv[3];
 	double2 yv[3];
 	double2 xvR[3];
@@ -256,12 +265,13 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	int Xcomp;
 	const size_t i=z *gridY + y; // indexSliceZY
 	size_t j;
-	size_t xa=x;
+	//offset is needed for xa since it is used to calculate the index to Dmatrix
+	size_t xa=x+get_global_offset(2);
 	size_t ya=y;
 	size_t za=z;
 
 	// works, because of the double2 vector type
-	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+Xcomp*gridY*gridZ];
+	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
 	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (x>0) xa=gridX-x;
@@ -289,9 +299,9 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
 	// surface part
-	for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+Xcomp*gridY*gridZ];
+	for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
 	// indexRmatrix_mv; first resetting indices
-	xa=x;
+	xa=x+get_global_offset(2);
 	ya=y;
 	za=z;
 	if (transposed==1) { // used only for G_SO
@@ -320,24 +330,27 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	cReflMatrVec(fmat,xvR,yvR);
 	cvAdd(yvR,yv,yv);
 	// surface part finished
-	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+Xcomp*gridY*gridZ]=yv[Xcomp];
+	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX]=yv[Xcomp];
 }
 
 //======================================================================================================================
 // Arith4 kernel
 
 __kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,const in_sizet gridZ,
-	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall,const in_sizet x)
+	const in_sizet smallY,const in_sizet gridX,const in_sizet gridYZ,const in_sizet local_Nsmall)
 {
-	const size_t y =get_global_id(0);
-	const size_t z =get_global_id(1);
+	const size_t xa =get_global_id(0);
+	const size_t x =get_global_id(0)-get_global_offset(0);
+	const size_t y =get_global_id(1);
+	const size_t z =get_global_id(2);
+	const size_t local_gridX=get_global_size(0);
 	size_t i;
 	size_t j;
 	int xcomp;
 
-	i = y*gridZ+z;
-	j = (z*smallY+y)*gridX+x;
-	for (xcomp=0;xcomp<3;xcomp++) Xmatrix[j+xcomp*local_Nsmall]=slices[i+xcomp*gridYZ];
+	i = y*gridZ+z+x*gridYZ;
+	j = (z*smallY+y)*gridX+xa;
+	for (xcomp=0;xcomp<3;xcomp++) Xmatrix[j+xcomp*local_Nsmall]=slices[i+xcomp*gridYZ*local_gridX];
 }
 
 //======================================================================================================================
@@ -376,11 +389,15 @@ __kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 __kernel void transpose(__global const double2 *input,__global double2 *output,const in_sizet width,
 	const in_sizet height)
 {
-	const size_t idz = get_global_id(0);
-	const size_t idy = get_global_id(1);
+	//TODO: width and height arguments can be replaced by the worksize of this dimensions which would also 
+	//remove the need to have two different kernels inside of the program since the work sizes 
+	//are controlled by clEnqueueNDRangeKerne itself
+	const size_t z = get_global_id(0);
+	const size_t y = get_global_id(1);
+	const size_t x = get_global_id(2);
 	const size_t wth = width*height;
 
-	for (int k=0;k<3;k++) output[idz*height+idy+k*wth]=input[idy*width+idz+k*wth];
+	output[z*height+y+x*wth]=input[y*width+z+x*wth];
 }
 
 //======================================================================================================================
