@@ -84,8 +84,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
 # are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
-              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_PROFILE
-
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
 # possible warnings by the compiler). DEBUGFULL turns off optimization completely (for more accurate debugging symbols)
@@ -126,9 +125,6 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
-
-#ocl profile mode limits execution to 10 MatVecs
-#override OPTIONS += OCL_PROFILE
 
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
 # ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
@@ -183,7 +179,7 @@ override EXTRA_FLAGS +=
 
 # C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c GenerateB.c interaction.c io.c \
-           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
+           iterative.c linalg.c make_particle.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
            timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
@@ -273,10 +269,6 @@ ifneq ($(filter PRECISE_TIMING,$(OPTIONS)),)
   $(info Precise timing)
   CDEFS += -DPRECISE_TIMING
   CSOURCE += prec_time.c
-endif
-ifneq ($(filter OCL_PROFILE,$(OPTIONS)),)
-  $(info OpenCL profile mode (stops after 10 MatVec))
-  CDEFS += -DOCL_PROFILE
 endif
 ifneq ($(filter NOT_USE_LOCK,$(OPTIONS)),)
   $(info No locks at all)

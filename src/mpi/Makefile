@@ -64,5 +64,6 @@ PROG   := $(PROGMPI)
 MYCC   := $(MPICC)
 MYCF   := $(CF)
 MYCCPP := $(CCPP)
+CSOURCE += matvec.c
 
 include $(COMMONMK)

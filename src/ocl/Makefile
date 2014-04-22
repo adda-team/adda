@@ -63,7 +63,7 @@ endif
 
 CFLAGS    += -DOPENCL 
 LDFLAGS   += -lOpenCL
-CSOURCE   += oclcore.c
+CSOURCE   += oclcore.c oclmatvec.c 
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   CFLAGS += -DOCL_READ_SOURCE_RUNTIME

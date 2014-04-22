@@ -20,5 +20,6 @@ PROG   := $(PROGSEQ)
 MYCC   := $(CC)
 MYCF   := $(CF)
 MYCCPP := $(CCPP)
+CSOURCE += matvec.c 
 
 include $(COMMONMK)

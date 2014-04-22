@@ -24,7 +24,6 @@
 #include "io.h"
 #include "interaction.h"
 #include "linalg.h"
-#include "oclcore.h"
 #include "prec_time.h"
 #include "sparse_ops.h"
 #include "vars.h"
@@ -37,12 +36,12 @@
 #ifdef SPARSE
 // defined and initialized in calculator.c
 extern doublecomplex * restrict arg_full;
-#elif !defined(OPENCL)
+#else
 // defined and initialized in fft.c
 extern const doublecomplex * restrict Dmatrix,* restrict Rmatrix;
 extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr,* restrict slicesR,* restrict slicesR_tr;
 extern const size_t DsizeY,DsizeZ;
-#endif // !SPARSE && !OPENCL
+#endif // SPARSE
 extern const size_t RsizeY;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
@@ -53,15 +52,9 @@ extern size_t TotalMatVec;
 // calculator.c
 void FreeEverything(void); // for proper finalization
 #endif
-#ifdef OPENCL
-extern size_t clxslices;
-extern size_t local_gridX;//ensure that there are enough slices to 
-extern size_t slicesize;//total number of complexdouble values per slice
-#endif
 
 
 #ifndef SPARSE
-#ifndef OPENCL // the following inline functions are not used in OpenCL or sparse mode
 
 //======================================================================================================================
 
@@ -133,7 +126,6 @@ static inline size_t IndexRmatrix_mv(size_t x,size_t y,size_t z,const bool trans
 	return NDCOMP*((x*gridZ+z)*RsizeY+y);
 }
 
-#endif // OPENCL
 #endif // SPARSE
 
 //======================================================================================================================
@@ -153,12 +145,10 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	size_t j,x;
 	bool ipr,transposed;
 	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
-#ifndef OPENCL // these variables are not needed for OpenCL
 	size_t i;
 	doublecomplex fmat[6],xv[3],yv[3],xvR[3],yvR[3];
 	size_t index,y,z,Xcomp;
 	unsigned char mat;
-#endif
 #ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[18];
 	SYSTEM_TIME Timing_FFTXf,Timing_FFTYf,Timing_FFTZf,Timing_FFTXb,Timing_FFTYb,Timing_FFTZb,Timing_Mult1,Timing_Mult2,
@@ -210,38 +200,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	// FFT_matvec code
 	if (ipr) *inprod = 0.0;
-#ifdef OPENCL
-	const cl_char ndcomp=NDCOMP;
-	// little workaround for kernel cannot take bool arguments
-	const cl_char transp=(cl_char)transposed;
-	const cl_char redfft=(cl_char)reduced_FFT;
-
-	/* following two calls to clSetKernelArg can be moved to fft.c, since the arguments are constant. However, this
-	 * requires setting auxiliary variables redfft and ndcomp as globals, since the kernel is called below.
-	 */
-	CL_CH_ERR(clSetKernelArg(clarith3,7,sizeof(cl_char),&ndcomp));
-	CL_CH_ERR(clSetKernelArg(clarith3,8,sizeof(cl_char),&redfft));
-	CL_CH_ERR(clSetKernelArg(clarith3,9,sizeof(cl_char),&transp));
-	if (surface) { // arguments for surface-version of the arith3 kernel
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,7,sizeof(cl_char),&ndcomp));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,8,sizeof(cl_char),&redfft));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
-		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&RsizeY));
-	}
-	// write into buffers eg upload to device; non-blocking
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
-		NULL));
-
-	size_t xmsize=local_Nsmall*3;
-	if (her) {
-		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL));
-	}
-	// setting (buf)Xmatrix with zeros (on device)
-	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
-	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&xmsize,NULL,0,NULL,NULL));
-	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith1,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-#else
 	// fill Xmatrix with 0.0
 	for (i=0;i<3*local_Nsmall;i++) Xmatrix[i]=0.0;
 
@@ -256,7 +214,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		// Xmat=cc_sqrt*argvec
 		for (Xcomp=0;Xcomp<3;Xcomp++) Xmatrix[index+Xcomp*local_Nsmall]=cc_sqrt[mat][Xcomp]*argvec[j+Xcomp];
 	}
-#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+1);
 	Elapsed(tvp,tvp+1,&Timing_Mult1);
@@ -274,74 +231,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+3);
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
 #endif
-
-	// following is done by slices in CPU mode.
-	// In OpenCL mode the free memory on the GPU was determined 
-	// during fft.c and if enough memory is available slices* 
-	// contain the full fft grid. If not, FFT grid is split into
-	// "clxslices" parts with "local_gridX" length and kernels 
-	// run with offsets inside a loop.
-#ifdef OPENCL
-	// setting arith2, arith4 and arith3 run slices global work 
-	// sizes and offsets
-	size_t gwsarith24[3]={local_gridX,boxY_st,boxZ_st};
-	size_t gwsclarith3[3]={gridZ,gridY,local_gridX};
-	size_t gwo24[3]={0,0,0};
-	size_t gwo3[3]={0,0,0};
-	for (int xsect=0; xsect<clxslices; xsect++)
-	{
-		//global work size offset in x axis, when not in first slice
-
-		gwo24[0]=xsect*local_gridX;
-		gwo3[2]=xsect*local_gridX;
-
-		//last bunch of slices reached 
-		//ensure that arith2,3,4 do not run over border of gridX
-		if (xsect+1==clxslices && gridX%local_gridX!=0)
-		{
-			gwsarith24[0]=gridX%local_gridX; 
-			gwsclarith3[2]=gridX%local_gridX; 
-		}
-		
-		//every index and argument prepared, starting arith2
-
-		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
-
-		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
-			slicesize*sizeof(doublecomplex),0,NULL,NULL));
-
-
-		fftZ(FFT_FORWARD); // fftZ (buf)slices (and reflected terms)
-		TransposeYZ(FFT_FORWARD); // including reflecting terms
-		fftY(FFT_FORWARD); // fftY (buf)slices_tr (and reflected terms)
-		// arith3 on Device
-		if (surface) 
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
-		else 
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
-		// inverse FFT y&z
-		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
-		TransposeYZ(FFT_BACKWARD);
-		fftZ(FFT_BACKWARD); // fftZ (buf)slices
-
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
-	}
-		
-#else
-
-
-
-
-
-
-
-
-
-
-
-
 
 	for(x=local_x0;x<local_x1;x++) {
 		/* TODO: if z and y FFTs are interchanged, then computing reflected interaction can be optimized even further.
@@ -451,7 +340,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 #endif
 	} // end of loop over slices
 
-#endif // OPENCL
 
 	// FFT-X back the result
 #ifdef PARALLEL
@@ -466,27 +354,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+15);
 	Elapsed(tvp+14,tvp+15,&Timing_FFTXb);
 #endif
-#ifdef OPENCL
-	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith5,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-	if (ipr) {
-		/* calculating inner product in OpenCL is more complicated than usually. The norm for each element is calculated
-		 * inside GPU, but the sum is taken by CPU afterwards. Hence, additional large buffers are required.
-		 * Potentially, this can be optimized.
-		 */
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clinprod,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-		CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinproduct,CL_TRUE,0,local_nvoid_Ndip*sizeof(double),inprodhlp,0,
-			NULL,NULL));
-		// sum up on the CPU after calculating the norm on GPU; hence the read above is blocking
-		for (j=0;j<local_nvoid_Ndip;j++) *inprod+=inprodhlp[j];
-	}
-	if (her) {
-		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL));
-	}
-	// blocking read to finalize queue
-	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),resultvec,0,
-		NULL,NULL));
-#else
 	// fill resultvec
 	for (i=0;i<local_nvoid_Ndip;i++) {
 		j=3*i;
@@ -501,7 +368,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		nConj(resultvec);
 		nConj(argvec); // conjugate back argvec, so it remains unchanged after MatVec
 	}
-#endif
 #ifdef PRECISE_TIMING
 	GetTime(tvp+16);
 	Elapsed(tvp+15,tvp+16,&Timing_Mult5);
@@ -533,15 +399,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	t_Comm=t_BTf+t_BTb+t_ipr;
 
 	if (IFROOT) {
-#	ifdef OPENCL
-		/* We stopped using synchronization (clFinish) between enqueueing kernels to accelerate overall execution. The
-		 * drawback is that the timing of different parts can not be measured at the CPU level (and is not well defined
-		 * at all). Therefore, precise timing is now almost meaningless in OpenCL mode - almost all time is assigned to
-		 * the last part, which (through blocking read) waits for all kernels to finish. Thus, to understand the
-		 * performance of OpenCL parts, one should use specialized tools, like CodeXL
-		 */
-		LogWarning(EC_WARN,ONE_POS,"The following timing is inaccurate in OpenCL mode (apart from total time)");
-#	endif
 		PrintBoth(logfile,
 			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 			"                MatVec timing              \n"
@@ -570,15 +427,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	Stop(EXIT_SUCCESS);
 #endif
 	TotalMatVec++;
-#ifdef OCL_PROFILE
-#ifdef OPENCL
-	if (TotalMatVec>10)
-	{
-	FreeEverything();
-	exit(0);
-	}
-#endif
-#endif
 }
 
 #else // SPARSE is defined
