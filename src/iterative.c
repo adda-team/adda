@@ -1391,10 +1391,17 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 	}
 	// Save checkpoint of type always
 	if (chp_type==CHP_ALWAYS && !chp_exit) SaveIterChpoint();
-	// error output
+	/* process incomplete convergence
+	 * Since maxiter can be used in several reasonable ways, e.g. to control execution time, we allow calculation of
+	 * (potentially inaccurate) scattering quantities, when it is reached. We leave the warning although it may be
+	 * redundant in e.g. scattering-order-formulation controlled by maxiter.
+	 * By contrast, stagnation (especially, e.g. for CGNR) is rarely something that should be tolerated. In principle,
+	 * this may happen in the end of a long run at already low residual. However, to account for such cases one should
+	 * better use maxiter.
+	 */
 	if (inprodR>epsB) {
-		if (niter>maxiter)
-			LogError(ONE_POS,"Iterations haven't converged in maximum allowed number of iterations (%d)",maxiter);
+		if (niter>maxiter) LogWarning(EC_WARN,ONE_POS,"Iterations haven't converged in %d iterations. Further "
+			"calculated scattering quantities may be less accurate.",maxiter);
 		else if (counter>params[ind_m].mc) LogError(ONE_POS,"Residual norm haven't decreased for maximum allowed "
 			"number of iterations (%d)",params[ind_m].mc);
 	}
