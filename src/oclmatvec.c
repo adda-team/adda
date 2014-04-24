@@ -1,9 +1,9 @@
-/* File: matvec.c
- * $Date:: 2014-04-13 13:18:12 +0200 #$
+/* File: oclmatvec.c
+ * $Date::                            $
  * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based
- *        convolution algorithm
+ *        convolution algorithm. This code is special for OpenCL mode.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -17,34 +17,18 @@
  */
 #include "const.h" // keep this first
 // project headers
-#include "cmplx.h"
 #include "comm.h"
-#include "debug.h"
 #include "fft.h"
 #include "io.h"
-#include "interaction.h"
-#include "linalg.h"
 #include "oclcore.h"
-#include "prec_time.h"
-#include "sparse_ops.h"
 #include "vars.h"
-// system headers
-#include <stdio.h>
-#include <string.h>
 
 // SEMI-GLOBAL VARIABLES
 
-extern const size_t RsizeY;
+// defined and initialized in fft.c
+extern const size_t RsizeY,clxslices,local_gridX,slicesize;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
-
-// EXTERNAL FUNCTIONS
-
-extern size_t clxslices;   //number of slices to process
-extern size_t local_gridX; //thickness of a slice to process
-extern size_t slicesize; //total number of complexdouble values per slice
-
-
 
 //======================================================================================================================
 
@@ -53,41 +37,41 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
-/* This function implements both MatVec_nim and MatVecAndInp_nim. The difference is that when we want to calculate the
- * inner product as well, we pass 'inprod' as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec'
- * always remains unchanged afterwards, however it is not strictly const - some manipulations may occur during the
- * execution. comm_timing can be NULL, then it is ignored.
+/* This function implements matrix-vector product. If we want to calculate the inner product as well, we pass 'inprod'
+ * as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards,
+ * however it is not strictly const - some manipulations may occur during the execution. comm_timing can be NULL, then
+ * it is ignored.
  */
 {
 	size_t j;
 	bool ipr,transposed;
 	size_t boxY_st=boxY,boxZ_st=boxZ; // copies with different type
 
-/* A = I + S.D.S
- * S = sqrt(C)
- * A.x = x + S.D.(S.x)
- * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
- * C,S - diagonal => symmetric
- * (!! will change if tensor (non-diagonal) polarizability is used !!)
- * D - symmetric (except for G_SO)
- *
- * D.x=F(-1)(F(D).F(X))
- * F(D) is just a vector
- *
- * G_SO: F(D(T)) (k) =  F(D) (-k)
- *       k - vector index
- *
- * For reflected matrix the situation is similar.
- * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom dipoles.
- * H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be computed
- * along with F(X).
- * Matrix R is symmetric (as a whole), but not in small parts, so R(i,j)=R(j,i)(T). Hence, in contrast to D, for
- * 'transpose' actual transpose (changing sign of a few elements) of 3x3 submatrix is required along with addressing
- * different elements of F(R).
- *
- * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
- * complex code.
- */
+	/* A = I + S.D.S
+	 * S = sqrt(C)
+	 * A.x = x + S.D.(S.x)
+	 * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
+	 * C,S - diagonal => symmetric
+	 * (!! will change if tensor (non-diagonal) polarizability is used !!)
+	 * D - symmetric (except for G_SO)
+	 *
+	 * D.x=F(-1)(F(D).F(X))
+	 * F(D) is just a vector
+	 *
+	 * G_SO: F(D(T)) (k) =  F(D) (-k)
+	 *       k - vector index
+	 *
+	 * For reflected matrix the situation is similar.
+	 * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom
+	 * dipoles. H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be
+	 * computed along with F(X).
+	 * Matrix R is symmetric (as a whole), but not in small parts, so R(i,j)=R(j,i)(T). Hence, in contrast to D, for
+	 * 'transpose' actual transpose (changing sign of a few elements) of 3x3 submatrix is required along with addressing
+	 * different elements of F(R).
+	 *
+	 * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
+	 * complex code.
+	 */
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
 	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
@@ -110,7 +94,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,9,sizeof(cl_char),&transp));
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&RsizeY));
 	}
-	// write into buffers eg upload to device; non-blocking
+	// write into buffers e.g. upload to device; non-blocking
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
 		NULL));
 
@@ -126,42 +110,29 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	// FFT X
 	fftX(FFT_FORWARD); // fftX (buf)Xmatrix
 
-	// following is done by slices in CPU mode.
-	// In OpenCL mode the free memory on the GPU was determined 
-	// during fft.c and if enough memory is available slices* 
-	// contain the full fft grid. If not, FFT grid is split into
-	// "clxslices" parts with "local_gridX" length and kernels 
-	// run with offsets inside a loop.
-	// setting arith2, arith4 and arith3 run slices global work 
-	// sizes and offsets
+	/* In OpenCL mode the free memory on the GPU was determined during fft.c and if enough memory is available slices
+	 * contain the full fft grid. If not, FFT grid is split into "clxslices" parts with "local_gridX" length and kernels
+	 * run with offsets inside a loop. Setting arith2, arith4 and arith3 run slices global work sizes and offsets.
+	 */
 	size_t gwsarith24[3]={local_gridX,boxY_st,boxZ_st};
 	size_t gwsclarith3[3]={gridZ,gridY,local_gridX};
 	size_t gwo24[3]={0,0,0};
 	size_t gwo3[3]={0,0,0};
-	for (int xsect=0; xsect<clxslices; xsect++)
-	{
-		//global work size offset in x axis, when not in first slice
-
+	for (size_t xsect=0; xsect<clxslices; xsect++) {
+		// global work size offset in x axis, when not in first slice
 		gwo24[0]=xsect*local_gridX;
 		gwo3[2]=xsect*local_gridX;
-
-		//last bunch of slices reached 
-		//ensure that arith2,3,4 do not run over border of gridX
-		if (xsect+1==clxslices && gridX%local_gridX!=0)
-		{
+		// last bunch of slices reached; ensure that arith2,3,4 do not run over border of gridX
+		if (xsect+1==clxslices && gridX%local_gridX!=0) {
 			gwsarith24[0]=gridX%local_gridX; 
 			gwsclarith3[2]=gridX%local_gridX; 
 		}
-		
-		//every index and argument prepared, starting arith2
-
+		// every index and argument prepared, starting arith2
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
-
 		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
 			slicesize*sizeof(doublecomplex),0,NULL,NULL));
-
 
 		fftZ(FFT_FORWARD); // fftZ (buf)slices (and reflected terms)
 		TransposeYZ(FFT_FORWARD); // including reflecting terms
@@ -178,7 +149,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
 	}
-		
 
 	// FFT-X back the result
 	fftX(FFT_BACKWARD); // fftX (buf)Xmatrix
@@ -204,4 +174,3 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	if (ipr) MyInnerProduct(inprod,double_type,1,comm_timing);
 	TotalMatVec++;
 }
-

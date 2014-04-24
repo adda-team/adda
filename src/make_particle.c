@@ -32,7 +32,6 @@
 #include <float.h> // for DBL_MAX
 #include <limits.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

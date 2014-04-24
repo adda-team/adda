@@ -1,7 +1,7 @@
 /* File: matvec.c
  * $Date::                            $
  * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based
- *        convolution algorithm
+ *        convolution algorithm. Also contains code for SPARSE (non-FFT) mode.
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
@@ -19,7 +19,6 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
-#include "debug.h"
 #include "fft.h"
 #include "io.h"
 #include "interaction.h"
@@ -27,9 +26,6 @@
 #include "prec_time.h"
 #include "sparse_ops.h"
 #include "vars.h"
-// system headers
-#include <stdio.h>
-#include <string.h>
 
 // SEMI-GLOBAL VARIABLES
 
@@ -41,7 +37,7 @@ extern doublecomplex * restrict arg_full;
 extern const doublecomplex * restrict Dmatrix,* restrict Rmatrix;
 extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr,* restrict slicesR,* restrict slicesR_tr;
 extern const size_t DsizeY,DsizeZ;
-#endif // SPARSE
+#endif // !SPARSE
 extern const size_t RsizeY;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
@@ -53,9 +49,7 @@ extern size_t TotalMatVec;
 void FreeEverything(void); // for proper finalization
 #endif
 
-
 #ifndef SPARSE
-
 //======================================================================================================================
 
 static inline size_t IndexSliceZY(const size_t y,const size_t z)
@@ -126,7 +120,7 @@ static inline size_t IndexRmatrix_mv(size_t x,size_t y,size_t z,const bool trans
 	return NDCOMP*((x*gridZ+z)*RsizeY+y);
 }
 
-#endif // SPARSE
+#endif // !SPARSE
 
 //======================================================================================================================
 
@@ -136,10 +130,10 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
-/* This function implements both MatVec_nim and MatVecAndInp_nim. The difference is that when we want to calculate the
- * inner product as well, we pass 'inprod' as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec'
- * always remains unchanged afterwards, however it is not strictly const - some manipulations may occur during the
- * execution. comm_timing can be NULL, then it is ignored.
+/* This function implements matrix-vector product. If we want to calculate the inner product as well, we pass 'inprod'
+ * as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards,
+ * however it is not strictly const - some manipulations may occur during the execution. comm_timing can be NULL, then
+ * it is ignored.
  */
 {
 	size_t j,x;
@@ -158,31 +152,31 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 
 #endif
 
-/* A = I + S.D.S
- * S = sqrt(C)
- * A.x = x + S.D.(S.x)
- * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
- * C,S - diagonal => symmetric
- * (!! will change if tensor (non-diagonal) polarizability is used !!)
- * D - symmetric (except for G_SO)
- *
- * D.x=F(-1)(F(D).F(X))
- * F(D) is just a vector
- *
- * G_SO: F(D(T)) (k) =  F(D) (-k)
- *       k - vector index
- *
- * For reflected matrix the situation is similar.
- * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom dipoles.
- * H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be computed
- * along with F(X).
- * Matrix R is symmetric (as a whole), but not in small parts, so R(i,j)=R(j,i)(T). Hence, in contrast to D, for
- * 'transpose' actual transpose (changing sign of a few elements) of 3x3 submatrix is required along with addressing
- * different elements of F(R).
- *
- * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
- * complex code.
- */
+	/* A = I + S.D.S
+	 * S = sqrt(C)
+	 * A.x = x + S.D.(S.x)
+	 * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
+	 * C,S - diagonal => symmetric
+	 * (!! will change if tensor (non-diagonal) polarizability is used !!)
+	 * D - symmetric (except for G_SO)
+	 *
+	 * D.x=F(-1)(F(D).F(X))
+	 * F(D) is just a vector
+	 *
+	 * G_SO: F(D(T)) (k) =  F(D) (-k)
+	 *       k - vector index
+	 *
+	 * For reflected matrix the situation is similar.
+	 * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom
+	 * dipoles. H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be
+	 * computed along with F(X).
+	 * Matrix R is symmetric (as a whole), but not in small parts, so R(i,j)=R(j,i)(T). Hence, in contrast to D, for
+	 * 'transpose' actual transpose (changing sign of a few elements) of 3x3 submatrix is required along with addressing
+	 * different elements of F(R).
+	 *
+	 * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
+	 * complex code.
+	 */
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
 	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
@@ -231,7 +225,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	GetTime(tvp+3);
 	Elapsed(tvp+2,tvp+3,&Timing_BTf);
 #endif
-
+	// following is done by slices
 	for(x=local_x0;x<local_x1;x++) {
 		/* TODO: if z and y FFTs are interchanged, then computing reflected interaction can be optimized even further.
 		 * Moreover, the typical situation of particles near surfaces, like large particulate slabs, correspond to the
@@ -339,8 +333,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		ElapsedInc(tvp+12,tvp+13,&Timing_Mult4);
 #endif
 	} // end of loop over slices
-
-
 	// FFT-X back the result
 #ifdef PARALLEL
 	BlockTranspose(Xmatrix,comm_timing);

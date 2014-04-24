@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: core parts of OpenCL code
  *
- * Copyright (C) 2010-2013 ADDA contributors
+ * Copyright (C) 2010-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -48,6 +48,8 @@ cl_mem bufRmatrix,bufslicesR,bufslicesR_tr; //for surface
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)
 size_t oclMem,oclMemPeak,oclMemMaxObj;
+// OpenCL memory available at device (total and for a single object); cl_ulong should be compatible with size_t
+cl_ulong oclMemDev,oclMemDevObj;
 int gpuInd; // index of GPU to use (starting from 0)
 
 // SEMI-GLOBAL VARIABLES
@@ -70,7 +72,7 @@ enum platname platformname; // also used in cpp/fft_setup.cpp
 // ids of program, platform and device
 static cl_program program;
 static cl_platform_id used_platform_id;
-cl_device_id device_id;
+static cl_device_id device_id;
 
 struct string {
 	char *text; // text of string
@@ -286,11 +288,11 @@ static void GetDevice(struct string *copt_ptr)
 			Free_general(dev_vers);
 			Free_general(dr_vers);
 #endif
-			cl_ulong mtot,mobj;
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(oclMemDev),&oclMemDev,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(oclMemDevObj),&oclMemDevObj,NULL));
 			// round numbers are expected so .0f is used, float is just for convenience
-			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",mtot/MBYTE,mobj/MBYTE);
+			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",oclMemDev/MBYTE,
+				oclMemDevObj/MBYTE);
 			char *dev_ext=dyn_clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS);
 			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
 			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
