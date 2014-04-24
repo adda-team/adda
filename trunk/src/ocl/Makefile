@@ -2,7 +2,7 @@
 # All options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2010-2013 ADDA contributors
+# Copyright (C) 2010-2014 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -63,7 +63,7 @@ endif
 
 CFLAGS    += -DOPENCL 
 LDFLAGS   += -lOpenCL
-CSOURCE   += oclcore.c oclmatvec.c 
+CSOURCE   += oclcore.c oclmatvec.c
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   CFLAGS += -DOCL_READ_SOURCE_RUNTIME
@@ -92,6 +92,5 @@ PROG   := $(PROGOCL)
 MYCC   := $(CC)
 MYCF   := $(CF)
 MYCCPP := $(CCPP)
-
 
 include $(COMMONMK)

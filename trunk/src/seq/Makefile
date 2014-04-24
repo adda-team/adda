@@ -2,7 +2,7 @@
 # All options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2010-2011,2013 ADDA contributors
+# Copyright (C) 2010-2011,2013,2014 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -16,10 +16,11 @@
 
 # !!! This file do not have any options designed to be changed by ADDA user
 
+CSOURCE += matvec.c
+
 PROG   := $(PROGSEQ)
 MYCC   := $(CC)
 MYCF   := $(CF)
 MYCCPP := $(CCPP)
-CSOURCE += matvec.c 
 
 include $(COMMONMK)

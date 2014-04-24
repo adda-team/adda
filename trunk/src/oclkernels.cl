@@ -197,9 +197,9 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 {
 	size_t const z = get_global_id(0);
 	size_t const y = get_global_id(1);
-	//xl (local) is the index for the slices 
+	// xl (local) is the index for the slices 
 	size_t const xl = get_global_id(2)-get_global_offset(2);
-	//xa is the x index for Dmatrix
+	// xa is the x index for Dmatrix
 	size_t xa=get_global_id(2);
 	size_t const gridZ = get_global_size(0);
 	size_t const gridY = get_global_size(1);
@@ -214,7 +214,7 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	size_t za=z;
 
 	// works, because of the double2 vector type
-	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+xl*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
+	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ];
 	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (xa>0) xa=gridX-xa;
@@ -241,7 +241,7 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 		}
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
-	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+xl*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX]=yv[Xcomp];
+	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ]=yv[Xcomp];
 }
 
 //======================================================================================================================
@@ -389,9 +389,10 @@ __kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 __kernel void transpose(__global const double2 *input,__global double2 *output,const in_sizet width,
 	const in_sizet height)
 {
-	//TODO: width and height arguments can be replaced by the worksize of this dimensions which would also 
-	//remove the need to have two different kernels inside of the program since the work sizes 
-	//are controlled by clEnqueueNDRangeKerne itself
+	/* TODO: width and height arguments can be replaced by the worksize of this dimensions which would also remove the
+	 * need to have two different kernels inside of the program since the work sizes are controlled by
+	 * clEnqueueNDRangeKernel itself
+	 */
 	const size_t z = get_global_id(0);
 	const size_t y = get_global_id(1);
 	const size_t x = get_global_id(2);

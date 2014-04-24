@@ -73,7 +73,9 @@ extern const int local_Nz_Rm;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_FFT_Init,Timing_Dm_Init;
 
-// used in matvec.c
+// used in comm.c
+double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspose
+// used in matvec.c; in OpenCL mode some of those are not used at all, others - only locally
 doublecomplex * restrict Dmatrix; // holds FFT of the interaction matrix
 doublecomplex * restrict Rmatrix; // holds FFT of the reflection matrix
 #ifndef OPENCL
@@ -84,9 +86,16 @@ doublecomplex * restrict slices_tr; // additional storage space for slices to ac
 doublecomplex * restrict slicesR,* restrict slicesR_tr; // same as above, but for reflected interaction
 #endif
 size_t DsizeY,DsizeZ,DsizeYZ; // size of the 'matrix' D
-size_t RsizeY; // size of the 'matrix' R
-// used in comm.c
-double * restrict BT_buffer, * restrict BT_rbuffer; // buffers for BlockTranspose
+size_t RsizeY; // size of the 'matrix' R; in OpenCL mode it is used in oclmatvec.c
+// used in oclmatvec.c
+#ifdef OPENCL
+/* clxslices is the number of slices required in MatVec,
+ * so that more GPU memory is used and kernels can run over larger arrays
+ */
+size_t clxslices;
+size_t local_gridX; // 'thickness' in x direction of a slice*
+size_t slicesize; // total number of doublecomplex values per slice
+#endif
 
 // LOCAL VARIABLES
 
@@ -102,11 +111,6 @@ static int jstartR;            // starting index for y
 static bool weird_nprocs;      // whether weird number of processors is used
 
 #ifdef OPENCL
-//clxslices represents the number of slices required in MatVec so that 
-//more GPU memory is used and kernels can run over larger arrays
-size_t clxslices;
-size_t local_gridX; // 'thickness' in x direction of a slice*
-size_t slicesize; // total number of complexdouble values per slice
 // clFFT plans
 #	ifdef CLFFT_AMD
 static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
@@ -699,11 +703,12 @@ static void fftInitAfterD(void)
 	 * inside the array, so that 3 components are stored together.
 	 */
 	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
-	// TODO: last slices can be very slightly thinner than the previeos ones, 
-	//but since the batchsize is part of the plan, another plan would be needed to adress this.
-	//however, we ignore this currently and assume that every slice has a thickness of local_gridX.
-	//This issue also applies to clplanY
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY*local_gridX)); 
+	/* TODO: last slices can be very slightly thinner than the previous ones, but since the batchsize is part of the
+	 * plan, another plan would be needed to address this. However, we ignore this currently and assume that every
+	 * slice has a thickness of local_gridX.
+	 * This issue also applies to clplanY.
+	 */
+	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY*local_gridX));
 	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
 	CL_CH_ERR(clAmdFftSetResultLocation(clplanZ,CLFFT_INPLACE));
 	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
@@ -993,23 +998,15 @@ void InitDmatrix(void)
 		Rsize=MultOverflow(NDCOMP*local_Nx,RsizeY*gridZ,ONE_POS_FUNC);
 		R2sizeTot=lz_Rm*R2sizeY*gridX; // this should be approximately equal to Rsize/NDCOMP
 	}
-
 #ifdef OPENCL // perform setting up of buffers and kernels
-
-	/* note: restructured the order of allocation to have all bufslices* at the end
-	 * to spent whatever memory is still available on the GPU on 'thickness' of 3D slices
-	 * This enables to have a 3D FFT and longer kernel runs but less number of kernel calls
+	/* The order of allocation is such that to have all bufslices* at the end to spent whatever memory is still
+	 * available on the GPU on 'thickness' of 3D slices. This enables to have a 3D FFT and longer kernel runs but less
+	 * number of kernel calls.
 	 */
-
 	// create all Buffers needed on Device in MatVec; When prognosis, the following code just counts required memory
 	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
-	/* The following are constant device buffers which are initialized with host data. But bufDmatrix is initialized in
-	 * the end of this function (to be compatible with prognosis). And bufcc_sqrt is initialized in InitCC, since it may
-	 * change for every run of the iterative solver.
-	 */
-
 	if (ipr_required) { // for inner product (only if it will be used afterwards)
 		memory+=local_nvoid_Ndip*sizeof(double);
 		CREATE_CL_BUFFER(bufinproduct,CL_MEM_READ_WRITE,local_nvoid_Ndip*sizeof(double),NULL);
@@ -1019,53 +1016,69 @@ void InitDmatrix(void)
 			CL_CH_ERR(clSetKernelArg(clinprod,1,sizeof(cl_mem),&bufresultvec));
 		}
 	}
+	/* The following are constant device buffers which are initialized with host data. They are all created here (to be
+	 * compatible with prognosis), but some are initialized (filled with data) later.
+	 */
 	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
 	CREATE_CL_BUFFER(bufDmatrix,CL_MEM_READ_ONLY,Dsize*sizeof(*Dmatrix),NULL);
+	if (surface) CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
 	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
 	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
 
-	if (surface)
-		CREATE_CL_BUFFER(bufRmatrix,CL_MEM_READ_ONLY,Rsize*sizeof(*Rmatrix),NULL);
-	
-	
+	// In the following bufslices* are allocated, based on available GPU memory
+	const size_t memReserve = 100*MBYTE; // memory reserved for all other GPU needs (including desktop,etc.)
+	if (save_memory) { // fall back to one-layer-at-a-time implementation
+		local_gridX=1;
+		clxslices=gridX;
+		D("Using 1-layer x-slices (memory optimization)");
+	}
+	else if (prognosis) { // maximum memory, should not necessarily fit in the current GPU
+		local_gridX=gridX;
+		clxslices=1;
+		D("Using the largest x-slices (prognosis mode)");
+	}
+	else if (oclMemDev<oclMem+memReserve) {
+		/* insufficient GPU memory. We use minimum local_gridX, but even this is expected to cause error. But we leave
+		 * the error processing to the allocation routines or OpenCL driver. It may also happen that no error will be
+		 * produced, instead the execution will be slow due to memory swapping.
+		 */
+		local_gridX=1;
+		clxslices=gridX;
+		D("Using 1-layer x-slices due (insufficient memory, already occupied "FFORMM" MB)",oclMem/MBYTE);
+	}
+	else {
+		const size_t slbufnum = surface ? 4 : 2; // number of buffers
+		const size_t memAvail=oclMemDev-oclMem-memReserve; // this is guaranteed to be non-negative
+		const size_t memLayer=3*gridYZ*sizeof(doublecomplex); // memory for a single layer (minimum slice)
+		// TODO: think about capping local_gridX, e.g. at 32, to not use a lot of extra memory for marginal benefits
+		// local_gridX is always at least 1 (possible errors of insufficient memory are ignored here)
+		local_gridX=MIN(memAvail/(slbufnum*memLayer),oclMemDevObj/memLayer);
+		if (local_gridX==0) local_gridX=1;
+		if (gridX%local_gridX==0) clxslices=gridX/local_gridX; // automatic uniform division
+		else {
+			clxslices=(gridX/local_gridX)+1;
+			local_gridX=DIV_CEILING(gridX,clxslices); // adjust local_gridX to be closer to uniform division
+		}
 
-	//all buffers except bufslices* allocated, getting free space on GPU memory
-	cl_ulong mtot;
-	CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
-	cl_ulong mobj;
-	CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,NULL));
-	//getting number of slices
-	int slbufnum;
-	if (surface)	
-		slbufnum=4;
-	else
-		slbufnum=2;
-
-	float mem_left=(float)(mtot-oclMem)/(1024*1024);
-	float tot_fftmem=(float)(gridYZ*gridX*3*sizeof(doublecomplex))/1024./1024.*2;
-
-
-	//calculating how many slice buffer can be used 
-	clxslices=MAX((int)(tot_fftmem/(mem_left-100)),(int)((tot_fftmem/slbufnum)/mobj))+1;
-	if (gridX%clxslices==0)
-		local_gridX=gridX/clxslices;
-	else
-		local_gridX=(gridX/clxslices)+1; //ensure that there are enough slices cover all data
+		D("Already occupied OpenCL memory: "FFORMM" MB,\n"
+			"     available for x-slices: "FFORMM" MB (excluding "FFORMM" MB reserve),\n"
+			"     required for the largest x-slices: "FFORMM" MB",
+			oclMem/MBYTE,memAvail/MBYTE,memReserve/MBYTE,(memLayer/MBYTE)*gridX*slbufnum);
+		if (local_gridX==gridX) { // braces {} are to remove warnings
+			D("Using the largest x-slices (sufficient memory)");
+		}
+		else {
+			D("gridX (%zu) is split into %zu slices of %zu layers each (low memory)",gridX,clxslices,local_gridX);
+		}
+	}
 	slicesize=local_gridX*gridYZ*3;
-
-#ifndef DEBUGFULL
-	printf("currently used OpenCL mem: %.1f MB/ mem free: %.1f MB\n",(float)oclMem/(1024*1024), mem_left);
-	printf("totlal mem required for full 3D FFT: %.1f MB\n",tot_fftmem);
-	if ((mem_left-tot_fftmem)>0 && (tot_fftmem/slbufnum) < mobj) 
-		printf("Enough mem left for complete 3D FFT mode\n");
-	else
-		printf("No complete 3D FFT, splitting gridX of %i into into %i slices\n" ,gridX, clxslices);
-#endif
-
+	/* TODO: Here it is possible to recover from error in memory allocation by catching this exception, decreasing the
+	 * local_gridX, and trying again. However, consistency of memory sizes is not well anyway. Even if we succeed to
+	 * allocate memory, some artifacts may further appear, e.g. from desktop activity.
+	 */
 	CREATE_CL_BUFFER(bufslices,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufslices_tr,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
-	if (surface)
-	{
+	if (surface) {
 		CREATE_CL_BUFFER(bufslicesR,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
 		CREATE_CL_BUFFER(bufslicesR_tr,CL_MEM_READ_WRITE,slicesize*sizeof(doublecomplex),NULL);
 	}
