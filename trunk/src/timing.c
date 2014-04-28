@@ -57,9 +57,11 @@ TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & com
 TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
           Timing_Dm_Init;  // for building Dmatrix
 // used in iterative.c
-TIME_TYPE Timing_OneIter,Timing_OneIterComm,    // for one iteration: total & comm
-          Timing_InitIter,Timing_InitIterComm,  // for initialization of iterations: total & comm
-          Timing_IntFieldOneComm;               // comm for one calculation of the internal fields
+TIME_TYPE Timing_OneIter,Timing_OneIterComm,       // for one iteration: total & comm
+          Timing_InitIter,Timing_InitIterComm,     // for initialization of iterations: total & comm
+          Timing_IntFieldOneComm,                  // comm for one calculation of the internal fields
+          Timing_MVP,Timing_MVPComm,               // total & comm time for MatVec during one run of iterative solver
+          Timing_OneIterMVP,Timing_OneIterMVPComm; // total & comm time for MatVec during one iteration
 size_t TotalIter;                               // total number of iterations performed
 // used in make_particle.c
 TIME_TYPE Timing_Particle,                 // for particle construction
@@ -181,6 +183,12 @@ void FinalStatistics(void)
 				"      communication:       "FFORMT"\n",TO_SEC(Timing_IntFieldOneComm));
 #endif
 			fprintf(logfile,
+				"      matvec products:     "FFORMT"\n",TO_SEC(Timing_MVP));
+#ifdef PARALLEL
+			fprintf(logfile,
+				"        communication:       "FFORMT"\n",TO_SEC(Timing_MVPComm));
+#endif
+			fprintf(logfile,
 				"      incident beam:       "FFORMT"\n",TO_SEC(Timing_IncBeam));
 			fprintf(logfile,
 				"      init solver:         "FFORMT"\n",TO_SEC(Timing_InitIter));
@@ -193,6 +201,12 @@ void FinalStatistics(void)
 #ifdef PARALLEL
 			fprintf(logfile,
 				"        communication:       "FFORMT"\n",TO_SEC(Timing_OneIterComm));
+#endif
+			fprintf(logfile,
+				"        matvec products:     "FFORMT"\n",TO_SEC(Timing_OneIterMVP));
+#ifdef PARALLEL
+			fprintf(logfile,
+				"          communication:       "FFORMT"\n",TO_SEC(Timing_OneIterMVPComm));
 #endif
 			fprintf(logfile,
 				"  Scattered fields:    "FFORMT"\n",TO_SEC(Timing_EField));

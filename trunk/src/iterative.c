@@ -54,7 +54,8 @@ extern const enum chpoint chp_type;
 extern const time_t chp_time;
 extern const char *chp_dir;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,Timing_IntFieldOneComm;
+extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,Timing_IntFieldOneComm,
+	Timing_MVP,Timing_MVPComm,Timing_OneIterMVP,Timing_OneIterMVPComm;
 extern size_t TotalIter;
 
 // LOCAL VARIABLES
@@ -127,7 +128,8 @@ static const struct iter_params_struct params[]={
 // EXTERNAL FUNCTIONS
 
 // matvec.c
-void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,TIME_TYPE *comm_timing);
+void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,TIME_TYPE *timing,
+	TIME_TYPE *comm_timing);
 
 //======================================================================================================================
 
@@ -312,7 +314,7 @@ static void ProgressReport(void)
 //======================================================================================================================
 
 static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict r,doublecomplex * restrict buffer,
-	TIME_TYPE *comm_timing)
+	TIME_TYPE *mvp_timing,TIME_TYPE *mvp_comm_timing,TIME_TYPE *comm_timing)
 /* Computes ||Ax-b||^2, where b=sqrt(C).Einc; buffer is used for Ax, r contains Ax-b at the end; comm_timing is
  * incremented with communication time. If only the norm is required, the calculation can be done without using vector
  * r, but this does not make a lot of sense, since memory is allocated anyway.
@@ -320,7 +322,10 @@ static double ResidualNorm2(doublecomplex * restrict x,doublecomplex * restrict 
 {
 	double res;
 
-	MatVec(x,buffer,NULL,false,comm_timing);
+	TIME_TYPE mc_time=0;
+	MatVec(x,buffer,NULL,false,mvp_timing,&mc_time);
+	(*mvp_comm_timing) += mc_time;
+	(*comm_timing) += mc_time;
 	nMult_mat(r,Einc,cc_sqrt);
 	nDecrem(r,buffer,&res,comm_timing);
 	return res;
@@ -400,7 +405,7 @@ ITER_FUNC(BCGS2)
 				rho0=rho1;
 				// u_j+1 = A.u_j
 				if (niter==1 && j==0 && matvec_ready) {} // do nothing; u[1]<=>Avecbuffer already contains matvec result
-				else MatVec(u[j],u[j+1],NULL,false,&Timing_OneIterComm);
+				else MatVec(u[j],u[j+1],NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 				sigma=nDotProd(u[j+1],pvec,&Timing_OneIterComm); // sigma = u_j+1.r~0
 				// test for zero sigma (1/alpha)
 				dtmp=cabs(sigma)/cabs(rho1); // assume that rho1 is not exactly zero
@@ -412,7 +417,7 @@ ITER_FUNC(BCGS2)
 				// r_i = r_i - alpha*u_i+1
 				temp1=-alpha;
 				for (i=0;i<=j;i++) nIncrem01_cmplx(r[i],u[i+1],temp1,NULL,NULL);
-				MatVec(r[j],r[j+1],NULL,false,&Timing_OneIterComm);
+				MatVec(r[j],r[j+1],NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			}
 			// --- The convex polynomial part ---
 			// Z = R'R
@@ -519,7 +524,7 @@ ITER_FUNC(BiCG_CS)
 			}
 			// q_k=Avecbuffer=A.p_k
 			if (niter==1 && matvec_ready) {} // do nothing, Avecbuffer is ready to use
-			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
+			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
 			mu=nDotProd_conj(pvec,Avecbuffer,&Timing_OneIterComm);
 			dtmp=cabs(mu)/abs_ro_new;
@@ -595,7 +600,7 @@ ITER_FUNC(BiCGStab)
 			}
 			// calculate v_k=A.p_k
 			if (niter==1 && matvec_ready) nCopy(v,Avecbuffer);
-			else MatVec(pvec,v,NULL,false,&Timing_OneIterComm);
+			else MatVec(pvec,v,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// alpha_k=ro_new/(v_k.r~)
 			temp1=nDotProd(v,rtilda,&Timing_OneIterComm);
 			dtmp=cabs(temp1)/cabs(ro_new); // assume that ro_new is not exactly zero
@@ -613,7 +618,7 @@ ITER_FUNC(BiCGStab)
 			}
 			else {
 				// t=Avecbuffer=A.s
-				MatVec(s,Avecbuffer,&denumOmega,false,&Timing_OneIterComm);
+				MatVec(s,Avecbuffer,&denumOmega,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 				// omega_k=s.t/|t|^2
 				omega=nDotProd(s,Avecbuffer,&Timing_OneIterComm)/denumOmega;
 				// x_k=x_k-1+alpha_k*p_k+omega_k*s
@@ -651,10 +656,10 @@ ITER_FUNC(CGNR)
 		case PHASE_ITER:
 			// p_1=Ah.r_0 and ro_new=ro_0=|Ah.r_0|^2
 			// since first product is with Ah , matvec_ready can't be employed
-			if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterComm);
+			if (niter==1) MatVec(rvec,pvec,&ro_new,true,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			else {
 				// Avecbuffer=AH.r_k-1, ro_new=ro_k-1=|AH.r_k-1|^2
-				MatVec(rvec,Avecbuffer,&ro_new,true,&Timing_OneIterComm);
+				MatVec(rvec,Avecbuffer,&ro_new,true,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 				// beta_k-1=ro_k-1/ro_k-2
 				beta=ro_new/ro_old;
 				// p_k=beta_k-1*p_k-1+AH.r_k-1
@@ -662,7 +667,7 @@ ITER_FUNC(CGNR)
 			}
 			// alpha_k=ro_k-1/|A.p_k|^2
 			// Avecbuffer=A.p_k
-			MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterComm);
+			MatVec(pvec,Avecbuffer,&denumeratorAlpha,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			alpha=ro_new/denumeratorAlpha;
 			// x_k=x_k-1+alpha_k*p_k
 			nIncrem01(xvec,pvec,alpha,NULL,NULL);
@@ -730,7 +735,7 @@ ITER_FUNC(CSYM)
 			/* Avecbuffer = A.q_k. Since q_1 is r_0(*), mat-vec product for niter==1 is equivalent to Ah.r_0 (as in
 			 * CGNR). Thus, matvec_ready can't be employed.
 			 */
-			MatVec(q_new,Avecbuffer,NULL,false,&Timing_OneIterComm);
+			MatVec(q_new,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// alpha_k = q_k(T).A.q_k
 			alpha=nDotProd_conj(q_new,Avecbuffer,&Timing_OneIterComm);
 			// eta_k = c_k-2*c_k-1*beta_k + s_k-1(*)*alpha_k
@@ -869,7 +874,7 @@ ITER_FUNC(QMR_CS)
 				temp1=1/beta;
 				nMultSelf_cmplx(Avecbuffer,temp1);
 			}
-			else MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterComm);
+			else MatVec(v,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			alpha=nDotProd_conj(v,Avecbuffer,&Timing_OneIterComm);
 			// v~_k+1=-beta_k*v_k-1-alpha_k*v_k+A.v_k
 			temp2=-alpha;
@@ -1006,7 +1011,7 @@ ITER_FUNC(QMR_CS_2)
 			if (niter==1 && matvec_ready) { // uses that p_1=v_1=r_0/ro_1
 				nMultSelf(Avecbuffer,1/ro_old);
 			}
-			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterComm);
+			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// eps_k = p_k(*).(A.p_k); beta_k = eps_k/delta_k
 			eps=nDotProd_conj(pvec,Avecbuffer,&Timing_OneIterComm);
 			beta=eps/delta;
@@ -1239,7 +1244,7 @@ static void InitFieldfromE(void)
 	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=1/(cc_sqrt[i][j]*chi_inv[i][j]);
 	nMultSelf_mat(xvec,mult);
 	// calculate A.x_0, r_0=b-A.x_0, and |r_0|^2
-	MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+	MatVec(xvec,Avecbuffer,NULL,false,&Timing_MVP,&Timing_MVPComm);
 	nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 }
 
@@ -1258,7 +1263,7 @@ static const char *CalcInitField(double zero_resid,const enum incpol which)
 			 * cases. Moreover, this option will probably be changed afterwards.
 			 */
 			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-			MatVec(pvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+			MatVec(pvec,Avecbuffer,NULL,false,&Timing_MVP,&Timing_MVPComm);
 			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 			// check which x_0 is better
 			if (zero_resid<inprodR) { // use x_0=0
@@ -1280,7 +1285,7 @@ static const char *CalcInitField(double zero_resid,const enum incpol which)
 		case IF_INC:
 			nCopy(xvec,pvec); // x_0=b, i.e. E_exc=E_inc
 			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
-			MatVec(xvec,Avecbuffer,NULL,false,&Timing_InitIterComm);
+			MatVec(xvec,Avecbuffer,NULL,false,&Timing_MVP,&Timing_MVPComm);
 			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
 			return "x_0 = E_inc\n";
 		case IF_WKB:
@@ -1308,10 +1313,10 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 {
 	double temp;
 	char tmp_str[MAX_LINE];
-	TIME_TYPE tstart,time_tmp;
+	TIME_TYPE tstart,time_tmp,time_tmp2,time_tmp3;
 
 	// redundant initialization to remove warnings
-	time_tmp=0;
+	time_tmp=time_tmp2=time_tmp3=0;
 
 	/* Instead of solving system (I+D.C).x=b , C - diagonal matrix with couple constants
 	 *                                         D - symmetric interaction matrix of Green's tensor
@@ -1321,7 +1326,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 	/* p=b=(S.Einc) is right part of the linear system; used only here. In iteration methods themselves p is completely
 	 * different vector. To avoid confusion this is done before any other initializations, specific to iterative solvers
 	 */
-	Timing_InitIterComm=0;
+	Timing_InitIterComm=Timing_MVP=Timing_MVPComm=0;
 	tstart=GET_TIME();
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
@@ -1367,22 +1372,32 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 	(*params[ind_m].func)(PHASE_INIT);
 	// Initialization time includes generating the incident beam
 	Timing_InitIter = GET_TIME() - tstart;
+	Timing_InitIterComm += Timing_MVPComm; // Timing_MVPComm should (by here) include only iteration initialization
 	Timing_IntFieldOneComm=Timing_InitIterComm;
 	// main iteration cycle
 	while (inprodR>epsB && niter<=maxiter && counter<=params[ind_m].mc && !chp_exit) {
 		// initialize time
-		Timing_OneIterComm=0;
+		Timing_OneIterComm=Timing_OneIterMVP=Timing_OneIterMVPComm=0;
 		tstart=GET_TIME();
 		// main execution
 		(*params[ind_m].func)(PHASE_ITER);
 		// finalize time; time for incomplete iteration may be inadequate
+		Timing_OneIterComm+=Timing_OneIterMVPComm;
 		Timing_IntFieldOneComm+=Timing_OneIterComm;
+		Timing_MVP+=Timing_OneIterMVP;
+		Timing_MVPComm+=Timing_OneIterMVPComm;
 		if (complete) {
 			Timing_OneIter=GET_TIME()-tstart;
 			time_tmp=Timing_OneIterComm;
+			time_tmp2=Timing_OneIterMVP;
+			time_tmp3=Timing_OneIterMVPComm;
 		}
 		// use result from the previous iteration (assumed to be available by this time)
-		else Timing_OneIterComm=time_tmp;
+		else {
+			Timing_OneIterComm=time_tmp;
+			Timing_OneIterMVP=time_tmp2;
+			Timing_OneIterMVPComm=time_tmp3;
+		}
 		/* check progress; it takes negligible time by itself (O(1) operations), but may lead to saving checkpoint.
 		 * Since the latter is not relevant to the iteration itself, the ProgressReport is called after finalizing the
 		 * time of a single iteration.
@@ -1406,7 +1421,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 			"number of iterations (%d)",params[ind_m].mc);
 	}
 	if (recalc_resid) { // compute and print final residual norm
-		inprodR=ResidualNorm2(xvec,rvec,Avecbuffer,&Timing_IntFieldOneComm);
+		inprodR=ResidualNorm2(xvec,rvec,Avecbuffer,&Timing_MVP,&Timing_MVPComm,&Timing_IntFieldOneComm);
 		if (IFROOT) {
 			temp=sqrt(resid_scale*inprodR);
 			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",temp);

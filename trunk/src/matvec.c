@@ -129,6 +129,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *timing,      // this variable is incremented by total time
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
 /* This function implements matrix-vector product. If we want to calculate the inner product as well, we pass 'inprod'
  * as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards,
@@ -177,6 +178,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
 	 * complex code.
 	 */
+	TIME_TYPE tstart=GET_TIME();
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
 	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
@@ -418,6 +420,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	FreeEverything();
 	Stop(EXIT_SUCCESS);
 #endif
+	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }
 
@@ -432,12 +435,13 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *timing,      // this variable is incremented by total time
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
 {
 	const bool ipr = (inprod != NULL);
 	size_t i,j,i3;
 
-
+	TIME_TYPE tstart=GET_TIME();
 	if (her) nConj(argvec);
 	// TODO: can be replaced by nMult_mat
 	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
@@ -456,6 +460,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		nConj(argvec);
 	}
 	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing);
+	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }
 

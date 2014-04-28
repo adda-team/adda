@@ -36,6 +36,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              doublecomplex * restrict resultvec, // the result vector
              double *inprod,         // the resulting inner product
              const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *timing,      // this variable is incremented by total time
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
 /* This function implements matrix-vector product. If we want to calculate the inner product as well, we pass 'inprod'
  * as a non-NULL pointer. if 'inprod' is NULL, we don't calculate it. 'argvec' always remains unchanged afterwards,
@@ -72,6 +73,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 * For (her) three additional operations of nConj are used. Should not be a problem, but can be avoided by a more
 	 * complex code.
 	 */
+	TIME_TYPE tstart=GET_TIME();
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
 	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
@@ -172,5 +174,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),resultvec,0,
 		NULL,NULL));
 	if (ipr) MyInnerProduct(inprod,double_type,1,comm_timing);
+	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }
