@@ -27,7 +27,7 @@ mingw-get install gcc fortran c++
    * Add `C:\MinGW\bin` and to Windows environmental variable `PATH`.
 
   == 64-bit Windows ==
-  A 64-bit alternative to the `MinGW` is [http://mingw-w64.sourceforge.net/ MinGW-w64 project]. To make installation easier it is recommended to use [http://tdm-gcc.tdragon.net/ TDM-GCC interface]. You need only to download and run an [http://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/tdm-gcc-webdl.exe/download installer] and specify the packages, you want to install. The default installation includes `gcc`, `g++`, and `gdb`. You need to also to check "Components -> gcc -> Fortran" to install `gfortran`. The installer will take care of everything else, including modification of `PATH` environmental variable. By default, the installation directory is `C:\MinGW64`.
+  A 64-bit alternative to the `MinGW` is [http://mingw-w64.sourceforge.net/ MinGW-w64 project]. To make installation easier it is recommended to use [http://tdm-gcc.tdragon.net/ TDM-GCC interface]. You need only to download and run an [http://sourceforge.net/projects/tdm-gcc/files/TDM-GCC%20Installer/tdm-gcc-webdl.exe/download installer] and specify the packages, you want to install. The default installation includes `gcc`, `g++`, and `gdb`. You need to also to check "Components -> gcc -> Fortran" to install `gfortran`. The installer will take care of everything else, including modification of `PATH` environmental variable. By default, the installation directory is `C:\TDM-GCC-64`.
 
 Now you are ready to compile `ADDA`. The only drawback of the concise procedure, described above, is that you need to manually specify include and library paths for external packages, such as [InstallingFFTW3 FFTW 3], in makefiles.
 
@@ -39,7 +39,7 @@ To avoid need to manually  specify include and library paths for external packag
  * Locate the library folder of your gcc installation, its path (`<gcclib-path>`) should be one of the following
 {{{
 C:/MinGW/lib/gcc/mingw32/<gcc-version>
-C:/MinGW64/lib/gcc/x86_64-w64-mingw32/<gcc-version>
+C:/TDM-GCC-64/lib/gcc/x86_64-w64-mingw32/<gcc-version>
 }}}
  for 32- and 64-bit installations (described above), respectively. Here `<gcc-version>` is the installed version of `gcc`, e.g., `4.5.2`.
  * Look for file `specs` in folder `<gcclib-path>`. If it does not exist, execute
