@@ -276,22 +276,24 @@ void TransposeYZ(const int direction)
  */
 {
 #ifdef OPENCL
-	const size_t enqtglobalzy[3]={gridZ,gridY,3*local_gridX};
-	const size_t enqtglobalyz[3]={gridY,gridZ,3*local_gridX};
-	const size_t tblock[3]={16,16,1}; // this corresponds to BLOCK_DIM in oclkernels.cl
-	/* TODO: test in which cases is the uncached variant faster than the cached one, to make a conditional or to remove
-	 * cltransposef/b if cltransposeof/b is allways faster than cltransposef/b
-	 */
-	/* When calling kernels the working group size can't be smaller than the data size; hence cached kernel can be used
-	 * only for large enough problems. Alternative solution is to determine the block size during ADDA runtime and pass
-	 * it to kernel during its compilation. But using small block size is not efficient anyway, so falling back to
-	 * noncached kernel is logical.
-	 */
-	/* the following assumes that tblock[0]=tblock[1]. Otherwise a separate variable (instead of 'cached') is required
-	 * for backward transpose. The latter should be computed using enqtglobalyz instead of enqtglobalzy.
-	 */
-	bool cached=(enqtglobalzy[0]>=tblock[0] && enqtglobalzy[1]>=tblock[1]);
-	cached&=(gridZ%16==0 && gridY%16==0); // this is required due to current limitation of cached kernel
+	// use cached kernel by default
+	// TODO: remove naiv kernel if not needed
+	bool cached=true;
+	const size_t blocksize=16; //this corresponds to BLOCK_DIM in oclkernels.cl
+	const size_t tblock[3]={blocksize,blocksize,1}; 
+	size_t enqtglobalzy[3]={gridZ,gridY,3*local_gridX};
+	size_t enqtglobalyz[3]={gridY,gridZ,3*local_gridX};
+
+	if (cached)
+	{	
+		//if the grid is not devidable by blocksize, extend it. Kernel takes care of borders
+		size_t tgridZ = (gridZ%blocksize==0) ? gridZ : (gridZ/blocksize+1)*blocksize;
+		size_t tgridY = (gridY%blocksize==0) ? gridY : (gridY/blocksize+1)*blocksize;
+		enqtglobalzy[0]=tgridZ;
+		enqtglobalzy[1]=tgridY;
+		enqtglobalyz[0]=tgridY;
+		enqtglobalyz[1]=tgridZ;
+	}
 
 	if (direction==FFT_FORWARD) {
 		if (cached) {
