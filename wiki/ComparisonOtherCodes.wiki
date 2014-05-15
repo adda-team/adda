@@ -112,7 +112,7 @@ The test data for this section were provided by Stefania D'Agostino. The goal is
 {{{
 adda -beam dipole 0 0 <z> -prop <ori> -size 10 -lambda 354 -m 0.20959 1.43592 -sym enf -grid 160
 }}}
-where `<z>` is the distance (in nm) + 5, and `<ori>` is "1 0 0" or "0 0 1" for parallel and perpendicular orientations of the dipole respectively. The results are similar to Fig.1 of [[#References 12]], which were obtained with a previous version of `ADDA` using a number of code hacks and workarounds. Now only `ADDA` itself is required for such simulations.
+where `<z>` is the distance from dipole to sphere center (in nm), i.e. distance from surface + 5, and `<ori>` is "1 0 0" or "0 0 1" for parallel and perpendicular orientations of the dipole respectively. The results are similar to Fig.1 of [[#References 12]], which were obtained with a previous version of `ADDA` using a number of code hacks and workarounds. Now only `ADDA` itself is required for such simulations.
 
 http://a-dda.googlecode.com/svn/wiki/DRE_distance.svg
 
