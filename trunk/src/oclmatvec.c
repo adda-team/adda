@@ -116,8 +116,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 * contain the full fft grid. If not, FFT grid is split into "clxslices" parts with "local_gridX" length and kernels
 	 * run with offsets inside a loop. Setting arith2, arith4 and arith3 run slices global work sizes and offsets.
 	 */
-	size_t gwsarith24[3]={local_gridX,boxY_st,boxZ_st};
-	size_t gwsclarith3[3]={gridZ,gridY,local_gridX};
+	size_t gwsarith24[3]={local_gridX,boxZ_st,boxY_st};
+	size_t gwsclarith3[3]={gridY,gridZ,local_gridX};
 	size_t gwo24[3]={0,0,0};
 	size_t gwo3[3]={0,0,0};
 	for (size_t xsect=0; xsect<clxslices; xsect++) {
