@@ -1052,10 +1052,10 @@ void InitDmatrix(void)
 		const size_t slbufnum = surface ? 4 : 2; // number of buffers
 		const size_t memAvail=oclMemDev-oclMem-memReserve; // this is guaranteed to be non-negative
 		const size_t memLayer=3*gridYZ*sizeof(doublecomplex); // memory for a single layer (minimum slice)
-		// TODO: think about capping local_gridX, e.g. at 32, to not use a lot of extra memory for marginal benefits
 		// local_gridX is always at least 1 (possible errors of insufficient memory are ignored here)
 		local_gridX=MIN(memAvail/(slbufnum*memLayer),oclMemDevObj/memLayer);
 		if (local_gridX==0) local_gridX=1;
+		if (local_gridX>32) local_gridX=32;
 		if (gridX%local_gridX==0) clxslices=gridX/local_gridX; // automatic uniform division
 		else {
 			clxslices=(gridX/local_gridX)+1;
