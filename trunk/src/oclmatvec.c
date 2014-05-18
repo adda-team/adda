@@ -103,7 +103,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	size_t xmsize=local_Nsmall*3;
 	if (her) {
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
 	}
 	// setting (buf)Xmatrix with zeros (on device)
 	CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufXmatrix));
@@ -168,7 +168,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	}
 	if (her) {
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_Nsmall,NULL,0,NULL,NULL));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
 	}
 	// blocking read to finalize queue
 	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),resultvec,0,
