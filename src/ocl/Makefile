@@ -46,13 +46,16 @@ else # the following is only for non-sparse mode
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
   
-    LDFLAGS += -lclAmdFft.Runtime
+    LDLIBS += -lclAmdFft.Runtime
+    # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
+    # LDLIBS += -lpthread
   
     # Uncomment the following line if you experience problems during linking, like
     # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
     # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
     # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like 
-    # it, provide another libOpenCL.so (e.g. that from AMD) for linking.
+    # it, provide another libOpenCL.so (e.g. that from AMD, or better - open-source one from 
+    # https://forge.imag.fr/projects/ocl-icd/) for linking.
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
 endif
@@ -61,9 +64,9 @@ endif
 # !!! End of control section. Everything below is not designed to be modified by user
 #=======================================================================================================================
 
-CFLAGS    += -DOPENCL 
-LDFLAGS   += -lOpenCL
-CSOURCE   += oclcore.c oclmatvec.c
+CFLAGS  += -DOPENCL 
+LDLIBS  += -lOpenCL
+CSOURCE += oclcore.c oclmatvec.c
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   CFLAGS += -DOCL_READ_SOURCE_RUNTIME

@@ -19,11 +19,12 @@
 #=======================================================================================================================
 # !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. First three are
 # passed to C, Fortran, and C++ compiler respectively, and last two are passed to the linker. Values specified below are
-# added to the values given by the environment. These variables can also be given in the command line to make, but it
-# will override all values specified in this Makefile. This is especially critical for CFLAGS which should be overridden
-# only with much care, including all relevant flags in the new value. Moreover, all other variables can be overridden by
-# command line option to make. In particular, this can be relevant for specifying a different version of the compiler
-# (see below).
+# added to the values given by the environment. This can be used in invocation of make as: 
+# > export CFLAGS=...; make ...
+# These variables can also be given in the command line to make, but it will override all values specified in this
+# Makefile. This is especially critical for CFLAGS which should be overridden only with much care, including all
+# relevant flags in the new value. Moreover, all other variables can be overridden by command line option to make. In
+# particular, this can be relevant for specifying a different version of the compiler (see below).
 #=======================================================================================================================
 
 # Test version and features of GNU make
@@ -196,7 +197,7 @@ PARENT    := ..
 FFOLDER   := fort
 CPPFOLDER := cpp
 
-LDLIBS    := -lm
+LDLIBS    += -lm
 DEPFLAG   := -MD
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
@@ -348,6 +349,13 @@ ifeq ($(COMPILER),gnu)
     CWARN += -pedantic
   endif
   
+  # On Windows (with MinGW) there is certain motivation to link Fortran libraries statically, since otherwise three
+  # DLLs (total size about 1.5MB) need to be distributed together with executables. Static linking increases the size
+  # of ADDA by about 0.4MB, but we distribute at least 5 executables (not counting misc/). Moreover, complete static
+  # linking is inconvenient since FFTW3 static libraries are not easily available for Windows (need to be recompiled
+  # manually). Selective static linking can be achived by surrounding '-l...' flags in '-Wl,-Bstatic' ... 
+  # '-Wl,-Bdynamic', but we do not do it here.
+  #
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran

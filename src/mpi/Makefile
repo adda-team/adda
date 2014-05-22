@@ -34,7 +34,7 @@ endif
 # These are options for a particular Alpha system
 ifeq ($(COMPILER),compaq)
   MPICC := cc
-  LDFLAGS += -lmpi -lelan
+  LDLIBS += -lmpi -lelan
 endif
 
 # If the compiler is used directly, a few additional options are needed
@@ -44,7 +44,7 @@ ifeq ($(MPICC),$(CC))
   #CFLAGS += -I"C:/Program Files/MPICH2/include"
   #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
 
-  LDFLAGS += -lmpi
+  LDLIBS += -lmpi
 # If MPI compiler wrapper is used, environmental variables are set to define C compiler and linker
 else
   # for MPICH
