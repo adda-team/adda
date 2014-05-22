@@ -2,11 +2,11 @@
 
 <wiki:toc/>
 
-`clAmdFft` library provides the default way to perform the FFTs in OpenCL version of `ADDA`. This library already significantly outperforms the built-in Apple clFFT routines and is expected to develop further. Therefore, its use on any system with GPU is highly recommended. The following guidelines are bases on `clAmdFft` version 1.8.239 (or 291).
+`clAmdFft` library provides the default way to perform the FFTs in OpenCL version of `ADDA`. This library already significantly outperforms the built-in Apple clFFT routines and is expected to develop further. Therefore, its use on any system with GPU is highly recommended. The following guidelines are based on `clAmdFft` version 1.10.274 (or 321).
 
 =Unix=
 
- * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the package of `clAmdFft` for Linux and install it. The default installation directory is `/opt/clAmdFft-<version>`. It is also possible to specify any other directory, for example, inside the home directory of a particular user.
+ * [http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-libraries/amd-accelerated-parallel-processing-math-libraries/ Download] the package of `clAmdFft` for Linux and install it. The default installation directory is `/opt/clAmdFft-<version>`. It is also possible to specify any other directory, for example, inside the home directory of a particular user.
  * Either 
    * specify paths to `include` and `lib64` (or `lib32`) subdirectories of the install directory in file `src/ocl/Makefile`, as described in [CompilingADDA]. 
    * or add `.../include` to environmental variable `C_INCLUDE_PATH` and `.../lib64` (or `lib32`) - to `LIBRARY_PATH` and `LD_LIBRARY_PATH` (for linking and runtime). Setting `LD_LIBRARY_PATH` can be replaced by modifying `/etc/ld.so.conf` or by sourcing `appmlEnv.sh` in the installation directory.
@@ -18,7 +18,11 @@
 {{{
 LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
 }}}
- in `src/ocl/Makefile`.
+ in `src/ocl/Makefile`. On Unix it is even better to switch to open-source implementation of `libOpenCL.so` (see [OpenCL#Headers_and_libraries])
+ * Also on Unix `clAmdFft` may need pthread library, which is not linked by default. One way to fix this problem is to uncomment the following line in `src/ocl/Makefile`.
+{{{
+LDLIBS += -lpthread
+}}}
 
 =Windows=
 
