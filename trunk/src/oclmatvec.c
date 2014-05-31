@@ -97,8 +97,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clarith3_surface,10,sizeof(size_t),&RsizeY));
 	}
 	// write into buffers e.g. upload to device; non-blocking
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
-		NULL));
+	if (bufupload) CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex)
+				,argvec,0,NULL, NULL));
 
 	size_t xmsize=local_Nsmall*3;
 	if (her) {
@@ -171,8 +171,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
 	}
 	// blocking read to finalize queue
-	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),resultvec,0,
-		NULL,NULL));
+	if (bufupload) CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),
+				resultvec,0, NULL,NULL));
 	if (ipr) MyInnerProduct(inprod,double_type,1,comm_timing);
 	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;

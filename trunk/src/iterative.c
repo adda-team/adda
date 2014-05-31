@@ -36,6 +36,11 @@
 #include <string.h>
 #include <time.h> // for time_t & time
 
+#ifdef USE_CLBLAS
+#include  "oclcore.h"
+#include <clAmdBlas.h> //external library from AMD
+#endif
+
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in calculator.c
@@ -502,41 +507,105 @@ ITER_FUNC(BiCG_CS)
 	static doublecomplex beta,ro_new,ro_old,temp;
 	static double dtmp,abs_ro_new;
 
+#ifdef USE_CLBLAS
+	cl_mem bufro_new;
+	cl_mem bufmu;
+	cl_mem bufinprodRp1;
+	cl_mem bufpvec=bufargvec;
+	cl_mem bufAvecbuffer=bufresultvec;
+#endif
 	switch (ph) {
 		case PHASE_VARS:
 			scalars[0].ptr=&ro_old;
 			scalars[0].size=sizeof(doublecomplex);
 			return;
-		case PHASE_INIT: return; // no specific initialization required
+		case PHASE_INIT: 
+#ifdef USE_CLBLAS
+			CL_CH_ERR(clAmdBlasSetup());
+			bufupload=false;
+			clEnqueueWriteBuffer(command_queue,bufpvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,pvec,0,NULL,NULL);
+			clEnqueueWriteBuffer(command_queue,bufrvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,rvec,0,NULL,NULL);
+			clEnqueueWriteBuffer(command_queue,bufxvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,xvec,0,NULL,NULL);
+#endif
+			return; // no specific initialization required
 		case PHASE_ITER:
-			// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
+#ifdef USE_CLBLAS
+			CREATE_CL_BUFFER(bufro_new,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
+			CREATE_CL_BUFFER(bufmu,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
+			CL_CH_ERR(clAmdBlasZdotu((size_t)local_nRows,bufro_new,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			clEnqueueReadBuffer(command_queue,bufro_new,CL_TRUE,0,sizeof(doublecomplex),&ro_new,0,NULL,NULL);
+#else
 			ro_new=nDotProdSelf_conj(rvec,&Timing_OneIterComm);
+#endif
+			// ro_k-1=r_k-1(*).r_k-1; check for ro_k-1!=0
 			abs_ro_new=cabs(ro_new);
 			dtmp=abs_ro_new/inprodR;
 			Dz("|rT.r|/(r.r)="GFORM_DEBUG,dtmp);
 			if (dtmp<EPS1) LogError(ONE_POS,"BiCG_CS fails: |rT.r|/(r.r) is too small ("GFORM_DEBUG").",dtmp);
-			if (niter==1) nCopy(pvec,rvec); // p_1=r_0
+			if (niter==1) {
+#ifdef USE_CLBLAS
+				clEnqueueCopyBuffer(command_queue,bufrvec,bufpvec,0,0,sizeof(doublecomplex)*local_nRows,0,NULL,NULL);
+#else
+				nCopy(pvec,rvec); // p_1=r_0
+#endif 
+			}
 			else {
 				// beta_k-1=ro_k-1/ro_k-2
 				beta=ro_new/ro_old;
 				// p_k=beta_k-1*p_k-1+r_k-1
+#ifdef USE_CLBLAS
+				cl_double2 clbeta = {creal(beta),cimag(beta)};
+				CL_CH_ERR(clAmdBlasZscal((size_t)local_nRows,clbeta,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+				cl_double2 clunit = {1,0};
+				CL_CH_ERR(clAmdBlasZaxpy((size_t)local_nRows,clunit,bufrvec,0,1,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+#else
 				nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
+#endif
 			}
 			// q_k=Avecbuffer=A.p_k
 			if (niter==1 && matvec_ready) {} // do nothing, Avecbuffer is ready to use
 			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
+#ifdef USE_CLBLAS
+			CL_CH_ERR(clAmdBlasZdotu((size_t)local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			clEnqueueReadBuffer(command_queue,bufmu,CL_TRUE,0,sizeof(doublecomplex),&mu,0,NULL,NULL);
+#else
 			mu=nDotProd_conj(pvec,Avecbuffer,&Timing_OneIterComm);
+#endif
 			dtmp=cabs(mu)/abs_ro_new;
 			Dz("|pT.A.p|/(rT.r)="GFORM_DEBUG,dtmp);
 			if (dtmp<EPS2) LogError(ONE_POS,"BiCG_CS fails: |pT.A.p|/(rT.r) is too small ("GFORM_DEBUG").",dtmp);
 			// alpha_k=ro_k/mu_k
 			alpha=ro_new/mu;
 			// x_k=x_k-1+alpha_k*p_k
+#ifdef USE_CLBLAS
+			cl_double2 clalpha = {creal(alpha),cimag(alpha)};
+			CL_CH_ERR(clAmdBlasZaxpy((size_t)local_nRows,clalpha,bufpvec,0,1,bufxvec,0,1,1,&command_queue,0,NULL,NULL));
+#else
 			nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
+#endif
 			// r_k=r_k-1-alpha_k*A.p_k and |r_k|^2
 			temp=-alpha;
+#ifdef USE_CLBLAS
+			cl_double2 cltemp={-creal(alpha),-cimag(alpha)};
+			CREATE_CL_BUFFER(bufinprodRp1,CL_MEM_READ_WRITE,sizeof(double),NULL);
+			CL_CH_ERR(clAmdBlasZaxpy((size_t)local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
+			CL_CH_ERR(clAmdBlasDznrm2((size_t)local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			clEnqueueReadBuffer(command_queue,bufinprodRp1,CL_TRUE,0,sizeof(double),&inprodRp1,0,NULL,NULL);
+			inprodRp1=inprodRp1*inprodRp1;
+#else
 			nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
+#endif
+#ifdef USE_CLBLAS
+			my_clReleaseBuffer(bufinprodRp1);
+			my_clReleaseBuffer(bufro_new);
+			my_clReleaseBuffer(bufmu);
+			if (inprodRp1<epsB){
+			clEnqueueReadBuffer(command_queue,bufpvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,pvec,0,NULL,NULL);
+			clEnqueueReadBuffer(command_queue,bufrvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,rvec,0,NULL,NULL);
+			clEnqueueReadBuffer(command_queue,bufxvec,CL_TRUE,0,sizeof(doublecomplex)*local_nRows,xvec,0,NULL,NULL);
+			}
+#endif
 			// initialize ro_old -> ro_k-2 for next iteration
 			ro_old=ro_new;
 			return; // end of PHASE_ITER
