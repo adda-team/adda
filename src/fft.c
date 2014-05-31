@@ -1007,6 +1007,11 @@ void InitDmatrix(void)
 	 */
 	// create all Buffers needed on Device in MatVec; When prognosis, the following code just counts required memory
 	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
+#	ifdef USE_CLBLAS
+	CREATE_CL_BUFFER(buftmp,CL_MEM_READ_WRITE,sizeof(doublecomplex)*local_nRows*2,NULL);
+	CREATE_CL_BUFFER(bufxvec,CL_MEM_READ_WRITE,sizeof(doublecomplex)*local_nRows,NULL);
+	CREATE_CL_BUFFER(bufrvec,CL_MEM_READ_WRITE,sizeof(doublecomplex)*local_nRows,NULL);
+#	endif
 	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	if (ipr_required) { // for inner product (only if it will be used afterwards)
@@ -1412,6 +1417,11 @@ void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)
 {
 #ifdef OPENCL
+#	ifdef USE_CLBLAS
+	my_clReleaseBuffer(buftmp);
+	my_clReleaseBuffer(bufxvec);
+	my_clReleaseBuffer(bufrvec);
+#	endif
 	my_clReleaseBuffer(bufXmatrix);
 	my_clReleaseBuffer(bufmaterial);
 	my_clReleaseBuffer(bufposition);

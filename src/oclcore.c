@@ -44,6 +44,15 @@ cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,c
 
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
+
+cl_bool bufupload=true; //defines if bufargvec and bufresultvec are to be uploaded in the beginning of MatVec
+			// this only false in case when the iterative solver handles the buffer upload
+#ifdef USE_CLBLAS
+cl_mem buftmp; //temporary buffer for dot products and Norm(as required by clAmdBlas library)
+cl_mem bufrvec; //buffer used in iterative solver
+cl_mem bufxvec; //buffer used in iterative solver
+#endif
+
 cl_mem bufRmatrix,bufslicesR,bufslicesR_tr; //for surface
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)

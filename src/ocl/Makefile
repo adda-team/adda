@@ -58,6 +58,10 @@ else # the following is only for non-sparse mode
     # https://forge.imag.fr/projects/ocl-icd/) for linking.
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
+    ifneq ($(filter USE_CLBLAS,$(OPTIONS)),)
+    LDLIBS += -lclAmdBlas
+    CFLAGS += -DUSE_CLBLAS
+    endif
 endif
 
 #=======================================================================================================================
