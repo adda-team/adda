@@ -57,6 +57,7 @@ TIME_TYPE Timing_EFieldAD,Timing_EFieldADComm,  // time for all_dir: total & com
 TIME_TYPE Timing_FFT_Init, // for initialization of FFT routines
           Timing_Dm_Init;  // for building Dmatrix
 // used in iterative.c
+time_t last_chp_wt; // wall time of the last checkpoint (1s precision is sufficient)
 TIME_TYPE Timing_OneIter,Timing_OneIterComm,       // for one iteration: total & comm
           Timing_InitIter,Timing_InitIterComm,     // for initialization of iterations: total & comm
           Timing_IntFieldOneComm,                  // comm for one calculation of the internal fields
@@ -69,15 +70,36 @@ TIME_TYPE Timing_Particle,                 // for particle construction
 // used in matvec.c
 size_t TotalMatVec; // total number of matrix-vector products
 
+// LOCAL VARIABLES
+SYSTEM_TIME wt_start; // starting wall time
+
 #define FFORMT "%.4f" // format for timing results
+
+//======================================================================================================================
+
+double DiffSystemTime(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2)
+/* compute difference (in seconds) between two system times; not very fast (in contrast to functions in prec_time.c/h)
+ * !!! order of arguments is inverse to that in standard difftime (for historical reasons)
+ */
+{
+#ifdef WINDOWS
+	LARGE_INTEGER freq;
+	QueryPerformanceFrequency(&freq);
+	return (double)(t2->QuadPart - t1->QuadPart)/(double)(freq.QuadPart);
+#elif defined(POSIX)
+	return (double)(t2->tv_sec - t1->tv_sec) + MICRO*(double)(t2->tv_usec - t1->tv_usec);
+#else // fallback for 1s-precision timer
+	return difftime(*t2,*t1);
+#endif
+}
 
 //======================================================================================================================
 
 void StartTime(void)
 // start global time
 {
-	time(&wt_start);
-	last_chp_wt=wt_start;
+	GET_SYSTEM_TIME(&wt_start);
+	time(&last_chp_wt);
 #ifndef ADDA_MPI  // otherwise this initialization is performed immediately after MPI_Init
 	tstart_main = GET_TIME();
 #endif
@@ -101,7 +123,7 @@ void InitTiming(void)
 void FinalStatistics(void)
 // print final output and statistics
 {
-	time_t wt_end;
+	SYSTEM_TIME wt_end;
 	double totTime;
 	TIME_TYPE Timing_TotalTime;
 
@@ -110,7 +132,7 @@ void FinalStatistics(void)
 	if (IFROOT) {
 		// last time measurements
 		Timing_TotalTime = GET_TIME() - tstart_main;
-		time(&wt_end);
+		GET_SYSTEM_TIME(&wt_end);
 		// log statistics
 		fprintf(logfile,
 			"\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
@@ -126,7 +148,7 @@ void FinalStatistics(void)
 				TotalIter,TotalMatVec,nTheta,TotalEFieldPlane);
 		}
 		fprintf(logfile,
-			"Total wall time:     %.0f\n",totTime=difftime(wt_end,wt_start));
+			"Total wall time:     "FFORMT"\n",totTime=DiffSystemTime(&wt_start,&wt_end));
 #ifdef ADDA_MPI
 		fprintf(logfile,
 			"--Everything below is also wall times--\n"

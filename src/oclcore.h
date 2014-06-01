@@ -38,8 +38,8 @@
 extern cl_context context;
 extern cl_bool bufupload;
 extern cl_command_queue command_queue;
-extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposef,
-	cltransposeb,cltransposeof,cltransposeob,cltransposeofR,cltransposefR;
+extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposeof,
+	cltransposeob,cltransposeofR;
 extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
 #ifdef USE_CLBLAS

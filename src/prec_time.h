@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of inline functions for precise timing
  *
- * Copyright (C) 2006-2008,2010,2012-2013 ADDA contributors
+ * Copyright (C) 2006-2008,2010,2012-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -28,14 +28,10 @@
 // project headers
 #include "os.h"       // for OS definitions
 #include "function.h" // for static inline and function attributes
+#include "timing.h"   // basic definitions of system-dependent time
 
-#ifdef WINDOWS
-#	define SYSTEM_TIME LARGE_INTEGER
-#elif defined(POSIX)
-#	include <sys/time.h> // for timeval and gettimeofday
-#	include <stdio.h>    // needed for definition of NULL
-#	define SYSTEM_TIME struct timeval
-#else
+// default timer defined in timing.h (time) is not suitable
+#if !defined(WINDOWS) && !defined (POSIX)
 #	error "Unknown operation system. Precise timing is not supported."
 #endif
 
@@ -52,10 +48,10 @@ static inline void Elapsed(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * r
 // compute time difference
 {
 #ifdef WINDOWS
-	res->QuadPart=t2->QuadPart-t1->QuadPart;
+	res->QuadPart = t2->QuadPart - t1->QuadPart;
 #elif defined(POSIX)
-	res->tv_sec=t2->tv_sec-t1->tv_sec;
-	res->tv_usec=t2->tv_usec-t1->tv_usec;
+	res->tv_sec = t2->tv_sec - t1->tv_sec;
+	res->tv_usec = t2->tv_usec - t1->tv_usec;
 #endif
 }
 
@@ -66,23 +62,13 @@ static inline void ElapsedInc(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME 
 // compute time difference, increment result by this value
 {
 #ifdef WINDOWS
-	res->QuadPart+=(t2->QuadPart-t1->QuadPart);
+	res->QuadPart += t2->QuadPart - t1->QuadPart;
 #elif defined(POSIX)
-	res->tv_sec+=(t2->tv_sec-t1->tv_sec);
-	res->tv_usec+=(t2->tv_usec-t1->tv_usec);
-#endif
-}
-
-//======================================================================================================================
-
-static inline void GetTime(SYSTEM_TIME * restrict t)
-// get current time
-{
-#ifdef WINDOWS
-	QueryPerformanceCounter(t);
-#elif defined(POSIX)
-	// gettimeofday is described only in POSIX 1003.1-2001, but it should work for many other systems
-	gettimeofday(t,NULL);
+	res->tv_sec += t2->tv_sec - t1->tv_sec;
+	/* the following assumes that the function is not called a lot of times for the same res - otherwise the following
+	 * may overflow
+	 */
+	res->tv_usec += t2->tv_usec - t1->tv_usec;
 #endif
 }
 

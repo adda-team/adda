@@ -96,6 +96,7 @@
 #define SQRT2_9PI           0.26596152026762178529329737328959
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
+#define MICRO               1E-6
 
 // sets the maximum box size; otherwise 'position' should be changed
 #define BOX_MAX USHRT_MAX

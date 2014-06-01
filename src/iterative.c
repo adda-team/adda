@@ -8,7 +8,7 @@
  *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
  *        however they do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -59,6 +59,7 @@ extern const enum chpoint chp_type;
 extern const time_t chp_time;
 extern const char *chp_dir;
 // defined and initialized in timing.c
+extern time_t last_chp_wt;
 extern TIME_TYPE Timing_OneIter,Timing_OneIterComm,Timing_InitIter,Timing_InitIterComm,Timing_IntFieldOneComm,
 	Timing_MVP,Timing_MVPComm,Timing_OneIterMVP,Timing_OneIterMVPComm;
 extern size_t TotalIter;
