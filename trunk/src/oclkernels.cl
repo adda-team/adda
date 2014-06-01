@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: Kernel File for OpenCL kernels. Includes all subfunctions of the Matvec routine as OpenCL kernels
  *
- * Copyright (C) 2010-2013 ADDA contributors
+ * Copyright (C) 2010-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -195,14 +195,14 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	const in_sizet smallZ,const in_sizet gridX,const in_sizet DsizeY,const in_sizet DsizeZ,const char NDCOMP,
 	const char reduced_FFT,const char transposed)
 {
-	size_t const z = get_global_id(1);
 	size_t const y = get_global_id(0);
+	size_t const z = get_global_id(1);
 	// xl (local) is the index for the slices 
 	size_t const xl = get_global_id(2)-get_global_offset(2);
 	// xa is the x index for Dmatrix
 	size_t xa=get_global_id(2);
-	size_t const gridZ = get_global_size(1);
 	size_t const gridY = get_global_size(0);
+	size_t const gridZ = get_global_size(1);
 	size_t const local_gridX = get_global_size(2);
 	double2 xv[3];
 	double2 yv[3];
@@ -251,11 +251,11 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	const char reduced_FFT,const char transposed,const in_sizet RsizeY,__global double2 *slicesR_tr,
 	__global const double2 *Rmatrix)
 {
-	size_t const z = get_global_id(1);
 	size_t const y = get_global_id(0);
+	size_t const z = get_global_id(1);
 	size_t const x = get_global_id(2)-get_global_offset(2);
-	size_t const gridZ = get_global_size(1);
 	size_t const gridY = get_global_size(0);
+	size_t const gridZ = get_global_size(1);
 	size_t const local_gridX = get_global_size(2);
 	double2 xv[3];
 	double2 yv[3];
@@ -341,8 +341,8 @@ __kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,co
 {
 	const size_t xa =get_global_id(0);
 	const size_t x =get_global_id(0)-get_global_offset(0);
-	const size_t y =get_global_id(2);
 	const size_t z =get_global_id(1);
+	const size_t y =get_global_id(2);
 	const size_t local_gridX=get_global_size(0);
 	size_t i;
 	size_t j;
@@ -384,25 +384,7 @@ __kernel void inpr(__global double *inprod, __global const double2 *resultvec)
 }
 
 //======================================================================================================================
-// transpose kernel
-
-__kernel void transpose(__global const double2 *input,__global double2 *output,const in_sizet width,
-	const in_sizet height)
-{
-	/* TODO: width and height arguments can be replaced by the worksize of this dimensions which would also remove the
-	 * need to have two different kernels inside of the program since the work sizes are controlled by
-	 * clEnqueueNDRangeKernel itself
-	 */
-	const size_t z = get_global_id(0);
-	const size_t y = get_global_id(1);
-	const size_t x = get_global_id(2);
-	const size_t wth = width*height;
-
-	output[z*height+y+x*wth]=input[y*width+z+x*wth];
-}
-
-//======================================================================================================================
-
+// Optimized transpose kernel
 // This corresponds to value of tblock in TransposeYZ() in fft.c
 #define BLOCK_DIM 16
 __kernel void transposeo(__global const double2 *idata,__global double2 *odata,const in_sizet width,

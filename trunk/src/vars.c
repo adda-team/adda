@@ -114,8 +114,6 @@ size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for
 size_t local_nRows;                 // number of local rows of decomposition (only real dipoles)
 
 // timing
-time_t wt_start,              // starting wall time
-       last_chp_wt;           // wall time of the last checkpoint
 TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_FileIO,      // time for input and output
           Timing_Integration, // time for all integrations (with precomputed values)

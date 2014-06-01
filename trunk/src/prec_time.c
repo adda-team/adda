@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
- * Copyright (C) 2006,2008,2010,2012-2013 ADDA contributors
+ * Copyright (C) 2006,2008,2010,2012-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -28,8 +28,6 @@
 
 #ifdef WINDOWS
 static double inv_freq;
-#elif defined(POSIX)
-#  define MICRO 1E-6
 #endif
 
 //======================================================================================================================
@@ -47,7 +45,7 @@ void InitTime(SYSTEM_TIME * restrict t)
 //======================================================================================================================
 
 void SetTimerFreq(void)
-// set frequency of windows timer; should be called once before running TimerToSec or DiffSec
+// set frequency of windows timer; should be called once before running TimerToSec
 {
 #ifdef WINDOWS
 	LARGE_INTEGER freq;
@@ -69,13 +67,3 @@ double TimerToSec(const SYSTEM_TIME * restrict t)
 #endif
 }
 
-//======================================================================================================================
-
-double DiffSec(const SYSTEM_TIME * restrict t1,const SYSTEM_TIME * restrict t2)
-// difference between two times in seconds
-{
-	SYSTEM_TIME res;
-
-	Elapsed(t1,t2,&res);
-	return TimerToSec(&res);
-}

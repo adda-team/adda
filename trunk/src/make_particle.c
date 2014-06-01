@@ -659,7 +659,7 @@ static size_t PlaceGranules(void)
 	if (IFROOT) {
 		// initialize random generator
 		key[0]=(unsigned long)time(NULL);
-		key[1]=(unsigned long)(clock()-wt_start);
+		key[1]=(unsigned long)(clock());
 		init_by_array(key,KEY_LENGTH);
 		// allocate memory
 		MALLOC_VECTOR(occup,ushort,gr_gN,ONE);

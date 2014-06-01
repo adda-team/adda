@@ -39,9 +39,8 @@
  */
 cl_context context;
 cl_command_queue command_queue;
-cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
-	cltransposeb,cltransposeof,cltransposeob,cltransposefR,cltransposeofR;
-
+cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposeof,
+	cltransposeob,cltransposeofR;
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
 
@@ -413,22 +412,16 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	clinprod=clCreateKernel(program,"inpr",&err);
 	CL_CH_ERR(err);
-	/* In principle a single kernel (and one optimized one) can be used for all transpose operations, including surface
-	 * ones. However, this will require setting the kernel arguments just before the execution. Thus, using multiple
-	 * kernels seem to be a bit faster.
+	/* In principle a single kernel can be used for all transpose operations, including surface ones. However, this will
+	 * require setting the kernel arguments just before the execution. Thus, using multiple kernels seem to be a bit
+	 * faster.
 	 */
-	cltransposef=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
-	cltransposeb=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 	if (surface) { // kernels for surface
 		clarith3_surface=clCreateKernel(program,"arith3_surface",&err);
-		CL_CH_ERR(err);
-		cltransposefR=clCreateKernel(program,"transpose",&err);
 		CL_CH_ERR(err);
 		cltransposeofR=clCreateKernel(program,"transposeo",&err);
 		CL_CH_ERR(err);
@@ -489,13 +482,10 @@ void oclunload(void)
 	CL_CH_ERR(clReleaseKernel(clarith5));
 	CL_CH_ERR(clReleaseKernel(clnConj));
 	CL_CH_ERR(clReleaseKernel(clinprod));
-	CL_CH_ERR(clReleaseKernel(cltransposef));
-	CL_CH_ERR(clReleaseKernel(cltransposeb));
 	CL_CH_ERR(clReleaseKernel(cltransposeof));
 	CL_CH_ERR(clReleaseKernel(cltransposeob));
 	if (surface) { // kernels for surface
 		CL_CH_ERR(clReleaseKernel(clarith3_surface));
-		CL_CH_ERR(clReleaseKernel(cltransposefR));
 		CL_CH_ERR(clReleaseKernel(cltransposeofR));
 	}
 	CL_CH_ERR(clReleaseCommandQueue(command_queue));

@@ -7,6 +7,7 @@
  * - no generation of interpolation grid, only single run
  * - numerical precision was changed to double
  * - conjugation (that was in place to couple with other parts of nec2 code) was removed
+ * - a few cosmetic changes to remove compiler warnings (with -pedantic flag)
  */
 
 /* TODO: Systematic accuracy study of this code is required. At least 7 digits of precision are desired (for test runs)
@@ -44,12 +45,6 @@
 #define	FALSE	0
 #endif
 
-/* commonly used complex constants */
-#define	CPLX_00	(0.0+0.0fj)
-#define	CPLX_01	(0.0+1.0fj)
-#define	CPLX_10	(1.0+0.0fj)
-#define	CPLX_11	(1.0+1.0fj)
-
 /* common constants */
 #define	PI	3.141592654
 #define	TP	6.283185308
@@ -76,7 +71,7 @@
 #define NM	131072
 #define NTS	4
 
-#define cmplx(r, i) ((r)+(i)*CPLX_01)
+#define cmplx(r, i) ((r)+(i)*I)
 
 void 	som_init(complex double epscf);
 static void 	bessel(complex double z, complex double *j0, complex double *j0p);
@@ -172,7 +167,7 @@ static void bessel(complex double z, complex double *j0, complex double *j0p )
   zms=z*conj(z);
   if(zms <= 1.e-12)
   {
-    *j0=CPLX_10;
+    *j0=1;
     *j0p=-.5*z;
     return;
   }
@@ -186,7 +181,7 @@ static void bessel(complex double z, complex double *j0, complex double *j0p )
     /* series expansion */
     iz=zms;
     miz=m[iz];
-    *j0=CPLX_10;
+    *j0=1;
     *j0p=*j0;
     zk=*j0;
     zi=z*z;
@@ -213,10 +208,10 @@ static void bessel(complex double z, complex double *j0, complex double *j0p )
   p1z=1.+(P11-P21*zi2)*zi2;
   q0z=(Q20*zi2-Q10)*zi;
   q1z=(Q11-Q21*zi2)*zi;
-  zk=cexp(CPLX_01*(z-POF));
+  zk=cexp(I*(z-POF));
   zi2=1./zk;
   cz=.5*(zk+zi2);
-  sz=CPLX_01*.5*(zi2-zk);
+  sz=I*.5*(zi2-zk);
   zk=C3*csqrt(zi);
   *j0=zk*(p0z*cz-q0z*sz);
   *j0p=-zk*(p1z*sz+q1z*cz);
@@ -253,7 +248,7 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
   {
     /* bessel function form of sommerfeld integrals */
     jh=0;
-    a=CPLX_00;
+    a=0;
     del=1./del;
 
     if( del > tkmag)
@@ -327,7 +322,7 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
     if( ! jump )
     {
       /* integrate up between branch cuts, then to + infinity */
-      cp1=ck1-(.1+.2fj);
+      cp1=ck1-cmplx(.1,.2);
       cp2=cp1+.2;
       bk=cmplx(0.,del);
       gshank(cp1,bk,sum,6,ans,0,bk,bk);
@@ -603,9 +598,9 @@ static void hankel( complex double z, complex double *h0, complex double *h0p )
     /* series expansion */
     iz=zms;
     miz=m[iz];
-    j0=CPLX_10;
+    j0=1;
     j0p=j0;
-    y0=CPLX_00;
+    y0=0;
     y0p=y0;
     zk=j0;
     zi=z*z;
@@ -623,8 +618,8 @@ static void hankel( complex double z, complex double *h0, complex double *h0p )
     clogz=clog(.5*z);
     y0=(2.*j0*clogz-y0)/PI+C2;
     y0p=(2./z+2.*j0p*clogz+.5*y0p*z)/PI+C1*z;
-    *h0=j0+CPLX_01*y0;
-    *h0p=j0p+CPLX_01*y0p;
+    *h0=j0+I*y0;
+    *h0p=j0p+I*y0p;
 
     if(ib == 0)
       return;
@@ -641,9 +636,9 @@ static void hankel( complex double z, complex double *h0, complex double *h0p )
   p1z=1.+(P11-P21*zi2)*zi2;
   q0z=(Q20*zi2-Q10)*zi;
   q1z=(Q11-Q21*zi2)*zi;
-  zk=cexp(CPLX_01*(z-POF))*csqrt(zi)*C3;
-  *h0=zk*(p0z+CPLX_01*q0z);
-  *h0p=CPLX_01*zk*(p1z+CPLX_01*q1z);
+  zk=cexp(I*(z-POF))*csqrt(zi)*C3;
+  *h0=zk*(p0z+I*q0z);
+  *h0p=I*zk*(p1z+I*q1z);
 
   if(ib == 0)
     return;
@@ -683,7 +678,7 @@ static void rom1( int n, complex double *sum, int nx )
   ep=s/(1.e4*NM);
   zend=ze-ep;
   for( i = 0; i < n; i++ )
-    sum[i]=CPLX_00;
+    sum[i]=0;
   ns=nx;
   nt=0;
   saoa(z,g1);
