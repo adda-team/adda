@@ -119,7 +119,10 @@ __kernel void arith2(__global const double2 *Xmatrix,__global double2 *slices,co
 
 	i = y*gridZ+z+x*gridYZ;
 	j = (z*smallY+y)*gridX+xa;
-	for (xcomp=0;xcomp<3;xcomp++) slices[i+xcomp*gridYZ*local_gridX]=Xmatrix[j+xcomp*local_Nsmall];
+	for (xcomp=0;xcomp<3;xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		slices[i+xcomp*gridYZ*local_gridX]=Xmatrix[j+xcomp*local_Nsmall];
+	}
 }
 
 //======================================================================================================================
@@ -214,7 +217,10 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	size_t za=z;
 
 	// works, because of the double2 vector type
-	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ];
+	for (Xcomp=0;Xcomp<3;Xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		xv[Xcomp]=slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ];
+	}
 	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (xa>0) xa=gridX-xa;
@@ -227,7 +233,8 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 	}
 	j=NDCOMP*(xa*DsizeY*DsizeZ+za*DsizeY+ya);
 
-	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f]; // maybe could be done more efficient TODO
+	barrier(CLK_GLOBAL_MEM_FENCE);
+	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f];
 
 	if (reduced_FFT==1) {
 		if (y>smallY) {
@@ -241,7 +248,10 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 		}
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
-	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ]=yv[Xcomp];
+	for (Xcomp=0;Xcomp<3;Xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ]=yv[Xcomp];
+	}
 }
 
 //======================================================================================================================
@@ -271,7 +281,10 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	size_t za=z;
 
 	// works, because of the double2 vector type
-	for (Xcomp=0;Xcomp<3;Xcomp++) xv[Xcomp]=slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
+	for (Xcomp=0;Xcomp<3;Xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		xv[Xcomp]=slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
+	}
 	// indexDmatrix_mv
 	if (transposed==1) { // used only for G_SO
 		if (x>0) xa=gridX-x;
@@ -284,7 +297,8 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	}
 	j=NDCOMP*(xa*DsizeY*DsizeZ+za*DsizeY+ya);
 
-	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f]; // maybe could be done more efficient TODO
+	barrier(CLK_GLOBAL_MEM_FENCE);
+	for (int f=0;f<6;f++) fmat[f]=Dmatrix[j+f];
 
 	if (reduced_FFT==1) {
 		if (y>smallY) {
@@ -299,7 +313,10 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	}
 	cSymMatrVec(fmat,xv,yv); // yv=fmat*xv
 	// surface part
-	for (Xcomp=0;Xcomp<3;Xcomp++) xvR[Xcomp]=slicesR_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
+	for (Xcomp=0;Xcomp<3;Xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		xvR[Xcomp]=slicesR_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
+	}
 	// indexRmatrix_mv; first resetting indices
 	xa=x+get_global_offset(2);
 	ya=y;
@@ -317,7 +334,9 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 
 	j=NDCOMP*((xa*gridZ+za )*RsizeY+ya);
 
-	for (int f=0;f<6;f++) fmat[f]=Rmatrix[j+f]; // maybe could be done more efficient TODO
+	barrier(CLK_GLOBAL_MEM_FENCE);
+	for (int f=0;f<6;f++) fmat[f]=Rmatrix[j+f];
+
 	if (reduced_FFT==1 && y>=RsizeY) {
 		fmat[1]*=-1;
 		fmat[4]*=-1;
@@ -330,7 +349,10 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	cReflMatrVec(fmat,xvR,yvR);
 	cvAdd(yvR,yv,yv);
 	// surface part finished
-	for (Xcomp=0;Xcomp<3;Xcomp++) slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX]=yv[Xcomp];
+	for (Xcomp=0;Xcomp<3;Xcomp++) {
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX]=yv[Xcomp];
+	}
 }
 
 //======================================================================================================================
@@ -347,10 +369,15 @@ __kernel void arith4(__global double2 *Xmatrix,__global const double2 *slices,co
 	size_t i;
 	size_t j;
 	int xcomp;
+	double2 tmp;
 
 	i = y*gridZ+z+x*gridYZ;
 	j = (z*smallY+y)*gridX+xa;
-	for (xcomp=0;xcomp<3;xcomp++) Xmatrix[j+xcomp*local_Nsmall]=slices[i+xcomp*gridYZ*local_gridX];
+	for (xcomp=0;xcomp<3;xcomp++) {
+		tmp=slices[i+xcomp*gridYZ*local_gridX];
+		barrier(CLK_GLOBAL_MEM_FENCE);
+		Xmatrix[j+xcomp*local_Nsmall]=tmp;
+	}
 }
 
 //======================================================================================================================

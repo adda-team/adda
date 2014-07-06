@@ -120,6 +120,11 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	size_t gwsclarith3[3]={gridY,gridZ,local_gridX};
 	size_t gwo24[3]={0,0,0};
 	size_t gwo3[3]={0,0,0};
+	//maximum local work size is assumed to be 256 as it is for most GPUs
+	// it can also be obtained from clGetDeviceinfo with CL_DEVICE_MAX_WORK_GROUP_SIZE
+	size_t lws24[3]={local_gridX,256/local_gridX,1};
+	size_t lws3[3]={MIN(boxZ_st*2,256),256/MIN(boxZ_st*2,256),1};
+
 	for (size_t xsect=0; xsect<clxslices; xsect++) {
 		// global work size offset in x axis, when not in first slice
 		gwo24[0]=xsect*local_gridX;
@@ -132,7 +137,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		// every index and argument prepared, starting arith2
 		CL_CH_ERR(clSetKernelArg(clzero,0,sizeof(cl_mem),&bufslices));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clzero,1,NULL,&slicesize,NULL,0,NULL,NULL));
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith2,3,gwo24,gwsarith24,lws24,0,NULL,NULL));
 		if (surface) CL_CH_ERR(clEnqueueCopyBuffer(command_queue,bufslices,bufslicesR,0,0,
 			slicesize*sizeof(doublecomplex),0,NULL,NULL));
 
@@ -141,15 +146,15 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		fftY(FFT_FORWARD); // fftY (buf)slices_tr (and reflected terms)
 		// arith3 on Device
 		if (surface) 
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3_surface,3,gwo3,gwsclarith3,lws3,0,NULL,NULL));
 		else 
-			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,3,gwo3,gwsclarith3,NULL,0,NULL,NULL));
+			CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith3,3,gwo3,gwsclarith3,lws3,0,NULL,NULL));
 		// inverse FFT y&z
 		fftY(FFT_BACKWARD); // fftY (buf)slices_tr
 		TransposeYZ(FFT_BACKWARD);
 		fftZ(FFT_BACKWARD); // fftZ (buf)slices
 
-		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,3,gwo24,gwsarith24,NULL,0,NULL,NULL));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clarith4,3,gwo24,gwsarith24,lws24,0,NULL,NULL));
 	}
 
 	// FFT-X back the result
