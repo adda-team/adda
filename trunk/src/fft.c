@@ -114,6 +114,7 @@ static bool weird_nprocs;      // whether weird number of processors is used
 // clFFT plans
 #	ifdef CLFFT_AMD
 static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
+static size_t clfftBufSize=0;
 #	elif defined(CLFFT_APPLE)
 static clFFT_Plan clplanX,clplanY,clplanZ;
 #	endif
@@ -614,6 +615,8 @@ static void fftInitAfterD(void)
 #ifdef OPENCL
 #	ifdef CLFFT_APPLE
 	cl_int err; // error code
+#	else
+	size_t bufsize;
 #	endif
 #	ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[4];
@@ -648,6 +651,8 @@ static void fftInitAfterD(void)
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanX,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanX,&bufsize));
+	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 xdimen;
 	xdimen.x=(unsigned int)gridX;
@@ -668,6 +673,8 @@ static void fftInitAfterD(void)
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanY,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanY,&bufsize));
+	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 ydimen;
 	ydimen.x=(unsigned int)gridY;
@@ -700,6 +707,15 @@ static void fftInitAfterD(void)
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_FORWARD,1));
 	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
 	CL_CH_ERR(clAmdFftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanZ,&bufsize));
+	clfftBufSize+=bufsize;
+	/* In most cases clfftBufSize is zero, except some weird grid sizes like 2x2x60000. Still, we rigorously account
+	 * for this memory. However, we do not update oclMemMaxObj, since even single plan is not guaranteed to allocate a
+	 * single object. So we assume that clFftAmd will either handle maximum object size itself or produce a meaningful
+	 * error.
+	 */
+	oclMem+=clfftBufSize;
+	MAXIMIZE(oclMemPeak,oclMem);
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 zdimen;
 	zdimen.x=(unsigned int)gridZ;
@@ -1017,7 +1033,12 @@ void InitDmatrix(void)
 	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
 	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
 
-	// In the following bufslices* are allocated, based on available GPU memory
+	/* In the following bufslices* are allocated, based on available GPU memory.
+	 * The estimation doesn't account for memory, which may be allocated further in fftInitBeforeD(), but it is zero in
+	 * most cases. There are also all kind of other possible problems (e.g. with Nvidia GPUs, which gives access to the
+	 * whole GPU memory), when occupying most of the GPU memory results in failures ("Out of resources") either now or
+	 * during further iterations. There is little we can do with these problems, apart from using '-opt mem').
+	 */
 	const size_t memReserve = 100*MBYTE; // memory reserved for all other GPU needs (including desktop,etc.)
 	if (save_memory) { // fall back to one-layer-at-a-time implementation
 		local_gridX=1;
@@ -1421,6 +1442,7 @@ void Free_FFT_Dmat(void)
 	}
 #	ifdef CLFFT_AMD
 	CL_CH_ERR(clAmdFftTeardown());
+	oclMem-=clfftBufSize;
 #	elif defined(CLFFT_APPLE)
 	// the following do not return error status
 	clFFT_DestroyPlan(clplanX);
