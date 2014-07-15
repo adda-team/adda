@@ -1071,6 +1071,7 @@ void InitDmatrix(void)
 		else {
 			clxslices=(gridX/local_gridX)+1;
 			local_gridX=DIV_CEILING(gridX,clxslices); // adjust local_gridX to be closer to uniform division
+			// if gridX<=32; the above code will set local_gridX=gridX
 		}
 
 		D("Already occupied OpenCL memory: "FFORMM" MB,\n"
