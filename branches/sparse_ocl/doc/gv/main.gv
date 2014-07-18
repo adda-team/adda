@@ -1,0 +1,77 @@
+digraph main
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_main {
+		main [style=filled,color=gold]
+		label = "ADDAmain.c"
+	}
+	subgraph cluster_timing {
+		StartTime
+		FinalStatistics
+		label = "timing.c"
+	}
+	subgraph cluster_comm {
+		InitComm
+		ParSetup
+		SetupLocalD
+		Stop
+		AllGather
+		label = "comm.c"
+	}
+	subgraph cluster_particle {
+		InitShape -> InitDipFile
+		InitShape -> InitContour
+		MakeParticle -> ReadDipFile
+		MakeParticle -> PlaceGranules
+		MakeParticle -> SaveGeometry
+		label = "make_particle.c"
+	}
+	subgraph cluster_param {
+		InitVariables
+		ParseParameters
+		VariablesInterconnect
+		FinalizeSymmetry
+		DirectoryLog
+		PrintInfo 
+		label = "param.c";
+	}
+	subgraph cluster_calc {
+		Calculator [style=filled,color=cyan]
+		label = "calculator.c";
+	}
+	subgraph cluster_beam {
+		InitBeam
+		label = "GenerateB.c";
+	}
+	subgraph cluster_cs {
+		ReadAvgParms
+		InitRotation
+		label = "crosssec.c";
+	}
+	subgraph cluster_chebyshev {
+		ChebyshevParams
+		label = "chebyshev.c";
+	}
+	subgraph cluster_fft {
+		fftFit
+		CheckNprocs
+		label = "fft.c";
+	}
+	
+	main -> StartTime -> InitComm -> InitVariables -> ParseParameters -> VariablesInterconnect -> InitShape -> FinalizeSymmetry -> DirectoryLog -> ParSetup -> MakeParticle -> PrintInfo -> Calculator ->  FinalStatistics -> Stop [color=red,style=bold]
+	
+	VariablesInterconnect -> InitBeam
+	VariablesInterconnect -> ReadAvgParms
+	VariablesInterconnect -> InitRotation
+	InitShape -> ChebyshevParams
+	MakeParticle -> SetupLocalD
+	ParSetup -> fftFit
+	InitComm -> CheckNprocs
+	MakeParticle -> AllGather [style=dashed]
+}

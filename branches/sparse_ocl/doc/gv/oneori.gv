@@ -1,0 +1,32 @@
+digraph oneori
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+
+	subgraph cluster_calc {
+		calculate_one_orientation [style=filled,color=gold]
+		InitCC -> CoupleConstant
+		label = "calculator.c"
+	}
+	subgraph cluster_cs {
+		InitRotation
+		label = "crosssec.c";
+	}
+	subgraph cluster_calcE {
+		CalculateE [style=filled,color=cyan]
+		MuellerMatrix -> ComputeMuellerMatrix
+		label = "CalculateE.c";
+	}
+	subgraph cluster_romberg {
+		Romberg1D
+		label = "Romberg.c";
+	}
+
+	calculate_one_orientation -> InitCC -> CalculateE -> MuellerMatrix [color=red,style=bold]
+	calculate_one_orientation -> InitRotation -> InitCC [color=red, style=dashed] 
+	MuellerMatrix -> Romberg1D [color=red, style=dashed]
+}

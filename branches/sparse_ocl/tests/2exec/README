@@ -1,0 +1,13 @@
+Utils for automatic cross-testing different ADDA executables (by comparing the simulation results). The main part is a
+bash script 'comp2exec'. Under Windows one may use MSYS to run it. This script contains comments in the head and
+throughout the file to explain its usage. In particular, one may specify the particular executables to cross test (a few
+typical pairs can be selected by command line options to this script).
+
+The particular tests to perform are specified by file 'suite', by a list of command lines with certain additions and
+abbreviations (see comments in the file). Currently, this file provides an extensive list of tests for testing future
+ADDA versions against a stable release. Some of this tests probably need to be removed for more specific tests, since
+they will produce errors. A different file (instead of 'suite') can also be used, if specified by command line option to
+'comp2exec'.
+
+Another important part is script 'diff_numeric.awk', which compares two files with given numerical tolerance. It may
+also need modification to fit a specific application.

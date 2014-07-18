@@ -1,0 +1,40 @@
+digraph iter
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_iter {
+		IterativeSolver [style=filled,color=gold]
+		CalcInitField -> InitFieldFromE
+		CalcInitField -> CalcFieldWKB
+		LoadIterChpoint
+		"iterFunc(PHASE_VARS)"
+		"iterFunc(PHASE_INIT)"
+		"iterFunc(PHASE_ITER)"
+		ProgressReport -> SaveIterChpoint
+		IterativeSolver -> ResidualNorm2
+		label = "iterative.c";
+	}
+	subgraph cluster_comm {
+		ReadField
+		label = "comm.c";
+	}
+	subgraph cluster_matvec {
+		MatVec [style=filled,color=cyan]
+		label = "matvec.c";
+	}
+	
+	IterativeSolver -> CalcInitField -> "iterFunc(PHASE_VARS)" -> "iterFunc(PHASE_INIT)" -> "iterFunc(PHASE_ITER)" -> ProgressReport [color=red,style=bold]
+	IterativeSolver -> "iterFunc(PHASE_VARS)" -> LoadIterChpoint -> "iterFunc(PHASE_INIT)" [color=red,style=dashed]
+	ProgressReport -> SaveIterChpoint [color=red,style=dashed]
+	
+	CalcInitField -> ReadField
+	CalcInitField -> MatVec
+	InitFieldFromE -> MatVec
+	ResidualNorm2 -> MatVec
+	"iterFunc(PHASE_ITER)" -> MatVec
+}

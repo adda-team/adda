@@ -1,0 +1,56 @@
+digraph calcE
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_calcE {
+		CalculateE [style=filled,color=gold]
+		CalculateE -> StoreFields
+		StoreIntFields -> StoreFields
+		CalculateE -> CalcEplane -> CalcIntegralScatQuantities [style=invis]		
+		label = "CalculateE.c";
+	}
+	subgraph cluster_iter {
+		IterativeSolver [style=filled,color=cyan]
+		label = "iterative.c";
+	}
+	subgraph cluster_beam {
+		GenerateB
+		label = "GenerateB.c";
+	}
+	subgraph cluster_comm {
+		ReadField
+		StoreFields
+		AllGather
+		label = "comm.c";
+	}
+	subgraph cluster_cs {
+		CalcAlldir -> CalcField
+		CalcScatGrid -> CalcField [constraint=false]
+		ExtCross
+		AbsCross
+		ScaCross
+		"AsymParm_[x,y,z]"
+		Frp_mat
+		label = "crosssec.c";
+	}
+	subgraph cluster_romberg {
+		Romberg2D
+		label = "Romberg.c";
+	}
+
+	CalculateE -> GenerateB -> IterativeSolver -> CalcEplane -> CalcAlldir -> CalcScatGrid -> CalcIntegralScatQuantities -> StoreIntFields [color=red,style=bold]
+	
+	GenerateB -> ReadField
+	CalcEplane -> CalcField
+	CalcIntegralScatQuantities -> ExtCross
+	CalcIntegralScatQuantities -> AbsCross
+	CalcIntegralScatQuantities -> ScaCross -> Romberg2D
+	CalcIntegralScatQuantities -> "AsymParm_[x,y,z]" -> Romberg2D
+	CalcIntegralScatQuantities -> Frp_mat -> AllGather
+	CalcIntegralScatQuantities -> StoreFields
+}

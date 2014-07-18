@@ -1,0 +1,55 @@
+digraph matvec
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_matvec {
+		MatVec [style=filled,color=gold]
+		label = "matvec.c";
+	}
+	subgraph cluster_comm {
+		BlockTranspose
+		AllGather
+		label = "comm.c";
+	}
+	subgraph cluster_fft {
+		"fftX(-1)"
+		"fftX(+1)"
+		subgraph cluster_loop{
+			fftYZ [shape=record,label="<0> fftZ(-1)|TransposeYZ(-1)|<1> fftY(-1)"]
+			fftYZInv [shape=record,label="<0> fftY(+1)|TransposeYZ(+1)|<1> fftZ(+1)"]
+			elem [label="element-wise\nproduct"]
+			label="loop over x"
+		}
+		"fftX(-1)"  -> fftYZ [style=invis]
+		fftYZInv -> "fftX(+1)" [style=invis]
+		label = "fft.c"
+	}
+	subgraph cluster_sparse {
+		AijProd
+		label = "sparse_ops.h";
+	}
+	subgraph cluster_cisi {
+		cisi
+		label = "sinint.c";
+	}	
+	subgraph cluster_igt {
+		propaespacelibreintadda_
+		label = "propaesplibreintadda.f"
+	}
+	subgraph cluster_inter {
+		CalcInterTerm
+		label = "interaction.c";
+	}
+	MatVec -> "fftX(-1)"  [color=red,style=bold]
+	"fftX(-1)"  -> BlockTranspose -> fftYZ:0 [color=red,style=bold,constraint=false]
+	fftYZ:1 -> elem -> fftYZInv:0 [color=red,style=bold]
+	fftYZInv:1 -> BlockTranspose -> "fftX(+1)" [color=red,style=bold,constraint=false]
+	MatVec -> AllGather -> AijProd [color=red,style=dashed]
+	CalcInterTerm -> cisi
+	AijProd -> CalcInterTerm -> propaespacelibreintadda_
+}
