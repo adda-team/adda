@@ -291,8 +291,19 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	MPI_Type_commit(&mpi_dcomplex3);
 	// check MPI version at runtime
 	MPI_Get_version(&ver,&subver);
-	if ((ver<MPI_VER_REQ) || ((ver==MPI_VER_REQ) && (subver<RUN_MPI_SUBVER_REQ))) LogError(ONE_POS,"MPI library "
-		"version (%d.%d) is too old. Version %d.%d or newer is required",ver,subver,MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
+	if (!GREATER_EQ2(ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ)) {
+		if (GREATER_EQ2(ver,subver,MPI_VER_REQ,MPI_SUBVER_REQ)) // library fits into minimum requirements
+			LogError(ONE_POS,"MPI library version (%d.%d) is too old for current ADDA executable. Version %d.%d or "
+				"newer is required. Alternatively, you may recompile ADDA using this version of the library.",
+				ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
+		else if (RUN_MPI_VER_REQ==MPI_VER_REQ && RUN_MPI_SUBVER_REQ==MPI_SUBVER_REQ) // executable requires minimum
+			LogError(ONE_POS,"MPI library version (%d.%d) is too old. Version %d.%d or newer is required",
+				ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
+		else // two upgrade options
+			LogError(ONE_POS,"MPI library version (%d.%d) is too old. Version %d.%d or newer is required for the "
+				"current ADDA executable or at least %d.%d, if ADDA is recompiled using such library.",
+				ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ,MPI_VER_REQ,MPI_SUBVER_REQ);
+	}
 	D("MPI library version: %d.%d",ver,subver);
 	// if MPI crashes, it happens here
 	Synchronize();
