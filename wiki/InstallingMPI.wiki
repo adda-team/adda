@@ -2,7 +2,7 @@
 
 <wiki:toc /> 
 
-If you plan to run `ADDA` on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. `ADDA` usage of MPI is based on the [http://www.mpi-forum.org MPI 2.0] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by `ADDA` both during compilation and at runtime.
+If you plan to run `ADDA` on a cluster, MPI is probably already installed on your system. You should consult someone familiar with the particular MPI package. `ADDA` usage of MPI is based on the [http://www.mpi-forum.org MPI 2.1] standard,  and it should work with any implementation that is compliant with this or higher versions of the standard. Version of MPI standard is checked for conformity by `ADDA` both during compilation and at runtime.
 
 `ADDA` will run on any hardware compatible with MPI, but, in principle, it may run more efficiently on hardware with shared memory address space, e.g. multi-core PCs. However, such hardware also has its drawbacks, e.g. the performance may be limited by memory access speed. A few tests performed on different computers showed that currently using two cores of a dual-core PC results in computational time from 60% to 75% of that for sequential execution on the same machine. We plan to optimize `ADDA` specifically for such hardware, using e.g. [http://www.openmp.org/ OpenMP].
 
