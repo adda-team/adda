@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: function attributes and compiler pragmas
  *
- * Copyright (C) 2006,2008,2010-2011,2013 ADDA contributors
+ * Copyright (C) 2006,2008,2010-2011,2013-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -17,14 +17,15 @@
 #ifndef __function_h
 #define __function_h
 
+#include "const.h" // for GREATER_EQ2
+
 // attribute options for GCC compilers (Intel compiler may also recognize them)
 #ifdef __GNUC__
 	// sets a macro for testing GCC version (copied from _mingw.h)
 #	ifdef __GNUC_MINOR__
-#		define GCC_PREREQ(major,minor) \
-			(__GNUC__ > (major) || (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
+#		define GCC_PREREQ(major,minor) GREATER_EQ2(__GNUC__,__GNUC_MINOR__,major,minor)
 #	else
-#		define GCC_PREREQ(major, minor)  0
+#		define GCC_PREREQ(major,minor) 0
 #	endif
 	// pragmas to ignore warnings
 #	if GCC_PREREQ(4,6)
