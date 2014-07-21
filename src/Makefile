@@ -92,6 +92,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # and turns on additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
+override OPTIONS += SPARSE USE_SSE3
 
 # Temperton FFT (fft.h).
 #override OPTIONS += FFT_TEMPERTON

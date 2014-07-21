@@ -24,12 +24,18 @@
 #include "vars.h"
 
 // SEMI-GLOBAL VARIABLES
-
+#ifdef SPARSE
+// defined and initialized in calculator.c
+extern doublecomplex * restrict arg_full;
+#include "linalg.h"
+#include "sparse_ops.h"
+#else
 // defined and initialized in fft.c
 extern const size_t RsizeY,clxslices,local_gridX,slicesize;
+#endif
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
-
+#ifndef SPARSE
 //======================================================================================================================
 
 void MatVec (doublecomplex * restrict argvec,    // the argument vector
@@ -182,3 +188,42 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }
+
+#else // SPARSE is defined
+//======================================================================================================================
+
+/* The sparse MatVec (ocl) is implemented completely separately from the non-sparse version.
+*/
+void MatVec (doublecomplex * restrict argvec,    // the argument vector
+             doublecomplex * restrict resultvec, // the result vector
+             double *inprod,         // the resulting inner product
+             const bool her,         // whether Hermitian transpose of the matrix is used
+             TIME_TYPE *timing,      // this variable is incremented by total time
+             TIME_TYPE *comm_timing) // this variable is incremented by communication time
+{
+	const bool ipr = (inprod != NULL);
+	size_t i,j,i3;
+
+	TIME_TYPE tstart=GET_TIME();
+	if (her) nConj(argvec);
+	// TODO: can be replaced by nMult_mat
+	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
+#	ifdef PARALLEL
+	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
+#	endif
+	for (i=0; i<local_nvoid_Ndip; i++) {
+		i3 = 3*i;
+		cvInit(resultvec+i3);
+		for (j=0; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
+	}
+	// TODO: can be replaced by a specially designed function from linalg.c
+	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
+	if (her) {
+		nConj(resultvec);
+		nConj(argvec);
+	}
+	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing);
+	(*timing) += GET_TIME() - tstart;
+	TotalMatVec++;
+}
+#endif // SPARSE

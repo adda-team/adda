@@ -31,7 +31,7 @@
 #endif
 
 ifneq ($(filter SPARSE,$(OPTIONS)),)
-  $(error OPENCL version of sparse mode is not yet available)
+#  $(error OPENCL version of sparse mode is not yet available)
 else # the following is only for non-sparse mode
   ifneq ($(filter CLFFT_APPLE,$(OPTIONS)),)
     ifeq ($(filter NO_CPP,$(OPTIONS)),)
