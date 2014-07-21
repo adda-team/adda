@@ -1613,7 +1613,7 @@ PARSE_FUNC(V)
 #	endif
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified
-		printf("Parallel version conforming to MPI standard %d.%d\n",MPI_VERSION,MPI_SUBVERSION);
+		printf("Parallel version conforming to MPI standard %d.%d\n",RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
 #	ifdef MPICH2
 		printf("Linked to MPICH2 version "MPICH2_VERSION"\n");
 #	elif defined(OPEN_MPI)
