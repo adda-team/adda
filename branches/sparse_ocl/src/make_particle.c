@@ -2162,7 +2162,13 @@ void MakeParticle(void)
 	local_Ndip=local_nvoid_Ndip;
 	MALLOC_VECTOR(material,uchar,local_nvoid_Ndip,ALL);
 	// check if 3*nvoid_Ndip can be computed; check is redundant for sequential mode
+
+#ifndef SPARSE
 	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+#else
+	nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+#endif
+
 	MALLOC_VECTOR(position_full,int,nRows,ALL);
 	memory+=3*sizeof(int)*nvoid_Ndip+sizeof(char)*local_nvoid_Ndip;
 #endif // SPARSE

@@ -164,5 +164,7 @@ int *position; // no reason to restrict this to short in sparse mode; actually i
 //in sparse mode, all coordinates must be available to each process
 int * restrict position_full;
 
+size_t nRows;
+
 #endif //SPARSE
 

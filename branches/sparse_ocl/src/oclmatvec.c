@@ -204,6 +204,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	const bool ipr = (inprod != NULL);
 	size_t i,j,i3;
 
+	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
+		NULL));
+
 	TIME_TYPE tstart=GET_TIME();
 	if (her) nConj(argvec);
 	// TODO: can be replaced by nMult_mat

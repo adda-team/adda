@@ -384,6 +384,17 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
 	}
 	memory+=3*nvoid_Ndip*sizeof(doublecomplex);
+	#ifdef OPENCL
+	//TODO: buffers created here for fast implementation. Better to find an elegant way to do it 
+	// 	(in non-sparse mode these are declared in fft.c)
+	CREATE_CL_BUFFER(bufargvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufargfull,CL_MEM_READ_WRITE,3*nvoid_Ndip*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufresultvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
+	CREATE_CL_BUFFER(bufcc_sqrt,CL_MEM_READ_ONLY,sizeof(cc_sqrt),NULL);
+	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
+	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
+	CREATE_CL_BUFFER(bufpositionfull,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,nRows*sizeof(*position_full),position_full);
+	#endif
 #endif // !SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
 	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,

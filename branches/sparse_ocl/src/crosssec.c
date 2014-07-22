@@ -648,8 +648,8 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	// calculate nN, ki, kt, cs, cp, and phSh
 	if (above) { // simple reflection
 		/* No scattering at exactly 90 degrees for non-trivial surface (to avoid randomness for this case).
-		 * See A. Small, J. Fung, and V.N. Manoharan, “Generalization of the optical theorem for light scattering from
-		 * a particle at a planar interface,” J. Opt. Soc. Am. A 30, 2519–2525 (2013) for theoretical discussion of
+		 * See A. Small, J. Fung, and V.N. Manoharan, \93Generalization of the optical theorem for light scattering from
+		 * a particle at a planar interface,\94 J. Opt. Soc. Am. A 30, 2519\962525 (2013) for theoretical discussion of
 		 * this fact.
 		 */
 		if (fabs(nF[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {
@@ -1303,7 +1303,13 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 		vAdd(vec,Finc_tot,Finc_tot);
 	}
 	// check if it can work at all; check is redundant for sequential mode
+
+#ifndef SPARSE
 	size_t nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+#else
+	nRows=MultOverflow(3,nvoid_Ndip,ONE_POS_FUNC);
+#endif
+
 #ifdef PARALLEL
 	/* Because of the parallelization by row-block decomposition the distributed arrays involved need to be gathered on
 	 * each node a) DipoleCoord -> rdipT; b) pvec -> pT. Actually this routine is usually called for two polarizations
