@@ -44,6 +44,15 @@ cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,c
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
 
+#ifdef SPARSE
+//TODO: declared here for fast implementation. Better to find an elegant way to do it
+cl_mem bufargfull;
+cl_mem bufpositionfull;
+cl_kernel clCcMul;
+cl_kernel Aij_poi;
+cl_kernel clDiagProd;
+#endif
+
 cl_bool bufupload=true; //defines if bufargvec and bufresultvec are to be uploaded in the beginning of MatVec
 			// this only false in case when the iterative solver handles the buffer upload
 #ifdef USE_CLBLAS

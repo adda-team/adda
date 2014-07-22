@@ -117,7 +117,7 @@ override OPTIONS += SPARSE USE_SSE3
 # error is produced if the test fails). However, if you believe that your compiler supports all the required features
 # (listed in const.h), but do not define itself conforming to C99, you may uncomment the following option to override
 # the test. Do it at your own risk!
-#override OPTIONS += OVERRIDE_STDC_TEST
+# override OPTIONS += OVERRIDE_STDC_TEST
 
 # By default OpenCL version of ADDA reads CL kernel source from file(s) *.cl during compilation and stores them as
 # static string, which is compiled into the GPU code at runtime. Alternative option is to read these files at runtime.
@@ -126,7 +126,7 @@ override OPTIONS += SPARSE USE_SSE3
 #override OPTIONS += OCL_READ_SOURCE_RUNTIME
 
 # APPLE clFFT (fft.h)
-#override OPTIONS += CLFFT_APPLE
+# override OPTIONS += CLFFT_APPLE
 
 # used AMDs CLBlas library for iterative solver (currently just suported in bicg method)
 # This option will have no effect on the other method

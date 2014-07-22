@@ -108,6 +108,8 @@ extern size_t local_Nz,local_x0,local_x1,local_Nx;
 extern int *position;
 extern int * restrict position_full;
 
+extern size_t nRows;
+
 #endif //SPARSE
 
 #endif // __vars_h
