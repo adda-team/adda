@@ -1,0 +1,73 @@
+digraph calc
+{
+	rankdir=LR
+	edge [color=midnightblue]
+	node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4]
+	fontname=Helvetica
+	fontsize=10
+	ranksep=.35
+	
+	subgraph cluster_calc {
+		Calculator [style=filled,color=gold]
+		AllocateEverything
+		FreeEverything
+		calculate_one_orientation [style=filled,color=cyan]
+		label = "calculator.c"
+	}
+	subgraph cluster_fft {
+		InitDmatrix -> fftInitBeforeD
+		InitDmatrix -> "fft[X,Y,Z]_Dm"
+		InitDmatrix -> TranposeYZ_Dm
+		InitDmatrix -> fftInitAfterD
+		Free_FFT_Dmat
+		label = "fft.c"
+	}
+	subgraph cluster_inter {
+		InitInteraction -> ReadTables
+		FreeInteraction -> FreeTables
+		CalcInterTerm
+		label = "interaction.c";
+	}
+	subgraph cluster_cs {
+		ReadScatGridParms
+		ReadAlldirParms
+		label = "crosssec.c";
+	}
+	subgraph cluster_ocl {
+		oclinit
+		oclunload
+		label = "oclcore.c";
+	}
+	subgraph cluster_romberg {
+		Romberg2D
+		label = "Romberg.c";
+	}
+	subgraph cluster_cisi {
+		cisi
+		label = "sinint.c";
+	}	
+	subgraph cluster_igt {
+		propaespacelibreintadda_
+		label = "propaesplibreintadda.f"
+	}
+	subgraph cluster_calcE {
+		SaveMuellerAndCS
+		label = "CalculateE.c";
+	}
+	subgraph cluster_comm {
+		BlockTranspose_Dm
+		label = "comm.c"
+	}
+
+	Calculator -> oclinit -> InitInteraction -> InitDmatrix -> AllocateEverything -> calculate_one_orientation -> FreeEverything [color=red,style=bold]
+	AllocateEverything -> Romberg2D  -> calculate_one_orientation -> SaveMuellerAndCS -> FreeEverything [color=red,style=dashed]
+	
+	AllocateEverything -> ReadScatGridParms
+	AllocateEverything -> ReadAlldirParms
+	FreeEverything -> oclunload
+	FreeEverything -> Free_FFT_Dmat
+	FreeEverything -> FreeInteraction
+	CalcInterTerm -> cisi
+	InitDmatrix -> CalcInterTerm -> propaespacelibreintadda_
+	InitDmatrix -> BlockTranspose_Dm
+}

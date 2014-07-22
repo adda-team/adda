@@ -1,0 +1,41 @@
+1) test the current source (standard tests)
+> cd ..../adda/src
+> make -s
+> cd ../tests/2exec
+edit comp2exec to compare against previous version
+> sh comp2exec seq, mpi, ocl + mpi_seq, ocl_seq
+
+# extra surface tests (optional, causes a number of false positives)
+edit comp2exec to enable SURF_EXT
+> sh comp2exec seq, mpi, ocl
+edit comp2exec to enable SURF_STANDARD (instead of SURF_EXT) and to compare against adda, etc. in the test directory (.)
+> cp ../../src/seq/adda .
+> cp ../../src/mpi/adda_mpi .
+> cp ../../src/ocl/adda_ocl .
+> sh comp2exec seq, mpi, ocl
+
+# sparse tests (first two lines are not required if done above)
+#> cp ../../src/seq/adda .
+#> cp ../../src/mpi/adda_mpi .
+> cd ../../src
+> make seq OPTIONS=SPARSE -s
+> cd ../tests/2exec
+edit comp2exec to enable SPARSE
+> sh comp2exec seq, mpi
+edit comp2exec to compare against adda and adda_mpi + enable SPARSE_STANDARD
+> sh comp2exec seq, mpi
+
+2) make sure that manual.doc/pdf, history, and const.h are up to date. In particular, version number in const.h should
+not contain "a" or "b" (if not explicitly making beta release).
+
+3) Update CodeDesign and corresponding schemes in doc/gv/
+
+(on 64-bit Windows)
+4) sh win_all.sh #.#
+
+(on Linux)
+5) ./zip_packages #.#
+
+6) Upload packages to GoogleCode
+7) Update Wiki pages: PackageDescription, ReleaseNotes, Features
+8) Send announcement to users.

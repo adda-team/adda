@@ -1,0 +1,41 @@
+#!/bin/bash
+echo '------------adda----------------'
+$ADDABIN -eps 9 -store_beam -store_dip_pol -store_int_field -save_geom -dir . -prop 0 0 1  -pol cm -lambda 0.400 -m 0.5 2.0 -shape sphere -grid 20 &> adda.out
+ERR=$?
+if [ $ERR -ne 0 ]; then
+  echo "ADDA returned error $ERR"
+  exit $ERR
+fi
+#grep "#@#" adda.out > commvar
+mv sphere.geom target
+tail -n+4 target > target.tmp
+nump=`wc -l target.tmp`
+cat >hh <<%EOF%
+0
+$nump
+%EOF%
+cat hh target.tmp > pointstarget
+rm target.tmp
+echo '------------gendip-------------------'
+../../gendip > gendip.out
+echo '------------nearfield------------'
+cat >input_xy <<%EOF%
+DIPY.SAV
+400 ! lambda
+pointstarget
+nearfieldinternal
+1 ! eincflag
+2 !iformat
+2 ! debug
+1 ! internal points
+%EOF%
+$MPIEXEC ../../nearfield < input_xy > nearfield.out
+echo -------------checksymm-------------
+../../checknfsymm < input_xy > checknfsymm.out
+echo -------------verifying-------------
+
+grep ERROR gendip.out                     > err.dat
+grep ERROR nearfield.out   | grep -v _SZ >> err.dat 
+grep ERROR checknfsymm.out | grep -v _SZ >> err.dat
+awk '{ ZUM+=$3 } END { printf "%.12f\n", ZUM} ' err.dat
+

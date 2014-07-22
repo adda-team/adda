@@ -1,0 +1,24 @@
+"Point in Polyhedron" transforms .obj files into DDSCAT7 shape format.
+
+Authors: Roman Schuh and Thomas Wriedt, using routines by John Burkardt.
+
+To compile under Unix type "make" in current directory. Windows executables are available in corresponding ADDA packages.
+
+Executable is named 'pip', it accepts a single command line parameter: maximum shape size in dipoles along the largest
+dimension that is determined automatically. Input shape is read from 'shape.obj' and DDSCAT7 shape is saved into
+'shape.dat'. Both filenames are hardcoded in 'FEM-Geo-Wr.f90'.
+
+It should be possible to read other 3D formats, which are supported by routines in 'ivread_wr.f90' - see comments in the
+source files. However, only .obj format is sufficiently tested. Moreover, the algorithm requires consistent alignment of
+face normals - they should all point outward.
+
+To test executable run "pip 20" in the current folder. It will use provided 'shape.obj' that defines a star-shaped
+object and produce 'shape.dat' which should be identical to provided 'shape_test.dat'.
+
+Finally, The DDSCAT7 shape format is readable by ADDA starting from version 1.1. ADDA 1.0 can read only DDSCAT6 format,
+so delete line 6 in obtained .dat files to transform it into such format.
+
+The reference for this tool is: R. Schuh, "Arbitrary particle shape modeling in DDSCAT and validation of simulation
+results", in T. Wriedt & A. G. Hoekstra (Editors): Proceedings of the DDA - Workshop, Institut fur Werkstofftechnik,
+Bremen (23 March 2007), p.22-24. http://diogenes.iwt.uni-bremen.de/vt/laser/papers/DDA-Workshop-final-proceedings.pdf
+
