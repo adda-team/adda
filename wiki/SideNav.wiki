@@ -18,6 +18,7 @@
    * [InstallingMPI Installing MPI]
    * [OpenCL Using OpenCL]
    * [InstallingclAmdFft Installing clAmdFft]
+   * [InstallingclAmdBlas Installing clAmdBlas]
    * [SparseMode Using sparse mode]
    * [InstallingMinGW Installing MinGW]
  * Adding new code
