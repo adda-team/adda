@@ -35,7 +35,7 @@ Now you are ready to compile `ADDA`. The only drawback of the concise procedure,
 These options may be of interest to developers or to those, who plan to compile `ADDA` many times with different options. These steps should be performed after the basic steps, described above.
 
 To avoid need to manually  specify include and library paths for external packages in makefiles, do the following (based on [http://www.mingw.org/wiki/SpecsFileHOWTO MinGW instructions]): 
- * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL], or [InstallingclAmdFft clAmdFft]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
+ * Copy all headers and libraries of external packages (such as [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL], [InstallingclAmdFft clAmdFft], or [InstallingclAmdBlas clAmdBlas]) to `C:\MinGW\MSYS\1.0\local\include` and `C:\MinGW\MSYS\1.0\local\lib` respectively (creating these folders if they do not exist).
  * Locate the library folder of your gcc installation, its path (`<gcclib-path>`) should be one of the following
 {{{
 C:/MinGW/lib/gcc/mingw32/<gcc-version>
@@ -80,7 +80,7 @@ mingw-get gdb
 }}}
 
 =Multilib configuration on Windows=
-Below we describe additional steps to set up the environment on 64-bit Windows 7, which allows convenient building of both 32- and 64-bit `ADDA` executables. We also outline installation of [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL] and [InstallingclAmdFft clAmdFft] slightly differently than given in separate wiki pages. Such complicated environment is needed exclusively for producing Windows binaries for `ADDA` releases from a single machine.
+Below we describe additional steps to set up the environment on 64-bit Windows 7, which allows convenient building of both 32- and 64-bit `ADDA` executables. We also outline installation of [InstallingFFTW3 FFTW 3], [InstallingMPI MPI], [OpenCL OpenCL], [InstallingclAmdFft clAmdFft], and [InstallingclAmdBlas clAmdBlas] slightly differently than given in separate wiki pages. Such complicated environment is needed exclusively for producing Windows binaries for `ADDA` releases from a single machine.
  * Create folder `C:\MinGW\MSYS\1.0\local\lib32` (additionally to `lib` and `include`, which were already created above).
 
  * [http://www.fftw.org/install/windows.html Download] 32- and 64-bit Windows packages of FFTW3. Then do the following, using 64-bit file manager with administrative privileges. 
@@ -93,6 +93,8 @@ Below we describe additional steps to set up the environment on 64-bit Windows 7
  * Create folder `C:\MinGW\MSYS\1.0\local\include\CL` and [http://www.khronos.org/registry/cl/ download] into it OpenCL headers (`*.h`) of the version, supported by GPU drivers (e.g., version 1.1 for Nvidia drivers 301.42).
  
  * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the installer of `clAmdFft` for Windows and install it to the default directory.
+
+ * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the installer of `clAmdBlas` for Windows and install it to the default directory.
 
  * Create symbolic links (with administrative privileges):
 {{{
@@ -110,6 +112,11 @@ mklink lib32\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib32\imp
 mklink lib\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib64\import\clAmdFft.Runtime.lib"
 mklink C:\Windows\SysWOW64\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin32\clAmdFft.Runtime.dll"
 mklink C:\Windows\System32\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin64\clAmdFft.Runtime.dll"
+mklink /D include\clAmdBlas "C:\Program Files (x86)\AMD\clAmdBlas\include\"
+mklink lib32\clAmdBlas.lib "C:\Program Files (x86)\AMD\clAmdBlas\lib32\import\clAmdBlas.lib"
+mklink lib\clAmdBlas.lib "C:\Program Files (x86)\AMD\clAmdBlas\lib64\import\clAmdBlas.lib"
+mklink C:\Windows\SysWOW64\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin32\clAmdBlas.dll"
+mklink C:\Windows\System32\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin64\clAmdBlas.dll"
 }}}
 
  * Additionally to modification of file `specs`, described in previous section, change the added head of this file to 
@@ -121,7 +128,7 @@ c:/MinGW/msys/1.0/local/
 %(local_prefix)include
 
 *local_includes:
--I%(local_incl) -I%(local_incl)/mpich2%{m32:_32} -I%(local_incl)/clAmdFft
+-I%(local_incl) -I%(local_incl)/mpich2%{m32:_32} -I%(local_incl)/clAmdFft -I%(local_incl)/clAmdBlas
 
 *local_lib:
 %(local_prefix)lib%{m32:32}
