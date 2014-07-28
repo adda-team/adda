@@ -1,0 +1,23 @@
+#summary Brief overview of installation of clAmdBlas library.
+
+<wiki:toc/>
+
+`clAmdBlas` library provides the optimized way to perform linear-algebra operations in OpenCL version of `ADDA`. Currently we are only testing its virtues, but it may become linked by default in the future. The installation and linking instructions are analogous to that of [InstallingclAmdFft clAmdFft] (they are two parts of the same package). The following guidelines are based on `clAmdBlas` version 1.10.274 (or 321) and are less detailed than that for [InstallingclAmdFft clAmdFft]. So you are advised to consult the latter if having any problems.
+
+=Unix=
+
+ * [http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-libraries/amd-accelerated-parallel-processing-math-libraries/ Download] the package of `clAmdBlas` for Linux and install it. The default installation directory is `/opt/clAmdBlas-<version>`. It is also possible to specify any other directory, for example, inside the home directory of a particular user.
+ * Either 
+   * specify paths to `include` and `lib64` (or `lib32`) subdirectories of the install directory in file `src/ocl/Makefile`, as described in [CompilingADDA]. 
+   * or add `.../include` to environmental variable `C_INCLUDE_PATH` and `.../lib64` (or `lib32`) - to `LIBRARY_PATH` and `LD_LIBRARY_PATH` (for linking and runtime). Setting `LD_LIBRARY_PATH` can be replaced by modifying `/etc/ld.so.conf` or by sourcing `appmlEnv.sh` in the installation directory.
+
+=Windows=
+
+If you just want to use [PackageDescription#Windows_executables ADDA executables for Windows], do not worry about `clAmdBlas` at all. An appropriate DLL will be included in the corresponding package (once the executable will be linked to it).
+
+If you want to compile `adda_ocl` on Windows yourself, proceed further:
+ * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the installer of `clAmdBlas` for Windows and install it. The default installation directory is `C:\Program Files (x86)\AMD\clAmdBlas` or `C:\Program Files\AMD\clAmdBlas`.
+ * Add `bin64` or `bin32` (depending on the Windows bitness) subdirectory in the installation directory to Windows environmental variable `PATH`
+ * Either 
+   * specify paths to `include` and `lib64/import` (or `lib32/import`) subdirectories of the install directory in file `src/ocl/Makefile`, as described in [CompilingADDA].
+   * or copy contents of these folders to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment].
