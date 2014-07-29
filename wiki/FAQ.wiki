@@ -7,6 +7,9 @@ This list is far from being complete, therefore please send your questions to [m
 
 = General =
 
+== What is the official name of the code? ==
+It is `ADDA`. You may wonder why the corresponding Google Code identifier is "a-dda", as shown in address bar and in the top-left corner of the page. That is because "adda" was already occupied at Google Code by unrelated project, when we moved here.
+
 == I am new to `ADDA` and want to simulate ... What should I start with?  ==
   * Read GettingStarted and other pages it links to.
   * In particular, go through the [Tutorial Tutorial] to understand basic `ADDA` functionality.
@@ -34,7 +37,7 @@ The simplest is to specify your particle by a shape file. However, if your shape
 
 To produce a shape file you can use any programming language/software. `ADDA` contains a couple of auxiliary packages to alleviate this problem:
   * Point-in-polyhedron (`misc/pip`, see [http://a-dda.googlecode.com/svn/trunk/misc/pip/README description]) allows transformation of [http://en.wikipedia.org/wiki/Wavefront_.obj_file .obj] format (and several other common 3D formats) into the format readable by `ADDA`. There is also [http://nanohub.org/resources/ddaconvert/ another code] (related) with similar functionality.
-  * Hyperfun (`misc/hyperfun`, see [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description]) provides a toolchain for working with [http://hyperfun.org Hyperfun models].
+  * Hyperfun (`misc/hyperfun`, see [http://a-dda.googlecode.com/svn/trunk/misc/hyperfun/README description]) provides a toolchain for working with [http://hyperfun.org Hyperfun models]. Part of this toolchain can be used to transform other shape formats, like [http://en.wikipedia.org/wiki/VRML .wrl].
 
 == How to visualize shape files of `ADDA`? ==
 The most general solution is freely available software [http://albin.abo.fi/~jkniivil/litebil/ LiteBil]. It allows both quick testing of shape files produced by `ADDA` or other software, and producing nice pictures for publication.
