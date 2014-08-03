@@ -39,9 +39,18 @@
 #include <time.h>
 
 #ifdef CLFFT_AMD
-	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header
-#	include <clAmdFft.h> // for version information
-	STOP_IGNORE
+/* One can also include clAmdFft.h (the only recommended public header), which can be redundant, but more portable.
+ * However, version macros are not documented anyway (in the manual), so there seem to be no perfectly portable way to
+ * obtain them.
+ */
+#	include <clAmdFft.version.h>
+#endif
+
+#ifdef OCL_BLAS
+/* In contrast to clAmdFft, here including main header (clAmdBlas.h) is not an option, since it doesn't include the
+ * following header.
+ */
+#	include <clAmdBlas.version.h>
 #endif
 
 #ifndef NO_SVNREV
@@ -1611,6 +1620,10 @@ PARSE_FUNC(V)
 #	ifdef CLFFT_AMD
 		printf("Linked to clAmdFft version %d.%d.%d\n",clAmdFftVersionMajor,clAmdFftVersionMinor,clAmdFftVersionPatch);
 #	endif
+#	ifdef OCL_BLAS
+		printf("Linked to clAmdBlas version %d.%d.%d\n",clAmdBlasVersionMajor,clAmdBlasVersionMinor,
+			clAmdBlasVersionPatch);
+#	endif
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified
 		printf("Parallel version conforming to MPI standard %d.%d\n",RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
@@ -1647,7 +1660,7 @@ PARSE_FUNC(V)
 #elif defined(__MINGW32_VERSION)
 		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
 #endif
-		// extra build flags
+		// extra build flags - can it be shortened by some clever defines?
 		const char build_opts[]=
 #ifdef DEBUGFULL
 		"DEBUGFULL, "
@@ -1685,6 +1698,12 @@ PARSE_FUNC(V)
 #endif
 #ifdef USE_SSE3
 		"USE_SSE3, "
+#endif
+#ifdef OCL_BLAS
+		"OCL_BLAS, "
+#endif
+#ifdef NO_SVNREV
+		"NO_SVNREV, "
 #endif
 		"";
 		printf("Extra build options: ");
