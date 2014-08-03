@@ -20,6 +20,9 @@
 #include "vars.h" // corresponding header
 
 // basic variables
+double rectScaleX,rectScaleY,rectScaleZ; //rectangular dipole params
+double R0[3];// Drane polarizability correction, see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
 size_t boxXY;             // boxX*boxY, used for indexing
 double gridspace;         // dipole size (d)
@@ -157,6 +160,8 @@ int local_Nz_unif;        /* number of z layers (distance between max and min va
 int local_z1_coer;        // ending z, coerced to be not greater than boxZ (and not smaller than local_z0)
 	// starting, ending x for current processor and number of x layers (based on the division of smallX)
 size_t local_x0,local_x1,local_Nx;
+
+
 
 #else //These variables are exclusive to the sparse mode
 
