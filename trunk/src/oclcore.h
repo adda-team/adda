@@ -22,6 +22,7 @@
 // project headers
 #include "function.h"
 #include "io.h"
+#include <stdbool.h> // for bool
 // system headers
 #ifdef __APPLE__
 #	include <OpenCL/cl.h>
@@ -36,14 +37,14 @@
 
 // global OpenCL variables; names should not interfere with other parts of the code
 extern cl_context context;
-extern cl_bool bufupload;
+extern bool bufupload;
 extern cl_command_queue command_queue;
 extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposeof,
 	cltransposeob,cltransposeofR;
 extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
-#ifdef USE_CLBLAS
-extern cl_mem buftmp, bufrvec, bufxvec; // addition buffers used within the iterative solver
+#ifdef OCL_BLAS
+extern cl_mem buftmp,bufrvec,bufxvec;
 #endif
 extern cl_mem bufRmatrix,bufslicesR,bufslicesR_tr;
 extern double *inprodhlp;

@@ -165,7 +165,7 @@ static inline double ellTheta(const double a)
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
 /* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
- * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
+ * for LDR without avgpol. res is three values (diagonal of polarizability tensor).
  *
  * !!! TODO: if this function will be executed many times, it can be optimized by moving time-consuming calculation of
  * certain coefficients to one-call initialization function.

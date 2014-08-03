@@ -48,7 +48,7 @@ else # the following is only for non-sparse mode
   
     LDLIBS += -lclAmdFft.Runtime
     # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
-    # LDLIBS += -lpthread
+    #LDLIBS += -lpthread
   
     # Uncomment the following line if you experience problems during linking, like
     # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
@@ -58,10 +58,17 @@ else # the following is only for non-sparse mode
     # https://forge.imag.fr/projects/ocl-icd/) for linking.
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
-    ifneq ($(filter USE_CLBLAS,$(OPTIONS)),)
+  ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
+    # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
+    # libraries. Path should be absolute or relative to the location of this Makefile.
+    #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdBlas\include"
+    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\lib64\import"
+    
     LDLIBS += -lclAmdBlas
-    CFLAGS += -DUSE_CLBLAS
-    endif
+    CFLAGS += -DOCL_BLAS
+    # If you have any problems during linking, see above for issues related to clAmdFft. The same solutions may work
+    # for clAmdBlas
+  endif
 endif
 
 #=======================================================================================================================
