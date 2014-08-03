@@ -1568,7 +1568,7 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2;
-			volume_ratio=PI_OVER_FOUR*diskratio;
+			volume_ratio=PI_OVER_FOUR*diskratio/rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1751,7 +1751,7 @@ void InitShape(void)
 		}
 		case SH_SPHERE:
 			if (IFROOT) sh_form_str1="sphere; diameter:";
-			volume_ratio=PI_OVER_SIX;
+			volume_ratio=PI_OVER_SIX / rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=zx_ratio=1;
 			Nmat_need=1;
 			break;
@@ -1927,6 +1927,13 @@ void InitShape(void)
 		if (n_boxY>boxY || n_boxZ>boxZ)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",n_boxY,n_boxZ,boxY,boxZ);
 	}
+        
+#ifndef SPARSE       
+        boxX = FitBox((int)ceil(boxX/rectScaleX));
+        boxY = FitBox((int)ceil(boxY/rectScaleY));
+        boxZ = FitBox((int)ceil(boxZ/rectScaleZ));
+#endif
+
 #ifndef SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
@@ -1944,6 +1951,8 @@ void InitShape(void)
 		else if (Ndip<100000) nTheta=361;
 		else nTheta=721;
 	}
+        
+        
 	Timing_Particle = GET_TIME() - tstart;
 }
 
@@ -2003,9 +2012,9 @@ void MakeParticle(void)
 		 * anisotropies in the particle itself are treated in the specific shape modules below (see e.g.
 		 * ELLIPSOID).
 		 */
-		xr=(xj+jcX)/(boxX);
-		yr=(yj+jcY)/(boxX);
-		zr=(zj+jcZ)/(boxX);
+		xr=(xj+jcX)/(boxX)*rectScaleX;
+		yr=(yj+jcY)/(boxX)*rectScaleY;
+		zr=(zj+jcZ)/(boxX)*rectScaleZ;
 
 		mat=Nmat; // corresponds to void
 
@@ -2200,13 +2209,13 @@ void MakeParticle(void)
 		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
 	// initialize gridspace and dipvol
 	gridspace=lambda/dpl;
-	dipvol=gridspace*gridspace*gridspace;
+	dipvol=gridspace*gridspace*gridspace*rectScaleX*rectScaleY*rectScaleZ;
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
 	 * slightly different from the one given by '-eq_rad' option.
 	 */
-	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip,ONE_THIRD)*gridspace;
+	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*gridspace;
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
 	
@@ -2268,9 +2277,9 @@ void MakeParticle(void)
 	double minZco=0; // minimum Z coordinates of dipoles
 	for (index=0; index<local_nvoid_Ndip; index++) {
 		i3=3*index;
-		DipoleCoord[i3] = (position[i3]-cX)*gridspace;
-		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridspace;
-		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridspace;
+		DipoleCoord[i3] = (position[i3]-cX)*gridspace*rectScaleX;
+		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridspace*rectScaleY;
+		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridspace*rectScaleZ;
 		if (minZco>DipoleCoord[i3+2]) minZco=DipoleCoord[i3+2]; // crude way to find the minimum on the way
 	}
 	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
@@ -2302,13 +2311,13 @@ void MakeParticle(void)
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
 #endif // !SPARSE
 
-	box_origin_unif[0]=-gridspace*cX;
-	box_origin_unif[1]=-gridspace*cY;
+	box_origin_unif[0]=-gridspace*cX*rectScaleX;
+	box_origin_unif[1]=-gridspace*cY*rectScaleY;
 #ifndef SPARSE
-	box_origin_unif[2]=gridspace*(local_z0_unif-cZ);
+	box_origin_unif[2]=gridspace*(local_z0_unif-cZ)*rectScaleZ;
 	if (surface) ZsumShift=2*((hsub/gridspace)-cZ+local_z0);
 #else
-	box_origin_unif[2]=-gridspace*cZ;
+	box_origin_unif[2]=-gridspace*cZ*rectScaleZ;
 	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);

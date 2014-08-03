@@ -30,6 +30,8 @@
 #include <time.h>    // for time_t
 
 // basic variables
+extern double rectScaleX,rectScaleY,rectScaleZ; 
+extern double R0[3];
 
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;

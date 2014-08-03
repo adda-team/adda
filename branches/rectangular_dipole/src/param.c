@@ -358,6 +358,7 @@ PARSE_FUNC(pol);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(recalc_resid);
+PARSE_FUNC(rect_dip);
 #ifndef SPARSE
 PARSE_FUNC(save_geom);
 #endif
@@ -571,6 +572,11 @@ static struct opt_struct options[]={
 		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
+
+        {PAR(rect_dip),"<x> <y> <z>","This command allows to set params for the rectangular dipole"
+		"Values ​​are the ratio of the lenth, height and width of the dipole respectively.\n"
+                "Temporary we use precalculating correctable value(see 'Propagation of Electromagnetic Waves on"
+                "a Rectangular Lattice of Polarizable Points'), so avaliable values are 1, 1.5, 2, 3.\n Example: -rect_dip 1 1 2, this means that for calculations adda will use dipoles  extended twice along the Z axis",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
 		"directory). Can be used with '-prognosis'.\n"
@@ -1263,7 +1269,7 @@ PARSE_FUNC(m)
 PARSE_FUNC(maxiter)
 {
 	ScanIntError(argv[1],&maxiter);
-	TestPositive_i(maxiter,"maximum number of iterations");
+	//TestPositive_i(maxiter,"maximum number of iterations");
 }
 PARSE_FUNC(no_reduced_fft)
 {
@@ -1376,6 +1382,40 @@ PARSE_FUNC(recalc_resid)
 {
 	recalc_resid=true;
 }
+PARSE_FUNC(rect_dip)
+{
+	ScanDoubleError(argv[1],&rectScaleX);
+	ScanDoubleError(argv[2],&rectScaleY);
+	ScanDoubleError(argv[3],&rectScaleZ);
+        
+        TestPositive(rectScaleX,"-rect_dip <x>");
+        TestPositive(rectScaleY,"-rect_dip <y>");
+        TestPositive(rectScaleZ,"-rect_dip <z>");
+        
+        double buf = rectScaleX*rectScaleY*rectScaleZ;
+        
+        #define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
+        #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
+
+        IS_EQUAL_VALUE();
+        printf("Input proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f) ",rectScaleX,rectScaleY,rectScaleZ);
+
+        SET_PRECALC_VALUE(rectScaleX);
+        SET_PRECALC_VALUE(rectScaleY);
+        SET_PRECALC_VALUE(rectScaleZ);
+        IS_EQUAL_VALUE();
+        
+        if(buf!=rectScaleX*rectScaleY*rectScaleZ)
+            printf("modified (x=%.1f, y=%.1f, z=%.1f)",rectScaleX,rectScaleY,rectScaleZ);
+        printf("\n");
+        #undef SET_PRECALC_VALUE 
+        #undef IS_EQUAL_VALUE    
+        
+        
+}
+
+
+
 #ifndef SPARSE
 PARSE_FUNC(save_geom)
 {
@@ -1898,6 +1938,12 @@ void InitVariables(void)
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
+        
+        rectScaleX = 1;
+        rectScaleY = 1;
+        rectScaleZ = 1;
+        
+        
 #ifdef OPENCL
 	gpuInd=0;
 #endif

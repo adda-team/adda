@@ -37,14 +37,14 @@
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in crosssec.c
-extern const Parms_1D parms[2],parms_alpha;
-extern const angle_set beta_int,gamma_int,theta_int,phi_int;
+extern const Parms_1D parms[2], parms_alpha;
+extern const angle_set beta_int, gamma_int, theta_int, phi_int;
 // defined and initialized in param.c
 extern const int avg_inc_pol;
 extern const double polNlocRp;
-extern const char *alldir_parms,*scat_grid_parms;
+extern const char *alldir_parms, *scat_grid_parms;
 // defined and initialized in timing.c
-extern TIME_TYPE Timing_Init,Timing_Init_Int;
+extern TIME_TYPE Timing_Init, Timing_Init_Int;
 #ifdef OPENCL
 extern TIME_TYPE Timing_OCL_Init;
 #endif
@@ -53,11 +53,11 @@ extern size_t TotalEval;
 // used in CalculateE.c
 double * restrict muel_phi; // used to store values of Mueller matrix for different phi (to integrate)
 double * restrict muel_phi_buf; // additional for integrating with different multipliers
-	// scattered E (for scattering in the default scattering plane) for two incident polarizations
+// scattered E (for scattering in the default scattering plane) for two incident polarizations
 doublecomplex * restrict EplaneX, * restrict EplaneY;
 doublecomplex * restrict EyzplX, * restrict EyzplY; // same for scattering in yz-plane
-double dtheta_deg,dtheta_rad; // delta theta in degrees and radians
-doublecomplex * restrict ampl_alphaX,* restrict ampl_alphaY; // amplitude matrix for different values of alpha
+double dtheta_deg, dtheta_rad; // delta theta in degrees and radians
+doublecomplex * restrict ampl_alphaX, * restrict ampl_alphaY; // amplitude matrix for different values of alpha
 double * restrict muel_alpha; // mueller matrix for different values of alpha
 
 // used in crosssec.c
@@ -65,13 +65,13 @@ doublecomplex * restrict E_ad; // complex field E, calculated for alldir
 double * restrict E2_alldir; // square of E (scaled with msub, so ~ Poynting vector or dC/dOmega), calculated for alldir
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 #ifndef SPARSE
-doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of exponents along 3 axes (for calc_field)
+doublecomplex * restrict expsX, * restrict expsY, * restrict expsZ; // arrays of exponents along 3 axes (for calc_field)
 #endif
 // used in iterative.c
-doublecomplex *rvec;                 // current residual
+doublecomplex *rvec; // current residual
 doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector products
 // auxiliary vectors, used in some iterative solvers (with more meaningful names)
-doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict vec4;
+doublecomplex * restrict vec1, * restrict vec2, * restrict vec3, * restrict vec4;
 // used in matvec.c
 #ifdef SPARSE
 doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
@@ -86,7 +86,7 @@ static double * restrict out; // used to collect both mueller matrix and integra
 // EXTERNAL FUNCTIONS
 
 // CalculateE.c
-int CalculateE(enum incpol which,enum Eftype type);
+int CalculateE(enum incpol which, enum Eftype type);
 bool TestExtendThetaRange(void);
 void MuellerMatrix(void);
 void SaveMuellerAndCS(double * restrict in);
@@ -96,36 +96,35 @@ void SaveMuellerAndCS(double * restrict in);
 static inline doublecomplex polCM(const doublecomplex m)
 // computes CM polarizability from given refractive index m - (3V/4pi)*(m^2-1)/(m^2+2)
 {
-	doublecomplex m2=m*m;
-	return (3/FOUR_PI)*dipvol*(m2-1)/(m2+2);
+    doublecomplex m2 = m*m;
+    return (3 / FOUR_PI)*dipvol * (m2 - 1) / (m2 + 2);
 }
 
 //======================================================================================================================
 
-static inline doublecomplex polM(const doublecomplex M,const doublecomplex m)
+static inline doublecomplex polM(const doublecomplex M, const doublecomplex m)
 // computes polarizability, given the M term and refractive index m
 {
-	doublecomplex cm=polCM(m);
-	return cm/(1-(cm/dipvol)*M);
+    doublecomplex cm = polCM(m);
+    return cm / (1 - (cm / dipvol) * M);
 }
 
 //======================================================================================================================
 
-static inline doublecomplex polMplusRR(const doublecomplex M,const doublecomplex m)
+static inline doublecomplex polMplusRR(const doublecomplex M, const doublecomplex m)
 // computes polarizability, given the M term (without RR part - ) and refractive index m
 {
-	return polM(M+I*2*kd*kd*kd/3,m);
+    return polM(M + I * 2 * kd * kd * kd / 3, m);
 }
 
 //======================================================================================================================
 
-static inline doublecomplex pol3coef(const double b1,const double b2,const double b3,const double S,
-	const doublecomplex m)
+static inline doublecomplex pol3coef(const double b1, const double b2, const double b3, const double S,
+        const doublecomplex m)
 /* computes polarizability, using the common formula, based on 3 coefs, S-term and refractive index m
  * M0=(b1+(b2+b3*S)*m^2)*kd^2.   Important feature is that M0 depends on m.
- */
-{
-	return polMplusRR((b1+(b2+b3*S)*m*m)*kd*kd,m);
+ */ {
+    return polMplusRR((b1 + (b2 + b3 * S) * m * m) * kd*kd, m);
 }
 
 //======================================================================================================================
@@ -139,31 +138,29 @@ static inline double ellTheta(const double a)
  * theta and elliptic functions," J. Austral. Math. Soc. B 24, 47-58 (1982).
  * or http://en.wikipedia.org/wiki/Theta_function#Jacobi_identities
  * so the sum need to be taken only for a>=1, then three terms are sufficient to obtain 10^-22 accuracy
- */
-{
-	double q,q2,q3,t,a2,a3,res;
-	a2=a*a;
-	a3=a*a2;
-	if (a>=1) {
-		q=exp(-PI*a2);
-		q2=q*q;
-		q3=q*q2;
-		t=2*q*(1+q3*(1+q2*q3)); // t = 1 - theta_3(0,exp(-pi*a^2)) = 2*(q + q^4 + q^9)
-		res=a3*t*(3+t*(3+t)); // a^3*(t^3-1)
-	}
-	else { // a<1, employ transformation a->1/a
-		q=exp(-PI/a2);
-		q2=q*q;
-		q3=q*q2;
-		t=1+2*q*(1+q3*(1+q2*q3)); // t = theta_3(0,exp(-pi/a^2)) = 1+ 2*(q + q^4 + q^9)
-		res=t*t*t - a3; // a^3*(t^3-1)
-	}
-	return res;
+ */ {
+    double q, q2, q3, t, a2, a3, res;
+    a2 = a*a;
+    a3 = a*a2;
+    if (a >= 1) {
+        q = exp(-PI * a2);
+        q2 = q*q;
+        q3 = q*q2;
+        t = 2 * q * (1 + q3 * (1 + q2 * q3)); // t = 1 - theta_3(0,exp(-pi*a^2)) = 2*(q + q^4 + q^9)
+        res = a3 * t * (3 + t * (3 + t)); // a^3*(t^3-1)
+    } else { // a<1, employ transformation a->1/a
+        q = exp(-PI / a2);
+        q2 = q*q;
+        q3 = q*q2;
+        t = 1 + 2 * q * (1 + q3 * (1 + q2 * q3)); // t = theta_3(0,exp(-pi/a^2)) = 1+ 2*(q + q^4 + q^9)
+        res = t * t * t - a3; // a^3*(t^3-1)
+    }
+    return res;
 }
 
 //======================================================================================================================
 
-static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
+static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublecomplex res[static 3])
 /* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
  * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
  *
@@ -174,87 +171,87 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * This function implements calculations of polarizability. It should be updated to support new formulations.
  * The corresponding case should either be added to 'asym' list (then three components of polarizability are
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
- */
-{
-	double ka,kd2,S;
-	int i;
-	bool asym; // whether polarizability is asymmetric (for isotropic m)
-	const double *incPol;
-	bool pol_avg=true; // temporary fixed value for SO polarizability
+ */ {
+    int i;
+    i = (int)which;//temporary action. Reason is to delete warning
+    /*double a, b, c;
+    double omega;
+    double betta, bettaFfirst, bettaSecond, bettaThird;*/
+    double factor = rectScaleX * rectScaleY*rectScaleZ;
+#define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<0.00001)
+#define SET_PRECALC_2DIFF_VALS(scale,val,val_other) {if(IS_DOUBLE_EQAL(scale,rectScaleX)){R0[0]=val; R0[1]=val_other;R0[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleY)) {R0[0]=val_other; R0[1]=val;R0[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleZ)) {R0[0]=val_other; R0[1]=val_other;R0[2]= val;} else LogError(ONE_POS, "Unpredictable value for rectangular dipole: %.1f", scale); }
+#define SET_PRECALC_3DIFF_VALLS(scale1,scale2,scale3,val1,val2,val3) {if(IS_DOUBLE_EQAL(scale1,rectScaleX)) if(IS_DOUBLE_EQAL(scale2,rectScaleY)){R0[0]=val1; R0[1]=val2;R0[2]= val3;} else {R0[0]=val1; R0[1]=val3;R0[2]= val2;} else if(IS_DOUBLE_EQAL(scale2,rectScaleX)) if(IS_DOUBLE_EQAL(scale1,rectScaleY)){R0[0]=val2; R0[1]=val1;R0[2]= val3;} else {R0[0]=val2; R0[1]=val3;R0[2]= val1;}else { if(IS_DOUBLE_EQAL(scale1,rectScaleY)){R0[0]=val3; R0[1]=val1;R0[2]= val2;} else {R0[0]=val3; R0[1]=val2;R0[2]= val1;}}}
+    
+    if (IS_DOUBLE_EQAL(1, factor)) {
+        R0[0]=0;R0[1]=0;R0[2]=0;
+    } else if (IS_DOUBLE_EQAL(1.5, factor)) {
+        SET_PRECALC_2DIFF_VALS(1.5, -0.40851, 0.20426)
+    } else if (IS_DOUBLE_EQAL(2.25, factor)) {
+        SET_PRECALC_2DIFF_VALS(1.0, 0.52383, -0.26192)
+    } else if (IS_DOUBLE_EQAL(2, factor)) {
+        SET_PRECALC_2DIFF_VALS(2.0, -0.77090, 0.38545)
+    } else if (IS_DOUBLE_EQAL(3, factor)&&(!IS_DOUBLE_EQAL(3, rectScaleX) || !IS_DOUBLE_EQAL(3, rectScaleY) || !IS_DOUBLE_EQAL(3, rectScaleZ))) {
+        SET_PRECALC_3DIFF_VALLS(1, 1.5, 2, 0.81199, -0.21028, -0.60172)
+    } else if (IS_DOUBLE_EQAL(3, factor)) {
+        SET_PRECALC_2DIFF_VALS(3., -1.48995, 0.74498)
+    } else if (IS_DOUBLE_EQAL(4, factor)) {
+        SET_PRECALC_2DIFF_VALS(1., 1.19693, -0.59846)
+    } else if (IS_DOUBLE_EQAL(4.5, factor)) {
+        SET_PRECALC_3DIFF_VALLS(1, 1.5, 3, 1.38481, -0.14304, -1.24176)
+    } else if (IS_DOUBLE_EQAL(6, factor)) {
+        SET_PRECALC_3DIFF_VALLS(1, 2, 3, 1.96224, -0.69714, -1.26510)
+    } else if (IS_DOUBLE_EQAL(9, factor)) {
+        SET_PRECALC_2DIFF_VALS(1., 3.11030, -1.55515)
+    } else
+        LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
 
-	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
-	// !!! this should never happen
-	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+#undef IS_DOUBLE_EQAL
+#undef SET_PRECALC_2DIFF_VALS
+#undef SET_PRECALC_3DIFF_VALLS
 
-	kd2=kd*kd;
-	if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
-		switch (PolRelation) {
-			case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
-			case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
-		}
-	}
-	else for (i=0;i<Ncomp;i++) { // loop over components of input m
-		switch (PolRelation) {
-			case POL_CM: res[i]=polCM(mrel[i]); break;
-			case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
-			case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-				res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
-				break;
-			case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
-			case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
-				ka=LAK_C*kd;
-				res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
-				break;
-			case POL_LDR:
-				if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
-				else {
-					if (which==INCPOL_Y) incPol=incPolY;
-					else incPol=incPolX; // which==INCPOL_X
-					S = DotProdSquare(prop,incPol);
-				}
-				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
-				break;
-			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
-				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
-				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
-				 */
-				if (polNlocRp==0) res[i]=polCM(mrel[i]);
-				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
-				break;
-			case POL_NLOC_AV:
-				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
-				else {
-					double x=gridspace/(2*SQRT2*polNlocRp);
-					double g0,t;
-					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
-					if (x<1) {
-						t=erf(x);
-						g0=1-t*t*t;
-					}
-					else {
-						t=erfc(x);
-						g0=t*(3-3*t+t*t);
-					}
-					// !!! dynamic part should be added here
-					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
-				}
-				break;
-			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
-		}
-	}
-	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
-	}
-	else {
-		res[2]=res[1]=res[0];
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
-	}
+
+    for (i = 0; i < 3; i++) {
+        /*if (i == 0)
+       {
+           a = gridspace * rectScaleX * 0.5;
+           b = gridspace * rectScaleY * 0.5;
+           c = gridspace * rectScaleZ * 0.5;
+       }
+      else if (i == 1)
+       {
+           a = gridspace * rectScaleY * 0.5;
+           b = gridspace * rectScaleX * 0.5;
+           c = gridspace * rectScaleZ * 0.5;
+               
+       }
+       else
+       {
+           a = gridspace * rectScaleZ * 0.5;
+           b = gridspace * rectScaleY * 0.5;
+           c = gridspace * rectScaleX * 0.5;
+             
+       }
+       omega = 4* asin(b*c/sqrt((a*a + b*b)*(a*a + c*c)));
+       bettaFfirst = 8*a*b*log(1 + 2*c/sqrt(a*a + b*b + c*c));
+       bettaSecond = 16*a*b*b/sqrt(a*a + b*b)*atan(c/sqrt(a*a + b*b));
+       bettaThird = 4*a*a*a*a*atan(c/a) - 2*a*a*b*b*atan(c/a) - 2*a*b*b*c;
+       bettaThird *= 2*b/a/(a*a + c*c);
+       betta =  bettaFfirst + bettaSecond + bettaThird;
+       res[i] = (-2*omega + WaveNum*WaveNum*betta/2) + I* (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);
+       res[i] = PI * 4 / (mrel[0]*mrel[0] - 1) - res[i];
+       res[i] = 8 * a * b * c/res[i]; */
+
+        res[i] = 3 * (mrel[0] * mrel[0] - 1) / (mrel[0] * mrel[0] + 2);
+        res[i] = dipvol / FOUR_PI * res[i] / (1 + res[i] * R0[i]);
+
+
+        //res[i] =FOUR_PI*a*b*c*(mrel[0]*mrel[0] - 1)/(3 + 3*L[i]*(mrel[0]*mrel[0] - 1));
+
+    }
+    if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+
+
+
 }
 
 //======================================================================================================================
@@ -262,25 +259,25 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 static void InitCC(const enum incpol which)
 // calculate cc, cc_sqrt, and chi_inv
 {
-	int i,j;
-	doublecomplex m;
+    int i, j;
+    doublecomplex m;
 
-	for(i=0;i<Nmat;i++) {
-		CoupleConstant(ref_index+Ncomp*i,which,cc[i]);
-		for(j=0;j<3;j++) cc_sqrt[i][j]=csqrt(cc[i][j]);
-		// chi_inv=1/(V*chi)=4*PI/(V(m^2-1)); for anisotropic - by components
-		for (j=0;j<Ncomp;j++) {
-			m=ref_index[Ncomp*i+j];
-			chi_inv[i][j]=FOUR_PI/(dipvol*(m*m-1));
-		}
-		// copy first component of chi_inv[i] into other two, if they are not calculated explicitly
-		if (!anisotropy) chi_inv[i][2]=chi_inv[i][1]=chi_inv[i][0];
-	}
+    for (i = 0; i < Nmat; i++) {
+        CoupleConstant(ref_index + Ncomp*i, which, cc[i]);
+        for (j = 0; j < 3; j++) cc_sqrt[i][j] = csqrt(cc[i][j]);
+        // chi_inv=1/(V*chi)=4*PI/(V(m^2-1)); for anisotropic - by components
+        for (j = 0; j < Ncomp; j++) {
+            m = ref_index[Ncomp * i + j];
+            chi_inv[i][j] = FOUR_PI / (dipvol * (m * m - 1));
+        }
+        // copy first component of chi_inv[i] into other two, if they are not calculated explicitly
+        if (!anisotropy) chi_inv[i][2] = chi_inv[i][1] = chi_inv[i][0];
+    }
 #ifdef OPENCL
-	/* this is done here, since InitCC can be run between different runs of the iterative solver; write is blocking to
-	 * ensure completion before function end
-	 */
-	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufcc_sqrt,CL_TRUE,0,sizeof(cc_sqrt),cc_sqrt,0,NULL,NULL));
+    /* this is done here, since InitCC can be run between different runs of the iterative solver; write is blocking to
+     * ensure completion before function end
+     */
+    CL_CH_ERR(clEnqueueWriteBuffer(command_queue, bufcc_sqrt, CL_TRUE, 0, sizeof (cc_sqrt), cc_sqrt, 0, NULL, NULL));
 #endif
 }
 
@@ -289,68 +286,67 @@ static void InitCC(const enum incpol which)
 static void calculate_one_orientation(double * restrict res)
 // performs calculation for one orientation; may do orientation averaging and put the result in res
 {
-	TIME_TYPE tstart;
+    TIME_TYPE tstart;
 
-	if (orient_avg) {
-		alph_deg=0;
-		InitRotation();
-		if (IFROOT) PrintBoth(logfile,"\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n",bet_deg,gam_deg);
-	}
+    if (orient_avg) {
+        alph_deg = 0;
+        InitRotation();
+        if (IFROOT) PrintBoth(logfile, "\nORIENTATION STEP beta="GFORMDEF" gamma="GFORMDEF"\n", bet_deg, gam_deg);
+    }
 
-	// calculate scattered field for y - polarized incident light
-	if (IFROOT) {
-		printf("\nhere we go, calc Y\n\n");
-		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
-	}
-	InitCC(INCPOL_Y);
-	// symR implies that prop is along z (in particle RF). Then it is fine for both definitions of scattering angles
-	if (symR && !scat_grid) {
-		if (CalculateE(INCPOL_Y,CE_PARPER)==CHP_EXIT) return;
-	}
-	else { // no rotational symmetry
-		/* TODO: in case of scat_grid we run twice to get the full electric field with incoming light polarized in X and
-		 * Y direction. In case of rotational symmetry this is not needed but requires lots more programming so we leave
-		 * this optimization to a later time.
-		 */
-		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
+    // calculate scattered field for y - polarized incident light
+    if (IFROOT) {
+        printf("\nhere we go, calc Y\n\n");
+        if (!orient_avg) fprintf(logfile, "\nhere we go, calc Y\n\n");
+    }
+    InitCC(INCPOL_Y);
+    // symR implies that prop is along z (in particle RF). Then it is fine for both definitions of scattering angles
+    if (symR && !scat_grid) {
+        if (CalculateE(INCPOL_Y, CE_PARPER) == CHP_EXIT) return;
+    } else { // no rotational symmetry
+        /* TODO: in case of scat_grid we run twice to get the full electric field with incoming light polarized in X and
+         * Y direction. In case of rotational symmetry this is not needed but requires lots more programming so we leave
+         * this optimization to a later time.
+         */
+        if (CalculateE(INCPOL_Y, CE_NORMAL) == CHP_EXIT) return;
 
-		if (IFROOT) {
-			printf("\nhere we go, calc X\n\n");
-			if (!orient_avg) fprintf(logfile,"\nhere we go, calc X\n\n");
-		}
-		if (PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
-		/* TO ADD NEW POLARIZABILITY FORMULATION
-		 * If new formulation depends on the incident polarization (unlikely) update the test above.
-		 */
+        if (IFROOT) {
+            printf("\nhere we go, calc X\n\n");
+            if (!orient_avg) fprintf(logfile, "\nhere we go, calc X\n\n");
+        }
+        if (PolRelation == POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
+        /* TO ADD NEW POLARIZABILITY FORMULATION
+         * If new formulation depends on the incident polarization (unlikely) update the test above.
+         */
 
-		if(CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
-	}
-	D("CalculateE finished");
-	MuellerMatrix();
-	D("MuellerMatrix finished");
-	if (IFROOT && orient_avg) {
-		tstart=GET_TIME();
-		if (store_mueller) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
-			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
-		memcpy(res,muel_alpha-2,2*sizeof(double));
-		D("Integration over alpha completed on root");
-		Timing_Integration += GET_TIME() - tstart;
-	}
-	TotalEval++;
+        if (CalculateE(INCPOL_X, CE_NORMAL) == CHP_EXIT) return;
+    }
+    D("CalculateE finished");
+    MuellerMatrix();
+    D("MuellerMatrix finished");
+    if (IFROOT && orient_avg) {
+        tstart = GET_TIME();
+        if (store_mueller) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
+                Romberg1D(parms_alpha, block_theta, muel_alpha, res + 2));
+        memcpy(res, muel_alpha - 2, 2 * sizeof (double));
+        D("Integration over alpha completed on root");
+        Timing_Integration += GET_TIME() - tstart;
+    }
+    TotalEval++;
 }
 
 //======================================================================================================================
 
-static double orient_integrand(int beta_i,int gamma_i, double * restrict res)
+static double orient_integrand(int beta_i, int gamma_i, double * restrict res)
 // function that provides interface with Romberg integration
 {
-	BcastOrient(&beta_i,&gamma_i,&finish_avg);
-	if (finish_avg) return 0;
+    BcastOrient(&beta_i, &gamma_i, &finish_avg);
+    if (finish_avg) return 0;
 
-	bet_deg=beta_int.val[beta_i];
-	gam_deg=gamma_int.val[gamma_i];
-	calculate_one_orientation(res);
-	return 0;
+    bet_deg = beta_int.val[beta_i];
+    gam_deg = gamma_int.val[gamma_i];
+    calculate_one_orientation(res);
+    return 0;
 }
 
 //======================================================================================================================
@@ -358,185 +354,185 @@ static double orient_integrand(int beta_i,int gamma_i, double * restrict res)
 static void AllocateEverything(void)
 // allocates a lot of arrays and performs memory analysis
 {
-	double tmp;
-	size_t temp_int;
-	double memmax;
+    double tmp;
+    size_t temp_int;
+    double memmax;
 
-	// redundant initialization to remove warnings
-	temp_int=0;
+    // redundant initialization to remove warnings
+    temp_int = 0;
 
-	/* It may be nice to initialize all pointers to NULL here, so that any pointer, which is not initialized below, will
-	 * surely stay NULL (independent of a particular compiler). But even without this forgetting to allocate a necessary
-	 * vector, will surely cause segmentation fault afterwards. So we do not implement these extra tests for now.
-	 */
-	// allocate all the memory
-	tmp=sizeof(doublecomplex)*(double)local_nRows;
-	if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
-		MALLOC_VECTOR(xvec,complex,local_nRows,ALL);
-		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
-		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
-		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
-		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
-	}
-	memory+=5*tmp;
+    /* It may be nice to initialize all pointers to NULL here, so that any pointer, which is not initialized below, will
+     * surely stay NULL (independent of a particular compiler). But even without this forgetting to allocate a necessary
+     * vector, will surely cause segmentation fault afterwards. So we do not implement these extra tests for now.
+     */
+    // allocate all the memory
+    tmp = sizeof (doublecomplex)*(double) local_nRows;
+    if (!prognosis) { // main 5 vectors, some of them are used in the iterative solver
+        MALLOC_VECTOR(xvec, complex, local_nRows, ALL);
+        MALLOC_VECTOR(rvec, complex, local_nRows, ALL);
+        MALLOC_VECTOR(pvec, complex, local_nRows, ALL);
+        MALLOC_VECTOR(Einc, complex, local_nRows, ALL);
+        MALLOC_VECTOR(Avecbuffer, complex, local_nRows, ALL);
+    }
+    memory += 5 * tmp;
 #ifdef SPARSE
-	if (!prognosis) { // overflow of 3*nvoid_Ndip is tested in MakeParticle()
-		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
-	}
-	memory+=3*nvoid_Ndip*sizeof(doublecomplex);
+    if (!prognosis) { // overflow of 3*nvoid_Ndip is tested in MakeParticle()
+        MALLOC_VECTOR(arg_full, complex, 3 * nvoid_Ndip, ALL);
+    }
+    memory += 3 * nvoid_Ndip * sizeof (doublecomplex);
 #endif // !SPARSE
-	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
-	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
-	 * this requires different order of function calls to extract this information beforehand. So currently this part
-	 * should be edited manually when needed.
-	 */
-	switch (IterMethod) {
-		case IT_BCGS2:
-			if (!prognosis) {
-				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec4,complex,local_nRows,ALL);
-			}
-			memory+=4*tmp;
-			break;
-		case IT_CGNR:
-		case IT_BICG_CS:
-			break;
-		case IT_BICGSTAB:
-		case IT_QMR_CS:
-			if (!prognosis) {
-				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec3,complex,local_nRows,ALL);
-			}
-			memory+=3*tmp;
-			break;
-		case IT_CSYM:
-		case IT_QMR_CS_2:
-			if (!prognosis) {
-				MALLOC_VECTOR(vec1,complex,local_nRows,ALL);
-				MALLOC_VECTOR(vec2,complex,local_nRows,ALL);
-			}
-			memory+=2*tmp;
-			break;
-	}
-	/* TO ADD NEW ITERATIVE SOLVER
-	 * Add here a case corresponding to the new iterative solver. If the new iterative solver requires any extra vectors
-	 * (additionally to the default ones), i.e. number vec_N in corresponding element of structure array params in
-	 * iterative.c is non-zero, then allocate memory for these vectors here. Variable memory should be incremented to
-	 * reflect the total allocated memory.
-	 */
+    /* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
+     * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
+     * this requires different order of function calls to extract this information beforehand. So currently this part
+     * should be edited manually when needed.
+     */
+    switch (IterMethod) {
+        case IT_BCGS2:
+            if (!prognosis) {
+                MALLOC_VECTOR(vec1, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec2, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec3, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec4, complex, local_nRows, ALL);
+            }
+            memory += 4 * tmp;
+            break;
+        case IT_CGNR:
+        case IT_BICG_CS:
+            break;
+        case IT_BICGSTAB:
+        case IT_QMR_CS:
+            if (!prognosis) {
+                MALLOC_VECTOR(vec1, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec2, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec3, complex, local_nRows, ALL);
+            }
+            memory += 3 * tmp;
+            break;
+        case IT_CSYM:
+        case IT_QMR_CS_2:
+            if (!prognosis) {
+                MALLOC_VECTOR(vec1, complex, local_nRows, ALL);
+                MALLOC_VECTOR(vec2, complex, local_nRows, ALL);
+            }
+            memory += 2 * tmp;
+            break;
+    }
+    /* TO ADD NEW ITERATIVE SOLVER
+     * Add here a case corresponding to the new iterative solver. If the new iterative solver requires any extra vectors
+     * (additionally to the default ones), i.e. number vec_N in corresponding element of structure array params in
+     * iterative.c is non-zero, then allocate memory for these vectors here. Variable memory should be incremented to
+     * reflect the total allocated memory.
+     */
 #ifndef SPARSE
-	MALLOC_VECTOR(expsX,complex,boxX,ALL);
-	MALLOC_VECTOR(expsY,complex,boxY,ALL);
-	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
+    MALLOC_VECTOR(expsX, complex, boxX, ALL);
+    MALLOC_VECTOR(expsY, complex, boxY, ALL);
+    MALLOC_VECTOR(expsZ, complex, local_Nz_unif, ALL);
 #endif // !SPARSE
-	if (yzplane) {
-		tmp=2*(double)nTheta;
-		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS_FUNC);
-			temp_int=tmp;
-			MALLOC_VECTOR(EyzplX,complex,temp_int,ALL);
-			MALLOC_VECTOR(EyzplY,complex,temp_int,ALL);
-		}
-		memory+=2*tmp*sizeof(doublecomplex);
-	}
-	if (scat_plane) {
-		tmp=2*(double)nTheta;
-		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS_FUNC);
-			temp_int=tmp;
-			MALLOC_VECTOR(EplaneX,complex,temp_int,ALL);
-			MALLOC_VECTOR(EplaneY,complex,temp_int,ALL);
-		}
-		memory+=2*tmp*sizeof(doublecomplex);
-	}
-	if (all_dir) {
-		ReadAlldirParms(alldir_parms);
-		/* calculate size of vectors; 4 - because first it is used to store per and par components of the field, and
-		 * only afterwards - squares.
-		 */
-		tmp=((double)theta_int.N)*phi_int.N;
-		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS_FUNC);
-			temp_int=tmp;
-			MALLOC_VECTOR(E_ad,complex,2*temp_int,ALL);
-			MALLOC_VECTOR(E2_alldir,double,temp_int,ALL);
-		}
-		memory+=tmp*(sizeof(double)+2*sizeof(doublecomplex));
-	}
-	if (scat_grid) {
-		ReadScatGridParms(scat_grid_parms);
-		// calculate size of vectors - holds all per-par combinations
-		tmp=2*(double)angles.N;
-		if (!prognosis) {
-			CheckOverflow(2*tmp,ONE_POS_FUNC);
-			temp_int=tmp;
-			MALLOC_VECTOR(EgridX,complex,temp_int,ALL);
-			MALLOC_VECTOR(EgridY,complex,temp_int,ALL);
-		}
-		memory+=2*tmp*sizeof(doublecomplex);
-		if (phi_integr && IFROOT) {
-			tmp=16*(double)angles.phi.N;
-			if (!prognosis) {
-				CheckOverflow(tmp,ONE_POS_FUNC);
-				temp_int=tmp;
-				MALLOC_VECTOR(muel_phi,double,temp_int,ONE);
-				MALLOC_VECTOR(muel_phi_buf,double,temp_int,ONE);
-			}
-			memory+=2*tmp*sizeof(double);
-		}
-	}
-	if (orient_avg) {
-		tmp=2*((double)nTheta)*alpha_int.N;
-		if (!prognosis) {
-			// this covers these 2 and next 2 malloc calls
-			CheckOverflow(8*tmp+2,ONE_POS_FUNC);
-			if (store_mueller) {
-				temp_int=tmp;
-				MALLOC_VECTOR(ampl_alphaX,complex,temp_int,ONE);
-				MALLOC_VECTOR(ampl_alphaY,complex,temp_int,ONE);
-			}
-		}
-		memory += 2*tmp*sizeof(doublecomplex);
-		if (IFROOT) {
-			if (!prognosis) {
-				MALLOC_VECTOR(muel_alpha,double,block_theta*alpha_int.N+2,ONE);
-				muel_alpha+=2;
-				MALLOC_VECTOR(out,double,block_theta+2,ONE);
-			}
-			memory += (8*tmp*(1+1.0/alpha_int.N)+4)*sizeof(double);
-		}
-	}
-	/* estimate of the memory (only the fastest scaling part):
-	 * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
-	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
-	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
-	 * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
-	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors).
-	 *    However, OpenCL may additionally use up to 96*min(32,gridX)*gridY*gridZ if available.
-	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
-	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
-	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
-	 *
-	 * Sparse mode - each processor needs (265--457, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
-	 *               and division is uniform, i.e. local_nvoid_Ndip = nvoid_Ndip/nprocs
-	 *               Sommerfeld table - same as above, but it is not divided among processors.
-	 *               Part of the memory is currently not distributed among processors - see issues 160,175.
-	 */
-	MAXIMIZE(memPeak,memory);
-	double memSum=AccumulateMax(memPeak,&memmax);
-	if (IFROOT) {
-		PrintBoth(logfile,"Total memory usage: "FFORMM" MB\n",memSum/MBYTE);
+    if (yzplane) {
+        tmp = 2 * (double) nTheta;
+        if (!prognosis) {
+            CheckOverflow(2 * tmp, ONE_POS_FUNC);
+            temp_int = tmp;
+            MALLOC_VECTOR(EyzplX, complex, temp_int, ALL);
+            MALLOC_VECTOR(EyzplY, complex, temp_int, ALL);
+        }
+        memory += 2 * tmp * sizeof (doublecomplex);
+    }
+    if (scat_plane) {
+        tmp = 2 * (double) nTheta;
+        if (!prognosis) {
+            CheckOverflow(2 * tmp, ONE_POS_FUNC);
+            temp_int = tmp;
+            MALLOC_VECTOR(EplaneX, complex, temp_int, ALL);
+            MALLOC_VECTOR(EplaneY, complex, temp_int, ALL);
+        }
+        memory += 2 * tmp * sizeof (doublecomplex);
+    }
+    if (all_dir) {
+        ReadAlldirParms(alldir_parms);
+        /* calculate size of vectors; 4 - because first it is used to store per and par components of the field, and
+         * only afterwards - squares.
+         */
+        tmp = ((double) theta_int.N) * phi_int.N;
+        if (!prognosis) {
+            CheckOverflow(2 * tmp, ONE_POS_FUNC);
+            temp_int = tmp;
+            MALLOC_VECTOR(E_ad, complex, 2 * temp_int, ALL);
+            MALLOC_VECTOR(E2_alldir, double, temp_int, ALL);
+        }
+        memory += tmp * (sizeof (double) + 2 * sizeof (doublecomplex));
+    }
+    if (scat_grid) {
+        ReadScatGridParms(scat_grid_parms);
+        // calculate size of vectors - holds all per-par combinations
+        tmp = 2 * (double) angles.N;
+        if (!prognosis) {
+            CheckOverflow(2 * tmp, ONE_POS_FUNC);
+            temp_int = tmp;
+            MALLOC_VECTOR(EgridX, complex, temp_int, ALL);
+            MALLOC_VECTOR(EgridY, complex, temp_int, ALL);
+        }
+        memory += 2 * tmp * sizeof (doublecomplex);
+        if (phi_integr && IFROOT) {
+            tmp = 16 * (double) angles.phi.N;
+            if (!prognosis) {
+                CheckOverflow(tmp, ONE_POS_FUNC);
+                temp_int = tmp;
+                MALLOC_VECTOR(muel_phi, double, temp_int, ONE);
+                MALLOC_VECTOR(muel_phi_buf, double, temp_int, ONE);
+            }
+            memory += 2 * tmp * sizeof (double);
+        }
+    }
+    if (orient_avg) {
+        tmp = 2 * ((double) nTheta) * alpha_int.N;
+        if (!prognosis) {
+            // this covers these 2 and next 2 malloc calls
+            CheckOverflow(8 * tmp + 2, ONE_POS_FUNC);
+            if (store_mueller) {
+                temp_int = tmp;
+                MALLOC_VECTOR(ampl_alphaX, complex, temp_int, ONE);
+                MALLOC_VECTOR(ampl_alphaY, complex, temp_int, ONE);
+            }
+        }
+        memory += 2 * tmp * sizeof (doublecomplex);
+        if (IFROOT) {
+            if (!prognosis) {
+                MALLOC_VECTOR(muel_alpha, double, block_theta * alpha_int.N + 2, ONE);
+                muel_alpha += 2;
+                MALLOC_VECTOR(out, double, block_theta + 2, ONE);
+            }
+            memory += (8 * tmp * (1 + 1.0 / alpha_int.N) + 4) * sizeof (double);
+        }
+    }
+    /* estimate of the memory (only the fastest scaling part):
+     * MatVec - (288+384nprocs/boxX [+192/nprocs])*Ndip
+     *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
+     * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
+     * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
+     *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors).
+     *    However, OpenCL may additionally use up to 96*min(32,gridX)*gridY*gridZ if available.
+     * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
+     *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
+     * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
+     *
+     * Sparse mode - each processor needs (265--457, depending on iterative solver)*local_nvoid_Ndip + 60*nvoid_Ndip
+     *               and division is uniform, i.e. local_nvoid_Ndip = nvoid_Ndip/nprocs
+     *               Sommerfeld table - same as above, but it is not divided among processors.
+     *               Part of the memory is currently not distributed among processors - see issues 160,175.
+     */
+    MAXIMIZE(memPeak, memory);
+    double memSum = AccumulateMax(memPeak, &memmax);
+    if (IFROOT) {
+        PrintBoth(logfile, "Total memory usage: "FFORMM" MB\n", memSum / MBYTE);
 #ifdef PARALLEL
-		PrintBoth(logfile,"Maximum memory usage of single processor: "FFORMM" MB\n",memmax/MBYTE);
+        PrintBoth(logfile, "Maximum memory usage of single processor: "FFORMM" MB\n", memmax / MBYTE);
 #endif
 #ifdef OPENCL
-		PrintBoth(logfile,"OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
-			oclMemPeak/MBYTE,oclMemMaxObj/MBYTE);
+        PrintBoth(logfile, "OpenCL memory usage: peak total - "FFORMM" MB, maximum object - "FFORMM" MB\n",
+                oclMemPeak / MBYTE, oclMemMaxObj / MBYTE);
 #endif
-	}
+    }
 }
 
 //======================================================================================================================
@@ -544,157 +540,152 @@ static void AllocateEverything(void)
 void FreeEverything(void)
 /* frees all allocated vectors; should not be called in prognosis mode, since arrays are not
  * actually allocated. Also called from matvec.c in PRECISE_TIMING.
- */
-{
-	FreeInteraction();
+ */ {
+    FreeInteraction();
 #ifndef SPARSE	
-	Free_FFT_Dmat();
-	Free_cVector(expsX);
-	Free_cVector(expsY);
-	Free_cVector(expsZ);
-	Free_general(position); // allocated in MakeParticle();
+    Free_FFT_Dmat();
+    Free_cVector(expsX);
+    Free_cVector(expsY);
+    Free_cVector(expsZ);
+    Free_general(position); // allocated in MakeParticle();
 #else	
-	Free_general(position_full); // allocated in MakeParticle();
-	Free_cVector(arg_full);
+    Free_general(position_full); // allocated in MakeParticle();
+    Free_cVector(arg_full);
 #endif // SPARSE
 
-	Free_cVector(xvec);
-	Free_cVector(rvec);
-	Free_cVector(pvec);
-	Free_cVector(Einc);
-	Free_cVector(Avecbuffer);
-	
-	/* The following can be automated to some extent, either using the information from structure array 'params' in
-	 * iterative.c or checking each vector for being NULL. However, it will anyway require manual editing if additional
-	 * (e.g. fourth) vector will be added.
-	 */
-	switch (IterMethod) {
-		case IT_BCGS2:
-			Free_cVector(vec1);
-			Free_cVector(vec2);
-			Free_cVector(vec3);
-			Free_cVector(vec4);
-			break;
-		case IT_CGNR:
-		case IT_BICG_CS:
-			break;
-		case IT_BICGSTAB:
-		case IT_QMR_CS:
-			Free_cVector(vec1);
-			Free_cVector(vec2);
-			Free_cVector(vec3);
-			break;
-		case IT_CSYM:
-		case IT_QMR_CS_2:
-			Free_cVector(vec1);
-			Free_cVector(vec2);
-			break;
-	}
-	/* TO ADD NEW ITERATIVE SOLVER
-	 * Add here a case corresponding to the new iterative solver. It should free the extra vectors that were allocated
-	 * in AllocateEverything() above.
-	 */
-	if (yzplane) {
-		Free_cVector(EyzplX);
-		Free_cVector(EyzplY);
-	}
-	if (scat_plane) {
-		Free_cVector(EplaneX);
-		Free_cVector(EplaneY);
-	}
-	if (all_dir) {
-		Free_general(theta_int.val);
-		Free_general(phi_int.val);
-		Free_cVector(E_ad);
-		Free_general(E2_alldir);
-	}
-	if (scat_grid) {
-		Free_general(angles.theta.val);
-		Free_general(angles.phi.val);
-		Free_cVector(EgridX);
-		Free_cVector(EgridY);
-		if (phi_integr && IFROOT) {
-			Free_general(muel_phi);
-			Free_general(muel_phi_buf);
-		}
-	}
-	// these 2 were allocated in MakeParticle
-	Free_general(DipoleCoord);
-	Free_general(material);
+    Free_cVector(xvec);
+    Free_cVector(rvec);
+    Free_cVector(pvec);
+    Free_cVector(Einc);
+    Free_cVector(Avecbuffer);
 
-	if (orient_avg) {
-		if (IFROOT) {
-			if (store_mueller) {
-				Free_cVector(ampl_alphaX);
-				Free_cVector(ampl_alphaY);
-			}
-			Free_general(muel_alpha-2);
-			Free_general(out);
-		}
-		Free_general(alpha_int.val);
-		Free_general(beta_int.val);
-		Free_general(gamma_int.val);
-	}
+    /* The following can be automated to some extent, either using the information from structure array 'params' in
+     * iterative.c or checking each vector for being NULL. However, it will anyway require manual editing if additional
+     * (e.g. fourth) vector will be added.
+     */
+    switch (IterMethod) {
+        case IT_BCGS2:
+            Free_cVector(vec1);
+            Free_cVector(vec2);
+            Free_cVector(vec3);
+            Free_cVector(vec4);
+            break;
+        case IT_CGNR:
+        case IT_BICG_CS:
+            break;
+        case IT_BICGSTAB:
+        case IT_QMR_CS:
+            Free_cVector(vec1);
+            Free_cVector(vec2);
+            Free_cVector(vec3);
+            break;
+        case IT_CSYM:
+        case IT_QMR_CS_2:
+            Free_cVector(vec1);
+            Free_cVector(vec2);
+            break;
+    }
+    /* TO ADD NEW ITERATIVE SOLVER
+     * Add here a case corresponding to the new iterative solver. It should free the extra vectors that were allocated
+     * in AllocateEverything() above.
+     */
+    if (yzplane) {
+        Free_cVector(EyzplX);
+        Free_cVector(EyzplY);
+    }
+    if (scat_plane) {
+        Free_cVector(EplaneX);
+        Free_cVector(EplaneY);
+    }
+    if (all_dir) {
+        Free_general(theta_int.val);
+        Free_general(phi_int.val);
+        Free_cVector(E_ad);
+        Free_general(E2_alldir);
+    }
+    if (scat_grid) {
+        Free_general(angles.theta.val);
+        Free_general(angles.phi.val);
+        Free_cVector(EgridX);
+        Free_cVector(EgridY);
+        if (phi_integr && IFROOT) {
+            Free_general(muel_phi);
+            Free_general(muel_phi_buf);
+        }
+    }
+    // these 2 were allocated in MakeParticle
+    Free_general(DipoleCoord);
+    Free_general(material);
+
+    if (orient_avg) {
+        if (IFROOT) {
+            if (store_mueller) {
+                Free_cVector(ampl_alphaX);
+                Free_cVector(ampl_alphaY);
+            }
+            Free_general(muel_alpha - 2);
+            Free_general(out);
+        }
+        Free_general(alpha_int.val);
+        Free_general(beta_int.val);
+        Free_general(gamma_int.val);
+    }
 #ifdef OPENCL
-	oclunload();
+    oclunload();
 #endif
 }
 
 //======================================================================================================================
 
-void Calculator (void)
-{
-	char fname[MAX_FNAME];
+void Calculator(void) {
+    char fname[MAX_FNAME];
 
-	// initialize variables
+    // initialize variables
 #ifdef OPENCL
-	TIME_TYPE start_ocl_init=GET_TIME();
-	oclinit();
-	Timing_OCL_Init=GET_TIME()-start_ocl_init;
+    TIME_TYPE start_ocl_init = GET_TIME();
+    oclinit();
+    Timing_OCL_Init = GET_TIME() - start_ocl_init;
 #endif
 
-	if (nTheta!=0) {
-		dtheta_deg = 180.0 / ((double)(nTheta-1));
-		dtheta_rad = Deg2Rad(dtheta_deg);
-		block_theta= 16*(size_t)nTheta;
-		if (TestExtendThetaRange()) nTheta=2*(nTheta-1);
-	}
-	else dtheta_deg=dtheta_rad=block_theta=0;
-	finish_avg=false;
-	// Do preliminary setup for MatVec
-	TIME_TYPE startInitInt=GET_TIME();
-	InitInteraction();
-	Timing_Init_Int=GET_TIME()-startInitInt;
+    if (nTheta != 0) {
+        dtheta_deg = 180.0 / ((double) (nTheta - 1));
+        dtheta_rad = Deg2Rad(dtheta_deg);
+        block_theta = 16 * (size_t) nTheta;
+        if (TestExtendThetaRange()) nTheta = 2 * (nTheta - 1);
+    } else dtheta_deg = dtheta_rad = block_theta = 0;
+    finish_avg = false;
+    // Do preliminary setup for MatVec
+    TIME_TYPE startInitInt = GET_TIME();
+    InitInteraction();
+    Timing_Init_Int = GET_TIME() - startInitInt;
 #ifndef SPARSE
-	// initialize D matrix (for matrix-vector multiplication)
-	D("InitDmatrix started");
-	InitDmatrix();
-	D("InitDmatrix finished");
+    // initialize D matrix (for matrix-vector multiplication)
+    D("InitDmatrix started");
+    InitDmatrix();
+    D("InitDmatrix finished");
 #endif // !SPARSE
-	// allocate most (that is not already allocated; perform memory analysis
-	AllocateEverything();
-	// finish initialization
-	if (!orient_avg) alpha_int.N=1;
-	Timing_Init = GET_TIME() - tstart_main;
-	// prognosis stops here
-	if (prognosis) return;
-	// main calculation part
-	if (orient_avg) {
-		if (IFROOT) {
-			SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_LOG_ORAVG,directory);
-			D("Romberg2D started on root");
-			Romberg2D(parms,orient_integrand,block_theta+2,out,fname);
-			D("Romberg2D finished on root");
-			finish_avg=true;
-			/* first two are dummy variables; this call corresponds to one in orient_integrand by other processors;
-			 * TODO: replace by a call without unnecessary overhead
-			 */
-			BcastOrient(&finish_avg,&finish_avg,&finish_avg);
-			SaveMuellerAndCS(out);
-		}
-		else while (!finish_avg) orient_integrand(0,0,NULL);
-	}
-	else calculate_one_orientation(NULL);
-	// cleaning
-	FreeEverything();
+    // allocate most (that is not already allocated; perform memory analysis
+    AllocateEverything();
+    // finish initialization
+    if (!orient_avg) alpha_int.N = 1;
+    Timing_Init = GET_TIME() - tstart_main;
+    // prognosis stops here
+    if (prognosis) return;
+    // main calculation part
+    if (orient_avg) {
+        if (IFROOT) {
+            SnprintfErr(ONE_POS, fname, MAX_FNAME, "%s/"F_LOG_ORAVG, directory);
+            D("Romberg2D started on root");
+            Romberg2D(parms, orient_integrand, block_theta + 2, out, fname);
+            D("Romberg2D finished on root");
+            finish_avg = true;
+            /* first two are dummy variables; this call corresponds to one in orient_integrand by other processors;
+             * TODO: replace by a call without unnecessary overhead
+             */
+            BcastOrient(&finish_avg, &finish_avg, &finish_avg);
+            SaveMuellerAndCS(out);
+        } else while (!finish_avg) orient_integrand(0, 0, NULL);
+    } else calculate_one_orientation(NULL);
+    // cleaning
+    FreeEverything();
 }

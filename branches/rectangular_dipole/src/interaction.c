@@ -149,9 +149,15 @@ void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex resu
 static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static 3])
 // initialize real vector with integer values
 {
+    #ifndef SPARSE       
+        qvec[0]=i*(rectScaleX);
+	qvec[1]=j*(rectScaleY);
+	qvec[2]=k*(rectScaleZ);
+#else
 	qvec[0]=i;
 	qvec[1]=j;
 	qvec[2]=k;
+   #endif   
 }
 
 //=====================================================================================================================
