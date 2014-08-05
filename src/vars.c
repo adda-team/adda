@@ -21,6 +21,7 @@
 
 // basic variables
 double rectScaleX,rectScaleY,rectScaleZ; //rectangular dipole params
+double gridSpaceX,gridSpaceY,gridSpaceZ; //rectangular dipole params
 double R0[3];// Drane polarizability correction, see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle

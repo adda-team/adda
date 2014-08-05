@@ -67,7 +67,7 @@ static __m128d exptbl[361];
 
 #ifndef NO_FORTRAN
 // fort/propaesplibreintadda.f
-void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,const double *relreq,
+void propaespacelibreintadda_(const double *Rij,const double *ka,const double *gridspacex,const double *gridspacey,const double *gridspacez,const double *relreq,
 	double *result);
 #endif
 // sinint.c
@@ -967,7 +967,7 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
 		 */
-		propaespacelibreintadda_(qvec,&WaveNum,&gridspace,&igt_eps,tmp);
+		propaespacelibreintadda_(qvec,&WaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp);
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {

@@ -31,6 +31,7 @@
 
 // basic variables
 extern double rectScaleX,rectScaleY,rectScaleZ; 
+extern double gridSpaceX,gridSpaceY,gridSpaceZ;
 extern double R0[3];
 
 extern int boxX,boxY,boxZ;

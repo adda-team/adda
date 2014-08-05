@@ -173,24 +173,26 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */ {
     int i;
-    i = (int)which;//temporary action. Reason is to delete warning
-    /*double a, b, c;
+    i = (int) which; //temporary action. Reason is to delete warning
+    double a, b, c;
     double omega;
-    double betta, bettaFfirst, bettaSecond, bettaThird;*/
+    double betta, bettaFfirst, bettaSecond, bettaThird;
     double factor = rectScaleX * rectScaleY*rectScaleZ;
 #define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<0.00001)
 #define SET_PRECALC_2DIFF_VALS(scale,val,val_other) {if(IS_DOUBLE_EQAL(scale,rectScaleX)){R0[0]=val; R0[1]=val_other;R0[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleY)) {R0[0]=val_other; R0[1]=val;R0[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleZ)) {R0[0]=val_other; R0[1]=val_other;R0[2]= val;} else LogError(ONE_POS, "Unpredictable value for rectangular dipole: %.1f", scale); }
 #define SET_PRECALC_3DIFF_VALLS(scale1,scale2,scale3,val1,val2,val3) {if(IS_DOUBLE_EQAL(scale1,rectScaleX)) if(IS_DOUBLE_EQAL(scale2,rectScaleY)){R0[0]=val1; R0[1]=val2;R0[2]= val3;} else {R0[0]=val1; R0[1]=val3;R0[2]= val2;} else if(IS_DOUBLE_EQAL(scale2,rectScaleX)) if(IS_DOUBLE_EQAL(scale1,rectScaleY)){R0[0]=val2; R0[1]=val1;R0[2]= val3;} else {R0[0]=val2; R0[1]=val3;R0[2]= val1;}else { if(IS_DOUBLE_EQAL(scale1,rectScaleY)){R0[0]=val3; R0[1]=val1;R0[2]= val2;} else {R0[0]=val3; R0[1]=val2;R0[2]= val1;}}}
-    
+
     if (IS_DOUBLE_EQAL(1, factor)) {
-        R0[0]=0;R0[1]=0;R0[2]=0;
+        R0[0] = 0;
+        R0[1] = 0;
+        R0[2] = 0;
     } else if (IS_DOUBLE_EQAL(1.5, factor)) {
         SET_PRECALC_2DIFF_VALS(1.5, -0.40851, 0.20426)
     } else if (IS_DOUBLE_EQAL(2.25, factor)) {
         SET_PRECALC_2DIFF_VALS(1.0, 0.52383, -0.26192)
     } else if (IS_DOUBLE_EQAL(2, factor)) {
         SET_PRECALC_2DIFF_VALS(2.0, -0.77090, 0.38545)
-    } else if (IS_DOUBLE_EQAL(3, factor)&&(!IS_DOUBLE_EQAL(3, rectScaleX) || !IS_DOUBLE_EQAL(3, rectScaleY) || !IS_DOUBLE_EQAL(3, rectScaleZ))) {
+    } else if (IS_DOUBLE_EQAL(3, factor)&&(!IS_DOUBLE_EQAL(3, rectScaleX) && !IS_DOUBLE_EQAL(3, rectScaleY) && !IS_DOUBLE_EQAL(3, rectScaleZ))) {
         SET_PRECALC_3DIFF_VALLS(1, 1.5, 2, 0.81199, -0.21028, -0.60172)
     } else if (IS_DOUBLE_EQAL(3, factor)) {
         SET_PRECALC_2DIFF_VALS(3., -1.48995, 0.74498)
@@ -211,40 +213,36 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
 
 
     for (i = 0; i < 3; i++) {
-        /*if (i == 0)
-       {
-           a = gridspace * rectScaleX * 0.5;
-           b = gridspace * rectScaleY * 0.5;
-           c = gridspace * rectScaleZ * 0.5;
-       }
-      else if (i == 1)
-       {
-           a = gridspace * rectScaleY * 0.5;
-           b = gridspace * rectScaleX * 0.5;
-           c = gridspace * rectScaleZ * 0.5;
-               
-       }
-       else
-       {
-           a = gridspace * rectScaleZ * 0.5;
-           b = gridspace * rectScaleY * 0.5;
-           c = gridspace * rectScaleX * 0.5;
-             
-       }
-       omega = 4* asin(b*c/sqrt((a*a + b*b)*(a*a + c*c)));
-       bettaFfirst = 8*a*b*log(1 + 2*c/sqrt(a*a + b*b + c*c));
-       bettaSecond = 16*a*b*b/sqrt(a*a + b*b)*atan(c/sqrt(a*a + b*b));
-       bettaThird = 4*a*a*a*a*atan(c/a) - 2*a*a*b*b*atan(c/a) - 2*a*b*b*c;
-       bettaThird *= 2*b/a/(a*a + c*c);
-       betta =  bettaFfirst + bettaSecond + bettaThird;
-       res[i] = (-2*omega + WaveNum*WaveNum*betta/2) + I* (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);
-       res[i] = PI * 4 / (mrel[0]*mrel[0] - 1) - res[i];
-       res[i] = 8 * a * b * c/res[i]; */
+        if (IntRelation == G_IGT) {
+            if (i == 0) {
+                a = gridspace * rectScaleX * 0.5;
+                b = gridspace * rectScaleY * 0.5;
+                c = gridspace * rectScaleZ * 0.5;
+            } else if (i == 1) {
+                a = gridspace * rectScaleY * 0.5;
+                b = gridspace * rectScaleX * 0.5;
+                c = gridspace * rectScaleZ * 0.5;
 
-        res[i] = 3 * (mrel[0] * mrel[0] - 1) / (mrel[0] * mrel[0] + 2);
-        res[i] = dipvol / FOUR_PI * res[i] / (1 + res[i] * R0[i]);
+            } else {
+                a = gridspace * rectScaleZ * 0.5;
+                b = gridspace * rectScaleY * 0.5;
+                c = gridspace * rectScaleX * 0.5;
 
+            }
+            omega = 4 * asin(b * c / sqrt((a * a + b * b)*(a * a + c * c)));
+            bettaFfirst = 8 * a * b * log(1 + 2 * c / sqrt(a * a + b * b + c * c));
+            bettaSecond = 16 * a * b * b / sqrt(a * a + b * b) * atan(c / sqrt(a * a + b * b));
+            bettaThird = 4 * a * a * a * a * atan(c / a) - 2 * a * a * b * b * atan(c / a) - 2 * a * b * b*c;
+            bettaThird *= 2 * b / a / (a * a + c * c);
+            betta = bettaFfirst + bettaSecond + bettaThird;
+            res[i] = (-2 * omega + WaveNum * WaveNum * betta / 2) + I * (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);
+            res[i] = PI * 4 / (mrel[0] * mrel[0] - 1) - res[i];
+            res[i] = 8 * a * b * c / res[i];
+        } else {
+            res[i] = 3 * (mrel[0] * mrel[0] - 1) / (mrel[0] * mrel[0] + 2);
+            res[i] = dipvol / FOUR_PI * res[i] / (1 + res[i] * R0[i]);
 
+        }
         //res[i] =FOUR_PI*a*b*c*(mrel[0]*mrel[0] - 1)/(3 + 3*L[i]*(mrel[0]*mrel[0] - 1));
 
     }
