@@ -1388,8 +1388,8 @@ void InitShape(void)
 			}
 			coat_r2=0.25*coat_ratio*coat_ratio;
 			hdratio=diskratio/2.0;
-			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
-			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
+			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
+			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=2;
@@ -1435,7 +1435,7 @@ void InitShape(void)
 			zcenter2=aspectZ*invmaxX/2;
 			boundZ=zcenter1+zcenter2;
 			// set box and volume ratios
-			volume_ratio=PI_OVER_SIX*(aspectY*aspectZ+aspectY2sc*aspectZ2sc*aspectXs)*invmaxX*invmaxX*invmaxX;
+			volume_ratio=PI_OVER_SIX*(aspectY*aspectZ+aspectY2sc*aspectZ2sc*aspectXs)*invmaxX*invmaxX*invmaxX/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=MAX(aspectY,aspectY2sc)*invmaxX;
 			zx_ratio=(aspectZ+aspectZ2sc)*invmaxX;
 			Nmat_need=2;
@@ -1451,8 +1451,8 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2.0;
-			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
-			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
+			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
+			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=1;
@@ -1479,7 +1479,7 @@ void InitShape(void)
 			// set half-aspect ratios
 			haspY=aspectY/2;
 			haspZ=aspectZ/2;
-			volume_ratio=aspectY*aspectZ;
+			volume_ratio=aspectY*aspectZ/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=aspectY;
 			zx_ratio=aspectZ;
 			Nmat_need=1;
@@ -1495,7 +1495,7 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", cylinder height h/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2;
-			volume_ratio = PI_OVER_FOUR*diskratio + PI_OVER_SIX;
+			volume_ratio = (PI_OVER_FOUR*diskratio + PI_OVER_SIX)/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=1;
@@ -1550,7 +1550,7 @@ void InitShape(void)
 			else coat_x=coat_y=coat_z=0; // initialize default values
 			if (IFROOT) sh_form_str2=buf;
 			coat_r2=0.25*coat_ratio*coat_ratio;
-			volume_ratio=PI_OVER_SIX;
+			volume_ratio=PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
 			if (coat_x!=0) symX=symR=false;
 			if (coat_y!=0) symY=symR=false;
 			if (coat_z!=0) symZ=false;
@@ -1609,7 +1609,7 @@ void InitShape(void)
 			 */
 			zcenter=ad*egnu*(tmp1*tmp1*tmp2*tmp2)/(tmp1+tmp2);
 			// (V/d^3)=(4*pi/3)*(a/d)^3*{[2(1-eps)-nu]/sqrt(eps+nu)+[2(1-eps)+nu]/sqrt(eps-nu)}/[nu^2+4(1-eps)]
-			volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)/(egnu*egnu+2*tmp3);
+			volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)/(egnu*egnu+2*tmp3)/ rectScaleX/rectScaleY/rectScaleZ;
 			if (IFROOT) {
 				sh_form_str1="egg; diameter(d):";
 				sh_form_str2=dyn_sprintf(", epsilon="GFORM", nu="GFORM", a/d="GFORM,egeps,egnu,ad);
@@ -1634,7 +1634,7 @@ void InitShape(void)
 			// set inverse squares of aspect ratios
 			invsqY=1/(aspectY*aspectY);
 			invsqZ=1/(aspectZ*aspectZ);
-			volume_ratio=PI_OVER_SIX*aspectY*aspectZ;
+			volume_ratio=PI_OVER_SIX*aspectY*aspectZ/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=aspectY;
 			zx_ratio=aspectZ;
 			Nmat_need=1;
@@ -1657,7 +1657,7 @@ void InitShape(void)
 				sh_form_str1="plate; full diameter(d):";
 				sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
 			}
-			volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24;
+			volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24/ rectScaleX/rectScaleY/rectScaleZ;
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1705,7 +1705,7 @@ void InitShape(void)
 			hdratio=zx_ratio/2;
 			rc_2=Rc*Rc/(Dx*Dx);
 			ri_2=Ri*Ri/(Dx*Dx);
-			volume_ratio=hdratio*Nsides*Ri/(Dx*Dx);
+			volume_ratio=hdratio*Nsides*Ri/(Dx*Dx)/ rectScaleX/rectScaleY/rectScaleZ;
 			Nmat_need=1;
 			break;
 		}
@@ -1766,7 +1766,7 @@ void InitShape(void)
 			}
 			coat_r2=0.25*coat_ratio*coat_ratio;
 			yx_ratio=zx_ratio=1;
-			volume_ratio=1;
+			volume_ratio=1/ rectScaleX/rectScaleY/rectScaleZ;
 			Nmat_need=2;
 			break;
 		}
@@ -2209,6 +2209,9 @@ void MakeParticle(void)
 		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
 	// initialize gridspace and dipvol
 	gridspace=lambda/dpl;
+        gridSpaceX=gridspace*rectScaleX;
+        gridSpaceY=gridspace*rectScaleY;
+        gridSpaceZ=gridspace*rectScaleZ;
 	dipvol=gridspace*gridspace*gridspace*rectScaleX*rectScaleY*rectScaleZ;
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl;
