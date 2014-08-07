@@ -21,6 +21,7 @@
 
 # Depending on a particular OpenCL installation one may need to manually specify paths to corresponding headers and
 # libraries. Path should be absolute or relative to the location of this Makefile.
+# On Windows it is also possible to link to OpenCL.dll directly.
 #CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
 #LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
 
@@ -43,8 +44,9 @@ else # the following is only for non-sparse mode
   else # AMD clFFT flags
     # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
+    # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
-    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
+    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\bin64"
   
     LDLIBS += -lclAmdFft.Runtime
     # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
@@ -61,8 +63,9 @@ else # the following is only for non-sparse mode
   ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
     # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
+    # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdBlas\include"
-    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\lib64\import"
+    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\bin64"
     
     LDLIBS += -lclAmdBlas
     CFLAGS += -DOCL_BLAS
