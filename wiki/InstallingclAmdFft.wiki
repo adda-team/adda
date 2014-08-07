@@ -32,5 +32,5 @@ If you want to compile `adda_ocl` on Windows yourself, proceed further:
  * [http://developer.amd.com/tools/heterogeneous-computing/amd-accelerated-parallel-processing-math-libraries/ Download] the installer of `clAmdFft` for Windows and install it. The default installation directory is `C:\Program Files (x86)\AMD\clAmdFft` or `C:\Program Files\AMD\clAmdFft`.
  * Add `bin64` or `bin32` (depending on the Windows bitness) subdirectory in the installation directory to Windows environmental variable `PATH`
  * Either 
-   * specify paths to `include` and `lib64/import` (or `lib32/import`) subdirectories of the install directory in file `src/ocl/Makefile`, as described in [CompilingADDA].
-   * or copy contents of these folders to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment].
+   * specify paths to `include` and `bin64` (or `bin32`) subdirectories of the install directory in file `src/ocl/Makefile`, as described in [CompilingADDA]. The compiler will link directly to *.dll (instead of *.lib).
+   * or copy contents of `include` folder and `clAmdFft.Runtime.dll` of `bin` folder to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment].

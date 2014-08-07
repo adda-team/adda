@@ -28,13 +28,13 @@ If you just want to use [PackageDescription#Windows_executables ADDA executables
 
 If you want to compile `ADDA` on Windows yourself, [http://www.fftw.org/install/windows.html install FFTW3 on Windows]. Although building `FFTW3` from source is possible, a recommended simpler way is the following:
  * Download a [http://www.fftw.org/install/windows.html precompiled package] (32 or 64-bit), containing DLLs and header files. It contains a lot of files, some of which are needed for compilation in, e.g., Microsoft Visual Studio. However, we discuss below compilation by GNU compilers using the [InstallingMinGW MinGW environment]. For that you need only `fftw3.h` and `libfftw3-3.dll`.
- * Create a copy of `libfftw3-3.dll` and rename it to `libfftw3.dll.a`. On Windows Vista and newer you may instead create a symbolic link (administrator privileges may be required for that)
+ * Create a copy of `libfftw3-3.dll` and rename it to `libfftw3.dll`. On Windows Vista and newer you may instead create a symbolic link (administrator privileges may be required for that)
 {{{
-mklink libfftw3.dll.a libfftw3-3.dll
+mklink libfftw3.dll libfftw3-3.dll
 }}}
  This is required because the `FFTW3` DLL package do not contain appropriate import-library file to use during linking. The DLL itself can be used for that, but it needs to be named a little bit differently to be automatically found by the linker.
  * Either 
-   * modify the initialization of internal variables `FFTW3_INC_PATH` and `FFTW3_LIB_PATH` in the `Makefile` to point to the directory(ies) contating `fftw3.h` and `libfftw3.dll.a` respectively (see [CompilingADDA]).
+   * modify the initialization of internal variables `FFTW3_INC_PATH` and `FFTW3_LIB_PATH` in the `Makefile` to point to the directory(ies) contating `fftw3.h` and `libfftw3.dll` respectively (see [CompilingADDA]).
    * or move these files to corresponding `include` and `lib` folders of the [InstallingMinGW#Advanced_options MinGW/MSYS environment].
  * To avoid need to move `libfftw3-3.dll` together with `ADDA` executables, either
    * add folder with `libfftw3-3.dll` to Windows environmental variable `PATH`

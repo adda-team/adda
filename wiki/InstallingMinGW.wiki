@@ -99,22 +99,22 @@ Below we describe additional steps to set up the environment on 64-bit Windows 7
  * Create symbolic links (with administrative privileges):
 {{{
 cd C:\MinGW\MSYS\1.0\local
-mklink lib32\libfftw3.dll.a C:\Windows\SysWOW64\libfftw3-3.dll
-mklink lib\libfftw3.dll.a C:\Windows\System32\libfftw3-3.dll
+mklink lib32\libfftw3.dll C:\Windows\SysWOW64\libfftw3-3.dll
+mklink lib\libfftw3.dll C:\Windows\System32\libfftw3-3.dll
 mklink /D include\mpich2 "C:\Program Files\MPICH2\include"
 mklink /D include\mpich2_32 "C:\Program Files (x86)\MPICH2\include"
 mklink /D lib\mpich2 "C:\Program Files\MPICH2\lib"
 mklink /D lib32\mpich2 "C:\Program Files (x86)\MPICH2\lib"
-mklink lib32\libOpenCL.dll.a C:\Windows\SysWOW64\OpenCL.dll
-mklink lib\libOpenCL.dll.a C:\Windows\System32\OpenCL.dll
+mklink lib32\OpenCL.dll C:\Windows\SysWOW64\OpenCL.dll
+mklink lib\OpenCL.dll C:\Windows\System32\OpenCL.dll
 mklink /D include\clAmdFft "C:\Program Files (x86)\AMD\clAmdFft\include\"
-mklink lib32\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib32\import\clAmdFft.Runtime.lib"
-mklink lib\clAmdFft.Runtime.lib "C:\Program Files (x86)\AMD\clAmdFft\lib64\import\clAmdFft.Runtime.lib"
+mklink lib32\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin32\clAmdFft.Runtime.dll"
+mklink lib\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin64\clAmdFft.Runtime.dll"
 mklink C:\Windows\SysWOW64\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin32\clAmdFft.Runtime.dll"
 mklink C:\Windows\System32\clAmdFft.Runtime.dll "C:\Program Files (x86)\AMD\clAmdFft\bin64\clAmdFft.Runtime.dll"
 mklink /D include\clAmdBlas "C:\Program Files (x86)\AMD\clAmdBlas\include\"
-mklink lib32\clAmdBlas.lib "C:\Program Files (x86)\AMD\clAmdBlas\lib32\import\clAmdBlas.lib"
-mklink lib\clAmdBlas.lib "C:\Program Files (x86)\AMD\clAmdBlas\lib64\import\clAmdBlas.lib"
+mklink lib32\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin32\clAmdBlas.dll"
+mklink lib\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin64\clAmdBlas.dll"
 mklink C:\Windows\SysWOW64\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin32\clAmdBlas.dll"
 mklink C:\Windows\System32\clAmdBlas.dll "C:\Program Files (x86)\AMD\clAmdBlas\bin64\clAmdBlas.dll"
 }}}
