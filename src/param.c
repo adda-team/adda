@@ -546,13 +546,16 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr|cm_rect|cldr_rect|igt_rect [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
+                "'cldr_rect' - Corrected LDR for ractangular lattice, incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
+                "'cm_rect' - Clausius-Mossotti for rectangular lattice.\n"
 		"'dgf' - Digitized Green's Function (second order approximation to LAK).\n"
 		"'fcd' - Filtered Coupled Dipoles (requires dpl to be larger than 2).\n"
 		"'igt_so' - Integration of Green's Tensor over a cube (second order approximation).\n"
+                "'igt_rect' - Integration of Green's Tensor over a rectangular dipole.\n"
 		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
@@ -1322,10 +1325,13 @@ PARSE_FUNC(pol)
 
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+	else if (strcmp(argv[1],"cldr_rect")==0) PolRelation=POL_CLDR_RECT;
+        else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+        else if (strcmp(argv[1],"cm_rect")==0) PolRelation=POL_CM_RECT;
 	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
+        else if (strcmp(argv[1],"igt_rect")==0) PolRelation=POL_IGT_RECT;
 	else if (strcmp(argv[1],"lak")==0) PolRelation=POL_LAK;
 	else if (strcmp(argv[1],"ldr")==0) {
 		PolRelation=POL_LDR;
@@ -1410,7 +1416,7 @@ PARSE_FUNC(rect_dip)
         printf("\n");
         #undef SET_PRECALC_VALUE 
         #undef IS_EQUAL_VALUE    
-        
+        isUseRect = true;
         
 }
 
@@ -1859,6 +1865,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+        isUseRect = false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
@@ -1879,7 +1886,7 @@ void InitVariables(void)
 	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
-	PolRelation=POL_LDR;
+	PolRelation=POL_CM_RECT;//temporary
 	avg_inc_pol=false;
 	ScatRelation=SQ_DRAINE;
 	IntRelation=G_POINT_DIP;
@@ -2171,6 +2178,25 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
+        
+        if(isUseRect){
+            if(PolRelation!=POL_CLDR_RECT && PolRelation!=POL_CM_RECT && PolRelation!=POL_IGT_RECT){
+                PrintBoth(logfile, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  Postfix '_rect' is necessary for rectangular dipoles(example: cm_rect, cldr_rect, igt_rect).");
+            }else{
+                if(PolRelation!=POL_IGT_RECT && IntRelation == G_IGT){
+                    PrintBoth(logfile, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_rect ...' ");
+                }
+            
+            }
+        
+
+        
+        }
+        
+        
+        
+        
+        
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)
@@ -2403,11 +2429,14 @@ void PrintInfo(void)
 		// log polarizability relation
 		fprintf(logfile,"Polarizability relation: ");
 		switch (PolRelation) {
+                        case POL_CLDR_RECT: fprintf(logfile,"'Corrected Lattice Dispersion Relation for rectangular lattice'\n"); break;
+			case POL_CM_RECT: fprintf(logfile,"'Clausius-Mossotti  for rectangular lattice'\n"); break;
 			case POL_CLDR: fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n"); break;
 			case POL_CM: fprintf(logfile,"'Clausius-Mossotti'\n"); break;
 			case POL_DGF: fprintf(logfile,"'Digitized Green's Function'\n"); break;
 			case POL_FCD: fprintf(logfile,"'Filtered Coupled Dipoles'\n"); break;
 			case POL_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
+                        case POL_IGT_RECT: fprintf(logfile,"'Integration of Green's Tensor for rectangular lattice'\n"); break;
 			case POL_LAK: fprintf(logfile,"'by Lakhtakia'\n"); break;
 			case POL_LDR:
 				fprintf(logfile,"'Lattice Dispersion Relation'");

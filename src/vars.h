@@ -30,9 +30,10 @@
 #include <time.h>    // for time_t
 
 // basic variables
+bool isUseRect;
 extern double rectScaleX,rectScaleY,rectScaleZ; 
 extern double gridSpaceX,gridSpaceY,gridSpaceZ;
-extern double R0[3];
+extern double  R0_Drane[3],R1_Drane,R2_Drane[3],R3_diag_Drane[3],R3_non_diag_Drane[3];
 
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;

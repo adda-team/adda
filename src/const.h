@@ -193,7 +193,10 @@ enum pol { // which way to calculate coupleconstant
 	POL_NLOC,    // non-local extension (Gaussian dipole-density, formula based on lattice sums)
 	POL_NLOC_AV, // same as NLOC, but based on averaging of Gaussian over the dipole volume
 	POL_RRC,     // Radiative Reaction correction
-	POL_SO       // Second Order formulation
+	POL_SO,      // Second Order formulation
+        POL_CM_RECT, // Clausius-Mossotti for rectancular lattice
+        POL_CLDR_RECT,// Corrected Lattice Dispersion Relation for rectancular lattice
+        POL_IGT_RECT// Massa formulation for rectangular dipole
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add an identifier starting with 'POL_' and a descriptive comment to this list in the alphabetical order.
 	 */
