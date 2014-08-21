@@ -4,7 +4,8 @@ Below we list journal papers that use results of simulations using `ADDA`. Those
 
 <wiki:toc />
 
-= 2014 (4) =
+= 2014 (5) =
+ # A. Wang, T.G. Dimiduk, J. Fung, S. Razavi, I. Kretzschmar, K. Chaudhary and V. N. Manoharan, "Using the discrete dipole approximation and holographic microscopy to measure rotational dynamics of non-spherical colloidal particles", [http://dx.doi.org/10.1016/j.jqsrt.2013.12.019 J. Quant. Spectrosc. Radiat. Transfer 146, 499-509 (2014)].
  # H. Lindqvist, O. Jokinen, K. Kandler, D. Scheuvens, and T. Nousiainen, “Single scattering by realistic, inhomogeneous mineral dust particles with stereogrammetric shapes,” [http://dx.doi.org/10.5194/acp-14-143-2014 Atmos. Chem. Phys. 14, 143–157 (2014)].
  # E. Massa, T. Roschuk, S. A. Maier, and V. Giannini, “Discrete-dipole approximation on a rectangular cuboidal point lattice: considering dynamic depolarization,” [http://dx.doi.org/10.1364/JOSAA.31.000135 J. Opt. Soc. Am. A 31, 135–140 (2014)].
  # J. Tyynelä, J. Leinonen, D. Moisseev, T. Nousiainen, and A. von Lerber, “Modeling radar backscattering from melting snowflakes using spheroids with nonuniform distribution of water,” [http://dx.doi.org/10.1016/j.jqsrt.2013.09.013 J. Quant. Spectrosc. Radiat. Transfer 133, 504–519 (2014)].
