@@ -83,6 +83,203 @@ static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
 static int finish_avg; // whether to stop orientation averaging; defined as int to simplify MPI casting
 static double * restrict out; // used to collect both mueller matrix and integral scattering quantities when orient_avg
 
+struct drane_coefficients {
+    double ratios [3];
+    double R0[3];// Drane polarizability R0 correction Eq(45), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    double R1;// Drane polarizability R1 correction Eq(47), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    double R2[3];// Drane polarizability R2 correction Eq(48), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    double R3[6];// Drane polarizability R3 correction Eq(49), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+};
+static const struct drane_coefficients drane_precalc_data_array[] = {
+    {
+        {1, 1, 1},
+        {0, 0, 0}, 0.00000,
+        {0.00000, 0.00000, 0.00000},
+        {0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000}},
+    {
+        {1, 1, 1.5},
+        {0.20426, 0.20426, -0.40851}, -0.53869,
+        {0.52918, 0.52918, -1.59705},
+        {0.37743, 0.37743, -1.62922, 0.13566, 0.01609, 0.01609}},
+    {
+        {1, 1.5, 1},
+        {0.20426, -0.40851, 0.20426}, -0.53869,
+        {0.52918, -1.59705, 0.52918},
+        {0.37743, -1.62922, 0.37743, 0.01609, 0.13566, 0.01609}},
+    {
+        {1.5, 1, 1},
+        {-0.40851, 0.20426, 0.20426}, -0.53869,
+        {-1.59705, 0.52918, 0.52918},
+        {-1.62922, 0.37743, 0.37743, 0.01609, 0.01609, 0.13566}},
+    {
+        {1, 1.5, 1.5},
+        {0.52383, -0.26192, -0.26192}, -0.50962,
+        {1.13457, -0.82209, -0.82209},
+        {0.80161, -0.80815, -0.80815, 0.16648, 0.16648, -0.18041}},
+    {
+        {1.5, 1, 1.5},
+        {-0.26192, 0.52383, -0.26192}, -0.50962,
+        {-0.82209, 1.13457, -0.82209},
+        {-0.80815, 0.80161, -0.80815, 0.16648, -0.18041, 0.16648}},
+    {
+        {1.5, 1.5, 1},
+        {-0.26192, -0.26192, 0.52383}, -0.50962,
+        {-0.82209, -0.82209, 1.13457},
+        {-0.80815, -0.80815, 0.80161, -0.18041, 0.16648, 0.16648}},
+    {
+        {1, 1, 2},
+        {0.38545, 0.38545, -0.77090}, -1.76582,
+        {0.88788, 0.88788, -3.54158},
+        {0.55693, 0.55693, -3.72878, 0.23735, 0.09360, 0.09360}},
+    {
+        {1, 2, 1},
+        {0.38545, -0.77090, 0.38545}, -1.76582,
+        {0.88788, -3.54158, 0.88788},
+        {0.55693, -3.72878, 0.55693, 0.09360, 0.23735, 0.09360}},
+    {
+        {2, 1, 1},
+        {-0.77090, 0.38545, 0.38545}, -1.76582,
+        {-3.54158, 0.88788, 0.88788},
+        {-3.72878, 0.55693, 0.55693, 0.09360, 0.09360, 0.23735}},
+    {
+        {1, 1.5, 2},
+        {0.81199, -0.21028, -0.60172}, -1.21448,
+        {1.55359, -0.50100, -2.26706},
+        {1.02166, -0.55501, -2.30887, 0.27206, 0.25987, -0.21806}},
+    {
+        {1, 2, 1.5},
+        {0.81199, -0.60172, -0.21028}, -1.21448,
+        {1.55359, -2.26706, -0.50100},
+        {1.02166, -2.30887, -0.55501, 0.25987, 0.27206, -0.21806}},
+    {
+        {1.5, 1, 2},
+        {-0.21028, 0.81199, -0.60172}, -1.21448,
+        {-0.50100, 1.55359, -2.26706},
+        {-0.55501, 1.02166, -2.30887, 0.27206, -0.21806, 0.25987}},
+    {
+        {1.5, 2, 1},
+        {-0.21028, -0.60172, 0.81199}, -1.21448,
+        {-0.50100, -2.26706, 1.55359},
+        {-0.55501, -2.30887, 1.02166, -0.21806, 0.27206, 0.25987}},
+    {
+        {2, 1, 1.5},
+        {-0.60172, 0.81199, -0.21028}, -1.21448,
+        {-2.26706, 1.55359, -0.50100},
+        {-2.30887, 1.02166, -0.55501, 0.25987, -0.21806, 0.27206}},
+    {
+        {2, 1.5, 1},
+        {-0.60172, -0.21028, 0.81199}, -1.21448,
+        {-2.26706, -0.50100, 1.55359},
+        {-2.30887, -0.55501, 1.02166, -0.21806, 0.25987, 0.27206}},
+    {
+        {1, 2, 2},
+        {1.19693, -0.59846, -0.59846}, -1.59967,
+        {2.01512, -1.80739, -1.80739},
+        {1.26456, -1.78732, -1.78732, 0.37528, 0.37528, -0.39535}},
+    {
+        {2, 1, 2},
+        {-0.59846, 1.19693, -0.59846}, -1.59967,
+        {-1.80739, 2.01512, -1.80739},
+        {-1.78732, 1.26456, -1.78732, 0.37528, -0.39535, 0.37528}},
+    {
+        {2, 2, 1},
+        {-0.59846, -0.59846, 1.19693}, -1.59967,
+        {-1.80739, -1.80739, 2.01512},
+        {-1.78732, -1.78732, 1.26456, -0.39535, 0.37528, 0.37528}},
+    {
+        {1, 1, 3},
+        {0.74498, 0.74498, -1.48995}, -5.47612,
+        {1.44677, 1.44677, -8.36967},
+        {0.81662, 0.81662, -8.83412, 0.39793, 0.23223, 0.23223}},
+    {
+        {1, 3, 1},
+        {0.74498, -1.48995, 0.74498}, -5.47612,
+        {1.44677, -8.36967, 1.44677},
+        {0.81662, -8.83412, 0.81662, 0.23223, 0.39793, 0.23223}},
+    {
+        {3, 1, 1},
+        {-1.48995, 0.74498, 0.74498}, -5.47612,
+        {-8.36967, 1.44677, 1.44677},
+        {-8.83412, 0.81662, 0.81662, 0.23223, 0.23223, 0.39793}},
+    {
+        {1, 1.5, 3},
+        {1.38481, -0.14304, -1.24176}, -3.71651,
+        {2.20875, -0.12162, -5.80365},
+        {1.34832, -0.40088, -6.06792, 0.43771, 0.42272, -0.15845}},
+    {
+        {1, 3, 1.5},
+        {1.38481, -1.24176, -0.14304}, -3.71651,
+        {2.20875, -5.80365, -0.12162},
+        {1.34832, -6.06792, -0.40088, 0.42272, 0.43771, -0.15845}},
+    {
+        {1.5, 1, 3},
+        {-0.14304, 1.38481, -1.24176}, -3.71651,
+        {-0.12162, 2.20875, -5.80365},
+        {-0.40088, 1.34832, -6.06792, 0.43771, -0.15845, 0.42272}},
+    {
+        {1.5, 3, 1},
+        {-0.14304, -1.24176, 1.38481}, -3.71651,
+        {-0.12162, -5.80365, 2.20875},
+        {-0.40088, -6.06792, 1.34832, -0.15845, 0.43771, 0.42272}},
+    {
+        {3, 1, 1.5},
+        {-1.24176, 1.38481, -0.14304}, -3.71651,
+        {-5.80365, 2.20875, -0.12162},
+        {-6.06792, 1.34832, -0.40088, 0.42272, -0.15845, 0.43771}},
+    {
+        {3, 1.5, 1},
+        {-1.24176, -0.14304, 1.38481}, -3.71651,
+        {-5.80365, -0.12162, 2.20875},
+        {-6.06792, -0.40088, 1.34832, -0.15845, 0.42272, 0.43771}},
+    {
+        {1, 2, 3},
+        {1.96224, -0.69714, -1.26510}, -3.48931,
+        {2.73708, -1.49246, -4.73393},
+        {1.62638, -1.56624, -4.80661, 0.55590, 0.55480, -0.48211}},
+    {
+        {1, 3, 2},
+        {1.96224, -1.26510, -0.69714}, -3.48931,
+        {2.73708, -4.73393, -1.49246},
+        {1.62638, -4.80661, -1.56624, 0.55480, 0.55590, -0.48211}},
+    {
+        {2, 1, 3},
+        {-0.69714, 1.96224, -1.26510}, -3.48931,
+        {-1.49246, 2.73708, -4.73393},
+        {-1.56624, 1.62638, -4.80661, 0.55590, -0.48211, 0.55480}},
+    {
+        {2, 3, 1},
+        {-0.69714, -1.26510, 1.96224}, -3.48931,
+        {-1.49246, -4.73393, 2.73708},
+        {-1.56624, -4.80661, 1.62638, -0.48211, 0.55590, 0.55480}},
+    {
+        {3, 1, 2},
+        {-1.26510, 1.96224, -0.69714}, -3.48931,
+        {-4.73393, 2.73708, -1.49246},
+        {-4.80661, 1.62638, -1.56624, 0.55480, -0.48211, 0.55590}},
+    {
+        {3, 2, 1},
+        {-1.26510, -0.69714, 1.96224}, -3.48931,
+        {-4.73393, -1.49246, 2.73708},
+        {-4.80661, -1.56624, 1.62638, -0.48211, 0.55480, 0.55590}},
+    {
+        {1, 3, 3},
+        {3.11030, -1.55515, -1.55515}, -4.62875,
+        {3.56356, -4.09616, -4.09616},
+        {2.04073, -3.94766, -3.94766, 0.76142, 0.76142, -0.90991}},
+    {
+        {3, 1, 3},
+        {-1.55515, 3.11030, -1.55515}, -4.62875,
+        {-4.09616, 3.56356, -4.09616},
+        {-3.94766, 2.04073, -3.94766, 0.76142, -0.90991, 0.76142}},
+    {
+        {3, 3, 1},
+        {-1.55515, -1.55515, 3.11030}, -4.62875,
+        {-4.09616, -4.09616, 3.56356},
+        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
+};
+
+
+
 // EXTERNAL FUNCTIONS
 
 // CalculateE.c
@@ -158,16 +355,6 @@ static inline double ellTheta(const double a)
     return res;
 }
 
-static inline double R3(const int i, const int j) {
-    if (i == j) {
-        return R3_diag_Drane[i];
-    }
-    int buff = (i + 1)*(j + 1);
-    if (buff == 2)return R3_non_diag_Drane[0];
-    if (buff == 3)return R3_non_diag_Drane[1];
-    return R3_non_diag_Drane[2];
-
-}
 //======================================================================================================================
 
 static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublecomplex res[static 3])
@@ -182,155 +369,184 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
  * The corresponding case should either be added to 'asym' list (then three components of polarizability are
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */ {
-    int i;
-    i = (int) which; //temporary action. Reason is to delete warning
-    double a, b, c;
-    double omega;
-    double betta, bettaFfirst, bettaSecond, bettaThird;
-    double factor = rectScaleX * rectScaleY*rectScaleZ;
-    if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
-#define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<0.00001)
-#define SET_PRECALC_2DIFF_VALS(name,scale,val,val_other) {if(IS_DOUBLE_EQAL(scale,rectScaleX)){name[0]=val; name[1]=val_other;name[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleY)) {name[0]=val_other; name[1]=val;name[2]= val_other;}else if(IS_DOUBLE_EQAL(scale,rectScaleZ)) {name[0]=val_other; name[1]=val_other;name[2]= val;} else LogError(ONE_POS, "Unpredictable value for rectangular dipole: %.1f", scale); }
-#define SET_PRECALC_3DIFF_VALLS(name,scale1,scale2,scale3,val1,val2,val3) {if(IS_DOUBLE_EQAL(scale1,rectScaleX)) if(IS_DOUBLE_EQAL(scale2,rectScaleY)){name[0]=val1; name[1]=val2;name[2]= val3;} else {name[0]=val1; name[1]=val3;name[2]= val2;} else if(IS_DOUBLE_EQAL(scale2,rectScaleX)) if(IS_DOUBLE_EQAL(scale1,rectScaleY)){name[0]=val2; name[1]=val1;name[2]= val3;} else {name[0]=val2; name[1]=val3;name[2]= val1;}else { if(IS_DOUBLE_EQAL(scale1,rectScaleY)){name[0]=val3; name[1]=val1;name[2]= val2;} else {name[0]=val3; name[1]=val2;name[2]= val1;}}}
 
-        if (IS_DOUBLE_EQAL(1, factor)) {
-            R0_Drane[0] = 0;
-            R0_Drane[1] = 0;
-            R0_Drane[2] = 0;
 
-            R1_Drane = 0;
+    if(isUseRect) {
+        int i;
+        double a, b, c;
+        double omega;
+        double betta, bettaFfirst, bettaSecond, bettaThird;
+        int drane_precalc_data_index = -1;
+        if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
+#define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
+        i=-1;
+        
 
-            R2_Drane[0] = 0;
-            R2_Drane[1] = 0;
-            R2_Drane[2] = 0;
-
-            R3_diag_Drane[0] = 0;
-            R3_diag_Drane[1] = 0;
-            R3_diag_Drane[2] = 0;
-
-            R3_non_diag_Drane[0] = 0;
-            R3_non_diag_Drane[1] = 0;
-            R3_non_diag_Drane[2] = 0;
-        } else if (IS_DOUBLE_EQAL(1.5, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 1.5, -0.40851, 0.20426)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 1.5, -1.59705, 0.52918)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 1.5, -1.62922, 0.37743)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1, 1.5, 0.13566, 0.01609, 0.01609)
-            R1_Drane = -0.53869;
-        } else if (IS_DOUBLE_EQAL(2.25, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 1.0, 0.52383, -0.26192)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 1.0, 1.13457, -0.82209)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 1.0, 0.80161, -0.80815)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1.5, 1.5, 0.16648, 0.16648, -0.18041)
-            R1_Drane = -0.50962;
-        } else if (IS_DOUBLE_EQAL(2, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 2.0, -0.77090, 0.38545)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 2.0, -3.54158, 0.88788)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 2.0, -3.72878, 0.55693)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1, 2, 0.16648, 0.16648, -0.18041)
-            R1_Drane = -1.76582;
-        } else if (IS_DOUBLE_EQAL(3, factor)&&(!IS_DOUBLE_EQAL(3, rectScaleX) && !IS_DOUBLE_EQAL(3, rectScaleY) && !IS_DOUBLE_EQAL(3, rectScaleZ))) {
-            SET_PRECALC_3DIFF_VALLS(R0_Drane, 1, 1.5, 2, 0.81199, -0.21028, -0.60172)
-            SET_PRECALC_3DIFF_VALLS(R2_Drane, 1, 1.5, 2, 1.55359, -0.50100, -2.26706)
-            SET_PRECALC_3DIFF_VALLS(R3_diag_Drane, 1, 1.5, 2, 1.02166, -0.55501, -2.30887)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1.5, 2, 0.27206, 0.25987, -0.21806)
-            R1_Drane = -1.21448;
-        } else if (IS_DOUBLE_EQAL(3, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 3., -1.48995, 0.74498)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 3., -8.36967, 1.44677)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 3., -8.83412, 0.81662)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1, 3, 0.39793, 0.23223, 0.23223)
-            R1_Drane = -5.47612;
-        } else if (IS_DOUBLE_EQAL(4, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 1., 1.19693, -0.59846)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 1., 2.01512, -1.80739)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 1., 1.26456, -1.78732)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 2, 2, 0.37528, 0.37528, -0.39535)
-            R1_Drane = -1.59967;
-        } else if (IS_DOUBLE_EQAL(4.5, factor)) {
-            SET_PRECALC_3DIFF_VALLS(R0_Drane, 1, 1.5, 3, 1.38481, -0.14304, -1.24176)
-            SET_PRECALC_3DIFF_VALLS(R2_Drane, 1, 1.5, 3, 2.20875, -0.12162, -5.80365)
-            SET_PRECALC_3DIFF_VALLS(R3_diag_Drane, 1, 1.5, 3, 1.34832, -0.40088, -6.06792)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 1.5, 3, 0.43771, 0.42272, -0.15845)
-            R1_Drane = -3.71651;
-        } else if (IS_DOUBLE_EQAL(6, factor)) {
-            SET_PRECALC_3DIFF_VALLS(R0_Drane, 1, 2, 3, 1.96224, -0.69714, -1.26510)
-            SET_PRECALC_3DIFF_VALLS(R2_Drane, 1, 2, 3, 2.73708, -1.49246, -4.73393)
-            SET_PRECALC_3DIFF_VALLS(R3_diag_Drane, 1, 2, 3, 1.62638, -1.56624, -4.80661)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 2, 3, 0.55590, 0.55480, -0.48211)
-            R1_Drane = -3.48931;
-        } else if (IS_DOUBLE_EQAL(9, factor)) {
-            SET_PRECALC_2DIFF_VALS(R0_Drane, 1., 3.11030, -1.55515)
-            SET_PRECALC_2DIFF_VALS(R2_Drane, 1., 3.56356, -4.09616)
-            SET_PRECALC_2DIFF_VALS(R3_diag_Drane, 1., 2.04073, -3.94766)
-            SET_PRECALC_3DIFF_VALLS(R3_non_diag_Drane, 1, 3, 3, 0.76142, 0.76142, -0.90991)
-            R1_Drane = -4.62875;
-        } else
-            LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
+        while (drane_precalc_data_array[++i].ratios!=NULL){
+            if(IS_DOUBLE_EQAL(rectScaleX,drane_precalc_data_array[i].ratios[0])&&
+               IS_DOUBLE_EQAL(rectScaleY,drane_precalc_data_array[i].ratios[1])&&
+               IS_DOUBLE_EQAL(rectScaleZ,drane_precalc_data_array[i].ratios[2]))
+            {
+                drane_precalc_data_index = i;
+                break;
+            }
+        }    
+        if(drane_precalc_data_index == -1)LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
 
 #undef IS_DOUBLE_EQAL
-#undef SET_PRECALC_2DIFF_VALS
-#undef SET_PRECALC_3DIFF_VALLS
-    }
-    double c1 = -5.9424219;
-    double c2 = 0.5178819;
-    double c3 = 4.0069747;
-    double nu = WaveNum / TWO_PI * pow(dipvol, ONE_THIRD);
-    doublecomplex correction;
-    doublecomplex L;
-    doublecomplex K;
-    int l;
-    double draneSum;
-
-    for (i = 0; i < 3; i++) {
-        if (PolRelation == POL_IGT_RECT) {
-            if (i == 0) {
-                a = gridspace * rectScaleX * 0.5;
-                b = gridspace * rectScaleY * 0.5;
-                c = gridspace * rectScaleZ * 0.5;
-            } else if (i == 1) {
-                a = gridspace * rectScaleY * 0.5;
-                b = gridspace * rectScaleX * 0.5;
-                c = gridspace * rectScaleZ * 0.5;
-
-            } else {
-                a = gridspace * rectScaleZ * 0.5;
-                b = gridspace * rectScaleY * 0.5;
-                c = gridspace * rectScaleX * 0.5;
-
-            }
-            omega = 4 * asin(b * c / sqrt((a * a + b * b)*(a * a + c * c)));
-            bettaFfirst = 8 * a * b * log(1 + 2 * c / sqrt(a * a + b * b + c * c));
-            bettaSecond = 16 * a * b * b / sqrt(a * a + b * b) * atan(c / sqrt(a * a + b * b));
-            bettaThird = 4 * a * a * a * a * atan(c / a) - 2 * a * a * b * b * atan(c / a) - 2 * a * b * b*c;
-            bettaThird *= 2 * b / a / (a * a + c * c);
-            betta = bettaFfirst + bettaSecond + bettaThird;
-            res[i] = (-2 * omega + WaveNum * WaveNum * betta / 2) + I * (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);
-            res[i] = PI * 4 / (mrel[0] * mrel[0] - 1) - res[i];
-            res[i] = 8 * a * b * c / res[i];
         }
-        if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
+        double c1 = -5.9424219;
+        double c2 = 0.5178819;
+        double c3 = 4.0069747;
+        double nu = WaveNum / TWO_PI * pow(dipvol, ONE_THIRD);
+        doublecomplex correction;
+        doublecomplex L;
+        doublecomplex K;
+        int l;
+        double draneSum;
 
+        for (i = 0; i < 3; i++) {
+            if (PolRelation == POL_IGT_RECT) {
+                if (i == 0) {
+                    a = gridspace * rectScaleX * 0.5;
+                    b = gridspace * rectScaleY * 0.5;
+                    c = gridspace * rectScaleZ * 0.5;
+                } else if (i == 1) {
+                    a = gridspace * rectScaleY * 0.5;
+                    b = gridspace * rectScaleX * 0.5;
+                    c = gridspace * rectScaleZ * 0.5;
 
-            res[i] = 3 * (mrel[0] * mrel[0] - 1) / (mrel[0] * mrel[0] + 2);
-            res[i] = res[i] / (1 + res[i] * R0_Drane[i]);
-            if (PolRelation == POL_CLDR_RECT) {
-                draneSum = 0;
-                for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * R3(i, l);
-
-                L = c1 + mrel[0] * mrel[0] * c2 * (1 - 3 * prop[i] * prop[i]) - mrel[0] * mrel[0] * c3 * prop[i] * prop[i] - FOUR_PI * PI * I * nu / 3 - R1_Drane - (mrel[0] * mrel[0] - 1) * R2_Drane[i] - 8 * mrel[0] * mrel[0] * prop[i] * prop[i] * R3(i, i) + 4 * mrel[0] * mrel[0] * draneSum;
-                K = c3 + R1_Drane + 8 * R3(i, i);
-                correction = -nu * nu * res[i] * res[i]*(L + mrel[0] * mrel[0] * prop[i] * prop[i] * K);
-                res[i] += correction;
+                } else {
+                    a = gridspace * rectScaleZ * 0.5;
+                    b = gridspace * rectScaleY * 0.5;
+                    c = gridspace * rectScaleX * 0.5;
+                }
+                // see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
+                // Eq number noted for some lines of code
+                omega = 4 * asin(b * c / sqrt((a * a + b * b)*(a * a + c * c)));//(10)
+                bettaFfirst = 8 * a * b * log(1 + 2 * c / sqrt(a * a + b * b + c * c));
+                bettaSecond = 16 * a * b * b / sqrt(a * a + b * b) * atan(c / sqrt(a * a + b * b));
+                bettaThird = 4 * a * a * a * a * atan(c / a) - 2 * a * a * b * b * atan(c / a) - 2 * a * b * b*c;
+                bettaThird *= 2 * b / a / (a * a + c * c);
+                betta = bettaFfirst + bettaSecond + bettaThird;//(11) betta is three-time integral.The analytical expression is obtained through a Taylor series expansion up to the third member.
+                res[i] = (-2 * omega + WaveNum * WaveNum * betta / 2) + I * (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);//(9)
+                res[i] = PI * 4 / (mrel[0] * mrel[0] - 1) - res[i];//(9)
+                res[i] = 8 * a * b * c / res[i];//(9)
             }
-            res[i] *= dipvol / FOUR_PI;
+            if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
+#define R3_INDEX(i,j)(i==j?i:(i+j+2))
+                //see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+                // Eq number noted for some lines of code
+                res[i] = 3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM 
+                res[i] = res[i] / (1 + res[i] * drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
+                if (PolRelation == POL_CLDR_RECT) {
+                    draneSum = 0;
+                    
+                    for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
+                    
+                    //L is obtaned in (62)
+                    L = c1 + mrel[0]*mrel[0]*c2*(1 - 3*prop[i]*prop[i]) - mrel[0]*mrel[0]*c3*prop[i]*prop[i] - FOUR_PI*PI*I*nu/3 - drane_precalc_data_array[drane_precalc_data_index].R1 - (mrel[0]*mrel[0] - 1)*drane_precalc_data_array[drane_precalc_data_index].R2[i] - 8*mrel[0]*mrel[0]*prop[i]*prop[i]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)] + 4*mrel[0]*mrel[0]*draneSum;
+                    
+                    //K is obtaned in (63)
+                    K = c3 + drane_precalc_data_array[drane_precalc_data_index].R1 + 8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)];
+                    
+                    correction = -nu*nu*res[i]*res[i]*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*K);//(65)
+                    res[i] += correction;//(38)*/
+                    res[i] *= dipvol / FOUR_PI;
+                    //res[i]=res[i]/(1-2.0/3*I*WaveNum*WaveNum*WaveNum*res[i]);
+                }else{
+                    res[i] *= dipvol / FOUR_PI;
+                }
+                
+#undef R3_INDEX
+            }
+
         }
-        //res[i] =FOUR_PI*a*b*c*(mrel[0]*mrel[0] - 1)/(3 + 3*L[i]*(mrel[0]*mrel[0] - 1));
+        if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+
+    } else {
+        double ka,kd2,S;
+	int i;
+	bool asym; // whether polarizability is asymmetric (for isotropic m)
+	const double *incPol;
+	bool pol_avg=true; // temporary fixed value for SO polarizability
+
+	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
+	// !!! this should never happen
+	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+
+	kd2=kd*kd;
+	if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
+		switch (PolRelation) {
+			case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
+			case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
+			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+				// no break
+		}
+	}
+	else for (i=0;i<Ncomp;i++) { // loop over components of input m
+		switch (PolRelation) {
+			case POL_CM: res[i]=polCM(mrel[i]); break;
+			case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
+			case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+				res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+				break;
+			case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
+			case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
+				ka=LAK_C*kd;
+				res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
+				break;
+			case POL_LDR:
+				if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
+				else {
+					if (which==INCPOL_Y) incPol=incPolY;
+					else incPol=incPolX; // which==INCPOL_X
+					S = DotProdSquare(prop,incPol);
+				}
+				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
+				break;
+			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
+				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+				 */
+				if (polNlocRp==0) res[i]=polCM(mrel[i]);
+				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
+				break;
+			case POL_NLOC_AV:
+				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
+				else {
+					double x=gridspace/(2*SQRT2*polNlocRp);
+					double g0,t;
+					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
+					if (x<1) {
+						t=erf(x);
+						g0=1-t*t*t;
+					}
+					else {
+						t=erfc(x);
+						g0=t*(3-3*t+t*t);
+					}
+					// !!! dynamic part should be added here
+					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
+				}
+				break;
+			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
+			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+				// no break
+		}
+	}
+	if (asym || anisotropy) {
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+	}
+	else {
+		res[2]=res[1]=res[0];
+		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+	}
+
 
     }
-    if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
-
-
 
 }
 
