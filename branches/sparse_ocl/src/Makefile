@@ -130,7 +130,7 @@ override OPTIONS += SPARSE USE_SSE3
 
 # used AMDs CLBlas library for iterative solver (currently just suported in bicg method)
 # This option will have no effect on the other method
-#override OPTIONS += USE_CLBLAS
+override OPTIONS += USE_CLBLAS
 
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
 # ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
