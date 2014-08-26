@@ -208,24 +208,40 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		NULL));
 
 	TIME_TYPE tstart=GET_TIME();
-	if (her) nConj(argvec);
+	if (her)
+	{
+		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
+	}
 	// TODO: can be replaced by nMult_mat
-	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
-#	ifdef PARALLEL
-	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
-#	endif
-	for (i=0; i<local_nvoid_Ndip; i++) {
-		i3 = 3*i;
-		cvInit(resultvec+i3);
-		for (j=0; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
-	}
+//	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
+	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clCcMul,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
+//#	ifdef PARALLEL
+//	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
+//#	endif
+//	for (i=0; i<local_nvoid_Ndip; i++) {
+//		i3 = 3*i;
+//		cvInit(resultvec+i3);
+//		for (j=0; j<nvoid_Ndip; j++) AijProd(arg_full,resultvec,i,j);
+//	}
+	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,Aij_poi,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
+
 	// TODO: can be replaced by a specially designed function from linalg.c
-	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
+//	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
+	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clDiagProd,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
+
 	if (her) {
-		nConj(resultvec);
-		nConj(argvec);
+		//nConj(resultvec);
+		//nConj(argvec);
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
+		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufresultvec));
+		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
 	}
-	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing);
+	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,3*local_nvoid_Ndip*sizeof(doublecomplex),resultvec,0
+		,NULL,NULL));
+
+//	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing); // not yet implemented in sparse ocl
+
 	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }

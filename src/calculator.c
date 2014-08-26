@@ -394,6 +394,27 @@ static void AllocateEverything(void)
 	CREATE_CL_BUFFER(bufmaterial,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nvoid_Ndip*sizeof(*material),material);
 	CREATE_CL_BUFFER(bufposition,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,local_nRows*sizeof(*position),position);
 	CREATE_CL_BUFFER(bufpositionfull,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,nRows*sizeof(*position_full),position_full);
+
+	// Setting kernel arguments which are always the same
+	// for ClCcMul
+	CL_CH_ERR(clSetKernelArg(clCcMul,0,sizeof(cl_mem),&bufargvec));
+	CL_CH_ERR(clSetKernelArg(clCcMul,1,sizeof(cl_mem),&bufargfull));
+	CL_CH_ERR(clSetKernelArg(clCcMul,2,sizeof(cl_mem),&bufcc_sqrt));
+	CL_CH_ERR(clSetKernelArg(clCcMul,3,sizeof(cl_mem),&bufmaterial));
+	// for Aij_poi
+	CL_CH_ERR(clSetKernelArg(Aij_poi,0,sizeof(cl_mem),&bufargfull));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,1,sizeof(cl_mem),&bufresultvec));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,2,sizeof(cl_mem),&bufposition));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,3,sizeof(cl_mem),&bufpositionfull));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,4,sizeof(int),&nvoid_Ndip));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,5,sizeof(double),&gridspace));
+	CL_CH_ERR(clSetKernelArg(Aij_poi,6,sizeof(double),&WaveNum));
+	// for clDiagProd
+	CL_CH_ERR(clSetKernelArg(clDiagProd,0,sizeof(cl_mem),&bufargvec));
+	CL_CH_ERR(clSetKernelArg(clDiagProd,1,sizeof(cl_mem),&bufresultvec));
+	CL_CH_ERR(clSetKernelArg(clDiagProd,2,sizeof(cl_mem),&bufcc_sqrt));
+	CL_CH_ERR(clSetKernelArg(clDiagProd,3,sizeof(cl_mem),&bufmaterial));
+
 	#endif
 #endif // !SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new

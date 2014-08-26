@@ -45,8 +45,7 @@ else # the following is only for non-sparse mode
     # libraries. Path should be absolute or relative to the location of this Makefile.
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\lib64\import"
-  
-    LDLIBS += -lclAmdFft.Runtime
+    
     # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
     # LDLIBS += -lpthread
   
@@ -59,6 +58,9 @@ else # the following is only for non-sparse mode
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
     ifneq ($(filter USE_CLBLAS,$(OPTIONS)),)
+	CFLAGS += -I /opt/clAmdBlas-1.10.321/include/
+	LDFLAGS += -L /opt/clAmdBlas-1.10.321/lib64/
+	LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
     LDLIBS += -lclAmdBlas
     CFLAGS += -DUSE_CLBLAS
     endif

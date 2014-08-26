@@ -435,6 +435,16 @@ void oclinit(void)
 		cltransposeofR=clCreateKernel(program,"transposeo",&err);
 		CL_CH_ERR(err);
 	}
+
+#ifdef SPARSE
+	clCcMul=clCreateKernel(program,"CcMul",&err);
+	CL_CH_ERR(err);
+	Aij_poi=clCreateKernel(program,"Aij_poi",&err);
+	CL_CH_ERR(err);
+	clDiagProd=clCreateKernel(program,"clDiagProd",&err);
+	CL_CH_ERR(err);
+#endif
+
 #ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
