@@ -438,17 +438,16 @@ __kernel void transposeo(__global const double2 *idata,__global double2 *odata,c
 }
 
 //#ifdef SPARSE
-__kernel void CcMul(__global const double2 *argvec,__global double2 *argfull,__global const double2 *cc_sqrt,
-	__global const uchar *material)
+__kernel void CcMul(__global const double2 *argvec,__global double2 *argfull,__constant const double2 *cc_sqrt,
+	__constant uchar *material)
 {
 	__private size_t i=get_global_id(0);
 	__private size_t i3=3*i;
-	argfull[i3].s0=cc_sqrt[material[i]*3].s0*argvec[i3].s0-cc_sqrt[material[i]*3].s1*argvec[i3].s1;
-	argfull[i3].s1=cc_sqrt[material[i]*3].s0*argvec[i3].s1+cc_sqrt[material[i]*3].s1*argvec[i3].s0;
-	argfull[i3+1].s0=cc_sqrt[material[i]*3+1].s0*argvec[i3+1].s0-cc_sqrt[material[i]*3+1].s1*argvec[i3+1].s1;
-	argfull[i3+1].s1=cc_sqrt[material[i]*3+1].s0*argvec[i3+1].s1+cc_sqrt[material[i]*3+1].s1*argvec[i3+1].s0;
-	argfull[i3+2].s0=cc_sqrt[material[i]*3+2].s0*argvec[i3+2].s0-cc_sqrt[material[i]*3+2].s1*argvec[i3+2].s1;
-	argfull[i3+2].s1=cc_sqrt[material[i]*3+2].s0*argvec[i3+2].s1+cc_sqrt[material[i]*3+2].s1*argvec[i3+2].s0;
+	i=material[i]*3;
+	cMult(&cc_sqrt[i],&argvec[i3],&argfull[i3]);
+	cMult(&cc_sqrt[i+1],&argvec[i3+1],&argfull[i3+1]);
+	cMult(&cc_sqrt[i+2],&argvec[i3+2],&argfull[i3+2]);
+
 }
 
 //======================================================================================================================
@@ -456,109 +455,143 @@ __kernel void Aij_poi(__global const double2 *argvec,__global double2 *resultvec
 	__global int *positionfull, const int arg_length, const double gridspace, const double wavenumber)
 {
 	size_t i3=3*get_global_id(0);
-	resultvec[i3].s0 = 0.0;
-	resultvec[i3].s1 = 0.0;
-	resultvec[i3+1].s0 = 0.0;
-	resultvec[i3+1].s1 = 0.0;
-	resultvec[i3+2].s0 = 0.0;
-	resultvec[i3+2].s1 = 0.0;	// ho fatto init. forse si può abbreviare
-	double qv[3];
+
+	//double qv[3];
 	size_t j3;
 	double2 res[3];
+	res[0] = 0.0;
+	res[1] = 0.0;
+	res[2] = 0.0;
+	int pos[3];
+	pos[0]=position[i3];
+	pos[1]=position[i3+1];
+	pos[2]=position[i3+2];
 	double2 iterm[6];
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invrn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+	double rn,invrn,kr; // |R| |R/d|, |R|^-3, kR, (kR)^2
 	double2 expval; // exp(ikR)/|R|^3
 	double t1,t2,t3;
 	for(size_t j=0; j<arg_length;j++)
 	{
 		
-			j3=j*3;
-			qv[0]=position[i3]-positionfull[j3];
-			qv[1]=position[i3+1]-positionfull[j3+1];
-			qv[2]=position[i3+2]-positionfull[j3+2];
-			rn=sqrt(qv[0]*qv[0] + qv[1]*qv[1] + qv[2]*qv[2]);
-		if(rn)	// interaction is not computed for coinciding dipoles (this is the best implementation I found at the moment)
+		j3=j*3;
+		qmunu[0]=pos[0]-positionfull[j3];
+		qmunu[3]=pos[1]-positionfull[j3+1];
+		qmunu[5]=pos[2]-positionfull[j3+2];
+		rn=sqrt(qmunu[0]*qmunu[0] + qmunu[3]*qmunu[3] + qmunu[5]*qmunu[5]);
+		if(rn)	// interaction is not computed for coinciding dipoles
 		{
 			invrn=1.0/rn;
-			qv[0]=invrn*qv[0];
-			qv[1]=invrn*qv[1];
-			qv[2]=invrn*qv[2];
+			qmunu[0]=invrn*qmunu[0];
+			qmunu[3]=invrn*qmunu[3];
+			qmunu[5]=invrn*qmunu[5];
 
-			rr=rn*gridspace;
-			invr3=1.0/(rr*rr*rr);
-			kr=wavenumber*rr;
-			kr2=kr*kr;
+			qmunu[1]=qmunu[0]*qmunu[3];
+			qmunu[2]=qmunu[0]*qmunu[5];
+			qmunu[4]=qmunu[3]*qmunu[5];
+			qmunu[0]=qmunu[0]*qmunu[0];
+			qmunu[3]=qmunu[3]*qmunu[3];
+			qmunu[5]=qmunu[5]*qmunu[5];
 
-			qmunu[0]=qv[0]*qv[0];
-			qmunu[1]=qv[0]*qv[1];
-			qmunu[2]=qv[0]*qv[2];
-			qmunu[3]=qv[1]*qv[1];
-			qmunu[4]=qv[1]*qv[2];
-			qmunu[5]=qv[2]*qv[2];
+			rn=rn*gridspace;
+			invrn=1.0/(rn*rn*rn);
+			kr=wavenumber*rn;
+			rn=kr*kr; //kr2 recycle rn
 
-			t1=3.0-kr2;
-			t2=-3.0*kr;
-			t3=kr2-1.0;
-			expval.s0=invr3*cos(kr);
-			expval.s1=invr3*sin(kr);
+			t1=3.0-rn;
+			t3=rn-1.0;
+			rn=-3.0*kr; //t2 recycle rn
 
-			iterm[0].s0=(t1*qmunu[0]+t3)*expval.s0-(kr+t2*qmunu[0])*expval.s1;
-			iterm[0].s1=(t1*qmunu[0]+t3)*expval.s1+(kr+t2*qmunu[0])*expval.s0;
-			iterm[3].s0=(t1*qmunu[3]+t3)*expval.s0-(kr+t2*qmunu[3])*expval.s1;
-			iterm[3].s1=(t1*qmunu[3]+t3)*expval.s1+(kr+t2*qmunu[3])*expval.s0;
-			iterm[5].s0=(t1*qmunu[5]+t3)*expval.s0-(kr+t2*qmunu[5])*expval.s1;
-			iterm[5].s1=(t1*qmunu[5]+t3)*expval.s1+(kr+t2*qmunu[5])*expval.s0;
+			expval.s0=invrn*cos(kr);
+			expval.s1=invrn*sin(kr);
 
-			iterm[1].s0=qmunu[1]*(t1*expval.s0-t2*expval.s1);
-			iterm[1].s1=qmunu[1]*(t1*expval.s1+t2*expval.s0);
-			iterm[2].s0=qmunu[2]*(t1*expval.s0-t2*expval.s1);
-			iterm[2].s1=qmunu[2]*(t1*expval.s1+t2*expval.s0);
-			iterm[4].s0=qmunu[4]*(t1*expval.s0-t2*expval.s1);
-			iterm[4].s1=qmunu[4]*(t1*expval.s1+t2*expval.s0);
+			iterm[0].s0=(t1*qmunu[0]+t3)*expval.s0-(kr+rn*qmunu[0])*expval.s1;
+			iterm[0].s1=(t1*qmunu[0]+t3)*expval.s1+(kr+rn*qmunu[0])*expval.s0;
+			iterm[3].s0=(t1*qmunu[3]+t3)*expval.s0-(kr+rn*qmunu[3])*expval.s1;
+			iterm[3].s1=(t1*qmunu[3]+t3)*expval.s1+(kr+rn*qmunu[3])*expval.s0;
+			iterm[5].s0=(t1*qmunu[5]+t3)*expval.s0-(kr+rn*qmunu[5])*expval.s1;
+			iterm[5].s1=(t1*qmunu[5]+t3)*expval.s1+(kr+rn*qmunu[5])*expval.s0;
 
-			res[0].s0 = iterm[0].s0*argvec[j3].s0-iterm[0].s1*argvec[j3].s1 
-				+ iterm[1].s0*argvec[j3+1].s0-iterm[1].s1*argvec[j3+1].s1 
-				+ iterm[2].s0*argvec[j3+2].s0-iterm[2].s1*argvec[j3+2].s1; //iter*argvec[j3]
-			res[0].s1 = iterm[0].s0*argvec[j3].s1+iterm[0].s1*argvec[j3].s0 
-				+ iterm[1].s0*argvec[j3+1].s1+iterm[1].s1*argvec[j3+1].s0 
-				+ iterm[2].s0*argvec[j3+2].s1+iterm[2].s1*argvec[j3+2].s0;
+			iterm[1].s0=qmunu[1]*(t1*expval.s0-rn*expval.s1);
+			iterm[1].s1=qmunu[1]*(t1*expval.s1+rn*expval.s0);
+			iterm[2].s0=qmunu[2]*(t1*expval.s0-rn*expval.s1);
+			iterm[2].s1=qmunu[2]*(t1*expval.s1+rn*expval.s0);
+			iterm[4].s0=qmunu[4]*(t1*expval.s0-rn*expval.s1);
+			iterm[4].s1=qmunu[4]*(t1*expval.s1+rn*expval.s0);
+			
+			qmunu[0]=argvec[j3  ].s0;	// reuse of qmunu for argvec caching
+			qmunu[1]=argvec[j3  ].s1;	// may speedup for gpu that can
+			qmunu[2]=argvec[j3+1].s0;	// hold qmunu in __private memory
+			qmunu[3]=argvec[j3+1].s1;
+			qmunu[4]=argvec[j3+2].s0;
+			qmunu[5]=argvec[j3+2].s1;
+			
+			
+			res[0].s0 += iterm[0].s0*qmunu[0] - iterm[0].s1*qmunu[1]
+				  +  iterm[1].s0*qmunu[2] - iterm[1].s1*qmunu[3]
+				  +  iterm[2].s0*qmunu[4] - iterm[2].s1*qmunu[5]; //iter*argvec[j3]
+			res[0].s1 += iterm[0].s0*qmunu[1] + iterm[0].s1*qmunu[0] 
+				  +  iterm[1].s0*qmunu[3] + iterm[1].s1*qmunu[2] 
+				  +  iterm[2].s0*qmunu[5] + iterm[2].s1*qmunu[4];
+			
+			res[1].s0 += iterm[1].s0*qmunu[0] - iterm[1].s1*qmunu[1]
+				  +  iterm[3].s0*qmunu[2] - iterm[3].s1*qmunu[3]
+				  +  iterm[4].s0*qmunu[4] - iterm[4].s1*qmunu[5];
+			res[1].s1 += iterm[1].s0*qmunu[1] + iterm[1].s1*qmunu[0]
+				  +  iterm[3].s0*qmunu[3] + iterm[3].s1*qmunu[2]
+				  +  iterm[4].s0*qmunu[5] + iterm[4].s1*qmunu[4];
 
-			res[1].s0 = iterm[1].s0*argvec[j3].s0-iterm[1].s1*argvec[j3].s1
-				+ iterm[3].s0*argvec[j3+1].s0-iterm[3].s1*argvec[j3+1].s1
-				+ iterm[4].s0*argvec[j3+2].s0-iterm[4].s1*argvec[j3+2].s1;
-			res[1].s1 = iterm[1].s0*argvec[j3].s1+iterm[1].s1*argvec[j3].s0
-				+ iterm[3].s0*argvec[j3+1].s1+iterm[3].s1*argvec[j3+1].s0
-				+ iterm[4].s0*argvec[j3+2].s1+iterm[4].s1*argvec[j3+2].s0;
+			res[2].s0 += iterm[2].s0*qmunu[0] - iterm[2].s1*qmunu[1]
+				  +  iterm[4].s0*qmunu[2] - iterm[4].s1*qmunu[3]
+				  +  iterm[5].s0*qmunu[4] - iterm[5].s1*qmunu[5];
+			res[2].s1 += iterm[2].s0*qmunu[1] + iterm[2].s1*qmunu[0]
+				  +  iterm[4].s0*qmunu[3] + iterm[4].s1*qmunu[2]
+				  +  iterm[5].s0*qmunu[5] + iterm[5].s1*qmunu[4];
+			/*
+			res[0].s0 += iterm[0].s0*argvec[j3  ].s0 - iterm[0].s1*argvec[j3  ].s1 
+				  +  iterm[1].s0*argvec[j3+1].s0 - iterm[1].s1*argvec[j3+1].s1 
+				  +  iterm[2].s0*argvec[j3+2].s0 - iterm[2].s1*argvec[j3+2].s1; //iter*argvec[j3]
+			res[0].s1 += iterm[0].s0*argvec[j3  ].s1 + iterm[0].s1*argvec[j3  ].s0 
+				  +  iterm[1].s0*argvec[j3+1].s1 + iterm[1].s1*argvec[j3+1].s0 
+				  +  iterm[2].s0*argvec[j3+2].s1 + iterm[2].s1*argvec[j3+2].s0;
+			
+			res[1].s0 += iterm[1].s0*argvec[j3  ].s0 - iterm[1].s1*argvec[j3  ].s1
+				  +  iterm[3].s0*argvec[j3+1].s0 - iterm[3].s1*argvec[j3+1].s1
+				  +  iterm[4].s0*argvec[j3+2].s0 - iterm[4].s1*argvec[j3+2].s1;
+			res[1].s1 += iterm[1].s0*argvec[j3  ].s1 + iterm[1].s1*argvec[j3  ].s0
+				  +  iterm[3].s0*argvec[j3+1].s1 + iterm[3].s1*argvec[j3+1].s0
+				  +  iterm[4].s0*argvec[j3+2].s1 + iterm[4].s1*argvec[j3+2].s0;
 
-			res[2].s0 = iterm[2].s0*argvec[j3].s0-iterm[2].s1*argvec[j3].s1
-				+ iterm[4].s0*argvec[j3+1].s0-iterm[4].s1*argvec[j3+1].s1
-				+ iterm[5].s0*argvec[j3+2].s0-iterm[5].s1*argvec[j3+2].s1;
-			res[2].s1 = iterm[2].s0*argvec[j3].s1+iterm[2].s1*argvec[j3].s0
-				+ iterm[4].s0*argvec[j3+1].s1+iterm[4].s1*argvec[j3+1].s0
-				+ iterm[5].s0*argvec[j3+2].s1+iterm[5].s1*argvec[j3+2].s0;
-
-			resultvec[i3]+=res[0];
-			resultvec[i3+1]+=res[1];
-			resultvec[i3+2]+=res[2];
+			res[2].s0 += iterm[2].s0*argvec[j3  ].s0 - iterm[2].s1*argvec[j3  ].s1
+				  +  iterm[4].s0*argvec[j3+1].s0 - iterm[4].s1*argvec[j3+1].s1
+				  +  iterm[5].s0*argvec[j3+2].s0 - iterm[5].s1*argvec[j3+2].s1;
+			res[2].s1 += iterm[2].s0*argvec[j3  ].s1 + iterm[2].s1*argvec[j3  ].s0
+				  +  iterm[4].s0*argvec[j3+1].s1 + iterm[4].s1*argvec[j3+1].s0
+				  +  iterm[5].s0*argvec[j3+2].s1 + iterm[5].s1*argvec[j3+2].s0;
+			*/
+			//cSymMatrVec(iterm,&argvec[j3],res);
+			//cvAdd(&resultvec[i3],res,&resultvec[i3]);
 		}
 	}
+	resultvec[i3]=res[0];
+	resultvec[i3+1]=res[1];
+	resultvec[i3+2]=res[2];
 }
 
 //======================================================================================================================
-__kernel void clDiagProd(__global const double2 *argvec,__global double2 *resultvec,__global const double2 *cc_sqrt,
-	__global const uchar *material)
+__kernel void clDiagProd(__global const double2 *argvec,__global double2 *resultvec,__constant double2 *cc_sqrt,
+	__constant uchar *material)
 {
 	__private size_t i=get_global_id(0);
 	__private size_t i3=3*i;
+	i=material[i]*3;
+	__private double2 temp;
 
-	resultvec[i3].s0=argvec[i3].s0-resultvec[i3].s0*cc_sqrt[material[i]*3].s0+resultvec[i3].s1*cc_sqrt[material[i]*3].s1;
-	resultvec[i3].s1=argvec[i3].s1-resultvec[i3].s0*cc_sqrt[material[i]*3].s1-resultvec[i3].s1*cc_sqrt[material[i]*3].s0;
-
-	resultvec[i3+1].s0=argvec[i3+1].s0-resultvec[i3+1].s0*cc_sqrt[material[i]*3+1].s0+resultvec[i3+1].s1*cc_sqrt[material[i]*3+1].s1;
-	resultvec[i3+1].s1=argvec[i3+1].s1-resultvec[i3+1].s0*cc_sqrt[material[i]*3+1].s1-resultvec[i3+1].s1*cc_sqrt[material[i]*3+1].s0;
-
-	resultvec[i3+2].s0=argvec[i3+2].s0-resultvec[i3+2].s0*cc_sqrt[material[i]*3+2].s0+resultvec[i3+2].s1*cc_sqrt[material[i]*3+2].s1;
-	resultvec[i3+2].s1=argvec[i3+2].s1-resultvec[i3+2].s0*cc_sqrt[material[i]*3+2].s1-resultvec[i3+2].s1*cc_sqrt[material[i]*3+2].s0;
+	cMult2(&cc_sqrt[i],&resultvec[i3],&temp);
+	resultvec[i3]=argvec[i3]-temp;
+	cMult2(&cc_sqrt[i+1],&resultvec[i3+1],&temp);
+	resultvec[i3+1]=argvec[i3+1]-temp;
+	cMult2(&cc_sqrt[i+2],&resultvec[i3+2],&temp);
+	resultvec[i3+2]=argvec[i3+2]-temp;
 }
 //#endif

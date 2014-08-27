@@ -202,6 +202,8 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
              TIME_TYPE *comm_timing) // this variable is incremented by communication time
 {
 	const bool ipr = (inprod != NULL);
+	if (ipr) *inprod = 0.0;
+
 	size_t i,j,i3;
 
 	CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufargvec,CL_FALSE,0,local_nRows*sizeof(doublecomplex),argvec,0,NULL,
@@ -213,9 +215,11 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		CL_CH_ERR(clSetKernelArg(clnConj,0,sizeof(cl_mem),&bufargvec));
 		CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clnConj,1,NULL,&local_nRows,NULL,0,NULL,NULL));
 	}
+
 	// TODO: can be replaced by nMult_mat
 //	for (j=0; j<local_nvoid_Ndip; j++) CcMul(argvec,arg_full+3*local_nvoid_d0,j);
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clCcMul,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
+
 //#	ifdef PARALLEL
 //	AllGather(NULL,arg_full,cmplx3_type,comm_timing);
 //#	endif
@@ -227,9 +231,9 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,Aij_poi,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
 
 	// TODO: can be replaced by a specially designed function from linalg.c
-//	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
+//*	for (i=0; i<local_nvoid_Ndip; i++) DiagProd(argvec,resultvec,i);
 	CL_CH_ERR(clEnqueueNDRangeKernel(command_queue,clDiagProd,1,NULL,&local_nvoid_Ndip,NULL,0,NULL,NULL));
-
+	//printf("\n%d\n",local_nvoid_Ndip);
 	if (her) {
 		//nConj(resultvec);
 		//nConj(argvec);
@@ -240,7 +244,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,3*local_nvoid_Ndip*sizeof(doublecomplex),resultvec,0
 		,NULL,NULL));
 
-//	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing); // not yet implemented in sparse ocl
+	if (ipr) (*inprod)=nNorm2(resultvec,comm_timing); // not yet implemented in sparse ocl
 
 	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
