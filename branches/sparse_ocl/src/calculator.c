@@ -414,6 +414,17 @@ static void AllocateEverything(void)
 	CL_CH_ERR(clSetKernelArg(clDiagProd,1,sizeof(cl_mem),&bufresultvec));
 	CL_CH_ERR(clSetKernelArg(clDiagProd,2,sizeof(cl_mem),&bufcc_sqrt));
 	CL_CH_ERR(clSetKernelArg(clDiagProd,3,sizeof(cl_mem),&bufmaterial));
+	
+	doublecomplex * exptable;
+	MALLOC_VECTOR(exptable,complex,361,ALL);
+	for(unsigned i=0;i<=360.;i++) exptable[i]=imExp(i*PI/180.0);
+	//printf("buffero\n");
+	CREATE_CL_BUFFER(bufexptable,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,361*sizeof(*exptable),exptable);
+	//printf("bufferato kernelo\n");
+	CL_CH_ERR(clSetKernelArg(Aij_poi,7,sizeof(cl_mem),&bufexptable));
+	//printf("kernelato libero\n");
+	Free_cVector(exptable);
+	//printf("liberato\n");
 
 	#endif
 #endif // !SPARSE

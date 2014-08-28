@@ -26,7 +26,7 @@
 // SEMI-GLOBAL VARIABLES
 #ifdef SPARSE
 // defined and initialized in calculator.c
-extern doublecomplex * restrict arg_full;
+// extern doublecomplex * restrict arg_full; 
 #include "linalg.h"
 #include "sparse_ops.h"
 #else

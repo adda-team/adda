@@ -451,8 +451,65 @@ __kernel void CcMul(__global const double2 *argvec,__global double2 *argfull,__c
 }
 
 //======================================================================================================================
+double2 accImExp(const double arg,__constant double2 *table)
+{
+	double xp=arg*0.159154943091895;
+	int ixp=floor(xp);
+	xp=ixp*360.0;
+	double x=arg*57.295779513082323;
+	x=x-xp;	//x° mod 360°
+	ixp=round(x);
+	double2 imexp;
+	imexp=table[ixp];	//first guess
+	x=x-ixp;		// residual
+	xp=x*x;
+	double2 res;
+	res.s0=-3.925831985743094e-14*xp; // -
+	res.s1=1.349601623163255e-11*xp;
+	res.s0+=3.866323851562993e-09; //+
+	res.s1+=-8.860961557012979e-07;
+	res.s0*=xp;
+	res.s1*=xp;
+	res.s0+=-1.523087098933543e-04;  //-
+	res.s1+=1.74532925199432957214e-2;
+	res.s0*=xp;
+	res.s1*=x;
+	res.s0+=1.0;
+	double2 result;
+	result.s0=imexp.s0*res.s0-imexp.s1*res.s1; 
+	result.s1=imexp.s1*res.s0+imexp.s0*res.s1;
+	return result; 
+}
+
+void cSymMatrVecAccumulate(const double2 *matr,const double2 *vec,double2 *res)
+// multiplication of complex symmetric matrix[6] by complex vec[3]; 
+// and accumulate result res+=matr.vec
+{
+	res[0].s0+= matr[0].s0*vec[0].s0 - matr[0].s1*vec[0].s1
+	          + matr[1].s0*vec[1].s0 - matr[1].s1*vec[1].s1
+	          + matr[2].s0*vec[2].s0 - matr[2].s1*vec[2].s1;
+	res[0].s1+= matr[0].s0*vec[0].s1 + matr[0].s1*vec[0].s0
+	          + matr[1].s0*vec[1].s1 + matr[1].s1*vec[1].s0
+	          + matr[2].s0*vec[2].s1 + matr[2].s1*vec[2].s0;
+
+	res[1].s0+= matr[1].s0*vec[0].s0 - matr[1].s1*vec[0].s1
+	          + matr[3].s0*vec[1].s0 - matr[3].s1*vec[1].s1
+	          + matr[4].s0*vec[2].s0 - matr[4].s1*vec[2].s1;
+	res[1].s1+= matr[1].s0*vec[0].s1 + matr[1].s1*vec[0].s0
+	          + matr[3].s0*vec[1].s1 + matr[3].s1*vec[1].s0
+	          + matr[4].s0*vec[2].s1 + matr[4].s1*vec[2].s0;
+
+	res[2].s0+= matr[2].s0*vec[0].s0 - matr[2].s1*vec[0].s1
+	          + matr[4].s0*vec[1].s0 - matr[4].s1*vec[1].s1
+	          + matr[5].s0*vec[2].s0 - matr[5].s1*vec[2].s1;
+	res[2].s1+= matr[2].s0*vec[0].s1 + matr[2].s1*vec[0].s0
+	          + matr[4].s0*vec[1].s1 + matr[4].s1*vec[1].s0
+	          + matr[5].s0*vec[2].s1 + matr[5].s1*vec[2].s0;
+}
+
 __kernel void Aij_poi(__global const double2 *argvec,__global double2 *resultvec,__global int *position,
-	__global int *positionfull, const int arg_length, const double gridspace, const double wavenumber)
+	__global int *positionfull, const int arg_length, const double gridspace, const double wavenumber, 
+	__constant double2 *exptable)
 {
 	size_t i3=3*get_global_id(0);
 
@@ -467,7 +524,7 @@ __kernel void Aij_poi(__global const double2 *argvec,__global double2 *resultvec
 	pos[1]=position[i3+1];
 	pos[2]=position[i3+2];
 	double2 iterm[6];
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double2 arg[3];	///  // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
 	double rn,invrn,kr; // |R| |R/d|, |R|^-3, kR, (kR)^2
 	double2 expval; // exp(ikR)/|R|^3
 	double t1,t2,t3;
@@ -475,23 +532,23 @@ __kernel void Aij_poi(__global const double2 *argvec,__global double2 *resultvec
 	{
 		
 		j3=j*3;
-		qmunu[0]=pos[0]-positionfull[j3];
-		qmunu[3]=pos[1]-positionfull[j3+1];
-		qmunu[5]=pos[2]-positionfull[j3+2];
-		rn=sqrt(qmunu[0]*qmunu[0] + qmunu[3]*qmunu[3] + qmunu[5]*qmunu[5]);
+		t1=pos[0]-positionfull[j3];
+		t2=pos[1]-positionfull[j3+1];
+		t3=pos[2]-positionfull[j3+2];
+		rn=sqrt(t1*t1 + t2*t2 + t3*t3);
 		if(rn)	// interaction is not computed for coinciding dipoles
 		{
 			invrn=1.0/rn;
-			qmunu[0]=invrn*qmunu[0];
-			qmunu[3]=invrn*qmunu[3];
-			qmunu[5]=invrn*qmunu[5];
+			t1=invrn*t1;
+			t2=invrn*t2;
+			t3=invrn*t3;
 
-			qmunu[1]=qmunu[0]*qmunu[3];
-			qmunu[2]=qmunu[0]*qmunu[5];
-			qmunu[4]=qmunu[3]*qmunu[5];
-			qmunu[0]=qmunu[0]*qmunu[0];
-			qmunu[3]=qmunu[3]*qmunu[3];
-			qmunu[5]=qmunu[5]*qmunu[5];
+			arg[0].s0=t1*t1;
+			arg[0].s1=t1*t2;
+			arg[1].s0=t1*t3;
+			arg[1].s1=t2*t2;
+			arg[2].s0=t2*t3;
+			arg[2].s1=t3*t3;
 
 			rn=rn*gridspace;
 			invrn=1.0/(rn*rn*rn);
@@ -499,78 +556,28 @@ __kernel void Aij_poi(__global const double2 *argvec,__global double2 *resultvec
 			rn=kr*kr; //kr2 recycle rn
 
 			t1=3.0-rn;
+			t2=-3.0*kr;
 			t3=rn-1.0;
-			rn=-3.0*kr; //t2 recycle rn
+			expval=invrn*accImExp(kr, exptable);
 
-			expval.s0=invrn*cos(kr);
-			expval.s1=invrn*sin(kr);
+			iterm[0].s0=(t1*arg[0].s0+t3)*expval.s0-(kr+t2*arg[0].s0)*expval.s1;
+			iterm[0].s1=(t1*arg[0].s0+t3)*expval.s1+(kr+t2*arg[0].s0)*expval.s0;
+			iterm[3].s0=(t1*arg[1].s1+t3)*expval.s0-(kr+t2*arg[1].s1)*expval.s1;
+			iterm[3].s1=(t1*arg[1].s1+t3)*expval.s1+(kr+t2*arg[1].s1)*expval.s0;
+			iterm[5].s0=(t1*arg[2].s1+t3)*expval.s0-(kr+t2*arg[2].s1)*expval.s1;
+			iterm[5].s1=(t1*arg[2].s1+t3)*expval.s1+(kr+t2*arg[2].s1)*expval.s0;
 
-			iterm[0].s0=(t1*qmunu[0]+t3)*expval.s0-(kr+rn*qmunu[0])*expval.s1;
-			iterm[0].s1=(t1*qmunu[0]+t3)*expval.s1+(kr+rn*qmunu[0])*expval.s0;
-			iterm[3].s0=(t1*qmunu[3]+t3)*expval.s0-(kr+rn*qmunu[3])*expval.s1;
-			iterm[3].s1=(t1*qmunu[3]+t3)*expval.s1+(kr+rn*qmunu[3])*expval.s0;
-			iterm[5].s0=(t1*qmunu[5]+t3)*expval.s0-(kr+rn*qmunu[5])*expval.s1;
-			iterm[5].s1=(t1*qmunu[5]+t3)*expval.s1+(kr+rn*qmunu[5])*expval.s0;
-
-			iterm[1].s0=qmunu[1]*(t1*expval.s0-rn*expval.s1);
-			iterm[1].s1=qmunu[1]*(t1*expval.s1+rn*expval.s0);
-			iterm[2].s0=qmunu[2]*(t1*expval.s0-rn*expval.s1);
-			iterm[2].s1=qmunu[2]*(t1*expval.s1+rn*expval.s0);
-			iterm[4].s0=qmunu[4]*(t1*expval.s0-rn*expval.s1);
-			iterm[4].s1=qmunu[4]*(t1*expval.s1+rn*expval.s0);
+			iterm[1].s0=arg[0].s1*(t1*expval.s0-t2*expval.s1);
+			iterm[1].s1=arg[0].s1*(t1*expval.s1+t2*expval.s0);
+			iterm[2].s0=arg[1].s0*(t1*expval.s0-t2*expval.s1);
+			iterm[2].s1=arg[1].s0*(t1*expval.s1+t2*expval.s0);
+			iterm[4].s0=arg[2].s0*(t1*expval.s0-t2*expval.s1);
+			iterm[4].s1=arg[2].s0*(t1*expval.s1+t2*expval.s0);
 			
-			qmunu[0]=argvec[j3  ].s0;	// reuse of qmunu for argvec caching
-			qmunu[1]=argvec[j3  ].s1;	// may speedup for gpu that can
-			qmunu[2]=argvec[j3+1].s0;	// hold qmunu in __private memory
-			qmunu[3]=argvec[j3+1].s1;
-			qmunu[4]=argvec[j3+2].s0;
-			qmunu[5]=argvec[j3+2].s1;
-			
-			
-			res[0].s0 += iterm[0].s0*qmunu[0] - iterm[0].s1*qmunu[1]
-				  +  iterm[1].s0*qmunu[2] - iterm[1].s1*qmunu[3]
-				  +  iterm[2].s0*qmunu[4] - iterm[2].s1*qmunu[5]; //iter*argvec[j3]
-			res[0].s1 += iterm[0].s0*qmunu[1] + iterm[0].s1*qmunu[0] 
-				  +  iterm[1].s0*qmunu[3] + iterm[1].s1*qmunu[2] 
-				  +  iterm[2].s0*qmunu[5] + iterm[2].s1*qmunu[4];
-			
-			res[1].s0 += iterm[1].s0*qmunu[0] - iterm[1].s1*qmunu[1]
-				  +  iterm[3].s0*qmunu[2] - iterm[3].s1*qmunu[3]
-				  +  iterm[4].s0*qmunu[4] - iterm[4].s1*qmunu[5];
-			res[1].s1 += iterm[1].s0*qmunu[1] + iterm[1].s1*qmunu[0]
-				  +  iterm[3].s0*qmunu[3] + iterm[3].s1*qmunu[2]
-				  +  iterm[4].s0*qmunu[5] + iterm[4].s1*qmunu[4];
-
-			res[2].s0 += iterm[2].s0*qmunu[0] - iterm[2].s1*qmunu[1]
-				  +  iterm[4].s0*qmunu[2] - iterm[4].s1*qmunu[3]
-				  +  iterm[5].s0*qmunu[4] - iterm[5].s1*qmunu[5];
-			res[2].s1 += iterm[2].s0*qmunu[1] + iterm[2].s1*qmunu[0]
-				  +  iterm[4].s0*qmunu[3] + iterm[4].s1*qmunu[2]
-				  +  iterm[5].s0*qmunu[5] + iterm[5].s1*qmunu[4];
-			/*
-			res[0].s0 += iterm[0].s0*argvec[j3  ].s0 - iterm[0].s1*argvec[j3  ].s1 
-				  +  iterm[1].s0*argvec[j3+1].s0 - iterm[1].s1*argvec[j3+1].s1 
-				  +  iterm[2].s0*argvec[j3+2].s0 - iterm[2].s1*argvec[j3+2].s1; //iter*argvec[j3]
-			res[0].s1 += iterm[0].s0*argvec[j3  ].s1 + iterm[0].s1*argvec[j3  ].s0 
-				  +  iterm[1].s0*argvec[j3+1].s1 + iterm[1].s1*argvec[j3+1].s0 
-				  +  iterm[2].s0*argvec[j3+2].s1 + iterm[2].s1*argvec[j3+2].s0;
-			
-			res[1].s0 += iterm[1].s0*argvec[j3  ].s0 - iterm[1].s1*argvec[j3  ].s1
-				  +  iterm[3].s0*argvec[j3+1].s0 - iterm[3].s1*argvec[j3+1].s1
-				  +  iterm[4].s0*argvec[j3+2].s0 - iterm[4].s1*argvec[j3+2].s1;
-			res[1].s1 += iterm[1].s0*argvec[j3  ].s1 + iterm[1].s1*argvec[j3  ].s0
-				  +  iterm[3].s0*argvec[j3+1].s1 + iterm[3].s1*argvec[j3+1].s0
-				  +  iterm[4].s0*argvec[j3+2].s1 + iterm[4].s1*argvec[j3+2].s0;
-
-			res[2].s0 += iterm[2].s0*argvec[j3  ].s0 - iterm[2].s1*argvec[j3  ].s1
-				  +  iterm[4].s0*argvec[j3+1].s0 - iterm[4].s1*argvec[j3+1].s1
-				  +  iterm[5].s0*argvec[j3+2].s0 - iterm[5].s1*argvec[j3+2].s1;
-			res[2].s1 += iterm[2].s0*argvec[j3  ].s1 + iterm[2].s1*argvec[j3  ].s0
-				  +  iterm[4].s0*argvec[j3+1].s1 + iterm[4].s1*argvec[j3+1].s0
-				  +  iterm[5].s0*argvec[j3+2].s1 + iterm[5].s1*argvec[j3+2].s0;
-			*/
-			//cSymMatrVec(iterm,&argvec[j3],res);
-			//cvAdd(&resultvec[i3],res,&resultvec[i3]);
+			arg[0]=argvec[j3];
+			arg[1]=argvec[j3+1];
+			arg[2]=argvec[j3+2];
+			cSymMatrVecAccumulate(iterm,arg,res);
 		}
 	}
 	resultvec[i3]=res[0];
