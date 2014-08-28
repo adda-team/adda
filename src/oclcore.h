@@ -47,6 +47,7 @@ extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultv
 //TODO: declared here for fast implementation. Better to find an elegant way to do it
 extern cl_mem bufargfull;
 extern cl_mem bufpositionfull;
+extern cl_mem bufexptable;
 
 extern cl_kernel clCcMul;
 extern cl_kernel Aij_poi;

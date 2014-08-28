@@ -48,6 +48,7 @@ cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufs
 //TODO: declared here for fast implementation. Better to find an elegant way to do it
 cl_mem bufargfull;
 cl_mem bufpositionfull;
+cl_mem bufexptable;
 cl_kernel clCcMul;
 cl_kernel Aij_poi;
 cl_kernel clDiagProd;
