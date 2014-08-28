@@ -354,7 +354,23 @@ static inline double ellTheta(const double a)
     }
     return res;
 }
-
+static inline doublecomplex massaIntegrall(const double a, const double b, const double c){
+    //http://iopscience.iop.org/1367-2630/15/6/063013/media/NJP465759suppdata.pdf
+    //s. 11, Eq. (54)
+    
+    double currentSqrt = sqrt(a*a + b*b + c*c);
+    doublecomplex integrall = 0;
+    integrall -= 4*c*c*catan(a*b/currentSqrt/c);
+    integrall -= 4*b*b*catan(a*c/currentSqrt/b);
+    integrall += 2*a*b*log(c + currentSqrt);
+    integrall += 2*a*c*log(b + currentSqrt);
+    integrall += 4*b*c*log(a + currentSqrt);
+    integrall -= 2*a*b*log(currentSqrt - c);
+    integrall -= 2*a*c*log(currentSqrt - b);
+    integrall -= 4*c*b*log(currentSqrt - a);
+    
+    return integrall*2;
+}
 //======================================================================================================================
 
 static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublecomplex res[static 3])
@@ -375,7 +391,7 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         int i;
         double a, b, c;
         double omega;
-        double betta, bettaFfirst, bettaSecond, bettaThird;
+        double betta;//, bettaFfirst, bettaSecond, bettaThird;
         int drane_precalc_data_index = -1;
         if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
 #define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
@@ -424,13 +440,9 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                 // see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
                 // Eq number noted for some lines of code
                 omega = 4 * asin(b * c / sqrt((a * a + b * b)*(a * a + c * c)));//(10)
-                bettaFfirst = 8 * a * b * log(1 + 2 * c / sqrt(a * a + b * b + c * c));
-                bettaSecond = 16 * a * b * b / sqrt(a * a + b * b) * atan(c / sqrt(a * a + b * b));
-                bettaThird = 4 * a * a * a * a * atan(c / a) - 2 * a * a * b * b * atan(c / a) - 2 * a * b * b*c;
-                bettaThird *= 2 * b / a / (a * a + c * c);
-                betta = bettaFfirst + bettaSecond + bettaThird;//(11) betta is three-time integral.The analytical expression is obtained through a Taylor series expansion up to the third member.
+                betta = massaIntegrall(a,b,c);//(11) betta is three-time integral.
                 res[i] = (-2 * omega + WaveNum * WaveNum * betta / 2) + I * (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);//(9)
-                res[i] = PI * 4 / (mrel[0] * mrel[0] - 1) - res[i];//(9)
+                res[i] = FOUR_PI / (mrel[0] * mrel[0] - 1) - res[i];//(9)
                 res[i] = 8 * a * b * c / res[i];//(9)
             }
             if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
@@ -439,9 +451,10 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                 // Eq number noted for some lines of code
                 res[i] = 3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM 
                 res[i] = res[i] / (1 + res[i] * drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
+                res[i] *= dipvol / FOUR_PI;
                 if (PolRelation == POL_CLDR_RECT) {
                     draneSum = 0;
-                    
+                    //res[i] =dipvol / FOUR_PI* 1/((mrel[0]*mrel[0]+2)/3/(mrel[0]*mrel[0]-1)  + drane_precalc_data_array[drane_precalc_data_index].R0[i]);//CM 
                     for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
                     
                     //L is obtaned in (62)
@@ -450,12 +463,8 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                     //K is obtaned in (63)
                     K = c3 + drane_precalc_data_array[drane_precalc_data_index].R1 + 8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)];
                     
-                    correction = -nu*nu*res[i]*res[i]*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*K);//(65)
-                    res[i] += correction;//(38)*/
-                    res[i] *= dipvol / FOUR_PI;
-                    //res[i]=res[i]/(1-2.0/3*I*WaveNum*WaveNum*WaveNum*res[i]);
-                }else{
-                    res[i] *= dipvol / FOUR_PI;
+                    correction = -FOUR_PI*nu*nu*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*K);//(65)
+                    res[i] = res[i] / (1 - (res[i] / dipvol) * correction);
                 }
                 
 #undef R3_INDEX
