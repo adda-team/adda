@@ -62,19 +62,21 @@ http://a-dda.googlecode.com/svn/wiki/pstd_dda.svg
 
 Although these conclusions depend on particular scattering quantity and on the implementations of both methods, they will not change principally unless a major improvement of one of the method is made. In particular, we have tried to push `ADDA` to the limit for two spheres (_x_=10, _m_=2 and _x_=80, _m_=1.2). We tried different DDA formulations and iterative solvers, resulting in 14 and 4 times decrease of computational time for these two cases, respectively. However, these times were still two-three times larger than that of the PSTD. However, for general complex refractive indices and/or inhomogeneous particles the results of the comparison are expected to be significantly different.
 
+In particular, a more recent paper [[#References 5]] considered refractive index of ice in a wide spectral range (including absorbing ones). It was shown that absorption improves the performance of both methods, however, the DDA especially benefits from it. For strongly absorbing ice (Im(_m_)>0.1) the DDA is about twice faster than the PSTD for all tested size parameters (up to 100).
+
 = Improved geometric optics method =
 
-Bi et al. compared `ADDA` with the improved geometric optics method (IGOM) for simulation of randomly-oriented ellipsoids [[#References 5]] and hexahedra [[#References 6]]. The accuracy of the `ADDA` was assumed good enough (unfortunately, the details of the DDA simulations were not specified), while accuracy of IGOM is tested against it. A particular example from [[#References 6]] is shown in the following figure, depicting integrated scattering properties of randomly oriented nonsymmetric hexahedra versus the size parameter. One can see that both methods agree in intermediate size parameter range, thus effectively closing the gap between geometric-optics and wave-optics methods. However, the deviations for angle-resolved light scattering properties ,e.g. _S_,,11,,, can still be significant (see [[#References 6]] for details).
+Bi et al. compared `ADDA` with the improved geometric optics method (IGOM) for simulation of randomly-oriented ellipsoids [[#References 6]] and hexahedra [[#References 7]]. The accuracy of the `ADDA` was assumed good enough (unfortunately, the details of the DDA simulations were not specified), while accuracy of IGOM is tested against it. A particular example from [[#References 7]] is shown in the following figure, depicting integrated scattering properties of randomly oriented nonsymmetric hexahedra versus the size parameter. One can see that both methods agree in intermediate size parameter range, thus effectively closing the gap between geometric-optics and wave-optics methods. However, the deviations for angle-resolved light scattering properties ,e.g. _S_,,11,,, can still be significant (see [[#References 7]] for details).
 
 [http://a-dda.googlecode.com/svn/wiki/igom_dda_large.png http://a-dda.googlecode.com/svn/wiki/igom_dda_small.png]
 
 = `Tsym` for cubes =
 
-`ADDA` was compared with `Tsym`, a T-matrix code employing discrete symmetries of the scatterer, for a number of cubes with _kD_=0.1 and 8 (_k_ is the wavenumber, _D_ is the cube edge) and refractive index _m_=1.6+0.01i, 0.1+i, and 10+10i [[#References 7]], pushing the accuracy of both codes to the limit. Here we present only the results for one case - _kD_=8 and _m_=1.6+0.01i. The cube is in fixed orientation with edges along the axes. `ADDA` v.0.78.2 was used with default settings, except for the FCD formulation and 10^−10^ convergence threshold for the iterative solver. The command line was the following:
+`ADDA` was compared with `Tsym`, a T-matrix code employing discrete symmetries of the scatterer, for a number of cubes with _kD_=0.1 and 8 (_k_ is the wavenumber, _D_ is the cube edge) and refractive index _m_=1.6+0.01i, 0.1+i, and 10+10i [[#References 8]], pushing the accuracy of both codes to the limit. Here we present only the results for one case - _kD_=8 and _m_=1.6+0.01i. The cube is in fixed orientation with edges along the axes. `ADDA` v.0.78.2 was used with default settings, except for the FCD formulation and 10^−10^ convergence threshold for the iterative solver. The command line was the following:
 {{{
 adda -size 8 -m 1.6 0.01 -ntheta 180 -shape box -int fcd -pol fcd -eps 10 -grid <nx>
 }}}
-where 5 grid sizes (`<nx>`) were used from 256 to 512, and extrapolation technique [[#References 8]] was employed afterwards. Also, a special technique was used for `Tsym` results to estimate computational accuracy. Results for the integral scattering quantities are summarized in the following table. Uncertainties (±) are in the last shown digits of the corresponding value and have nominal confidence level of 95%.
+where 5 grid sizes (`<nx>`) were used from 256 to 512, and extrapolation technique [[#References 9]] was employed afterwards. Also, a special technique was used for `Tsym` results to estimate computational accuracy. Results for the integral scattering quantities are summarized in the following table. Uncertainties (±) are in the last shown digits of the corresponding value and have nominal confidence level of 95%.
 || || _Q_,,ext,, || _Q_,,sca,, || _Q_,,abs,, ||
 || `ADDA` || 4.2480442 ± 3 || 3.9715646 ± 3 || 0.2764796 ± 1 ||
 || `Tsym` || 4.24775 ± 33 || 3.97156 ± 24 || 0.2757 ± 7 ||
@@ -95,7 +97,7 @@ where `<nx>` varied between 16 and 64. Shown below is normalized (to have maximu
 
 http://a-dda.googlecode.com/svn/wiki/Fe_spheroid.svg
 
-Reference results are T-matrix simulations, digitized from Fig.4.7 of [[#References 9]] with appropriate modification of scattering angle definition. The agreement is perfect for perpendicular intensity, but there are some discrepancies for parallel. The latter, however, clearly diminish with refining discretization, and the remaining difference is compared to that between the T-matrix and discrete-sources-method in [[#References 9]] (data not shown).
+Reference results are T-matrix simulations, digitized from Fig.4.7 of [[#References 10]] with appropriate modification of scattering angle definition. The agreement is perfect for perpendicular intensity, but there are some discrepancies for parallel. The latter, however, clearly diminish with refining discretization, and the remaining difference is compared to that between the T-matrix and discrete-sources-method in [[#References 10]] (data not shown).
 
 A second test is for Ag sphere (radius _R_=50nm, refractive index 0.25+3.14i) placed on glass substrate (refractive index _m_,,s,,=1.5), illuminated by plane wave from below propagating at 60° relative to the surface normal (evanescent illumination). Wavelength is 488nm. `ADDA` v.1.3b4 was used with command line
 {{{
@@ -105,14 +107,14 @@ Shown below are perpendicular and parallel scattering intensities (_S_,,11,,−_
 
 http://a-dda.googlecode.com/svn/wiki/Ag_sphere.svg
 
-Reference T-matrix results are given in Fig.4.10 of [[#References 9]], but they were recalculated by Vladimir Schmidt using [http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]. The latter raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
+Reference T-matrix results are given in Fig.4.10 of [[#References 10]], but they were recalculated by Vladimir Schmidt using [http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]. The latter raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
 
 = Decay rate enhancements =
-The test data for this section were provided by Stefania D'Agostino. The goal is to validate the part of `ADDA`, related to the point-dipole incident field, by comparing it with exact electromagnetic theory (EET) for a silver sphere (diameter 10 nm). EET is described in [[#References 10]], and the data were calculated with the [http://erbium.amolf.nl/ online applet]. The refractive index of silver is from Palik [[#References 11]] with linear interpolation. First, the decay-rate enhancements (total as well as radiative and non-radiative parts) at the wavelength of 354nm were calculated as a function of dipole distance from sphere surface for parallel and perpendicular orientations of the dipole with respect to sphere surface. `ADDA` v.1.3b4 was used with a command line
+The test data for this section were provided by Stefania D'Agostino. The goal is to validate the part of `ADDA`, related to the point-dipole incident field, by comparing it with exact electromagnetic theory (EET) for a silver sphere (diameter 10 nm). EET is described in [[#References 11]], and the data were calculated with the [http://erbium.amolf.nl/ online applet]. The refractive index of silver is from Palik [[#References 12]] with linear interpolation. First, the decay-rate enhancements (total as well as radiative and non-radiative parts) at the wavelength of 354nm were calculated as a function of dipole distance from sphere surface for parallel and perpendicular orientations of the dipole with respect to sphere surface. `ADDA` v.1.3b4 was used with a command line
 {{{
 adda -beam dipole 0 0 <z> -prop <ori> -size 10 -lambda 354 -m 0.20959 1.43592 -sym enf -grid 160
 }}}
-where `<z>` is the distance from dipole to sphere center (in nm), i.e. distance from surface + 5, and `<ori>` is "1 0 0" or "0 0 1" for parallel and perpendicular orientations of the dipole respectively. The results are similar to Fig.1 of [[#References 12]], which were obtained with a previous version of `ADDA` using a number of code hacks and workarounds. Now only `ADDA` itself is required for such simulations.
+where `<z>` is the distance from dipole to sphere center (in nm), i.e. distance from surface + 5, and `<ori>` is "1 0 0" or "0 0 1" for parallel and perpendicular orientations of the dipole respectively. The results are similar to Fig.1 of [[#References 13]], which were obtained with a previous version of `ADDA` using a number of code hacks and workarounds. Now only `ADDA` itself is required for such simulations.
 
 http://a-dda.googlecode.com/svn/wiki/DRE_distance.svg
 
@@ -124,13 +126,14 @@ where `<nx>` is either 80 or 160, `<lam>` is the wavelength (in nm), and `<mre>`
 
 http://a-dda.googlecode.com/svn/wiki/DRE_lambda.svg
 
-The agreement with EET becomes better with refining discretization. Moreover, if we use the simplest Richardson-type extrapolation of the DDA results to zero dipole size (see [[#References 8]] for justification), i.e. 2×(result for _n,,x,,_=160) - (result for _n,,x,,_=80), the agreement (green vs. blue line in the figure) is almost perfect (in many cases withing the line width).
+The agreement with EET becomes better with refining discretization. Moreover, if we use the simplest Richardson-type extrapolation of the DDA results to zero dipole size (see [[#References 9]] for justification), i.e. 2×(result for _n,,x,,_=160) - (result for _n,,x,,_=80), the agreement (green vs. blue line in the figure) is almost perfect (in many cases withing the line width).
 
 = References =
  # A. Penttila, E. Zubko, K. Lumme, K. Muinonen, M. A. Yurkin, B. T. Draine, J. Rahola, A. G. Hoekstra, and Y. Shkuratov, “Comparison between discrete dipole implementations and exact techniques,” [http://dx.doi.org/10.1016/j.jqsrt.2007.01.026 J. Quant. Spectrosc. Radiat. Transfer 106, 417-436 (2007)].
  # V. Schmidt and T. Wriedt, “T-matrix method for biaxial anisotropic particles,” [http://dx.doi.org/10.1016/j.jqsrt.2009.01.025 J. Quant. Spectrosc. Radiat. Transfer 110, 1392-1397 (2009)].
  # M. A. Yurkin, A. G. Hoekstra, R. S. Brock, and J. Q. Lu, “Systematic comparison of the discrete dipole approximation and the finite difference time domain method for large dielectric scatterers,” [http://dx.doi.org/10.1364/OE.15.017902 Opt. Express 15, 17902-17911 (2007)].
  # C. Liu, L. Bi, R. L. Panetta, P. Yang, and M. A. Yurkin, “Comparison between the pseudo-spectral time domain method and the discrete dipole approximation for light scattering simulations,” [http://dx.doi.org/10.1364/OE.20.016763 Opt. Express 20, 16763–16776 (2012)].
+ # D. I. Podowitz, C. Liu, P. Yang, and M. A. Yurkin, “Comparison of the pseudo-spectral time domain method and the discrete dipole approximation for light scattering by ice spheres,” [http://dx.doi.org/10.1016/j.jqsrt.2014.02.032 J. Quant. Spectrosc. Radiat. Transfer 146, 402–409 (2014)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Single-scattering properties of triaxial ellipsoidal particles for a size parameter range from the Rayleigh to geometric-optics regimes,” [http://dx.doi.org/10.1364/AO.48.000114 Appl. Opt. 48, 114-126 (2009)].
  # L. Bi, P. Yang, G. W. Kattawar, and R. Kahn, “Modeling optical properties of mineral aerosol particles by using nonsymmetric hexahedra,” [http://dx.doi.org/10.1364/AO.49.000334 Appl. Opt. 49, 334-342 (2010)].
  # M. A. Yurkin and M. Kahnert, “Light scattering by a cube: accuracy limits of the discrete dipole approximation and the T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2012.10.001 J. Quant. Spectrosc. Radiat. Transfer 123, 176–183 (2013)].
