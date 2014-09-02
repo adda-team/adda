@@ -1394,25 +1394,7 @@ PARSE_FUNC(rect_dip)
         TestPositive(rectScaleX,"-rect_dip <x>");
         TestPositive(rectScaleY,"-rect_dip <y>");
         TestPositive(rectScaleZ,"-rect_dip <z>");
-        
-        double buf = rectScaleX*rectScaleY*rectScaleZ;
-        
-        #define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
-        #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
-
-        IS_EQUAL_VALUE();
-        printf("Input proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f) ",rectScaleX,rectScaleY,rectScaleZ);
-
-        SET_PRECALC_VALUE(rectScaleX);
-        SET_PRECALC_VALUE(rectScaleY);
-        SET_PRECALC_VALUE(rectScaleZ);
-        IS_EQUAL_VALUE();
-        
-        if(buf!=rectScaleX*rectScaleY*rectScaleZ)
-            printf("modified (x=%.1f, y=%.1f, z=%.1f)",rectScaleX,rectScaleY,rectScaleZ);
-        printf("\n");
-        #undef SET_PRECALC_VALUE 
-        #undef IS_EQUAL_VALUE    
+   
         isUseRect = true;
         
 }
@@ -2175,25 +2157,48 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
-        
-        if(isUseRect){
-            if(PolRelation!=POL_CLDR && PolRelation!=POL_CM&& PolRelation!=POL_IGT_SO){
-                PrintBoth(logfile, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
-            }else{
-                
-                if(PolRelation==POL_CLDR)PolRelation = POL_CLDR_RECT;
-                else if(PolRelation==POL_CM)PolRelation = POL_CM_RECT;
-                else if(PolRelation==POL_IGT_SO)PolRelation = POL_IGT_RECT;
-                
-                if(PolRelation!=POL_IGT_RECT && IntRelation == G_IGT){
-                    PrintBoth(logfile, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
-                }
-            
-            }
-        
 
-        
+    if (isUseRect) {
+        if (PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO) {
+            LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
+        } else {
+
+            if (PolRelation == POL_CLDR)PolRelation = POL_CLDR_RECT;
+            else if (PolRelation == POL_CM)PolRelation = POL_CM_RECT;
+            else if (PolRelation == POL_IGT_SO)PolRelation = POL_IGT_RECT;
+
+            if (PolRelation != POL_IGT_RECT && IntRelation == G_IGT) {
+                LogWarning(EC_WARN,ONE_POS, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
+            }
+
+
+            if (PolRelation != POL_IGT_RECT) {
+#define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
+#define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
+
+                IS_EQUAL_VALUE();
+
+                double buf = rectScaleX * rectScaleY*rectScaleZ;
+                double old_rectScaleX = rectScaleX,
+                        old_rectScaleY = rectScaleY,
+                        old_rectScaleZ = rectScaleZ;
+                SET_PRECALC_VALUE(rectScaleX);
+                SET_PRECALC_VALUE(rectScaleY);
+                SET_PRECALC_VALUE(rectScaleZ);
+                IS_EQUAL_VALUE();
+
+                if (buf != rectScaleX * rectScaleY * rectScaleZ)
+                    LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%.1f, y=%.1f, z=%.1f) to (x=%.1f, y=%.1f, z=%.1f)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
+
+#undef SET_PRECALC_VALUE 
+#undef IS_EQUAL_VALUE 
+            }
         }
+
+
+
+
+    }
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)
@@ -2328,6 +2333,7 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
+            
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
@@ -2341,7 +2347,8 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-                fprintf(logfile,"Input proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f) ",rectScaleX,rectScaleY,rectScaleZ);
+                if(isUseRect)
+                    fprintf(logfile,"proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f)\n",rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
