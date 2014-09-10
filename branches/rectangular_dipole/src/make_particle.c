@@ -2012,9 +2012,9 @@ void MakeParticle(void)
 		 * anisotropies in the particle itself are treated in the specific shape modules below (see e.g.
 		 * ELLIPSOID).
 		 */
-		xr=(xj+jcX)/(boxX)*rectScaleX;
-		yr=(yj+jcY)/(boxX)*rectScaleY;
-		zr=(zj+jcZ)/(boxX)*rectScaleZ;
+		xr=(xj+jcX)/(boxX*rectScaleX)*rectScaleX;
+		yr=(yj+jcY)/(boxX*rectScaleX)*rectScaleY;
+		zr=(zj+jcZ)/(boxX*rectScaleX)*rectScaleZ;
 
 		mat=Nmat; // corresponds to void
 
