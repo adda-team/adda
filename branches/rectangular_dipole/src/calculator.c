@@ -84,18 +84,18 @@ static int finish_avg; // whether to stop orientation averaging; defined as int 
 static double * restrict out; // used to collect both mueller matrix and integral scattering quantities when orient_avg
 
 struct drane_coefficients {
-    double ratios [3];
-    double R0[3];// Drane polarizability R0 correction Eq(45), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    double R1;// Drane polarizability R1 correction Eq(47), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    double R2[3];// Drane polarizability R2 correction Eq(48), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    double R3[6];// Drane polarizability R3 correction Eq(49), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    const double ratios[3];
+    const double R0[3];// Drane polarizability R0 correction Eq(45), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    const double R1;// Drane polarizability R1 correction Eq(47), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    const double R2[3];// Drane polarizability R2 correction Eq(48), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+    const double R3[6];// Drane polarizability R3 correction Eq(49), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 };
 static const struct drane_coefficients drane_precalc_data_array[] = {
     {
         {1, 1, 1},
-        {0, 0, 0}, 0.00000,
-        {0.00000, 0.00000, 0.00000},
-        {0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000}},
+        {0, 0, 0}, 0,
+        {0, 0, 0},
+        {0, 0, 0, 0, 0, 0}},
     {
         {1, 1, 1.5},
         {0.20426, 0.20426, -0.40851}, -0.53869,
@@ -275,7 +275,7 @@ static const struct drane_coefficients drane_precalc_data_array[] = {
         {3, 3, 1},
         {-1.55515, -1.55515, 3.11030}, -4.62875,
         {-4.09616, -4.09616, 3.56356},
-        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
+        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}}
 };
 
 
@@ -395,19 +395,17 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         int drane_precalc_data_index = -1;
         if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
 #define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
-        i=-1;
-        
-
-        while (drane_precalc_data_array[++i].ratios!=NULL){
-            if(IS_DOUBLE_EQAL(rectScaleX,drane_precalc_data_array[i].ratios[0])&&
-               IS_DOUBLE_EQAL(rectScaleY,drane_precalc_data_array[i].ratios[1])&&
-               IS_DOUBLE_EQAL(rectScaleZ,drane_precalc_data_array[i].ratios[2]))
-            {
-                drane_precalc_data_index = i;
-                break;
+            i = -1;
+            int count = sizeof (drane_precalc_data_array) / sizeof (drane_precalc_data_array[0]);
+            while (i++<count) {
+                if (IS_DOUBLE_EQAL(rectScaleX, drane_precalc_data_array[i].ratios[0]) &&
+                        IS_DOUBLE_EQAL(rectScaleY, drane_precalc_data_array[i].ratios[1]) &&
+                        IS_DOUBLE_EQAL(rectScaleZ, drane_precalc_data_array[i].ratios[2])) {
+                    drane_precalc_data_index = i;
+                    break;
+                }
             }
-        }    
-        if(drane_precalc_data_index == -1)LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
+            if (drane_precalc_data_index == -1)LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
 
 #undef IS_DOUBLE_EQAL
         }
@@ -417,10 +415,9 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         double nu = WaveNum / TWO_PI * pow(dipvol, ONE_THIRD);
         doublecomplex correction;
         doublecomplex L;
-        doublecomplex K;
-        int l;
         double draneSum;
-
+        
+        int l;
         for (i = 0; i < 3; i++) {
             if (PolRelation == POL_IGT_RECT) {
                 if (i == 0) {
@@ -454,16 +451,11 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                 res[i] *= dipvol / FOUR_PI;
                 if (PolRelation == POL_CLDR_RECT) {
                     draneSum = 0;
-                    //res[i] =dipvol / FOUR_PI* 1/((mrel[0]*mrel[0]+2)/3/(mrel[0]*mrel[0]-1)  + drane_precalc_data_array[drane_precalc_data_index].R0[i]);//CM 
                     for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
                     
                     //L is obtaned in (62)
                     L = c1 + mrel[0]*mrel[0]*c2*(1 - 3*prop[i]*prop[i]) - mrel[0]*mrel[0]*c3*prop[i]*prop[i] - FOUR_PI*PI*I*nu/3 - drane_precalc_data_array[drane_precalc_data_index].R1 - (mrel[0]*mrel[0] - 1)*drane_precalc_data_array[drane_precalc_data_index].R2[i] - 8*mrel[0]*mrel[0]*prop[i]*prop[i]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)] + 4*mrel[0]*mrel[0]*draneSum;
-                    
-                    //K is obtaned in (63)
-                    K = c3 + drane_precalc_data_array[drane_precalc_data_index].R1 + 8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)];
-                    
-                    correction = -FOUR_PI*nu*nu*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*K);//(65)
+                    correction = -FOUR_PI*nu*nu*L;//(65)
                     res[i] = res[i] / (1 - (res[i] / dipvol) * correction);
                 }
                 

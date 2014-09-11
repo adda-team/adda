@@ -1322,13 +1322,10 @@ PARSE_FUNC(pol)
 
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-	//else if (strcmp(argv[1],"cldr_rect")==0) PolRelation=POL_CLDR_RECT;
         else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
-        //else if (strcmp(argv[1],"cm_rect")==0) PolRelation=POL_CM_RECT;
 	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
-        //else if (strcmp(argv[1],"igt_rect")==0) PolRelation=POL_IGT_RECT;
 	else if (strcmp(argv[1],"lak")==0) PolRelation=POL_LAK;
 	else if (strcmp(argv[1],"ldr")==0) {
 		PolRelation=POL_LDR;
