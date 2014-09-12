@@ -275,7 +275,12 @@ static const struct drane_coefficients drane_precalc_data_array[] = {
         {3, 3, 1},
         {-1.55515, -1.55515, 3.11030}, -4.62875,
         {-4.09616, -4.09616, 3.56356},
-        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}}
+        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
+    {
+        {0, 0, 0},
+        {0, 0, 0}, 0,
+        {0, 0, 0},
+        {0, 0, 0, 0, 0, 0}},
 };
 
 
@@ -393,11 +398,12 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         double omega;
         double betta;//, bettaFfirst, bettaSecond, bettaThird;
         int drane_precalc_data_index = -1;
-        if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
+        if (PolRelation == POL_CLDR || PolRelation == POL_CM) {
 #define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
             i = -1;
-            int count = sizeof (drane_precalc_data_array) / sizeof (drane_precalc_data_array[0]);
-            while (i++<count) {
+            while (drane_precalc_data_array[++i].ratios[0]>0 
+                || drane_precalc_data_array[i].ratios[1]>0
+                || drane_precalc_data_array[i].ratios[2]>0) {
                 if (IS_DOUBLE_EQAL(rectScaleX, drane_precalc_data_array[i].ratios[0]) &&
                         IS_DOUBLE_EQAL(rectScaleY, drane_precalc_data_array[i].ratios[1]) &&
                         IS_DOUBLE_EQAL(rectScaleZ, drane_precalc_data_array[i].ratios[2])) {
@@ -419,7 +425,7 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         
         int l;
         for (i = 0; i < 3; i++) {
-            if (PolRelation == POL_IGT_RECT) {
+            if (PolRelation == POL_IGT_SO) {
                 if (i == 0) {
                     a = gridspace * rectScaleX * 0.5;
                     b = gridspace * rectScaleY * 0.5;
@@ -442,14 +448,14 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                 res[i] = FOUR_PI / (mrel[0] * mrel[0] - 1) - res[i];//(9)
                 res[i] = 8 * a * b * c / res[i];//(9)
             }
-            if (PolRelation == POL_CLDR_RECT || PolRelation == POL_CM_RECT) {
+            if (PolRelation == POL_CLDR || PolRelation == POL_CM) {
 #define R3_INDEX(i,j)(i==j?i:(i+j+2))
                 //see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
                 // Eq number noted for some lines of code
                 res[i] = 3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM 
                 res[i] = res[i] / (1 + res[i] * drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
                 res[i] *= dipvol / FOUR_PI;
-                if (PolRelation == POL_CLDR_RECT) {
+                if (PolRelation == POL_CLDR) {
                     draneSum = 0;
                     for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
                     
