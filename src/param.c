@@ -2156,20 +2156,14 @@ void VariablesInterconnect(void)
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 
     if (isUseRect) {
-        if (PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO) {
+        if (PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
             LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
         } else {
-
-            if (PolRelation == POL_CLDR)PolRelation = POL_CLDR_RECT;
-            else if (PolRelation == POL_CM)PolRelation = POL_CM_RECT;
-            else if (PolRelation == POL_IGT_SO)PolRelation = POL_IGT_RECT;
-
-            if (PolRelation != POL_IGT_RECT && IntRelation == G_IGT) {
+            if (PolRelation != POL_IGT_SO  && IntRelation == G_IGT) {
                 LogWarning(EC_WARN,ONE_POS, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
             }
 
-
-            if (PolRelation != POL_IGT_RECT) {
+            if (PolRelation != POL_IGT_SO) {
 #define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
 #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
 
@@ -2431,14 +2425,11 @@ void PrintInfo(void)
 		// log polarizability relation
 		fprintf(logfile,"Polarizability relation: ");
 		switch (PolRelation) {
-                        case POL_CLDR_RECT: fprintf(logfile,"'Corrected Lattice Dispersion Relation for rectangular lattice'\n"); break;
-			case POL_CM_RECT: fprintf(logfile,"'Clausius-Mossotti  for rectangular lattice'\n"); break;
 			case POL_CLDR: fprintf(logfile,"'Corrected Lattice Dispersion Relation'\n"); break;
 			case POL_CM: fprintf(logfile,"'Clausius-Mossotti'\n"); break;
 			case POL_DGF: fprintf(logfile,"'Digitized Green's Function'\n"); break;
 			case POL_FCD: fprintf(logfile,"'Filtered Coupled Dipoles'\n"); break;
 			case POL_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
-                        case POL_IGT_RECT: fprintf(logfile,"'Integration of Green's Tensor for rectangular lattice'\n"); break;
 			case POL_LAK: fprintf(logfile,"'by Lakhtakia'\n"); break;
 			case POL_LDR:
 				fprintf(logfile,"'Lattice Dispersion Relation'");
