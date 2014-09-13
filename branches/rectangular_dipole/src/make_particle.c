@@ -1350,7 +1350,7 @@ void InitShape(void)
 		tmp1=cAbs2(ref_index[i]);
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
-	dpl_def=10*sqrt(tmp2);
+	dpl_def=10*sqrt(tmp2)/rectScaleX;
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -2012,9 +2012,9 @@ void MakeParticle(void)
 		 * anisotropies in the particle itself are treated in the specific shape modules below (see e.g.
 		 * ELLIPSOID).
 		 */
-		xr=(xj+jcX)/(boxX*rectScaleX)*rectScaleX;
-		yr=(yj+jcY)/(boxX*rectScaleX)*rectScaleY;
-		zr=(zj+jcZ)/(boxX*rectScaleX)*rectScaleZ;
+		xr=(xj+jcX)/(boxX)*rectScaleX;
+		yr=(yj+jcY)/(boxX)*rectScaleY;
+		zr=(zj+jcZ)/(boxX)*rectScaleZ;
 
 		mat=Nmat; // corresponds to void
 
@@ -2202,7 +2202,7 @@ void MakeParticle(void)
 	else {
 		// dpl is determined to give correct volume
 		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
-		else dpl=lambda*boxX/sizeX;
+		else dpl=lambda*boxX/sizeX*rectScaleX;
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
