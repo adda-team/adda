@@ -1862,7 +1862,7 @@ void InitVariables(void)
 	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
-	PolRelation=POL_CLDR;
+	PolRelation=POL_LDR;
 	avg_inc_pol=false;
 	ScatRelation=SQ_DRAINE;
 	IntRelation=G_POINT_DIP;
@@ -2156,7 +2156,7 @@ void VariablesInterconnect(void)
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 
     if (isUseRect) {
-        if (PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
+        if (PolRelation != POL_LDR && PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
             LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
         } else {
             if (PolRelation != POL_IGT_SO  && IntRelation == G_IGT) {
