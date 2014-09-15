@@ -85,13 +85,16 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
 # are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
-              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_SVNREV
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_SVNREV \
+              ACCIMEXP
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
 # possible warnings by the compiler). DEBUGFULL turns off optimization completely (for more accurate debugging symbols)
 # and turns on additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
+override OPTIONS += SPARSE ACCIMEXP
+#USE_SSE3
 
 # Temperton FFT (fft.h).
 #override OPTIONS += FFT_TEMPERTON
@@ -321,6 +324,10 @@ else
   ifneq ($(REV),)
     $(info Revision $(REV))
   endif
+endif
+ifneq ($(filter ACCIMEXP,$(OPTIONS)),)
+  CDEFS += -DACCIMEXP
+  $(info Using accelerated imExp with precomputed tables)
 endif
 # Process EXTRA_FLAGS
 ifneq ($(strip $(EXTRA_FLAGS)),)
