@@ -50,6 +50,10 @@ extern TIME_TYPE Timing_OCL_Init;
 #endif
 extern size_t TotalEval;
 
+#ifdef ACCIMEXP
+extern doublecomplex * restrict imexptable;
+#endif
+
 // used in CalculateE.c
 double * restrict muel_phi; // used to store values of Mueller matrix for different phi (to integrate)
 double * restrict muel_phi_buf; // additional for integrating with different multipliers
@@ -432,6 +436,14 @@ static void AllocateEverything(void)
 	MALLOC_VECTOR(expsY,complex,boxY,ALL);
 	MALLOC_VECTOR(expsZ,complex,local_Nz_unif,ALL);
 #endif // !SPARSE
+#ifdef ACCIMEXP
+	MALLOC_VECTOR(imexptable,complex,361,ALL);
+	double x;
+	for(unsigned int i=0; i<=360;i++) {
+		x = (PI/180.0)*(double)i;
+		imexptable[i] = cos(x) + I*sin(x);
+	}
+#endif
 	if (yzplane) {
 		tmp=2*(double)nTheta;
 		if (!prognosis) {
@@ -557,7 +569,9 @@ void FreeEverything(void)
 	Free_general(position_full); // allocated in MakeParticle();
 	Free_cVector(arg_full);
 #endif // SPARSE
-
+#ifdef ACCIMEXP
+	Free_cVector(imexptable);
+#endif
 	Free_cVector(xvec);
 	Free_cVector(rvec);
 	Free_cVector(pvec);

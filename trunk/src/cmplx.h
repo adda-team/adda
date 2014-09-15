@@ -34,6 +34,16 @@
 #define REIM(a) creal(a),cimag(a)
 #define REIM3V(a) REIM((a)[0]),REIM((a)[1]),REIM((a)[2])
 
+#ifdef ACCIMEXP
+doublecomplex * restrict imexptable;
+double xp;
+int ixp;
+double x;
+doublecomplex imexp;
+doublecomplex res;
+double par[2];
+#endif
+
 //======================================================================================================================
 // operations on complex numbers
 
@@ -77,7 +87,34 @@ static inline doublecomplex imExp(const double arg)
 // exponent of imaginary argument Exp(i*arg); optimization is performed by compiler
 // this may be faster than using generic cexp, since imaginary type is not supported by all compilers
 {
+#ifndef ACCIMEXP
 	return cos(arg) + I*sin(arg);
+#else
+	xp=arg*0.159154943091895;
+	ixp=floor(xp);
+	xp=ixp*FULL_ANGLE;
+	x=arg*INV_PI_180;
+	x=x-xp;	//x° mod 360°
+	ixp=round(x);
+	imexp=imexptable[ixp];	//first guess
+	x=x-ixp;		// residual
+	xp=x*x;
+	
+	par[0]=-3.925831985743094e-14*xp;
+	par[1]=1.349601623163255e-11*xp;
+	par[0]+=3.866323851562993e-09;
+	par[1]+=-8.860961557012979e-07;
+	par[0]*=xp;
+	par[1]*=xp;
+	par[0]+=-1.523087098933543e-04;
+	par[1]+=1.74532925199432957214e-2;
+	par[0]*=xp;
+	par[1]*=x;
+	par[0]+=1.0;
+	res=par[0]+I*par[1];
+	res=imexp*res; 
+	return res;
+#endif
 }
 
 //======================================================================================================================
