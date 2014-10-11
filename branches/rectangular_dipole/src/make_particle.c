@@ -2066,7 +2066,7 @@ void MakeParticle(void)
 				}
 				break;
 			case SH_BOX:
-				if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
+				if (fabs(yr)/rectScaleX<=haspY && fabs(zr)/rectScaleX<=haspZ) mat=0;
 				break;
 			case SH_CAPSULE:
 				ro2=xr*xr+yr*yr;
@@ -2202,7 +2202,7 @@ void MakeParticle(void)
 	else {
 		// dpl is determined to give correct volume
 		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
-		else dpl=lambda*boxX/sizeX*rectScaleX;
+		else dpl=lambda*boxX/sizeX;
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)

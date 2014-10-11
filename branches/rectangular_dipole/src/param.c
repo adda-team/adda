@@ -2183,6 +2183,14 @@ void VariablesInterconnect(void)
 
 #undef SET_PRECALC_VALUE 
 #undef IS_EQUAL_VALUE 
+            }else{
+                if (IntRelation == G_IGT) {
+                    double max;
+                    max = fmax(rectScaleX, rectScaleY);
+                    max = fmax(max, rectScaleZ);
+                    igt_lim = igt_lim*max;
+                }
+                
             }
         }
 
