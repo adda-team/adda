@@ -455,7 +455,7 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                 res[i] = 3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM 
                 res[i] = res[i] / (1 + res[i] * drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
                 res[i] *= dipvol / FOUR_PI;
-                if (PolRelation == POL_CLDR || PolRelation != POL_LDR ) {
+                if (PolRelation == POL_CLDR || PolRelation == POL_LDR ) {
                     draneSum = 0;
                     for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
                     
