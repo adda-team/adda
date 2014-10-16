@@ -107,7 +107,7 @@ Shown below are perpendicular and parallel scattering intensities (_S_,,11,,−_
 
 http://a-dda.googlecode.com/svn/wiki/Ag_sphere.svg
 
-Reference T-matrix results are given in Fig.4.10 of [[#References 10]], but they were recalculated by Vladimir Schmidt using [http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]. The latter raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
+Reference T-matrix results were provided by Vladimir Schmidt (calculated using [http://www.scattport.org/index.php/programs-menu/t-matrix-codes-menu/239-nfm-ds NFM-DS]) and coincide with that in Fig.4.10 of [[#References 10]]. The former raw results were multiplied by a factor _π_(_kR_)^2^/_m_,,s,,, where _k_ is the free-space wavenumber.
 
 = Decay rate enhancements =
 The test data for this section were provided by Stefania D'Agostino. The goal is to validate the part of `ADDA`, related to the point-dipole incident field, by comparing it with exact electromagnetic theory (EET) for a silver sphere (diameter 10 nm). EET is described in [[#References 11]], and the data were calculated with the [http://erbium.amolf.nl/ online applet]. The refractive index of silver is from Palik [[#References 12]] with linear interpolation. First, the decay-rate enhancements (total as well as radiative and non-radiative parts) at the wavelength of 354nm were calculated as a function of dipole distance from sphere surface for parallel and perpendicular orientations of the dipole with respect to sphere surface. `ADDA` v.1.3b4 was used with a command line
