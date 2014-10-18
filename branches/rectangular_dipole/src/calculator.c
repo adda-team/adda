@@ -420,7 +420,7 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         double c3 = 4.0069747;
         double nu = WaveNum / TWO_PI * pow(dipvol, ONE_THIRD);
         doublecomplex correction;
-        doublecomplex L;
+        doublecomplex L,K;
         double draneSum;
         
         int l;
@@ -461,7 +461,11 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
                     
                     //L is obtaned in (62)
                     L = c1 + mrel[0]*mrel[0]*c2*(1 - 3*prop[i]*prop[i]) - mrel[0]*mrel[0]*c3*prop[i]*prop[i] - FOUR_PI*PI*I*nu/3 - drane_precalc_data_array[drane_precalc_data_index].R1 - (mrel[0]*mrel[0] - 1)*drane_precalc_data_array[drane_precalc_data_index].R2[i] - 8*mrel[0]*mrel[0]*prop[i]*prop[i]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)] + 4*mrel[0]*mrel[0]*draneSum;
-                    correction = -FOUR_PI*nu*nu*L;//(65)
+                     //K is obtaned in (63) 		
+                    K = c3 + drane_precalc_data_array[drane_precalc_data_index].R1 -4*drane_precalc_data_array[drane_precalc_data_index].R2[i] + 8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)]; 		
+		
+                    correction = -FOUR_PI*nu*nu*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3));//(65)
+                    //correction = -FOUR_PI*nu*nu*L;//(65)
                     res[i] = res[i] / (1 - (res[i] / dipvol) * correction);
                 }
                 
