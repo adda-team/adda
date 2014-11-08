@@ -217,7 +217,7 @@ static void SaveGeometry(void)
 		j=3*i;
 		switch (sg_format) {
 			case SF_TEXT:
-				fprintf(geom,geom_format,position[j],position[j+1],position[j+2]);
+				fprintf(geom,geom_format,(int)(position[j]*rectScaleX),(int)(position[j+1]*rectScaleY),(int)(position[j+2]*rectScaleZ));
 				break;
 			case SF_TEXT_EXT:
 				fprintf(geom,geom_format_ext,position[j],position[j+1],position[j+2],material[i]+1);
@@ -1350,7 +1350,7 @@ void InitShape(void)
 		tmp1=cAbs2(ref_index[i]);
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
-	dpl_def=10*sqrt(tmp2)/rectScaleX;
+	dpl_def=10*sqrt(tmp2)*rectScaleX;
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -1388,8 +1388,8 @@ void InitShape(void)
 			}
 			coat_r2=0.25*coat_ratio*coat_ratio;
 			hdratio=diskratio/2.0;
-			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
-			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2/ rectScaleX/rectScaleY/rectScaleZ;
+			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
+			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=2;
@@ -1435,7 +1435,7 @@ void InitShape(void)
 			zcenter2=aspectZ*invmaxX/2;
 			boundZ=zcenter1+zcenter2;
 			// set box and volume ratios
-			volume_ratio=PI_OVER_SIX*(aspectY*aspectZ+aspectY2sc*aspectZ2sc*aspectXs)*invmaxX*invmaxX*invmaxX/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI_OVER_SIX*(aspectY*aspectZ+aspectY2sc*aspectZ2sc*aspectXs)*invmaxX*invmaxX*invmaxX;
 			yx_ratio=MAX(aspectY,aspectY2sc)*invmaxX;
 			zx_ratio=(aspectZ+aspectZ2sc)*invmaxX;
 			Nmat_need=2;
@@ -1451,8 +1451,8 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", center-center distance R_cc/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2.0;
-			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
-			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2/ rectScaleX/rectScaleY/rectScaleZ;
+			if (diskratio>=1) volume_ratio = 2*PI_OVER_SIX;
+			else volume_ratio = PI_OVER_SIX*(2-diskratio)*(1+diskratio)*(1+diskratio)/2;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=1;
@@ -1479,7 +1479,7 @@ void InitShape(void)
 			// set half-aspect ratios
 			haspY=aspectY/2;
 			haspZ=aspectZ/2;
-			volume_ratio=aspectY*aspectZ/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=aspectY*aspectZ;
 			yx_ratio=aspectY;
 			zx_ratio=aspectZ;
 			Nmat_need=1;
@@ -1495,7 +1495,7 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", cylinder height h/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2;
-			volume_ratio = (PI_OVER_FOUR*diskratio + PI_OVER_SIX)/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio = (PI_OVER_FOUR*diskratio + PI_OVER_SIX);
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=1;
@@ -1550,7 +1550,7 @@ void InitShape(void)
 			else coat_x=coat_y=coat_z=0; // initialize default values
 			if (IFROOT) sh_form_str2=buf;
 			coat_r2=0.25*coat_ratio*coat_ratio;
-			volume_ratio=PI_OVER_SIX/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI_OVER_SIX;
 			if (coat_x!=0) symX=symR=false;
 			if (coat_y!=0) symY=symR=false;
 			if (coat_z!=0) symZ=false;
@@ -1568,7 +1568,7 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2;
-			volume_ratio=PI_OVER_FOUR*diskratio/rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI_OVER_FOUR*diskratio;
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1609,7 +1609,7 @@ void InitShape(void)
 			 */
 			zcenter=ad*egnu*(tmp1*tmp1*tmp2*tmp2)/(tmp1+tmp2);
 			// (V/d^3)=(4*pi/3)*(a/d)^3*{[2(1-eps)-nu]/sqrt(eps+nu)+[2(1-eps)+nu]/sqrt(eps-nu)}/[nu^2+4(1-eps)]
-			volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)/(egnu*egnu+2*tmp3)/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=FOUR_PI_OVER_THREE*ad2*ad*((tmp3-egnu)*tmp1+(tmp3+egnu)*tmp2)/(egnu*egnu+2*tmp3);
 			if (IFROOT) {
 				sh_form_str1="egg; diameter(d):";
 				sh_form_str2=dyn_sprintf(", epsilon="GFORM", nu="GFORM", a/d="GFORM,egeps,egnu,ad);
@@ -1634,7 +1634,7 @@ void InitShape(void)
 			// set inverse squares of aspect ratios
 			invsqY=1/(aspectY*aspectY);
 			invsqZ=1/(aspectZ*aspectZ);
-			volume_ratio=PI_OVER_SIX*aspectY*aspectZ/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI_OVER_SIX*aspectY*aspectZ;
 			yx_ratio=aspectY;
 			zx_ratio=aspectZ;
 			Nmat_need=1;
@@ -1657,7 +1657,7 @@ void InitShape(void)
 				sh_form_str1="plate; full diameter(d):";
 				sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
 			}
-			volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI*diskratio*(6+3*(PI-4)*diskratio+(10-3*PI)*diskratio*diskratio)/24;
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1705,7 +1705,7 @@ void InitShape(void)
 			hdratio=zx_ratio/2;
 			rc_2=Rc*Rc/(Dx*Dx);
 			ri_2=Ri*Ri/(Dx*Dx);
-			volume_ratio=hdratio*Nsides*Ri/(Dx*Dx)/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=hdratio*Nsides*Ri/(Dx*Dx);
 			Nmat_need=1;
 			break;
 		}
@@ -1731,8 +1731,8 @@ void InitShape(void)
 					"diameter of maximum width c/d="GFORM,h_d,b_d,c_d);
 			}
 			// calculate shape parameters
-			h2=h_d*h_d;
-			b2=b_d*b_d;
+			h2=h_d*h_d;//*rectScaleX*rectScaleX;
+			b2=b_d*b_d;//*rectScaleX*rectScaleX;
 			c2=c_d*c_d;
 			/* P={(b/d)^2*[c^4/(h^2-b^2)-h^2]-d^2}/4; Q=(d/b)^2*(P+d^2/4)-b^2/4; R=-d^2*(P+d^2/4)/4; S=-(2P+c^2)/h^2;
 			 * here P,Q,R,S are made dimensionless dividing by respective powers of d. Calculation is performed so that
@@ -1751,7 +1751,7 @@ void InitShape(void)
 		}
 		case SH_SPHERE:
 			if (IFROOT) sh_form_str1="sphere; diameter:";
-			volume_ratio=PI_OVER_SIX / rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=PI_OVER_SIX;
 			yx_ratio=zx_ratio=1;
 			Nmat_need=1;
 			break;
@@ -1766,7 +1766,7 @@ void InitShape(void)
 			}
 			coat_r2=0.25*coat_ratio*coat_ratio;
 			yx_ratio=zx_ratio=1;
-			volume_ratio=1/ rectScaleX/rectScaleY/rectScaleZ;
+			volume_ratio=1;
 			Nmat_need=2;
 			break;
 		}
@@ -1815,7 +1815,9 @@ void InitShape(void)
 	 * code), either use 'tmp1'-'tmp3' or define your own (with more informative names) in the beginning of this
 	 * function.
 	 */
-
+        if (boxX!=UNDEF) {boxX*=rectScaleX;}
+        if (boxY!=UNDEF) {boxY*=rectScaleY;}
+        if (boxZ!=UNDEF) {boxZ*=rectScaleZ;}
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
 		if (size_given_cmd) {
@@ -1862,7 +1864,7 @@ void InitShape(void)
 		else sizeX=n_sizeX;
 	}
 	// use analytic connection between sizeX and a_eq if available
-	if (a_eq!=UNDEF && volume_ratio!=UNDEF) sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio,ONE_THIRD)*a_eq;
+	if (a_eq!=UNDEF && volume_ratio!=UNDEF) sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*a_eq;
 	/* Initialization of boxX;
 	 * if boxX is not defined by command line, it is either set by shape itself or
 	 *   if sizeX is set, boxX is initialized to default
@@ -2012,9 +2014,9 @@ void MakeParticle(void)
 		 * anisotropies in the particle itself are treated in the specific shape modules below (see e.g.
 		 * ELLIPSOID).
 		 */
-		xr=(xj+jcX)/(boxX)*rectScaleX;
-		yr=(yj+jcY)/(boxX)*rectScaleY;
-		zr=(zj+jcZ)/(boxX)*rectScaleZ;
+		xr=(xj+jcX)/(boxX);
+		yr=(yj+jcY)/(boxX)*rectScaleY/rectScaleX;
+		zr=(zj+jcZ)/(boxX)*rectScaleZ/rectScaleX;
 
 		mat=Nmat; // corresponds to void
 
@@ -2066,7 +2068,7 @@ void MakeParticle(void)
 				}
 				break;
 			case SH_BOX:
-				if (fabs(yr)/rectScaleX<=haspY && fabs(zr)/rectScaleX<=haspZ) mat=0;
+				if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
 				break;
 			case SH_CAPSULE:
 				ro2=xr*xr+yr*yr;
@@ -2193,16 +2195,16 @@ void MakeParticle(void)
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
 	if (sizeX==UNDEF) {
-		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI,ONE_THIRD)/a_eq;
+		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
 		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
-		if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/dpl;
-		else sizeX=lambda*boxX/dpl;
+		if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl;
+		else sizeX=lambda*boxX*rectScaleX/dpl;
 	}
 	else {
 		// dpl is determined to give correct volume
-		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
-		else dpl=lambda*boxX/sizeX;
+		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX;
+		else dpl=lambda*boxX*rectScaleX/sizeX;
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)

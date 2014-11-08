@@ -1922,9 +1922,9 @@ void InitVariables(void)
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
         
-        rectScaleX = 1;
-        rectScaleY = 1;
-        rectScaleZ = 1;
+        rectScaleX = 1.0;
+        rectScaleY = 1.0;
+        rectScaleZ = 1.0;
         
         
 #ifdef OPENCL
