@@ -217,7 +217,7 @@ static void SaveGeometry(void)
 		j=3*i;
 		switch (sg_format) {
 			case SF_TEXT:
-				fprintf(geom,geom_format,(int)(position[j]*rectScaleX),(int)(position[j+1]*rectScaleY),(int)(position[j+2]*rectScaleZ));
+				fprintf(geom,geom_format,position[j],position[j+1],position[j+2]);
 				break;
 			case SF_TEXT_EXT:
 				fprintf(geom,geom_format_ext,position[j],position[j+1],position[j+2],material[i]+1);
@@ -1350,7 +1350,7 @@ void InitShape(void)
 		tmp1=cAbs2(ref_index[i]);
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
-	dpl_def=10*sqrt(tmp2)*rectScaleX;
+	dpl_def=10*sqrt(tmp2);
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -1731,8 +1731,8 @@ void InitShape(void)
 					"diameter of maximum width c/d="GFORM,h_d,b_d,c_d);
 			}
 			// calculate shape parameters
-			h2=h_d*h_d;//*rectScaleX*rectScaleX;
-			b2=b_d*b_d;//*rectScaleX*rectScaleX;
+			h2=h_d*h_d;
+			b2=b_d*b_d;
 			c2=c_d*c_d;
 			/* P={(b/d)^2*[c^4/(h^2-b^2)-h^2]-d^2}/4; Q=(d/b)^2*(P+d^2/4)-b^2/4; R=-d^2*(P+d^2/4)/4; S=-(2P+c^2)/h^2;
 			 * here P,Q,R,S are made dimensionless dividing by respective powers of d. Calculation is performed so that
@@ -1815,9 +1815,7 @@ void InitShape(void)
 	 * code), either use 'tmp1'-'tmp3' or define your own (with more informative names) in the beginning of this
 	 * function.
 	 */
-        if (boxX!=UNDEF) {boxX*=rectScaleX;}
-        if (boxY!=UNDEF) {boxY*=rectScaleY;}
-        if (boxZ!=UNDEF) {boxZ*=rectScaleZ;}
+
 	// check for redundancy of input data
 	if (dpl!=UNDEF) {
 		if (size_given_cmd) {
@@ -1864,7 +1862,7 @@ void InitShape(void)
 		else sizeX=n_sizeX;
 	}
 	// use analytic connection between sizeX and a_eq if available
-	if (a_eq!=UNDEF && volume_ratio!=UNDEF) sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*a_eq;
+	if (a_eq!=UNDEF && volume_ratio!=UNDEF) sizeX=pow(FOUR_PI_OVER_THREE/volume_ratio,ONE_THIRD)*a_eq;
 	/* Initialization of boxX;
 	 * if boxX is not defined by command line, it is either set by shape itself or
 	 *   if sizeX is set, boxX is initialized to default
@@ -1911,14 +1909,14 @@ void InitShape(void)
 	/* If shape is determined by ratios, calculate proposed grid sizes along y and z axes. Either ratios or n_box should
 	 * necessarily be defined.
 	 */
-	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX);
+	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX*rectScaleX);
 	else if (n_boxY==UNDEF) LogError(ONE_POS,"Both yx_ratio and n_boxY are undefined");
-	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX);
+	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*rectScaleX);
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
-		boxY=FitBox(n_boxY);
-		boxZ=FitBox(n_boxZ);
+		boxY=FitBox(n_boxY/rectScaleY);
+		boxZ=FitBox(n_boxZ/rectScaleZ);
 	}
 	else {
 		temp=boxY;
@@ -1929,12 +1927,7 @@ void InitShape(void)
 		if (n_boxY>boxY || n_boxZ>boxZ)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",n_boxY,n_boxZ,boxY,boxZ);
 	}
-        
-#ifndef SPARSE       
-        boxX = FitBox((int)ceil(boxX/rectScaleX));
-        boxY = FitBox((int)ceil(boxY/rectScaleY));
-        boxZ = FitBox((int)ceil(boxZ/rectScaleZ));
-#endif
+
 
 #ifndef SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
@@ -2198,25 +2191,25 @@ void MakeParticle(void)
 		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
 		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
-		if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl;
+		if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
 		else sizeX=lambda*boxX*rectScaleX/dpl;
 	}
 	else {
 		// dpl is determined to give correct volume
-		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX;
-		else dpl=lambda*boxX*rectScaleX/sizeX;
+		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX/rectScaleX;
+		else dpl=lambda*boxX/sizeX;
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
 		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
 	// initialize gridspace and dipvol
-	gridspace=lambda/dpl;
+	gridspace=lambda/dpl/rectScaleX;
         gridSpaceX=gridspace*rectScaleX;
         gridSpaceY=gridspace*rectScaleY;
         gridSpaceZ=gridspace*rectScaleZ;
-	dipvol=gridspace*gridspace*gridspace*rectScaleX*rectScaleY*rectScaleZ;
+	dipvol=gridSpaceX*gridSpaceY*gridSpaceZ;
 	// initialize equivalent size parameter and cross section
-	kd = TWO_PI/dpl;
+	kd = TWO_PI/dpl/rectScaleX;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
 	 * slightly different from the one given by '-eq_rad' option.
 	 */
@@ -2282,9 +2275,9 @@ void MakeParticle(void)
 	double minZco=0; // minimum Z coordinates of dipoles
 	for (index=0; index<local_nvoid_Ndip; index++) {
 		i3=3*index;
-		DipoleCoord[i3] = (position[i3]-cX)*gridspace*rectScaleX;
-		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridspace*rectScaleY;
-		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridspace*rectScaleZ;
+		DipoleCoord[i3] = (position[i3]-cX)*gridSpaceX;
+		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridSpaceY;
+		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridSpaceZ;
 		if (minZco>DipoleCoord[i3+2]) minZco=DipoleCoord[i3+2]; // crude way to find the minimum on the way
 	}
 	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
@@ -2316,13 +2309,13 @@ void MakeParticle(void)
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
 #endif // !SPARSE
 
-	box_origin_unif[0]=-gridspace*cX*rectScaleX;
-	box_origin_unif[1]=-gridspace*cY*rectScaleY;
+	box_origin_unif[0]=-gridSpaceX*cX;
+	box_origin_unif[1]=-gridSpaceY*cY;
 #ifndef SPARSE
-	box_origin_unif[2]=gridspace*(local_z0_unif-cZ)*rectScaleZ;
+	box_origin_unif[2]=gridSpaceZ*(local_z0_unif-cZ);
 	if (surface) ZsumShift=2*((hsub/gridspace)-cZ+local_z0);
 #else
-	box_origin_unif[2]=-gridspace*cZ*rectScaleZ;
+	box_origin_unif[2]=-gridSpaceZ*cZ;
 	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);
