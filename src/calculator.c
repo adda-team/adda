@@ -427,18 +427,18 @@ static void CoupleConstant(doublecomplex *mrel, const enum incpol which, doublec
         for (i = 0; i < 3; i++) {
             if (PolRelation == POL_IGT_SO) {
                 if (i == 0) {
-                    a = gridspace * rectScaleX * 0.5;
-                    b = gridspace * rectScaleY * 0.5;
-                    c = gridspace * rectScaleZ * 0.5;
+                    a = gridSpaceX * 0.5;
+                    b = gridSpaceY * 0.5;
+                    c = gridSpaceZ * 0.5;
                 } else if (i == 1) {
-                    a = gridspace * rectScaleY * 0.5;
-                    b = gridspace * rectScaleX * 0.5;
-                    c = gridspace * rectScaleZ * 0.5;
+                    a = gridSpaceY * 0.5;
+                    b = gridSpaceX * 0.5;
+                    c = gridSpaceZ * 0.5;
 
                 } else {
-                    a = gridspace * rectScaleZ * 0.5;
-                    b = gridspace * rectScaleY * 0.5;
-                    c = gridspace * rectScaleX * 0.5;
+                    a = gridSpaceZ * 0.5;
+                    b = gridSpaceY * 0.5;
+                    c = gridSpaceX * 0.5;
                 }
                 // see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
                 // Eq number noted for some lines of code
