@@ -21,7 +21,7 @@
 
 // basic variables
 bool isUseRect;//rectangular dipole params
-double rectScaleX,rectScaleY,rectScaleZ; //rectangular dipole params
+double rectScaleX,rectScaleY,rectScaleZ,rectScaleNorm2; //rectangular dipole params
 double gridSpaceX,gridSpaceY,gridSpaceZ; //rectangular dipole params
 double R0_Drane[3],R1_Drane,R2_Drane[3],R3_diag_Drane[3],R3_non_diag_Drane[3];// Drane polarizability correction, see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 
