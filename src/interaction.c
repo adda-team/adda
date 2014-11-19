@@ -961,7 +961,7 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 	int comp;
 
 	// the following looks complicated, but should be easy to optimize by compiler
-	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
+	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=rectScaleNorm2*igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
 		if (unitsGrid) vMultScal(gridspace,qvec,qvec);
 		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used

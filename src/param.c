@@ -2154,8 +2154,11 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
-
+    rectScaleNorm2 = 1;
     if (isUseRect) {
+        rectScaleNorm2 = rectScaleX*rectScaleX + rectScaleY*rectScaleY + rectScaleZ*rectScaleZ;
+ 
+        
         if (PolRelation != POL_LDR && PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
             LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
         } else {
@@ -2183,14 +2186,6 @@ void VariablesInterconnect(void)
 
 #undef SET_PRECALC_VALUE 
 #undef IS_EQUAL_VALUE 
-            }else{
-                if (IntRelation == G_IGT) {
-                    double max;
-                    max = fmax(rectScaleX, rectScaleY);
-                    max = fmax(max, rectScaleZ);
-                    igt_lim = igt_lim*max;
-                }
-                
             }
         }
 

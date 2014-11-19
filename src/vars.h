@@ -31,7 +31,7 @@
 
 // basic variables
 bool isUseRect;
-extern double rectScaleX,rectScaleY,rectScaleZ; 
+extern double rectScaleX,rectScaleY,rectScaleZ,rectScaleNorm2; 
 extern double gridSpaceX,gridSpaceY,gridSpaceZ;
 extern double  R0_Drane[3],R1_Drane,R2_Drane[3],R3_diag_Drane[3],R3_non_diag_Drane[3];
 
