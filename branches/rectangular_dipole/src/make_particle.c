@@ -1909,14 +1909,14 @@ void InitShape(void)
 	/* If shape is determined by ratios, calculate proposed grid sizes along y and z axes. Either ratios or n_box should
 	 * necessarily be defined.
 	 */
-	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX*rectScaleX);
+	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX*(rectScaleX/rectScaleY));
 	else if (n_boxY==UNDEF) LogError(ONE_POS,"Both yx_ratio and n_boxY are undefined");
-	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*rectScaleX);
+	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*(rectScaleX/rectScaleY));
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
-		boxY=FitBox(n_boxY/rectScaleY);
-		boxZ=FitBox(n_boxZ/rectScaleZ);
+                boxY=FitBox(n_boxY);
+                boxZ=FitBox(n_boxZ);
 	}
 	else {
 		temp=boxY;
@@ -2008,8 +2008,8 @@ void MakeParticle(void)
 		 * ELLIPSOID).
 		 */
 		xr=(xj+jcX)/(boxX);
-		yr=(yj+jcY)/(boxX)*rectScaleY/rectScaleX;
-		zr=(zj+jcZ)/(boxX)*rectScaleZ/rectScaleX;
+		yr=(yj+jcY)/(boxX)*(rectScaleY/rectScaleX);
+		zr=(zj+jcZ)/(boxX)*(rectScaleZ/rectScaleX);
 
 		mat=Nmat; // corresponds to void
 
