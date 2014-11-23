@@ -1925,7 +1925,7 @@ void InitVariables(void)
         rectScaleX = 1.0;
         rectScaleY = 1.0;
         rectScaleZ = 1.0;
-        
+        maxRectScale = 1;
         
 #ifdef OPENCL
 	gpuInd=0;
@@ -2154,11 +2154,11 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
-    rectScaleNorm2 = 1;
+
+    
     if (isUseRect) {
-        rectScaleNorm2 = rectScaleX*rectScaleX + rectScaleY*rectScaleY + rectScaleZ*rectScaleZ;
- 
-        
+        maxRectScale = fmax(rectScaleX, rectScaleY);
+        maxRectScale = fmax(maxRectScale, rectScaleZ);
         if (PolRelation != POL_LDR && PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
             LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
         } else {
@@ -2167,25 +2167,25 @@ void VariablesInterconnect(void)
             }
 
             if (PolRelation != POL_IGT_SO) {
-#define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
+//#define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
 #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
 
-                IS_EQUAL_VALUE();
+                //IS_EQUAL_VALUE();
 
                 double buf = rectScaleX * rectScaleY*rectScaleZ;
                 double old_rectScaleX = rectScaleX,
-                        old_rectScaleY = rectScaleY,
-                        old_rectScaleZ = rectScaleZ;
+                       old_rectScaleY = rectScaleY,
+                       old_rectScaleZ = rectScaleZ;
                 SET_PRECALC_VALUE(rectScaleX);
                 SET_PRECALC_VALUE(rectScaleY);
                 SET_PRECALC_VALUE(rectScaleZ);
-                IS_EQUAL_VALUE();
+                //IS_EQUAL_VALUE();
 
                 if (buf != rectScaleX * rectScaleY * rectScaleZ)
                     LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%.1f, y=%.1f, z=%.1f) to (x=%.1f, y=%.1f, z=%.1f)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
 
 #undef SET_PRECALC_VALUE 
-#undef IS_EQUAL_VALUE 
+//#undef IS_EQUAL_VALUE 
             }
         }
 
