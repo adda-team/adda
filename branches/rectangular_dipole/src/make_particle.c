@@ -1911,7 +1911,7 @@ void InitShape(void)
 	 */
 	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX*(rectScaleX/rectScaleY));
 	else if (n_boxY==UNDEF) LogError(ONE_POS,"Both yx_ratio and n_boxY are undefined");
-	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*(rectScaleX/rectScaleY));
+	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*(rectScaleX/rectScaleZ));
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
