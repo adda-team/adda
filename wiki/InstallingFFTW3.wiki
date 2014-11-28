@@ -39,3 +39,6 @@ mklink libfftw3.dll libfftw3-3.dll
  * To avoid need to move `libfftw3-3.dll` together with `ADDA` executables, either
    * add folder with `libfftw3-3.dll` to Windows environmental variable `PATH`
    * or move this file to a folder already included in `PATH`, e.g., `bin` subfolder of the [InstallingMinGW#Basic_installation MinGW installation directory]. If you used `mklink` option above, make sure that the link points to the final location of `libfftw3-3.dll`.
+
+=Possible problems=
+ * We have encountered problem with installation of `FFTW3` 3.3 on some Ubuntu 14.04 systems. The reason was a file called `predefs.h`, which may be missing in newer Ubuntu versions. It is typically located in `/usr/include/x86_64-linux-gnu/bits/`. Probably this can be solved by installation of some package, but a simple albeit ugly workaround is to copy this tiny file from an older system (e.g., Ubuntu 12.04). 
