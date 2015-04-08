@@ -4,7 +4,7 @@ Below we list journal papers that use results of simulations using `ADDA`. They 
 
 <wiki:toc />
 
-= 2015 (13) =
+= 2015 (12) =
  # L. Bi and P. Yang, “Impact of calcification state on the inherent optical properties of Emiliania huxleyi coccoliths and coccolithophores,” [http://dx.doi.org/10.1016/j.jqsrt.2014.12.017 J. Quant. Spectrosc. Radiat. Transfer 155, 10–21 (2015)].
  # O. Kemppinen, T. Nousiainen, and H. Lindqvist, “The impact of surface roughness on scattering by realistically shaped wavelength-scale dust particles,” [http://dx.doi.org/10.1016/j.jqsrt.2014.05.024 J. Quant. Spectrosc. Radiat. Transfer 150, 55–67 (2015)].
  # J. Leinonen and D. Moisseev, “What do triple-frequency radar signatures reveal about aggregate snowflakes?,” [http://dx.doi.org/10.1002/2014JD022072 J. Geophys. Res. Atmos. 120, 229–239 (2015)].
@@ -17,8 +17,6 @@ Below we list journal papers that use results of simulations using `ADDA`. They 
  # Y. Wu, T. Cheng, L. Zheng, H. Chen, and H. Xu, “Single scattering properties of semi-embedded soot morphologies with intersecting and non-intersecting surfaces of absorbing spheres and non-absorbing host,” [http://dx.doi.org/10.1016/j.jqsrt.2015.02.006 J. Quant. Spectrosc. Radiat. Transfer 157, 1–13 (2015)].
  # Y. Wu, M. Yang, X. Sheng, and K. F. Ren, “Computation of scattering matrix elements of large and complex shaped absorbing particles with multilevel fast multipole algorithm,” [http://dx.doi.org/10.1016/j.jqsrt.2015.02.005 J. Quant. Spectrosc. Radiat. Transfer 156, 88–96 (2015)].
  # P. Yang, K.-N. Liou, L. Bi, C. Liu, B. Yi, and B. A. Baum, “On the radiative properties of ice clouds: Light scattering, remote sensing, and radiation parameterization,” [http://dx.doi.org/10.1007/s00376-014-0011-z Adv. Atmos. Sci. 32, 32–63 (2015)].
- # G. . Zouros and K. Gerassimos, “Electromagnetic scattering by an inhomogeneous gyroelectric sphere using volume integral equation and orthogonal Dini-type basis functions,” [http://dx.doi.org/10.1109/TAP.2015.2415851 IEEE Trans. Antennas Propag. PP, 1–1 (2015)].
-
 
 = 2014 (25) =
  # L. Bi and P. Yang, “Accurate simulation of the optical properties of atmospheric ice crystals with the invariant imbedding T-matrix method,” [http://dx.doi.org/10.1016/j.jqsrt.2014.01.013 J. Quant. Spectrosc. Radiat. Transfer 138, 17–35 (2014)].
@@ -31,10 +29,10 @@ Below we list journal papers that use results of simulations using `ADDA`. They 
  # H. Lindqvist, O. Jokinen, K. Kandler, D. Scheuvens, and T. Nousiainen, “Single scattering by realistic, inhomogeneous mineral dust particles with stereogrammetric shapes,” [http://dx.doi.org/10.5194/acp-14-143-2014 Atmos. Chem. Phys. 14, 143–157 (2014)].
  # C. Liu, R. L. Panetta, and P. Yang, “Inhomogeneity structure and the applicability of effective medium approximations in calculating light scattering by inhomogeneous particles,” [http://dx.doi.org/10.1016/j.jqsrt.2014.03.018 J. Quant. Spectrosc. Radiat. Transfer 146, 331–348 (2014)].
  # Y. Lu, K. Aydin, E. E. Clothiaux, and J. Verlinde, “Dielectric constant adjustments in computations of the scattering properties of solid ice crystals using the Generalized Multi-particle Mie method,” [http://dx.doi.org/10.1016/j.jqsrt.2013.12.005 J. Quant. Spectrosc. Radiat. Transfer 135, 1–8 (2014)].
- # Y. Lu, E. E. Clothiaux, K. Aydin, and J. Verlinde, “Estimating ice particle scattering properties using a modified Rayleigh-Gans approximation,” [http://dx.doi.org/10.1002/2014JD021850 J. Geophys. Res. Atmos. 119, 2014JD021850 (2014)].
+ # Y. Lu, E. E. Clothiaux, K. Aydin, and J. Verlinde, “Estimating ice particle scattering properties using a modified Rayleigh-Gans approximation,” [http://dx.doi.org/10.1002/2014JD021850 J. Geophys. Res. Atmos. 119, 10471–10484 (2014)].
  # E. Massa, T. Roschuk, S. A. Maier, and V. Giannini, “Discrete-dipole approximation on a rectangular cuboidal point lattice: considering dynamic depolarization,” [http://dx.doi.org/10.1364/JOSAA.31.000135 J. Opt. Soc. Am. A 31, 135–140 (2014)].
  # A. E. Moskalensky, D. I. Strokotov, A. V. Chernyshev, V. P. Maltsev, and M. A. Yurkin, “Additivity of light-scattering patterns of aggregated biological particles,” [http://dx.doi.org/10.1117/1.JBO.19.8.085004 J. Biomed. Opt. 19, 085004 (2014)].
- # D. Ori, T. Maestri, R. Rizzi, D. Cimini, M. Montopoli, and F. S. Marzano, “Scattering properties of modeled complex snowflakes and mixed-phase particles at microwave and millimeter frequencies”, [http://dx.doi.org/10.1002/2014JD021616 J. Geophys. Res. Atmos. (2014)].
+ # D. Ori, T. Maestri, R. Rizzi, D. Cimini, M. Montopoli, and F. S. Marzano, “Scattering properties of modeled complex snowflakes and mixed-phase particles at microwave and millimeter frequencies”, [http://dx.doi.org/10.1002/2014JD021616 J. Geophys. Res. Atmos. 119, 9931–9947 (2014)].
  # D. I. Podowitz, C. Liu, P. Yang, and M. A. Yurkin, “Comparison of the pseudo-spectral time domain method and the discrete dipole approximation for light scattering by ice spheres,” [http://dx.doi.org/10.1016/j.jqsrt.2014.02.032 J. Quant. Spectrosc. Radiat. Transfer 146, 402–409 (2014)].
  # M. Potenza and P. Milani, “Free nanoparticle characterization by optical scattered field analysis: opportunities and perspectives,” [http://dx.doi.org/10.1007/s11051-014-2680-z J Nanopart Res 16, 1–15 (2014)].
  # J. Räbinä, S. Mönkölä, T. Rossi, A. Penttilä, and K. Muinonen, “Comparison of discrete exterior calculus and discrete-dipole approximation for electromagnetic scattering,” [http://dx.doi.org/10.1016/j.jqsrt.2014.02.011 J. Quant. Spectrosc. Radiat. Transfer 146, 417–423 (2014)].
