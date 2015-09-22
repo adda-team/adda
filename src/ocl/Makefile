@@ -48,7 +48,10 @@ else # the following is only for non-sparse mode
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\bin64"
   
-    LDLIBS += -lclAmdFft.Runtime
+    LDLIBS += -lclFFT
+    # former name of the library
+    #LDLIBS += -lclAmdFft.Runtime
+
     # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
     #LDLIBS += -lpthread
   
@@ -67,7 +70,10 @@ else # the following is only for non-sparse mode
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdBlas\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\bin64"
     
-    LDLIBS += -lclAmdBlas
+    LDLIBS += -lclBLAS
+    # former name of the library
+    #LDLIBS += -lclAmdBlas
+
     CFLAGS += -DOCL_BLAS
     # If you have any problems during linking, see above for issues related to clAmdFft. The same solutions may work
     # for clAmdBlas
