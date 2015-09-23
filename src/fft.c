@@ -35,9 +35,9 @@
 
 #ifdef CLFFT_AMD
 	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header
-#	include <clAmdFft.h> //external library from AMD
+#	include <clFFT.h> //external library
 	STOP_IGNORE
-	// Defines precision of clAmdFft transforms. !!! CLFFT_DOUBLE_FAST should be tested when becomes operational
+	// Defines precision of clFFT transforms. !!! CLFFT_DOUBLE_FAST should be tested when becomes operational
 #	define PRECISION_CLFFT CLFFT_DOUBLE
 #elif defined(CLFFT_APPLE)
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
@@ -113,7 +113,7 @@ static bool weird_nprocs;      // whether weird number of processors is used
 #ifdef OPENCL
 // clFFT plans
 #	ifdef CLFFT_AMD
-static clAmdFftPlanHandle clplanX,clplanY,clplanZ;
+static clfftPlanHandle clplanX,clplanY,clplanZ;
 static size_t clfftBufSize=0;
 #	elif defined(CLFFT_APPLE)
 static clFFT_Plan clplanX,clplanY,clplanZ;
@@ -318,7 +318,7 @@ void fftX(const int isign)
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanX,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,NULL,
+	CL_CH_ERR(clfftEnqueueTransform(clplanX,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,NULL,
 		NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,(clFFT_Direction)isign,bufXmatrix,
@@ -349,10 +349,10 @@ void fftY(const int isign)
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
+	CL_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD)
-		CL_CH_ERR(clAmdFftEnqueueTransform(clplanY,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
+		CL_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
 			NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ*local_gridX,(clFFT_Direction)isign,
@@ -385,10 +385,10 @@ void fftZ(const int isign)
 {
 #ifdef OPENCL
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
+	CL_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD) // the same operation is applied to bufslicesR, but with inverse transform
-		CL_CH_ERR(clAmdFftEnqueueTransform(clplanZ,(clAmdFftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
+		CL_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
 			&bufslicesR,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY*local_gridX,(clFFT_Direction)isign,bufslices,
@@ -627,31 +627,31 @@ static void fftInitAfterD(void)
 	GET_SYSTEM_TIME(tvp);
 #	endif
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftSetup(NULL)); // first initialize clAmdFft
+	CL_CH_ERR(clfftSetup(NULL)); // first initialize clfft
 #	ifdef DEBUGFULL
 	cl_uint major,minor,patch;
-	CL_CH_ERR(clAmdFftGetVersion(&major,&minor,&patch));
-	D("clAmdFft library version - %u.%u.%u",major,minor,patch);
+	CL_CH_ERR(clfftGetVersion(&major,&minor,&patch));
+	D("clFFT library version - %u.%u.%u",major,minor,patch);
 #	endif
-	/* Here and further we explicitly set all plan parameters for clAmdFft, even those that are equal to the default
-	 * values (as recommended in clAmdFft manual)
+	/* Here and further we explicitly set all plan parameters for clFFT, even those that are equal to the default
+	 * values (as recommended in clFFT manual)
 	 */
-	/* Unfortunately, clAmdFft (and Apple clFFT as well) currently supports only simple regular batches of transforms
+	/* Unfortunately, clFFT (and Apple clFFT as well) currently supports only simple regular batches of transforms
 	 * (similar to fftw_plan_many_dft) but not fully flexible configurations, like offered by fftw_plan_guru_dft.
 	 * Basically the problem is due to lack of multi-dimensional (non-tightly packed) batches. So to make X transform as
 	 * a single plan we have have to cycle over the whole smallY instead of (possibly smaller) boxY. This incurs a small
 	 * performance hit for "non-standard" values of boxY, but should be overall faster than making an explicit loop over
 	 * smaller kernels (like is now done with Temperton FFT).
 	 */
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanX,PRECISION_CLFFT));
-	CL_CH_ERR(clAmdFftSetResultLocation(clplanX,CLFFT_INPLACE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_FORWARD,1));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clAmdFftBakePlan(clplanX,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanX,&bufsize));
+	CL_CH_ERR(clfftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
+	CL_CH_ERR(clfftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
+	CL_CH_ERR(clfftSetPlanPrecision(clplanX,PRECISION_CLFFT));
+	CL_CH_ERR(clfftSetResultLocation(clplanX,CLFFT_INPLACE));
+	CL_CH_ERR(clfftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clfftSetPlanScale(clplanX,FFT_FORWARD,1));
+	CL_CH_ERR(clfftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CL_CH_ERR(clfftBakePlan(clplanX,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clfftGetTmpBufSize(clplanX,&bufsize));
 	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 xdimen;
@@ -665,15 +665,15 @@ static void fftInitAfterD(void)
 	GET_SYSTEM_TIME(tvp+1);
 #	endif
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanY,3*gridZ*local_gridX));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanY,PRECISION_CLFFT));
-	CL_CH_ERR(clAmdFftSetResultLocation(clplanY,CLFFT_INPLACE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_FORWARD,1));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clAmdFftBakePlan(clplanY,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanY,&bufsize));
+	CL_CH_ERR(clfftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
+	CL_CH_ERR(clfftSetPlanBatchSize(clplanY,3*gridZ*local_gridX));
+	CL_CH_ERR(clfftSetPlanPrecision(clplanY,PRECISION_CLFFT));
+	CL_CH_ERR(clfftSetResultLocation(clplanY,CLFFT_INPLACE));
+	CL_CH_ERR(clfftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clfftSetPlanScale(clplanY,FFT_FORWARD,1));
+	CL_CH_ERR(clfftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CL_CH_ERR(clfftBakePlan(clplanY,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clfftGetTmpBufSize(clplanY,&bufsize));
 	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 ydimen;
@@ -694,20 +694,20 @@ static void fftInitAfterD(void)
 	 * way to address this issue is to either create three separate cl_mem objects or to change the indexing of levels
 	 * inside the array, so that 3 components are stored together.
 	 */
-	CL_CH_ERR(clAmdFftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
+	CL_CH_ERR(clfftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
 	/* TODO: last slices can be very slightly thinner than the previous ones, but since the batchsize is part of the
 	 * plan, another plan would be needed to address this. However, we ignore this currently and assume that every
 	 * slice has a thickness of local_gridX.
 	 * This issue also applies to clplanY.
 	 */
-	CL_CH_ERR(clAmdFftSetPlanBatchSize(clplanZ,3*gridY*local_gridX));
-	CL_CH_ERR(clAmdFftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
-	CL_CH_ERR(clAmdFftSetResultLocation(clplanZ,CLFFT_INPLACE));
-	CL_CH_ERR(clAmdFftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_FORWARD,1));
-	CL_CH_ERR(clAmdFftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clAmdFftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clAmdFftGetTmpBufSize(clplanZ,&bufsize));
+	CL_CH_ERR(clfftSetPlanBatchSize(clplanZ,3*gridY*local_gridX));
+	CL_CH_ERR(clfftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
+	CL_CH_ERR(clfftSetResultLocation(clplanZ,CLFFT_INPLACE));
+	CL_CH_ERR(clfftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CL_CH_ERR(clfftSetPlanScale(clplanZ,FFT_FORWARD,1));
+	CL_CH_ERR(clfftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CL_CH_ERR(clfftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
+	CL_CH_ERR(clfftGetTmpBufSize(clplanZ,&bufsize));
 	clfftBufSize+=bufsize;
 	/* In most cases clfftBufSize is zero, except some weird grid sizes like 2x2x60000. Still, we rigorously account
 	 * for this memory. However, we do not update oclMemMaxObj, since even single plan is not guaranteed to allocate a
@@ -1447,7 +1447,7 @@ void Free_FFT_Dmat(void)
 		my_clReleaseBuffer(bufslicesR_tr);
 	}
 #	ifdef CLFFT_AMD
-	CL_CH_ERR(clAmdFftTeardown());
+	CL_CH_ERR(clfftTeardown());
 	oclMem-=clfftBufSize;
 #	elif defined(CLFFT_APPLE)
 	// the following do not return error status

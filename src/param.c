@@ -39,18 +39,18 @@
 #include <time.h>
 
 #ifdef CLFFT_AMD
-/* One can also include clAmdFft.h (the only recommended public header), which can be redundant, but more portable.
+/* One can also include clFFT.h (the only recommended public header), which can be redundant, but more portable.
  * However, version macros are not documented anyway (in the manual), so there seem to be no perfectly portable way to
  * obtain them.
  */
-#	include <clAmdFft.version.h>
+#	include <clFFT.version.h>
 #endif
 
 #ifdef OCL_BLAS
-/* In contrast to clAmdFft, here including main header (clAmdBlas.h) is not an option, since it doesn't include the
+/* In contrast to clFFT, here including main header (clBLAS.h) is not an option, since it doesn't include the
  * following header.
  */
-#	include <clAmdBlas.version.h>
+#	include <clBLAS.version.h>
 #endif
 
 #ifndef NO_SVNREV
@@ -1618,11 +1618,11 @@ PARSE_FUNC(V)
 #	endif
 		printf("GPU-accelerated version conforming to OpenCL standard "OCL_VERSION"\n");
 #	ifdef CLFFT_AMD
-		printf("Linked to clAmdFft version %d.%d.%d\n",clAmdFftVersionMajor,clAmdFftVersionMinor,clAmdFftVersionPatch);
+		printf("Linked to clFFT version %d.%d.%d\n",clfftVersionMajor,clfftVersionMinor,clfftVersionPatch);
 #	endif
 #	ifdef OCL_BLAS
-		printf("Linked to clAmdBlas version %d.%d.%d\n",clAmdBlasVersionMajor,clAmdBlasVersionMinor,
-			clAmdBlasVersionPatch);
+		printf("Linked to clBLAS version %d.%d.%d\n",clblasVersionMajor,clblasVersionMinor,
+			clblasVersionPatch);
 #	endif
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified

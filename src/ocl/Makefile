@@ -42,21 +42,19 @@ else # the following is only for non-sparse mode
       $(error Apple clFFT (CLFFT_APPLE) is implemented in C++, hence incompatible with NO_CPP)
     endif
   else # AMD clFFT flags
-    # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
+    # Depending on a particular clFFT installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
     # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\bin64"
   
     LDLIBS += -lclFFT
-    # former name of the library
-    #LDLIBS += -lclAmdFft.Runtime
 
-    # On Unix clAmdFft may need pthread library, which is not linked by default; if yes, uncomment the following
+    # On Unix clFFT may need pthread library, which is not linked by default; if yes, uncomment the following
     #LDLIBS += -lpthread
   
     # Uncomment the following line if you experience problems during linking, like
-    # "...libclAmdFft.Runtime.so: undefined reference to `clRetainContext@OPENCL_1.0'"
+    # "...libclFFT.so: undefined reference to `clRetainContext@OPENCL_1.0'"
     # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
     # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like 
     # it, provide another libOpenCL.so (e.g. that from AMD, or better - open-source one from 
@@ -64,19 +62,17 @@ else # the following is only for non-sparse mode
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
   ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
-    # Depending on a particular clAmdFft installation one may need to manually specify paths to its headers and 
+    # Depending on a particular clBLAS installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
     # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
     #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdBlas\include"
     #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\bin64"
     
     LDLIBS += -lclBLAS
-    # former name of the library
-    #LDLIBS += -lclAmdBlas
 
     CFLAGS += -DOCL_BLAS
-    # If you have any problems during linking, see above for issues related to clAmdFft. The same solutions may work
-    # for clAmdBlas
+    # If you have any problems during linking, see above for issues related to clFFT. The same solutions may work
+    # for clBLAS
   endif
 endif
 
