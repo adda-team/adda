@@ -624,6 +624,7 @@ ITER_FUNC(BiCG_CS)
 					NULL,NULL));
 				CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufxvec,CL_TRUE,0,sizeof(doublecomplex)*local_nRows,xvec,0,
 					NULL,NULL));
+			bufupload=true;
 			}
 #endif
 			// initialize ro_old -> ro_k-2 for next iteration
