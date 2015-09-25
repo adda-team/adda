@@ -38,7 +38,7 @@
 
 #ifdef OCL_BLAS
 #	include "oclcore.h"
-#	include <clAmdBlas.h> //external library from AMD
+#	include <clBLAS.h> //external library
 #endif
 
 // SEMI-GLOBAL VARIABLES
@@ -522,12 +522,12 @@ ITER_FUNC(BiCG_CS)
 			return;
 		case PHASE_INIT: 
 #ifdef OCL_BLAS
-			D("clAmdBlasSetup started");
-			CL_CH_ERR(clAmdBlasSetup());
+			D("clblasSetup started");
+			CL_CH_ERR(clblasSetup());
 #	ifdef DEBUGFULL
 			cl_uint major,minor,patch;
-			CL_CH_ERR(clAmdBlasGetVersion(&major,&minor,&patch));
-			D("clAmdBlas library version - %u.%u.%u",major,minor,patch);
+			CL_CH_ERR(clblasGetVersion(&major,&minor,&patch));
+			D("clBLAS library version - %u.%u.%u",major,minor,patch);
 #	endif
 			bufupload=false;
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufpvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,pvec,0,
@@ -547,7 +547,7 @@ ITER_FUNC(BiCG_CS)
 			 */
 			CREATE_CL_BUFFER(bufro_new,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
 			CREATE_CL_BUFFER(bufmu,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
-			CL_CH_ERR(clAmdBlasZdotu(local_nRows,bufro_new,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,
+			CL_CH_ERR(clblasZdotu(local_nRows,bufro_new,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,
 				NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufro_new,CL_TRUE,0,sizeof(doublecomplex),&ro_new,0,NULL,NULL));
 #else
@@ -571,9 +571,9 @@ ITER_FUNC(BiCG_CS)
 				// p_k=beta_k-1*p_k-1+r_k-1
 #ifdef OCL_BLAS
 				cl_double2 clbeta = {.s={creal(beta),cimag(beta)}};
-				CL_CH_ERR(clAmdBlasZscal(local_nRows,clbeta,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+				CL_CH_ERR(clblasZscal(local_nRows,clbeta,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
 				cl_double2 clunit = {.s={1,0}};
-				CL_CH_ERR(clAmdBlasZaxpy(local_nRows,clunit,bufrvec,0,1,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+				CL_CH_ERR(clblasZaxpy(local_nRows,clunit,bufrvec,0,1,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
 #else
 				nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
 #endif
@@ -583,7 +583,7 @@ ITER_FUNC(BiCG_CS)
 			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
 #ifdef OCL_BLAS
-			CL_CH_ERR(clAmdBlasZdotu(local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,
+			CL_CH_ERR(clblasZdotu(local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,
 				NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufmu,CL_TRUE,0,sizeof(doublecomplex),&mu,0,NULL,NULL));
 #else
@@ -597,7 +597,7 @@ ITER_FUNC(BiCG_CS)
 			// x_k=x_k-1+alpha_k*p_k
 #ifdef OCL_BLAS
 			cl_double2 clalpha = {.s={creal(alpha),cimag(alpha)}};
-			CL_CH_ERR(clAmdBlasZaxpy(local_nRows,clalpha,bufpvec,0,1,bufxvec,0,1,1,&command_queue,0,NULL,NULL));
+			CL_CH_ERR(clblasZaxpy(local_nRows,clalpha,bufpvec,0,1,bufxvec,0,1,1,&command_queue,0,NULL,NULL));
 #else
 			nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
 #endif
@@ -606,8 +606,8 @@ ITER_FUNC(BiCG_CS)
 #ifdef OCL_BLAS
 			cl_double2 cltemp = {.s={creal(temp),cimag(temp)}};
 			CREATE_CL_BUFFER(bufinprodRp1,CL_MEM_READ_WRITE,sizeof(double),NULL);
-			CL_CH_ERR(clAmdBlasZaxpy(local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
-			CL_CH_ERR(clAmdBlasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			CL_CH_ERR(clblasZaxpy(local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
+			CL_CH_ERR(clblasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinprodRp1,CL_TRUE,0,sizeof(double),&inprodRp1,0,NULL,NULL));
 			inprodRp1=inprodRp1*inprodRp1;
 #else

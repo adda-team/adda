@@ -50,7 +50,7 @@ cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufs
 bool bufupload=true;
 
 #ifdef OCL_BLAS
-cl_mem buftmp;  // temporary buffer for dot products and Norm (as required by clAmdBlas library)
+cl_mem buftmp;  // temporary buffer for dot products and Norm (as required by clBLAS library)
 cl_mem bufrvec; // buffer used in iterative solver
 cl_mem bufxvec; // buffer used in iterative solver
 #endif
