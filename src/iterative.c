@@ -8,7 +8,7 @@
  *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
  *        however they do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) 2006-2015 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -136,6 +136,23 @@ static const struct iter_params_struct params[]={
 // matvec.c
 void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,TIME_TYPE *timing,
 	TIME_TYPE *comm_timing);
+
+//======================================================================================================================
+
+static void MatVec_wrapper(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,
+	TIME_TYPE *timing,TIME_TYPE *comm_timing)
+/* fuction wrapper for MatVec to be called within the iterative solver if the solver is able to use clBLAS, i.e.
+ * the host and GPU memory does not have to be synchronized. Currently it is only used in the BiCG solver.
+ */
+{
+#ifdef OCL_BLAS
+	bufupload=false;
+#endif
+	MatVec(in,out,inprod,her,timing,comm_timing);
+#ifdef OCL_BLAS
+	bufupload=true;
+#endif
+}
 
 //======================================================================================================================
 
@@ -529,7 +546,6 @@ ITER_FUNC(BiCG_CS)
 			CL_CH_ERR(clblasGetVersion(&major,&minor,&patch));
 			D("clBLAS library version - %u.%u.%u",major,minor,patch);
 #	endif
-			bufupload=false;
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufpvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,pvec,0,
 				NULL,NULL));
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufrvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,rvec,0,
@@ -580,7 +596,7 @@ ITER_FUNC(BiCG_CS)
 			}
 			// q_k=Avecbuffer=A.p_k
 			if (niter==1 && matvec_ready) {} // do nothing, Avecbuffer is ready to use
-			else MatVec(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
+			else MatVec_wrapper(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
 #ifdef OCL_BLAS
 			CL_CH_ERR(clblasZdotu(local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,
@@ -624,7 +640,6 @@ ITER_FUNC(BiCG_CS)
 					NULL,NULL));
 				CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufxvec,CL_TRUE,0,sizeof(doublecomplex)*local_nRows,xvec,0,
 					NULL,NULL));
-			bufupload=true;
 			}
 #endif
 			// initialize ro_old -> ro_k-2 for next iteration
