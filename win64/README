@@ -6,6 +6,7 @@ Executables of misc/ packages are located in separate folders for convenience, b
 DLLs. For instance, those based on Fortran code require:
 libgfortran_64-3.dll
 libquadmath_64-0.dll
+libgcc_s_sjlj_64-1.dll
 
 In general, one either need to add path to required DLLs to the PATH environmental variable or to keep executables and
 DLLs in the same folder.
