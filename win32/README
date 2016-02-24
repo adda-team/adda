@@ -7,6 +7,7 @@ DLLs. For instance, those based on Fortran code require:
 libgcc_s_dw2-1.dll
 libgfortran-3.dll
 libquadmath-0.dll
+libgcc_s_sjlj-1.dll
 
 In general, one either need to add path to required DLLs to the PATH environmental variable or to keep executables and
 DLLs in the same folder.
