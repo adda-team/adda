@@ -67,7 +67,7 @@ static __m128d exptbl[361];
 
 #ifndef NO_FORTRAN
 // fort/propaesplibreintadda.f
-void propaespacelibreintadda_(const double *Rij,const double *ka,const double *arretecube,const double *relreq,
+void propaespacelibreintadda_(const double *Rij,const double *ka,const double *gridspacex,const double *gridspacey,const double *gridspacez,const double *relreq,
 	double *result);
 #endif
 // sinint.c
@@ -149,9 +149,11 @@ void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex resu
 static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static 3])
 // initialize real vector with integer values
 {
-	qvec[0]=i;
-	qvec[1]=j;
-	qvec[2]=k;
+      
+        qvec[0]=i*(rectScaleX);
+	qvec[1]=j*(rectScaleY);
+	qvec[2]=k*(rectScaleZ);
+  
 }
 
 //=====================================================================================================================
@@ -955,13 +957,14 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 	int comp;
 
 	// the following looks complicated, but should be easy to optimize by compiler
-	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
-		if (unitsGrid) vMultScal(gridspace,qvec,qvec);
+	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=maxRectScale*maxRectScale*igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
+		
+            if (unitsGrid) vMultScal(gridspace,qvec,qvec);
 		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
 		 */
-		propaespacelibreintadda_(qvec,&WaveNum,&gridspace,&igt_eps,tmp);
+		propaespacelibreintadda_(qvec,&WaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp);
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {

@@ -12,20 +12,23 @@ c     permittivity", Phys. Rev. E 70(3), 036606-6 (2004).
 
 c     license: GNU GPL
 
-      subroutine propaespacelibreintadda(Rij,k0a,arretecube,relreq,
-     $                                   result)
+      subroutine propaespacelibreintadda(Rij,k0a,
+     $      gridspacex,gridspacey,gridspacez,relreq,result)
       implicit none
       integer i,j
 c     definition of the position of the dipole, observation, wavenumber
 c     ,wavelength, spacing lattice
-      double precision k0a,arretecubem
-      double precision x,y,z,arretecube,k0,xx0,yy0,zz0
-      double precision Rij(3),result(12)
+      double precision result(12)
+      double precision k0a,gridspacexm,gridspaceym,gridspacezm
+      double precision x,y,z,gridspacex,gridspacey,gridspacez
+      double precision k0,xx0,yy0,zz0
+      double precision Rij(3)
+      
 c     The structure of the result is the following:
 c     Re(G11),Re(G12),Re(G13),Re(G22),Re(G23),Re(G33),Im(G11),...,Im(G33)
 
 c     Variables needs for the integration
-      integer  KEY, N, NF, NDIM, MINCLS, MAXCLS, IFAIL, NEVAL, NW
+      integer  KEy, N, NF, NDIM, MINCLS, MAxCLS, IFAIL, NEVAL, NW
       parameter (nw=4000000,ndim=3,nf=12)
       double precision A(NDIM), B(NDIM), WRKSTR(NW)
       double precision  ABSEST(NF), ABSREQ, RELREQ,err
@@ -40,40 +43,41 @@ c     Variables needs for the integration
       y=Rij(2)
       z=Rij(3)
       k0=k0a
-      arretecubem=arretecube*0.1d0
-
+      gridspacexm=gridspacex*0.1d0
+      gridspaceym=gridspacey*0.1d0
+      gridspacezm=gridspacez*0.1d0
 c     We perform the integration of the tensor
 c     definition for the integration
       MINCLS = 1000
-      MAXCLS = 1000000
-      KEY = 0
+      MAxCLS = 1000000
+      KEy = 0
       ABSREQ = 0.d0
       
-      A(1)=-arretecube/2.d0
-      A(2)=-arretecube/2.d0
-      A(3)=-arretecube/2.d0
-      B(1)=+arretecube/2.d0
-      B(2)=+arretecube/2.d0
-      B(3)=+arretecube/2.d0
+      A(1)=-gridspacex/2.d0
+      A(2)=-gridspacey/2.d0
+      A(3)=-gridspacez/2.d0
+      B(1)=+gridspacex/2.d0
+      B(2)=+gridspacey/2.d0
+      B(3)=+gridspacez/2.d0
       
       xx0=1.d0
       yy0=1.d0
       zz0=1.d0
-      if (dabs(z).le.arretecubem) then
+      if (dabs(z).le.gridspacezm) then
          zz0=0.d0
       endif
-      if (dabs(x).le.arretecubem) then
+      if (dabs(x).le.gridspacexm) then
          xx0=0.d0
       endif
-      if (dabs(y).le.arretecubem) then
+      if (dabs(y).le.gridspaceym) then
          yy0=0.d0
       endif
 
-      call  DCUHRE(NDIM,NF,A,B, MINCLS, MAXCLS, fonctionigtadda,
-     $      ABSREQ,RELREQ,KEY,NW,0,result,ABSEST,NEVAL,IFAIL, WRKSTR) 
+      call  DCUHRE(NDIM,NF,A,B, MINCLS, MAxCLS, fonctionigtadda,
+     $      ABSREQ,RELREQ,KEy,NW,0,result,ABSEST,NEVAL,IFAIL, WRKSTR) 
       
       do N = 1,NF
-         result(N)=result(N)/arretecube/arretecube/arretecube
+         result(N)=result(N)/gridspacex/gridspacey/gridspacez
       enddo
 
       if (ifail.ne.0) then

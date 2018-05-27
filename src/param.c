@@ -367,6 +367,7 @@ PARSE_FUNC(pol);
 PARSE_FUNC(prognosis);
 PARSE_FUNC(prop);
 PARSE_FUNC(recalc_resid);
+PARSE_FUNC(rect_dip);
 #ifndef SPARSE
 PARSE_FUNC(save_geom);
 #endif
@@ -554,7 +555,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr|cm_rect|cldr_rect|igt_rect [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
@@ -580,6 +581,11 @@ static struct opt_struct options[]={
 		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
+
+        {PAR(rect_dip),"<x> <y> <z>","This command allows to set params for the rectangular dipole"
+		"Values ​​are the ratio of the lenth, height and width of the dipole respectively.\n"
+                "Temporary we use precalculating correctable value(see 'Propagation of Electromagnetic Waves on"
+                "a Rectangular Lattice of Polarizable Points'), so avaliable values are 1, 1.5, 2, 3.\n Example: -rect_dip 1 1 2, this means that for calculations adda will use dipoles  extended twice along the Z axis",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
 		"directory). Can be used with '-prognosis'.\n"
@@ -1272,7 +1278,7 @@ PARSE_FUNC(m)
 PARSE_FUNC(maxiter)
 {
 	ScanIntError(argv[1],&maxiter);
-	TestPositive_i(maxiter,"maximum number of iterations");
+	//TestPositive_i(maxiter,"maximum number of iterations");
 }
 PARSE_FUNC(no_reduced_fft)
 {
@@ -1325,7 +1331,7 @@ PARSE_FUNC(pol)
 
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+        else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
 	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
@@ -1385,6 +1391,22 @@ PARSE_FUNC(recalc_resid)
 {
 	recalc_resid=true;
 }
+PARSE_FUNC(rect_dip)
+{
+	ScanDoubleError(argv[1],&rectScaleX);
+	ScanDoubleError(argv[2],&rectScaleY);
+	ScanDoubleError(argv[3],&rectScaleZ);
+        
+        TestPositive(rectScaleX,"-rect_dip <x>");
+        TestPositive(rectScaleY,"-rect_dip <y>");
+        TestPositive(rectScaleZ,"-rect_dip <z>");
+   
+        isUseRect = true;
+        
+}
+
+
+
 #ifndef SPARSE
 PARSE_FUNC(save_geom)
 {
@@ -1838,6 +1860,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+        isUseRect = false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
@@ -1917,6 +1940,12 @@ void InitVariables(void)
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
+        
+        rectScaleX = 1.0;
+        rectScaleY = 1.0;
+        rectScaleZ = 1.0;
+        maxRectScale = 1;
+        
 #ifdef OPENCL
 	gpuInd=0;
 #endif
@@ -2144,6 +2173,45 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
+
+    
+    if (isUseRect) {
+        maxRectScale = fmax(rectScaleX, rectScaleY);
+        maxRectScale = fmax(maxRectScale, rectScaleZ);
+        if (PolRelation != POL_LDR && PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
+            LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
+        } else {
+            if (PolRelation != POL_IGT_SO  && IntRelation == G_IGT) {
+                LogWarning(EC_WARN,ONE_POS, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
+            }
+
+            if (PolRelation != POL_IGT_SO) {
+//#define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
+#define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
+
+                //IS_EQUAL_VALUE();
+
+                double buf = rectScaleX * rectScaleY*rectScaleZ;
+                double old_rectScaleX = rectScaleX,
+                       old_rectScaleY = rectScaleY,
+                       old_rectScaleZ = rectScaleZ;
+                SET_PRECALC_VALUE(rectScaleX);
+                SET_PRECALC_VALUE(rectScaleY);
+                SET_PRECALC_VALUE(rectScaleZ);
+                //IS_EQUAL_VALUE();
+
+                if (buf != rectScaleX * rectScaleY * rectScaleZ)
+                    LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%.1f, y=%.1f, z=%.1f) to (x=%.1f, y=%.1f, z=%.1f)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
+
+#undef SET_PRECALC_VALUE 
+//#undef IS_EQUAL_VALUE 
+            }
+        }
+
+
+
+
+    }
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)
@@ -2278,6 +2346,7 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
+            
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
@@ -2291,6 +2360,8 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
+                if(isUseRect)
+                    fprintf(logfile,"proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f)\n",rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
