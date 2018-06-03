@@ -555,7 +555,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr|cm_rect|cldr_rect|igt_rect [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|cm_rect|cldr_rect|igt_rect|nloc <Rp>|nloc_av <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"

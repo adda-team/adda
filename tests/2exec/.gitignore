@@ -1,0 +1,11 @@
+# Ignore everything
+chp_tmp/*
+out_ref/*
+out_test/*
+tables/*
+suite_test
+test.tmp
+ref.tmp
+alldir_params.dat
+avg_params.dat
+scat_params.dat
