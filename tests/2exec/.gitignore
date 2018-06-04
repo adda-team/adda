@@ -9,3 +9,5 @@ ref.tmp
 alldir_params.dat
 avg_params.dat
 scat_params.dat
+stdout_ref
+stdout_test

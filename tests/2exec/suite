@@ -12,6 +12,7 @@
 ;sep; ;se; ;p;
 # default for testing of different grids
 ;smn; -size 8 ;m; ;n;
+;orient_abg; -orient ;alfa; ;beta; ;gamma;
 
 # Elementary variables
 ;m; -m 1.1 0.1
@@ -21,6 +22,10 @@
 ;n; -ntheta 5
 ;p; -prop 1 2 3
 ;se; -shape ellipsoid 0.5 1.5
+;alfa; 45
+;beta; 45
+;gamma; 0
+;rect112; -rect_dip 1 1 2
 #----------------------------- List of tests ---------------------------------------------------------------------------
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
@@ -326,3 +331,45 @@ all -vec ;sep; ;mgn;
 
 all -h yz
 all -yz -store_scat_grid ;mgn;
+
+#Rectangular dipoles
+all ;m; -rect_dip 1 1 1.5
+all ;m; -rect_dip 1 1.5 1
+all ;m; -rect_dip 1.5 1 1
+all ;m; -rect_dip 1 1.5 1.5
+all ;m; -rect_dip 1.5 1 1.5
+all ;m; -rect_dip 1.5 1.5 1
+all ;m; -rect_dip 1 1 2
+all ;m; -rect_dip 1 2 1
+all ;m; -rect_dip 2 1 1
+all ;m; -rect_dip 1 1.5 2
+all ;m; -rect_dip 1 2 1.5
+all ;m; -rect_dip 1.5 1 2
+all ;m; -rect_dip 1.5 2 1
+all ;m; -rect_dip 2 1 1.5
+all ;m; -rect_dip 2 1.5 1
+all ;m; -rect_dip 1 2 2
+all ;m; -rect_dip 2 1 2
+all ;m; -rect_dip 2 2 1
+all ;m; -rect_dip 1 1 3
+all ;m; -rect_dip 1 3 1
+all ;m; -rect_dip 3 1 1
+all ;m; -rect_dip 1 1.5 3
+all ;m; -rect_dip 1 3 1.5
+all ;m; -rect_dip 1.5 1 3
+all ;m; -rect_dip 1.5 3 1
+all ;m; -rect_dip 3 1 1.5
+all ;m; -rect_dip 3 1.5 1
+all ;m; -rect_dip 1 2 3
+all ;m; -rect_dip 1 3 2
+all ;m; -rect_dip 2 1 3
+all ;m; -rect_dip 2 3 1
+all ;m; -rect_dip 3 1 2
+all ;m; -rect_dip 3 2 1
+all ;m; -rect_dip 1 3 3
+all ;m; -rect_dip 3 1 3
+all ;m; -rect_dip 3 3 1
+all ;m; ;orient_abg; -shape box ;rect112; -pol igt_so -int igt 3
+all ;m; ;orient_abg; -shape box ;rect112; -pol cldr
+all ;m; ;orient_abg; -shape box ;rect112; -pol cm
+all ;m; ;orient_abg; -shape box 1 0.00005 -size 1 -lambda 1 -grid 100 -pol igt_so -int igt 5 -rect_dip 400 400 1
