@@ -387,7 +387,7 @@ static inline doublecomplex massaIntegrall(const double a, const double b, const
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
 /* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
- * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
+ * for LDR without avgpol. res is three values (diagonal of polarizability tensor).
  *
  * !!! TODO: if this function will be executed many times, it can be optimized by moving time-consuming calculation of
  * certain coefficients to one-call initialization function.
@@ -396,85 +396,93 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * This function implements calculations of polarizability. It should be updated to support new formulations.
  * The corresponding case should either be added to 'asym' list (then three components of polarizability are
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
- */ {
-
-
+ */
+{
     if(isUseRect) {
-        int i;
-        double a, b, c;
-        double omega;
-        double betta;//, bettaFfirst, bettaSecond, bettaThird;
-        int drane_precalc_data_index = -1;
-        if (PolRelation == POL_LDR ||PolRelation == POL_CLDR || PolRelation == POL_CM) {
+		int i;
+		double a,b,c;
+		double omega;
+		double betta;//, bettaFfirst, bettaSecond, bettaThird;
+		int drane_precalc_data_index=-1;
+		if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
 #define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
-            i = -1;
-            while (drane_precalc_data_array[++i].ratios[0]>0
-                || drane_precalc_data_array[i].ratios[1]>0
-                || drane_precalc_data_array[i].ratios[2]>0) {
-                if (IS_DOUBLE_EQAL(rectScaleX, drane_precalc_data_array[i].ratios[0]) &&
-                        IS_DOUBLE_EQAL(rectScaleY, drane_precalc_data_array[i].ratios[1]) &&
-                        IS_DOUBLE_EQAL(rectScaleZ, drane_precalc_data_array[i].ratios[2])) {
-                    drane_precalc_data_index = i;
-                    break;
-                }
-            }
-            if (drane_precalc_data_index == -1)LogError(ONE_POS, "Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)", rectScaleX, rectScaleY, rectScaleZ);
+			i=-1;
+			while (drane_precalc_data_array[++i].ratios[0] > 0
+				   || drane_precalc_data_array[i].ratios[1] > 0
+				   || drane_precalc_data_array[i].ratios[2] > 0) {
+				if (IS_DOUBLE_EQAL(rectScaleX,drane_precalc_data_array[i].ratios[0]) &&
+					IS_DOUBLE_EQAL(rectScaleY,drane_precalc_data_array[i].ratios[1]) &&
+					IS_DOUBLE_EQAL(rectScaleZ,drane_precalc_data_array[i].ratios[2])) {
+					drane_precalc_data_index=i;
+					break;
+				}
+			}
+			if (drane_precalc_data_index==-1)
+				LogError(ONE_POS,"Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)",rectScaleX,rectScaleY,rectScaleZ);
 
 #undef IS_DOUBLE_EQAL
-        }
-        double c1 = -5.9424219;
-        double c2 = 0.5178819;
-        double c3 = 4.0069747;
-        double nu = WaveNum / TWO_PI * pow(dipvol, ONE_THIRD);
-        doublecomplex correction;
-        doublecomplex L,K;
-        double draneSum;
+		}
+		double c1=-5.9424219;
+		double c2=0.5178819;
+		double c3=4.0069747;
+		double nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD);
+		doublecomplex correction;
+		doublecomplex L,K;
+		double draneSum;
 
-        int l;
-        for (i = 0; i < 3; i++) {
-            if (PolRelation == POL_IGT_SO) {
-                if (i == 0) {
-                    a = gridSpaceX * 0.5;
-                    b = gridSpaceY * 0.5;
-                    c = gridSpaceZ * 0.5;
-                } else if (i == 1) {
-                    a = gridSpaceY * 0.5;
-                    b = gridSpaceX * 0.5;
-                    c = gridSpaceZ * 0.5;
+		int l;
+		for (i=0; i < 3; i++) {
+			if (PolRelation==POL_IGT_SO) {
+				if (i==0) {
+					a=gridSpaceX*0.5;
+					b=gridSpaceY*0.5;
+					c=gridSpaceZ*0.5;
+				} else if (i==1) {
+					a=gridSpaceY*0.5;
+					b=gridSpaceX*0.5;
+					c=gridSpaceZ*0.5;
 
-                } else {
-                    a = gridSpaceZ * 0.5;
-                    b = gridSpaceY * 0.5;
-                    c = gridSpaceX * 0.5;
-                }
-                // see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
-                // Eq number noted for some lines of code
-                omega = 4 * asin(b * c / sqrt((a * a + b * b)*(a * a + c * c)));//(10)
-                betta = massaIntegrall(a,b,c);//(11) betta is three-time integral.
-                res[i] = (-2 * omega + WaveNum * WaveNum * betta / 2) + I * (16.0 / 3 * WaveNum * WaveNum * WaveNum * a * b * c);//(9)
-                res[i] = FOUR_PI / (mrel[0] * mrel[0] - 1) - res[i];//(9)
-                res[i] = 8 * a * b * c / res[i];//(9)
-            }
-            if (PolRelation == POL_LDR ||PolRelation == POL_CLDR || PolRelation == POL_CM) {
+				} else {
+					a=gridSpaceZ*0.5;
+					b=gridSpaceY*0.5;
+					c=gridSpaceX*0.5;
+				}
+				// see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
+				// Eq number noted for some lines of code
+				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c)));//(10)
+				betta=massaIntegrall(a,b,c);//(11) betta is three-time integral.
+				res[i]=(-2*omega+WaveNum*WaveNum*betta/2)+I*(16.0/3*WaveNum*WaveNum*WaveNum*a*b*c);//(9)
+				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i];//(9)
+				res[i]=8*a*b*c/res[i];//(9)
+			}
+			if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
 #define R3_INDEX(i,j)(i==j?i:(i+j+2))
-                //see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-                // Eq number noted for some lines of code
-                res[i] = 3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM
-                res[i] = res[i] / (1 + res[i] * drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
-                res[i] *= dipvol / FOUR_PI;
-                if (PolRelation == POL_CLDR || PolRelation == POL_LDR ) {
-                    draneSum = 0;
-                    for (l = 0; l < 3; l++)draneSum += prop[l] * prop[l] * drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, l)];
+				//see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+				// Eq number noted for some lines of code
+				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM
+				res[i]=res[i]/(1+res[i]*
+								 drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
+				res[i]*=dipvol/FOUR_PI;
+				if (PolRelation==POL_CLDR || PolRelation==POL_LDR) {
+					draneSum=0;
+					for (l=0; l < 3; l++)
+						draneSum+=prop[l]*prop[l]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,l)];
 
-                    //L is obtaned in (62)
-                    L = c1 + mrel[0]*mrel[0]*c2*(1 - 3*prop[i]*prop[i]) - mrel[0]*mrel[0]*c3*prop[i]*prop[i] - FOUR_PI*PI*I*nu/3 - drane_precalc_data_array[drane_precalc_data_index].R1 - (mrel[0]*mrel[0] - 1)*drane_precalc_data_array[drane_precalc_data_index].R2[i] - 8*mrel[0]*mrel[0]*prop[i]*prop[i]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)] + 4*mrel[0]*mrel[0]*draneSum;
-                     //K is obtaned in (63)
-                    K = c3 + drane_precalc_data_array[drane_precalc_data_index].R1 -4*drane_precalc_data_array[drane_precalc_data_index].R2[i] + 8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i, i)];
+					//L is obtaned in (62)
+					L=c1+mrel[0]*mrel[0]*c2*(1-3*prop[i]*prop[i])-mrel[0]*mrel[0]*c3*prop[i]*prop[i]-FOUR_PI*PI*I*nu/3-
+					  drane_precalc_data_array[drane_precalc_data_index].R1-
+					  (mrel[0]*mrel[0]-1)*drane_precalc_data_array[drane_precalc_data_index].R2[i]-
+					  8*mrel[0]*mrel[0]*prop[i]*prop[i]*
+					  drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draneSum;
+					//K is obtaned in (63)
+					K=c3+drane_precalc_data_array[drane_precalc_data_index].R1-
+					  4*drane_precalc_data_array[drane_precalc_data_index].R2[i]+
+					  8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)];
 
-                    correction = -FOUR_PI*nu*nu*(L + mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3));//(65)
-                    //correction = -FOUR_PI*nu*nu*L;//(65)
-                    res[i] = res[i] / (1 - (res[i] / dipvol) * correction);
-                }
+					correction=-FOUR_PI*nu*nu*(L+mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3));//(65)
+					//correction = -FOUR_PI*nu*nu*L;//(65)
+					res[i]=res[i]/(1-(res[i]/dipvol)*correction);
+				}
 
 #undef R3_INDEX
             }
@@ -484,84 +492,84 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 
     } else {
         double ka,kd2,S;
-	int i;
-	bool asym; // whether polarizability is asymmetric (for isotropic m)
-	const double *incPol;
-	bool pol_avg=true; // temporary fixed value for SO polarizability
+		int i;
+		bool asym; // whether polarizability is asymmetric (for isotropic m)
+		const double *incPol;
+		bool pol_avg=true; // temporary fixed value for SO polarizability
 
-	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
-	// !!! this should never happen
-	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+		asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
+		// !!! this should never happen
+		if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 
-	kd2=kd*kd;
-	if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
-		switch (PolRelation) {
-			case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
-			case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
+		kd2=kd*kd;
+		if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
+			switch (PolRelation) {
+				case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
+				case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
+				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+					// no break
+			}
 		}
-	}
-	else for (i=0;i<Ncomp;i++) { // loop over components of input m
-		switch (PolRelation) {
-			case POL_CM: res[i]=polCM(mrel[i]); break;
-			case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
-			case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-				res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
-				break;
-			case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
-			case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
-				ka=LAK_C*kd;
-				res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
-				break;
-			case POL_LDR:
-				if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
-				else {
-					if (which==INCPOL_Y) incPol=incPolY;
-					else incPol=incPolX; // which==INCPOL_X
-					S = DotProdSquare(prop,incPol);
-				}
-				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
-				break;
-			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
-				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
-				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
-				 */
-				if (polNlocRp==0) res[i]=polCM(mrel[i]);
-				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
-				break;
-			case POL_NLOC_AV:
-				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
-				else {
-					double x=gridspace/(2*SQRT2*polNlocRp);
-					double g0,t;
-					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
-					if (x<1) {
-						t=erf(x);
-						g0=1-t*t*t;
-					}
+		else for (i=0;i<Ncomp;i++) { // loop over components of input m
+			switch (PolRelation) {
+				case POL_CM: res[i]=polCM(mrel[i]); break;
+				case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
+				case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+					break;
+				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
+				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
+					ka=LAK_C*kd;
+					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
+					break;
+				case POL_LDR:
+					if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
 					else {
-						t=erfc(x);
-						g0=t*(3-3*t+t*t);
+						if (which==INCPOL_Y) incPol=incPolY;
+						else incPol=incPolX; // which==INCPOL_X
+						S = DotProdSquare(prop,incPol);
 					}
-					// !!! dynamic part should be added here
-					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
-				}
-				break;
-			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
+					res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
+					break;
+				case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
+					/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+					 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+					 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+					 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+					 */
+					if (polNlocRp==0) res[i]=polCM(mrel[i]);
+					else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
+					break;
+				case POL_NLOC_AV:
+					if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
+					else {
+						double x=gridspace/(2*SQRT2*polNlocRp);
+						double g0,t;
+						// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
+						if (x<1) {
+							t=erf(x);
+							g0=1-t*t*t;
+						}
+						else {
+							t=erfc(x);
+							g0=t*(3-3*t+t*t);
+						}
+						// !!! dynamic part should be added here
+						res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
+					}
+					break;
+				case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
+				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+					// no break
+			}
 		}
-	}
-	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
-	}
-	else {
-		res[2]=res[1]=res[0];
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
-	}
+		if (asym || anisotropy) {
+			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+		}
+		else {
+			res[2]=res[1]=res[0];
+			if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+		}
 
 
     }

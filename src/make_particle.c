@@ -1495,7 +1495,7 @@ void InitShape(void)
 				sh_form_str2=dyn_sprintf(", cylinder height h/d="GFORM,diskratio);
 			}
 			hdratio=diskratio/2;
-			volume_ratio = (PI_OVER_FOUR*diskratio + PI_OVER_SIX);
+			volume_ratio=PI_OVER_FOUR*diskratio+PI_OVER_SIX;
 			yx_ratio=1;
 			zx_ratio=diskratio+1;
 			Nmat_need=1;
@@ -1915,8 +1915,8 @@ void InitShape(void)
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
-                boxY=FitBox(n_boxY);
-                boxZ=FitBox(n_boxZ);
+		boxY=FitBox(n_boxY);
+		boxZ=FitBox(n_boxZ);
 	}
 	else {
 		temp=boxY;
@@ -2204,9 +2204,9 @@ void MakeParticle(void)
 		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
 	// initialize gridspace and dipvol
 	gridspace=lambda/dpl/rectScaleX;
-        gridSpaceX=gridspace*rectScaleX;
-        gridSpaceY=gridspace*rectScaleY;
-        gridSpaceZ=gridspace*rectScaleZ;
+	gridSpaceX=gridspace*rectScaleX;
+	gridSpaceY=gridspace*rectScaleY;
+	gridSpaceZ=gridspace*rectScaleZ;
 	dipvol=gridSpaceX*gridSpaceY*gridSpaceZ;
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl/rectScaleX;

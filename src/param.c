@@ -582,10 +582,10 @@ static struct opt_struct options[]={
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 
-        {PAR(rect_dip),"<x> <y> <z>","This command allows to set params for the rectangular dipole"
-		"Values ​​are the ratio of the lenth, height and width of the dipole respectively.\n"
-                "Temporary we use precalculating correctable value(see 'Propagation of Electromagnetic Waves on"
-                "a Rectangular Lattice of Polarizable Points'), so avaliable values are 1, 1.5, 2, 3.\n Example: -rect_dip 1 1 2, this means that for calculations adda will use dipoles  extended twice along the Z axis",3,NULL},
+    {PAR(rect_dip),"<x> <y> <z>","This command allows to set params for the rectangular dipole"
+	    "Values ​​are the ratio of the lenth, height and width of the dipole respectively.\n"
+        "Temporary we use precalculating correctable value(see 'Propagation of Electromagnetic Waves on"
+        "a Rectangular Lattice of Polarizable Points'), so avaliable values are 1, 1.5, 2, 3.\n Example: -rect_dip 1 1 2, this means that for calculations adda will use dipoles  extended twice along the Z axis",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
 		"directory). Can be used with '-prognosis'.\n"
@@ -1331,7 +1331,7 @@ PARSE_FUNC(pol)
 
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-        else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+    else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
 	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
@@ -1397,11 +1397,11 @@ PARSE_FUNC(rect_dip)
 	ScanDoubleError(argv[2],&rectScaleY);
 	ScanDoubleError(argv[3],&rectScaleZ);
         
-        TestPositive(rectScaleX,"-rect_dip <x>");
-        TestPositive(rectScaleY,"-rect_dip <y>");
-        TestPositive(rectScaleZ,"-rect_dip <z>");
+    TestPositive(rectScaleX,"-rect_dip <x>");
+    TestPositive(rectScaleY,"-rect_dip <y>");
+    TestPositive(rectScaleZ,"-rect_dip <z>");
    
-        isUseRect = true;
+    isUseRect = true;
         
 }
 
@@ -1860,7 +1860,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
-        isUseRect = false;
+    isUseRect = false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
@@ -1941,10 +1941,10 @@ void InitVariables(void)
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
         
-        rectScaleX = 1.0;
-        rectScaleY = 1.0;
-        rectScaleZ = 1.0;
-        maxRectScale = 1;
+    rectScaleX = 1.0;
+    rectScaleY = 1.0;
+    rectScaleZ = 1.0;
+    maxRectScale = 1;
         
 #ifdef OPENCL
 	gpuInd=0;
@@ -2360,8 +2360,8 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-                if(isUseRect)
-                    fprintf(logfile,"proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f)\n",rectScaleX,rectScaleY,rectScaleZ);
+        if(isUseRect)
+            fprintf(logfile,"proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f)\n",rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));

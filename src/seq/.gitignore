@@ -3,4 +3,6 @@ adda*
 *.o
 *.d
 .*opts
+ExpCount
+run*
 !.gitignore

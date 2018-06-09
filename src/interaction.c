@@ -150,7 +150,7 @@ static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[
 // initialize real vector with integer values
 {
       
-        qvec[0]=i*(rectScaleX);
+    qvec[0]=i*(rectScaleX);
 	qvec[1]=j*(rectScaleY);
 	qvec[2]=k*(rectScaleZ);
   
@@ -958,8 +958,7 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 
 	// the following looks complicated, but should be easy to optimize by compiler
 	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=maxRectScale*maxRectScale*igt_lim*igt_lim*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
-		
-            if (unitsGrid) vMultScal(gridspace,qvec,qvec);
+		if (unitsGrid) vMultScal(gridspace,qvec,qvec);
 		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
