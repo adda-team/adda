@@ -145,7 +145,9 @@ do
   fi
 done
 
+echo ""
 echo "suit file:'$SUITEFILE'"
+echo ""
 
 # Whether errors in running reference version of ADDA should be ignored. Useful for comparing with older versions, which
 # lack all the tested functionality. This variable is set above for some modes.
@@ -163,6 +165,14 @@ TMPTEST=test.tmp
 
 # If you encounter errors of awk, try changing the following to gawk
 AWK=awk
+
+MYDIFFOK_FLAG=0
+MYDIFFERROR_FLAG=0
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
 function cleanfile {
   # Processes file $1 and stores the result in $2. Basic step is removing lines matching regexp $3. Additional optional
@@ -212,6 +222,10 @@ function mycmp {
   else
     asmin atol 14
     asmin rtol 8
+  fi
+  if [ -n "$RECT_DIP_EXT_2" ]; then
+    asmin atol 1
+    asmin rtol 1
   fi
   # behavior is mainly determined by file name
   base=`basename $1`
@@ -307,9 +321,20 @@ function mycmp {
     diff $1 $2 >&2
   fi
 }
+
+
+
 function mydiff {
   # bring up diff only if files are significantly different (see mycmp above)
   if !(mycmp $1 $2); then
+    if [ $MYDIFFERROR_FLAG -eq 0 ]; then
+        if [ $MYDIFFOK_FLAG -eq 1 ]; then
+            printf "\n"
+            printf "%q " $1
+        fi
+        printf "$RED FAILED $NC\n"
+        MYDIFFERROR_FLAG=1
+    fi
     echo "!!! Difference between files '$1' and '$2'" >&2
     # !!! This should be adjusted
     # It is recommended to put here a GUI diff program, which allows quick estimate of the importance of differences
@@ -318,6 +343,11 @@ function mydiff {
     # also commented out, since function mycmp will produce (significant) diff of compared files to stderr.
     # Options include, for example: tortoisemerge, meld, vimdiff
     #tortoisemerge $1 $2
+  else
+    if [ $MYDIFFERROR_FLAG -eq 0 ] && [ $MYDIFFOK_FLAG -eq 0 ]; then
+        printf " $GREEN passed $NC\n"
+        MYDIFFOK_FLAG=1
+    fi
   fi
 }
 
@@ -352,6 +382,14 @@ if [ -n "$3" ]; then
 else
   skip=0
 fi
+
+for additional in $ADDITIONALS
+do
+  if [ "$3" == "$additional" ]; then
+      skip=0
+  fi
+done
+
 #
 while read -r cmpfiles cmdline; do
   if [[ "$cmpfiles" == \;*\; ]]; then
@@ -377,10 +415,24 @@ while read -r cmpfiles cmdline; do
         cmpfiles="$ALLNAME"
 	  fi
     fi
+    if [ "$cmpfiles" == "NORD2" ]; then
+      if [ -n "$RECT_DIP_EXT_2" ]; then
+		continue
+	  fi
+	  cmpfiles="$ALLNAME"
+    fi
+    if [ -n "$RECT_DIP_EXT_2" ]; then
+		cmpfiles="CrossSec-Y,CrossSec-X,mueller"
+	fi
     for i in `seq 0 $imax`; do # variable substitution
       cmdline="${cmdline/${finds[$i]}/${reps[$i]}}"
     done
-    echo $cmdline
+    printf "\n$YELLOW"
+    printf "%q " $cmdline
+    printf "$NC"
+    MYDIFFERROR_FLAG=0
+    MYDIFFOK_FLAG=0
+    #echo $cmdline
     # clean up to remove warnings
     rm -f -r $SOREF $SOTEST $DIRREF $DIRTEST
     # reference run
@@ -417,6 +469,9 @@ while read -r cmpfiles cmdline; do
             file2="${file2/VisFrp/RadForce}"
           else
             file2="$file"
+          fi
+          if [ ! -f "$DIRREF/$file" ] && [ ! -f "$DIRTEST/$file2" ]; then
+              continue
           fi
           mydiff "$DIRREF/$file" "$DIRTEST/$file2"
         done

@@ -488,7 +488,15 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
             }
 
         }
-        if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+
+        if (!orient_avg && IFROOT) {
+            bool is_equal_res = true;
+            for (int index=1; index < 3; ++index) {
+                is_equal_res &= res[0] == res[index];
+            }
+            if (is_equal_res) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+            else PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+        }
 
     } else {
         double ka,kd2,S;
@@ -563,8 +571,9 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					// no break
 			}
 		}
+
 		if (asym || anisotropy) {
-			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+            if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
 		}
 		else {
 			res[2]=res[1]=res[0];
