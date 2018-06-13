@@ -143,7 +143,7 @@
 #define GFORM "%.10g"        // variable width (showing significant digits)
 #define GFORMDEF "%g"        // default output for non-precise values
 #define GFORM_DEBUG "%.2g"   // for debug and error output
-#define CFORM "%.8g%+.8gi" // for complex numbers; may be defined in terms of GFORM
+#define CFORM "%.10g%+.10gi" // for complex numbers; may be defined in terms of GFORM
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM

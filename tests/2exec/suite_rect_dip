@@ -11,7 +11,7 @@
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
 # default for testing of different grids
-;smn; -size 8 ;m; ;n;
+;smn; -size 3 ;m; ;n;
 ;orient_abg; -orient ;alfa; ;beta; ;gamma;
 
 # Elementary variables
@@ -83,22 +83,22 @@ NORD2 -beam read IncBeam-Y IncBeam-X ;se; ;mgn; ;p_igt_int;
 #NOMPISEQ -chp_dir chp_tmp -chp_load ;mgn; ;p_igt_int;
 
 #all -h Cpr
-all -Cpr ;mgn; ;p_igt_int;
-all -Cpr ;sep; ;mgn; ;p_igt_int;
+all -Cpr ;smn; ;p_igt_int;
+all -Cpr ;sep; ;smn; ;p_igt_int;
 
 #all -h Csca
-all -Csca ;se; ;mgn; ;p_igt_int;
+all -Csca ;se; ;smn; ;p_igt_int;
 
 #all -h dir
 
 #all -h dpl ;p_igt_int;
-all -dpl 20 ;mgn; ;p_igt_int;
+all -dpl 20 ;smn; ;p_igt_int;
 
 #all -h eps
-all -eps 10 ;mgn; ;p_igt_int;
+all -eps 10 ;smn; ;p_igt_int;
 
 #all -h eq_rad
-all -eq_rad 1 ;mgn; ;p_igt_int;
+all -eq_rad 2 ;mgn; ;p_igt_int;
 
 # It is hard to make meaningful comparison of stdout and log for random placement of granules. However, optical
 # properties are compared using rather large tolerances
@@ -107,25 +107,25 @@ all -eq_rad 1 ;mgn; ;p_igt_int;
 #CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
 #all -h grid
-all -grid 4 6 8 ;m; ;n; ;p_igt_int;
-all -grid 10 10 10 -shape read sphere.geom -sym enf ;m; ;n; ;p_igt_int;
+NORD2 -grid 4 6 8 ;m; ;n; ;p_igt_int;
+NORD2 -grid 10 10 10 -shape read sphere.geom -sym enf ;m; ;n; ;p_igt_int;
 
 #all -h
 #all -h h
 
 #all -h init_field
-all -init_field auto ;mgn; ;p_igt_int;
-all -init_field inc ;mgn; ;p_igt_int;
+all -init_field auto ;smn; ;p_igt_int;
+all -init_field inc ;smn; ;p_igt_int;
 NORD2 -init_field read IncBeam-Y IncBeam-X ;se; ;mgn; ;p_igt_int;
-all -init_field wkb ;mgn; ;p_igt_int;
-all -init_field zero ;mgn; ;p_igt_int;
+all -init_field wkb ;smn; ;p_igt_int;
+all -init_field zero ;smn; ;p_igt_int;
 
 #all -h int
-all ;p_igt_int; ;mgn;
+all ;p_igt_int; ;smn;
 #all -int fcd_st ;mgn;
-all -int igt ;mgn; ;p_igt;
+all -int igt ;smn; ;p_igt;
 #all -int igt 3 ;mg4n;
-all -int igt 3 0.01 ;mgn; ;p_igt;
+all -int igt 3 0.01 ;smn; ;p_igt;
 #all -int igt_so ;mgn;
 #all -int nloc 0.1 ;mgn;
 #all -int nloc 1 ;mgn;
@@ -139,44 +139,44 @@ all -int igt 3 0.01 ;mgn; ;p_igt;
 #all -int_surf som -surf 4 2 0 ;mgn; ;p_igt_int;
 
 #all -h iter
-all -iter bcgs2 ;mgn; ;p_igt_int;
-all -iter bicg ;mgn; ;p_igt_int;
-all -iter bicgstab ;mgn; ;p_igt_int;
-all -iter cgnr ;mgn; ;p_igt_int;
-all -iter csym ;mgn; ;p_igt_int;
-all -iter qmr ;mgn; ;p_igt_int;
-all -iter qmr2 ;mgn; ;p_igt_int;
+all -iter bcgs2 ;smn; ;p_igt_int;
+all -iter bicg ;smn; ;p_igt_int;
+all -iter bicgstab ;smn; ;p_igt_int;
+all -iter cgnr ;smn; ;p_igt_int;
+all -iter csym ;smn; ;p_igt_int;
+all -iter qmr ;smn; ;p_igt_int;
+all -iter qmr2 ;smn; ;p_igt_int;
 
 #all -h jagged
-all -jagged 2 ;mg4n; ;p_igt_int;
+NORD2 -jagged 2 ;mg4n; ;p_igt_int;
 
 #all -h lambda
-all -lambda 1 ;mgn; ;p_igt_int;
+NORD2 -lambda 1 -size 4 -m 1.1 0.1 -ntheta 5 -pol igt_so -int igt 4
 
 #all -h m
-all -m 1.2 0.2 ;g; ;n; ;p_igt_int;
+NORD2 -m 1.2 0.2 ;g; ;n; ;p_igt_int;
 
 #all -h maxiter
-all -maxiter 5 ;mgn; ;p_igt_int;
+all -maxiter 5 ;smn; ;p_igt_int;
 
 #all -h no_reduced_fft
-all -no_reduced_fft ;mgn; ;p_igt_int;
-NOMPI -no_reduced_fft -iter cgnr ;mgn; ;p_igt_int;
+all -no_reduced_fft ;smn; ;p_igt_int;
+NORD2 -no_reduced_fft -iter cgnr ;mgn; ;p_igt_int;
 
 #all -h no_vol_cor
-all -no_vol_cor -size 3 ;mgn; ;p_igt_int;
+all -no_vol_cor ;smn; ;p_igt_int;
 
 #all -h ntheta
-all -ntheta 10 ;m; ;g; ;p_igt_int;
+NORD2 -ntheta 10 ;m; ;g; ;p_igt_int;
 
 #all -h opt
-all -opt speed ;mgn; ;p_igt_int;
-all -opt mem ;mgn; ;p_igt_int;
+all -opt speed ;smn; ;p_igt_int;
+all -opt mem ;smn; ;p_igt_int;
 
 #all -h orient
-all -orient 30 0 0 ;mgn; ;p_igt_int;
-all -orient 10 20 30 ;se; ;mgn; ;p_igt_int;
-all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both ;p_igt_int;
+all -orient 30 0 0 ;smn; ;p_igt_int;
+NORD2 -orient 10 20 30 ;se; ;mgn; ;p_igt_int;
+NORD2 -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both ;p_igt_int;
 all -orient avg ;se; ;mg4n; ;p_igt_int;
 all -orient avg ap.dat ;se; ;mg4n; ;p_igt_int;
 
@@ -184,8 +184,8 @@ all -orient avg ap.dat ;se; ;mg4n; ;p_igt_int;
 all -phi_integr 31 ;sep; ;mgn; ;p_igt_int;
 
 #all -h pol
-all -pol cldr ;p; ;mgn;
-all -pol cm ;mgn;
+all -pol cldr ;p; ;smn;
+all -pol cm ;smn;
 #all -pol dgf ;mgn;
 #all -pol fcd ;mgn;
 #all -pol igt_so ;mgn;
@@ -203,13 +203,13 @@ all -pol cm ;mgn;
 all -prognosis ;p_igt_int;
 
 #all -h prop
-all -prop 5 1 3 ;se; ;mgn; ;p_igt_int;
-all -prop 0 0 -1 ;mgn; ;p_igt_int;
-all -prop 1 0 0 ;mgn; ;p_igt_int;
-all -prop 0 1 0 ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -prop 5 1 3 ;se; ;mgn; ;p_igt_int;
+all -prop 0 0 -1 ;smn; ;p_igt_int;
+all -prop 1 0 0 ;smn; ;p_igt_int;
+all -prop 0 1 0 ;smn; ;p_igt_int;
 
 #all -h recalc_resid
-all -recalc_resid ;mgn; ;p_igt_int;
+all -recalc_resid ;smn; ;p_igt_int;
 
 #all -h save_geom
 all -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis ;p_igt_int;
@@ -220,26 +220,26 @@ all -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis ;p_igt_int;
 #all -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat7
 
 #all -h scat
-all -scat dr ;mgn; ;p_igt_int;
-all -scat fin ;mgn; ;p_igt_int;
-all -scat igt_so ;mgn; ;p_igt_int;
-all -scat so ;mgn; ;p_igt_int;
+all -scat dr ;smn; ;p_igt_int;
+all -scat fin ;smn; ;p_igt_int;
+all -scat igt_so ;smn; ;p_igt_int;
+all -scat so ;smn; ;p_igt_int;
 
 #all -h scat_grid_inp
-all -scat_grid_inp sp.dat ;mgn; ;p_igt_int;
+all -scat_grid_inp sp.dat ;smn; ;p_igt_int;
 
 #all -h scat_matr
-all -scat_matr muel ;mgn; ;p_igt_int;
-all -scat_matr ampl ;mgn; ;p_igt_int;
-all -scat_matr both ;mgn; ;p_igt_int;
-all -scat_matr none ;m; ;g; ;p_igt_int;
+all -scat_matr muel ;smn; ;p_igt_int;
+all -scat_matr ampl ;smn; ;p_igt_int;
+all -scat_matr both ;smn; ;p_igt_int;
+#all -scat_matr none ;m; ;g; ;p_igt_int;
 
 #all -h scat_plane
-all -scat_plane ;se; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -scat_plane ;se; ;mgn; ;p_igt_int;
 
 #all -h shape
 #all -h shape axisymmetric ;p_igt_int;
-all -shape axisymmetric 196.txt ;mgn; ;p_igt_int;
+all -shape axisymmetric 196.txt ;smn; ;p_igt_int;
 #all -h shape bicoated ;p_igt_int;
 #all -shape bicoated 3 0.5 ;2mgn;
 #all -h shape biellipsoid ;p_igt_int;
@@ -247,36 +247,38 @@ all -shape axisymmetric 196.txt ;mgn; ;p_igt_int;
 #all -h shape bisphere ;p_igt_int;
 #all -shape bisphere 2 ;mgn;
 #all -h shape box
-all -shape box ;mgn; ;p_igt_int;
-all -shape box 0.5 1.5 ;mgn; ;p_igt_int;
+all -shape box ;smn; ;p_igt_int;
+all -shape box 0.5 1.5 ;smn; ;p_igt_int;
 #all -h shape capsule ;p_igt_int;
-all -shape capsule 1.5 ;mgn; ;p_igt_int;
+all -shape capsule 1.5 ;smn; ;p_igt_int;
 #all -h shape chebyshev ;p_igt_int;
-all -shape chebyshev 0.3 5 ;mgn; ;p_igt_int;
+all -shape chebyshev 0.3 5 ;smn; ;p_igt_int;
 #all -h shape coated ;p_igt_int;
 #all -shape coated 0.5 ;2mgn;
 #all -shape coated 0.4 0.1 0.15 0.2 ;2mgn; ;p_igt_int;
 #all -h shape cylinder ;p_igt_int;
-all -shape cylinder 1 ;mgn; ;p_igt_int;
+all -shape cylinder 1 ;smn; ;p_igt_int;
 #all -h shape egg ;p_igt_int;
-all -shape egg 0.5 0.2 ;mgn; ;p_igt_int;
+all -shape egg 0.5 0.2 ;smn; ;p_igt_int;
 #all -h shape ellipsoid ;p_igt_int;
 all -shape ellipsoid 0.25 2 ;mgn; ;p_igt_int;
 #all -h shape line ;p_igt_int;
-all -shape line -grid 16 ;m; ;n; ;p_igt_int;
+
+#todo FIX -shape line
+NORD2 -shape line -grid 16 ;m; ;n; ;p_igt_int;
 #all -h shape plate ;p_igt_int;
-all -shape plate 0.5 ;mgn; ;p_igt_int;
+all -shape plate 0.5 ;smn; ;p_igt_int;
 #all -h shape prism ;p_igt_int;
-all -shape prism 5 1.5 ;mgn; ;p_igt_int;
+all -shape prism 5 1.5 ;smn; ;p_igt_int;
 #all -h shape rbc ;p_igt_int;
-all -shape rbc 0.3 0.1 0.3 ;mgn; ;p_igt_int;
+all -shape rbc 0.3 0.1 0.3 ;smn; ;p_igt_int;
 #all -h shape read
-all -shape read ellipsoid.geom ;m; ;n; ;p_igt_int;
+#all -shape read ellipsoid.geom ;m; ;n; ;p_igt_int;
 #all -shape read coated.geom ;2m; ;n;
-all -shape read ell_ddscat6.dat ;m; ;n; ;p_igt_int;
-all -shape read ell_ddscat7.dat ;m; ;n; ;p_igt_int;
+#all -shape read ell_ddscat6.dat ;m; ;n; ;p_igt_int;
+#all -shape read ell_ddscat7.dat ;m; ;n; ;p_igt_int;
 #all -h shape sphere
-all -shape sphere ;mgn; ;p_igt_int;
+all -shape sphere ;smn; ;p_igt_int;
 #all -h shape spherebox ;p_igt_int;
 #all -shape spherebox 0.5 ;2mgn;
 
@@ -284,49 +286,49 @@ all -shape sphere ;mgn; ;p_igt_int;
 all -size 8 ;mgn; ;p_igt_int;
 
 #all -h store_beam
-all -store_beam ;se; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -store_beam ;se; ;mgn; ;p_igt_int;
 
 #all -h store_dip_pol
-all -store_dip_pol ;se; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -store_dip_pol ;se; ;mgn; ;p_igt_int;
 
 #all -h store_force
-all -store_force ;sep; ;mgn; ;p_igt_int;
+#all -store_force ;sep; ;mgn; ;p_igt_int;
 
 #all -h store_grans
 #granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
 
 #all -h store_int_field
-all -store_int_field ;se; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -store_int_field ;se; ;mgn; ;p_igt_int;
 
 #all -h store_scat_grid
 all -store_scat_grid ;sep; ;mgn; ;p_igt_int;
 
 #all -h surf
-NORD2 -surf 4 2 0 ;mgn; ;p_igt_int;
-NORD2 -surf 4 3 4 ;p; ;mgn; ;p_igt_int;
-NORD2 -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn; ;p_igt_int;
-NORD2 -surf 4 inf -prop 1 2 -3 ;se; ;mgn; ;p_igt_int;
-NORD2 -surf 4 2 0 -no_reduced_fft ;mgn; ;p_igt_int;
-NORD2 -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn; ;p_igt_int;
-NORD2 -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn; ;p_igt_int;
-NOMPI -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;  ;p_igt_int;
+#all -surf 4 2 0 ;mgn; ;p_igt_int;
+#all -surf 4 3 4 ;p; ;mgn; ;p_igt_int;
+#all -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn; ;p_igt_int;
+#all -surf 4 inf -prop 1 2 -3 ;se; ;mgn; ;p_igt_int;
+#all -surf 4 2 0 -no_reduced_fft ;mgn; ;p_igt_int;
+#all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn; ;p_igt_int;
+#all -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn; ;p_igt_int;
+#all -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;  ;p_igt_int;
 
 #all -h sym
-all -sym auto ;mgn; ;p_igt_int;
-all -sym no ;mgn; ;p_igt_int;
-all -sym enf ;mgn; ;p_igt_int;
-all -sym auto ;sep; ;mgn; ;p_igt_int;
-all -sym no ;sep; ;mgn; ;p_igt_int;
-all -sym enf ;sep; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym auto ;smn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym no ;smn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym enf ;smn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym auto ;sep; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym no ;sep; ;mgn; ;p_igt_int;
+CrossSec-Y,CrossSec-X -sym enf ;sep; ;mgn; ;p_igt_int;
 
 #all -h test
-all -test ;mgn; ;p_igt_int;
+#all -test ;smn; ;p_igt_int;
 
 #all -h V
 #all -V
 
 #all -h vec
-all -vec ;sep; ;mgn; ;p_igt_int;
+#all -vec ;sep; ;mgn; ;p_igt_int;
 
 #all -h yz
-all -yz -store_scat_grid ;mgn; ;p_igt_int;
+#all -yz -store_scat_grid ;smn; ;p_igt_int;

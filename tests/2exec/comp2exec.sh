@@ -18,7 +18,7 @@ ADDASEQ="./../../src/seq/adda"
 ADDAMPI="./../../src/mpi/adda_mpi"
 ADDAOCL="./../../src/ocl/adda_ocl"
 #Path to reference binaries, examples: "." or "./../../win64"
-REFPATH=./../../master_ffttemperton
+REFPATH=./../../win64
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
 
@@ -225,7 +225,7 @@ function mycmp {
   fi
   if [ -n "$RECT_DIP_EXT_2" ]; then
     asmin atol 1
-    asmin rtol 1
+    asmin rtol 2
   fi
   # behavior is mainly determined by file name
   base=`basename $1`
@@ -421,7 +421,7 @@ while read -r cmpfiles cmdline; do
 	  fi
 	  cmpfiles="$ALLNAME"
     fi
-    if [ -n "$RECT_DIP_EXT_2" ]; then
+    if [ -n "$RECT_DIP_EXT_2" ] && [ "$cmpfiles" == "all" ]; then
 		cmpfiles="CrossSec-Y,CrossSec-X,mueller"
 	fi
     for i in `seq 0 $imax`; do # variable substitution
