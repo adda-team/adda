@@ -490,12 +490,13 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
         }
 
         if (!orient_avg && IFROOT) {
-            bool is_equal_res = true;
-            for (int index=1; index < 3; ++index) {
-                is_equal_res &= res[0] == res[index];
-            }
-            if (is_equal_res) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
-            else PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+//            bool is_equal_res = true;
+//            for (int index=1; index < 3; ++index) {
+//                is_equal_res &= res[0] == res[index];
+//            }
+//            if (is_equal_res) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+//            else PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+            PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
         }
 
     } else {

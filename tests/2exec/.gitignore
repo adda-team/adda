@@ -1,8 +1,9 @@
-# Ignore everything
 chp_tmp/*
 out_ref/*
 out_test/*
 tables/*
+chpoint/*
+current_exec/*
 suite_test
 test.tmp
 ref.tmp

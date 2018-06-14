@@ -91,8 +91,8 @@ all -eq_rad 1 ;mgn;
 all -h grid
 all -grid 6 6 8 ;mg4n;
 
-all -h
-all -h h
+#all -h
+#all -h h
 
 all -h init_field
 all -init_field auto ;mgn;
@@ -217,7 +217,7 @@ all -scat_matr none ;m; ;g;
 all -h scat_plane
 all -scat_plane ;se; ;mn;
 
-all -h shape
+#all -h shape
 #all -h shape axisymmetric
 #all -shape axisymmetric 196.txt ;mgn;
 #all -h shape bicoated
@@ -270,7 +270,7 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mn;
 
 all -h store_force
-all -store_force ;sep; ;mn;
+#all -store_force ;sep; ;mn;
 
 #all -h store_grans
 #granules -store_grans -granul 0.2 1 -size 4 ;2mgn;

@@ -1,0 +1,88 @@
+#!/bin/bash
+# !!! It is expected that REFPATH contains executable reference adda, adda_mpi, adda_ocl, adda_spa, adda_spa_mpi
+# script runs all tests, it makes the next steps
+# 1) [deletes and] creates dir 'current_exec'
+# 2) compiles fft mode and copies to 'current_exec' adda, adda_mpi and adda_ocl
+# 3) compiles sparse mode and copies to 'current_exec' adda->adda_spa, adda_mpi->adda_spa_mpi
+# 4) runs set of tests
+
+REFPATH=./../../master_ffttemperton
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+rm -rf "$BASEDIR/current_exec"
+mkdir -p "$BASEDIR/current_exec"
+
+function makeusual {
+    cd "$BASEDIR/../../src/"
+
+    SEQOPTIONS="OPTIONS=FFT_TEMPERTON NO_SVNREV"
+    make seq "$SEQOPTIONS"
+    cp "seq/adda" "$BASEDIR/current_exec/adda"
+
+    MPIOPTIONS="OPTIONS=FFT_TEMPERTON NO_SVNREV"
+    make mpi "$MPIOPTIONS"
+    cp "mpi/adda" "$BASEDIR/current_exec/adda_mpi"
+
+    OCLOPTIONS="OPTIONS=FFT_TEMPERTON NO_SVNREV"
+    make ocl "$OCLOPTIONS"
+    cp "ocl/adda" "$BASEDIR/current_exec/adda_ocl"
+}
+
+function makesparse {
+    cd "$BASEDIR/../../src/"
+
+    SPARSESEQOPTIONS="OPTIONS=SPARSE NO_SVNREV"
+    make seq "$SPARSESEQOPTIONS"
+    cp "seq/adda" "$BASEDIR/current_exec/adda_spa"
+
+    SPARSEMPIOPTIONS="OPTIONS=SPARSE NO_SVNREV"
+    make mpi "$SPARSEMPIOPTIONS"
+    cp "mpi/adda" "$BASEDIR/current_exec/adda_spa_mpi"
+}
+
+makeusual
+makesparse
+
+cd "$BASEDIR/current_exec"
+
+COUNT=$(ls -1 | wc -l)
+if [ $COUNT -eq 5 ]; then
+  echo "all executable files compiled"
+else
+  echo "only $COUNT executables available"
+  ls -1
+fi
+
+#cd "$BASEDIR"
+
+LIST=$(ls)
+for exec in $LIST; do
+    cd "$BASEDIR"
+    #echo "$exec"
+    if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+        sh comp2exec seq                   "REFPATH=${REFPATH}"     "ADDASEQ=./current_exec/adda";
+        sh comp2exec seq SURF_STANDARD     "REFPATH=./current_exec" "ADDASEQ=./current_exec/adda";#??
+        sh comp2exec seq SURF_EXT          "REFPATH=${REFPATH}"     "ADDASEQ=./current_exec/adda";
+        sh comp2exec seq RECT_DIP_STANDARD "REFPATH=./current_exec" "ADDASEQ=./current_exec/adda";#??
+        sh comp2exec seq RECT_DIP_EXT      "REFPATH=${REFPATH}"     "ADDASEQ=./current_exec/adda";
+        sh comp2exec seq RECT_DIP_TRICKY   "REFPATH=${REFPATH}"     "ADDASEQ=./current_exec/adda";
+    fi
+    if [ "$exec" == "adda_spa" ] || [ "$exec" == "adda_spa.exe" ]; then
+        for exec in $LIST; do
+            if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+                sh comp2exec seq SPARSE_STANDARD "REFPATH=./current_exec" "ADDASEQ=./current_exec/adda_spa";#??
+            fi
+        done
+        sh comp2exec seq SPARSE          "REFPATH=${REFPATH}"     "ADDASEQ=./current_exec/adda_spa";
+    fi
+    if [ "$exec" == "adda_mpi" ] || [ "$exec" == "adda_mpi.exe" ]; then
+        sh comp2exec mpi "REFPATH=${REFPATH}" "ADDASEQ=./current_exec/adda_mpi";
+    fi
+    if [ "$exec" == "adda_ocl" ] || [ "$exec" == "adda_ocl.exe" ]; then
+        sh comp2exec ocl "REFPATH=${REFPATH}" "ADDASEQ=./current_exec/adda_ocl";
+    fi
+    if [ "$exec" == "adda_spa_mpi" ] || [ "$exec" == "adda_spa_mpi.exe" ]; then
+        sh comp2exec mpi SPARSE "REFPATH=${REFPATH}" "ADDASEQ=./current_exec/adda_spa_mpi";
+    fi
+done
+#rm -rf "$BASEDIR/current_exec"

@@ -3,4 +3,5 @@ adda*
 *.o
 *.d
 .*opts
+*.clstr
 !.gitignore

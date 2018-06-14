@@ -6,22 +6,35 @@
 # Second (if given) specifies file with a test suite (default - "suite").
 # Third (if given) specifies bash pattern (best if quoted). Tests are started only from the command line that matches
 # it. (convenient to restart the test suite from a break point)
+# -------------------------------------------------------------
+# Also extra params (flag and overrides) can be included (see ADDITIONALS): FFTCOMP SPARSE SPARSE_STANDARD SURF_EXT SURF_STANDARD RECT_DIP_EXT RECT_DIP_STANDARD RECT_DIP_TRICKY REFPATH ADDASEQ ADDAMPI ADDAOCL
+# Default value for extra parameter - 1
+# For other value need to be used '='
+# For ex.: REFPATH=./current_exec
 #
-# Look below for "!!!", which mark the places where adjustments are probably need to be done
-
-#---------------- Set parameters and define internal functions ---------------------------------------------------------
-
-# Location of sample input files (not needed if all input files are already present)
-INPUTDIR="./../../input"
-# Location of binaries
-ADDASEQ="./../../src/seq/adda"
-ADDAMPI="./../../src/mpi/adda_mpi"
-ADDAOCL="./../../src/ocl/adda_ocl"
-#Path to reference binaries, examples: "." or "./../../win64"
-REFPATH=./../../win64
-# MPI command prefix
-MPIRUN="mpiexec -n 4"
-
+# REFPATH ADDASEQ ADDAMPI ADDAOCL  are useful for override of inner variables
+#
+# Command line can contain next flags:
+# FFTCOMP
+# SPARSE
+# SPARSE_STANDARD
+# SURF_EXT
+# SURF_STANDARD
+# RECT_DIP_EXT
+# RECT_DIP_STANDARD
+# RECT_DIP_TRICKY
+# Expected behaviour is defining one flag (or nothing) and one or many overrides (or nothing)
+# explanation above.
+#
+# Extra parameter can be placed after three params
+# or in any other place (in this case, if extra is placed in the first, second or third position usual params will be defined with default value)
+# Example:
+# comp2exec RECT_DIP_TRICKY - the first place keeps extra params, so mode=seq, suite=suite, skip=0 and flag RECT_DIP_TRICKY=1
+# comp2exec ocl SPARSE ADDAOCL=./my/dir/adda_ocl - mode=ocl, suite=suite, skip=0, flag SPARSE=1 and override ADDAOCL=./my/dir/adda_ocl
+# comp2exec mpi my_special_suite REFPATH=./current_exec - mode=mpi, suite=my_special_suite, skip=0 and override REFPATH=./current_exec
+#
+# --------------------------------------------------------------------------------------
+#
 # Set the following flag to ignore differences related to different FFT methods, such as FFT grid sizes and memory.
 # Also useful for comparison of sparse version with the standard one
 #FFTCOMP=1
@@ -37,21 +50,47 @@ MPIRUN="mpiexec -n 4"
 #SURF_STANDARD=1
 
 # Extensive testing of rectangular dipoles with adding to command line predefined dipole size ratio
-# RECT_DIP_STANDARD = [-rect_dip 1 1 1] to test and ref
-# RECT_DIP_EXT_1    = [-rect_dip 1 1 1] to test ONLY
-# RECT_DIP_EXT_2    = [-rect_dip 1 1 2] to test ONLY
+# RECT_DIP_EXT      = test and ref cmdline will be prefixed with '-rect_dip 1 1 2'
+#
+# RECT_DIP_STANDARD = test cmdline will be prefixed with '-rect_dip 1 1 1' (-rect_dip leads to using CLDR while LDR passed),
+#                     ref cmdline will be prefixed with '-pol cldr'
+#
+# RECT_DIP_TRICKY   = test cmdline will be prefixed with '-rect_dip 1 1 1.125 -pol igt_so -int igt 3,
+#                     ref cmdline will be prefixed with '-pol igt_so -int igt 3
 #-------------------
+#RECT_DIP_EXT=1
 #RECT_DIP_STANDARD=1
-#RECT_DIP_EXT_1=1
-#RECT_DIP_EXT_2=1
+#RECT_DIP_TRICKY=1
 
-ADDITIONALS="FFTCOMP SPARSE SPARSE_STANDARD SURF_EXT SURF_STANDARD RECT_DIP_STANDARD RECT_DIP_EXT_1 RECT_DIP_EXT_2"
+ADDITIONALS="FFTCOMP SPARSE SPARSE_STANDARD SURF_EXT SURF_STANDARD RECT_DIP_EXT RECT_DIP_STANDARD RECT_DIP_TRICKY REFPATH ADDASEQ ADDAMPI ADDAOCL"
+
+#
+# Look below for "!!!", which mark the places where adjustments are probably need to be done
+
+#---------------- Set parameters and define internal functions ---------------------------------------------------------
+
+# Location of sample input files (not needed if all input files are already present)
+
+echo -e "\n---=== ADDA integration test ===---\n\n"
+
+INPUTDIR="./../../input"
+# Location of binaries
+ADDASEQ="./../../src/seq/adda"
+ADDAMPI="./../../src/mpi/adda_mpi"
+ADDAOCL="./../../src/ocl/adda_ocl"
+#Path to reference binaries, examples: "." or "./../../win64"
+REFPATH=./../../master_ffttemperton
+# MPI command prefix
+MPIRUN="mpiexec -n 4"
 
 for arg; do
     for additional in $ADDITIONALS
     do
-        if [ "$arg" == "$additional" ]; then
+        if [[ "$arg" == "$additional" ]]; then
             eval "${additional}=1"
+        fi
+        if [[ "$arg" == "${additional}="* ]]; then
+            eval "${arg}"
         fi
     done
 done
@@ -80,7 +119,7 @@ fi
 MODE=${1:-seq}
 for additional in $ADDITIONALS
 do
-  if [ "$1" == "$additional" ]; then
+  if [[ "$1" == "$additional"* ]]; then
       MODE="seq"
   fi
 done
@@ -120,34 +159,36 @@ if [ -n "$SURF_STANDARD" ]; then
   EXECTEST="$EXECTEST -surf 10 1 0 -yz"
 fi
 
-if [ -n "$RECT_DIP_EXT_1" ]; then
-  DEFSUITE=suite_rect_dip
-  EXECTEST="$EXECTEST -rect_dip 1 1 1"
-  echo "RECT_DIP_EXT_1 activated, test only cmdline will prefixed with '-rect_dip 1 1 1'"
-fi
-if [ -n "$RECT_DIP_EXT_2" ]; then
-  DEFSUITE=suite_rect_dip
-  EXECTEST="$EXECTEST -rect_dip 1 1 2"
-  echo "RECT_DIP_EXT_2 activated, test only cmdline will prefixed with '-rect_dip 1 1 2'"
-fi
 if [ -n "$RECT_DIP_STANDARD" ]; then
-  DEFSUITE=suite_rect_dip
-  EXECREF="$EXECREF -rect_dip 1 1 1"
+  DEFSUITE=suite_rd
+  EXECREF="$EXECREF -pol cldr"
   EXECTEST="$EXECTEST -rect_dip 1 1 1"
-  echo "RECT_DIP_STANDARD activated, test and ref cmdline will prefixed with '-rect_dip 1 1 1'"
+  echo -e "RECT_DIP_STANDARD activated,\ntest cmdline will prefixed with '-rect_dip 1 1 1' (-rect_dip leads to using CLDR while LDR passed),\nref cmdline will prefixed with '-pol cldr'"
+fi
+if [ -n "$RECT_DIP_TRICKY" ]; then
+  DEFSUITE=suite_rd_tricky
+  EXECREF="$EXECREF -pol igt_so -int igt 3"
+  EXECTEST="$EXECTEST -rect_dip 1 1 1.125 -pol igt_so -int igt 3"
+  echo -e "RECT_DIP_TRICKY activated,\ntest cmdline will prefixed with '-rect_dip 1 1 1.125 -pol igt_so -int igt 3,\nref cmdline will prefixed with '-pol igt_so -int igt 3'"
+fi
+if [ -n "$RECT_DIP_EXT" ]; then
+  DEFSUITE=suite_rd
+  EXECREF="$EXECREF -rect_dip 1 1 2"
+  EXECTEST="$EXECTEST -rect_dip 1 1 2"
+  echo -e "RECT_DIP_EXT activated, test and ref cmdline will prefixed with '-rect_dip 1 1 2'"
 fi
 
 SUITEFILE=${2:-$DEFSUITE}
 for additional in $ADDITIONALS
 do
-  if [ "$2" == "$additional" ]; then
+  if [[ "$2" == "$additional"* ]]; then
       SUITEFILE=$DEFSUITE
   fi
 done
 
-echo ""
-echo "suit file:'$SUITEFILE'"
-echo ""
+
+echo -e "\nsuite file:'$SUITEFILE'"
+
 
 # Whether errors in running reference version of ADDA should be ignored. Useful for comparing with older versions, which
 # lack all the tested functionality. This variable is set above for some modes.
@@ -223,18 +264,22 @@ function mycmp {
     asmin atol 14
     asmin rtol 8
   fi
-  if [ -n "$RECT_DIP_EXT_2" ]; then
+  if [ -n "$RECT_DIP_TRICKY" ]; then
     asmin atol 1
     asmin rtol 2
+  fi
+  if [ -n "$RECT_DIP_STANDARD" ]; then
+    asmin atol 6
+    asmin rtol 3
   fi
   # behavior is mainly determined by file name
   base=`basename $1`
   if [ "$base" == $SONAME ]; then
     IGNORE="^all data is saved in '.*'|No real dipoles are assigned"
-    if [ -n "$RECT_DIP_EXT_1" ]; then
-      IGNORE="$IGNORE|^proportions for rectangular dipole *"
+    if [ -n "$RECT_DIP_STANDARD" ]; then
+      IGNORE="$IGNORE|^proportions for rectangular dipole *|^CoupleConstant:*"
     fi
-    if [ -n "$RECT_DIP_EXT_2" ]; then
+    if [ -n "$RECT_DIP_TRICKY" ]; then
       IGNORE="$IGNORE|^proportions for rectangular dipole *|^CoupleConstant:*"
     fi
     if [ -n "$FFTCOMP" ]; then
@@ -272,10 +317,10 @@ function mycmp {
     igndiff $1 $2 "^Usage: '.*'|^Type '.*' for details" "$CUT"
   elif [ "$base" == "log" ]; then
     IGNORE="^Generated by ADDA v\.|^command: '.*'|^Symmetr|^No symmetries"
-    if [ -n "$RECT_DIP_EXT_1" ]; then
-      IGNORE="$IGNORE|^proportions for rectangular dipole *"
+    if [ -n "$RECT_DIP_STANDARD" ]; then
+      IGNORE="$IGNORE|^proportions for rectangular dipole *|^CoupleConstant:*"
     fi
-    if [ -n "$RECT_DIP_EXT_2" ]; then
+    if [ -n "$RECT_DIP_TRICKY" ]; then
       IGNORE="$IGNORE|^proportions for rectangular dipole *|^CoupleConstant:*"
     fi
     if [ $MODE == "mpi_seq" ]; then
@@ -328,10 +373,6 @@ function mydiff {
   # bring up diff only if files are significantly different (see mycmp above)
   if !(mycmp $1 $2); then
     if [ $MYDIFFERROR_FLAG -eq 0 ]; then
-        if [ $MYDIFFOK_FLAG -eq 1 ]; then
-            printf "\n"
-            printf "%q " $1
-        fi
         printf "$RED FAILED $NC\n"
         MYDIFFERROR_FLAG=1
     fi
@@ -343,11 +384,6 @@ function mydiff {
     # also commented out, since function mycmp will produce (significant) diff of compared files to stderr.
     # Options include, for example: tortoisemerge, meld, vimdiff
     #tortoisemerge $1 $2
-  else
-    if [ $MYDIFFERROR_FLAG -eq 0 ] && [ $MYDIFFOK_FLAG -eq 0 ]; then
-        printf " $GREEN passed $NC\n"
-        MYDIFFOK_FLAG=1
-    fi
   fi
 }
 
@@ -385,7 +421,7 @@ fi
 
 for additional in $ADDITIONALS
 do
-  if [ "$3" == "$additional" ]; then
+  if [[ "$3" == "$additional"* ]]; then
       skip=0
   fi
 done
@@ -415,15 +451,16 @@ while read -r cmpfiles cmdline; do
         cmpfiles="$ALLNAME"
 	  fi
     fi
-    if [ "$cmpfiles" == "NORD2" ]; then
-      if [ -n "$RECT_DIP_EXT_2" ]; then
+    if [ "$cmpfiles" == "NORDTRICKY" ]; then
+      if [ -n "$RECT_DIP_TRICKY" ]; then
 		continue
 	  fi
 	  cmpfiles="$ALLNAME"
     fi
-    if [ -n "$RECT_DIP_EXT_2" ] && [ "$cmpfiles" == "all" ]; then
+    if [ -n "$RECT_DIP_TRICKY" ] && [ "$cmpfiles" == "all" ]; then
 		cmpfiles="CrossSec-Y,CrossSec-X,mueller"
 	fi
+
     for i in `seq 0 $imax`; do # variable substitution
       cmdline="${cmdline/${finds[$i]}/${reps[$i]}}"
     done
@@ -431,8 +468,7 @@ while read -r cmpfiles cmdline; do
     printf "%q " $cmdline
     printf "$NC"
     MYDIFFERROR_FLAG=0
-    MYDIFFOK_FLAG=0
-    #echo $cmdline
+
     # clean up to remove warnings
     rm -f -r $SOREF $SOTEST $DIRREF $DIRTEST
     # reference run
@@ -473,6 +509,9 @@ while read -r cmpfiles cmdline; do
           if [ ! -f "$DIRREF/$file" ] && [ ! -f "$DIRTEST/$file2" ]; then
               continue
           fi
+          if [ -n "$RECT_DIP_STANDARD" ] && { [ "$file" == "log" ] || [ "$file" == "stdout" ] ;}; then
+	          continue
+	      fi
           mydiff "$DIRREF/$file" "$DIRTEST/$file2"
         done
       else

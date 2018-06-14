@@ -26,6 +26,7 @@
 ;beta; 45
 ;gamma; 0
 ;rect112; -rect_dip 1 1 2
+
 #----------------------------- List of tests ---------------------------------------------------------------------------
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed

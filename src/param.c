@@ -2207,9 +2207,7 @@ void VariablesInterconnect(void)
 //#undef IS_EQUAL_VALUE 
             }
         }
-
-
-
+        if (surface) PrintError("Currently rectangular dipoles are is incompatible with '-surf'");
 
     }
 	/* TO ADD NEW ITERATIVE SOLVER
