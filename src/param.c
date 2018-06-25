@@ -53,8 +53,8 @@
 #	include <clBLAS.version.h>
 #endif
 
-#ifndef NO_SVNREV
-#	include "svnrev.h" // for SVNREV, this file is automatically created during compilation
+#ifndef NO_GITREV
+#	include "gitrev.h" // for GITREV, this file is automatically created during compilation
 #endif
 
 // definitions for file locking
@@ -1561,7 +1561,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2014 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2018 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -1623,8 +1623,8 @@ PARSE_FUNC(V)
 #	define COMPILER "unknown"
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
-#ifdef SVNREV // revision number is printed if available, but only here
-		printf("ADDA v."ADDA_VERSION" (r"SVNREV")\n");
+#ifdef GITREV // revision number is printed if available, but only here
+		printf("ADDA v."ADDA_VERSION" (r"GITREV")\n");
 #else
 		printf("ADDA v."ADDA_VERSION"\n");
 #endif
@@ -1724,8 +1724,8 @@ PARSE_FUNC(V)
 #ifdef OCL_BLAS
 		"OCL_BLAS, "
 #endif
-#ifdef NO_SVNREV
-		"NO_SVNREV, "
+#ifdef NO_GITREV
+		"NO_GITREV, "
 #endif
 		"";
 		printf("Extra build options: ");
