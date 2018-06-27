@@ -1,0 +1,49 @@
+#!/bin/bash
+# Script can have two parameter: test path(default value ./current_exec) and reference path (default value is ./../../win64)
+# !!! It is expected that REFPATH contains executable reference adda, adda_mpi, adda_ocl, adda_spa, adda_spa_mpi
+
+
+TESTPATH=${1:-./current_exec}
+REFPATH=${2:-./../../win64}
+
+COUNT=$(ls ${TESTPATH}/adda* -1 | wc -l)
+if [ $COUNT -eq 5 ]; then
+  echo "all executable files compiled"
+else
+  echo "WARNING! $COUNT instead of 5 executables available"
+  ls ${TESTPATH}/adda* -1
+fi
+
+#cd "$BASEDIR"
+
+LIST=$(ls ${TESTPATH}/adda*)
+for path in $LIST; do
+    exec=$(basename ${path})
+    echo "${exec}"
+    if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+        sh comp2exec seq                   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
+        sh comp2exec seq SURF_STANDARD     "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda";#??
+        sh comp2exec seq SURF_EXT          "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
+        sh comp2exec seq RECT_DIP_STANDARD "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda";#??
+        sh comp2exec seq RECT_DIP_EXT      "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
+        sh comp2exec seq RECT_DIP_TRICKY   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
+    fi
+    if [ "$exec" == "adda_spa" ] || [ "$exec" == "adda_spa.exe" ]; then
+        for exec in $LIST; do
+            if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+                sh comp2exec seq SPARSE_STANDARD "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda_spa";#??
+            fi
+        done
+        sh comp2exec seq SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa";
+    fi
+    if [ "$exec" == "adda_mpi" ] || [ "$exec" == "adda_mpi.exe" ]; then
+        sh comp2exec mpi                  "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_mpi";
+    fi
+    if [ "$exec" == "adda_ocl" ] || [ "$exec" == "adda_ocl.exe" ]; then
+        sh comp2exec ocl                  "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_ocl";
+    fi
+    if [ "$exec" == "adda_spa_mpi" ] || [ "$exec" == "adda_spa_mpi.exe" ]; then
+        sh comp2exec mpi SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa_mpi";
+    fi
+done
+

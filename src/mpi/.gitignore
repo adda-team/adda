@@ -1,6 +1,10 @@
-# Ignore everything
 adda*
 *.o
 *.d
 .*opts
+*stackdump
+ExpCount
+run*
+libfftw3-3.dll
+libfftw3.dll
 !.gitignore

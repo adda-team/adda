@@ -1,0 +1,48 @@
+#!/bin/bash
+# Script can have one parameter (destination path, default value is ../tests/2exec/current_exec)
+#
+#
+
+DESTINATION=${1:-../tests/2exec/current_exec}
+if [[ "$DESTINATION" == ./* ]]; then
+      DESTINATION=${DESTINATION:2}
+fi
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+mkdir -p "$BASEDIR/$DESTINATION"
+MAKEOPTIONS="OPTIONS="
+
+function makeusual {
+    cd "$BASEDIR/../src/"
+    make cleanfull
+    SEQOPTIONS="$MAKEOPTIONS"
+    make seq "$SEQOPTIONS"
+    cp "seq/adda" "$BASEDIR/$DESTINATION/adda"
+
+    MPIOPTIONS="$MAKEOPTIONS"
+    make mpi "$MPIOPTIONS"
+    cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_mpi"
+
+    OCLOPTIONS="$MAKEOPTIONS"
+    make ocl "$OCLOPTIONS"
+    cp "ocl/adda_ocl" "$BASEDIR/$DESTINATION/adda_ocl"
+
+}
+
+function makesparse {
+    cd "$BASEDIR/../src/"
+    make cleanfull
+    SPARSESEQOPTIONS="$MAKEOPTIONS SPARSE"
+    make seq "$SPARSESEQOPTIONS"
+    cp "seq/adda" "$BASEDIR/$DESTINATION/adda_spa"
+
+    SPARSEMPIOPTIONS="$MAKEOPTIONS SPARSE"
+    make mpi "$SPARSEMPIOPTIONS"
+    cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_spa_mpi"
+}
+
+makeusual
+makesparse
+
+cp ./../win64/*.dll "$BASEDIR/$DESTINATION"

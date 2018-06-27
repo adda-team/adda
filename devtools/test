@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+#
+# script runs all tests, it makes the next steps
+# 1) compiles fft mode and copies to 'current_exec' adda, adda_mpi and adda_ocl
+# 2) compiles sparse mode and copies to 'current_exec' adda->adda_spa, adda_mpi->adda_spa_mpi
+# 3) runs set of tests
+
+sh build ./../tests/2exec/current_exec
+
+cd ./../tests/2exec
+sh test_all ./current_exec ./../../win64
