@@ -1,26 +1,162 @@
 #!/bin/bash
-# Script can have two parameter: test path(default value ./current_exec) and reference path (default value is ./../../win64)
-# !!! It is expected that REFPATH contains executable reference adda, adda_mpi, adda_ocl, adda_spa, adda_spa_mpi
+# Script can have two parameter: test path(second place, default value ./current_exec) and reference path (second place, default value is ./../../win64)
+# (!!! It is expected that REFPATH contains executable reference adda [ or adda_mpi, adda_ocl, adda_spa, adda_spa_mpi relative to test mode]!!!)
+# and some modes
+# seq - test seq mode (adda)
+# mpi - test mpi mode (adda_mpi)
+# ocl - test OpenCL mode (adda_ocl)
+# spa - test SPARSE mode (adda_spa) [if 'mpi' passed then adda_spa_mpi also will be tested]
+# mpi_seq - test only seq (as ref) mpi (as test) mode (adda and adda_mpi) [included in 'seq mpi' as particular case]
+# ocl_seq - test only seq (as ref) and OpenCL (as test) mode (adda and adda_ocl) [included in 'seq ocl' as particular case]
+# spa_seq - test only seq (as ref) and SPARSE (as test) mode (adda and adda) [included in 'seq spa' as particular case]
+MODES="seq mpi ocl spa mpi_seq ocl_seq spa_seq"
 
-
+#read first arg
 TESTPATH=${1:-./current_exec}
-REFPATH=${2:-./../../win64}
+# check first arg, if it is mode then assign default value
+for mode in $MODES
+do
+  if [[ "$1" == "$mode" ]]; then
+      TESTPATH=./current_exec
+  fi
+done
 
-COUNT=$(ls ${TESTPATH}/adda* -1 | wc -l)
-if [ $COUNT -eq 5 ]; then
-  echo "all executable files compiled"
+#read second arg
+REFPATH=${2:-./../../win64}
+# check second arg, if it is mode then assign default value
+for mode in $MODES
+do
+  if [[ "$2" == "$mode" ]]; then
+      REFPATH=./../../win64
+  fi
+done
+
+ALLMODE=1
+SEQFLAG=
+MPIFLAG=
+OCLFLAG=
+SPAFLAG=
+MPISEQFLAG=
+OCLSEQFLAG=
+SPASEQFLAG=
+
+#find flags in args
+for arg; do
+    for mode in $MODES
+    do
+        if [[ "$arg" == "$mode" ]]; then
+            #uppercase
+            line=`echo "${mode}FLAG=1" | tr 'a-z' 'A-Z' | tr -d _`
+            echo "${line}"
+            eval "${line}"
+            ALLMODE=
+        fi
+    done
+done
+
+if [[ $ALLMODE ]]; then
+    SEQFLAG=1
+    MPIFLAG=1
+    OCLFLAG=1
+    SPAFLAG=1
+    MPISEQFLAG=1
+    OCLSEQFLAG=1
+    SPASEQFLAG=1
+fi
+
+if [[ $SEQFLAG ]] && [[ $MPIFLAG ]]; then
+    MPISEQFLAG=1
+fi
+
+if [[ $SEQFLAG ]] && [[ $OCLFLAG ]]; then
+    OCLSEQFLAG=1
+fi
+
+if [[ $SEQFLAG ]] && [[ $SPAFLAG ]]; then
+    SPASEQFLAG=1
+fi
+
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+function checkexec {
+    FULLLIST=$1
+    CHECKNAME=$2
+
+    for exec in $FULLLIST; do
+        if [ "$exec" == "$CHECKNAME" ]; then
+            CHECKNAME=
+            break
+        fi
+    done
+    if [[ $CHECKNAME ]]; then
+        printf "$RED ${TESTPATH} doesn't contain $CHECKNAME $NC\n"
+    fi
+}
+
+
+LIST=
+for path in $(ls ${TESTPATH}/adda*); do
+    exec=$(basename ${path} | cut -d. -f1)
+    LIST="${LIST} ${exec}"
+done
+
+
+if [[ $ALLMODE ]] ; then
+    COUNT=$(ls ${TESTPATH}/adda* -1 | wc -l)
+    if [ $COUNT -eq 5 ]; then
+      echo "all executable files are present"
+    else
+      printf "$RED WARNING! $COUNT instead of 5 executables available $NC\n"
+      ls ${TESTPATH}/adda* -1
+    fi
 else
-  echo "WARNING! $COUNT instead of 5 executables available"
-  ls ${TESTPATH}/adda* -1
+
+    if [[ $SEQFLAG ]]; then
+        checkexec  "$LIST" "adda"
+    fi
+
+    if [[ $MPIFLAG ]]; then
+        checkexec  "$LIST" "adda_mpi"
+        if [[ $SPAFLAG ]]; then
+            checkexec  "$LIST" "adda_spa_mpi"
+        fi
+    fi
+
+    if [[ $OCLFLAG ]]; then
+        checkexec  "$LIST" "adda_ocl"
+    fi
+
+    if [[ $SPAFLAG ]]; then
+        checkexec  "$LIST" "adda_spa"
+    fi
+
+    if [[ $MPISEQFLAG ]]; then
+        checkexec  "$LIST" "adda"
+        checkexec  "$LIST" "adda_mpi"
+    fi
+
+    if [[ $OCLSEQFLAG ]]; then
+        checkexec  "$LIST" "adda"
+        checkexec  "$LIST" "adda_ocl"
+    fi
+
+    if [[ $SPASEQFLAG ]]; then
+        checkexec  "$LIST" "adda"
+        checkexec  "$LIST" "adda_spa"
+    fi
+
+
 fi
 
 #cd "$BASEDIR"
 
-LIST=$(ls ${TESTPATH}/adda*)
-for path in $LIST; do
-    exec=$(basename ${path})
-    echo "${exec}"
-    if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+
+for exec in $LIST; do
+    if [ "$exec" == "adda" ] && [ "$SEQFLAG" ]; then
         sh comp2exec seq                   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
         sh comp2exec seq SURF_STANDARD     "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda";#??
         sh comp2exec seq SURF_EXT          "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
@@ -28,22 +164,46 @@ for path in $LIST; do
         sh comp2exec seq RECT_DIP_EXT      "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
         sh comp2exec seq RECT_DIP_TRICKY   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
     fi
-    if [ "$exec" == "adda_spa" ] || [ "$exec" == "adda_spa.exe" ]; then
+
+    if [ "$exec" == "adda_mpi" ] && [ "$MPIFLAG" ]; then
+        sh comp2exec mpi                  "REFPATH=${REFPATH}"  "ADDAMPI=${TESTPATH}/adda_mpi";
+    fi
+
+    if [ "$exec" == "adda_mpi" ] && [ "$MPISEQFLAG" ]; then
         for exec in $LIST; do
-            if [ "$exec" == "adda" ] || [ "$exec" == "adda.exe" ]; then
+            if [ "$exec" == "adda" ]; then
+                sh comp2exec mpi_seq      "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda" "ADDAMPI=${TESTPATH}/adda_mpi";#??
+            fi
+        done
+    fi
+
+    if [ "$exec" == "adda_ocl" ] && [ "$OCLFLAG" ]; then
+        sh comp2exec ocl                  "REFPATH=${REFPATH}"  "ADDAOCL=${TESTPATH}/adda_ocl";
+    fi
+
+    if [ "$exec" == "adda_ocl" ] && [ "$OCLSEQFLAG" ]; then
+        for exec in $LIST; do
+            if [ "$exec" == "adda" ]; then
+                sh comp2exec ocl_seq      "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda" "ADDAOCL=${TESTPATH}/adda_ocl";#??
+            fi
+        done
+    fi
+
+    if [ "$exec" == "adda_spa" ] && [ "$SPAFLAG" ]; then
+        sh comp2exec seq SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa";
+    fi
+
+    if [ "$exec" == "adda_spa" ] && [ "$SPASEQFLAG" ]; then
+        for exec in $LIST; do
+            if [ "$exec" == "adda" ]; then
                 sh comp2exec seq SPARSE_STANDARD "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda_spa";#??
             fi
         done
-        sh comp2exec seq SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa";
     fi
-    if [ "$exec" == "adda_mpi" ] || [ "$exec" == "adda_mpi.exe" ]; then
-        sh comp2exec mpi                  "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_mpi";
+
+    if [ "$exec" == "adda_spa_mpi" ] && [ "$SPAFLAG" ] && [ "$MPIFLAG" ]; then
+        sh comp2exec mpi SPARSE           "REFPATH=${REFPATH}"  "ADDAMPI=${TESTPATH}/adda_spa_mpi";
     fi
-    if [ "$exec" == "adda_ocl" ] || [ "$exec" == "adda_ocl.exe" ]; then
-        sh comp2exec ocl                  "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_ocl";
-    fi
-    if [ "$exec" == "adda_spa_mpi" ] || [ "$exec" == "adda_spa_mpi.exe" ]; then
-        sh comp2exec mpi SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa_mpi";
-    fi
+
 done
 

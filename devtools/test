@@ -6,7 +6,22 @@
 # 2) compiles sparse mode and copies to 'current_exec' adda->adda_spa, adda_mpi->adda_spa_mpi
 # 3) runs set of tests
 
-sh build ./../tests/2exec/current_exec
+# build and test_all scripts can accept next modes of adda:
+# seq
+# mpi
+# ocl
+# spa
+# and special cases mpi_seq ocl_seq spa_seq, if you want only to cross test
+#
+# this modes are forwarding from current args (see **)
+
+sh build ./../tests/2exec/current_exec "$@"
+#        ^---------------------------^ ^--^
+#        |-- path to save all exec --| |**|
 
 cd ./../tests/2exec
-sh test_all ./current_exec ./../../win64
+
+sh test_all ./current_exec ./../../win64 "$@"
+#           ^------------^ ^-----------^ ^--^
+#           |--testpath--| |--refpath--| |**|
+#                             refpath can be prepared automatically, for example by pulling last code from https://github.com/adda-team/adda.git (last stable release) and building

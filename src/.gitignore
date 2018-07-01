@@ -51,4 +51,4 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 CMakeLists.txt
-GITREV.h
+gitrev.h

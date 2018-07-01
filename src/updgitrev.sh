@@ -13,7 +13,7 @@ macro=GITREV
 
 # if git log is not available, the following should silently produce ""
 # git log should produce either text (like "Unversioned directory") or hash string (f09cb11a0d36f94fbe6f78b92ef3f294d0049613)
-REV=`git log --pretty=format:'%H' -n 1`
+REV=`git log --pretty=format:'%h' -n 1`
 if [ "$REV" != "" ]; then
   line="#define $macro \"$REV\""  
   if [ -s $file ]; then

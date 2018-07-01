@@ -1,48 +1,118 @@
 #!/bin/bash
-# Script can have one parameter (destination path, default value is ../tests/2exec/current_exec)
-#
-#
+# Script can have one parameter (destination path, default value is ../tests/2exec/current_exec) in first position
+# and some modes
+# seq - build seq mode (adda)
+# mpi - build mpi mode (adda_mpi)
+# ocl - build OpenCL mode (adda_ocl)
+# spa - build SPARSE mode (adda_spa and adda_spa_mpi)
+# mpi_seq - build seq and mpi mode (adda and adda_mpi), for this script 'seq mpi' and 'mpi_seq' are equal [ difference occurs in 'test' script]
+# ocl_seq - build seq and OpenCL mode (adda and adda_ocl), for this script 'seq ocl' and 'ocl_seq' are equal [ difference occurs in 'test' script]
+# spa_seq - build seq and SPARSE mode (adda, adda_spa and adda_spa_mpi), for this script 'seq spa' and 'spa_seq' are equal [ difference occurs in 'test' script]
+MODES="seq mpi ocl spa mpi_seq ocl_seq spa_seq"
 
+#read first arg
 DESTINATION=${1:-../tests/2exec/current_exec}
+
+# check first arg, if it is mode then assign default value
+for mode in $MODES
+do
+  if [[ "$1" == "$mode" ]]; then
+      DESTINATION=../tests/2exec/current_exec
+  fi
+done
+
+#truncate './'
 if [[ "$DESTINATION" == ./* ]]; then
       DESTINATION=${DESTINATION:2}
 fi
 
+
+ALLMODE=1
+SEQFLAG=
+MPIFLAG=
+OCLFLAG=
+SPAFLAG=
+MPISEQFLAG=
+OCLSEQFLAG=
+SPASEQFLAG=
+
+#find flags in args
+for arg; do
+    for mode in $MODES
+    do
+        if [[ "$arg" == "$mode" ]]; then
+            #uppercase
+            line=`echo "${mode}FLAG=1" | tr 'a-z' 'A-Z' | tr -d _`
+            #echo "${line}"
+            eval "${line}"
+            ALLMODE=
+        fi
+    done
+done
+
+
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 mkdir -p "$BASEDIR/$DESTINATION"
+rm -f "$BASEDIR/$DESTINATION/adda"
+rm -f "$BASEDIR/$DESTINATION/adda_mpi"
+rm -f "$BASEDIR/$DESTINATION/adda_ocl"
+rm -f "$BASEDIR/$DESTINATION/adda_spa"
+rm -f "$BASEDIR/$DESTINATION/adda_spa_mpi"
 MAKEOPTIONS="OPTIONS="
 
 function makeusual {
     cd "$BASEDIR/../src/"
     make cleanfull
-    SEQOPTIONS="$MAKEOPTIONS"
-    make seq "$SEQOPTIONS"
-    cp "seq/adda" "$BASEDIR/$DESTINATION/adda"
 
-    MPIOPTIONS="$MAKEOPTIONS"
-    make mpi "$MPIOPTIONS"
-    cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_mpi"
+    #=========================================
+    #=================  seq  =================
+    #=========================================
+    if [[ $ALLMODE  || $SEQFLAG  || $MPISEQFLAG || $SPASEQFLAG || $OCLSEQFLAG ]] ; then
+        SEQOPTIONS="$MAKEOPTIONS"
+        make seq "$SEQOPTIONS"
+        cp "seq/adda" "$BASEDIR/$DESTINATION/adda"
+    fi
 
-    OCLOPTIONS="$MAKEOPTIONS"
-    make ocl "$OCLOPTIONS"
-    cp "ocl/adda_ocl" "$BASEDIR/$DESTINATION/adda_ocl"
+    #=========================================
+    #=================  mpi  =================
+    #=========================================
+    if [[ $ALLMODE  || $MPIFLAG  || $MPISEQFLAG ]] ; then
+        MPIOPTIONS="$MAKEOPTIONS"
+        make mpi "$MPIOPTIONS"
+        cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_mpi"
+    fi
 
+    #=========================================
+    #=================  ocl  =================
+    #=========================================
+    if [[ $ALLMODE  || $OCLFLAG || $OCLSEQFLAG ]] ; then
+        OCLOPTIONS="$MAKEOPTIONS"
+        make ocl "$OCLOPTIONS"
+        cp "ocl/adda_ocl" "$BASEDIR/$DESTINATION/adda_ocl"
+    fi
 }
 
 function makesparse {
-    cd "$BASEDIR/../src/"
-    make cleanfull
-    SPARSESEQOPTIONS="$MAKEOPTIONS SPARSE"
-    make seq "$SPARSESEQOPTIONS"
-    cp "seq/adda" "$BASEDIR/$DESTINATION/adda_spa"
+    #=========================================
+    #=================  spa  =================
+    #=========================================
+    if [[ $ALLMODE  || $SPAFLAG  || $SPASEQFLAG ]] ; then
+        cd "$BASEDIR/../src/"
+        make cleanfull
+        SPARSESEQOPTIONS="$MAKEOPTIONS SPARSE"
+        make seq "$SPARSESEQOPTIONS"
+        cp "seq/adda" "$BASEDIR/$DESTINATION/adda_spa"
 
-    SPARSEMPIOPTIONS="$MAKEOPTIONS SPARSE"
-    make mpi "$SPARSEMPIOPTIONS"
-    cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_spa_mpi"
+        SPARSEMPIOPTIONS="$MAKEOPTIONS SPARSE"
+        make mpi "$SPARSEMPIOPTIONS"
+        cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_spa_mpi"
+    fi
 }
 
 makeusual
 makesparse
 
-cp ./../win64/*.dll "$BASEDIR/$DESTINATION"
+# It is expected that fftw3 lib is available from evn var 'PATH';
+# if not copy by uncomment next line
+# cp ./../win64/*.dll "$BASEDIR/$DESTINATION"
