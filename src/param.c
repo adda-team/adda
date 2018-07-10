@@ -2176,38 +2176,35 @@ void VariablesInterconnect(void)
 
     
     if (isUseRect) {
-        maxRectScale = fmax(rectScaleX, rectScaleY);
-        maxRectScale = fmax(maxRectScale, rectScaleZ);
-        if (PolRelation != POL_LDR && PolRelation != POL_CLDR && PolRelation != POL_CM && PolRelation != POL_IGT_SO ) {
+        maxRectScale=fmax(rectScaleX, rectScaleY);
+        maxRectScale=fmax(maxRectScale, rectScaleZ);
+        if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
             LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
         } else {
-            if (PolRelation != POL_IGT_SO  && IntRelation == G_IGT) {
+            if (PolRelation!=POL_IGT_SO  && IntRelation==G_IGT) {
                 LogWarning(EC_WARN,ONE_POS, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
             }
 
-            if (PolRelation != POL_IGT_SO) {
-//#define IS_EQUAL_VALUE()  if(rectScaleX != 1 && rectScaleX == rectScaleY && rectScaleY == rectScaleZ)PrintErrorHelpSafe("All dimentions for rectangular dipole are equal. Use -jagged for this reason"); 
+            if (PolRelation!=POL_IGT_SO) {
 #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
 
-                //IS_EQUAL_VALUE();
-
-                double buf = rectScaleX * rectScaleY*rectScaleZ;
-                double old_rectScaleX = rectScaleX,
-                       old_rectScaleY = rectScaleY,
-                       old_rectScaleZ = rectScaleZ;
+                double buf = rectScaleX*rectScaleY*rectScaleZ;
+                double old_rectScaleX=rectScaleX,
+                       old_rectScaleY=rectScaleY,
+                       old_rectScaleZ=rectScaleZ;
                 SET_PRECALC_VALUE(rectScaleX);
                 SET_PRECALC_VALUE(rectScaleY);
                 SET_PRECALC_VALUE(rectScaleZ);
-                //IS_EQUAL_VALUE();
 
-                if (buf != rectScaleX * rectScaleY * rectScaleZ)
-                    LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%.1f, y=%.1f, z=%.1f) to (x=%.1f, y=%.1f, z=%.1f)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
+                if (buf!=rectScaleX*rectScaleY*rectScaleZ)
+                    LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
 
 #undef SET_PRECALC_VALUE 
-//#undef IS_EQUAL_VALUE 
             }
         }
-        if (surface) PrintError("Currently rectangular dipoles are is incompatible with '-surf'");
+        if (surface) PrintError("Currently '-surf' and '-rect_dip' can not be used together");
+        if (anisotropy) PrintError("'-anisotr' and '-rect_dip' can not be used together");
+        if (beamtype!=B_PLANE) PrintError("Currently '-rect_dip' is compatible only with '-beam plane'");
 
     }
 	/* TO ADD NEW ITERATIVE SOLVER
@@ -2346,7 +2343,7 @@ void PrintInfo(void)
 		// print basic parameters
             
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
+		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,isUseRect ? " (along the X-axis)": "");
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
@@ -2359,7 +2356,7 @@ void PrintInfo(void)
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
         if(isUseRect)
-            fprintf(logfile,"proportions for rectangular dipole (x=%.1f, y=%.1f, z=%.1f)\n",rectScaleX,rectScaleY,rectScaleZ);
+            PrintBoth(logfile,"proportions for rectangular dipole (x=%g, y=%g, z=%g)\n",rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
@@ -2386,7 +2383,7 @@ void PrintInfo(void)
 			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n",REIM(msub));
 			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
 		}
-		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
+		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,isUseRect ? " (along the X-axis)": "");
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
@@ -2485,7 +2482,7 @@ void PrintInfo(void)
 			case G_IGT:
 				fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
 				if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
-				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
+				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes%s)\n",igt_lim,isUseRect ? " along maximum dipole dimension" : "");
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;

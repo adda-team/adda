@@ -166,7 +166,7 @@ if [ -n "$RECT_DIP_STANDARD" ]; then
   echo -e "RECT_DIP_STANDARD activated,\ntest cmdline will prefixed with '-rect_dip 1 1 1' (-rect_dip leads to using CLDR while LDR passed),\nref cmdline will prefixed with '-pol cldr'"
 fi
 if [ -n "$RECT_DIP_TRICKY" ]; then
-  DEFSUITE=suite_rd_tricky
+  DEFSUITE=suite_rd
   EXECREF="$EXECREF -pol igt_so -int igt 3"
   EXECTEST="$EXECTEST -rect_dip 1 1 1.125 -pol igt_so -int igt 3"
   echo -e "RECT_DIP_TRICKY activated,\ntest cmdline will prefixed with '-rect_dip 1 1 1.125 -pol igt_so -int igt 3,\nref cmdline will prefixed with '-pol igt_so -int igt 3'"

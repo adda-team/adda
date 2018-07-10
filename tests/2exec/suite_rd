@@ -15,10 +15,10 @@
 ;orient_abg; -orient ;alfa; ;beta; ;gamma;
 
 # Elementary variables
-;m; -m 1.1 0.1
+;m; -m 1.05 0.05
 ;2m; -m 1.1 0.1 1.2 0.2
 ;3m; -m 1.05 0.1 1.1 0.2 1.2 0.3
-;g; -grid 8
+;g; -grid 18
 ;n; -ntheta 5
 ;p; -prop 1 2 3
 ;se; -shape ellipsoid 0.5 1.5
@@ -124,9 +124,9 @@ all -init_field zero ;mgn;
 #all -h int
 #all -int fcd ;mgn;
 #all -int fcd_st ;mgn;
-NORDTRICKY -int igt ;mgn;
-NORDTRICKY -int igt 3 ;mg4n;
-NORDTRICKY -int igt 3 0.01 ;mgn;
+#all -int igt ;mgn;
+#all -int igt 3 ;mg4n;
+#all -int igt 3 0.01 ;mgn;
 #all -int igt_so ;mgn;
 #all -int nloc 0.1 ;mgn;
 #all -int nloc 1 ;mgn;
