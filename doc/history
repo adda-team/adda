@@ -449,7 +449,7 @@ Changes to the manual:
 + Section "References": DOIs and URLs were made into hyperlinks.
 
 ------------------------------------------------------------------------------------------------------------------------
-Ver. 1.3b4 - 19.02.2014
+Ver. 1.3b4 - 20.02.2014
 
 + Major changes to the code due to switch to complex types of C99 (issue 70).
 + Major new feature: DDA for particle near surface (substrate) - issue 101. Command line options: '-surf ...', 
@@ -523,3 +523,63 @@ Changes to the manual:
   replaced by H.
 + Section "Fast Fourier transform": specified additional time for FFTs in surface mode.
 + Section "Parallel performance": minor changes, it now explicitly refers to optimal partition of FFT grid.
+
+------------------------------------------------------------------------------------------------------------------------
+Ver. 1.4.0 (in progress) - 2018 (?)
+
+* ADDA moved to GitHub with a lot of related changes to documentation (#210):
+  * `doc/copyleft` was renamed/moved to `./LICENSE`
+  * top-level `README` replaces previous homepage.
+  * wiki pages ReleaseNotes and Downloads (created recently - #189, #72) were deprecated in favor of GitHub releases.
+  * wiki page GettingStarted renamed into Home
+  * TODO: wiki page PackageDescription was deprecated in favor of `README` in each directory
+  * all links to Google Code updated to point to GitHub in source files, manual, wikis, and even some adda-discuss messages.
+
+* Many changes to OpenCL part:
+  * Significant speed improvements (especially for relatively small problems). It is partly based on additional GPU
+    memory consumption (if available), controlled by `-opt ...` command line option.
+  * Switched from discontinued library clAmdFft to clFFT.
+  * Test implementation of the whole iterative solver (currently only BiCG) on the GPU using clBLAS (#199).
+  + Added rigorous accounting (in OpenCL memory) for clFFT internal buffers.
+  * OpenCL part of `matvec.c` moved into seperate file `oclmatvec.c`
+  * Function wrappers for clBLAS (#213).
+  * Added error checks (`CL_CH_ERR`) to many ocl function calls.
+
+* Adopted semantiv versioning.  
+* Minimum MPI version requirement is now 2.1.
+* Improved detection of optional MPI features (#201).
+* Behavior of '-maxiter ...' command line option was changed. Now when given number is reached ADDA produces a warning
+  and continues to calculate scattering quantities (#111).
++ Added separate timing for matrix-vector products (#16). Presicion of total wall time was improved on most operating
+  systems (Windows and POSIX).
+* Added compilation option `ACCIMEXP` to have faster calculation of imaginary exponent (mostly relevant to sparse
+  mode), #169.
+- A few minor bugs fixed or addressed (#198, #216).
++ Added wiki pages: InstallingclAmdBlas.
+
+Changes to Makefiles:
+* Fixed bug preventing use of LDLIBS from environment (b6e54fb)
+* Updated comments to recommend linking to DLLs directly
+
+Changes to the manual:
+* Section "How to use the manual" renamed into "Using the manual".
++ Section "General applicability": added statement that the DDA is a "numerically exact" method.
+* Section "System Requirements": mentioned extra memory that can be allocated in OpenCL mode. Eq.(4) for Mtot was made
+  less ambiguous with respect to the part "only if parallel" (#206).
++ Section "Reference frames": added advice when unsure about dipole coordinates.
++ Section "Predefined shapes": added clarification and reference to description of RBC shape.
++ Section "Beam type": added explicit statements that beam arguments are in laboratory reference frame.
++ Section "DDA formulation": the sum in the main equations was changed to include Rii (assuming Gii=0).
++ Section "Mueller matrix and its derivatives": Footnote describing Stokes scattering matrix was corrected (integrated
+  -> averaged). Corrected special symbols (||) in Eq.(42) and "phi" symbols in Eq.(41).
++ Section "Integral scattering quantities": added a note that Cext is directly related to a molar extinction coefficient
+  of a suspension of particles. Added note that definition of efficiencies is different from those based on
+  geometric-shadow cross section.
++ Section "Near-field": mentioned that outer-box workaround can be used to compute near field in the surface mode.
++ Section "Iterative Solver": changed the desciption of `-maxiter` option. Added formula to estimate Niter for nanoparticles.
++ Section "Basic timing": added reference to #197 (problem with clock in OpenCL mode), updated the description of wall
+  timers (precise ones are used when available).
++ TODO: Section "Precise timing": added specifics in OpenCL mode.
+* Chanded font for hyperlinks back to Times.
+* Changed source file format to .docx
+* TODO: changed all equations to new Microsoft Word format
