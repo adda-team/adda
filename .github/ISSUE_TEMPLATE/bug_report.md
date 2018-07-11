@@ -1,32 +1,35 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: When the result is different from that described in docs
 
 ---
 
-**Describe the bug**
+_First, please search the issue tracker for similar bugs, [link](https://github.com/adda-team/adda/labels/bug). A well-placed comment to an existing bug is more convenient both for you and for developers. Otherwise, delete this paragraph and continue._
+
+**Describe the bug**  
 A clear and concise description of what the bug is.
 
-**To Reproduce**
+**To Reproduce**  
 Steps to reproduce the behavior:
 1. Prepare input files '....' (if needed)
 2. Execute '....' (command line)
 3. Examine output '....'
 4. See error
 
-**Expected behavior**
+**Expected behavior**  
 A clear and concise description of what you expected to happen.
 
-**Screenshots/output**
+**Screenshots/output**  
 Provide text output or screenshots. Attach `log` and other relevant output files (including `stdout`).
 
-**Technical information**
-- ADDA version: [e.g., 1.4.0] - if possible, test both latest release and current source.
+**Technical information**  
+- ADDA version: [e.g., 1.4.0].  
+  Can be obtained by `adda -V`. If possible, test both latest release and current source.
 - OS: [e.g., iOS, Windows 7, Ubuntu]
 - Compiler: [e.g. gcc 7.1 or downloaded executable]
 - For OpenCL version, your GPU: [e.g Nvidia GTX 1050]
 - For MPI version, used MPI implementation: [e.g. openmpi 3.1]
 - Versions of the libraries that may be related to the bug, such as FFTW3, clFFT, clBLAS
 
-**Additional context**
+**Additional context**  
 Add any other context about the problem here.
