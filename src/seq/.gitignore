@@ -5,6 +5,7 @@ adda*
 .*opts
 ExpCount
 run*
+test*
 libfftw3-3.dll
 libfftw3.dll
 !.gitignore

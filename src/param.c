@@ -2203,8 +2203,7 @@ void VariablesInterconnect(void)
             }
         }
         if (surface) PrintError("Currently '-surf' and '-rect_dip' can not be used together");
-        if (anisotropy) PrintError("'-anisotr' and '-rect_dip' can not be used together");
-        if (beamtype!=B_PLANE) PrintError("Currently '-rect_dip' is compatible only with '-beam plane'");
+        if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 
     }
 	/* TO ADD NEW ITERATIVE SOLVER

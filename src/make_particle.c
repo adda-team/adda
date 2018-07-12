@@ -1285,7 +1285,7 @@ static int FitBox(const int box)
 {
 	int res;
 
-	res=2*jagged*((box+2*jagged-1)/(2*jagged));
+	res=jagged*((box+jagged-1)/(jagged));
 	if (res>BOX_MAX) LogError(ONE_POS,"Derived grid size (%d) is too large (>%d)",res,BOX_MAX);
 	return res;
 }
@@ -1304,7 +1304,7 @@ static int FitBox_yz(const double size)
  * also the points {+-4.5,0,0} do fall into it.
  */
 {
-	return (2*jagged*(int)floor((size+jagged)/(2*jagged)));
+	return jagged*((ceil(size)+jagged-1)/(jagged));
 }
 
 //======================================================================================================================
@@ -1968,7 +1968,7 @@ void MakeParticle(void)
 	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
-	int xj,yj,zj;
+    double xj,yj,zj;
 	int mat;
 	unsigned short us_tmp;
 	TIME_TYPE tgran;
@@ -1998,9 +1998,9 @@ void MakeParticle(void)
 	MALLOC_VECTOR(position_tmp,ushort,local_nRows_tmp,ALL);
 
 	for(k=local_z0;k<local_z1_coer;k++) for(j=0;j<boxY;j++) for(i=0;i<boxX;i++) {
-		xj=jagged*(i/jagged)-boxX/2;
-		yj=jagged*(j/jagged)-boxY/2;
-		zj=jagged*(k/jagged)-boxZ/2;
+		xj=jagged*(i/jagged)-boxX*0.5;
+		yj=jagged*(j/jagged)-boxY*0.5;
+		zj=jagged*(k/jagged)-boxZ*0.5;
 		/* all coordinates are scaled by the same box size (boxX), so yr and zr are not necessarily in fixed
 		 * ranges (like from -1/2 to 1/2). This is done to treat adequately cases when particle dimensions are
 		 * the same (along different axes), but e.g. boxY!=boxX (so there are some extra void dipoles). All
