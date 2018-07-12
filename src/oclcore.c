@@ -387,7 +387,7 @@ void oclinit(void)
 #elif (SIZE_MAX==UINT64_MAX)
 	StrCatSpace(&cl_opt,"-DSIZET_ULONG");
 #else
-#	error "No OpenCL alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
+#	error "No OpenCL alternative for size_t. Create an issue at https://github.com/adda-team/adda/issues"
 #endif
 	coptions=cl_opt.text;
 	D("Building CL program with options: '%s'",cl_opt.text);
