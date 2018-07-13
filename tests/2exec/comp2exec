@@ -71,7 +71,10 @@ ADDITIONALS="FFTCOMP SPARSE SPARSE_STANDARD SURF_EXT SURF_STANDARD RECT_DIP_EXT 
 
 # Location of sample input files (not needed if all input files are already present)
 
-echo -e "\n---=== ADDA integration test ===---\n\n"
+echo -e "\n"
+echo -e "-----------------------------------"
+echo -e "---=== ADDA integration test ===---"
+echo -e "-----------------------------------"
 
 INPUTDIR="./../../input"
 # Location of binaries
@@ -79,7 +82,7 @@ ADDASEQ="./../../src/seq/adda"
 ADDAMPI="./../../src/mpi/adda_mpi"
 ADDAOCL="./../../src/ocl/adda_ocl"
 #Path to reference binaries, examples: "." or "./../../win64"
-REFPATH=./../../master_ffttemperton
+REFPATH=./../../win64
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
 
@@ -210,8 +213,8 @@ AWK=awk
 MYDIFFOK_FLAG=0
 MYDIFFERROR_FLAG=0
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
@@ -477,7 +480,9 @@ while read -r cmpfiles cmdline; do
       if [ -n "$IGERRREF" ]; then
         refok=0
       else
+        printf "$RED"
         echo -e "\nERROR while running \n$runref\nsee $SOREF" >&2
+        printf "$NC"
         exit 1
       fi
     else
@@ -486,7 +491,9 @@ while read -r cmpfiles cmdline; do
     # test run
     runtest="$EXECTEST $cmdline -dir $DIRTEST"
     if !($runtest <&3 > $SOTEST); then
+      printf "$RED"
       echo -e "\nERROR while running \n$runtest\nsee $SOTEST" >&2
+      printf "$NC"
       exit 1
     fi
     # compare produced results

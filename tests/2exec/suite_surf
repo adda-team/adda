@@ -236,7 +236,7 @@ all -shape axisymmetric 196.txt ;mgn;
 all -h shape bicoated
 all -shape bicoated 3 0.5 ;2mgn; -size 2
 all -h shape biellipsoid
-all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn; -size 2
+all -shape biellipsoid 0.5 1.5 1.5 0.5 1.5 ;2mgn; -size 2
 all -h shape bisphere
 all -shape bisphere 2 ;mgn; -size 2
 all -h shape box
@@ -260,9 +260,9 @@ all -shape line -grid 16 ;m; ;n;
 all -h shape plate
 all -shape plate 0.5 ;mgn;
 all -h shape prism
-all -shape prism 5 1.5 ;mgn;
+all -shape prism 6 1.5 ;mgn;
 all -h shape rbc
-all -shape rbc 0.3 0.1 0.3 ;mgn;
+all -shape rbc 0.5 0.1 0.3 ;mgn;
 all -h shape read
 all -shape read ellipsoid.geom ;m; ;n;
 all -shape read coated.geom ;2m; ;n;
@@ -320,3 +320,6 @@ all -vec ;sc; ;2mgn;
 all -h yz
 # for equivalent runs with surface we additionally add -yz, which is incompatible with the following
 #all -yz -store_scat_grid ;mgn;
+
+#odd grid
+all -shape ellipsoid 1.5454545 2.090909 -grid 11 17 23 ;m; ;n;

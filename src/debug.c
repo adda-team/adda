@@ -50,10 +50,10 @@ void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
 		va_start(args,fmt);
 		VsnprintfErr(ERR_LOC_CALL,msg,MAX_PARAGRAPH,fmt,args);
 #ifdef PARALLEL
-		if (who==ALL) printf("(ringID=%i) DEBUG: %s:%d: %s \n",ringid,srcfile,srcline,msg);
+		if (who==ALL) printf(YELLOW"(ringID=%i) DEBUG: %s:%d: %s \n"RESET,ringid,srcfile,srcline,msg);
 		else
 #endif
-		printf("DEBUG: %s:%d: %s \n",srcfile,srcline,msg);
+		printf(YELLOW"DEBUG: %s:%d: %s \n"RESET,srcfile,srcline,msg);
 		fflush(stdout);
 		va_end(args);
 	}

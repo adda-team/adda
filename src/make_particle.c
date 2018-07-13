@@ -1304,7 +1304,7 @@ static int FitBox_yz(const double size)
  * also the points {+-4.5,0,0} do fall into it.
  */
 {
-	return jagged*((ceil(size)+jagged-1)/(jagged));
+	return jagged*(((int)ceil(size)+jagged-1)/(jagged));
 }
 
 //======================================================================================================================
@@ -2105,7 +2105,7 @@ void MakeParticle(void)
 				if (xr*xr+yr*yr*invsqY+zr*zr*invsqZ<=0.25) mat=0;
 				break;
 			case SH_LINE:
-				if (yj==0 && zj==0) mat=0;
+                if ((yj==0 && zj==0) || (yr==0 && zr==0)) mat=0;
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;

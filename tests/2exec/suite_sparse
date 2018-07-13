@@ -223,7 +223,7 @@ all -scat_plane ;se; ;mn;
 #all -h shape bicoated
 #all -shape bicoated 3 0.5 ;2mgn;
 #all -h shape biellipsoid
-#all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn;
+#all -shape biellipsoid 0.5 1.5 1.5 0.5 1.5 ;2mgn;
 #all -h shape bisphere
 #all -shape bisphere 2 ;mgn;
 #all -h shape box

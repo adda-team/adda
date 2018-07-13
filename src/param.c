@@ -737,9 +737,9 @@ static void ATT_NORETURN ATT_PRINTF(1,2) PrintErrorHelpSafe(const char * restric
 	if (IFROOT) {
 		// produce error message
 		va_start(args,fmt);
-		fprintf(stderr,"ERROR: ");
+		fprintf(stderr,RED"ERROR: ");
 		vfprintf(stderr,fmt,args);
-		fprintf(stderr,"\n");
+		fprintf(stderr,"\n"RESET);
 		va_end(args);
 		// add help message
 		if (opt.l1==UNDEF) // no option is found
@@ -1084,7 +1084,7 @@ PARSE_FUNC(grid)
 		ScanIntError(argv[2],&boxY);
 		TestRange_i(boxY,"gridY",1,BOX_MAX);
 		ScanIntError(argv[3],&boxZ);
-		TestRange_i(boxY,"gridY",1,BOX_MAX);
+		TestRange_i(boxZ,"gridZ",1,BOX_MAX);
 	}
 }
 PARSE_FUNC(h)
@@ -1109,7 +1109,7 @@ PARSE_FUNC(h)
 								found=true;
 								break;
 							}
-						if (!found) printf("Unknown suboption '%s'\n\n",argv[2]);
+						if (!found) printf(RED"Unknown suboption '%s'\n\n"RESET,argv[2]);
 					}
 				}
 				if (!found) {
@@ -1129,7 +1129,7 @@ PARSE_FUNC(h)
 				found=true;
 				break;
 			}
-			if (!found) printf("Unknown option '%s'\n\n",argv[1]);
+			if (!found) printf(RED"Unknown option '%s'\n\n"RESET,argv[1]);
 		}
 		if (!found) {
 			printf("Usage: '%s %s'\n"
@@ -1137,7 +1137,7 @@ PARSE_FUNC(h)
 			for (i=0;i<LENGTH(options);i++) printf("  -%s %s\n",options[i].name,options[i].usage);
 			printf("Type '%s -h <opt>' for details\n",exename);
 #ifdef SPARSE
-			printf("!!! A number of options are disabled in sparse mode\n");
+			printf(RED"!!! A number of options are disabled in sparse mode\n"RESET);
 #endif
 		}
 	}
@@ -2179,10 +2179,14 @@ void VariablesInterconnect(void)
         maxRectScale=fmax(rectScaleX, rectScaleY);
         maxRectScale=fmax(maxRectScale, rectScaleZ);
         if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
-            LogWarning(EC_WARN,ONE_POS, "WARNING! You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.");
+            const char *msg="You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.";
+            LogWarning(EC_WARN,ALL_POS,msg);
+            printf(YELLOW"%s\n"RESET,msg);
         } else {
             if (PolRelation!=POL_IGT_SO  && IntRelation==G_IGT) {
-                LogWarning(EC_WARN,ONE_POS, "WARNING! You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...' ");
+                const char *msg="You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...'";
+                LogWarning(EC_WARN,ALL_POS,msg);
+                printf(YELLOW"%s\n"RESET,msg);
             }
 
             if (PolRelation!=POL_IGT_SO) {
@@ -2196,8 +2200,13 @@ void VariablesInterconnect(void)
                 SET_PRECALC_VALUE(rectScaleY);
                 SET_PRECALC_VALUE(rectScaleZ);
 
-                if (buf!=rectScaleX*rectScaleY*rectScaleZ)
-                    LogWarning(EC_WARN,ONE_POS, "Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)\n", old_rectScaleX, old_rectScaleY, old_rectScaleZ, rectScaleX, rectScaleY, rectScaleZ);
+                if (buf!=rectScaleX*rectScaleY*rectScaleZ) {
+                    const char *msg="Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)";
+                    LogWarning(EC_WARN,ALL_POS, msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
+                    printf(YELLOW);
+                    printf(msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
+                    printf("\n"RESET);
+                }
 
 #undef SET_PRECALC_VALUE 
             }
