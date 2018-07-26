@@ -4,4 +4,12 @@ adda*
 *.d
 .*opts
 *.clstr
+ExpCount
+tables
+run*
+test*
+*.dat
+*.geom
+out
+*.dll
 !.gitignore

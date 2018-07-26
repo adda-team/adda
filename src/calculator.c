@@ -40,7 +40,7 @@
 extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
-extern const int avg_inc_pol;
+extern const bool avg_inc_pol,isUseRect;
 extern const double polNlocRp;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
@@ -87,207 +87,209 @@ static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
 static int finish_avg; // whether to stop orientation averaging; defined as int to simplify MPI casting
 static double * restrict out; // used to collect both mueller matrix and integral scattering quantities when orient_avg
 
+/* the following definitions and data are from Gutkowicz-Krusin D, Draine BT. "Propagation of electromagnetic waves on a
+ * rectangular lattice of polarizable points" (2004). Available from: http://arxiv.org/abs/astro-ph/0403082.
+ */ 
 struct drane_coefficients {
-    const double ratios[3];
-    const double R0[3];// Drane polarizability R0 correction Eq(45), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    const double R1;// Drane polarizability R1 correction Eq(47), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    const double R2[3];// Drane polarizability R2 correction Eq(48), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-    const double R3[6];// Drane polarizability R3 correction Eq(49), see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+	const double ratios[3];
+	const double R0[3]; // polarizability correction by Eq.(45)
+	const double R1;    // polarizability correction by Eq.(47)
+	const double R2[3]; // polarizability correction by Eq.(48)
+	const double R3[6]; // polarizability correction by Eq.(49)
 };
 static const struct drane_coefficients drane_precalc_data_array[] = {
-    {
-        {1, 1, 1},
-        {0, 0, 0}, 0,
-        {0, 0, 0},
-        {0, 0, 0, 0, 0, 0}},
-    {
-        {1, 1, 1.5},
-        {0.20426, 0.20426, -0.40851}, -0.53869,
-        {0.52918, 0.52918, -1.59705},
-        {0.37743, 0.37743, -1.62922, 0.13566, 0.01609, 0.01609}},
-    {
-        {1, 1.5, 1},
-        {0.20426, -0.40851, 0.20426}, -0.53869,
-        {0.52918, -1.59705, 0.52918},
-        {0.37743, -1.62922, 0.37743, 0.01609, 0.13566, 0.01609}},
-    {
-        {1.5, 1, 1},
-        {-0.40851, 0.20426, 0.20426}, -0.53869,
-        {-1.59705, 0.52918, 0.52918},
-        {-1.62922, 0.37743, 0.37743, 0.01609, 0.01609, 0.13566}},
-    {
-        {1, 1.5, 1.5},
-        {0.52383, -0.26192, -0.26192}, -0.50962,
-        {1.13457, -0.82209, -0.82209},
-        {0.80161, -0.80815, -0.80815, 0.16648, 0.16648, -0.18041}},
-    {
-        {1.5, 1, 1.5},
-        {-0.26192, 0.52383, -0.26192}, -0.50962,
-        {-0.82209, 1.13457, -0.82209},
-        {-0.80815, 0.80161, -0.80815, 0.16648, -0.18041, 0.16648}},
-    {
-        {1.5, 1.5, 1},
-        {-0.26192, -0.26192, 0.52383}, -0.50962,
-        {-0.82209, -0.82209, 1.13457},
-        {-0.80815, -0.80815, 0.80161, -0.18041, 0.16648, 0.16648}},
-    {
-        {1, 1, 2},
-        {0.38545, 0.38545, -0.77090}, -1.76582,
-        {0.88788, 0.88788, -3.54158},
-        {0.55693, 0.55693, -3.72878, 0.23735, 0.09360, 0.09360}},
-    {
-        {1, 2, 1},
-        {0.38545, -0.77090, 0.38545}, -1.76582,
-        {0.88788, -3.54158, 0.88788},
-        {0.55693, -3.72878, 0.55693, 0.09360, 0.23735, 0.09360}},
-    {
-        {2, 1, 1},
-        {-0.77090, 0.38545, 0.38545}, -1.76582,
-        {-3.54158, 0.88788, 0.88788},
-        {-3.72878, 0.55693, 0.55693, 0.09360, 0.09360, 0.23735}},
-    {
-        {1, 1.5, 2},
-        {0.81199, -0.21028, -0.60172}, -1.21448,
-        {1.55359, -0.50100, -2.26706},
-        {1.02166, -0.55501, -2.30887, 0.27206, 0.25987, -0.21806}},
-    {
-        {1, 2, 1.5},
-        {0.81199, -0.60172, -0.21028}, -1.21448,
-        {1.55359, -2.26706, -0.50100},
-        {1.02166, -2.30887, -0.55501, 0.25987, 0.27206, -0.21806}},
-    {
-        {1.5, 1, 2},
-        {-0.21028, 0.81199, -0.60172}, -1.21448,
-        {-0.50100, 1.55359, -2.26706},
-        {-0.55501, 1.02166, -2.30887, 0.27206, -0.21806, 0.25987}},
-    {
-        {1.5, 2, 1},
-        {-0.21028, -0.60172, 0.81199}, -1.21448,
-        {-0.50100, -2.26706, 1.55359},
-        {-0.55501, -2.30887, 1.02166, -0.21806, 0.27206, 0.25987}},
-    {
-        {2, 1, 1.5},
-        {-0.60172, 0.81199, -0.21028}, -1.21448,
-        {-2.26706, 1.55359, -0.50100},
-        {-2.30887, 1.02166, -0.55501, 0.25987, -0.21806, 0.27206}},
-    {
-        {2, 1.5, 1},
-        {-0.60172, -0.21028, 0.81199}, -1.21448,
-        {-2.26706, -0.50100, 1.55359},
-        {-2.30887, -0.55501, 1.02166, -0.21806, 0.25987, 0.27206}},
-    {
-        {1, 2, 2},
-        {1.19693, -0.59846, -0.59846}, -1.59967,
-        {2.01512, -1.80739, -1.80739},
-        {1.26456, -1.78732, -1.78732, 0.37528, 0.37528, -0.39535}},
-    {
-        {2, 1, 2},
-        {-0.59846, 1.19693, -0.59846}, -1.59967,
-        {-1.80739, 2.01512, -1.80739},
-        {-1.78732, 1.26456, -1.78732, 0.37528, -0.39535, 0.37528}},
-    {
-        {2, 2, 1},
-        {-0.59846, -0.59846, 1.19693}, -1.59967,
-        {-1.80739, -1.80739, 2.01512},
-        {-1.78732, -1.78732, 1.26456, -0.39535, 0.37528, 0.37528}},
-    {
-        {1, 1, 3},
-        {0.74498, 0.74498, -1.48995}, -5.47612,
-        {1.44677, 1.44677, -8.36967},
-        {0.81662, 0.81662, -8.83412, 0.39793, 0.23223, 0.23223}},
-    {
-        {1, 3, 1},
-        {0.74498, -1.48995, 0.74498}, -5.47612,
-        {1.44677, -8.36967, 1.44677},
-        {0.81662, -8.83412, 0.81662, 0.23223, 0.39793, 0.23223}},
-    {
-        {3, 1, 1},
-        {-1.48995, 0.74498, 0.74498}, -5.47612,
-        {-8.36967, 1.44677, 1.44677},
-        {-8.83412, 0.81662, 0.81662, 0.23223, 0.23223, 0.39793}},
-    {
-        {1, 1.5, 3},
-        {1.38481, -0.14304, -1.24176}, -3.71651,
-        {2.20875, -0.12162, -5.80365},
-        {1.34832, -0.40088, -6.06792, 0.43771, 0.42272, -0.15845}},
-    {
-        {1, 3, 1.5},
-        {1.38481, -1.24176, -0.14304}, -3.71651,
-        {2.20875, -5.80365, -0.12162},
-        {1.34832, -6.06792, -0.40088, 0.42272, 0.43771, -0.15845}},
-    {
-        {1.5, 1, 3},
-        {-0.14304, 1.38481, -1.24176}, -3.71651,
-        {-0.12162, 2.20875, -5.80365},
-        {-0.40088, 1.34832, -6.06792, 0.43771, -0.15845, 0.42272}},
-    {
-        {1.5, 3, 1},
-        {-0.14304, -1.24176, 1.38481}, -3.71651,
-        {-0.12162, -5.80365, 2.20875},
-        {-0.40088, -6.06792, 1.34832, -0.15845, 0.43771, 0.42272}},
-    {
-        {3, 1, 1.5},
-        {-1.24176, 1.38481, -0.14304}, -3.71651,
-        {-5.80365, 2.20875, -0.12162},
-        {-6.06792, 1.34832, -0.40088, 0.42272, -0.15845, 0.43771}},
-    {
-        {3, 1.5, 1},
-        {-1.24176, -0.14304, 1.38481}, -3.71651,
-        {-5.80365, -0.12162, 2.20875},
-        {-6.06792, -0.40088, 1.34832, -0.15845, 0.42272, 0.43771}},
-    {
-        {1, 2, 3},
-        {1.96224, -0.69714, -1.26510}, -3.48931,
-        {2.73708, -1.49246, -4.73393},
-        {1.62638, -1.56624, -4.80661, 0.55590, 0.55480, -0.48211}},
-    {
-        {1, 3, 2},
-        {1.96224, -1.26510, -0.69714}, -3.48931,
-        {2.73708, -4.73393, -1.49246},
-        {1.62638, -4.80661, -1.56624, 0.55480, 0.55590, -0.48211}},
-    {
-        {2, 1, 3},
-        {-0.69714, 1.96224, -1.26510}, -3.48931,
-        {-1.49246, 2.73708, -4.73393},
-        {-1.56624, 1.62638, -4.80661, 0.55590, -0.48211, 0.55480}},
-    {
-        {2, 3, 1},
-        {-0.69714, -1.26510, 1.96224}, -3.48931,
-        {-1.49246, -4.73393, 2.73708},
-        {-1.56624, -4.80661, 1.62638, -0.48211, 0.55590, 0.55480}},
-    {
-        {3, 1, 2},
-        {-1.26510, 1.96224, -0.69714}, -3.48931,
-        {-4.73393, 2.73708, -1.49246},
-        {-4.80661, 1.62638, -1.56624, 0.55480, -0.48211, 0.55590}},
-    {
-        {3, 2, 1},
-        {-1.26510, -0.69714, 1.96224}, -3.48931,
-        {-4.73393, -1.49246, 2.73708},
-        {-4.80661, -1.56624, 1.62638, -0.48211, 0.55480, 0.55590}},
-    {
-        {1, 3, 3},
-        {3.11030, -1.55515, -1.55515}, -4.62875,
-        {3.56356, -4.09616, -4.09616},
-        {2.04073, -3.94766, -3.94766, 0.76142, 0.76142, -0.90991}},
-    {
-        {3, 1, 3},
-        {-1.55515, 3.11030, -1.55515}, -4.62875,
-        {-4.09616, 3.56356, -4.09616},
-        {-3.94766, 2.04073, -3.94766, 0.76142, -0.90991, 0.76142}},
-    {
-        {3, 3, 1},
-        {-1.55515, -1.55515, 3.11030}, -4.62875,
-        {-4.09616, -4.09616, 3.56356},
-        {-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
-    {
-        {0, 0, 0},
-        {0, 0, 0}, 0,
-        {0, 0, 0},
-        {0, 0, 0, 0, 0, 0}},
+	// the array is finalized with zeros to facilitate search
+	{
+		{1, 1, 1},
+		{0, 0, 0}, 0,
+		{0, 0, 0},
+		{0, 0, 0, 0, 0, 0}},
+	{
+		{1, 1, 1.5},
+		{0.20426, 0.20426, -0.40851}, -0.53869,
+		{0.52918, 0.52918, -1.59705},
+		{0.37743, 0.37743, -1.62922, 0.13566, 0.01609, 0.01609}},
+	{
+		{1, 1.5, 1},
+		{0.20426, -0.40851, 0.20426}, -0.53869,
+		{0.52918, -1.59705, 0.52918},
+		{0.37743, -1.62922, 0.37743, 0.01609, 0.13566, 0.01609}},
+	{
+		{1.5, 1, 1},
+		{-0.40851, 0.20426, 0.20426}, -0.53869,
+		{-1.59705, 0.52918, 0.52918},
+		{-1.62922, 0.37743, 0.37743, 0.01609, 0.01609, 0.13566}},
+	{
+		{1, 1.5, 1.5},
+		{0.52383, -0.26192, -0.26192}, -0.50962,
+		{1.13457, -0.82209, -0.82209},
+		{0.80161, -0.80815, -0.80815, 0.16648, 0.16648, -0.18041}},
+	{
+		{1.5, 1, 1.5},
+		{-0.26192, 0.52383, -0.26192}, -0.50962,
+		{-0.82209, 1.13457, -0.82209},
+		{-0.80815, 0.80161, -0.80815, 0.16648, -0.18041, 0.16648}},
+	{
+		{1.5, 1.5, 1},
+		{-0.26192, -0.26192, 0.52383}, -0.50962,
+		{-0.82209, -0.82209, 1.13457},
+		{-0.80815, -0.80815, 0.80161, -0.18041, 0.16648, 0.16648}},
+	{
+		{1, 1, 2},
+		{0.38545, 0.38545, -0.77090}, -1.76582,
+		{0.88788, 0.88788, -3.54158},
+		{0.55693, 0.55693, -3.72878, 0.23735, 0.09360, 0.09360}},
+	{
+		{1, 2, 1},
+		{0.38545, -0.77090, 0.38545}, -1.76582,
+		{0.88788, -3.54158, 0.88788},
+		{0.55693, -3.72878, 0.55693, 0.09360, 0.23735, 0.09360}},
+	{
+		{2, 1, 1},
+		{-0.77090, 0.38545, 0.38545}, -1.76582,
+		{-3.54158, 0.88788, 0.88788},
+		{-3.72878, 0.55693, 0.55693, 0.09360, 0.09360, 0.23735}},
+	{
+		{1, 1.5, 2},
+		{0.81199, -0.21028, -0.60172}, -1.21448,
+		{1.55359, -0.50100, -2.26706},
+		{1.02166, -0.55501, -2.30887, 0.27206, 0.25987, -0.21806}},
+	{
+		{1, 2, 1.5},
+		{0.81199, -0.60172, -0.21028}, -1.21448,
+		{1.55359, -2.26706, -0.50100},
+		{1.02166, -2.30887, -0.55501, 0.25987, 0.27206, -0.21806}},
+	{
+		{1.5, 1, 2},
+		{-0.21028, 0.81199, -0.60172}, -1.21448,
+		{-0.50100, 1.55359, -2.26706},
+		{-0.55501, 1.02166, -2.30887, 0.27206, -0.21806, 0.25987}},
+	{
+		{1.5, 2, 1},
+		{-0.21028, -0.60172, 0.81199}, -1.21448,
+		{-0.50100, -2.26706, 1.55359},
+		{-0.55501, -2.30887, 1.02166, -0.21806, 0.27206, 0.25987}},
+	{
+		{2, 1, 1.5},
+		{-0.60172, 0.81199, -0.21028}, -1.21448,
+		{-2.26706, 1.55359, -0.50100},
+		{-2.30887, 1.02166, -0.55501, 0.25987, -0.21806, 0.27206}},
+	{
+		{2, 1.5, 1},
+		{-0.60172, -0.21028, 0.81199}, -1.21448,
+		{-2.26706, -0.50100, 1.55359},
+		{-2.30887, -0.55501, 1.02166, -0.21806, 0.25987, 0.27206}},
+	{
+		{1, 2, 2},
+		{1.19693, -0.59846, -0.59846}, -1.59967,
+		{2.01512, -1.80739, -1.80739},
+		{1.26456, -1.78732, -1.78732, 0.37528, 0.37528, -0.39535}},
+	{
+		{2, 1, 2},
+		{-0.59846, 1.19693, -0.59846}, -1.59967,
+		{-1.80739, 2.01512, -1.80739},
+		{-1.78732, 1.26456, -1.78732, 0.37528, -0.39535, 0.37528}},
+	{
+		{2, 2, 1},
+		{-0.59846, -0.59846, 1.19693}, -1.59967,
+		{-1.80739, -1.80739, 2.01512},
+		{-1.78732, -1.78732, 1.26456, -0.39535, 0.37528, 0.37528}},
+	{
+		{1, 1, 3},
+		{0.74498, 0.74498, -1.48995}, -5.47612,
+		{1.44677, 1.44677, -8.36967},
+		{0.81662, 0.81662, -8.83412, 0.39793, 0.23223, 0.23223}},
+	{
+		{1, 3, 1},
+		{0.74498, -1.48995, 0.74498}, -5.47612,
+		{1.44677, -8.36967, 1.44677},
+		{0.81662, -8.83412, 0.81662, 0.23223, 0.39793, 0.23223}},
+	{
+		{3, 1, 1},
+		{-1.48995, 0.74498, 0.74498}, -5.47612,
+		{-8.36967, 1.44677, 1.44677},
+		{-8.83412, 0.81662, 0.81662, 0.23223, 0.23223, 0.39793}},
+	{
+		{1, 1.5, 3},
+		{1.38481, -0.14304, -1.24176}, -3.71651,
+		{2.20875, -0.12162, -5.80365},
+		{1.34832, -0.40088, -6.06792, 0.43771, 0.42272, -0.15845}},
+	{
+		{1, 3, 1.5},
+		{1.38481, -1.24176, -0.14304}, -3.71651,
+		{2.20875, -5.80365, -0.12162},
+		{1.34832, -6.06792, -0.40088, 0.42272, 0.43771, -0.15845}},
+	{
+		{1.5, 1, 3},
+		{-0.14304, 1.38481, -1.24176}, -3.71651,
+		{-0.12162, 2.20875, -5.80365},
+		{-0.40088, 1.34832, -6.06792, 0.43771, -0.15845, 0.42272}},
+	{
+		{1.5, 3, 1},
+		{-0.14304, -1.24176, 1.38481}, -3.71651,
+		{-0.12162, -5.80365, 2.20875},
+		{-0.40088, -6.06792, 1.34832, -0.15845, 0.43771, 0.42272}},
+	{
+		{3, 1, 1.5},
+		{-1.24176, 1.38481, -0.14304}, -3.71651,
+		{-5.80365, 2.20875, -0.12162},
+		{-6.06792, 1.34832, -0.40088, 0.42272, -0.15845, 0.43771}},
+	{
+		{3, 1.5, 1},
+		{-1.24176, -0.14304, 1.38481}, -3.71651,
+		{-5.80365, -0.12162, 2.20875},
+		{-6.06792, -0.40088, 1.34832, -0.15845, 0.42272, 0.43771}},
+	{
+		{1, 2, 3},
+		{1.96224, -0.69714, -1.26510}, -3.48931,
+		{2.73708, -1.49246, -4.73393},
+		{1.62638, -1.56624, -4.80661, 0.55590, 0.55480, -0.48211}},
+	{
+		{1, 3, 2},
+		{1.96224, -1.26510, -0.69714}, -3.48931,
+		{2.73708, -4.73393, -1.49246},
+		{1.62638, -4.80661, -1.56624, 0.55480, 0.55590, -0.48211}},
+	{
+		{2, 1, 3},
+		{-0.69714, 1.96224, -1.26510}, -3.48931,
+		{-1.49246, 2.73708, -4.73393},
+		{-1.56624, 1.62638, -4.80661, 0.55590, -0.48211, 0.55480}},
+	{
+		{2, 3, 1},
+		{-0.69714, -1.26510, 1.96224}, -3.48931,
+		{-1.49246, -4.73393, 2.73708},
+		{-1.56624, -4.80661, 1.62638, -0.48211, 0.55590, 0.55480}},
+	{
+		{3, 1, 2},
+		{-1.26510, 1.96224, -0.69714}, -3.48931,
+		{-4.73393, 2.73708, -1.49246},
+		{-4.80661, 1.62638, -1.56624, 0.55480, -0.48211, 0.55590}},
+	{
+		{3, 2, 1},
+		{-1.26510, -0.69714, 1.96224}, -3.48931,
+		{-4.73393, -1.49246, 2.73708},
+		{-4.80661, -1.56624, 1.62638, -0.48211, 0.55480, 0.55590}},
+	{
+		{1, 3, 3},
+		{3.11030, -1.55515, -1.55515}, -4.62875,
+		{3.56356, -4.09616, -4.09616},
+		{2.04073, -3.94766, -3.94766, 0.76142, 0.76142, -0.90991}},
+	{
+		{3, 1, 3},
+		{-1.55515, 3.11030, -1.55515}, -4.62875,
+		{-4.09616, 3.56356, -4.09616},
+		{-3.94766, 2.04073, -3.94766, 0.76142, -0.90991, 0.76142}},
+	{
+		{3, 3, 1},
+		{-1.55515, -1.55515, 3.11030}, -4.62875,
+		{-4.09616, -4.09616, 3.56356},
+		{-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
+	{
+		{0, 0, 0},
+		{0, 0, 0}, 0,
+		{0, 0, 0},
+		{0, 0, 0, 0, 0, 0}},
 };
-
-
 
 // EXTERNAL FUNCTIONS
 
@@ -366,23 +368,27 @@ static inline double ellTheta(const double a)
 	}
 	return res;
 }
-static inline doublecomplex massaIntegrall(const double a, const double b, const double c){
-    //http://iopscience.iop.org/1367-2630/15/6/063013/media/NJP465759suppdata.pdf
-    //s. 11, Eq. (54)
 
-    double currentSqrt = sqrt(a*a + b*b + c*c);
-    doublecomplex integrall = 0;
-    integrall -= 4*c*c*catan(a*b/currentSqrt/c);
-    integrall -= 4*b*b*catan(a*c/currentSqrt/b);
-    integrall += 2*a*b*log(c + currentSqrt);
-    integrall += 2*a*c*log(b + currentSqrt);
-    integrall += 4*b*c*log(a + currentSqrt);
-    integrall -= 2*a*b*log(currentSqrt - c);
-    integrall -= 2*a*c*log(currentSqrt - b);
-    integrall -= 4*c*b*log(currentSqrt - a);
+//======================================================================================================================
 
-    return integrall*2;
+static inline doublecomplex MassaIntegral(const double a,const double b,const double c)
+// http://iopscience.iop.org/1367-2630/15/6/063013/media/NJP465759suppdata.pdf , p. 11, Eq. (54)
+{
+	double currentSqrt = sqrt(a*a + b*b + c*c);
+	doublecomplex integral = 0;
+
+	integral -= 4*c*c*catan(a*b/currentSqrt/c);
+	integral -= 4*b*b*catan(a*c/currentSqrt/b);
+	integral += 2*a*b*log(c + currentSqrt);
+	integral += 2*a*c*log(b + currentSqrt);
+	integral += 4*b*c*log(a + currentSqrt);
+	integral -= 2*a*b*log(currentSqrt - c);
+	integral -= 2*a*c*log(currentSqrt - b);
+	integral -= 4*c*b*log(currentSqrt - a);
+
+	return integral*2;
 }
+
 //======================================================================================================================
 
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
@@ -398,29 +404,29 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
-    if(isUseRect) {
+	if(isUseRect) {
 		int i;
 		double a,b,c;
 		double omega;
-		double betta;//, bettaFfirst, bettaSecond, bettaThird;
-		int drane_precalc_data_index=-1;
+		double beta;
+		int drane_precalc_data_index=UNDEF;
+#define IS_DOUBLE_EQUAL(x,y) ( fabs((x) - (y)) < ROUND_ERR )
 		if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
-#define IS_DOUBLE_EQAL(x,y)(fabs(x - y)<ROUND_ERR)
 			i=-1;
 			while (drane_precalc_data_array[++i].ratios[0] > 0
 				   || drane_precalc_data_array[i].ratios[1] > 0
 				   || drane_precalc_data_array[i].ratios[2] > 0) {
-				if (IS_DOUBLE_EQAL(rectScaleX,drane_precalc_data_array[i].ratios[0]) &&
-					IS_DOUBLE_EQAL(rectScaleY,drane_precalc_data_array[i].ratios[1]) &&
-					IS_DOUBLE_EQAL(rectScaleZ,drane_precalc_data_array[i].ratios[2])) {
+				if (IS_DOUBLE_EQUAL(rectScaleX,drane_precalc_data_array[i].ratios[0]) &&
+					IS_DOUBLE_EQUAL(rectScaleY,drane_precalc_data_array[i].ratios[1]) &&
+					IS_DOUBLE_EQUAL(rectScaleZ,drane_precalc_data_array[i].ratios[2])) {
 					drane_precalc_data_index=i;
 					break;
 				}
 			}
-			if (drane_precalc_data_index==-1)
-				LogError(ONE_POS,"Unpredictable value for rectangular dipole(x=%lf, y=%lf, z=%lf)",rectScaleX,rectScaleY,rectScaleZ);
-
-#undef IS_DOUBLE_EQAL
+			if (drane_precalc_data_index==UNDEF) LogError(ONE_POS,"Non-standard proportions of rectangular dipole "
+				"(%g:%g:%g) are not compatible with CM, LDR, and CLDR polarizabilities. See the manual for details.",
+				rectScaleX,rectScaleY,rectScaleZ);
+#undef IS_DOUBLE_EQUAL
 		}
 		double c1=-5.9424219;
 		double c2=0.5178819;
@@ -447,60 +453,49 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					b=gridSpaceY*0.5;
 					c=gridSpaceX*0.5;
 				}
-				// see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice: considering dynamic depolarization'
-				// Eq number noted for some lines of code
-				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c)));//(10)
-				betta=massaIntegrall(a,b,c);//(11) betta is three-time integral.
-				res[i]=(-2*omega+WaveNum*WaveNum*betta/2)+I*(16.0/3*WaveNum*WaveNum*WaveNum*a*b*c);//(9)
-				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i];//(9)
-				res[i]=8*a*b*c/res[i];//(9)
+				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice:
+				 * considering dynamic depolarization'. Eq. number noted for some lines of code
+				 */
+				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c))); // Eq.(10)
+				beta=MassaIntegral(a,b,c); // Eq.(11) beta is three-time integral.
+				res[i]=(-2*omega+WaveNum*WaveNum*beta/2)+I*(16.0/3*WaveNum*WaveNum*WaveNum*a*b*c); // Eq.(9)
+				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i]; // Eq.(9)
+				res[i]=8*a*b*c/res[i]; // Eq.(9)
 			}
 			if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
 #define R3_INDEX(i,j)(i==j?i:(i+j+2))
 				//see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 				// Eq number noted for some lines of code
-				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2);//CM
-				res[i]=res[i]/(1+res[i]*
-								 drane_precalc_data_array[drane_precalc_data_index].R0[i]);//(55), corrected value CM for rectangular dipole
+				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2); // CM
+				// Eq.(55), corrected value CM for rectangular dipole
+				res[i]=res[i]/(1+res[i]*drane_precalc_data_array[drane_precalc_data_index].R0[i]);
 				res[i]*=dipvol/FOUR_PI;
 				if (PolRelation==POL_CLDR || PolRelation==POL_LDR) {
 					draneSum=0;
 					for (l=0; l < 3; l++)
 						draneSum+=prop[l]*prop[l]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,l)];
 
-					//L is obtaned in (62)
+					// L is obtaned in Eq.(62)
 					L=c1+mrel[0]*mrel[0]*c2*(1-3*prop[i]*prop[i])-mrel[0]*mrel[0]*c3*prop[i]*prop[i]-FOUR_PI*PI*I*nu/3-
 					  drane_precalc_data_array[drane_precalc_data_index].R1-
 					  (mrel[0]*mrel[0]-1)*drane_precalc_data_array[drane_precalc_data_index].R2[i]-
 					  8*mrel[0]*mrel[0]*prop[i]*prop[i]*
 					  drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draneSum;
-					//K is obtaned in (63)
+					// K is obtaned in Eq.(63)
 					K=c3+drane_precalc_data_array[drane_precalc_data_index].R1-
 					  4*drane_precalc_data_array[drane_precalc_data_index].R2[i]+
 					  8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)];
 
-					correction=-FOUR_PI*nu*nu*(L+mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3));//(65)
-					//correction = -FOUR_PI*nu*nu*L;//(65)
+					correction=-FOUR_PI*nu*nu*(L+mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3)); // Eq.(65)
 					res[i]=res[i]/(1-(res[i]/dipvol)*correction);
 				}
-
 #undef R3_INDEX
-            }
-
-        }
-
-        if (!orient_avg && IFROOT) {
-//            bool is_equal_res = true;
-//            for (int index=1; index < 3; ++index) {
-//                is_equal_res &= res[0] == res[index];
-//            }
-//            if (is_equal_res) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
-//            else PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
-            PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
-        }
-
-    } else {
-        double ka,kd2,S;
+			}
+		}
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+	} 
+	else {
+		double ka,kd2,S;
 		int i;
 		bool asym; // whether polarizability is asymmetric (for isotropic m)
 		const double *incPol;
@@ -572,18 +567,14 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					// no break
 			}
 		}
-
 		if (asym || anisotropy) {
-            if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
 		}
 		else {
 			res[2]=res[1]=res[0];
 			if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
 		}
-
-
-    }
-
+	}
 }
 
 //======================================================================================================================

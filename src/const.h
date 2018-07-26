@@ -134,11 +134,11 @@
 	// maximum message that may include 2 filenames (for LogError)
 #define MAX_MESSAGE2 (2*MAX_FNAME + MAX_PARAGRAPH)
 
-// output color
+// output colors
 #define RESET   "\033[0m"
-#define RED     "\033[1m\033[31m"      /* Red */
-#define GREEN   "\033[1m\033[32m"      /* Green */
-#define YELLOW  "\033[1m\033[33m"      /* Yellow */
+#define RED     "\033[1;31m" // bold red
+#define GREEN   "\033[1;32m" // bold green
+#define YELLOW  "\033[1;33m" // bold yellow
 
 // widths of terminal used for output
 #define DEF_TERM_WIDTH 80 // default

@@ -4,8 +4,11 @@ adda*
 *.d
 .*opts
 ExpCount
+tables
 run*
 test*
-libfftw3-3.dll
-libfftw3.dll
+*.dat
+*.geom
+out
+*.dll
 !.gitignore

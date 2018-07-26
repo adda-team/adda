@@ -648,8 +648,8 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	// calculate nN, ki, kt, cs, cp, and phSh
 	if (above) { // simple reflection
 		/* No scattering at exactly 90 degrees for non-trivial surface (to avoid randomness for this case).
-		 * See A. Small, J. Fung, and V.N. Manoharan, �Generalization of the optical theorem for light scattering from
-		 * a particle at a planar interface,� J. Opt. Soc. Am. A 30, 2519�2525 (2013) for theoretical discussion of
+		 * See A. Small, J. Fung, and V.N. Manoharan, "Generalization of the optical theorem for light scattering from
+		 * a particle at a planar interface," J. Opt. Soc. Am. A 30, 2519-2525 (2013) for theoretical discussion of
 		 * this fact.
 		 */
 		if (fabs(nF[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {

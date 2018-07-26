@@ -4,7 +4,12 @@ adda*
 .*opts
 *stackdump
 ExpCount
+tables
 run*
-libfftw3-3.dll
-libfftw3.dll
+test*
+*.dat
+*.geom
+out
+*.dll
+*.o
 !.gitignore

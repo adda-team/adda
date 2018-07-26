@@ -317,12 +317,12 @@ ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
 endif
 ifneq ($(filter NO_GITREV,$(OPTIONS)),)
   CDEFS += -DNO_GITREV
-  $(info Skipping revision number)
+  $(info Skipping git hash)
 else
   # Get revision number if possible
   REV=$(shell sh updgitrev.sh)
   ifneq ($(REV),)
-    $(info Revision $(REV))
+    $(info Git hash $(REV))
   endif
 endif
 ifneq ($(filter ACCIMEXP,$(OPTIONS)),)

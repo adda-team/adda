@@ -111,12 +111,13 @@ bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
-int phi_int_type; // type of phi integration (each bit determines whether to calculate with different multipliers)
+int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
-bool avg_inc_pol;                 // whether to average CC over incident polarization
-double polNlocRp;                 // Gaussian width for non-local polarizability
-const char *alldir_parms;         // name of file with alldir parameters
-const char *scat_grid_parms;      // name of file with parameters of scattering grid
+bool avg_inc_pol;            // whether to average CC over incident polarization
+bool isUseRect;              // whether using rectangular-cuboid (non-cubical) dipoles
+double polNlocRp;            // Gaussian width for non-local polarizability
+const char *alldir_parms;    // name of file with alldir parameters
+const char *scat_grid_parms; // name of file with parameters of scattering grid
 // used in crosssec.c
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
@@ -423,7 +424,7 @@ static struct opt_struct options[]={
 	{PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
 	{PAR(dir),"<dirname>","Sets directory for output files.\n"
 		"Default: constructed automatically",1,NULL},
-	{PAR(dpl),"<arg>","Sets parameter 'dipoles per lambda', float.\n"
+	{PAR(dpl),"<arg>","Sets parameter 'dipoles per lambda' (along the x-axis), float.\n"
 		"Default: 10|m|, where |m| is the maximum of all given refractive indices.",1,NULL},
 	{PAR(eps),"<arg>","Specifies the stopping criterion for the iterative solver by setting the relative norm of the "
 		"residual 'epsilon' to reach. <arg> is an exponent of base 10 (float), i.e. epsilon=10^(-<arg>).\n"
@@ -444,7 +445,7 @@ static struct opt_struct options[]={
 		"given by the last optional argument. Algorithm may fail for volume fractions > 30-50%.\n"
 		"Default <dom_number>: 1",UNDEF,NULL},
 #endif // !SPARSE
-	{PAR(grid),"<nx> [<ny> <nz>]","Sets dimensions of the computation grid. Arguments should be even integers. In most "
+	{PAR(grid),"<nx> [<ny> <nz>]","Sets dimensions of the computation grid (any positive integers). In most "
 		"cases <ny> and <nz> can be omitted (they are automatically determined by <nx> based on the proportions of the "
 		"scatterer). This command line option is not relevant when particle geometry is read from a file ('-shape "
 		"read'). If '-jagged' option is used the grid dimension is effectively multiplied by the specified number.\n"
@@ -581,11 +582,9 @@ static struct opt_struct options[]={
 		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
-
-    {PAR(rect_dip),"<x> <y> <z>","This command allows to set params for the rectangular dipole"
-	    "Values ​​are the ratio of the lenth, height and width of the dipole respectively.\n"
-        "Temporary we use precalculating correctable value(see 'Propagation of Electromagnetic Waves on"
-        "a Rectangular Lattice of Polarizable Points'), so avaliable values are 1, 1.5, 2, 3.\n Example: -rect_dip 1 1 2, this means that for calculations adda will use dipoles  extended twice along the Z axis",3,NULL},
+	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
+		"the corresponding axes. Absolute scale is not relevant, i.e. '1 2 2' is equivalent to '0.5 1 1'.\n"
+		"Default: 1 1 1",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
 		"directory). Can be used with '-prognosis'.\n"
@@ -1137,7 +1136,7 @@ PARSE_FUNC(h)
 			for (i=0;i<LENGTH(options);i++) printf("  -%s %s\n",options[i].name,options[i].usage);
 			printf("Type '%s -h <opt>' for details\n",exename);
 #ifdef SPARSE
-			printf(RED"!!! A number of options are disabled in sparse mode\n"RESET);
+			printf(YELLOW"!!! A number of options are disabled in sparse mode\n"RESET);
 #endif
 		}
 	}
@@ -1331,7 +1330,7 @@ PARSE_FUNC(pol)
 
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
-    else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
+	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
 	else if (strcmp(argv[1],"dgf")==0) PolRelation=POL_DGF;
 	else if (strcmp(argv[1],"fcd")==0) PolRelation=POL_FCD;
 	else if (strcmp(argv[1],"igt_so")==0) PolRelation=POL_IGT_SO;
@@ -1396,17 +1395,13 @@ PARSE_FUNC(rect_dip)
 	ScanDoubleError(argv[1],&rectScaleX);
 	ScanDoubleError(argv[2],&rectScaleY);
 	ScanDoubleError(argv[3],&rectScaleZ);
-        
-    TestPositive(rectScaleX,"-rect_dip <x>");
-    TestPositive(rectScaleY,"-rect_dip <y>");
-    TestPositive(rectScaleZ,"-rect_dip <z>");
-   
-    isUseRect = true;
-        
+
+	TestPositive(rectScaleX,"x-scale of rectangular dipole");
+	TestPositive(rectScaleY,"y-scale of rectangular dipole");
+	TestPositive(rectScaleZ,"z-scale of rectangular dipole");
+
+	isUseRect=true;
 }
-
-
-
 #ifndef SPARSE
 PARSE_FUNC(save_geom)
 {
@@ -1623,8 +1618,8 @@ PARSE_FUNC(V)
 #	define COMPILER "unknown"
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
-#ifdef GITREV // revision number is printed if available, but only here
-		printf("ADDA v."ADDA_VERSION" (r"GITREV")\n");
+#ifdef GITREV // git hash is printed if available, but only here
+		printf("ADDA v."ADDA_VERSION" ("GITREV")\n");
 #else
 		printf("ADDA v."ADDA_VERSION"\n");
 #endif
@@ -1860,7 +1855,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
-    isUseRect = false;
+	isUseRect=false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
@@ -1940,12 +1935,11 @@ void InitVariables(void)
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
-        
-    rectScaleX = 1.0;
-    rectScaleY = 1.0;
-    rectScaleZ = 1.0;
-    maxRectScale = 1;
-        
+	rectScaleX=1.0;
+	rectScaleY=1.0;
+	rectScaleZ=1.0;
+	maxRectScale=1;
+
 #ifdef OPENCL
 	gpuInd=0;
 #endif
@@ -2174,47 +2168,45 @@ void VariablesInterconnect(void)
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 
-    
-    if (isUseRect) {
-        maxRectScale=fmax(rectScaleX, rectScaleY);
-        maxRectScale=fmax(maxRectScale, rectScaleZ);
-        if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
-            const char *msg="You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.";
-            LogWarning(EC_WARN,ALL_POS,msg);
-            printf(YELLOW"%s\n"RESET,msg);
-        } else {
-            if (PolRelation!=POL_IGT_SO  && IntRelation==G_IGT) {
-                const char *msg="You use IGT but used polarization formula intended for calculating Green`s tensor as point dipole, result will unpredictable. You should use '... -int igt -pol igt_so ...'";
-                LogWarning(EC_WARN,ALL_POS,msg);
-                printf(YELLOW"%s\n"RESET,msg);
-            }
+	
+	if (isUseRect) {
+		maxRectScale=MAX(rectScaleX,rectScaleY);
+		MAXIMIZE(maxRectScale,rectScaleZ);
+		if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
+			const char *msg="You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.";
+			LogWarning(EC_WARN,ALL_POS,msg);
+			printf(YELLOW"%s\n"RESET,msg);
+		} else {
+			if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
+				"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
+				"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
 
-            if (PolRelation!=POL_IGT_SO) {
+			if (PolRelation!=POL_IGT_SO) {
 #define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
 
-                double buf = rectScaleX*rectScaleY*rectScaleZ;
-                double old_rectScaleX=rectScaleX,
-                       old_rectScaleY=rectScaleY,
-                       old_rectScaleZ=rectScaleZ;
-                SET_PRECALC_VALUE(rectScaleX);
-                SET_PRECALC_VALUE(rectScaleY);
-                SET_PRECALC_VALUE(rectScaleZ);
+				double buf = rectScaleX*rectScaleY*rectScaleZ;
+				double old_rectScaleX=rectScaleX,
+					   old_rectScaleY=rectScaleY,
+					   old_rectScaleZ=rectScaleZ;
+				SET_PRECALC_VALUE(rectScaleX);
+				SET_PRECALC_VALUE(rectScaleY);
+				SET_PRECALC_VALUE(rectScaleZ);
 
-                if (buf!=rectScaleX*rectScaleY*rectScaleZ) {
-                    const char *msg="Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)";
-                    LogWarning(EC_WARN,ALL_POS, msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
-                    printf(YELLOW);
-                    printf(msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
-                    printf("\n"RESET);
-                }
+				if (buf!=rectScaleX*rectScaleY*rectScaleZ) {
+					const char *msg="Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)";
+					LogWarning(EC_WARN,ALL_POS, msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
+					printf(YELLOW);
+					printf(msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
+					printf("\n"RESET);
+				}
 
 #undef SET_PRECALC_VALUE 
-            }
-        }
-        if (surface) PrintError("Currently '-surf' and '-rect_dip' can not be used together");
-        if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
+			}
+		}
+		if (surface) PrintError("Currently '-surf' and '-rect_dip' can not be used together");
+		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 
-    }
+	}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)
@@ -2349,9 +2341,8 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
-            
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,isUseRect ? " (along the X-axis)": "");
+		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,isUseRect ? " (along the x-axis)" : "");
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
@@ -2363,8 +2354,8 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-        if(isUseRect)
-            PrintBoth(logfile,"proportions for rectangular dipole (x=%g, y=%g, z=%g)\n",rectScaleX,rectScaleY,rectScaleZ);
+		if(isUseRect) PrintBoth(logfile,"Using rectangular dipoles with proportions %g:%g:%g (x:y:z)\n",
+			rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
@@ -2391,7 +2382,7 @@ void PrintInfo(void)
 			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n",REIM(msub));
 			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
 		}
-		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,isUseRect ? " (along the X-axis)": "");
+		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,isUseRect ? " (along the x-axis)" : "");
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
@@ -2490,7 +2481,8 @@ void PrintInfo(void)
 			case G_IGT:
 				fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
 				if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
-				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes%s)\n",igt_lim,isUseRect ? " along maximum dipole dimension" : "");
+				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes%s)\n",igt_lim,
+					isUseRect ? " along the greatest dimension" : "");
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;

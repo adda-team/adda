@@ -92,7 +92,7 @@ static double dpl_def;          // default value of dpl
 static int minX,minY,minZ;      // minimum values of dipole positions in dipole file
 static FILE * restrict dipfile; // handle of dipole file
 static enum shform read_format; // format of dipole file, which is read
-static double cX,cY,cZ;         // center for DipoleCoord, it is sometimes used in PlaceGranules
+static double cX,cY,cZ;         // center for DipoleCoord in units of dipoles (counted from 0)
 
 #ifndef SPARSE
 
@@ -1281,11 +1281,11 @@ static void ReadDipFile(const char * restrict fname)
 //======================================================================================================================
 
 static int FitBox(const int box)
-// finds the smallest value for which program would work (should divide 2*jagged); the limit is also checked
+// finds the smallest value for which program would work (should divide jagged); the limit is also checked
 {
 	int res;
 
-	res=jagged*((box+jagged-1)/(jagged));
+	res=jagged*((box+jagged-1)/jagged);
 	if (res>BOX_MAX) LogError(ONE_POS,"Derived grid size (%d) is too large (>%d)",res,BOX_MAX);
 	return res;
 }
@@ -1295,13 +1295,13 @@ static int FitBox(const int box)
 static int FitBox_yz(const double size)
 /* given the size of the particle in y or z direction (in units of dipoles), finds the grid size, which would satisfy
  * the FitBox function and so that all dipole centers (more precisely, centers of J^3 dipoles) would fall into the
- * particle (and increasing the number further will produce only the void dipoles).
+ * particle, including the boundary (and increasing the number further will produce only the void dipoles).
  *
  * !!! It is still possible, however, that the shape will contain void layers of dipoles because the estimate do not
- * take into account the details of the shape e.g. its curvature. For instance, 'adda -grid 6 -ellipsoid 1 1.5' will
- * result in grid 6x6x10, but the layers z=0, z=10 will be void. This is because the dipole centers in this layers
- * always have non-zero x and y coordinates (at least half-dipole in absolute value) and do not fall inside the sphere,
- * also the points {+-4.5,0,0} do fall into it.
+ * take into account the details of the shape e.g. its curvature. For instance, 'adda -grid 6 -ellipsoid 1 1.51' will
+ * result in grid 6x6x10, but the layers z=0, z=9 will be void. This is because the dipole centers in this layers
+ * always have non-zero x and y coordinates (at least half-dipole in absolute value) and do not fall inside the
+ * ellipsoid, also the points {+-4.5,0,0} do fall into it. Compare, e.g., with 'adda -grid 5 -ellipsoid 1 1.61'.
  */
 {
 	return jagged*(((int)ceil(size)+jagged-1)/(jagged));
@@ -1642,7 +1642,8 @@ void InitShape(void)
 		}
 		case SH_LINE:
 			if (IFROOT) sh_form_str1="line; length:";
-			symY=symZ=symR=false;
+			symY=symZ=true;
+			symR=false;
 			n_boxY=n_boxZ=jagged;
 			yx_ratio=zx_ratio=UNDEF;
 			volume_ratio=UNDEF;
@@ -1926,9 +1927,10 @@ void InitShape(void)
 		// this error is not duplicated in the log file since it does not yet exist
 		if (n_boxY>boxY || n_boxZ>boxZ)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",n_boxY,n_boxZ,boxY,boxZ);
+		// redundant void dipoles may break the symmetry with respect to the centre of the whole box
+		if (!IS_EVEN((boxY-n_boxY)/jagged)) symY=false;
+		if (!IS_EVEN((boxZ-n_boxZ)/jagged)) symZ=false;
 	}
-
-
 #ifndef SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
@@ -1946,8 +1948,6 @@ void InitShape(void)
 		else if (Ndip<100000) nTheta=361;
 		else nTheta=721;
 	}
-        
-        
 	Timing_Particle = GET_TIME() - tstart;
 }
 
@@ -1961,14 +1961,18 @@ void MakeParticle(void)
 	TIME_TYPE tstart;
 	int i;
 #ifndef SPARSE
-	double jcX,jcY,jcZ; // center for jagged
 	size_t local_nRows_tmp;
 	int j,k,ns;	
 	double tmp1,tmp2,tmp3;
-	double xr,yr,zr,xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
+	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
+	double xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
-    double xj,yj,zj;
+	/* The following are dipole coordinates (in units of d/2) relative to the grid center. For jagged they point to the 
+	 * center of a larger dipole. Units are chosen to keep integer (otherwise half-integers are possible), but the step 
+	 * of variation is 2*jagged.
+	 */
+	int xj,yj,zj;
 	int mat;
 	unsigned short us_tmp;
 	TIME_TYPE tgran;
@@ -1986,9 +1990,6 @@ void MakeParticle(void)
 		
 #ifndef SPARSE //shapes other than "read" are disabled in sparse mode
 	index=0;	
-	// assumed that box's are even
-	jcX=jcY=jcZ=jagged/2.0;
-
 	local_nRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"local_nRows_tmp");
 	
 	/* allocate temporary memory; even if prognosis, since they are needed for exact estimation; they will be
@@ -1998,18 +1999,18 @@ void MakeParticle(void)
 	MALLOC_VECTOR(position_tmp,ushort,local_nRows_tmp,ALL);
 
 	for(k=local_z0;k<local_z1_coer;k++) for(j=0;j<boxY;j++) for(i=0;i<boxX;i++) {
-		xj=jagged*(i/jagged)-boxX*0.5;
-		yj=jagged*(j/jagged)-boxY*0.5;
-		zj=jagged*(k/jagged)-boxZ*0.5;
-		/* all coordinates are scaled by the same box size (boxX), so yr and zr are not necessarily in fixed
-		 * ranges (like from -1/2 to 1/2). This is done to treat adequately cases when particle dimensions are
-		 * the same (along different axes), but e.g. boxY!=boxX (so there are some extra void dipoles). All
-		 * anisotropies in the particle itself are treated in the specific shape modules below (see e.g.
-		 * ELLIPSOID).
+		xj=2*jagged*(i/jagged)+jagged-boxX;
+		yj=2*jagged*(j/jagged)+jagged-boxY;
+		zj=2*jagged*(k/jagged)+jagged-boxZ;
+		/* all the following coordinates should be scaled by the same sizeX. So we scale xj,yj,zj by 2boxX with extra 
+		 * ratio for rectangular dipoles. Thus, yr and zr are not necessarily in fixed ranges (like from -1/2 to 1/2). 
+		 * This is done to treat adequately cases when particle dimensions are the same (along different axes), but e.g. 
+		 * boxY!=boxX (so there are some extra void dipoles). All anisotropies in the particle itself are treated in 
+		 * the specific shape modules below (see e.g. ELLIPSOID).
 		 */
-		xr=(xj+jcX)/(boxX);
-		yr=(yj+jcY)/(boxX)*(rectScaleY/rectScaleX);
-		zr=(zj+jcZ)/(boxX)*(rectScaleZ/rectScaleX);
+		xr=(0.5*xj)/boxX;
+		yr=(0.5*yj)/boxX*(rectScaleY/rectScaleX);
+		zr=(0.5*zj)/boxX*(rectScaleZ/rectScaleX);
 
 		mat=Nmat; // corresponds to void
 
@@ -2105,7 +2106,10 @@ void MakeParticle(void)
 				if (xr*xr+yr*yr*invsqY+zr*zr*invsqZ<=0.25) mat=0;
 				break;
 			case SH_LINE:
-                if ((yj==0 && zj==0) || (yr==0 && zr==0)) mat=0;
+				/* since the step of yj and zj is 2*jagged, only one condition of each || can be true; second parts of
+				 * those || are for weird cases like '-shape line -grid 8 2 2'
+				 */
+				if ((yj==0 || yj==-jagged) && (zj==0 || zj==-jagged)) mat=0;
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
@@ -2148,7 +2152,7 @@ void MakeParticle(void)
 		/* TO ADD NEW SHAPE
 		 * add a case above (in alphabetical order). Identifier ('SH_...') should be defined inside 'enum sh' in
 		 * const.h. This option should set 'mat' - index of domain for a point, specified by {xr,yr,zr} - coordinates
-		 * divided by grid size along X (xr from -0.5 to 0.5, others - depending on aspect ratios). C array indexing
+		 * divided by grid size along X (xr inside (-1/2,1/2), others - depending on aspect ratios). C array indexing
 		 * used: mat=0 - first domain, etc. If point corresponds to void, do not set 'mat'. If you need temporary local
 		 * variables (which are used* only in this part of the code), either use 'tmp1'-'tmp3' or define your own (with
 		 * more informative names) in the beginning of this function.
@@ -2191,12 +2195,14 @@ void MakeParticle(void)
 		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
 		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
-		if (volcor_used) sizeX=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
+		if (volcor_used) 
+			sizeX=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
 		else sizeX=lambda*boxX*rectScaleX/dpl;
 	}
 	else {
 		// dpl is determined to give correct volume
-		if (volcor_used) dpl=lambda*pow(nvoid_Ndip/volume_ratio* rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX/rectScaleX;
+		if (volcor_used) 
+			dpl=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX/rectScaleX;
 		else dpl=lambda*boxX/sizeX;
 	}
 	// Check consistency for FCD

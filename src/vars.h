@@ -30,14 +30,10 @@
 #include <time.h>    // for time_t
 
 // basic variables
-bool isUseRect;//if rectangular dipole is used
-double rectScaleX,rectScaleY,rectScaleZ, maxRectScale;
-extern double gridSpaceX,gridSpaceY,gridSpaceZ;
-extern double  R0_Drane[3],R1_Drane,R2_Drane[3],R3_diag_Drane[3],R3_non_diag_Drane[3];
-
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;
-extern double gridspace,dipvol,kd,ka_eq,inv_G,WaveNum;
+extern double gridspace,gridSpaceX,gridSpaceY,gridSpaceZ,rectScaleX,rectScaleY,rectScaleZ,maxRectScale,dipvol,kd,
+	ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 
 extern double memory,memPeak;

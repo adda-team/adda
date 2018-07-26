@@ -20,14 +20,11 @@
 #include "vars.h" // corresponding header
 
 // basic variables
-bool isUseRect;//if rectangular dipole is used
-double rectScaleX,rectScaleY,rectScaleZ, maxRectScale; //rectangular dipole params (scales along axis and maximal scale)
-double gridSpaceX,gridSpaceY,gridSpaceZ; //rectangular dipole params
-double R0_Drane[3],R1_Drane,R2_Drane[3],R3_diag_Drane[3],R3_non_diag_Drane[3];// Drane polarizability correction, see 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
-
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
 size_t boxXY;             // boxX*boxY, used for indexing
 double gridspace;         // dipole size (d)
+double gridSpaceX,gridSpaceY,gridSpaceZ; // dipole sizes
+double rectScaleX,rectScaleY,rectScaleZ, maxRectScale; // relative dipole sizes (scales) and maximal one
 double dipvol;            // dipole volume
 double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
@@ -162,8 +159,6 @@ int local_Nz_unif;        /* number of z layers (distance between max and min va
 int local_z1_coer;        // ending z, coerced to be not greater than boxZ (and not smaller than local_z0)
 	// starting, ending x for current processor and number of x layers (based on the division of smallX)
 size_t local_x0,local_x1,local_Nx;
-
-
 
 #else //These variables are exclusive to the sparse mode
 
