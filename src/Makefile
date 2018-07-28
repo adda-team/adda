@@ -85,7 +85,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
 # are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
-              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_GITREV \
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_GITHASH \
               ACCIMEXP
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
@@ -136,7 +136,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
 # ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
 # the functionality can be disabled by uncommenting the following line.
-#override OPTIONS += NO_GITREV
+#override OPTIONS += NO_GITHASH
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
@@ -315,12 +315,12 @@ ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Using clBLAS)
 endif
-ifneq ($(filter NO_GITREV,$(OPTIONS)),)
-  CDEFS += -DNO_GITREV
+ifneq ($(filter NO_GITHASH,$(OPTIONS)),)
+  CDEFS += -DNO_GITHASH
   $(info Skipping git hash)
 else
-  # Get revision number if possible
-  REV=$(shell sh updgitrev.sh)
+  # Get githash if possible
+  REV=$(shell sh updgithash.sh)
   ifneq ($(REV),)
     $(info Git hash $(REV))
   endif

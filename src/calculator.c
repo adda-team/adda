@@ -40,7 +40,7 @@
 extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
-extern const bool avg_inc_pol,isUseRect;
+extern const bool avg_inc_pol,rectDip;
 extern const double polNlocRp;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
@@ -90,14 +90,14 @@ static double * restrict out; // used to collect both mueller matrix and integra
 /* the following definitions and data are from Gutkowicz-Krusin D, Draine BT. "Propagation of electromagnetic waves on a
  * rectangular lattice of polarizable points" (2004). Available from: http://arxiv.org/abs/astro-ph/0403082.
  */ 
-struct drane_coefficients {
+struct draine_coefficients {
 	const double ratios[3];
 	const double R0[3]; // polarizability correction by Eq.(45)
 	const double R1;    // polarizability correction by Eq.(47)
 	const double R2[3]; // polarizability correction by Eq.(48)
 	const double R3[6]; // polarizability correction by Eq.(49)
 };
-static const struct drane_coefficients drane_precalc_data_array[] = {
+static const struct draine_coefficients draine_precalc_data_array[] = {
 	// the array is finalized with zeros to facilitate search
 	{
 		{1, 1, 1},
@@ -404,26 +404,39 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
-	if(isUseRect) {
+	if(rectDip) {
 		int i;
 		double a,b,c;
 		double omega;
 		double beta;
-		int drane_precalc_data_index=UNDEF;
+		int draine_precalc_data_index=UNDEF;
 #define IS_DOUBLE_EQUAL(x,y) ( fabs((x) - (y)) < ROUND_ERR )
 		if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
+
+		    double temp_rectScaleX=rectScaleX,
+		           temp_rectScaleY=rectScaleY,
+                   temp_rectScaleZ=rectScaleZ;
+
+		    double tmp=MIN(temp_rectScaleX,rectScaleY);
+            tmp=MIN(tmp,rectScaleZ);
+            if(tmp>0) {
+                temp_rectScaleX/=tmp;
+                temp_rectScaleY/=tmp;
+                temp_rectScaleZ/=tmp;
+            }
+
 			i=-1;
-			while (drane_precalc_data_array[++i].ratios[0] > 0
-				   || drane_precalc_data_array[i].ratios[1] > 0
-				   || drane_precalc_data_array[i].ratios[2] > 0) {
-				if (IS_DOUBLE_EQUAL(rectScaleX,drane_precalc_data_array[i].ratios[0]) &&
-					IS_DOUBLE_EQUAL(rectScaleY,drane_precalc_data_array[i].ratios[1]) &&
-					IS_DOUBLE_EQUAL(rectScaleZ,drane_precalc_data_array[i].ratios[2])) {
-					drane_precalc_data_index=i;
+			while (draine_precalc_data_array[++i].ratios[0] > 0
+				   || draine_precalc_data_array[i].ratios[1] > 0
+				   || draine_precalc_data_array[i].ratios[2] > 0) {
+				if (IS_DOUBLE_EQUAL(temp_rectScaleX,draine_precalc_data_array[i].ratios[0]) &&
+					IS_DOUBLE_EQUAL(temp_rectScaleY,draine_precalc_data_array[i].ratios[1]) &&
+					IS_DOUBLE_EQUAL(temp_rectScaleZ,draine_precalc_data_array[i].ratios[2])) {
+					draine_precalc_data_index=i;
 					break;
 				}
 			}
-			if (drane_precalc_data_index==UNDEF) LogError(ONE_POS,"Non-standard proportions of rectangular dipole "
+			if (draine_precalc_data_index==UNDEF) LogError(ONE_POS,"Non-standard proportions of rectangular dipole "
 				"(%g:%g:%g) are not compatible with CM, LDR, and CLDR polarizabilities. See the manual for details.",
 				rectScaleX,rectScaleY,rectScaleZ);
 #undef IS_DOUBLE_EQUAL
@@ -434,7 +447,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		double nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD);
 		doublecomplex correction;
 		doublecomplex L,K;
-		double draneSum;
+		double draineSum;
 
 		int l;
 		for (i=0; i < 3; i++) {
@@ -468,23 +481,23 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				// Eq number noted for some lines of code
 				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2); // CM
 				// Eq.(55), corrected value CM for rectangular dipole
-				res[i]=res[i]/(1+res[i]*drane_precalc_data_array[drane_precalc_data_index].R0[i]);
+				res[i]=res[i]/(1+res[i]*draine_precalc_data_array[draine_precalc_data_index].R0[i]);
 				res[i]*=dipvol/FOUR_PI;
 				if (PolRelation==POL_CLDR || PolRelation==POL_LDR) {
-					draneSum=0;
+					draineSum=0;
 					for (l=0; l < 3; l++)
-						draneSum+=prop[l]*prop[l]*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,l)];
+						draineSum+=prop[l]*prop[l]*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,l)];
 
 					// L is obtaned in Eq.(62)
 					L=c1+mrel[0]*mrel[0]*c2*(1-3*prop[i]*prop[i])-mrel[0]*mrel[0]*c3*prop[i]*prop[i]-FOUR_PI*PI*I*nu/3-
-					  drane_precalc_data_array[drane_precalc_data_index].R1-
-					  (mrel[0]*mrel[0]-1)*drane_precalc_data_array[drane_precalc_data_index].R2[i]-
+					  draine_precalc_data_array[draine_precalc_data_index].R1-
+					  (mrel[0]*mrel[0]-1)*draine_precalc_data_array[draine_precalc_data_index].R2[i]-
 					  8*mrel[0]*mrel[0]*prop[i]*prop[i]*
-					  drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draneSum;
+					  draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draineSum;
 					// K is obtaned in Eq.(63)
-					K=c3+drane_precalc_data_array[drane_precalc_data_index].R1-
-					  4*drane_precalc_data_array[drane_precalc_data_index].R2[i]+
-					  8*drane_precalc_data_array[drane_precalc_data_index].R3[R3_INDEX(i,i)];
+					K=c3+draine_precalc_data_array[draine_precalc_data_index].R1-
+					  4*draine_precalc_data_array[draine_precalc_data_index].R2[i]+
+					  8*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)];
 
 					correction=-FOUR_PI*nu*nu*(L+mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3)); // Eq.(65)
 					res[i]=res[i]/(1-(res[i]/dipvol)*correction);

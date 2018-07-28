@@ -266,6 +266,7 @@ all -h shape ellipsoid
 all -shape ellipsoid 0.25 2 ;mgn;
 all -h shape line
 all -shape line -grid 16 ;m; ;n;
+all -shape line -grid 8 2 3 ;m; ;n;
 all -h shape plate
 all -shape plate 0.5 ;mgn;
 all -h shape prism
@@ -337,6 +338,7 @@ all -yz -store_scat_grid ;mgn;
 all -shape ellipsoid 1.5454545 2.090909 -grid 11 17 23 ;m; ;n;
 
 #Rectangular dipoles
+all ;m; -rect_dip 2 2 3
 all ;m; -rect_dip 1 1 1.5
 all ;m; -rect_dip 1 1.5 1
 all ;m; -rect_dip 1.5 1 1

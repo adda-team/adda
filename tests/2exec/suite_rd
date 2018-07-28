@@ -136,7 +136,8 @@ all -init_field zero ;mgn;
 #all -int so ;mgn;
 
 #all -h int_surf
-#all -int_surf img -surf 4 2 0 ;mgn;
+CrossSec-Y,CrossSec-X,mueller -surf 10 1 0 -yz ;mgn;
+CrossSec-Y,CrossSec-X -surf 10 2 0.1 -yz ;mgn;
 #all -int_surf som -surf 4 2 0 ;mgn;
 
 #all -h iter

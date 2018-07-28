@@ -1,9 +1,9 @@
-# Ignore everything
 adda*
 *.o
 *.d
 .*opts
 *.clstr
+*stackdump
 ExpCount
 tables
 run*
@@ -12,4 +12,3 @@ test*
 *.geom
 out
 *.dll
-!.gitignore

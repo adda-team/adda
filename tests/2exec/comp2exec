@@ -156,10 +156,12 @@ if [ -n "$SURF_EXT" ]; then
   DEFSUITE=suite_surf
   EXECREF="$EXECREF -surf 4 2 0.1"
   EXECTEST="$EXECTEST -surf 4 2 0.1"
+  echo -e "SURF_EXT activated"
 fi
 if [ -n "$SURF_STANDARD" ]; then
   DEFSUITE=suite_surf
   EXECTEST="$EXECTEST -surf 10 1 0 -yz"
+  echo -e "SURF_STANDARD activated"
 fi
 
 if [ -n "$RECT_DIP_STANDARD" ]; then

@@ -53,8 +53,8 @@
 #	include <clBLAS.version.h>
 #endif
 
-#ifndef NO_GITREV
-#	include "gitrev.h" // for GITREV, this file is automatically created during compilation
+#ifndef NO_GITHASH
+#	include "githash.h" // for GITHASH, this file is automatically created during compilation
 #endif
 
 // definitions for file locking
@@ -114,7 +114,7 @@ bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;            // whether to average CC over incident polarization
-bool isUseRect;              // whether using rectangular-cuboid (non-cubical) dipoles
+bool rectDip;              // whether using rectangular-cuboid (non-cubical) dipoles
 double polNlocRp;            // Gaussian width for non-local polarizability
 const char *alldir_parms;    // name of file with alldir parameters
 const char *scat_grid_parms; // name of file with parameters of scattering grid
@@ -556,7 +556,7 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|cm_rect|cldr_rect|igt_rect|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
@@ -1277,7 +1277,7 @@ PARSE_FUNC(m)
 PARSE_FUNC(maxiter)
 {
 	ScanIntError(argv[1],&maxiter);
-	//TestPositive_i(maxiter,"maximum number of iterations");
+	TestPositive_i(maxiter,"maximum number of iterations");
 }
 PARSE_FUNC(no_reduced_fft)
 {
@@ -1400,7 +1400,7 @@ PARSE_FUNC(rect_dip)
 	TestPositive(rectScaleY,"y-scale of rectangular dipole");
 	TestPositive(rectScaleZ,"z-scale of rectangular dipole");
 
-	isUseRect=true;
+	rectDip=true;
 }
 #ifndef SPARSE
 PARSE_FUNC(save_geom)
@@ -1618,8 +1618,8 @@ PARSE_FUNC(V)
 #	define COMPILER "unknown"
 #endif
 		// print version, MPI standard, type and compiler information, bit-mode
-#ifdef GITREV // git hash is printed if available, but only here
-		printf("ADDA v."ADDA_VERSION" ("GITREV")\n");
+#ifdef GITHASH // git hash is printed if available, but only here
+		printf("ADDA v."ADDA_VERSION" ("GITHASH")\n");
 #else
 		printf("ADDA v."ADDA_VERSION"\n");
 #endif
@@ -1719,8 +1719,8 @@ PARSE_FUNC(V)
 #ifdef OCL_BLAS
 		"OCL_BLAS, "
 #endif
-#ifdef NO_GITREV
-		"NO_GITREV, "
+#ifdef NO_GITHASH
+		"NO_GITHASH, "
 #endif
 		"";
 		printf("Extra build options: ");
@@ -1855,7 +1855,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
-	isUseRect=false;
+	rectDip=false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
@@ -2169,42 +2169,20 @@ void VariablesInterconnect(void)
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
 
 	
-	if (isUseRect) {
+	if (rectDip) {
 		maxRectScale=MAX(rectScaleX,rectScaleY);
 		MAXIMIZE(maxRectScale,rectScaleZ);
 		if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
-			const char *msg="You use rectangular dipoles but used polarization formula intended for cubical dipoles, result will unpredictable.  All options for rectangular dipoles are cm, cldr and igt_so.";
-			LogWarning(EC_WARN,ALL_POS,msg);
-			printf(YELLOW"%s\n"RESET,msg);
+            PrintError("You use rectangular dipoles but used polarization formula intended for cubical dipoles.\nAll options for rectangular dipoles are cm, cldr and igt_so.");
 		} else {
 			if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
 				"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
 				"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
 
-			if (PolRelation!=POL_IGT_SO) {
-#define SET_PRECALC_VALUE(val) { if(val>2){val = 3;}else if(val>1.5){val = 2;}else if(val>1){val = 1.5;}else{val = 1;} }
-
-				double buf = rectScaleX*rectScaleY*rectScaleZ;
-				double old_rectScaleX=rectScaleX,
-					   old_rectScaleY=rectScaleY,
-					   old_rectScaleZ=rectScaleZ;
-				SET_PRECALC_VALUE(rectScaleX);
-				SET_PRECALC_VALUE(rectScaleY);
-				SET_PRECALC_VALUE(rectScaleZ);
-
-				if (buf!=rectScaleX*rectScaleY*rectScaleZ) {
-					const char *msg="Input proportions for rectangular dipole modified from (x=%g, y=%g, z=%g) to (x=%g, y=%g, z=%g)";
-					LogWarning(EC_WARN,ALL_POS, msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
-					printf(YELLOW);
-					printf(msg,old_rectScaleX,old_rectScaleY,old_rectScaleZ,rectScaleX,rectScaleY,rectScaleZ);
-					printf("\n"RESET);
-				}
-
-#undef SET_PRECALC_VALUE 
-			}
 		}
-		if (surface) PrintError("Currently '-surf' and '-rect_dip' can not be used together");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
+		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
+        if (IntRelation==G_IGT_SO) PrintError("Currently '-int igt_so' and '-rect_dip' can not be used together");
 
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
@@ -2342,7 +2320,7 @@ void PrintInfo(void)
 	if (IFROOT) {
 		// print basic parameters
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,isUseRect ? " (along the x-axis)" : "");
+		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,rectDip ? " (along the x-axis)" : "");
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
@@ -2354,7 +2332,7 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		if(isUseRect) PrintBoth(logfile,"Using rectangular dipoles with proportions %g:%g:%g (x:y:z)\n",
+		if(rectDip) PrintBoth(logfile,"Using rectangular dipoles with proportions %g:%g:%g (x:y:z)\n",
 			rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
@@ -2382,7 +2360,7 @@ void PrintInfo(void)
 			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n",REIM(msub));
 			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
 		}
-		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,isUseRect ? " (along the x-axis)" : "");
+		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,rectDip ? " (along the x-axis)" : "");
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
@@ -2482,7 +2460,7 @@ void PrintInfo(void)
 				fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
 				if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
 				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes%s)\n",igt_lim,
-					isUseRect ? " along the greatest dimension" : "");
+					rectDip ? " along the greatest dimension" : "");
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;

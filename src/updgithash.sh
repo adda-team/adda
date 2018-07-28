@@ -3,13 +3,13 @@
 # define its shebang also as 'sh', which means that it is supposed to be compatible with any posix-compliant shell
 # like dash on Ubuntu.
 # Tests subversion revision number of current directory (where script is located) and stores it as a C macro, like
-# #define GITREV "1234"
+# #define GITHASH "1234"
 # in a special file (see variables below). Outputs obtained revision number to stdout. 
 # If revision number can't be obtained, the file is emptied (or created empty if doesn't exist).
 # File update happens only if it will change the content of the file to avoid redundant rebuilds.
 
-file=gitrev.h
-macro=GITREV
+file=githash.h
+macro=GITHASH
 
 # if git log is not available, the following should silently produce ""
 # git log should produce either text (like "Unversioned directory") or hash string (f09cb11a0d36f94fbe6f78b92ef3f294d0049613)

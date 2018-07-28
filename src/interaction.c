@@ -88,21 +88,21 @@ void evlua(double zphIn,double rhoIn,complex double *erv, complex double *ezv,co
 # define INT_WRAPPER_INTER(name) \
 void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
-	vCopyIntReal(i,j,k,qvec); \
+	UnitsGridToCoord(i,j,k,qvec); \
 	name(qvec,result,true); }
 
 // same as above, but calling function is different from name and accepts additional argument
 # define INT_WRAPPER_INTER_3(name,func,arg) \
 void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
-	vCopyIntReal(i,j,k,qvec); \
+	UnitsGridToCoord(i,j,k,qvec); \
 	func(qvec,result,true,arg); }
 
 // wrapper for <name> (reflected interaction), based on integer input; arguments are described in .h file
 # define INT_WRAPPER_REFL(name) \
 void name##_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
-	vCopyIntRealShift(i,j,k,qvec); \
+	UnitsGridToCoordShift(i,j,k,qvec); \
 	name(qvec,result,true); }
 
 /* wrapper for <name>, based on real input; arguments are described in .h file
@@ -146,8 +146,8 @@ void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex resu
 
 //=====================================================================================================================
 
-static inline void vCopyIntReal(const int i,const int j,const int k,double qvec[static 3])
-// initialize real vector with integer values
+static inline void UnitsGridToCoord(const int i,const int j,const int k,double qvec[static 3])
+// initialize real vector with integer values multiplied by dipole scale
 {
 	qvec[0]=i*(rectScaleX);
 	qvec[1]=j*(rectScaleY);
@@ -450,7 +450,7 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
 	double t3q,t4q,t5tr,t6tr;
 	
-	vCopyIntReal(i,j,k,qvec);
+	UnitsGridToCoord(i,j,k,qvec);
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -734,7 +734,7 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 	// next line should never happen
 	if (anisotropy) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
 
-	vCopyIntReal(i,j,k,qvec);
+	UnitsGridToCoord(i,j,k,qvec);
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -1080,12 +1080,12 @@ static void FreeTables(void)
 
 //=====================================================================================================================
 
-static inline void vCopyIntRealShift(const int i,const int j,const int k,double qvec[static 3])
-// initialize real vector with integer values
+static inline void UnitsGridToCoordShift(const int i,const int j,const int k,double qvec[static 3])
+// initialize real vector with integer values multiplied by scale
 {
-	qvec[0]=i;
-	qvec[1]=j;
-	qvec[2]=k+ZsumShift;
+	qvec[0]=i*(rectScaleX);
+	qvec[1]=j*(rectScaleY);
+	qvec[2]=(k+ZsumShift)*(rectScaleZ);
 }
 
 //=====================================================================================================================
@@ -1274,7 +1274,7 @@ void ReflTerm_som_int(const int i,const int j,const int k,doublecomplex result[s
 	double qvec[3],qmunu[6]; // distance vector (in units of d) and normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
 	double invr3,kr,kr2; // |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
-	vCopyIntRealShift(i,j,k,qvec);
+	UnitsGridToCoordShift(i,j,k,qvec);
 	ReflParams(qvec,qmunu,&invr3,&kr,&kr2,true);
 	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 

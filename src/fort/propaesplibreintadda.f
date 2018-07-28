@@ -28,7 +28,7 @@ c     The structure of the result is the following:
 c     Re(G11),Re(G12),Re(G13),Re(G22),Re(G23),Re(G33),Im(G11),...,Im(G33)
 
 c     Variables needs for the integration
-      integer  KEy, N, NF, NDIM, MINCLS, MAxCLS, IFAIL, NEVAL, NW
+      integer  KEY, N, NF, NDIM, MINCLS, MAXCLS, IFAIL, NEVAL, NW
       parameter (nw=4000000,ndim=3,nf=12)
       double precision A(NDIM), B(NDIM), WRKSTR(NW)
       double precision  ABSEST(NF), ABSREQ, RELREQ,err
@@ -49,8 +49,8 @@ c     Variables needs for the integration
 c     We perform the integration of the tensor
 c     definition for the integration
       MINCLS = 1000
-      MAxCLS = 1000000
-      KEy = 0
+      MAXCLS = 1000000
+      KEY = 0
       ABSREQ = 0.d0
       
       A(1)=-gridspacex/2.d0
@@ -73,8 +73,8 @@ c     definition for the integration
          yy0=0.d0
       endif
 
-      call  DCUHRE(NDIM,NF,A,B, MINCLS, MAxCLS, fonctionigtadda,
-     $      ABSREQ,RELREQ,KEy,NW,0,result,ABSEST,NEVAL,IFAIL, WRKSTR) 
+      call  DCUHRE(NDIM,NF,A,B, MINCLS, MAXCLS, fonctionigtadda,
+     $      ABSREQ,RELREQ,KEY,NW,0,result,ABSEST,NEVAL,IFAIL, WRKSTR) 
       
       do N = 1,NF
          result(N)=result(N)/gridspacex/gridspacey/gridspacez

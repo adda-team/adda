@@ -12,4 +12,3 @@ test*
 out
 *.dll
 *.o
-!.gitignore

@@ -257,6 +257,7 @@ all -h shape ellipsoid
 all -shape ellipsoid 0.25 2 ;mgn;
 all -h shape line
 all -shape line -grid 16 ;m; ;n;
+all -shape line -grid 8 2 3 ;m; ;n;
 all -h shape plate
 all -shape plate 0.5 ;mgn;
 all -h shape prism
@@ -321,5 +322,6 @@ all -h yz
 # for equivalent runs with surface we additionally add -yz, which is incompatible with the following
 #all -yz -store_scat_grid ;mgn;
 
-#odd grid
-all -shape ellipsoid 1.5454545 2.090909 -grid 11 17 23 ;m; ;n;
+
+all ;mgn; -rect_dip 1.5 1 1
+all ;mgn; -shape box -rect_dip 1 1 2 -pol igt_so -int igt 3

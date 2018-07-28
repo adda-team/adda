@@ -693,9 +693,9 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	}
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
-	imExp_arr(-kd*nN[0],boxX,expsX);
-	imExp_arr(-kd*nN[1],boxY,expsY);
-	imExp_arr(-kd*nN[2],local_Nz_unif,expsZ);
+	imExp_arr(-kd*nN[0]*rectScaleX,boxX,expsX);
+	imExp_arr(-kd*nN[1]*rectScaleY,boxY,expsY);
+	imExp_arr(-kd*nN[2]*rectScaleZ,local_Nz_unif,expsZ);
 #endif // !SPARSE
 	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
