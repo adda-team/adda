@@ -1294,18 +1294,21 @@ static int FitBox(const int box)
 //======================================================================================================================
 
 static int FitBox_yz(const double size)
-/* given the size of the particle in y or z direction (in units of dipoles), finds the grid size, which would satisfy
- * the FitBox function and so that all dipole centers (more precisely, centers of J^3 dipoles) would fall into the
- * particle, including the boundary (and increasing the number further will produce only the void dipoles).
- *
- * !!! It is still possible, however, that the shape will contain void layers of dipoles because the estimate do not
- * take into account the details of the shape e.g. its curvature. For instance, 'adda -grid 6 -ellipsoid 1 1.51' will
- * result in grid 6x6x10, but the layers z=0, z=9 will be void. This is because the dipole centers in this layers
- * always have non-zero x and y coordinates (at least half-dipole in absolute value) and do not fall inside the
- * ellipsoid, also the points {+-4.5,0,0} do fall into it. Compare, e.g., with 'adda -grid 5 -ellipsoid 1 1.61'.
+/* given the size of the particle in y or z direction (in units of dipoles), finds the closest grid size, which would
+ * satisfy the FitBox function. The rounding is performed so to minimize the maximum difference between the stack of
+ * dipoles and corresponding particle dimension.
+ * The distance between the center of the outer super-dipole (J^3 original dipoles) and the particle (enclosing box)
+ * boundary is between 0.25 and 0.75 of super-dipole size, corresponding to the discretization along the x-axis, for
+ * which the optimum distance of 0.5 (the dipole cube fits tight into the boundary) is automatically satisfied.
+ * 
+ * !!! However, it is still possible that the whole outer layer of dipoles would be void because the estimate does not
+ * take into account the details of the shape e.g. its curvature. For instance, 'adda -grid 4 -shape ellipsoid 1 2.13'
+ * results in grid 4x4x9, but the layers z=0, z=8 will be void. This is because the dipole centers in this layers always
+ * have non-zero x and y coordinates (at least half-dipole in absolute value) and do not fall inside the ellipsoid,
+ * although the points {+-4,0,0} do fall into it.
  */
 {
-    return jagged*(((int)ceil(size)+jagged-1)/(jagged));
+	return jagged*(int)round(size/jagged);
 }
 
 //======================================================================================================================

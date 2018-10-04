@@ -2167,23 +2167,19 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
-
 	
 	if (rectDip) {
 		maxRectScale=MAX(rectScaleX,rectScaleY);
 		MAXIMIZE(maxRectScale,rectScaleZ);
-		if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO ) {
-            PrintError("You use rectangular dipoles but used polarization formula intended for cubical dipoles.\nAll options for rectangular dipoles are cm, cldr and igt_so.");
-		} else {
-			if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
-				"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
-				"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
-
-		}
+		if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO )
+			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
+			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
+		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
+			"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
+			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
-        if (IntRelation==G_IGT_SO) PrintError("Currently '-int igt_so' and '-rect_dip' can not be used together");
-
+		if (IntRelation==G_IGT_SO) PrintError("Currently '-int igt_so' and '-rect_dip' can not be used together");
 	}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
