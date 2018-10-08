@@ -18,9 +18,9 @@
 #define __io_h
 
 // project headers
-#include "os.h"
 #include "const.h"    // for enum types
 #include "function.h" // for function attributes
+#include "os.h"
 // system headers
 #include <stdio.h>    // for file
 #include <stdarg.h>   // for va_list

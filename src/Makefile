@@ -320,9 +320,9 @@ ifneq ($(filter NO_GITHASH,$(OPTIONS)),)
   $(info Skipping git hash)
 else
   # Get githash if possible
-  REV=$(shell sh updgithash.sh)
-  ifneq ($(REV),)
-    $(info Git hash $(REV))
+  HASH=$(shell sh updgithash.sh)
+  ifneq ($(HASH),)
+    $(info Git hash $(HASH))
   endif
 endif
 ifneq ($(filter ACCIMEXP,$(OPTIONS)),)

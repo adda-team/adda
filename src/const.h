@@ -134,7 +134,6 @@
 	// maximum message that may include 2 filenames (for LogError)
 #define MAX_MESSAGE2 (2*MAX_FNAME + MAX_PARAGRAPH)
 
-
 // widths of terminal used for output
 #define DEF_TERM_WIDTH 80 // default
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables

@@ -13,9 +13,9 @@ macro=GITHASH
 
 # if git log is not available, the following should silently produce ""
 # git log should produce either text (like "Unversioned directory") or hash string (f09cb11a0d36f94fbe6f78b92ef3f294d0049613)
-REV=`git log --pretty=format:'%h' -n 1`
-if [ "$REV" != "" ]; then
-  line="#define $macro \"$REV\""  
+HASH=`git log --pretty=format:'%h' -n 1`
+if [ "$HASH" != "" ]; then
+  line="#define $macro \"$HASH\""
   if [ -s $file ]; then
     if [ "$(cat $file)" != "$line" ]; then
       echo "$line" > $file
@@ -23,7 +23,7 @@ if [ "$REV" != "" ]; then
   else
     echo "$line" > $file
   fi
-  echo $REV
+  echo $HASH
 else
   # produces empty file, but only if it is not already empty (and existent)
   if [ \( ! -f $file \) -o \( -s $file \) ]; then
