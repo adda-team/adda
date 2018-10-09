@@ -1216,10 +1216,10 @@ static void CalcSomTable(void)
 		if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
 		ind=0;
 		for (k=0;k<local_Nz_Rm;k++) {
-			z=(k+ZsumShift)*gridspace;
+			z=(k+ZsumShift)*gridSpaceZ;
 			for (j=0;j<boxY;j++) {
-				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i,j)*gridspace,z,somTable+4*ind);
-				else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i,j)*gridspace,z,somTable+4*ind);
+				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i*gridSpaceX,j*gridSpaceY),z,somTable+4*ind);
+				else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i*gridSpaceX,j*gridSpaceY),z,somTable+4*ind);
 			}
 		}
 	}

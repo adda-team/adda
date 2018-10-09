@@ -307,7 +307,7 @@ NORDTRICKY -store_scat_grid ;sep; ;mgn;
 #all -h surf
 #all -surf 4 2 0 ;mgn;
 #all -surf 4 3 4 ;p; ;mgn;
-#all -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn;
+CrossSec-Y,CrossSec-X,mueller -surf 6 3 4 -prop 1 2 -3 -shape box ;mgn;
 #all -surf 4 inf -prop 1 2 -3 ;se; ;mgn;
 #all -surf 4 2 0 -no_reduced_fft ;mgn;
 #all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn;

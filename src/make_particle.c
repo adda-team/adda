@@ -65,7 +65,7 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 #endif
 
 // used in interaction.c
-double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d)
+double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d_z)
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
 const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
@@ -2326,10 +2326,10 @@ void MakeParticle(void)
 	box_origin_unif[1]=-gridSpaceY*cY;
 #ifndef SPARSE
 	box_origin_unif[2]=gridSpaceZ*(local_z0_unif-cZ);
-	if (surface) ZsumShift=2*((hsub/gridspace)-cZ+local_z0);
+	if (surface) ZsumShift=2*((hsub/gridSpaceZ)-cZ+local_z0);
 #else
 	box_origin_unif[2]=-gridSpaceZ*cZ;
-	if (surface) ZsumShift=2*((hsub/gridspace)-cZ);
+	if (surface) ZsumShift=2*((hsub/gridSpaceZ)-cZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif
