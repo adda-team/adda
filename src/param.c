@@ -181,6 +181,7 @@ static bool orient_used;        // whether '-orient ...' was used in the command
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
 static bool int_surf_used;      // whether '-int_surf ...' was used in the command line
+static bool pol_used;           // whether '-pol ...' was used in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -1327,7 +1328,7 @@ PARSE_FUNC(phi_integr)
 PARSE_FUNC(pol)
 {
 	bool noExtraArgs=true;
-
+	pol_used = true;
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
 	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
@@ -2167,11 +2168,15 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
+
+	if(rectDip && !pol_used) {
+		PolRelation=POL_CLDR;
+	}
 	
 	if (rectDip) {
 		maxRectScale=MAX(rectScaleX,rectScaleY);
 		MAXIMIZE(maxRectScale,rectScaleZ);
-		if (PolRelation!=POL_LDR && PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO )
+		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO )
 			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
 			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
 		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "

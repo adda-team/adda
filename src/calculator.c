@@ -411,7 +411,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		double beta;
 		int draine_precalc_data_index=UNDEF;
 #define IS_DOUBLE_EQUAL(x,y) ( fabs((x) - (y)) < ROUND_ERR )
-		if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
+		if (PolRelation==POL_CLDR || PolRelation==POL_CM) {
 
 		    double temp_rectScaleX=rectScaleX,
 		           temp_rectScaleY=rectScaleY,
@@ -475,7 +475,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i]; // Eq.(9)
 				res[i]=8*a*b*c/res[i]; // Eq.(9)
 			}
-			if (PolRelation==POL_LDR || PolRelation==POL_CLDR || PolRelation==POL_CM) {
+			if (PolRelation==POL_CLDR || PolRelation==POL_CM) {
 #define R3_INDEX(i,j)(i==j?i:(i+j+2))
 				//see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 				// Eq number noted for some lines of code
@@ -483,7 +483,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				// Eq.(55), corrected value CM for rectangular dipole
 				res[i]=res[i]/(1+res[i]*draine_precalc_data_array[draine_precalc_data_index].R0[i]);
 				res[i]*=dipvol/FOUR_PI;
-				if (PolRelation==POL_CLDR || PolRelation==POL_LDR) {
+				if (PolRelation==POL_CLDR) {
 					draineSum=0;
 					for (l=0; l < 3; l++)
 						draineSum+=prop[l]*prop[l]*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,l)];
