@@ -23,17 +23,20 @@ function check_mode {
     return 0
   fi
   local mode=${1%% *}
-  if [[ "$mode" =~ "[A-Za-z]+_[A-Za-z]+" ]]; then # check cross modes, like mpi_seq
-    if [[ "$MODES" =~ "\b${mode%%_*}\b" && "$MODES" =~ "\b${mode##*_}\b" ]]; then
+  # simplified left and right word boundaries
+  local bl="(^|\s)"
+  local br="($|\s)"
+  if [[ "$mode" =~ [a-zA-Z]+_[a-zA-Z]+ ]]; then # check cross modes, like mpi_seq - not relevant for this script
+    if [[ "$MODES" =~ $bl${mode%%_*}$br && "$MODES" =~ $bl${mode##*_}$br ]]; then
       return 0
     else
       return 1
     fi
-  elif [[ "$MODES" =~ "\b${mode}\b" ]]; then
+  elif [[ "$MODES" =~ $bl$mode$br ]]; then
     return 0
   else  
     return 1
-  fi  
+  fi
 }
 function compile_copy {
   # $1 is mode, $2 - name of executable, $3 - extra options

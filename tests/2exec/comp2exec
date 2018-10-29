@@ -508,6 +508,7 @@ echo "----------------------------------------"
 exec 3<&0
 imax=-1
 status=0
+br="($|[^a-zA-Z0-9_])"  # right word boundary
 
 while read -r cmpfiles cmdline; do
   if [[ "$cmpfiles" == \;*\; ]]; then
@@ -519,7 +520,7 @@ while read -r cmpfiles cmdline; do
   elif [[ -n "$cmpfiles" && "${cmpfiles:0:1}" != "#" && ( $skip -eq 0 || ( $skip -eq 1 && "$cmdline" == $3* ) ) ]]; then
     skip=0;
     # some command lines are ignored for older executables
-    if [[ -n "$OLDUSED" && "$cmdline" =~ "$CMDIGNORE" ]]; then
+    if [[ -n "$OLDUSED" && -n "$CMDIGNORE" && "$cmdline" =~ $CMDIGNORE ]]; then
       continue
     fi
     # a hack for a very specific case
@@ -528,11 +529,11 @@ while read -r cmpfiles cmdline; do
     fi
     # test exlusion flags (!), given in the file. First test modes, then active flags
     if [ "${cmpfiles:0:1}" == "!" ]; then
-      if [[ "$cmpfiles" =~ "!${MODE}\b" ]]; then
+      if [[ "$cmpfiles" =~ !$MODE$br ]]; then
         continue
       fi
       for word in $ACTIVE_FLAGS; do
-        if [[ "$cmpfiles" =~ "!${word}\b" ]]; then
+        if [[ "$cmpfiles" =~ !$word$br ]]; then
           continue 2
         fi
       done
@@ -540,11 +541,11 @@ while read -r cmpfiles cmdline; do
     fi
     # test for specification flags (&), given in the file. First test modes, then active flags
     if [ "${cmpfiles:0:1}" == "&" ]; then
-      if [[ "$cmpfiles" =~ "&${MODE}\b" ]]; then
+      if [[ "$cmpfiles" =~ \&$MODE$br ]]; then
         cmpfiles="$ALLNAME"
       else
         for word in $ACTIVE_FLAGS; do
-          if [[ "$cmpfiles" =~ "&${word}\b" ]]; then
+          if [[ "$cmpfiles" =~ \&$word$br ]]; then
             cmpfiles="$ALLNAME"
             break
           fi

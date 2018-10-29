@@ -62,17 +62,20 @@ function check_mode {
     return 0
   fi
   local mode=${1%% *}
-  if [[ "$mode" =~ "[A-Za-z]+_[A-Za-z]+" ]]; then # check cross modes, like mpi_seq
-    if [[ "$MODES" =~ "\b${mode%%_*}\b" && "$MODES" =~ "\b${mode##*_}\b" ]]; then
+  # simplified left and right word boundaries
+  local bl="(^|\s)"
+  local br="($|\s)"
+  if [[ "$mode" =~ [a-zA-Z]+_[a-zA-Z]+ ]]; then # check cross modes, like mpi_seq
+    if [[ "$MODES" =~ $bl${mode%%_*}$br && "$MODES" =~ $bl${mode##*_}$br ]]; then
       return 0
     else
       return 1
     fi
-  elif [[ "$MODES" =~ "\b${mode}\b" ]]; then
+  elif [[ "$MODES" =~ $bl$mode$br ]]; then
     return 0
   else  
     return 1
-  fi  
+  fi
 }
 # test the presence of executables
 function test_file_exe {
@@ -113,7 +116,7 @@ if [[ -n "$4" ]]; then
 fi
 # main execution
 for cmd in "${!NAME}"; do # Extra complication below for sparse mode
-  if check_mode "$cmd" && ([[ ! "$cmd" =~ "\bSPA_(EXT|STAN)\b" ]] || check_mode spa); then
+  if check_mode "$cmd" && ([[ !("$cmd" == *"SPA_EXT"* || "$cmd" == *"SPA_STAN"*) ]] || check_mode spa); then
     #echo -e "\nInvoking test with '$cmd'"
     if ! ./comp2exec $cmd; then
       echo "ERROR during running 'comp2exec $cmd'" >&2
