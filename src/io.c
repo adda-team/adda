@@ -256,7 +256,7 @@ static void ProcessError(const enum ec code,ERR_LOC_DECL,const char * restrict f
 				else if (code==EC_WARN) strcpy(warn_buf,msg);
 				// write (duplicate) message to stderr, wrapping lines
 				WrapLines(msg);
-				fprintf(stderr,code==EC_WARN?YELLOW:RED"%s"RESET,msg);
+				fprintf(stderr,"%s",msg);
 				fflush(stderr);
 				break;
 			case EC_INFO: // put message to stdout, wrapping lines
@@ -386,7 +386,7 @@ void PrintError(const char * restrict fmt, ... )
 		VSNPRINTF_SHIFT_ROBUST(shift,tmp,msg,MAX_MESSAGE,fmt,args);
 		va_end(args);
 		WrapLines(msg);
-		fprintf(stderr,RED"%s"RESET"\n",msg);
+		fprintf(stderr,"%s\n",msg);
 		fflush(stderr);
 	}
 	// wait for root to generate an error message

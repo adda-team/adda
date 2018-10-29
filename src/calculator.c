@@ -40,7 +40,7 @@
 extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
-extern const bool avg_inc_pol,rectDip;
+extern const bool avg_inc_pol;
 extern const double polNlocRp;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
@@ -412,18 +412,16 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		int draine_precalc_data_index=UNDEF;
 #define IS_DOUBLE_EQUAL(x,y) ( fabs((x) - (y)) < ROUND_ERR )
 		if (PolRelation==POL_CLDR || PolRelation==POL_CM) {
-
-		    double temp_rectScaleX=rectScaleX,
-		           temp_rectScaleY=rectScaleY,
-                   temp_rectScaleZ=rectScaleZ;
-
-		    double tmp=MIN(temp_rectScaleX,rectScaleY);
-            tmp=MIN(tmp,rectScaleZ);
-            if(tmp>0) {
-                temp_rectScaleX/=tmp;
-                temp_rectScaleY/=tmp;
-                temp_rectScaleZ/=tmp;
-            }
+			double temp_rectScaleX=rectScaleX,
+			       temp_rectScaleY=rectScaleY,
+			       temp_rectScaleZ=rectScaleZ;
+			double tmp=MIN(temp_rectScaleX,rectScaleY);
+			tmp=MIN(tmp,rectScaleZ);
+			if(tmp>0) {
+				temp_rectScaleX/=tmp;
+				temp_rectScaleY/=tmp;
+				temp_rectScaleZ/=tmp;
+			}
 
 			i=-1;
 			while (draine_precalc_data_array[++i].ratios[0] > 0
@@ -717,7 +715,7 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
 	}
 	memory+=3*nvoid_Ndip*sizeof(doublecomplex);
-#endif // !SPARSE
+#endif // SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
 	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
 	 * this requires different order of function calls to extract this information beforehand. So currently this part

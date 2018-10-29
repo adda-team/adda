@@ -721,12 +721,12 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		aN=tmpN*expsX[ix];
 		aF=tmpF*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
-			expY=cexp(-I*kd*nN[1]*iy2);
-			expZ=cexp(-I*kd*nN[2]*iz2);
+			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
+			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
 			tmpN=expY*expZ;
 			tmpF=expY*conj(expZ);
 		}
-		expX=cexp(-I*kd*nN[0]*ix);
+		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
 		aN=tmpN*expX;
 		aF=tmpF*expX;
 #endif // SPARSE
@@ -751,11 +751,11 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		}
 		aN=tmpN*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
-			expY=cexp(-I*kd*nN[1]*iy2);
-			expZ=cexp(-I*kd*nN[2]*iz2);
+			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
+			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
 			tmpN=expY*expZ;
 		}
-		expX=cexp(-I*kd*nN[0]*ix);
+		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
 		aN=tmpN*expX;
 #endif // SPARSE
 		// sum(P*exp(-ik*r.nN))

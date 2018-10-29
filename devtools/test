@@ -1,27 +1,29 @@
 #!/bin/bash
+# A simple wrapper to build and test. The only optional argument is compilation modes (same as in the called scripts):
+# seq, mpi, ocl, spa, any combination of them (separated by space in quotes, implies cross modes), or all (default).
+# 'spa' is sparse and requires combination with something.
 #
-#
-# script runs all tests, it makes the next steps
-# 1) compiles fft mode and copies to 'current_exec' adda, adda_mpi and adda_ocl
-# 2) compiles sparse mode and copies to 'current_exec' adda->adda_spa, adda_mpi->adda_spa_mpi
-# 3) runs set of tests
+# All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
+# failures (redirect it to file or to colorize it in the terminal)
 
-# build and test_all scripts can accept next modes of adda:
-# seq
-# mpi
-# ocl
-# spa
-# and special cases mpi_seq ocl_seq spa_seq, if you want only to cross test
-#
-# this modes are forwarding from current args (see **)
-
-sh build ./../tests/2exec/current_exec "$@"
-#        ^---------------------------^ ^--^
-#        |-- path to save all exec --| |**|
+# we do not define the default value, since called scripts can process empty value on their own
+MODES="$1"
+if ! ./build "$MODES"; then
+  echo "ERROR during building ADDA" >&2
+  exit 1
+fi
 
 cd ./../tests/2exec
+function test_error {
+  # Runs test $1 and checks its return status; if $2 is given, it is used instead of global $MODES
+  local locMODE=${2:-${MODES}}
+  if ! ./test_all $1 "$locMODE"; then
+    echo "ERROR (fatal) during testing '$1'" >&2
+    exit 1
+  fi
+}
 
-sh test_all ./current_exec ./../../win64 "$@"
-#           ^------------^ ^-----------^ ^--^
-#           |--testpath--| |--refpath--| |**|
-#                             refpath can be prepared automatically, for example by pulling last code from https://github.com/adda-team/adda.git (last stable release) and building
+# uncomment any of the following for quicker tests
+test_error prev
+test_error cross
+test_error extra

@@ -20,7 +20,6 @@
 // project headers
 #include "const.h"    // for enum types
 #include "function.h" // for function attributes
-#include "os.h"
 // system headers
 #include <stdio.h>    // for file
 #include <stdarg.h>   // for va_list
@@ -78,22 +77,4 @@ char *FGetsError(FILE * restrict file,const char * restrict fname,size_t *line,c
 size_t SkipNLines(FILE * restrict file,const size_t n);
 size_t SkipComments(FILE * restrict file);
 
-#ifdef POSIX
-// output colors
-#	define RESET   "\033[0m"
-#	define RED     "\033[1;31m" // bold red
-#	define GREEN   "\033[1;32m" // bold green
-#	define YELLOW  "\033[1;33m" // bold yellow
-
-#else
-
-#	define RESET   ""
-#	define RED     ""
-#	define GREEN   ""
-#	define YELLOW  ""
-
-#endif
-
 #endif // __io_h
-
-

@@ -1,209 +1,123 @@
 #!/bin/bash
-# Script can have two parameter: test path(second place, default value ./current_exec) and reference path (second place, default value is ./../../win64)
-# (!!! It is expected that REFPATH contains executable reference adda [ or adda_mpi, adda_ocl, adda_spa, adda_spa_mpi relative to test mode]!!!)
-# and some modes
-# seq - test seq mode (adda)
-# mpi - test mpi mode (adda_mpi)
-# ocl - test OpenCL mode (adda_ocl)
-# spa - test SPARSE mode (adda_spa) [if 'mpi' passed then adda_spa_mpi also will be tested]
-# mpi_seq - test only seq (as ref) mpi (as test) mode (adda and adda_mpi) [included in 'seq mpi' as particular case]
-# ocl_seq - test only seq (as ref) and OpenCL (as test) mode (adda and adda_ocl) [included in 'seq ocl' as particular case]
-# spa_seq - test only seq (as ref) and SPARSE (as test) mode (adda and adda) [included in 'seq spa' as particular case]
-MODES="seq mpi ocl spa mpi_seq ocl_seq spa_seq"
+# First obligatory parameter is testing sequence: prev, cross, extra
+# prev - compares with previous versions (!!! check ignores in comp2exec)
+# cross - diffent modes against each other (only one change at a time). Doesn't require previous version and should
+#         result in no fails at all
+# extra - additional (longer) tests, including RD_TRICKY and changing two modes at a time, e.g. mpi_seq SUFR_STAN,
+#         can be run only before the release (if one of the components catches anything, not caught by others, consider
+#         moving this test to cross).
+# Other parameters are optional:
+# Second is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in quotes, implies cross
+# modes), or all (default). 'spa' is sparse and requires combination with something.
+# Third is reference path (relevant only for PREVIOUS), otherwise the default one in comp2exec is used
+# Fourth is the test path (if all test executables are in one folder), otherwise default logic in in comp2exec is used
+# 
+# All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
+# failures (redirect it to file or to colorize it in the terminal)
 
-#read first arg
-TESTPATH=${1:-./current_exec}
-# check first arg, if it is mode then assign default value
-for mode in $MODES
-do
-  if [[ "$1" == "$mode" ]]; then
-      TESTPATH=./current_exec
+PREV_TESTS=(seq mpi ocl "seq SPA_EXT" "mpi SPA_EXT" "seq SURF_EXT" "mpi SURF_EXT" "ocl SURF_EXT") 
+            #"seq RD_EXT" "mpi RD_EXT" "ocl RD_EXT" - not relevant vs. v.1.3b4 # "ocl SPA_EXT" is not yet supported
+CROSS_TESTS=(mpi_seq ocl_seq "seq SPA_STAN" "mpi SPA_STAN" "seq SURF_STAN" "mpi SURF_STAN" "ocl SURF_STAN"\ 
+            "seq RD_STAN" "mpi RD_STAN" "ocl RD_STAN") # "ocl SPA_STAN" is not yet supported
+EXTRA_TESTS=("mpi_seq SPA_EXT" "mpi_seq SPA_STAN" "mpi_seq SURF_EXT" "ocl_seq SURF_EXT" "mpi_seq SURF_STAN"\
+             "ocl_seq SURF_STAN" "mpi_seq RD_EXT" "ocl_seq RD_EXT" "mpi_seq RD_STAN" "ocl_seq RD_STAN"\
+             "seq RD_TRICKY" "mpi RD_TRICKY" "ocl RD_TRICKY" "mpi_seq RD_TRICKY" "ocl_seq RD_TRICKY")
+             # "ocl_seq SPA_EXT" and "ocl_seq SPA_STAN" are not yet supported
+# Process input arguments
+if [ -z "$1" ]; then
+  echo "ERROR: no argument is present" >&2
+  exit 1
+else 
+  case "$1" in
+    prev)
+      NAME="PREV_TESTS[@]"
+      ;;
+    cross)
+      NAME="CROSS_TESTS[@]"
+      ;;
+    extra)
+      NAME="EXTRA_TESTS[@]"
+      ;;
+    *)
+      echo "ERROR: Unknown first argument '$1'" >&2
+      exit 1
+      ;;
+  esac
+fi
+MODES=${2:-all}
+OPTIONS=
+if [ -n "$3" ]; then
+  OPTIONS="$OPTIONS REFPATH=\"$3\""
+fi
+if [ -n "$4" ]; then
+  OPTIONS="$OPTIONS ADDASEQ=\"$4/adda\" ADDASPASEQ=\"$4/adda_spa\" ADDAMPI=\"$4/adda_mpi\""
+  OPTIONS="$OPTIONS ADDASPAMPI=\"$4/adda_spa_mpi\" ADDAOCL=\"$4/adda_ocl\" ADDASPAOCL=\"$4/adda_spa_ocl\""
+  # the last one is not yet supported
+fi
+
+# auxiliary function
+function check_mode {
+  # returns 0 (true) if first word of $1 is a valid mode (with respect to $MODES)
+  if [ "$MODES" == "all" ]; then
+    return 0
   fi
-done
-
-#read second arg
-REFPATH=${2:-./../../win64}
-# check second arg, if it is mode then assign default value
-for mode in $MODES
-do
-  if [[ "$2" == "$mode" ]]; then
-      REFPATH=./../../win64
-  fi
-done
-
-ALLMODE=1
-SEQFLAG=
-MPIFLAG=
-OCLFLAG=
-SPAFLAG=
-MPISEQFLAG=
-OCLSEQFLAG=
-SPASEQFLAG=
-
-#find flags in args
-for arg; do
-    for mode in $MODES
-    do
-        if [[ "$arg" == "$mode" ]]; then
-            #uppercase
-            line=`echo "${mode}FLAG=1" | tr 'a-z' 'A-Z' | tr -d _`
-            echo "${line}"
-            eval "${line}"
-            ALLMODE=
-        fi
-    done
-done
-
-if [[ $ALLMODE ]]; then
-    SEQFLAG=1
-    MPIFLAG=1
-    OCLFLAG=1
-    SPAFLAG=1
-    MPISEQFLAG=1
-    OCLSEQFLAG=1
-    SPASEQFLAG=1
-fi
-
-if [[ $SEQFLAG ]] && [[ $MPIFLAG ]]; then
-    MPISEQFLAG=1
-fi
-
-if [[ $SEQFLAG ]] && [[ $OCLFLAG ]]; then
-    OCLSEQFLAG=1
-fi
-
-if [[ $SEQFLAG ]] && [[ $SPAFLAG ]]; then
-    SPASEQFLAG=1
-fi
-
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-function checkexec {
-    FULLLIST=$1
-    CHECKNAME=$2
-
-    for exec in $FULLLIST; do
-        if [ "$exec" == "$CHECKNAME" ]; then
-            CHECKNAME=
-            break
-        fi
-    done
-    if [[ $CHECKNAME ]]; then
-        printf "$RED ${TESTPATH} doesn't contain $CHECKNAME $NC\n"
-    fi
-}
-
-
-LIST=
-for path in $(ls ${TESTPATH}/adda*); do
-    exec=$(basename ${path} | cut -d. -f1)
-    LIST="${LIST} ${exec}"
-done
-
-
-if [[ $ALLMODE ]] ; then
-    COUNT=$(ls ${TESTPATH}/adda* -1 | wc -l)
-    if [ $COUNT -eq 5 ]; then
-      echo "all executable files are present"
+  local mode=${1%% *}
+  if [[ "$mode" =~ "[A-Za-z]+_[A-Za-z]+" ]]; then # check cross modes, like mpi_seq
+    if [[ "$MODES" =~ "\b${mode%%_*}\b" && "$MODES" =~ "\b${mode##*_}\b" ]]; then
+      return 0
     else
-      printf "$RED WARNING! $COUNT instead of 5 executables available $NC\n"
-      ls ${TESTPATH}/adda* -1
+      return 1
     fi
-else
-
-    if [[ $SEQFLAG ]]; then
-        checkexec  "$LIST" "adda"
+  elif [[ "$MODES" =~ "\b${mode}\b" ]]; then
+    return 0
+  else  
+    return 1
+  fi  
+}
+# test the presence of executables
+function test_file_exe {
+  # test if file $1 exists (as given, or with .exe)
+  if [[ (! -f "$1") && (! -f "$1.exe") ]]; then
+    echo "ERROR: file '$1' not found" >&2
+    exit 1
+  fi 
+}
+function test_all_execs {
+  # tests the existence of all standard adda executables in a folder $1
+  if check_mode seq; then
+    test_file_exe "$1/adda"
+    if check_mode spa; then
+      test_file_exe "$1/adda_spa"
     fi
-
-    if [[ $MPIFLAG ]]; then
-        checkexec  "$LIST" "adda_mpi"
-        if [[ $SPAFLAG ]]; then
-            checkexec  "$LIST" "adda_spa_mpi"
-        fi
+  fi
+  if check_mode mpi; then
+    test_file_exe "$1/adda_mpi"
+    if check_mode spa; then
+      test_file_exe "$1/adda_spa_mpi"
     fi
-
-    if [[ $OCLFLAG ]]; then
-        checkexec  "$LIST" "adda_ocl"
-    fi
-
-    if [[ $SPAFLAG ]]; then
-        checkexec  "$LIST" "adda_spa"
-    fi
-
-    if [[ $MPISEQFLAG ]]; then
-        checkexec  "$LIST" "adda"
-        checkexec  "$LIST" "adda_mpi"
-    fi
-
-    if [[ $OCLSEQFLAG ]]; then
-        checkexec  "$LIST" "adda"
-        checkexec  "$LIST" "adda_ocl"
-    fi
-
-    if [[ $SPASEQFLAG ]]; then
-        checkexec  "$LIST" "adda"
-        checkexec  "$LIST" "adda_spa"
-    fi
-
-
+  fi
+  if check_mode ocl; then
+    test_file_exe "$1/adda_ocl"
+    # the following combination is not yet supported
+    # if check_mode spa; then
+    #   test_file_exe "$1/adda_spa_ocl"
+    # fi
+  fi  
+}
+if [[ -n "$3" && "$1" == "prev" ]]; then
+  # In principle, we can test some default folders, even if $3 is not given. Even parse comp2exec for current default
+  test_all_execs "$REFPATH"
 fi
-
-#cd "$BASEDIR"
-
-
-for exec in $LIST; do
-    if [ "$exec" == "adda" ] && [ "$SEQFLAG" ]; then
-        sh comp2exec seq                   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
-        sh comp2exec seq SURF_STANDARD     "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda";#??
-        sh comp2exec seq SURF_EXT          "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
-        sh comp2exec seq RECT_DIP_STANDARD "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda";#??
-        sh comp2exec seq RECT_DIP_EXT      "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
-        sh comp2exec seq RECT_DIP_TRICKY   "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda";
+if [[ -n "$4" ]]; then
+  test_all_execs "$4"
+fi
+# main execution
+for cmd in "${!NAME}"; do # Extra complication below for sparse mode
+  if check_mode "$cmd" && ([[ ! "$cmd" =~ "\bSPA_(EXT|STAN)\b" ]] || check_mode spa); then
+    #echo -e "\nInvoking test with '$cmd'"
+    if ! ./comp2exec $cmd; then
+      echo "ERROR during running 'comp2exec $cmd'" >&2
+      exit 1
     fi
-
-    if [ "$exec" == "adda_mpi" ] && [ "$MPIFLAG" ]; then
-        sh comp2exec mpi                  "REFPATH=${REFPATH}"  "ADDAMPI=${TESTPATH}/adda_mpi";
-    fi
-
-    if [ "$exec" == "adda_mpi" ] && [ "$MPISEQFLAG" ]; then
-        for exec in $LIST; do
-            if [ "$exec" == "adda" ]; then
-                sh comp2exec mpi_seq      "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda" "ADDAMPI=${TESTPATH}/adda_mpi";#??
-            fi
-        done
-    fi
-
-    if [ "$exec" == "adda_ocl" ] && [ "$OCLFLAG" ]; then
-        sh comp2exec ocl                  "REFPATH=${REFPATH}"  "ADDAOCL=${TESTPATH}/adda_ocl";
-    fi
-
-    if [ "$exec" == "adda_ocl" ] && [ "$OCLSEQFLAG" ]; then
-        for exec in $LIST; do
-            if [ "$exec" == "adda" ]; then
-                sh comp2exec ocl_seq      "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda" "ADDAOCL=${TESTPATH}/adda_ocl";#??
-            fi
-        done
-    fi
-
-    if [ "$exec" == "adda_spa" ] && [ "$SPAFLAG" ]; then
-        sh comp2exec seq SPARSE           "REFPATH=${REFPATH}"  "ADDASEQ=${TESTPATH}/adda_spa";
-    fi
-
-    if [ "$exec" == "adda_spa" ] && [ "$SPASEQFLAG" ]; then
-        for exec in $LIST; do
-            if [ "$exec" == "adda" ]; then
-                sh comp2exec seq SPARSE_STANDARD "REFPATH=${TESTPATH}" "ADDASEQ=${TESTPATH}/adda_spa";#??
-            fi
-        done
-    fi
-
-    if [ "$exec" == "adda_spa_mpi" ] && [ "$SPAFLAG" ] && [ "$MPIFLAG" ]; then
-        sh comp2exec mpi SPARSE           "REFPATH=${REFPATH}"  "ADDAMPI=${TESTPATH}/adda_spa_mpi";
-    fi
-
+  fi
 done
-

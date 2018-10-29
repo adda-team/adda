@@ -61,6 +61,7 @@ bool save_memory;   // whether to sacrifice some speed for memory
 bool ipr_required;  /* whether inner product in MatVec will be used by iterative solver (causes additional
                        initialization, e.g., for OpenCL) */
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
+bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
 // 3D vectors (in particle reference frame)
 double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
@@ -135,7 +136,7 @@ double hsub;            // height of particle center above surface
  */
 double prIncRefl[3],prIncTran[3];
 
-#ifndef SPARSE //These variables are exclusive to the FFT mode
+#ifndef SPARSE // These variables are exclusive to the FFT mode
 
 // position of the dipoles; in the very end of make_particle() z-components are adjusted to be relative to the local_z0
 unsigned short * restrict position;
@@ -160,11 +161,11 @@ int local_z1_coer;        // ending z, coerced to be not greater than boxZ (and 
 	// starting, ending x for current processor and number of x layers (based on the division of smallX)
 size_t local_x0,local_x1,local_Nx;
 
-#else //These variables are exclusive to the sparse mode
+#else // These variables are exclusive to the sparse mode
 
 int *position; // no reason to restrict this to short in sparse mode; actually it points to a part of position_full
-//in sparse mode, all coordinates must be available to each process
+// in sparse mode, all coordinates must be available to each process
 int * restrict position_full;
 
-#endif //SPARSE
+#endif // !SPARSE
 

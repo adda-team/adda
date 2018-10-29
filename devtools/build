@@ -1,118 +1,79 @@
 #!/bin/bash
-# Script can have one parameter (destination path, default value is ../tests/2exec/current_exec) in first position
-# and some modes
-# seq - build seq mode (adda)
-# mpi - build mpi mode (adda_mpi)
-# ocl - build OpenCL mode (adda_ocl)
-# spa - build SPARSE mode (adda_spa and adda_spa_mpi)
-# mpi_seq - build seq and mpi mode (adda and adda_mpi), for this script 'seq mpi' and 'mpi_seq' are equal [ difference occurs in 'test' script]
-# ocl_seq - build seq and OpenCL mode (adda and adda_ocl), for this script 'seq ocl' and 'ocl_seq' are equal [ difference occurs in 'test' script]
-# spa_seq - build seq and SPARSE mode (adda, adda_spa and adda_spa_mpi), for this script 'seq spa' and 'spa_seq' are equal [ difference occurs in 'test' script]
-MODES="seq mpi ocl spa mpi_seq ocl_seq spa_seq"
+# First optional parameter is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in
+# quotes, implies cross modes), or all (default). 'spa' is sparse and requires combination with something.
+# Second optional parameter is destination path to copy executables (anyway, they are left in compilation folders)
 
-#read first arg
-DESTINATION=${1:-../tests/2exec/current_exec}
-
-# check first arg, if it is mode then assign default value
-for mode in $MODES
-do
-  if [[ "$1" == "$mode" ]]; then
-      DESTINATION=../tests/2exec/current_exec
+# process input variables
+MODES=${1:-all}
+DEST=""
+if [ -n "$2" ]; then
+  if [ -d "$2" ]; then
+    DEST=`cd "$2"; pwd`
+  else
+    echo "ERROR: could not find the directory '$2'" >&2
+    exit 1
   fi
-done
-
-#truncate './'
-if [[ "$DESTINATION" == ./* ]]; then
-      DESTINATION=${DESTINATION:2}
 fi
-
-
-ALLMODE=1
-SEQFLAG=
-MPIFLAG=
-OCLFLAG=
-SPAFLAG=
-MPISEQFLAG=
-OCLSEQFLAG=
-SPASEQFLAG=
-
-#find flags in args
-for arg; do
-    for mode in $MODES
-    do
-        if [[ "$arg" == "$mode" ]]; then
-            #uppercase
-            line=`echo "${mode}FLAG=1" | tr 'a-z' 'A-Z' | tr -d _`
-            #echo "${line}"
-            eval "${line}"
-            ALLMODE=
-        fi
-    done
-done
-
-
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-mkdir -p "$BASEDIR/$DESTINATION"
-rm -f "$BASEDIR/$DESTINATION/adda"
-rm -f "$BASEDIR/$DESTINATION/adda_mpi"
-rm -f "$BASEDIR/$DESTINATION/adda_ocl"
-rm -f "$BASEDIR/$DESTINATION/adda_spa"
-rm -f "$BASEDIR/$DESTINATION/adda_spa_mpi"
-MAKEOPTIONS="OPTIONS="
-
-function makeusual {
-    cd "$BASEDIR/../src/"
-    make cleanfull
-
-    #=========================================
-    #=================  seq  =================
-    #=========================================
-    if [[ $ALLMODE  || $SEQFLAG  || $MPISEQFLAG || $SPASEQFLAG || $OCLSEQFLAG ]] ; then
-        SEQOPTIONS="$MAKEOPTIONS"
-        make seq "$SEQOPTIONS"
-        cp "seq/adda" "$BASEDIR/$DESTINATION/adda"
+# Extra compilation flags (just in case)
+XFL=""
+# auxiliary function
+function check_mode {
+  # returns 0 (true) if first word of $1 is a valid mode (with respect to $MODES)
+  if [ "$MODES" == "all" ]; then
+    return 0
+  fi
+  local mode=${1%% *}
+  if [[ "$mode" =~ "[A-Za-z]+_[A-Za-z]+" ]]; then # check cross modes, like mpi_seq
+    if [[ "$MODES" =~ "\b${mode%%_*}\b" && "$MODES" =~ "\b${mode##*_}\b" ]]; then
+      return 0
+    else
+      return 1
     fi
-
-    #=========================================
-    #=================  mpi  =================
-    #=========================================
-    if [[ $ALLMODE  || $MPIFLAG  || $MPISEQFLAG ]] ; then
-        MPIOPTIONS="$MAKEOPTIONS"
-        make mpi "$MPIOPTIONS"
-        cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_mpi"
+  elif [[ "$MODES" =~ "\b${mode}\b" ]]; then
+    return 0
+  else  
+    return 1
+  fi  
+}
+function compile_copy {
+  # $1 is mode, $2 - name of executable, $3 - extra options
+  if ! make $1 $3 $XFL; then
+    echo "ERROR during compiling ADDA with options '$1 $3 $XFL'" >&2
+    exit 1
+  fi
+  if [ -n "$DEST" ]; then
+    if ! cp $1/$2 "$DEST"; then
+      echo "ERROR during copying of executable '$1/$2'" >&2
+      exit 1
     fi
-
-    #=========================================
-    #=================  ocl  =================
-    #=========================================
-    if [[ $ALLMODE  || $OCLFLAG || $OCLSEQFLAG ]] ; then
-        OCLOPTIONS="$MAKEOPTIONS"
-        make ocl "$OCLOPTIONS"
-        cp "ocl/adda_ocl" "$BASEDIR/$DESTINATION/adda_ocl"
+  fi
+}
+function with_sparse {
+  # proceeds with standard and sparse mode, choosing the optimal order; 
+  # $1 is mode, $2,$3 - executable names for fft and sparse modes
+  if check_mode spa; then
+    if grep DSPARSE $1/.copts; then # first sparse
+      compile_copy $1 $3 "OPTIONS=SPARSE PROG$(echo $1 | tr '[:lower:]' '[:upper:]')=$3" 
+      compile_copy $1 $2
+    else # first fft
+      compile_copy $1 $2      
+      compile_copy $1 $3 "OPTIONS=SPARSE PROG$(echo $1 | tr '[:lower:]' '[:upper:]')=$3" 
     fi
+  else # fft only
+    compile_copy $1 $2
+  fi  
 }
 
-function makesparse {
-    #=========================================
-    #=================  spa  =================
-    #=========================================
-    if [[ $ALLMODE  || $SPAFLAG  || $SPASEQFLAG ]] ; then
-        cd "$BASEDIR/../src/"
-        make cleanfull
-        SPARSESEQOPTIONS="$MAKEOPTIONS SPARSE"
-        make seq "$SPARSESEQOPTIONS"
-        cp "seq/adda" "$BASEDIR/$DESTINATION/adda_spa"
-
-        SPARSEMPIOPTIONS="$MAKEOPTIONS SPARSE"
-        make mpi "$SPARSEMPIOPTIONS"
-        cp "mpi/adda_mpi" "$BASEDIR/$DESTINATION/adda_spa_mpi"
-    fi
-}
-
-makeusual
-makesparse
-
-# It is expected that fftw3 lib is available from evn var 'PATH';
-# if not copy by uncomment next line
-# cp ./../win64/*.dll "$BASEDIR/$DESTINATION"
+# main code; we do not do any special cleaning, since believe that make tracks all dependences
+cd ./../src
+if check_mode seq; then
+  with_sparse seq adda adda_spa
+fi
+if check_mode mpi; then
+  with_sparse mpi adda_mpi adda_spa_mpi
+fi
+if check_mode ocl; then
+  compile_copy ocl adda_ocl
+  # the following combination is not yet supported
+  # with_sparse ocl adda_ocl adda_spa_ocl
+fi

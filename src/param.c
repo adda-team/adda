@@ -114,7 +114,6 @@ bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;            // whether to average CC over incident polarization
-bool rectDip;              // whether using rectangular-cuboid (non-cubical) dipoles
 double polNlocRp;            // Gaussian width for non-local polarizability
 const char *alldir_parms;    // name of file with alldir parameters
 const char *scat_grid_parms; // name of file with parameters of scattering grid
@@ -175,13 +174,12 @@ static int Nmat_given;          // number of refractive indices given in the com
 static enum sym sym_type;       // how to treat particle symmetries
 /* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.
  * However, the latter can't be easily addressed by the option name (a search over the whole options is required).
+ * When thinking about adding a new one, first consider using UNDEF machinery instead
  */
 static bool prop_used;          // whether '-prop ...' was used in the command line
 static bool orient_used;        // whether '-orient ...' was used in the command line
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
-static bool int_surf_used;      // whether '-int_surf ...' was used in the command line
-static bool pol_used;           // whether '-pol ...' was used in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -475,9 +473,10 @@ static struct opt_struct options[]={
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
-		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in dipole sizes), for "
-		"which integration is used, (default: infinity); <prec> - minus decimal logarithm of relative error of the "
-		"integration, i.e. epsilon=10^(-<prec>) (default: same as argument of '-eps' command line option).\n"
+		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in largest dipole "
+		"dimensions), for which integration is used, (default: infinity); <prec> - minus decimal logarithm of relative "
+		"error of the integration, i.e. epsilon=10^(-<prec>) (default: the same as the argument (or default value) of "
+		"'-eps' command line option).\n"
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
@@ -572,7 +571,7 @@ static struct opt_struct options[]={
 		"'nloc_av' - same as 'nloc' but based on averaging of Gh over the dipole volume.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
-		"Default: ldr (without averaging).",UNDEF,NULL},
+		"Default: ldr (without averaging) or cldr (for -rect_dip).",UNDEF,NULL},
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * Modify string constants after 'PAR(pol)': add new argument (possibly with additional sub-arguments) to list
 		 * {...} and its description to the next string.
@@ -737,9 +736,9 @@ static void ATT_NORETURN ATT_PRINTF(1,2) PrintErrorHelpSafe(const char * restric
 	if (IFROOT) {
 		// produce error message
 		va_start(args,fmt);
-		fprintf(stderr,RED"ERROR: ");
+		fprintf(stderr,"ERROR: ");
 		vfprintf(stderr,fmt,args);
-		fprintf(stderr,"\n"RESET);
+		fprintf(stderr,"\n");
 		va_end(args);
 		// add help message
 		if (opt.l1==UNDEF) // no option is found
@@ -1109,7 +1108,7 @@ PARSE_FUNC(h)
 								found=true;
 								break;
 							}
-						if (!found) printf(RED"Unknown suboption '%s'\n\n"RESET,argv[2]);
+						if (!found) printf("Unknown suboption '%s'\n\n",argv[2]);
 					}
 				}
 				if (!found) {
@@ -1129,7 +1128,7 @@ PARSE_FUNC(h)
 				found=true;
 				break;
 			}
-			if (!found) printf(RED"Unknown option '%s'\n\n"RESET,argv[1]);
+			if (!found) printf("Unknown option '%s'\n\n",argv[1]);
 		}
 		if (!found) {
 			printf("Usage: '%s %s'\n"
@@ -1137,7 +1136,7 @@ PARSE_FUNC(h)
 			for (i=0;i<LENGTH(options);i++) printf("  -%s %s\n",options[i].name,options[i].usage);
 			printf("Type '%s -h <opt>' for details\n",exename);
 #ifdef SPARSE
-			printf(YELLOW"!!! A number of options are disabled in sparse mode\n"RESET);
+			printf("!!! A number of options are disabled in sparse mode\n");
 #endif
 		}
 	}
@@ -1225,7 +1224,6 @@ PARSE_FUNC(int_surf)
 	if (strcmp(argv[1],"img")==0) ReflRelation=GR_IMG;
 	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
 	else NotSupported("Interaction term prescription",argv[1]);
-	int_surf_used=true;
 	/* TO ADD NEW REFLECTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h.
@@ -1328,7 +1326,7 @@ PARSE_FUNC(phi_integr)
 PARSE_FUNC(pol)
 {
 	bool noExtraArgs=true;
-	pol_used = true;
+
 	if (Narg!=1 && Narg!=2) NargError(Narg,"1 or 2");
 	if (strcmp(argv[1],"cldr")==0) PolRelation=POL_CLDR;
 	else if (strcmp(argv[1],"cm")==0) PolRelation=POL_CM;
@@ -1396,12 +1394,11 @@ PARSE_FUNC(rect_dip)
 	ScanDoubleError(argv[1],&rectScaleX);
 	ScanDoubleError(argv[2],&rectScaleY);
 	ScanDoubleError(argv[3],&rectScaleZ);
-
 	TestPositive(rectScaleX,"x-scale of rectangular dipole");
 	TestPositive(rectScaleY,"y-scale of rectangular dipole");
 	TestPositive(rectScaleZ,"z-scale of rectangular dipole");
-
 	rectDip=true;
+	if (rectScaleX!=rectScaleY) symR=false;
 }
 #ifndef SPARSE
 PARSE_FUNC(save_geom)
@@ -1877,7 +1874,7 @@ void InitVariables(void)
 	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
-	PolRelation=POL_LDR;
+	PolRelation=UNDEF;
 	avg_inc_pol=false;
 	ScatRelation=SQ_DRAINE;
 	IntRelation=G_POINT_DIP;
@@ -1932,7 +1929,7 @@ void InitVariables(void)
 	recalc_resid=false;
 	surface=false;
 	msubInf=false;
-	int_surf_used=false;
+	ReflRelation=UNDEF;
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;
@@ -2030,6 +2027,8 @@ void VariablesInterconnect(void)
 	}
 	// if not initialized before, IGT precision is set to that of the iterative solver
 	if (igt_eps==UNDEF) igt_eps=iter_eps;
+	// defautl polarizability formulation depends on rect_dip
+	if (PolRelation==UNDEF) PolRelation = rectDip ? POL_CLDR : POL_LDR;
 	// parameter incompatibilities
 	if (scat_plane && yzplane) PrintError("Currently '-scat_plane' and '-yz' cannot be used together.");
 	if (orient_avg) {
@@ -2067,6 +2066,20 @@ void VariablesInterconnect(void)
 		scat_plane=false;
 		scat_grid=false;
 	}
+	if (rectDip) {
+		maxRectScale=MAX(rectScaleX,rectScaleY);
+		MAXIMIZE(maxRectScale,rectScaleZ);
+		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO)
+			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
+			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
+		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
+			"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
+			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
+		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
+		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
+		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
+			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
+	}	
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");
 		if (PolRelation==POL_SO) PrintError("'-anisotr' is incompatible with '-pol so'");
@@ -2095,12 +2108,15 @@ void VariablesInterconnect(void)
 		if (orient_used) PrintError("Currently '-orient' and '-surf' can not be used together");
 		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
 		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
-		if (!int_surf_used) ReflRelation = msubInf ? GR_IMG : GR_SOM;
+		if (ReflRelation==UNDEF) ReflRelation = msubInf ? GR_IMG : GR_SOM;
 		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
 			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
 		/* TO ADD NEW REFLECTION FORMULATION
 		 * Take a look at the above logic, and revise if the new formulation is not fully consistent with it
 		 */
+		 if (rectDip && ReflRelation==GR_SOM && rectScaleX!=rectScaleY) PrintError("Currently calculation of "
+			"Sommerfeld integrals (default for the surface mode) requires dipoles to have the same dimensions along "
+			"the x- and y-axes (but not z)");
 	}
 	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE
@@ -2168,24 +2184,6 @@ void VariablesInterconnect(void)
 		if (beam_asym) UpdateSymVec(beam_center);
 	}
 	ipr_required=(IterMethod==IT_BICGSTAB || IterMethod==IT_CGNR);
-
-	if(rectDip && !pol_used) {
-		PolRelation=POL_CLDR;
-	}
-	
-	if (rectDip) {
-		maxRectScale=MAX(rectScaleX,rectScaleY);
-		MAXIMIZE(maxRectScale,rectScaleZ);
-		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO )
-			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
-			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
-		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
-			"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
-			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
-		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
-		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
-		if (IntRelation==G_IGT_SO) PrintError("Currently '-int igt_so' and '-rect_dip' can not be used together");
-	}
 	/* TO ADD NEW ITERATIVE SOLVER
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)

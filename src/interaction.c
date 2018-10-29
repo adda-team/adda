@@ -147,7 +147,7 @@ void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex resu
 //=====================================================================================================================
 
 static inline void UnitsGridToCoord(const int i,const int j,const int k,double qvec[static 3])
-// initialize real vector with integer values multiplied by dipole scale
+// initialize real vector with integer values multiplied by dipole scale (the result is in units of gridspace)
 {
 	qvec[0]=i*(rectScaleX);
 	qvec[1]=j*(rectScaleY);
@@ -334,6 +334,7 @@ WRAPPERS_INTER(InterTerm_poi)
 
 static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
 /* Interaction term between two dipoles for FCD. See InterTerm_poi for more details.
+ * !!! Works only for cubical dipoles, otherwise careful reconsideration of all formulae is required
  *
  * FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D Green's tensor
  * associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120 (2002), and
@@ -353,7 +354,9 @@ static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[stat
 	double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
 	int comp;
 	doublecomplex eikfr; // exp(i*k_F*R)
-
+	// next line should never happen
+	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd");
+	
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -384,7 +387,9 @@ WRAPPERS_INTER(InterTerm_fcd)
 //=====================================================================================================================
 
 static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[static 6],const bool unitsGrid)
-// Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
+/* Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
+ * !!! Works only for cubical dipoles, otherwise careful reconsideration of all formulae is required
+ */
 // If needed, it can be updated to work fine for qvec==0
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
@@ -395,7 +400,9 @@ static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[s
 	double kfr,ci,si,brd;
 	int comp;
 	doublecomplex eikfr;
-
+	// next line should never happen
+	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd_st");
+	
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -432,7 +439,8 @@ static inline bool TestTableSize(const double rn)
 
 void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles for approximate IGT. arguments are described in .h file
- * Can't be easily made operational for arbitrary real distance due to predefined tables.
+ * Can't be easily made operational for arbitrary real distance due to predefined tables. 
+ * Thus, works only for cubical dipoles
  *
  * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
  * components).
@@ -449,6 +457,8 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
 	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
 	double t3q,t4q,t5tr,t6tr;
+	// next line should never happen
+	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_igt_so_int");
 	
 	UnitsGridToCoord(i,j,k,qvec);
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
@@ -620,6 +630,7 @@ static inline double gamma_scaled(const double s,const double x,const double exp
 static inline double AverageGaussCube(double x)
 /* computes one component of Gaussian averaging over a cube: (multiplied by 2)
  * [2/(sqrt(2pi)*d*Rp)]*Integral[exp(-(x+t)^2/(2Rp^2)),{t,-d/2,d/2}]
+ * !!! works only for cubical dipoles (with single size gridspace)
  */
 {
 	double dif;
@@ -641,7 +652,7 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
  * controlled by unitsGrid (true of false respectively), result is for produced output
  * averageH specifies if the h function should be averaged over the dipole (cube) volume
  *
- * !!! Currently only static version is implemented
+ * !!! Currently only static version is implemented; and only for cubical dipoles
  * !!! Mind the difference in sign with term in quantum-mechanical simulations, which defines the interaction energy
  * G = 4/[3sqrt(PI)R^3]g(5/2,x)[3(RR/R^2)-I] - (4pi/3)h(R), where x=R^2/(2Rp^2), g is lower incomplete  gamma-function.
  * For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
@@ -662,6 +673,9 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
 	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 
 	double sx,x,t1,t2,expMx,invRp3;
+	// next line should never happen
+	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_nloc_both");
+	
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	if (nloc_Rp==0) {
 		if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
@@ -711,6 +725,7 @@ WRAPPERS_INTER_3(InterTerm_nloc_av,InterTerm_nloc_both,true)
 void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
 /* Interaction term between two dipoles with second-order corrections. arguments are described in .h file
  * Can't be easily made operational for arbitrary real distance due to predefined tables.
+ * Thus, works only for cubical dipoles
  *
  * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
  * components). But now extra time is equivalent to 2-3 main iterations. So first priority is to make something useful
@@ -730,9 +745,8 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
 	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
 	const bool inter_avg=true; // temporary fixed option for SO formulation
-
 	// next line should never happen
-	if (anisotropy) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
+	if (anisotropy || rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
 
 	UnitsGridToCoord(i,j,k,qvec);
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,true);
@@ -1202,6 +1216,12 @@ static void CalcSomTable(void)
 	double z;
 	size_t ind;
 
+	/* The logic below is heavily based on dX=dY. In principle, it can be extended to integer ratios, but doesn't seem
+	 * worth the effort. First, it is hard to find interesting practical cases of particles on substrate that would
+	 * benefit from dX!=dY. Second, the issue will be solved automatically once optimized routines are implemented 
+	 * (as discussed above).
+	 */
+	if (gridSpaceX!=gridSpaceY) LogError(ONE_POS,"Incompatibility error in CalcSomTable");
 	XlessY=(boxX<=boxY);
 	// create index for plane x,y; if boxX<=boxY the space above the main diagonal is indexed (so x<=y) and vice versa
 	MALLOC_VECTOR(somIndex,sizet,boxY+1,ALL);
@@ -1218,7 +1238,8 @@ static void CalcSomTable(void)
 		for (k=0;k<local_Nz_Rm;k++) {
 			z=(k+ZsumShift)*gridSpaceZ;
 			for (j=0;j<boxY;j++) {
-				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i*gridSpaceX,j*gridSpaceY),z,somTable+4*ind);
+				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) 
+					SingleSomIntegral(hypot(i*gridSpaceX,j*gridSpaceY),z,somTable+4*ind);
 				else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i*gridSpaceX,j*gridSpaceY),z,somTable+4*ind);
 			}
 		}

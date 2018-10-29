@@ -27,10 +27,13 @@
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
-# Instead of 'all' a number of macros can be used: NOMPI, NOMPISEQ which is equivalent to 'all' for other modes, but
-# causes the line to be skipped in the matching mode. NOMPI lines are skipped both in mpi and mpi_seq modes.
+# Instead of 'all' an exclusion flags can be used - a concanetated list of '!X', where X is either an operational mode
+# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched, 
+# otherwise it is equivalent to 'all'.
 
 all ;g;
+
+# -grid skipped
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
@@ -63,9 +66,10 @@ all -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 ;mgn;
 all -h chp_dir
 all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
 all -h chp_load
-NOMPISEQ -chp_dir chp_tmp -chp_load ;mgn;
+!mpi_seq!SPA_STAN -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
+all -Cpr ;mgn;
 all -Cpr ;sep; ;mn;
 
 all -h Csca
@@ -89,19 +93,19 @@ all -eq_rad 1 ;mgn;
 #CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
 all -h grid
-all -grid 6 6 8 ;mg4n;
+all -grid 4 6 8 ;mg4n;
 
-#all -h
-#all -h h
+!SPA_STAN -h
+all -h h
 
-all -h init_field
+!SPA_STAN -h init_field
 all -init_field auto ;mgn;
 all -init_field inc ;mgn;
 all -init_field read IncBeam-Y IncBeam-X ;se; ;mn;
 #all -init_field wkb ;mgn;
 all -init_field zero ;mgn;
 
-all -h int
+!SPA_STAN -h int
 all -int fcd ;mgn;
 all -int fcd_st ;mgn;
 all -int igt ;mg4n;
@@ -115,7 +119,7 @@ all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
 all -int so ;mgn;
 
-all -h int_surf
+!SPA_STAN -h int_surf
 all -int_surf img -surf 4 2 0 ;mgn;
 all -int_surf som -surf 4 2 0 ;mgn;
 
@@ -142,7 +146,7 @@ all -maxiter 5 ;mgn;
 
 all -h no_reduced_fft
 all -no_reduced_fft ;mgn;
-NOMPI -no_reduced_fft -iter cgnr ;mgn; 
+!mpi,!mpi_seq -no_reduced_fft -iter cgnr ;mgn; 
 
 all -h no_vol_cor
 all -no_vol_cor -size 3 ;mgn;
@@ -156,8 +160,7 @@ all -opt mem ;mgn;
 
 all -h orient
 all -orient 30 0 0 ;mgn;
-all -orient 10 20 30 ;se; ;mn;
-all -orient 10 20 30 ;se; ;mn; ;p; -scat_matr both
+all -orient 10 20 30 ;sep; ;mn; -scat_matr both
 all -orient avg ;se; ;mn;
 all -orient avg ap.dat ;se; ;mn;
 
@@ -170,6 +173,7 @@ all -pol cm ;mgn;
 all -pol dgf ;mgn;
 all -pol fcd ;mgn;
 all -pol igt_so ;mgn;
+all -pol lak ;mgn;
 all -pol ldr ;p; ;mgn;
 all -pol ldr avgpol ;p; ;mgn;
 all -pol nloc 0.1 ;mgn;
@@ -190,6 +194,55 @@ all -prop 0 1 0 ;mgn;
 
 all -h recalc_resid
 all -recalc_resid ;mgn;
+
+# Rectangular dipoles; first round of tests are for hard-wired CLDR values
+all -h rect_dip
+all -rect_dip 1 1 1 ;mgn;
+all -rect_dip 1 1 1.5 ;mgn;
+all -rect_dip 1 1.5 1 ;mgn;
+all -rect_dip 1.5 1 1 ;mgn;
+all -rect_dip 1 1.5 1.5 ;mgn;
+all -rect_dip 1.5 1 1.5 ;mgn;
+all -rect_dip 1.5 1.5 1 ;mgn;
+all -rect_dip 1 1 2 ;mgn;
+all -rect_dip 1 2 1 ;mgn;
+all -rect_dip 2 1 1 ;mgn;
+all -rect_dip 1 1.5 2 ;mgn;
+all -rect_dip 1 2 1.5 ;mgn;
+all -rect_dip 1.5 1 2 ;mgn;
+all -rect_dip 1.5 2 1 ;mgn;
+# Turned off for ocl_seq until ocl supports larger prime factors in FFT
+!ocl_seq -rect_dip 2 1 1.5 ;mgn;
+!ocl_seq -rect_dip 2 1.5 1 ;mgn;
+all -rect_dip 1 2 2 ;mgn;
+all -rect_dip 2 1 2 ;mgn;
+all -rect_dip 2 2 1 ;mgn;
+all -rect_dip 1 1 3 ;mgn;
+all -rect_dip 1 3 1 ;mgn;
+all -rect_dip 3 1 1 ;mgn;
+all -rect_dip 1 1.5 3 ;mgn;
+all -rect_dip 1 3 1.5 ;mgn;
+all -rect_dip 1.5 1 3 ;mgn;
+all -rect_dip 1.5 3 1 ;mgn;
+all -rect_dip 3 1 1.5 ;mgn;
+all -rect_dip 3 1.5 1 ;mgn;
+all -rect_dip 1 2 3 ;mgn;
+all -rect_dip 1 3 2 ;mgn;
+all -rect_dip 2 1 3 ;mgn;
+all -rect_dip 2 3 1 ;mgn;
+all -rect_dip 3 1 2 ;mgn;
+all -rect_dip 3 2 1 ;mgn;
+all -rect_dip 1 3 3 ;mgn;
+all -rect_dip 3 1 3 ;mgn;
+all -rect_dip 3 3 1 ;mgn;
+# second, nontrivial combinations with other parameters
+all -rect_dip 2 2 3 ;mgn;
+all -rect_dip 1 1 1.4 -pol igt_so -int igt 3 ;p; ;mg4n;
+all -rect_dip 1 2 1 -pol cldr ;sep; ;mn;
+all -rect_dip 2 1 1 -pol cm ;sep; ;mn;
+#all -rect_dip 1 1 0.01 -int igt 3 -pol igt_so -shape box 1 0.001 -size 5 -grid 20 ;n;
+all -rect_dip 1 2 1 -surf 4 inf -prop 0 0 -3 ;mgn;
+all -rect_dip 2 1 1 -surf 4 inf -prop 0 0 -3 ;mgn;
 
 #all -h save_geom
 #all -save_geom -shape read coated.geom -prognosis
@@ -217,7 +270,7 @@ all -scat_matr none ;m; ;g;
 all -h scat_plane
 all -scat_plane ;se; ;mn;
 
-#all -h shape
+!SPA_STAN -h shape
 #all -h shape axisymmetric
 #all -shape axisymmetric 196.txt ;mgn;
 #all -h shape bicoated
@@ -229,6 +282,8 @@ all -scat_plane ;se; ;mn;
 #all -h shape box
 #all -shape box ;mgn;
 #all -shape box 0.5 1.5 ;mgn;
+# Turned off for ocl_seq until ocl supports larger prime factors in FFT
+#!ocl_seq -shape box 1.51 1.92 -grid 7 ;m; ;n;
 #all -h shape capsule
 #all -shape capsule 1.5 ;mgn;
 #all -h shape chebyshev
@@ -244,6 +299,7 @@ all -scat_plane ;se; ;mn;
 #all -shape ellipsoid 0.25 2 ;mgn;
 #all -h shape line
 #all -shape line -grid 16 ;m; ;n;
+#all -shape line -grid 8 2 3 ;m; ;n;
 #all -h shape plate
 #all -shape plate 0.5 ;mgn;
 #all -h shape prism
@@ -270,7 +326,7 @@ all -h store_dip_pol
 all -store_dip_pol ;se; ;mn;
 
 all -h store_force
-#all -store_force ;sep; ;mn;
+all -store_force ;sep; ;mn;
 
 #all -h store_grans
 #granules -store_grans -granul 0.2 1 -size 4 ;2mgn;
@@ -289,7 +345,7 @@ all -surf 4 inf -prop 1 2 -3 ;se; ;mn;
 all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;ss; ;mn;
 all -surf 4 inf -beam dipole 3 2 1 ;p; ;ss; ;mn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
-NOMPI -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
+!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
 
 all -h sym 
 all -sym auto ;mn; ;ss;
@@ -303,7 +359,7 @@ all -h test
 all -test ;mgn;
 
 all -h V
-all -V
+!mpi_seq!ocl_seq!SPA_STAN -V
 
 all -h vec
 all -vec ;sep; ;mn;
