@@ -1,0 +1,82 @@
+#!/bin/bash
+# First optional parameter is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in
+# quotes, implies cross modes), or all (default). 'spa' is sparse and requires combination with something.
+# Second optional parameter is destination path to copy executables (anyway, they are left in compilation folders)
+
+# process input variables
+MODES=${1:-all}
+DEST=""
+if [ -n "$2" ]; then
+  if [ -d "$2" ]; then
+    DEST=`cd "$2"; pwd`
+  else
+    echo "ERROR: could not find the directory '$2'" >&2
+    exit 1
+  fi
+fi
+# Extra compilation flags (just in case)
+XFL=""
+# auxiliary function
+function check_mode {
+  # returns 0 (true) if first word of $1 is a valid mode (with respect to $MODES)
+  if [ "$MODES" == "all" ]; then
+    return 0
+  fi
+  local mode=${1%% *}
+  # simplified left and right word boundaries
+  local bl="(^|\s)"
+  local br="($|\s)"
+  if [[ "$mode" =~ [a-zA-Z]+_[a-zA-Z]+ ]]; then # check cross modes, like mpi_seq - not relevant for this script
+    if [[ "$MODES" =~ $bl${mode%%_*}$br && "$MODES" =~ $bl${mode##*_}$br ]]; then
+      return 0
+    else
+      return 1
+    fi
+  elif [[ "$MODES" =~ $bl$mode$br ]]; then
+    return 0
+  else  
+    return 1
+  fi
+}
+function compile_copy {
+  # $1 is mode, $2 - name of executable, $3 - extra options
+  if ! make $1 $3 $XFL; then
+    echo "ERROR during compiling ADDA with options '$1 $3 $XFL'" >&2
+    exit 1
+  fi
+  if [ -n "$DEST" ]; then
+    if ! cp $1/$2 "$DEST"; then
+      echo "ERROR during copying of executable '$1/$2'" >&2
+      exit 1
+    fi
+  fi
+}
+function with_sparse {
+  # proceeds with standard and sparse mode, choosing the optimal order; 
+  # $1 is mode, $2,$3 - executable names for fft and sparse modes
+  if check_mode spa; then
+    if grep DSPARSE $1/.copts; then # first sparse
+      compile_copy $1 $3 "OPTIONS=SPARSE PROG$(echo $1 | tr '[:lower:]' '[:upper:]')=$3" 
+      compile_copy $1 $2
+    else # first fft
+      compile_copy $1 $2      
+      compile_copy $1 $3 "OPTIONS=SPARSE PROG$(echo $1 | tr '[:lower:]' '[:upper:]')=$3" 
+    fi
+  else # fft only
+    compile_copy $1 $2
+  fi  
+}
+
+# main code; we do not do any special cleaning, since believe that make tracks all dependences
+cd ./../src
+if check_mode seq; then
+  with_sparse seq adda adda_spa
+fi
+if check_mode mpi; then
+  with_sparse mpi adda_mpi adda_spa_mpi
+fi
+if check_mode ocl; then
+  compile_copy ocl adda_ocl
+  # the following combination is not yet supported
+  # with_sparse ocl adda_ocl adda_spa_ocl
+fi

@@ -1,0 +1,12 @@
+adda*
+*.o
+*.d
+.*opts
+*stackdump
+ExpCount
+tables
+run*
+test*
+*.dat
+*.geom
+out

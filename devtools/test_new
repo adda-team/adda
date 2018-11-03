@@ -1,0 +1,29 @@
+#!/bin/bash
+# A simple wrapper to build and test. The only optional argument is compilation modes (same as in the called scripts):
+# seq, mpi, ocl, spa, any combination of them (separated by space in quotes, implies cross modes), or all (default).
+# 'spa' is sparse and requires combination with something.
+#
+# All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
+# failures (redirect it to file or to colorize it in the terminal)
+
+# we do not define the default value, since called scripts can process empty value on their own
+MODES="$1"
+if ! ./build "$MODES"; then
+  echo "ERROR during building ADDA" >&2
+  exit 1
+fi
+
+cd ./../tests/2exec
+function test_error {
+  # Runs test $1 and checks its return status; if $2 is given, it is used instead of global $MODES
+  local locMODE=${2:-${MODES}}
+  if ! ./test_all $1 "$locMODE"; then
+    echo "ERROR (fatal) during testing '$1'" >&2
+    exit 1
+  fi
+}
+
+# uncomment any of the following for quicker tests
+test_error prev
+test_error cross
+test_error extra
