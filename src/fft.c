@@ -1223,7 +1223,7 @@ void InitDmatrix(void)
 	 */
 	for (ind=0;ind<Dsize;ind++) Dmatrix[ind]=0;
 	// fill Dmatrix with values of Green's tensor
-	for(k=nnn*local_z0;k<nnn*local_z1;k++) {
+	if(!is2D) for(k=nnn*local_z0;k<nnn*local_z1;k++) {
 		// correction of k is relevant only if reduced_FFT is not used
 		if (k>(int)smallZ) kcor=k-gridZ;
 		else kcor=k;

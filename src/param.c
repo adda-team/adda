@@ -1048,7 +1048,7 @@ PARSE_FUNC(eps)
 PARSE_FUNC(eq_rad)
 {
 	ScanDoubleError(argv[1],&a_eq);
-	TestPositive(a_eq,"dpl");
+	TestPositive(a_eq,"a_eq");
 }
 #ifdef OPENCL
 PARSE_FUNC(gpu)
@@ -1394,9 +1394,19 @@ PARSE_FUNC(rect_dip)
 	ScanDoubleError(argv[1],&rectScaleX);
 	ScanDoubleError(argv[2],&rectScaleY);
 	ScanDoubleError(argv[3],&rectScaleZ);
+
 	TestPositive(rectScaleX,"x-scale of rectangular dipole");
 	TestPositive(rectScaleY,"y-scale of rectangular dipole");
-	TestPositive(rectScaleZ,"z-scale of rectangular dipole");
+	TestNonNegative(rectScaleZ,"z-scale of rectangular dipole");
+
+#define ONLY_FIRST_ZERO(a,b,c) ( a==0 && b!=0 && c!=0 )
+	if(ONLY_FIRST_ZERO(rectScaleZ,rectScaleY,rectScaleX))
+	{
+		is2D=true;
+	}
+#undef ONLY_FIRST_ZERO
+
+
 	rectDip=true;
 	if (rectScaleX!=rectScaleY) symR=false;
 }
@@ -1853,6 +1863,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+	is2D=false;
 	rectDip=false;
 	prop_used=false;
 	orient_used=false;
@@ -2117,6 +2128,10 @@ void VariablesInterconnect(void)
 		 if (rectDip && ReflRelation==GR_SOM && rectScaleX!=rectScaleY) PrintError("Currently calculation of "
 			"Sommerfeld integrals (default for the surface mode) requires dipoles to have the same dimensions along "
 			"the x- and y-axes (but not z)");
+	}
+	if (is2D) {
+		volcor=false;
+	    if(a_eq!=UNDEF) PrintError("Currently 2D mode and '-eq_rad' can not be used together");
 	}
 	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE

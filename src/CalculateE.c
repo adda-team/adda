@@ -238,6 +238,7 @@ void MuellerMatrix(void)
 			if (store_mueller) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_MUEL,directory);
 				mueller=FOpenErr(fname,"w",ONE_POS);
+                if (is2D) fprintf(mueller,"#!2D mode, all quantities need to be multiplied with h^2!\n");
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
@@ -262,6 +263,7 @@ void MuellerMatrix(void)
 			if (store_mueller) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_MUEL,directory);
 				mueller=FOpenErr(fname,"w",ONE_POS);
+                if (is2D) fprintf(mueller,"#2D mode, all quantities need to be multiplied with h^2\n");
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
@@ -755,8 +757,11 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
-			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
-			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+
+			if (calc_Cext)
+			    PrintBoth(CCfile,"Cext\t= "GFORM"%s\nQext\t= "GFORM"%s\n",Cext,is2D?"*h":"",Cext*inv_G,is2D?"*h^1/3":"");
+			if (calc_Cabs)
+			    PrintBoth(CCfile,"Cabs\t= "GFORM"%s\nQabs\t= "GFORM"%s\n",Cabs,is2D?"*h":"",Cabs*inv_G,is2D?"*h^1/3":"");
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
@@ -785,6 +790,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				PrintBoth(CCfile,"Csca.g\t= "GFORM3V"\n",COMP3V(dummy));
 				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
+            if (is2D) PrintBoth(CCfile,"\n2D mode, all quantities are scaled by h\n");
 		} // end of root
 		if (calc_mat_force) {
 			if (IFROOT) printf("Calculating the force per dipole\n");

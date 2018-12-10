@@ -62,6 +62,7 @@ bool ipr_required;  /* whether inner product in MatVec will be used by iterative
                        initialization, e.g., for OpenCL) */
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
+bool is2D;          // 2D
 
 // 3D vectors (in particle reference frame)
 double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)

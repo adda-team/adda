@@ -1359,6 +1359,17 @@ void InitShape(void)
 	dpl_def=10*sqrt(tmp2);
 	// initialization of global option index for error messages
 	opt=opt_sh;
+
+	if(is2D) {
+        switch (shape) {
+            case SH_BOX:
+            case SH_CYLINDER:
+            case SH_PRISM:
+                break;
+            default: PrintError("only box, cylinder and prism shape are compatible with 2D mode");
+        }
+	}
+
 	// shape initialization
 	switch (shape) {
 #ifndef SPARSE //shapes other than "read" are disabled in sparse mode
@@ -1475,7 +1486,12 @@ void InitShape(void)
 				aspectY=sh_pars[0];
 				TestPositive(aspectY,"aspect ratio y/x");
 				aspectZ=sh_pars[1];
-				TestPositive(aspectZ,"aspect ratio z/x");
+				TestNonNegative(aspectZ,"aspect ratio z/x");
+				if(is2D) {
+				    if(aspectZ>0) PrintError("2D mode requires aspect ratio z/x=0");
+				} else {
+                    TestPositive(aspectZ,"aspect ratio z/x");
+				}
 				if (IFROOT) {
 					sh_form_str1="rectangular parallelepiped; size along x-axis:";
 					sh_form_str2=dyn_sprintf(", aspect ratio y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
@@ -1568,7 +1584,12 @@ void InitShape(void)
 			double diskratio;
 
 			diskratio=sh_pars[0];
-			TestPositive(diskratio,"height to diameter ratio");
+			TestNonNegative(diskratio,"height to diameter ratio");
+            if(is2D) {
+                if(diskratio>0) PrintError("2D mode requires height to diameter ratio h/D=0");
+            } else {
+                TestPositive(diskratio,"height to diameter ratio");
+            }
 			if (IFROOT) {
 				sh_form_str1="cylinder; diameter(d):";
 				sh_form_str2=dyn_sprintf(", height h/d="GFORM,diskratio);
@@ -1682,7 +1703,12 @@ void InitShape(void)
 			ConvertToInteger(sh_pars[0],"number of sides",&Nsides);
 			TestGreaterThan_i(Nsides,"number of sides",2);
 			diskratio=sh_pars[1];
-			TestPositive(diskratio,"height to x-size ratio");
+			TestNonNegative(diskratio,"height to x-size ratio");
+            if(is2D) {
+                if(diskratio>0) PrintError("2D mode requires height to x-size ratio h/X=0");
+            } else {
+                TestPositive(diskratio,"height to x-size ratio");
+            }
 			prang=PI/Nsides;
 			Rc=0.5/sin(prang);
 			Ri=Rc*cos(prang);
@@ -1918,8 +1944,17 @@ void InitShape(void)
 	 */
 	if (yx_ratio!=UNDEF) n_boxY=FitBox_yz(yx_ratio*boxX*(rectScaleX/rectScaleY));
 	else if (n_boxY==UNDEF) LogError(ONE_POS,"Both yx_ratio and n_boxY are undefined");
-	if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*(rectScaleX/rectScaleZ));
-	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
+
+	if(is2D) {
+		n_boxZ=1;
+	} else {
+		if (zx_ratio!=UNDEF) n_boxZ=FitBox_yz(zx_ratio*boxX*(rectScaleX/rectScaleZ));
+		else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
+	}
+
+
+
+
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
 		boxY=FitBox(n_boxY);
@@ -2198,16 +2233,16 @@ void MakeParticle(void)
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
 	if (sizeX==UNDEF) {
-		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
+		if (a_eq!=UNDEF && !is2D) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
 		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
-		if (volcor_used) 
+		if (volcor_used && !is2D)
 			sizeX=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
 		else sizeX=lambda*boxX*rectScaleX/dpl;
 	}
 	else {
 		// dpl is determined to give correct volume
-		if (volcor_used) 
+		if (volcor_used && !is2D)
 			dpl=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX/rectScaleX;
 		else dpl=lambda*boxX/sizeX;
 	}
@@ -2219,13 +2254,13 @@ void MakeParticle(void)
 	gridSpaceX=gridspace*rectScaleX;
 	gridSpaceY=gridspace*rectScaleY;
 	gridSpaceZ=gridspace*rectScaleZ;
-	dipvol=gridSpaceX*gridSpaceY*gridSpaceZ;
+	dipvol=gridSpaceX*gridSpaceY*(is2D?1:gridSpaceZ); //is2D - normalize to h
 	// initialize equivalent size parameter and cross section
 	kd = TWO_PI/dpl/rectScaleX;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
 	 * slightly different from the one given by '-eq_rad' option.
 	 */
-	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*gridspace;
+	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*gridSpaceX*gridSpaceY*(is2D?1:gridSpaceZ),ONE_THIRD);
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
 	

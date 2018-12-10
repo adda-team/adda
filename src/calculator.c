@@ -404,6 +404,13 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
+	if(is2D) {
+        doublecomplex temp=dipvol*(mrel[0]*mrel[0]-1)/FOUR_PI;
+		res[0]=temp;
+		res[1]=temp;
+		res[2]=temp/mrel[0]/mrel[0];
+		return;
+	}
 	if(rectDip) {
 		int i;
 		double a,b,c;
