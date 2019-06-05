@@ -94,6 +94,7 @@
          read(3114,*) 
          read(3114,*)
          read(3114,*)
+         read(3114,*)
          
          iext=0
          open(UNIT=3115,FILE=fbeam,STATUS='OLD',iostat=iosb)

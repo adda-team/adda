@@ -8,7 +8,7 @@ if [ $ERR -ne 0 ]; then
 fi
 #grep "#@#" adda.out > commvar
 mv sphere.geom target
-tail -n+4 target > target.tmp
+tail -n+5 target > target.tmp
 nump=`wc -l target.tmp`
 cat >hh <<%EOF%
 0
