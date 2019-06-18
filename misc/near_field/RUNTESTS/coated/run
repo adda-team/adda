@@ -1,19 +1,19 @@
 #!/bin/bash
 echo '------------adda----------------'
-$ADDABIN  -store_beam -store_dip_pol -store_int_field -save_geom -dir . -prop 0 0 1 -pol cm  -lambda 0.400 -m 0.5 2.0 -shape read target.in -eps 9 -size 0.030 &> adda.out
+$ADDABIN -store_beam -store_dip_pol -save_geom -dir . -prop 0 0 1 -pol cm -lambda 0.400 -m 0.5 2 2 0.2 -shape coated 0.5 -eps 9 -dpl 100 -grid 16 &> adda.out
 ERR=$?
 if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
   exit $ERR
 fi
-mv read.geom target
+mv coated.geom target
 echo '------------gendip-------------------'
 ../../gendip > gendip.out
 echo '------------genplane-------------------'
 cat >plane_input_xy <<%EOF%
-   15.0 3
-    -40.0 70.0 110
-     -30.0 60.0 90
+    8.0 3
+    -20.0 35.0 55
+     -20.0 35.0 55
 %EOF%
 ../../genplane < plane_input_xy > plane_points_xy
 echo '------------nearfield------------'
@@ -24,7 +24,7 @@ plane_points_xy
 nearfield_xy
 1 !eincflag
 0 !iformat 
-2 !debug
+1 !debug
 0 !internal
 %EOF%
 $MPIEXEC ../../nearfield < input_xy > nearfield.out
@@ -34,9 +34,9 @@ echo -------------verifying-------------
 
 echo ------------genline----------------
 cat > line_input <<%EOF%
--10 14.5  14.5 
-40 14.5  14.5 
--10 40 500
+-10 7.5  7.5 
+25 7.5  7.5 
+-10 25 350
 %EOF%
 ../../genline < line_input > line_points
 echo ------------nearfieldline----------

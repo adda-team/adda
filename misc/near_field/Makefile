@@ -16,7 +16,8 @@
 
 # ---- GNU Fortran Compiler
 FC     = gfortran
-FFLAGS = -O3 -ffast-math -funroll-loops $(EXTRA_FLAGS)
+# -ffast-math causes IEEE_INVALID_FLAG in checknfsymm, this is probably OK but safer is to skip this optimization
+FFLAGS = -O3 -funroll-loops $(EXTRA_FLAGS)
 MPIFC  = $(FC)
 LIBS   =
 MPILIBS= -lfmpich2g
