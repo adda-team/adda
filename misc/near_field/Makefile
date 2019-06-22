@@ -4,22 +4,22 @@
 #FC     = ifort
 #FFLAGS = -warn all -O3
 #MPIFC  = mpif90
-#LIBS   =
 #MPILIBS= -L/opt/hpmpi/lib/linux_64 -lmpi
 
 # ----- HP-UX
 #FC      = f90
 #MPIFC   = mpif90
 #FFLAGS  = +O3
-#LIBS    =
 #MPILIBS =  -L/opt/mpi/lib/hpux64/ -lmpio
 
 # ---- GNU Fortran Compiler
 FC     = gfortran
 # -ffast-math causes IEEE_INVALID_FLAG in checknfsymm, this is probably OK but safer is to skip this optimization
 FFLAGS = -O3 -funroll-loops $(EXTRA_FLAGS)
+# depending on your MPI implementation you may need one of the following (either special compiler wrapper, which takes
+# care of libraries), or standard compiler with explicit specification of MPI Fortran libraries
+# MPIFC = mpifort
 MPIFC  = $(FC)
-LIBS   =
 MPILIBS= -lfmpich2g
 # You might need something like the following on Windows (with MinGW)
 #MPILIBS += -I"C:/Program Files/MPICH2/include"
