@@ -48,8 +48,8 @@ int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1
 static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,* restrict tab6,
 	* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
 /* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
-* generally compatible with Free_iMatrix function syntax.
-*/
+ * generally compatible with Free_iMatrix function syntax.
+ */
 static int ** restrict tab_index; // matrix for indexing of table arrays
 // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
@@ -109,21 +109,21 @@ void name##_int(const int i,const int j,const int k,doublecomplex result[static 
  * to keep the input argument const, it has to be duplicated since some of the formulations of InterTerms may change it
  */
 # define REAL_WRAPPER_INTER(name) \
-void name##_real(const double qvec_in[restrict 3],doublecomplex result[static restrict 6]) { \
+void name##_real(const double qvec_in[static restrict 3],doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
 	vCopy(qvec_in,qvec); \
 	name(qvec,result,false); }
 
 // same as above, but calling function is different from name and accepts additional argument
 # define REAL_WRAPPER_INTER_3(name,func,arg) \
-void name##_real(const double qvec_in[restrict 3],doublecomplex result[static restrict 6]) { \
+void name##_real(const double qvec_in[static restrict 3],doublecomplex result[static restrict 6]) { \
 	double qvec[3]; \
 	vCopy(qvec_in,qvec); \
 	func(qvec,result,false,arg); }
 
 // wrapper for <name>, based on real input; arguments are described in .h file
 # define REAL_WRAPPER_REFL(name) \
-void name##_real(const double qvec[restrict 3],doublecomplex result[static restrict 6]) \
+void name##_real(const double qvec[static restrict 3],doublecomplex result[static restrict 6]) \
 	{ name(qvec,result,false); }
 
 // aggregate defines
@@ -135,7 +135,7 @@ void name##_real(const double qvec[restrict 3],doublecomplex result[static restr
  * instance, based on tables. Doesn't generate 'int' wrapper, since the function itself is used for it.
  */
 # define NO_REAL_WRAPPER(name) \
-void name##_real(const double qvec_in[restrict 3] ATT_UNUSED ,doublecomplex result[static restrict 6] ATT_UNUSED ) { \
+void name##_real(const double qvec_in[static restrict 3] ATT_UNUSED ,doublecomplex result[static restrict 6] ATT_UNUSED ) { \
 	LogError(ALL_POS,"Function "#name" to compute dipole interaction does not support real input"); }
 
 //=====================================================================================================================
@@ -278,6 +278,8 @@ static inline void InterTerm_core(const double kr,const double kr2,const double 
 }
 
 #else //not using SSE3
+
+//=====================================================================================================================
 
 static inline doublecomplex accImExp(const double x)
 // Without SSE3, this is just an alias for imExp

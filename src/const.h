@@ -139,11 +139,13 @@
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
 // formats for outputs of float values
-#define EFORM "%.10E"        // fixed width
-#define GFORM "%.10g"        // variable width (showing significant digits)
-#define GFORMDEF "%g"        // default output for non-precise values
-#define GFORM_DEBUG "%.2g"   // for debug and error output
-#define CFORM "%.10g%+.10gi" // for complex numbers; may be defined in terms of GFORM
+#define EFORM "%.10E"             // fixed width
+#define GFORM "%.10g"             // variable width (showing significant digits)
+#define GFORMDEF "%g"             // default output for non-precise values
+#define GFORM_FULL "%.16g"        // full precision (for some debugging applications)
+#define GFORM_DEBUG "%.2g"        // for debug and error output
+#define CFORM "%.10g%+.10gi"      // for complex numbers; may be defined in terms of GFORM
+#define CFORM_FULL "%.16g%+.16gi" // full-precision complex
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
@@ -231,6 +233,9 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 };// in alphabetical order
 
 // ldr constants
+/* Based on comparison of the original paper - Draine & Goodman, Astrophys. J. 405, 685-697 (1993) - with Mackowski,
+ * J. Opt. Soc. Am. A 19, 881-893 (2002), one can deduce that b1=10*b2+2*b3 - it can also be derived explicitly.
+ */
 #define LDR_B1  1.8915316
 #define LDR_B2 -0.1648469
 #define LDR_B3  1.7700004

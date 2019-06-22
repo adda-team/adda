@@ -169,14 +169,14 @@ void FinalStatistics(void)
 		if (!prognosis) {
 #ifdef OPENCL
 			fprintf(logfile,
-				"    init OpenCL          "FFORMT"\n",TO_SEC(Timing_OCL_Init));
+				"    init OpenCL:         "FFORMT"\n",TO_SEC(Timing_OCL_Init));
 
 #endif
 			fprintf(logfile,
-				"    init interaction     "FFORMT"\n",TO_SEC(Timing_Init_Int));
+				"    init interaction:    "FFORMT"\n",TO_SEC(Timing_Init_Int));
 #ifndef SPARSE
 			fprintf(logfile,
-				"    init Dmatrix         "FFORMT"\n",TO_SEC(Timing_Dm_Init));
+				"    init Dmatrix:        "FFORMT"\n",TO_SEC(Timing_Dm_Init));
 #	ifdef PARALLEL
 			fprintf(logfile,
 				"      communication:       "FFORMT"\n",TO_SEC(Timing_InitDmComm));

@@ -82,7 +82,8 @@ static inline int AlldirIndex(const int theta,const int phi)
 void InitRotation (void)
 /* initialize matrices used for reference frame transformation; based on Mishchenko M.I. "Calculation of the amplitude
  * matrix for a nonspherical particle in a fixed orientation", Applied Optics 39(6):1026-1031. This is so-called
- * zyz-notation or y-convention.
+ * zyz-notation or y-convention. Instead of rotating the particle (active rotation) we rotate everything else (passive).
+ * Then the beta_matr is the transpose of the active one.
  */
 {
 	double ca,sa,cb,sb,cg,sg;

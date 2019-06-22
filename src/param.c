@@ -1554,7 +1554,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2018 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2019 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -1654,7 +1654,7 @@ PARSE_FUNC(V)
 #	ifndef SUPPORT_MPI_COMPLEX
 		D("No support for complex MPI datatypes (emulated)");
 #	else
-#		ifndef SUPPORT_MPI_COMPLEX
+#		ifndef SUPPORT_MPI_COMPLEX_REDUCE
 		D("Complex MPI datatypes are supported, but their use in reduce operations is not supported (emulated)");
 #		endif
 #	endif
@@ -2027,8 +2027,8 @@ void VariablesInterconnect(void)
 	}
 	// if not initialized before, IGT precision is set to that of the iterative solver
 	if (igt_eps==UNDEF) igt_eps=iter_eps;
-	// defautl polarizability formulation depends on rect_dip
-	if (PolRelation==UNDEF) PolRelation = rectDip ? POL_CLDR : POL_LDR;
+	// default polarizability formulation depends on rect_dip
+	if (PolRelation==(enum pol)UNDEF) PolRelation = rectDip ? POL_CLDR : POL_LDR;
 	// parameter incompatibilities
 	if (scat_plane && yzplane) PrintError("Currently '-scat_plane' and '-yz' cannot be used together.");
 	if (orient_avg) {
@@ -2108,7 +2108,7 @@ void VariablesInterconnect(void)
 		if (orient_used) PrintError("Currently '-orient' and '-surf' can not be used together");
 		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
 		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
-		if (ReflRelation==UNDEF) ReflRelation = msubInf ? GR_IMG : GR_SOM;
+		if (ReflRelation==(enum refl)UNDEF) ReflRelation = msubInf ? GR_IMG : GR_SOM;
 		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
 			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
 		/* TO ADD NEW REFLECTION FORMULATION
@@ -2356,7 +2356,7 @@ void PrintInfo(void)
 		}
 		if (surface) {
 			if (msubInf) fprintf(logfile,"Particle is placed near the perfectly reflecting substrate\n");
-			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM",\n",REIM(msub));
+			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM"\n",REIM(msub));
 			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
 		}
 		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,rectDip ? " (along the x-axis)" : "");

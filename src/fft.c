@@ -51,7 +51,7 @@
 #ifdef FFTW3
 #	include <fftw3.h> // types.h or cmplx.h should be defined before (to match C99 complex type)
 /* define level of planning for usual and Dmatrix (DM) FFT: FFTW_ESTIMATE (heuristics), FFTW_MEASURE (default),
- * FTW_PATIENT, or FFTW_EXHAUSTIVE
+ * FFTW_PATIENT, or FFTW_EXHAUSTIVE
  */
 #	define PLAN_FFTW FFTW_MEASURE
 #	define PLAN_FFTW_DM FFTW_ESTIMATE
