@@ -1,0 +1,9 @@
+*.xf
+*.xmgr
+inputl
+line_input
+line_points
+nearfield_line.DAT
+nearfield_[x-y][y-z].DAT
+plane_points_[x-y][y-z]
+plane_input_[x-y][y-z]
