@@ -18,9 +18,9 @@ FC     = gfortran
 FFLAGS = -O3 -funroll-loops $(EXTRA_FLAGS)
 # depending on your MPI implementation you may need one of the following (either special compiler wrapper, which takes
 # care of libraries), or standard compiler with explicit specification of MPI Fortran libraries
-# MPIFC = mpifort
-MPIFC  = $(FC)
-MPILIBS= -lfmpich2g
+MPIFC = mpifort
+#MPIFC  = $(FC)
+#MPILIBS= -lfmpich2g
 # You might need something like the following on Windows (with MinGW)
 #MPILIBS += -I"C:/Program Files/MPICH2/include"
 #MPILIBS += -L"C:/Program Files/MPICH2/lib" -I"C:/Program Files/MPICH2/include"
