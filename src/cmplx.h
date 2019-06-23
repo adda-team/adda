@@ -21,8 +21,11 @@
 #include "const.h"    // for math constants
 #include "types.h"    // for doublecomplex
 // system headers
-#include <math.h>     // for cos, sin
+#include <math.h>
 #include <string.h>   // for memcpy
+
+// Uncomment this to turn off calculation of imExp using tables
+//#define NO_IMEXP_TABLE
 
 #ifdef USE_SSE3
 #include <xmmintrin.h>
@@ -34,15 +37,15 @@
 #define REIM(a) creal(a),cimag(a)
 #define REIM3V(a) REIM((a)[0]),REIM((a)[1]),REIM((a)[2])
 
-#ifdef ACCIMEXP
-doublecomplex * restrict imexptable;
-double xp;
-int ixp;
-double x;
-doublecomplex imexp;
-doublecomplex res;
-double par[2];
+#ifndef NO_IMEXP_TABLE
+void imExpTableInit(void);
+doublecomplex imExpTable(double arg);
 #endif
+void imExp_arr(doublecomplex arg,int size,doublecomplex *c);
+
+/* We do not use 'restrict' in the following functions since they are all inline - compiler will optimize the code
+ * inside the calling function and decide whether the arrays can alias or not.
+ */
 
 //======================================================================================================================
 // operations on complex numbers
@@ -84,86 +87,20 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
 //======================================================================================================================
 
 static inline doublecomplex imExp(const double arg)
-// exponent of imaginary argument Exp(i*arg); optimization is performed by compiler
-// this may be faster than using generic cexp, since imaginary type is not supported by all compilers
-{
-#ifndef ACCIMEXP
-	return cos(arg) + I*sin(arg);
-#else
-	xp=arg*0.159154943091895;
-	ixp=floor(xp);
-	xp=ixp*FULL_ANGLE;
-	x=arg*INV_PI_180;
-	x=x-xp;	//x° mod 360°
-	ixp=round(x);
-	imexp=imexptable[ixp];	//first guess
-	x=x-ixp;		// residual
-	xp=x*x;
-	
-	par[0]=-3.925831985743094e-14*xp;
-	par[1]=1.349601623163255e-11*xp;
-	par[0]+=3.866323851562993e-09;
-	par[1]+=-8.860961557012979e-07;
-	par[0]*=xp;
-	par[1]*=xp;
-	par[0]+=-1.523087098933543e-04;
-	par[1]+=1.74532925199432957214e-2;
-	par[0]*=xp;
-	par[1]*=x;
-	par[0]+=1.0;
-	res=par[0]+I*par[1];
-	res=imexp*res; 
-	return res;
-#endif
-}
-
-//======================================================================================================================
-
-static inline void imExp_arr(const doublecomplex arg,const int size,doublecomplex *c)
-/* construct an array of exponent of imaginary argument c=Exp(i*k*arg), where k=0,1,...,size-1. arg can be complex.
- * Uses stable recurrence from Numerical Recipes. Optimization of the initial simultaneous calculation of sin and cos is
- * performed by compiler; It is assumed that size is at least 1
+/* exponent of imaginary argument Exp(i*arg)
+ * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
  */
 {
-	int k;
-	double a,b;
-	doublecomplex d,tmp;
-	double re,im;
-
-	re=creal(arg);
-	im=cimag(arg);
-	// handles real part, no special case for re=0
-	c[0]=1;
-	if (size>1) {
-		// set a=2*sin^2(arg/2), b=sin(arg), d = 1 - exp(i*arg)
-		a=sin(re/2);
-		b=cos(re/2);
-		b*=2*a;
-		a*=2*a;
-		d= a - I*b;
-		// this a bit faster than in the main cycle
-		c[1]=1-d;
-		// main cycle
-		for (k=2;k<size;k++) {
-			/* potentially compiler may group terms to accelerate calculation but lose significant digits. We hope it
-			 * doesn't happen, but it should not be a big problem anyway
-			 */
-			tmp=c[k-1]*d;
-			c[k]=c[k-1]-tmp;
-		}
-	}
-	// handles imaginary part
-	if (im!=0) {
-		a=exp(-fabs(im));
-		if (im>0) for (k=1,b=a;k<size;k++) {
-			c[k]*=b;
-			b*=a;
-		}
-		else for (k=size-1,b=exp(-(size-1)*im);k>0;k--) {
-			c[k]*=b;
-			b*=a;
-		}
-	}
+#ifdef NO_IMEXP_TABLE
+	/* We tried different standard options. (sin + I*cos) is almost twice slower than cexp, while sincos (GNU extension)
+	 * is slightly faster (3.52 - 2.39 - 2.29 for matvec in test sparse runs, where about 1.23 is for non-exp part -
+	 * median values over 10 runs). So we prefer to use standard cexp.
+	 * When using table (below) the corresponding timing is 1.66.
+	 */
+	return cexp(I*arg);
+#else
+	return imExpTable(arg);
+#endif
 }
 
 //======================================================================================================================

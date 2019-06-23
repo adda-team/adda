@@ -225,9 +225,14 @@ static inline doublecomplex accImExp(const double x)
 	 * specified by the C99 standard). Explicit pointer casts have been put in place, and pragmas to ignore remaining
 	 * warnings from strict aliasing.
 	 *
-	 * !!! TODO: SSE3 code is a nice hack. But it should be considered carefully - is it worth it? In particular, it
-	 * seems that only parts of it are really beneficial (like tabulated evaluation of imaginary exponents), and those
-	 * can be incorporated into the main code (using standard C99 only).
+	 * !!! TODO: SSE3 code is a nice hack. But it should be considered carefully - is it worth it? After implementation
+	 * of the tabulated imExp for the whole code, the further improvement from SSE3 is < 10% (1.52 - 1.66 for matvec in
+	 * test sparse runs). Moreover, if the following is replaced by call to standard imExp(), the timing is almost the
+	 * same (1.52) with slight improvement if the check for int overflow is turned off (as is the case in SSE3 code).
+	 *
+	 * There seems to be some space for improvement in InterTerm_core (in comparison with SSE3) code, but otherwise we
+	 * should move to remove SSE3 code for better maintainability. Interestingly, adding -msse3 to standard code
+	 * compilation (without -DSSE3) doesn't help
 	 */
 	doublecomplex c;
 	IGNORE_WARNING(-Wstrict-aliasing);

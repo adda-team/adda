@@ -292,7 +292,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine amplitude of the reflected and transmitted waves
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncRefl);
-						if (msubInf) rc=-1;
+						if (msubInf) {
+							rc=-1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							cvBuildRe(ex,eIncTran);
 							rc=FresnelRS(ki,kt);
@@ -301,7 +304,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					}
 					else { // p-polarized
 						vInvRefl_cr(ex,eIncRefl);
-						if (msubInf) rc=1;
+						if (msubInf) {
+							rc=1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							crCrossProd(ey,ktVec,eIncTran);
 							cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub

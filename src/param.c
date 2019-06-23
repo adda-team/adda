@@ -2188,6 +2188,9 @@ void VariablesInterconnect(void)
 	 * add the new iterative solver to the above line, if it requires inner product calculation during matrix-vector
 	 * multiplication (i.e. calls MatVec function with non-NULL third argument)
 	 */
+#ifndef NO_IMEXP_TABLE
+	imExpTableInit();
+#endif
 
 	/* TO ADD NEW COMMAND LINE OPTION
 	 * If a new command line option may potentially conflict or interact with other options, add here code to implement
