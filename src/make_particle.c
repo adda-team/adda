@@ -1933,9 +1933,9 @@ void InitShape(void)
 		// this error is not duplicated in the log file since it does not yet exist
 		if (n_boxY>boxY || n_boxZ>boxZ)
 			PrintError("Particle (boxY,Z={%d,%d}) does not fit into specified boxY,Z={%d,%d}",n_boxY,n_boxZ,boxY,boxZ);
-		// redundant void dipoles may break the symmetry with respect to the centre of the whole box
-		if (!IS_EVEN((boxY-n_boxY)/jagged)) symY=false;
-		if (!IS_EVEN((boxZ-n_boxZ)/jagged)) symZ=false;
+		// redundant void dipoles may break the symmetry with respect to the center of the whole box
+		if (IS_ODD((boxY-n_boxY)/jagged)) symY=false;
+		if (IS_ODD((boxZ-n_boxZ)/jagged)) symZ=false;
 	}
 #ifndef SPARSE //this check is not needed in sparse mode
 	// initialize number of dipoles; first check that it fits into size_t type
@@ -2030,10 +2030,10 @@ void MakeParticle(void)
 					for (ns=0;ns<contNseg;ns++) if (contCurRo>=contSegRoMin[ns] && contCurRo<=contSegRoMax[ns])
 						CheckContourSegment(contSeg+ns) ? largerZ++ : smallerZ++;
 					// check for consistency; if the code is perfect, this is not needed
-					if (!IS_EVEN(largerZ+smallerZ)) LogError(ALL_POS,"Point (ro,z)=("GFORMDEF","GFORMDEF") "
+					if (IS_ODD(largerZ+smallerZ)) LogError(ALL_POS,"Point (ro,z)=("GFORMDEF","GFORMDEF") "
 						"produced weird result when checking whether it lies inside the contour. Larger than z %d "
 						"intersections, smaller - %d.",contCurRo,contCurZ,largerZ,smallerZ);
-					if (!IS_EVEN(largerZ)) mat=0;
+					if (IS_ODD(largerZ)) mat=0;
 				}
 				break;
 			case SH_BICOATED:

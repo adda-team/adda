@@ -1261,7 +1261,7 @@ PARSE_FUNC(m)
 	int i;
 	double mre,mim;
 
-	if (!IS_EVEN(Narg) || Narg==0) NargError(Narg,"even");
+	if (IS_ODD(Narg) || Narg==0) NargError(Narg,"even");
 	Nmat=Nmat_given=Narg/2;
 	if (Nmat>MAX_NMAT) PrintErrorHelp("Too many materials (%d), maximum %d are supported. You may increase parameter "
 		"MAX_NMAT in const.h and recompile.",Nmat,MAX_NMAT);

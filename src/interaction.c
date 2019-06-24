@@ -226,9 +226,10 @@ static inline doublecomplex accImExp(const double x)
 	 * warnings from strict aliasing.
 	 *
 	 * !!! TODO: SSE3 code is a nice hack. But it should be considered carefully - is it worth it? After implementation
-	 * of the tabulated imExp for the whole code, the further improvement from SSE3 is < 10% (1.52 - 1.66 for matvec in
+	 * of the tabulated imExp for the whole code, the further improvement from SSE3 is 10% (1.52 - 1.70 for matvec in
 	 * test sparse runs). Moreover, if the following is replaced by call to standard imExp(), the timing is almost the
-	 * same (1.52) with slight improvement if the check for int overflow is turned off (as is the case in SSE3 code).
+	 * same with slight improvement if the check for int overflow and negative numbers is turned off (as is the case in
+	 *  SSE3 code).
 	 *
 	 * There seems to be some space for improvement in InterTerm_core (in comparison with SSE3) code, but otherwise we
 	 * should move to remove SSE3 code for better maintainability. Interestingly, adding -msse3 to standard code

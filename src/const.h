@@ -56,7 +56,9 @@
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
 #define MAXIMIZE(A,B) {if ((A)<(B)) (A)=(B);}
-#define IS_EVEN(A) (((A)%2) == 0)
+#define IS_ODD(n) ((n) & 1) // n is integer
+#define IS_EVEN(n) (!(IS_ODD(n)))
+#define SIGN(A) ((A) >= 0.0 ? 1 : -1)
 #define DIV_CEILING(A,B) (((A)%(B)==0) ? (A)/(B) : ((A)/(B))+1 ) // valid only for nonnegative A and B
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A

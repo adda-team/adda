@@ -26,8 +26,21 @@
 #include <math.h>
 
 #ifndef NO_IMEXP_TABLE
-static doublecomplex ieTable[361]; // table for imExpTable
 
+/* We implemented two variants of tables - one is large one with straightforward access and usage, another one uses
+ * full symmetry of cexp, but takes longer time to combine into final answer (1.8 versus 1.7 in test sparse runs).
+ * So the following define is turned on by default, but can probably be turned off for small caches.
+ */
+#define LONG_IMEXP_TABLE
+
+#ifdef LONG_IMEXP_TABLE
+static doublecomplex ieTable[361]; // table for imExpTable
+#else
+static doublecomplex ieTable[46]; // table for imExpTable
+/* Alternative way to save memory is to use two smaller tables (e.g. 18x20), but this will require another memory access
+ * which is expensive. Still, can be useful in case of small caches
+ */
+#endif
 //======================================================================================================================
 
 void imExpTableInit()
@@ -36,6 +49,7 @@ void imExpTableInit()
  */
 {
 	int i;
+#ifdef LONG_IMEXP_TABLE
 	ieTable[0]=ieTable[360]=1;
 	ieTable[45]=SQRT1_2*(1+I);
 	for (i=1;i<45;i++) { // fill first quadrant using symmetries
@@ -47,6 +61,9 @@ void imExpTableInit()
 		ieTable[i+180]=-ieTable[i];
 		ieTable[i+270]=-I*ieTable[i];
 	}
+#else
+	for (i=0;i<=45;i++) ieTable[i]=cexp(I*Deg2Rad(i));
+#endif
 }
 
 //======================================================================================================================
@@ -62,8 +79,11 @@ doublecomplex imExpTable(const double arg)
 	double x;
 	doublecomplex imexp;
 	doublecomplex res;
-	const double abs_arg = fabs(arg);
-	bool neg = (arg<0);
+	bool negIm = (arg<0);
+	/* Use of separate branch for negative arguments is critical to avoid catastrophic loss of precision for small
+	 * negative arguments (since, otherwise, they are transformed into (2pi + x)). This cause a few percent loss in
+	 * performance.
+	 */
 
 	/* First, we scale the argument to degrees and bring it to [0,360) range
 	 * This range-reduction is a standard operation, and there are two main options for it. One can use TWO_PI with
@@ -71,10 +91,10 @@ doublecomplex imExpTable(const double arg)
 	 * simple operations with only double precision, and lose precision for large arguments. However, this loss of
 	 * precision is inherent in trying to compute cexp of a larger argument. We can compute cexp(I*arg) to a good
 	 * accuracy, but changing the argument by 1 lowest bit (relative uncertainty eps) introduces relative change to the
-	 * answer of arg*eps. So we 	 * choose the fast range reduction which precision loss is the same as the inherent
-	 * one.
+	 * answer of arg*eps. So we choose the fast range reduction which precision loss is the same as the inherent one.
 	 */
-	xp=abs_arg/TWO_PI;
+#ifdef LONG_IMEXP_TABLE
+	xp=fabs(arg)/TWO_PI;
 	if (xp>INT_MAX) { // slow case, but needed for robustness
 		xp=modf(xp,&x);
 	}
@@ -83,15 +103,30 @@ doublecomplex imExpTable(const double arg)
 		xp=xp-ixp;
 	}
 	x=xp*FULL_ANGLE;
+#else
+	int oct;
+	xp=fabs(arg)/PI_OVER_FOUR;
+	if (xp>INT_MAX) { // slow case, but needed for robustness
+		xp=modf(xp,&x);
+		oct=x - ldexp(floor(ldexp(x,-3)),3);
+	}
+	else {
+		ixp=(int)xp;
+		xp=xp-ixp;
+		oct=ixp&7;
+	}
+	if (IS_ODD(oct)) {
+		xp=1-xp;
+		oct=7-oct;
+		negIm = !negIm;
+	}
+	x=xp*45;
+#endif
 	// Second, it is divided into integer degrees (rounded) and residual x (|x|<=0.5)
 	ixp=(int)(x+0.5); // fast round, here large numbers are not an issue
 	x=x-ixp;          // residual
 	xp=x*x;
 	imexp=ieTable[ixp];
-	/* Alternative way is to use two smaller tables (e.g. 18x20) to have less memory footprint at the expense of a few
-	 * more arithmetic operations (for indexing and then multiplication of results). Does not make a lot of sense, but
-	 * can be useful in case of small caches
-	 */
 
 	/* Third, Taylor series is used for residual. An=(-1)^floor(n/2)*(pi/180)^n/n!
 	 * The following is constructed to provide double accuracy for argument (in degrees) less than 0.5; it should be
@@ -106,14 +141,26 @@ doublecomplex imExpTable(const double arg)
 #define A6 -3.9258319857430948822261807485761e-14
 	res=((A6+I*A5)*xp + (A4+I*A3))*xp + (A2+I*A1);
 	res=1 + creal(res)*xp + I*cimag(res)*x;
-	imexp*=res;
 #undef A1
 #undef A2
 #undef A3
 #undef A4
 #undef A5
 #undef A6
-	if (neg) imexp=conj(imexp);
+	imexp*=res;
+#ifndef LONG_IMEXP_TABLE
+	if (oct>3) {
+		oct-=4;
+		imexp=-imexp;
+	}
+	if (oct==2) imexp=I*imexp;
+//	switch (oct) {
+//		case 0: imexp = creal(imexp) + I*sgnIm*cimag(imexp); break;
+//		default: imexp =-cimag(imexp) + I*sgnIm*creal(imexp); // case 2
+//			// no break
+//	}
+#endif
+	if (negIm) imexp=conj(imexp);
 	/* The following can be used to test the accuracy of the fast implementations, and to estimate the relative time
 	 * used by imExp in test matvec runs (since it adds invocation of cexp).
 	 */
