@@ -90,7 +90,7 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 CMDIGNORE="^-h grid|^-h int|rect_dip|^-shape box 1.51|^-shape line"
 OLDIGNORE="^Sets parameter 'dipoles per lambda'|^  -rect_dip|^OpenCL memory usage|^#lattice spacings:|^Default: ldr"
 OLDIGNORE="$OLDIGNORE|^ADDA v\.|^Built with GNU compilers|^      using MinGW-64|^Copyright \(C\) 2006-20|^Linked to"
-OLDIGNORE="$OLDIGNORE|^(GPU-accelerated|Parallel) version conforming"
+OLDIGNORE="$OLDIGNORE|^(GPU-accelerated|Parallel) version conforming|^Particle is placed"
 
 # Path to reference binaries, examples: "." or "./../../win64"
 REFPATH=./../../win64
