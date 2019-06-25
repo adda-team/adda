@@ -33,6 +33,9 @@
  */
 #define LONG_IMEXP_TABLE
 
+// Uncomment the following for extensive testing of imExpTable
+//#define TEST_IMEXP_TABLE
+
 #ifdef LONG_IMEXP_TABLE
 static doublecomplex ieTable[361]; // table for imExpTable
 #else
@@ -64,6 +67,16 @@ void imExpTableInit()
 #else
 	for (i=0;i<=45;i++) ieTable[i]=cexp(I*Deg2Rad(i));
 #endif
+#ifdef TEST_IMEXP_TABLE
+	for (i=0;i<=10800;i++) {
+		imExpTable(Deg2Rad(i/100.0));
+		imExpTable(-Deg2Rad(i/100.0));
+		imExpTable(Deg2Rad(1e9*i));
+		imExpTable(-Deg2Rad(1e9*i));
+		imExpTable(Deg2Rad(1e-16*i));
+		imExpTable(-Deg2Rad(1e-16*i));
+	}
+#endif
 }
 
 //======================================================================================================================
@@ -71,6 +84,7 @@ void imExpTableInit()
 doublecomplex imExpTable(const double arg)
 /* exponent of imaginary argument Exp(i*arg) accelerated with lookup table - the table must be initialized before use
  * the idea is based on previous SSE3 code that was adapted from CEPHES library
+ * the code for short table (with octants) is based on GSL
  */
 {
 	// we do not use static variables for thread-safety (although they do lead to a few % speedup)
@@ -92,6 +106,7 @@ doublecomplex imExpTable(const double arg)
 	 * precision is inherent in trying to compute cexp of a larger argument. We can compute cexp(I*arg) to a good
 	 * accuracy, but changing the argument by 1 lowest bit (relative uncertainty eps) introduces relative change to the
 	 * answer of arg*eps. So we choose the fast range reduction which precision loss is the same as the inherent one.
+	 * The same philosophy is employed in GSL.
 	 */
 #ifdef LONG_IMEXP_TABLE
 	xp=fabs(arg)/TWO_PI;
@@ -161,15 +176,18 @@ doublecomplex imExpTable(const double arg)
 //	}
 #endif
 	if (negIm) imexp=conj(imexp);
+
+#ifdef TEST_IMEXP_TABLE
 	/* The following can be used to test the accuracy of the fast implementations, and to estimate the relative time
 	 * used by imExp in test matvec runs (since it adds invocation of cexp).
 	 */
-//	doublecomplex ref=cexp(I*arg);
-//	double err=cabs(imexp-ref);
-//	if (err>2*MAX(fabs(arg),1)*DBL_EPSILON) {
-//		LogError(ALL_POS,"Insufficient accuracy of accelerated imExp: arg="GFORM_FULL"; err="GFORMDEF"\n"
-//			"Computed:  "CFORM_FULL"\nReference: "CFORM_FULL,arg,err,REIM(imexp),REIM(ref));
-//	}
+	doublecomplex ref=cexp(I*arg);
+	double err=cabs(imexp-ref);
+	if (err>2*MAX(fabs(arg),1)*DBL_EPSILON) {
+		LogError(ALL_POS,"Insufficient accuracy of accelerated imExp: arg="GFORM_FULL"; err="GFORMDEF"\n"
+			"Computed:  "CFORM_FULL"\nReference: "CFORM_FULL,arg,err,REIM(imexp),REIM(ref));
+	}
+#endif
 	return imexp;
 }
 
