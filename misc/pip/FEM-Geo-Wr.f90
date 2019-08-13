@@ -45,7 +45,7 @@
   real face_point(3,face_max)
   real face_normal(3,face_max)
   real face_area(face_max)
-  character (len = 100) filein_name,name_out
+  character (len = 100) filein_name,name_out,tmpname
   integer face_order(face_max)
   integer face(face_order_max,face_max)
   real v4(3,node_max)
@@ -85,12 +85,23 @@
 
     if(numiargc.eq.0) then
         shape_size = 80
-    else
+		filein_name='shape.obj'
+    else if(numiargc.eq.1) then
+		call getarg(1,strafg)
+        read(unit=strafg,fmt=*)shape_size
+		filein_name='shape.obj'		
+	else
         call getarg(1,strafg)
-        read(unit=strafg,fmt=*)shape_size 
+        read(unit=strafg,fmt=*)shape_size
+		call getarg(2,strafg)
+        read(unit=strafg,fmt=*)tmpname
+		filein_name=trim(tmpname)//'.obj'
+		name_out=trim(tmpname)//'.dat'
     end if
 
     print *, 'Maximum shape size = ', shape_size
+    print *, 'Input file = ', filein_name
+    print *, 'Output file = ', name_out
 
     xsh = shape_size
     ysh = shape_size
@@ -105,7 +116,6 @@
 !
 !   .obj input file name
 !
-	filein_name='shape.obj'
 !
 	call ivread_wr(filein_name,face_point,face_normal,face_area,face_num,node_num,v4,face)
 	
@@ -206,7 +216,7 @@
       ENDDO
 
     WRITE(*,*)NAT
-    OPEN(UNIT=12,FILE='shape.dat',STATUS='UNKNOWN')
+    OPEN(UNIT=12,FILE=name_out,STATUS='UNKNOWN')
     WRITE(12,FMT=92)NBX,NBY,NBZ,NAT,A1,A2,DX
     DO JX=1,NAT
        WRITE(12,FMT=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX,1),ICOMP(JX,2),ICOMP(JX,3)
@@ -222,7 +232,7 @@
        3F9.6,' = lattice spacings (d_x,d_y,d_z)/d',/,&
        ' 0.0 0.0 0.0',/,&
        '     JA  IX  IY  IZ ICOMP(x,y,z)')
-93 Format(I7,3I4,3I2)
+93 Format(I7,3I6,3I2)
 
 end
 
