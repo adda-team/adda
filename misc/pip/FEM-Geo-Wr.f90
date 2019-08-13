@@ -45,7 +45,7 @@
   real face_point(3,face_max)
   real face_normal(3,face_max)
   real face_area(face_max)
-  character (len = 100) filein_name,name_out,tmpname
+  character (len = 100) filein_name,name_out
   integer face_order(face_max)
   integer face(face_order_max,face_max)
   real v4(3,node_max)
@@ -94,9 +94,9 @@
         call getarg(1,strafg)
         read(unit=strafg,fmt=*)shape_size
 		call getarg(2,strafg)
-        read(unit=strafg,fmt=*)tmpname
-		filein_name=trim(tmpname)//'.obj'
-		name_out=trim(tmpname)//'.dat'
+        read(unit=strafg,fmt=*)filein_name
+		filein_name=trim(filein_name)//'.obj'
+		name_out=trim(filein_name)//'.dat'
     end if
 
     print *, 'Maximum shape size = ', shape_size
@@ -232,7 +232,7 @@
        3F9.6,' = lattice spacings (d_x,d_y,d_z)/d',/,&
        ' 0.0 0.0 0.0',/,&
        '     JA  IX  IY  IZ ICOMP(x,y,z)')
-93 Format(I7,3I6,3I2)
+93 Format(I7,3I4,3I2)
 
 end
 
