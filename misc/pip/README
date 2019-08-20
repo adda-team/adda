@@ -4,7 +4,7 @@ Authors: Roman Schuh and Thomas Wriedt, using routines by John Burkardt.
 
 To compile under Unix type "make" in current directory. Windows executables are available in corresponding ADDA packages.
 
-Executable is named 'pip', it accepts a two command line parameter: 
+Executable is named 'pip', it accepts a two command line parameters: 
 
 - maximum shape size in dipoles along the largest dimension that is determined automatically;
 
