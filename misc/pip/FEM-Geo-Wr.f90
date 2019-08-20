@@ -85,18 +85,18 @@
 
     if(numiargc.eq.0) then
         shape_size = 80
-		filein_name='shape.obj'
+        filein_name='shape.obj'
     else if(numiargc.eq.1) then
-		call getarg(1,strafg)
-        read(unit=strafg,fmt=*)shape_size
-		filein_name='shape.obj'		
-	else
         call getarg(1,strafg)
         read(unit=strafg,fmt=*)shape_size
-		call getarg(2,strafg)
+        filein_name='shape.obj'		
+    else
+        call getarg(1,strafg)
+        read(unit=strafg,fmt=*)shape_size
+        call getarg(2,strafg)
         read(unit=strafg,fmt=*)filein_name
-		filein_name=trim(filein_name)//'.obj'
-		name_out=trim(filein_name)//'.dat'
+        filein_name=trim(filein_name)//'.obj'
+        name_out=trim(filein_name)//'.dat'
     end if
 
     print *, 'Maximum shape size = ', shape_size
