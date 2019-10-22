@@ -193,7 +193,8 @@ enum pol { // which way to calculate coupleconstant
 	POL_NLOC,    // non-local extension (Gaussian dipole-density, formula based on lattice sums)
 	POL_NLOC_AV, // same as NLOC, but based on averaging of Gaussian over the dipole volume
 	POL_RRC,     // Radiative Reaction correction
-	POL_SO       // Second Order formulation
+	POL_SO,      // Second Order formulation
+	POL_1D_ZO    // Zeroth Order formulation for 1D scatterer
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add an identifier starting with 'POL_' and a descriptive comment to this list in the alphabetical order.
 	 */
@@ -217,7 +218,8 @@ enum inter { // how to calculate interaction term
 	G_NLOC,      // non-local extension (interaction of Gaussian dipole-densities)
 	G_NLOC_AV,   // same as NLOC, but based on averaging of Gaussian over the dipole volume
 	G_POINT_DIP, // as point dipoles
-	G_SO         // Second Order formulation
+	G_SO,        // Second Order formulation
+	G_1D_ZO      // Zeroth Order formulation for 1D scatterer
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * add an identifier starting with 'G_' and a descriptive comment to this list in the alphabetical order.
 	 */

@@ -1360,13 +1360,13 @@ void InitShape(void)
 	// initialization of global option index for error messages
 	opt=opt_sh;
 
-	if(is2D) {
+	if(is2D || is1D) {
         switch (shape) {
             case SH_BOX:
             case SH_CYLINDER:
             case SH_PRISM:
                 break;
-            default: PrintError("only box, cylinder and prism shape are compatible with 2D mode");
+            default: PrintError("only box, cylinder and prism shape are compatible with 2D or 1D mode");
         }
 	}
 
@@ -2368,6 +2368,8 @@ void MakeParticle(void)
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif
 #endif // SPARSE
-	
+	if (is1D) {
+		cross_section_1D=nvoid_Ndip*dipvol/boxZ/gridSpaceZ;
+	}
 	Timing_Particle += GET_TIME() - tstart;
 }

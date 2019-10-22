@@ -238,7 +238,11 @@ void MuellerMatrix(void)
 			if (store_mueller) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_MUEL,directory);
 				mueller=FOpenErr(fname,"w",ONE_POS);
-                if (is2D) fprintf(mueller,"#!2D mode, all quantities need to be multiplied with h^2!\n");
+                if (is2D) fprintf(mueller,"#2D mode, all quantities need to be multiplied with h^2\n");
+                if (is1D)
+				{
+					fprintf(mueller,"#1D mode, all quantities can be scaled with CONST*S^2 (S is cross section). For current calculation S=%.6E\n", cross_section_1D);
+				}
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
@@ -264,6 +268,10 @@ void MuellerMatrix(void)
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_MUEL,directory);
 				mueller=FOpenErr(fname,"w",ONE_POS);
                 if (is2D) fprintf(mueller,"#2D mode, all quantities need to be multiplied with h^2\n");
+				if (is1D)
+				{
+					fprintf(mueller,"#1D mode, all quantities can be scaled with CONST*S^2 (S is cross section). For current calculation S=%.6E\n", cross_section_1D);
+				}
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
@@ -758,10 +766,20 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 
-			if (calc_Cext)
-			    PrintBoth(CCfile,"Cext\t= "GFORM"%s\nQext\t= "GFORM"%s\n",Cext,is2D?"*h":"",Cext*inv_G,is2D?"*h^1/3":"");
-			if (calc_Cabs)
-			    PrintBoth(CCfile,"Cabs\t= "GFORM"%s\nQabs\t= "GFORM"%s\n",Cabs,is2D?"*h":"",Cabs*inv_G,is2D?"*h^1/3":"");
+			if (calc_Cext) {
+				if (is1D) {
+					PrintBoth(CCfile,"Cext\t= "GFORM" \t#1D mode, Cext can be scaled with %.6E*S (S is cross section). For current calculation S=%.6E\nQext\t= "GFORM" \t#%.6E*S^1/3\n",Cext,Cext/cross_section_1D,cross_section_1D,Cext*inv_G,Cext*inv_G/pow(cross_section_1D,ONE_THIRD));
+				} else {
+					PrintBoth(CCfile,"Cext\t= "GFORM"%s\nQext\t= "GFORM"%s\n",Cext,is2D?"*h":"",Cext*inv_G,is2D?"*h^1/3":"");
+				}
+			}
+			if (calc_Cabs) {
+				if (is1D) {
+					PrintBoth(CCfile,"Cabs\t= "GFORM" \t#1D mode, Cabs can be scaled with %.6E*S (S is cross section). For current calculation S=%.6E\nQabs\t= "GFORM" \t#%.6E*S^1/3\n",Cabs,Cabs/cross_section_1D,cross_section_1D,Cabs*inv_G,Cabs*inv_G/pow(cross_section_1D,ONE_THIRD));
+				} else {
+					PrintBoth(CCfile,"Cabs\t= "GFORM"%s\nQabs\t= "GFORM"%s\n",Cabs,is2D?"*h":"",Cabs*inv_G,is2D?"*h^1/3":"");
+				}
+			}
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
@@ -791,6 +809,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				if (calc_asym) PrintBoth(CCfile,"g\t= "GFORM3V"\n",dummy[0]/Csca,dummy[1]/Csca,dummy[2]/Csca);
 			}
             if (is2D) PrintBoth(CCfile,"\n2D mode, all quantities are scaled by h\n");
+            if (is1D) PrintBoth(CCfile,"\n1D mode, all quantities can be scaled by cross section\n");
 		} // end of root
 		if (calc_mat_force) {
 			if (IFROOT) printf("Calculating the force per dipole\n");

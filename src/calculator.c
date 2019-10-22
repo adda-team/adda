@@ -404,13 +404,25 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
+
+	if(PolRelation==POL_1D_ZO) {
+		doublecomplex temp=dipvol*(mrel[0]*mrel[0]-1)/FOUR_PI;
+		res[0]=temp/(8*atan(rectScaleY/rectScaleX)*(mrel[0]*mrel[0]-1)/FOUR_PI + 1);
+		res[1]=temp/(8*atan(rectScaleX/rectScaleY)*(mrel[0]*mrel[0]-1)/FOUR_PI + 1);
+		res[2]=temp;
+	}
 	if(is2D) {
         doublecomplex temp=dipvol*(mrel[0]*mrel[0]-1)/FOUR_PI;
 		res[0]=temp;
 		res[1]=temp;
 		res[2]=temp/mrel[0]/mrel[0];
-		return;
 	}
+
+    if(PolRelation==POL_1D_ZO || is2D) {
+        if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM3V"\n",REIM3V(res));
+        return;
+    }
+
 	if(rectDip) {
 		int i;
 		double a,b,c;

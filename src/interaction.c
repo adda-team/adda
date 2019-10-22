@@ -990,6 +990,50 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 WRAPPERS_INTER(InterTerm_igt)
 
 #endif
+
+static inline void InterTerm_1d_zo_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
+// Zeroth order interaction term between two dipoles for horizontal neighbors.
+{
+	result[0] = 0;
+	result[1] = 0;
+	result[2] = 0;
+	result[3] = 0;
+	result[4] = 0;
+	result[5] = 0;
+
+	//1D mode allows only horizontal interaction
+	if (k>0) return;
+
+	double omega1_x, omega2_x, omega1_y, omega2_y;
+	double yx_ratio = rectScaleY/rectScaleX, xy_ratio = rectScaleX/rectScaleY;
+	omega1_x = atan(yx_ratio*(2*abs(j)+1)/(2*abs(i)+1)) - atan(yx_ratio*(2*abs(j)-1)/(2*abs(i)+1));
+	omega1_x *= 2;
+
+	omega2_x = atan(yx_ratio*(2*abs(j)+1)/(2*abs(i)-1)) - atan(yx_ratio*(2*abs(j)-1)/(2*abs(i)-1));
+	omega2_x *= 2;
+
+	result[0] = (omega2_x - omega1_x)/dipvol;
+
+	if (i!=0 && j!=0)
+    {
+		double rectScaleX2 = rectScaleX*rectScaleX, rectScaleY2 = rectScaleY*rectScaleY;
+        omega1_x = log((i-0.5)*(i-0.5)*rectScaleX2 + (j+0.5)*(j+0.5)*rectScaleY2) - log((i-0.5)*(i-0.5)*rectScaleX2 + (j-0.5)*(j-0.5)*rectScaleY2);
+        omega2_y = log((i+0.5)*(i+0.5)*rectScaleX2 + (j+0.5)*(j+0.5)*rectScaleY2) - log((i+0.5)*(i+0.5)*rectScaleX2 + (j-0.5)*(j-0.5)*rectScaleY2);
+
+        result[1] = (omega1_x - omega2_y)/dipvol;
+    }
+
+	omega1_y = atan(xy_ratio*(2*abs(i)+1)/(2*abs(j)+1)) - atan(xy_ratio*(2*abs(i)-1)/(2*abs(j)+1));
+	omega1_y *= 2;
+
+	omega2_y = atan(xy_ratio*(2*abs(i)+1)/(2*abs(j)-1)) - atan(xy_ratio*(2*abs(i)-1)/(2*abs(j)-1));
+	omega2_y *= 2;
+
+	result[3] = (omega2_y - omega1_y)/dipvol;
+}
+
+NO_REAL_WRAPPER(InterTerm_1d_zo)
+
 /* TO ADD NEW INTERACTION FORMULATION
  * Add above functions that actually perform the calculation of the interaction term, according to the new formulae. At
  * the end you need to have two functions according to the declarations InterTerm_int and InterTerm_real in
@@ -1387,6 +1431,7 @@ void InitInteraction(void)
 				"arbitrary real arguments");
 			SET_FUNC_POINTERS(InterTerm,so);
 			break;
+		case G_1D_ZO: SET_FUNC_POINTERS(InterTerm,1d_zo); break;
 #ifndef NO_FORTRAN
 		case G_IGT: SET_FUNC_POINTERS(InterTerm,igt); break;
 #endif

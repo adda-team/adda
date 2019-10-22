@@ -63,6 +63,8 @@ bool ipr_required;  /* whether inner product in MatVec will be used by iterative
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 bool is2D;          // 2D
+bool is1D;          // 1D
+
 
 // 3D vectors (in particle reference frame)
 double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
@@ -169,4 +171,6 @@ int *position; // no reason to restrict this to short in sparse mode; actually i
 int * restrict position_full;
 
 #endif // !SPARSE
+
+double cross_section_1D; //cross section for 1D mode
 

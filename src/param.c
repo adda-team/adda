@@ -1210,6 +1210,7 @@ PARSE_FUNC(int)
 	}
 	else if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
 	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
+	else if (strcmp(argv[1],"1d")==0) IntRelation=G_1D_ZO;
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1359,6 +1360,7 @@ PARSE_FUNC(pol)
 	}
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
 	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
+	else if (strcmp(argv[1],"1d")==0) PolRelation=POL_1D_ZO;
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1400,12 +1402,10 @@ PARSE_FUNC(rect_dip)
 	TestNonNegative(rectScaleZ,"z-scale of rectangular dipole");
 
 #define ONLY_FIRST_ZERO(a,b,c) ( a==0 && b!=0 && c!=0 )
-	if(ONLY_FIRST_ZERO(rectScaleZ,rectScaleY,rectScaleX))
-	{
+	if (ONLY_FIRST_ZERO(rectScaleZ,rectScaleY,rectScaleX)) {
 		is2D=true;
 	}
 #undef ONLY_FIRST_ZERO
-
 
 	rectDip=true;
 	if (rectScaleX!=rectScaleY) symR=false;
@@ -1863,6 +1863,7 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+	is1D=false;
 	is2D=false;
 	rectDip=false;
 	prop_used=false;
@@ -2012,7 +2013,7 @@ void VariablesInterconnect(void)
 // finish parameters initialization based on their interconnections
 {
 	double temp;
-
+	is1D = PolRelation==POL_1D_ZO || IntRelation==G_1D_ZO;
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI/lambda;
 	// set default incident direction, which is +z for all configurations
@@ -2080,7 +2081,7 @@ void VariablesInterconnect(void)
 	if (rectDip) {
 		maxRectScale=MAX(rectScaleX,rectScaleY);
 		MAXIMIZE(maxRectScale,rectScaleZ);
-		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO)
+		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO && PolRelation!=POL_1D_ZO)
 			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
 			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
 		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
@@ -2088,7 +2089,7 @@ void VariablesInterconnect(void)
 			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
-		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
+		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT && IntRelation!=G_1D_ZO) PrintError("The specified interaction formulation is "
 			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
 	}	
 	if (anisotropy) {
@@ -2452,6 +2453,7 @@ void PrintInfo(void)
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
 			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
+			case POL_1D_ZO: fprintf(logfile,"'Zeroth Order formulation for 1D scatterer'\n"); break;
 		}
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
@@ -2481,6 +2483,7 @@ void PrintInfo(void)
 			case G_NLOC_AV: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
 			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
+			case G_1D_ZO: fprintf(logfile,"'Zeroth Order formulation for 1D scatterer'\n"); break;
 		}
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
