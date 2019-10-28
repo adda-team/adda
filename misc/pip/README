@@ -4,20 +4,20 @@ Authors: Roman Schuh and Thomas Wriedt, using routines by John Burkardt.
 
 To compile under Unix type "make" in current directory. Windows executables are available in corresponding ADDA packages.
 
-Executable is named 'pip', it accepts a two command line parameters: 
+Usage: 
+pip [<grid> [<filename>]]
 
-- maximum shape size in dipoles along the largest dimension that is determined automatically;
-
-- A 'filename'. Input shape is read from 'filename.obj' and DDSCAT7 shape is saved into
-'filename.dat'.
-
- Usage: "pip xdpl filename".
- 
- If only one argumant is provided, pip will use the default filename 'shape' (read 'shape.obj' and save 'shape.dat').
+Executable is named 'pip', it accepts up tp two command line parameters: 
+- <grid> - maximum shape size (number of dipoles) along the largest dimension that is determined automatically. If 
+  omitted, the default value of 80 is used (and further arguments cannot be used).
+- <filename>. Input shape is read from '<filename>.obj' and DDSCAT7 shape is saved into '<filename>.dat'. If omitted, 
+  pip will use the default filename 'shape' (read 'shape.obj' and save 'shape.dat'). If <filename> includes extension,
+  then it will be used for input file (instead of .obj).
 
 It should be possible to read other 3D formats, which are supported by routines in 'ivread_wr.f90' - see comments in the
 source files. However, only .obj format is sufficiently tested. Moreover, the algorithm requires consistent alignment of
-face normals - they should all point outward.
+face normals - they should all point outward. Should work for very large number of dipoles (limited only by memory and
+computational time).
 
 To test executable run "pip 20" in the current folder. It will use provided 'shape.obj' that defines a star-shaped
 object and produce 'shape.dat' which should be identical to provided 'shape_test.dat'.
@@ -28,9 +28,3 @@ so delete line 6 in obtained .dat files to transform it into such format.
 The reference for this tool is: R. Schuh, "Arbitrary particle shape modeling in DDSCAT and validation of simulation
 results", in T. Wriedt & A. G. Hoekstra (Editors): Proceedings of the DDA - Workshop, Institut fur Werkstofftechnik,
 Bremen (23 March 2007), p.22-24. http://diogenes.iwt.uni-bremen.de/vt/laser/papers/DDA-Workshop-final-proceedings.pdf
-
-Updated in 2019 for massive simulation (many files, billions of dipoles).
-
-- Added the possibility to choose arbitrary filename. Usage: "pip xdpl filename". PIP then will open filename.obj and make filename.dat in DDSCAT format. If only one argument is provided, PIP will work as previous version: open shape.obj and make shape.dat.
-
-- Fixed a bug: when there is >100 dipoles by one axis, negative numbers stuck to each other because only 4 places were provided in the output file (e.g. "-xxx-yyy zzz"). Sometimes it caused ADDA to crush while reading such files. Now it's 6 places.
