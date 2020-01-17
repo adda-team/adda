@@ -305,6 +305,7 @@ all -h scat_plane
 all -h shape
 all -h shape axisymmetric
 all -shape axisymmetric 196.txt ;mgn;
+all -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 all -shape bicoated 3 0.5 ;2mgn; -size 2
 all -h shape biellipsoid

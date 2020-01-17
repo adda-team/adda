@@ -257,6 +257,7 @@ all -h scat_plane
 all -h shape
 all -h shape axisymmetric
 !RD_TRICKY -shape axisymmetric 196.txt ;mgn;
+!RD_TRICKY -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 !RD_TRICKY -shape bicoated 3 0.5 ;2mgn;
 all -h shape biellipsoid

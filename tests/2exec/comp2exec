@@ -119,8 +119,7 @@ if [ -n "$ACTIVE_FLAGS" ]; then
   echo "active flags:$ACTIVE_FLAGS"
 fi
 
-# whether older version is used for comparison; some errors are automatically ignored
-# cancelled in many cases below
+# whether older version is used for comparison; some errors are automatically ignored in many cases below
 OLDUSED=1
 # SPA_* flags change links to ADDA executables
 if [[ -n "$SPA_EXT" || -n "$SPA_STAN" ]]; then
