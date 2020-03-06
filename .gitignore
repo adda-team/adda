@@ -4,3 +4,4 @@
 src/.settings/language.settings.xml
 src/.cproject
 src/.project
+*.prefs
