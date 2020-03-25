@@ -278,8 +278,11 @@ enum incpol {
 
 enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
-	B_BESSELCS, // circularly symmetric Bessel beam derived using ASR
-	B_BESSELLP, // linearly polarized Bessel beam derived using Hertz vector potentials
+	B_BESSELCS, // Bessel beam with circularky symmetric energy density
+	B_BESSELLE, // Bessel beam with linearly polarized electric field
+	B_BESSELLM, // Bessel beam with linearly polarized magnetic field
+	B_BESSELTEC, // Bessel beam forming TE Bessel beam 
+	B_BESSELTMC, // Bessel beam forming TM Bessel beam 
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_DIPOLE,  // field of a point dipole
 	B_LMINUS,  // 1st order description of the Gaussian beam

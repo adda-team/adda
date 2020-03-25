@@ -1,6 +1,7 @@
 /* File: bess.c
- * $Date::                            $
- * Descr:
+ * $Date::      17/07/2019                      $
+ * Descr: 		Two functions "bessjn2" and "bessjn5" for computing 2 and 5 orders of Bessel functions respectively
+ * Reference:	C++ Release 1.0 By J-P Moreau, Paris.(www.jpmoreau.fr)  
  *
  * Copyright (C) 2006-2013 ADDA contributors
  * This file is part of ADDA.
@@ -18,7 +19,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-double BESSJ0 (double X) {
+
+
+/*	This subroutine calculates the First Kind Bessel Function of
+	order 0, for any real number X. The polynomial approximation by
+	series of Chebyshev polynomials is used for 0<X<8 and 0<8/X<1.
+	REFERENCES:
+	M.ABRAMOWITZ,I.A.STEGUN, HANDBOOK OF MATHEMATICAL FUNCTIONS, 1965.
+	C.W.CLENSHAW, NATIONAL PHYSICAL LABORATORY MATHEMATICAL TABLES,
+	VOL.5, 1962.
+*/
+double bessj0 (double X) { 
 	const double
 		P1=1.0, P2=-0.1098628627E-2, P3=0.2734510407E-4,
 		P4=-0.2073370639E-5, P5= 0.2093887211E-6,
@@ -54,7 +65,16 @@ double Sign(double X, double Y) {
 	else return (fabs(X));
 }
 
-double BESSJ1 (double X) {
+
+/*	This subroutine calculates the First Kind Bessel Function of
+	order 1, for any real number X. The polynomial approximation by
+	series of Chebyshev polynomials is used for 0<X<8 and 0<8/X<1.	
+	REFERENCES:
+	M.ABRAMOWITZ,I.A.STEGUN, HANDBOOK OF MATHEMATICAL FUNCTIONS, 1965.
+	C.W.CLENSHAW, NATIONAL PHYSICAL LABORATORY MATHEMATICAL TABLES,
+	VOL.5, 1962.
+*/
+double bessj1 (double X) {
 	const double  
 		P1=1.0, P2=0.183105E-2, P3=-0.3516396496E-4, P4=0.2457520174E-5,
 		P5=-0.240337019E-6,  P6=0.636619772,
@@ -84,9 +104,9 @@ double BESSJ1 (double X) {
 	}
 	return TMP;
 }
-
-void BESSJCS (int N2, double X, double ARRJ[5]) {
-	const IACC = 40; 
+/*
+void bessjn5 (int N2, double X, double ARRJ[5]) { // Computing 5 orders of Bessel function
+	const int A = 40;
 	const double BIGNO = 1e10,  BIGNI = 1e-10;
 
 	double TOX,BJM,BJ,BJP,SUM,TMP,BJM1,BJ1,BJP1,SUM1,TMP1;
@@ -96,46 +116,27 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 	if (X == 0.0) {
 		switch(N2) {
 			case -2:
-			ARRJ[0] = 0.0;
-			ARRJ[1] = 0.0;
-			ARRJ[2] = 0.0;
-			ARRJ[3] = 0.0;
+			ARRJ[0] = ARRJ[1] = ARRJ[2] = ARRJ[3] = 0.0;
 			ARRJ[4] = 1.0;
 			break;
 			case -1:
-			ARRJ[0] = 0.0;
-			ARRJ[1] = 0.0;
-			ARRJ[2] = 0.0;
+			ARRJ[0] = ARRJ[1] = ARRJ[2] = ARRJ[4] = 0.0;
 			ARRJ[3] = 1.0;
-			ARRJ[4] = 0.0;
 			break;
 			case 0:
-			ARRJ[0] = 0.0;
-			ARRJ[1] = 0.0;
+			ARRJ[0] = ARRJ[1] = ARRJ[3] = ARRJ[4] = 0.0;
 			ARRJ[2] = 1.0;
-			ARRJ[3] = 0.0;
-			ARRJ[4] = 0.0;
 			break;
 			case 1:
-			ARRJ[0] = 0.0;
+			ARRJ[0] = ARRJ[2] = ARRJ[3] = ARRJ[4] = 0.0;
 			ARRJ[1] = 1.0;
-			ARRJ[2] = 0.0;
-			ARRJ[3] = 0.0;
-			ARRJ[4] = 0.0;
 			break;
 			case 2:
+			ARRJ[1] = ARRJ[2] = ARRJ[3] = ARRJ[4] = 0.0;
 			ARRJ[0] = 1.0;
-			ARRJ[1] = 0.0;
-			ARRJ[2] = 0.0;
-			ARRJ[3] = 0.0;
-			ARRJ[4] = 0.0;
 			break;
 			default:
-			ARRJ[0] = 0.0;
-			ARRJ[1] = 0.0;
-			ARRJ[2] = 0.0;
-			ARRJ[3] = 0.0;
-			ARRJ[4] = 0.0;
+			ARRJ[0] = ARRJ[1] = ARRJ[2] = ARRJ[3] = ARRJ[4] =0.0;
 			break;
 		}
 	}
@@ -143,50 +144,50 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 		if ((N == -5)||(N == -4)||(N == -3)||(N == -2)||(N == -1)||(N == 0)||(N == 1)) {
 			switch(N) {
 				case -5:
-				ARRJ[4] = -BESSJ1(X); 
-				ARRJ[3] = -(2.0/X)*ARRJ[4]-BESSJ0(X);
+				ARRJ[4] = -bessj1(X); 
+				ARRJ[3] = -(2.0/X)*ARRJ[4]-bessj0(X);
 				ARRJ[2] = -(4.0/X)*ARRJ[3]-ARRJ[4];
 				ARRJ[1] = -(6.0/X)*ARRJ[2]-ARRJ[3];
 				ARRJ[0] = -(8.0/X)*ARRJ[1]-ARRJ[2];
 				break;
 				case -4:
-				ARRJ[4] = BESSJ0(X); 
-				ARRJ[3] = -BESSJ1(X);
+				ARRJ[4] = bessj0(X); 
+				ARRJ[3] = -bessj1(X);
 				ARRJ[2] = -(2.0/X)*ARRJ[3]-ARRJ[4];
 				ARRJ[1] = -(4.0/X)*ARRJ[2]-ARRJ[3];
 				ARRJ[0] = -(6.0/X)*ARRJ[1]-ARRJ[2];
 				break;
 				case -3:
-				ARRJ[4] = BESSJ1(X); 
-				ARRJ[3] = BESSJ0(X);
+				ARRJ[4] = bessj1(X); 
+				ARRJ[3] = bessj0(X);
 				ARRJ[2] = -ARRJ[4];;
 				ARRJ[1] = -(2.0/X)*ARRJ[2]-ARRJ[3];
 				ARRJ[0] = -(4.0/X)*ARRJ[1]-ARRJ[2];
 				break;
 				case -2:
-				ARRJ[3] = BESSJ1(X); 
-				ARRJ[2] = BESSJ0(X);
+				ARRJ[3] = bessj1(X); 
+				ARRJ[2] = bessj0(X);
 				ARRJ[1] = -ARRJ[4];;
 				ARRJ[1] = -(2.0/X)*ARRJ[2]-ARRJ[3];
 				ARRJ[0] = -(4.0/X)*ARRJ[1]-ARRJ[2];
 				break;
 				case -1:
-				ARRJ[0] = -BESSJ1(X);
-				ARRJ[1] = BESSJ0(X);
+				ARRJ[0] = -bessj1(X);
+				ARRJ[1] = bessj0(X);
 				ARRJ[2] = -ARRJ[0];
 				ARRJ[3] = (2.0/X)*ARRJ[2]-ARRJ[1];
 				ARRJ[4] = (4.0/X)*ARRJ[3]-ARRJ[2];
 				break;
 				case 0:
-				ARRJ[0] = BESSJ0(X);
-				ARRJ[1] = BESSJ1(X);
+				ARRJ[0] = bessj0(X);
+				ARRJ[1] = bessj1(X);
 				ARRJ[2] = (2.0/X)*ARRJ[1]-ARRJ[0];
 				ARRJ[3] = (4.0/X)*ARRJ[2]-ARRJ[1];
 				ARRJ[4] = (6.0/X)*ARRJ[3]-ARRJ[2];
 				break;
 				case 1:
-				ARRJ[0] = BESSJ1(X);
-				ARRJ[1] = (2.0/X)*ARRJ[0]-BESSJ0(X);
+				ARRJ[0] = bessj1(X);
+				ARRJ[1] = (2.0/X)*ARRJ[0]-bessj0(X);
 				ARRJ[2] = (4.0/X)*ARRJ[1]-ARRJ[0];
 				ARRJ[3] = (6.0/X)*ARRJ[2]-ARRJ[1];
 				ARRJ[4] = (8.0/X)*ARRJ[3]-ARRJ[2];
@@ -201,10 +202,10 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 			if ((N2-2 <0)&((N2-2)%2 != 0)) sgn = -1;
 			if ((N2-1 <0)&((N2-1)%2 != 0)) sgn1 = -1;
 			if (X > 1.0*N) {
-				BJM = BESSJ0(X);
-				BJ  = BESSJ1(X);
+				BJM = bessj0(X);
+				BJ  = bessj1(X);
 				
-				for (J=1; J<N; J++) {
+				for (J=1; J<N; J++) {  // Upward recurrence
 					BJP = J*TOX*BJ-BJM;
 					BJM = BJ;
 					BJ  = BJP;
@@ -218,8 +219,8 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 				ARRJ[4] = (N+4)*(2.0/X)*ARRJ[3]-ARRJ[2];
 			}
 			else {
-				M = (int) (2*((N+floor(sqrt(1.0*(IACC*N))))/2));
-				K = (int) (2*((N+1+floor(sqrt(1.0*(IACC*(N+1)))))/2));
+				M = (int) (2*((N+floor(sqrt(1.0*(A*N))))/2));
+				K = (int) (2*((N+1+floor(sqrt(1.0*(A*(N+1)))))/2));
 				TMP = 0.0;
 				TMP1 = 0.0;
 				JSUM = 0;
@@ -231,7 +232,7 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 				BJ  = 1.0;
 				BJ1  = 1.0;
 				
-				for (J=K; J>0; J--) {
+				for (J=K; J>0; J--) {  // Downward recurrence ( Miller's algorithm )
 					BJM1 = J*TOX*BJ1-BJP1;
 					BJP1 = BJ1;
 					BJ1  = BJM1;
@@ -270,9 +271,10 @@ void BESSJCS (int N2, double X, double ARRJ[5]) {
 		}
 	}
 }
+*/
 
-void BESSJLP (int N, double X, double ARRJ[2]) {
-	const IACC = 40; 
+void bessjn2 (int N, double X, double ARRJ[2]) {  // Computing 2 orders of Bessel function
+	const int A = 40;
 	const double BIGNO = 1e10,  BIGNI = 1e-10;
 
 	double TOX,BJM,BJ,BJP,SUM,TMP,BJM1,BJ1,BJP1,SUM1,TMP1;
@@ -283,16 +285,16 @@ void BESSJLP (int N, double X, double ARRJ[2]) {
 	}
 	else {
 		if ((N == 0)||(N == 1)) {
-			if (N == 0) { ARRJ[0] = BESSJ0(X); ARRJ[1] = BESSJ1(X);}
-			if (N == 1) { ARRJ[0] = BESSJ1(X); ARRJ[1] = (2.0/X)*ARRJ[0]-BESSJ0(X);}
+			if (N == 0) { ARRJ[0] = bessj0(X); ARRJ[1] = bessj1(X);}
+			if (N == 1) { ARRJ[0] = bessj1(X); ARRJ[1] = (2.0/X)*ARRJ[0]-bessj0(X);}
 		}
 		else {
 			TOX = 2.0/X;
 			if (X > 1.0*N) {
-				BJM = BESSJ0(X);
-				BJ  = BESSJ1(X);
+				BJM = bessj0(X);
+				BJ  = bessj1(X);
 				
-				for (J=1; J<N; J++) {
+				for (J=1; J<N; J++) {  // Upward recurrence
 					BJP = J*TOX*BJ-BJM;
 					BJM = BJ;
 					BJ  = BJP;
@@ -302,8 +304,8 @@ void BESSJLP (int N, double X, double ARRJ[2]) {
 				ARRJ[0] = BJ; ARRJ[1] = BJP;
 			}
 			else {
-				M = (int) (2*((N+floor(sqrt(1.0*(IACC*N))))/2));
-				K = (int) (2*((N+1+floor(sqrt(1.0*(IACC*(N+1)))))/2));
+				M = (int) (2*((N+floor(sqrt(1.0*(A*N))))/2));
+				K = (int) (2*((N+1+floor(sqrt(1.0*(A*(N+1)))))/2));
 				TMP = 0.0;
 				TMP1 = 0.0;
 				JSUM = 0;
@@ -315,7 +317,7 @@ void BESSJLP (int N, double X, double ARRJ[2]) {
 				BJ  = 1.0;
 				BJ1  = 1.0;
 				
-				for (J=K; J>0; J--) {
+				for (J=K; J>0; J--) {  // Downward recurrence ( Miller's algorithm )
 					BJM1 = J*TOX*BJ1-BJP1;
 					BJP1 = BJ1;
 					BJ1  = BJM1;

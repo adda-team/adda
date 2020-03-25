@@ -222,14 +222,26 @@ static const struct subopt_struct beam_opt[]={
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
 		UNDEF,B_BARTON5},
-	{"besselCS","[<order> <angle> <x> <y> <z>]","Circularly symmetric Bessel beam of integer order derived "
-			"using ASR method. The tilt angle is measured from the z axis. Arguments x, y, z are coordinates of the "
+	{"besselCS","[<order> <angle> <x> <y> <z>]","Bessel beam with circularky symmetric energy density. The tilt angle "
+			"is measured from the z axis. Arguments x, y, z are coordinates of the "
 			"center of the beam (in laboratory reference frame). Coordinate arguments are in um. All arguments are "
 			"optional (zero, by default).",UNDEF,B_BESSELCS},
-	{"besselLP","[<order> <angle> <x> <y> <z>]","Linearly polarized Bessel beam of integer order derived using "
-			"Hertz vector potentials (m- type). The tilt angle is measured from the z axis. Arguments x, y, z are coordinates of "
+	{"besselLE","[<order> <angle> <x> <y> <z>]","Bessel beam with linearly polarized electric field. The tilt angle is "
+			"measured from the z axis. Arguments x, y, z are coordinates of "
 			"the center of the beam (in laboratory reference frame). Coordinate arguments are in um. All arguments are "
-			"optional (zero, by default).",UNDEF,B_BESSELLP},
+			"optional (zero, by default).",UNDEF,B_BESSELLE},
+	{"besselLM","[<order> <angle> <x> <y> <z>]","Bessel beam with linearly polarized magnetic field. The tilt angle is "
+			"measured from the z axis. Arguments x, y, z are coordinates of "
+			"the center of the beam (in laboratory reference frame). Coordinate arguments are in um. All arguments are "
+			"optional (zero, by default).",UNDEF,B_BESSELLM},
+	{"besselTEC","[<order> <angle> <x> <y> <z>]","Bessel beam forming TE Bessel beam. The tilt angle is "
+			"measured from the z axis. Arguments x, y, z are coordinates of "
+			"the center of the beam (in laboratory reference frame). Coordinate arguments are in um. All arguments are "
+			"optional (zero, by default).",UNDEF,B_BESSELTEC},
+	{"besselTMC","[<order> <angle> <x> <y> <z>]","Bessel beam forming TM Bessel beam. The tilt angle is "
+			"measured from the z axis. Arguments x, y, z are coordinates of "
+			"the center of the beam (in laboratory reference frame). Coordinate arguments are in um. All arguments are "
+			"optional (zero, by default).",UNDEF,B_BESSELTMC},
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
@@ -989,8 +1001,11 @@ PARSE_FUNC(beam)
 			case B_LMINUS:
 			case B_DAVIS3:
 			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
-			case B_BESSELCS:
-			case B_BESSELLP:
+			case B_BESSELCS: if (Narg!=0 && Narg!=1 && Narg!=2 && Narg!=5) NargError(Narg,"0, 1, 2 or 5"); break;
+			case B_BESSELLE: if (Narg!=0 && Narg!=1 && Narg!=2 && Narg!=5) NargError(Narg,"0, 1, 2 or 5"); break;
+			case B_BESSELLM: if (Narg!=0 && Narg!=1 && Narg!=2 && Narg!=5) NargError(Narg,"0, 1, 2 or 5"); break;
+			case B_BESSELTEC: if (Narg!=0 && Narg!=1 && Narg!=2 && Narg!=5) NargError(Narg,"0, 1, 2 or 5"); break;
+			case B_BESSELTMC: if (Narg!=0 && Narg!=1 && Narg!=2 && Narg!=5) NargError(Narg,"0, 1, 2 or 5"); break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
