@@ -1,6 +1,7 @@
 /* File: bess.h
- * $Date::                            $
- * Descr:
+ * $Date::      17/07/2019                      $
+ * Descr:		Two functions "bessjn2" and "bessjn5" for computing 2 and 5 orders of Bessel functions respectively
+ * Reference:	C++ Release 1.0 By J-P Moreau, Paris.(www.jpmoreau.fr) 
  *
  * Copyright (C) 2006,2008-2013
  * This file is part of ADDA.
@@ -19,9 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-double BESSJ0 (double X);
+double bessj0 (double X);
 double Sign(double X, double Y);
-double BESSJ1 (double X);
+double bessj1 (double X);
 
-void BESSJCS (int N2, double X, double ARRJ[5]);
-void BESSJLP (int N, double X, double ARRJ[2]);
+//void bessjn5 (int N2, double X, double ARRJ[5]);
+void bessjn2 (int N, double X, double ARRJ[2]);
