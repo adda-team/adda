@@ -1,6 +1,3 @@
 # This is currently empty. If you need some ignores, which are specific to your workflow (e.g. IDE), consider
 # including them into $GIT_DIR/info/exclude (in this repository) or globally into $XDG_CONFIG_HOME/git/ignore
 # See https://git-scm.com/docs/gitignore 
-src/.settings/language.settings.xml
-src/.cproject
-src/.project
