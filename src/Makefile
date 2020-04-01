@@ -91,7 +91,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
 # possible warnings by the compiler). DEBUGFULL turns off optimization completely (for more accurate debugging symbols)
 # and turns on additional diagnostic messages in the source code (debug.c/h).
-#override OPTIONS += DEBUG
+override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
 #override OPTIONS += SPARSE ACCIMEXP
 #USE_SSE3
@@ -174,8 +174,8 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(FFTWLIB)
 #FFTW3_INC_PATH := $(HOME)/include
 #FFTW3_LIB_PATH := $(HOME)/lib
-#FFTW3_INC_PATH := "$(abspath ./../lib)"
-#FFTW3_LIB_PATH := "$(abspath ./../lib)"
+FFTW3_INC_PATH := "$(abspath ./../../fftw)"
+FFTW3_LIB_PATH := "$(abspath ./../../fftw)"
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
@@ -187,7 +187,7 @@ override EXTRA_FLAGS +=
 # C files are located in source folder (src/), other files may be added below
 CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c GenerateB.c interaction.c io.c \
            iterative.c linalg.c make_particle.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
-           timing.c vars.c
+           timing.c vars.c bess.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
            propaesplibreintadda.f
@@ -374,7 +374,7 @@ ifeq ($(COMPILER),gnu)
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran
-    FLIBS += -lgfortran
+    FLIBS += -lgfortran -lquadmath
   else
     # This is not expected to work for f90 sources but we keep it for now
     CF    := g77
