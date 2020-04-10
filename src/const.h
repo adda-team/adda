@@ -287,6 +287,7 @@ enum beam { // beam types
 	B_BARTON5, // 5th order description of the Gaussian beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_DIPOLE,  // field of a point dipole
+	B_ELECTRON,// field of a fast electron
 	B_LMINUS,  // 1st order description of the Gaussian beam
 	B_PLANE,   // infinite plane wave
 	B_READ     // read from file
