@@ -392,7 +392,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {
-					x2_s=x*x/ro2;
+					/* It is possible to rewrite the formulae below to avoid division by ro2, but we prefer
+					 * dimensionless variables. The value for ro2=0 doesn't really matter (cancels afterwards).
+					 * The current code should work OK even for very small ro2
+					 */
+					if (ro2==0) x2_s=0;
+					else x2_s=x*x/ro2;
 					Q2=Q*Q;
 					ro4=ro2*ro2;
 					// some combinations that are used more than once
@@ -409,7 +414,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						t3 = 2*t7*(-1 + I*Q*s2*(-4*t5+t6-2));
 					}
 					else if (beamtype==B_BARTON5) {
-						xy_s=x*y/ro2;
+						if (ro2==0) xy_s=0; // see comment for x2_s above
+						else xy_s=x*y/ro2;
 						t8=8+2*t5; // t8=8+2i*Q*ro^2
 						/* t1 = 1 + s^2(-ro^2*Q^2-i*ro^4*Q^3-2Q^2*x^2)
 						 *    + s^4[2ro^4*Q^4+3iro^6*Q^5-0.5ro^8*Q^6+x^2(8ro^2*Q^4+2iro^4*Q^5)]
