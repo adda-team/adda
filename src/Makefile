@@ -191,8 +191,8 @@ CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c cmplx.c comm.c cross
            timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
-           propaesplibreintadda.f
-F90SOURCE := 
+           propaesplibreintadda.f 
+F90SOURCE := special_functions.f90
 # C++ files are located in src/cpp folder, other files may be added below
 CPPSOURCE :=
 
@@ -371,6 +371,7 @@ ifeq ($(COMPILER),gnu)
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran
+  LDFLAGS += -L/usr/local/gfortran/lib
     FLIBS += -lgfortran
   else
     # This is not expected to work for f90 sources but we keep it for now

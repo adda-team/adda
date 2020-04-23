@@ -218,7 +218,7 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
  * to be the easiest.
  */
 static const struct subopt_struct beam_opt[]={
-	{"electron","<energy> <x> <y> <m_host_re>","Field of an electron moving along z-axis through "
+	{"electron","<energy> <x> <y> <m_host_re>","Field of an electron with energy <energy> moving along z-axis through "
 		"point (<x>,<y>,0) (in laboratory reference frame) in the host medium with real refractive index "
 		"<m_host_re>. Energy argument is in keV, all coordinate arguments are in um. Orientation of "
 		"the beam is determined by -prop command line option. Implies '-scat_matr none'. Currently does not "

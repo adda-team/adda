@@ -36,6 +36,7 @@
 // system headers
 #include <stdio.h>
 #include <string.h>
+#include <float.h>
 
 // SEMI-GLOBAL VARIABLES
 
@@ -45,6 +46,8 @@ extern const double beam_pars[];
 extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
+
+extern void cik01_(doublecomplex *z, doublecomplex *cbi0, doublecomplex *cdi0, doublecomplex *cbi1, doublecomplex *cdi1, doublecomplex *cbk0, doublecomplex *cdk0, doublecomplex *cbk1, doublecomplex *cdk1);
 
 // used in CalculateE.c
 double C0dipole,C0dipole_refl; // inherent cross sections of exciting dipole (in free space and addition due to surface)
@@ -72,6 +75,17 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 static double e_energy;        // kinetic energy of the electron
 static doublecomplex m_host;   // refractive index of the host medium
+static doublecomplex eps_omega;// dielectric permittivity of the host medium
+static doublecomplex gamma_eps;// gamma-epsilon is same as Lorentz factor, except the speed of light is the speed of light in the medium
+static doublecomplex gamma_eps_inv;// 1/gamma_eps
+static double omega;           // angular frequency
+static double v_electron;      // speed of the electron
+static doublecomplex e_inc_pr; // prefactor in the incident field of the electron
+static doublecomplex e_om_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
+static doublecomplex e_om_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
+const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
+const double c_light = 29979245800; //speed of light in vacuum, cm/s
+const double e_energy_rest = 510.99895; //Electron rest mass, keV
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -197,9 +211,18 @@ void InitBeam(void)
 			beam_center_0[1] = beam_pars[2];
 			beam_center_0[2] = 0;
 			m_host = beam_pars[3] + 0*I; //complex number in the future
-			scale_x = 1e-4; //um/сm
 			scale_z = 1e-4; //um/сm
 			TestPositive(creal(m_host),"refractive index of the host medium");
+			omega = WaveNum*c_light*scale_z;
+			printf("Omega = %g\n", omega);
+			eps_omega = m_host*m_host;
+			v_electron = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			gamma_eps_inv = csqrt(1-pow((v_electron/c_light),2)*eps_omega);
+			gamma_eps = 1/gamma_eps_inv;
+			e_inc_pr = 2*q_electron*omega/(eps_omega*v_electron*v_electron*gamma_eps);
+			e_om_v = omega/v_electron;
+			e_om_gv = omega/(gamma_eps*v_electron);
+
 			symX = symY = symZ = symR = false; // symmetry is unlikely to happen
 			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through (%g,%g,0)",e_energy,creal(m_host),COMP3V(beam_center_0));
 			return;
@@ -249,17 +272,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro,ro2,ro4;
-	double x,y,z,x2_s,xy_s,x0,y0,z0;
+	double x,y,z,x2_s,xy_s;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
 	const char *fname;
-	double omega;
-	doublecomplex eps_omega, v_electron, gamma_eps;
-	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
-	const double c_light = 29979245800; //speed of light in vacuum, cm/s
-	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -456,36 +474,29 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_ELECTRON:
-			x0 = beam_center_0[0];
-			y0 = beam_center_0[1];
-			z0 = beam_center_0[2];
-			omega = WaveNum*c_light;
-			eps_omega = m_host*m_host;
-			v_electron = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
-			gamma_eps = 1/csqrt(1-pow((v_electron/c_light),2)*eps_omega);
-
-			t1 = 2*q_electron*omega/(eps_omega*v_electron*v_electron*gamma_eps);
-			t2 = omega/v_electron;
-			t3 = omega/(gamma_eps*v_electron);
-
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				x=DotProd(r1,ex)*scale_x;
-				y=DotProd(r1,ey)*scale_x;
+				x=DotProd(r1,ex)*scale_z;
+				y=DotProd(r1,ey)*scale_z;
 				z=DotProd(r1,prop)*scale_z;
 				ro=sqrt(x*x+y*y);
 
-				t4 = imExp(t2*(z-z0));
-				t5 = 1; //BesselK(1,phi), temporarily not done yet
-				t6 = 1; //BesselK(0,phi), temporarily not done yet
+				if (ro < DBL_EPSILON) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = %e", ro);
 
-				v1[0] = t1*((x-x0)/ro)*t4*t5; //E_inc_x
-				v1[1] = t1*((y-y0)/ro)*t4*t5; //E_inc_y
-				v1[2] = -I * (t1/gamma_eps)*t4*t6; //E_inc_z
+				e_om_gv *= ro;
+				cik01_(&e_om_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
+				//LogError(ONE_POS,"\nK0(%g + I*%g) = %.16e + I*%.16e\nK1(%g + I*%g) = %.16e + I*%.1e", creal(e_om_gv), cimag(e_om_gv), creal(t7), cimag(t7), creal(e_om_gv), cimag(e_om_gv), creal(t8), cimag(t8));
 
-				cvMultScal_cmplx(1,v1,b+j); //Присвоить значения из v1 в правильное место b1
+				t4 = imExp(e_om_v*z);
+
+				v1[0] = (x/ro)*t4*t8; //E_inc_x
+				v1[1] = (y/ro)*t4*t8; //E_inc_y
+				v1[2] = -I*gamma_eps_inv*t4*t7; //E_inc_z
+
+
+				cvMultScal_cmplx(e_inc_pr,v1,b+j);
 			}
 			return;
 		case B_READ:
