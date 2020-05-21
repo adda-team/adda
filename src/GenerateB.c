@@ -81,8 +81,8 @@ static doublecomplex gamma_eps_inv;// 1/gamma_eps
 static double omega;           // angular frequency
 static double v_electron;      // speed of the electron
 static doublecomplex e_inc_pr; // prefactor in the incident field of the electron
-static doublecomplex e_om_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
-static doublecomplex e_om_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
+static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
+static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 const double c_light = 29979245800; //speed of light in vacuum, cm/s
 const double e_energy_rest = 510.99895; //Electron rest mass, keV
@@ -210,18 +210,22 @@ void InitBeam(void)
 			beam_center_0[0] = beam_pars[1];
 			beam_center_0[1] = beam_pars[2];
 			beam_center_0[2] = 0;
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			if (!beam_asym) vInit(beam_center);
 			m_host = beam_pars[3] + 0*I; //complex number in the future
-			scale_z = 1e-4; //um/сm
+			scale_z = 1e-7; //nm/сm
 			TestPositive(creal(m_host),"refractive index of the host medium");
-			omega = WaveNum*c_light*scale_z;
-			printf("Omega = %g\n", omega);
+			omega = WaveNum*c_light/scale_z;
+			printf("Omega = %e\n", omega);
 			eps_omega = m_host*m_host;
 			v_electron = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			//printf("v = %ec\n", v_electron/c_light);
 			gamma_eps_inv = csqrt(1-pow((v_electron/c_light),2)*eps_omega);
 			gamma_eps = 1/gamma_eps_inv;
-			e_inc_pr = 2*q_electron*omega/(eps_omega*v_electron*v_electron*gamma_eps);
-			e_om_v = omega/v_electron;
-			e_om_gv = omega/(gamma_eps*v_electron);
+			e_inc_pr = 2*q_electron*omega*gamma_eps_inv/(eps_omega*v_electron*v_electron);
+			e_w_v = omega/v_electron;
+			e_w_gv = omega*gamma_eps_inv/v_electron;
+			//printf("w/gv = %e + I*%e\n", creal(e_w_gv), cimag(e_w_gv));
 
 			symX = symY = symZ = symR = false; // symmetry is unlikely to happen
 			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through (%g,%g,0)",e_energy,creal(m_host),COMP3V(beam_center_0));
@@ -273,11 +277,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro,ro2,ro4;
 	double x,y,z,x2_s,xy_s;
-	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
+	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp, e_wb_gv;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
 	const char *fname;
+
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -474,27 +479,53 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_ELECTRON:
+			ex=incPolX;
+			vCopy(incPolY,ey);
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				x=DotProd(r1,ex)*scale_z;
-				y=DotProd(r1,ey)*scale_z;
-				z=DotProd(r1,prop)*scale_z;
-				ro=sqrt(x*x+y*y);
+				//x = DipoleCoord[j + 0];
+				//y = DipoleCoord[j + 1];
+				//z = DipoleCoord[j + 2];
+				//printf("x y z: %e %e %e\n", x, y, z);
+				//printf("r1 = (%e,%e,%e)\n", r1[0], r1[1], r1[2]);
 
+				x=DotProd(r1,ex)*scale_z; //cm
+				y=DotProd(r1,ey)*scale_z; //cm
+				z=DotProd(r1,prop)*scale_z; //cm
+				//printf("x y z: %e %e %e\n", x, y, z);
+				ro=sqrt(x*x+y*y); //cm
+				//printf("ro = %e\n", ro);
+
+				//printf("ex=(%e,%e,%e)\n", ex[0], ex[1], ex[2]);
+				//printf("ey=(%e,%e,%e)\n", ey[0], ey[1], ey[2]);
+				//LogError(ONE_POS,"x y z: %e %e %e\n", x, y, z);
 				if (ro < DBL_EPSILON) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = %e", ro);
 
-				e_om_gv *= ro;
-				cik01_(&e_om_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
-				//LogError(ONE_POS,"\nK0(%g + I*%g) = %.16e + I*%.16e\nK1(%g + I*%g) = %.16e + I*%.1e", creal(e_om_gv), cimag(e_om_gv), creal(t7), cimag(t7), creal(e_om_gv), cimag(e_om_gv), creal(t8), cimag(t8));
+				e_wb_gv = e_w_gv*ro;
+				//printf("w = %e\n", omega);
+				//printf("b = %e\n", ro);
+				//printf("g = %e\n", creal(gamma_eps), cimag(gamma_eps));
+				//printf("v = %e\n", v_electron);
+				//printf("wb/gv = %e + I*%e\n", creal(e_wb_gv), cimag(e_wb_gv));
 
-				t4 = imExp(e_om_v*z);
+				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
+				//printf("BesselK(1,wb/gv) = %e + I*%e\n", creal(t8), cimag(t8));
+				//printf("BesselK(0,wb/gv) = %e + I*%e\n", creal(t7), cimag(t7));
+
+				t4 = imExp(e_w_v*z);
+				//printf("exp(iwz/v) = %e + I*%e\n", creal(t4), cimag(t4));
 
 				v1[0] = (x/ro)*t4*t8; //E_inc_x
 				v1[1] = (y/ro)*t4*t8; //E_inc_y
 				v1[2] = -I*gamma_eps_inv*t4*t7; //E_inc_z
+				//printf("-I*gamma_eps_inv = %e + I*%e\n", creal(-I*gamma_eps_inv), cimag(-I*gamma_eps_inv));
 
+				//printf("2qw/epsvvg = %e + I*%e\n", creal(e_inc_pr), cimag(e_inc_pr));
+				//printf("x/b = %e\n", (x/ro));
+				//printf("Exp[I*(w/v)*z] = %e + I*%e\n", creal(t4), cimag(t4));
+				//printf("BesselK(1,wb/gv) = %e + I*%e\n", creal(t8), cimag(t8));
 
 				cvMultScal_cmplx(e_inc_pr,v1,b+j);
 			}
