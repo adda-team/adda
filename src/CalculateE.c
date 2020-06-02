@@ -50,7 +50,7 @@ extern const double ezLab[3],exSP[3];
 extern const double C0dipole,C0dipole_refl;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
+	calc_Csca,calc_Peels,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan,Timing_IncBeam;
@@ -703,6 +703,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cdec, // Cross sections
+	Peels,						// EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
@@ -733,6 +734,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	 */
 	if (calc_Cabs) Cabs = AbsCross();
 	if (calc_Cext) Cext = ExtCross(incPol);
+	if (calc_Peels) Peels = EELSProb(incPol);
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
 		if (IFROOT) {
@@ -757,6 +759,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+			if (calc_Peels) PrintBoth(CCfile,"Peels_au\t= "GFORM"\nPeff\t= "GFORM"\n",Peels,Peels*inv_G);
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;

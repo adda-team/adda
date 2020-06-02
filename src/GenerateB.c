@@ -85,6 +85,9 @@ static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in
 static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 const double c_light = 29979245800; //speed of light in vacuum, cm/s
+//const double q_electron = -1.60217662e-19; //electric charge of an electron, SI
+//const double c_light = 299792458; //speed of light in vacuum, SI
+//const double eps0 = 8.8541878128e-12; //vacuum permittivity
 const double e_energy_rest = 510.99895; //Electron rest mass, keV
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
@@ -214,6 +217,7 @@ void InitBeam(void)
 			if (!beam_asym) vInit(beam_center);
 			m_host = beam_pars[3] + 0*I; //complex number in the future
 			scale_z = 1e-7; //nm/сm
+			//scale_z = 1e-9; //nm/m
 			TestPositive(creal(m_host),"refractive index of the host medium");
 			omega = WaveNum*c_light/scale_z;
 			printf("Omega = %e\n", omega);
@@ -223,6 +227,7 @@ void InitBeam(void)
 			gamma_eps_inv = csqrt(1-pow((v_electron/c_light),2)*eps_omega);
 			gamma_eps = 1/gamma_eps_inv;
 			e_inc_pr = 2*q_electron*omega*gamma_eps_inv/(eps_omega*v_electron*v_electron);
+			//e_inc_pr = q_electron*omega*gamma_eps_inv/(2*PI*eps0*eps_omega*v_electron*v_electron);
 			e_w_v = omega/v_electron;
 			e_w_gv = omega*gamma_eps_inv/v_electron;
 			//printf("w/gv = %e + I*%e\n", creal(e_w_gv), cimag(e_w_gv));
@@ -515,19 +520,16 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				//printf("BesselK(0,wb/gv) = %e + I*%e\n", creal(t7), cimag(t7));
 
 				t4 = imExp(e_w_v*z);
-				//printf("exp(iwz/v) = %e + I*%e\n", creal(t4), cimag(t4));
-
 				v1[0] = (x/ro)*t4*t8; //E_inc_x
 				v1[1] = (y/ro)*t4*t8; //E_inc_y
-				v1[2] = -I*gamma_eps_inv*t4*t7; //E_inc_z
-				//printf("-I*gamma_eps_inv = %e + I*%e\n", creal(-I*gamma_eps_inv), cimag(-I*gamma_eps_inv));
-
-				//printf("2qw/epsvvg = %e + I*%e\n", creal(e_inc_pr), cimag(e_inc_pr));
-				//printf("x/b = %e\n", (x/ro));
-				//printf("Exp[I*(w/v)*z] = %e + I*%e\n", creal(t4), cimag(t4));
-				//printf("BesselK(1,wb/gv) = %e + I*%e\n", creal(t8), cimag(t8));
-
+				v1[2] = (-I)*gamma_eps_inv*t4*t7; //E_inc_z
 				cvMultScal_cmplx(e_inc_pr,v1,b+j);
+
+				t4 = imExp(-e_w_v*z);
+				v1[0] = -(x/ro)*t4*t8; //E_1_x
+				v1[1] = -(y/ro)*t4*t8; //E_1_y
+				v1[2] = (-I)*gamma_eps_inv*t4*t7; //E_1_z
+				cvMultScal_cmplx(e_inc_pr,v1,E1+j);
 			}
 			return;
 		case B_READ:

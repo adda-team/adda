@@ -6,8 +6,8 @@
 # Second argument - directory name, where runs are executed (generally, absolute path or path relative to the
 #   script-execution path)
 # Third argument - file with refractive index spectrum - columns with wavelength, Re(m), and Im(m)
-if [[ $# -lt 3 || $# -gt 3 ]]; then
-  echo "ERROR: 3 arguments required"
+if [[ $# -lt 4 || $# -gt 4 ]]; then
+  echo "ERROR: 4 arguments required"
   exit 1
 fi
 
@@ -19,14 +19,18 @@ if [[ "$3" = /* ]]; then
 else 
   mfile="$(pwd)/$3"
 fi
+mh="$4"
 # create working directory (if doesn't exist)
 if [ ! -e "$dir" ]; then
   mkdir "$dir"
 fi
 cd "$dir"
-while read ev mre mim; do
-  lam=$(echo "scale = 5; 1239.84193 / $ev" | bc)
-  vari="-lambda $lam -m $mre $mim -dir $ev"
+while read ev mpre mpim; do
+  lam=$(echo "scale = 8; 1239.8419 / $ev" | bc)
+  mre=$(echo "scale = 8; $mpre / $mh" | bc)
+  mim=$(echo "scale = 8; $mpim / $mh" | bc)
+  #echo "$mpre $mpim"
+  vari="-size 10 -lambda $lam -m $mre $mim -beam electron 100 6 0 $mh -pol cm -sym enf -scat_matr none -dir $ev"
   $cmdline $vari
   #break
 done < $mfile

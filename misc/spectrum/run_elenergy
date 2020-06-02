@@ -1,0 +1,32 @@
+#!/bin/bash
+# A script for running ADDA simulations for a spectrum of wavelengths.
+# First argument - full command line without refractive index and wavelength, e.g. "adda -grid 32"
+#   the executable is either available from any path, the full path is provided, or the path is given relative to
+#   the execution directory (see below)
+# Second argument - directory name, where runs are executed (generally, absolute path or path relative to the
+#   script-execution path)
+# Third argument - file with refractive index spectrum - columns with wavelength, Re(m), and Im(m)
+if [[ $# -lt 3 || $# -gt 3 ]]; then
+  echo "ERROR: 3 arguments required"
+  exit 1
+fi
+
+cmdline="$1"
+dir="$2"
+# make absolute path out of $3 (if not already)
+if [[ "$3" = /* ]]; then
+  mfile="$3"
+else
+  mfile="$(pwd)/$3"
+fi
+# create working directory (if doesn't exist)
+if [ ! -e "$dir" ]; then
+  mkdir "$dir"
+fi
+cd "$dir"
+while read ev mre mim elenergy; do
+  lam=$(echo "scale = 5; 1239.84193 / $ev" | bc)
+  vari="-lambda $lam -m $mre $mim -dir $elenergy -beam electron $elenergy 6 0 1.5"
+  $cmdline $vari
+  #break
+done < $mfile

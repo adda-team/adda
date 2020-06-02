@@ -5,7 +5,7 @@ if [ $# -ne 1 ];then
   exit 1
 fi
 # list of quantities to extract (each should be a single word)
-quans="Cext"
+quans="Peels_au"
 # file in ADDA output to parse
 qfile=CrossSec-Y
 # variable that is changing between runs

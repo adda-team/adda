@@ -67,7 +67,7 @@ extern unsigned char * restrict material;
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,* restrict Einc;
+extern doublecomplex *xvec,*pvec,* restrict Einc,* restrict E1;
 
 // scattering at different angles
 extern int nTheta;
