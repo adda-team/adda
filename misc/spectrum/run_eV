@@ -26,7 +26,7 @@ if [ ! -e "$dir" ]; then
 fi
 cd "$dir"
 while read ev mpre mpim; do
-  lam=$(echo "scale = 8; 1239.8419 / $ev" | bc)
+  lam=$(echo "scale = 8; 1239.8419 / ($ev * $mh)" | bc)
   mre=$(echo "scale = 8; $mpre / $mh" | bc)
   mim=$(echo "scale = 8; $mpim / $mh" | bc)
   #echo "$mpre $mpim"

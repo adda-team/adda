@@ -219,7 +219,7 @@ void InitBeam(void)
 			scale_z = 1e-7; //nm/сm
 			//scale_z = 1e-9; //nm/m
 			TestPositive(creal(m_host),"refractive index of the host medium");
-			omega = WaveNum*c_light/scale_z;
+			omega = WaveNum*c_light/(m_host*scale_z);
 			printf("Omega = %e\n", omega);
 			eps_omega = m_host*m_host;
 			v_electron = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
