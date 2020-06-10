@@ -22,8 +22,9 @@
 # Depending on a particular OpenCL installation one may need to manually specify paths to corresponding headers and
 # libraries. Path should be absolute or relative to the location of this Makefile.
 # On Windows it is also possible to link to OpenCL.dll directly.
-#CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
-#LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
+CFLAGS += -I"C:/OpenCL-Headers"
+CFLAGS += -I"C:/clFFT-2.12.2-Windows-x64/include"
+LDFLAGS += -L"C:/clFFT-2.12.2-Windows-x64/bin"
 
 # This workaround is to disable linker warnings when linking against 32-bit OpenCL.dll on 64-bit Windows. The issue 
 # appeared with Nvidia library supplied with driver 301.42. Uncomment the following 3 lines to enable it.
@@ -45,9 +46,10 @@ else # the following is only for non-sparse mode
     # Depending on a particular clFFT installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
     # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
-    #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
-    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\bin64"
-  
+    #CFLAGS += -I"C:/OpenCL-Headers"
+    #CFLAGS += -I"C:/clFFT-2.12.2-Windows-x64/include"
+    #LDFLAGS += -L"C:/clFFT-2.12.2-Windows-x64/bin"
+
     LDLIBS += -lclFFT
 
     # On Unix clFFT may need pthread library, which is not linked by default; if yes, uncomment the following

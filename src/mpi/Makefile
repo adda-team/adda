@@ -41,10 +41,10 @@ endif
 ifeq ($(MPICC),$(CC))
   # Depending on a particular MPI installation one may need to manually specify paths to MPI headers and libraries.
   # Path should be absolute or relative to the location of this Makefile.
-  #CFLAGS += -I"C:/Program Files/MPICH2/include"
-  #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
+  CFLAGS += -I'$(MSMPI_INC)'
+  LDFLAGS += -L'$(MSMPI_LIB64)'
 
-  LDLIBS += -lmpi
+  LDLIBS += -lmsmpi
 # If MPI compiler wrapper is used, environmental variables are set to define C compiler and linker
 else
   # for MPICH

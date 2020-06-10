@@ -234,11 +234,11 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELLM},
-	{"besselTEC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TE Bessel beam. The half-cone angle "
+	{"besselTEC","<order> <angle> [<x> <y> <z>]","Bessel beam forming the TE Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELTEC},
-	{"besselTMC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TM Bessel beam. The half-cone angle "
+	{"besselTMC","<order> <angle> [<x> <y> <z>]","Bessel beam forming the TM Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELTMC},
