@@ -488,7 +488,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				t2=WaveNum*cos(alpha0);
 				// common factor 
 				ctemp=cpow(-I,n0)*cexp(I*n0*phi)*cexp(I*t2*z)/WaveNum/WaveNum;
-				// t3,t4,t5 - x,y,z field components are described in the doc file "Bessel beam fields" in the "doc" folder 
+				// t3,t4,t5 - x,y,z field components are described in the doc file "Bessel beam fields" (in the doc folder) 
 				if (n0==0){
 					if (ro==0){
 						switch (beamtype) {
