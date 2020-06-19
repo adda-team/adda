@@ -759,7 +759,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
-			if (calc_Peels) PrintBoth(CCfile,"Peels_au\t= "GFORM"\nPeff\t= "GFORM"\n",Peels,Peels*inv_G);
+			if (calc_Peels) PrintBoth(CCfile,"Peels_ev\t= "GFORM"\nPeff\t= "GFORM"\n",Peels,Peels*inv_G);
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
