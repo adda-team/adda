@@ -92,7 +92,7 @@ static inline doublecomplex imExp(const double arg)
  */
 {
 #ifdef NO_IMEXP_TABLE
-	/* We tried different standard options. (sin + I*cos) is almost twice slower than cexp, while sincos (GNU extension)
+	/* We tried different standard options. (cos + I*sin) is almost twice slower than cexp, while sincos (GNU extension)
 	 * is slightly faster (3.52 - 2.39 - 2.29 for matvec in test sparse runs, where about 1.23 is for non-exp part -
 	 * median values over 10 runs). So we prefer to use standard cexp.
 	 * When using table (below) the corresponding timing is 1.70.

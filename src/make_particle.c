@@ -248,7 +248,7 @@ static void SaveGeometry(void)
 #define ALLOCATE_SEGMENTS(N) (struct segment *)voidVector((N)*sizeof(struct segment),ALL_POS,"contour segment");
 
 void InitContourSegment(struct segment * restrict seg,const bool increasing)
-/* recursively initialize a segment of a contour: allocates memory and calculates all elements some elements are
+/* recursively initialize a segment of a contour: allocates memory and calculates all elements. Some elements are
  * calculated during the forward sweep (from long segments to short), others - during the backward sweep.
  * Recursive function calls incurs certain overhead, however here it is not critical.
  */
@@ -259,8 +259,12 @@ void InitContourSegment(struct segment * restrict seg,const bool increasing)
 	/* Remove constant parts in the beginning and end of segment, if present. After this procedure 'first' is guaranteed
 	 * to be less than 'last' by definition of the segment
 	 */
-	while (contRo[seg->first]==contRo[seg->first+1]) (seg->first)++;
-	while (contRo[seg->last-1]==contRo[seg->last]) (seg->last)--;
+	while (contRo[seg->first]==contRo[seg->first+1]) {
+		(seg->first)++;
+		if (seg->first == seg->last) LogError(ONE_POS,"Bug in InitContour: One of the segments (ending at index %d) "
+			"has constant ro",seg->last);
+	}
+	while (contRo[seg->last-1]==contRo[seg->last]) (seg->last)--; // here above error checks are not needed
 	if (seg->first+1 == seg->last) { // segment with a single fragment
 		seg->single=true;
 		seg->zmin=MIN(contZ[seg->first],contZ[seg->last]);
@@ -284,7 +288,7 @@ void InitContourSegment(struct segment * restrict seg,const bool increasing)
 		// calculate zmax and zmin
 		seg->zmax=MAX(s1->zmax,s2->zmax);
 		seg->zmin=MIN(s1->zmin,s2->zmin);
-		// assign new segments to left and right based on 'increasing'
+		// assign new segments to left and right based on 'increasing' - only weak monotonicity is assumed
 		if (increasing) {
 			seg->left=s1;
 			seg->right=s2;
@@ -302,7 +306,7 @@ void InitContourSegment(struct segment * restrict seg,const bool increasing)
 static void InitContour(const char *fname,double *ratio,double *shSize)
 /* Reads a contour from the file, rotates it so that it starts from a local minimum in ro, then divides it into
  * monotonic (over ro) segments. It produces data, which are later used to test each dipole for being inside the
- * contour. Segments are either increasing or non-decreasing.
+ * contour. Segments are either weakly increasing or weakly decreasing (i.e. can contain constant parts).
  */
 {
 	size_t line; // current line number
@@ -359,13 +363,13 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	// Check number of points read
 	if (nr<3) LogError(ONE_POS,"Contour from file %s contains less than three points",fname);
 
-	// Determine initial point with local minimum ro[i-1]>=ro[i]<ro[i+1]
+	// Determine initial point with local minimum ro[i-j]>ro[i-j+1]=...=ro[i]<ro[i+1]
 	i=0;
 	while (i<nr-1 && bufRo[i]>=bufRo[i+1]) i++;
 	if (i==0) { // first point is a minimum candidate
-		if (bufRo[0]>bufRo[nr-1]) { // if required, search backwards; guaranteed to converge
+		if (bufRo[0]>=bufRo[nr-1]) { // if required, search backwards; guaranteed to converge, since bufRo[1]>bufRo[0]
 			i=nr-1;
-			while (bufRo[i]>bufRo[i-1]) i--;
+			while (bufRo[i]>=bufRo[i-1]) i--;
 		}
 	}
 	// if the whole contour is non-decreasing, check for constancy
@@ -401,13 +405,15 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	index[0]=0;
 	i=j=1;
 	increasing=true;
-	while (i<nr) {
-		while (i<nr && (increasing == (contRo[i]<contRo[i+1]))) i++;
+	while (i<nr) { // uses greedy algorithm for weak monotonicity
+		while (i<nr && (increasing ? (contRo[i]<=contRo[i+1]) : (contRo[i]>=contRo[i+1]))) i++;
 		index[j]=i;
 		j++;
 		increasing=!increasing;
 	}
 	contNseg=j-1;
+	if (IS_ODD(contNseg)) LogError(ONE_POS,"Bug in InitContour: Resulting number of monotonic (in values of ro) "
+		"segments (%d) is odd",contNseg);
 	/* Calculate maximum and minimum ro for segments; We implicitly use that first segment is increasing, second -
 	 * decreasing, and so on.
 	 */

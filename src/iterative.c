@@ -823,8 +823,11 @@ ITER_FUNC(CSYM)
 			return;
 		case PHASE_INIT:
 			if (load_chpoint) { // change pointers names according to count parity
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&q_old,&q_new);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// tau_1 = ||r_0||; q_1 = r_0(*)/||r_0||; here r_0 is already stored in q_old
@@ -948,9 +951,12 @@ ITER_FUNC(QMR_CS)
 			vectors[0].size=vectors[1].size=vectors[2].size=sizeof(doublecomplex);
 			return;
 		case PHASE_INIT:
-			if (load_chpoint) { // change pointers names according to count parity
+			if (load_chpoint) {
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&v,&vtilda);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// omega_0=||v_0||=0

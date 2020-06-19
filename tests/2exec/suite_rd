@@ -10,6 +10,8 @@
 ;2mgn; ;2m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
+# for testing odd grids
+;mg9n; ;m; -grid 9 ;n;
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
 # default for testing of different grids
@@ -71,10 +73,11 @@ all -h beam lminus
 all -beam lminus 2 1 2 3 ;mgn;
 all -h beam davis3
 all -beam davis3 2 1 2 3 ;mgn;
+!RD_TRICKY -beam davis3 2 ;mg9n;
 all -h beam barton5
 !RD_TRICKY -beam barton5 2 1 2 3 ;mgn;
 &RD_TRICKY -beam barton5 2 1 2 3 ;smg12n;
-all -beam barton5 2 ;mgn;
+!RD_TRICKY -beam barton5 2 ;mg9n;
 !RD_TRICKY -beam dipole 3 2 1 ;p; ;mgn;
 &RD_TRICKY -beam dipole 3 2 1 ;smg12n;
 all -h beam read
@@ -257,6 +260,7 @@ all -h scat_plane
 all -h shape
 all -h shape axisymmetric
 !RD_TRICKY -shape axisymmetric 196.txt ;mgn;
+!RD_TRICKY -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 !RD_TRICKY -shape bicoated 3 0.5 ;2mgn;
 all -h shape biellipsoid

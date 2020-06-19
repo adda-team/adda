@@ -1,13 +1,10 @@
   program FEMGeo_Wr
 !-----------------------------------------------------------------------------------!
-!   Program pip1:
-!   Point in Polyhedron
-!   Version 0.80125 (2008   January 25) (Subversion:9)
-!   Roman Schuh
-!   1 Command line parameter: Maximum shape size in dipoles
-!
-!
-!
+!  Program pip:                                                                     !
+!  Point in Polyhedron                                                              !
+!  Original version 0.80125 (2008 January 25) (Subversion:9) by Roman Schuh         !
+!  Further changes are tracked by version control of ADDA, see also README          !
+!  (uses I0 format identifier from Fortran95 standard)                              !
 !                                                                                   !
 !  The program calls the ivread_wr.f90 subroutine.                                  !
 !  This routine is based on the ivread.f90 routine by John Burkardt (1999).         !
@@ -15,7 +12,7 @@
 !  (dxf, obj, oogl, smf, vmrl) into the .FEM format needed with TNONAXSYM.          !
 !  (Have a look at the comments in ivread).                                         !
 !                                                                                   !
-!  But the focus of the program FEMGeo_Wr is on the wavefront .obj file format.     ! 
+!  But the focus of the program FEMGeo_Wr is on the wavefront .obj file format.     !
 !  The input .obj file should such be such that it only consists of triangular (!!) !
 !  surface patches! No free form curves are supported.                              !
 !  All dimensions are in microns.                                                   !
@@ -28,19 +25,19 @@
 !  The Hyperfun program (www.hyperfun.org) is suitable for generation of other      !
 !  particle shapes. For conversion to .obj, visualization and scaling you may use   !
 !  Deep Exploration (www.righthemisphere.com), for grid reduction you may use       !
-!  Rational Reducer Professional (www.rational-reducer.com).                        ! 
+!  Rational Reducer Professional (www.rational-reducer.com).                        !
 !  To increase the number of faces of a body you can use a divide by four           !
 !  subdivision scheme implemented in the Triangles                                  !
 !  DOS program (www.geocities.com/Athens/Academy/8764/triangdoc.html).              !
-!  A divide by three or by four scheme is also included in MilkShape-1.5.7.         !                                                            !
+!  A divide by three or by four scheme is also included in MilkShape-1.5.7.         !
 !                                                                                   !
 !-----------------------------------------------------------------------------------!
   integer, parameter :: face_max = 100000
   integer, parameter :: node_max = 100000
   integer, parameter :: face_order_max = 3
-  
+
   integer node_num
-  integer na
+  integer na, ppos
   integer face_num, n_surfaces
   real face_point(3,face_max)
   real face_normal(3,face_max)
@@ -53,12 +50,12 @@
   real (kind = 8) pp(3)
   logical inside
   
-  integer, parameter :: MXNAT = 2500000
-  INTEGER NAT
-  INTEGER*2 ICOMP(MXNAT,3),IXYZ(MXNAT,3)
-  REAL A1(3),A2(3),DX(3)
-  INTEGER JX,JY,JZ,NB,NFAC,NLAY,NX2,NY1,NY2,NZ1,NZ2
-  REAL ASPR,PI,REFF2,Y2M,YCM,Z2,ZCM
+  integer NAT,MXNAT,error
+  integer, dimension(:), allocatable :: ICOMP
+  integer, dimension(:,:), allocatable :: IXYZ
+  real A1(3),A2(3),DX(3)
+  integer JX,JY,JZ,NB,NFAC,NLAY,NX2,NY1,NY2,NZ1,NZ2
+  real ASPR,PI,REFF2,Y2M,YCM,Z2,ZCM
 
   real xave,xrange
   real xmax
@@ -79,18 +76,36 @@
 !
 !   only particles consisting of one (!) closed surface are considered 
 !
-	n_surfaces=1
+    n_surfaces=1
 
     numiargc=iargc()
 
-    if(numiargc.eq.0) then
+    if(numiargc == 0) then
         shape_size = 80
+        filein_name='shape.obj'
+    else if(numiargc == 1) then
+        call getarg(1,strafg)
+        read(unit=strafg,fmt=*)shape_size
+        filein_name='shape.obj'
     else
         call getarg(1,strafg)
-        read(unit=strafg,fmt=*)shape_size 
-    end if
+        read(unit=strafg,fmt=*)shape_size
+        call getarg(2,strafg)
+        read(unit=strafg,fmt=*)filein_name
+    endif
+!   check for presence of extension of filename, add .obj if none
+    ppos=scan(filein_name,".",BACK=.true.)
+	print *,'!!!',filein_name,'!!!'
+    if(ppos > 0) then
+        name_out = filein_name(1:ppos)//'dat'
+    else
+		name_out = trim(filein_name)//'.dat'
+        filein_name = trim(filein_name)//'.obj'
+    endif
 
     print *, 'Maximum shape size = ', shape_size
+    print *, 'Input file = ', filein_name
+    print *, 'Output file = ', name_out
 
     xsh = shape_size
     ysh = shape_size
@@ -102,127 +117,134 @@
     DX(3) = 1.0
     
     face_order = 3
-!
-!   .obj input file name
-!
-	filein_name='shape.obj'
-!
-	call ivread_wr(filein_name,face_point,face_normal,face_area,face_num,node_num,v4,face)
-	
-	vv(1:3,1:node_num)=dble(v4(1:3,1:node_num))
-	
+
+    call ivread_wr(filein_name,face_point,face_normal,face_area,face_num,node_num,v4,face)
+    
+    vv(1:3,1:node_num)=dble(v4(1:3,1:node_num))
+    
     call cor3_limits(node_max, node_num, v4,&
          xmin, xave, xmax, ymin, yave, ymax, zmin, zave, zmax)
     
-      PI=4.*ATAN(1.)
+    PI=4.*atan(1.)
 
-      DO JX=1,3
-         A1(JX)=0.
-         A2(JX)=0.
-      ENDDO
-      A1(1)=1.
-      A2(2)=1.
+    do JX=1,3
+        A1(JX)=0.
+        A2(JX)=0.
+    enddo
+    A1(1)=1.
+    A2(2)=1.
 
-      xrange=xmax-xmin
-      yrange=ymax-ymin
-      zrange=zmax-zmin
-      
-      maxxyz=max(xrange,yrange,zrange)
-      array(1)=xrange
-      array(2)=yrange
-      array(3)=zrange
-      maxpos=maxloc(array,1)
+    xrange=xmax-xmin
+    yrange=ymax-ymin
+    zrange=zmax-zmin
 
-      IF(maxpos == 1)THEN
-         NBX=xsh
-         NBY=int(yrange/xrange*xsh)
-         NBZ=int(zrange/xrange*xsh)
-         xyzscale=xsh/xrange
-      ENDIF
-      IF(maxpos == 2)THEN
-         NBX=int(xrange/yrange*ysh)
-         NBY=ysh
-         NBZ=int(zrange/yrange*ysh)
-         xyzscale=ysh/yrange
-      ENDIF
-      IF(maxpos == 3)THEN
-         NBX=int(xrange/zrange*zsh)
-         NBY=int(yrange/zrange*zsh)
-         NBZ=zsh
-         xyzscale=zsh/zrange
-      ENDIF
+    maxxyz=max(xrange,yrange,zrange)
+    array(1)=xrange
+    array(2)=yrange
+    array(3)=zrange
+    maxpos=maxloc(array,1)
 
-
-      IF(2*(NBX/2).LT.NBX)THEN
-         XCM=0.
-         NX1=-NBX/2
-         NX2=NBX/2
-      ELSE
-         XCM=0.5
-         NX1=-NBX/2+1
-         NX2=NBX/2
-      ENDIF
-      IF(2*(NBY/2).LT.NBY)THEN
-         YCM=0.
-         NY1=-NBY/2
-         NY2=NBY/2
-      ELSE
-         YCM=0.5
-         NY1=-NBY/2+1
-         NY2=NBY/2
-      ENDIF
-      IF(2*(NBZ/2).LT.NBZ)THEN
-         ZCM=0.
-         NZ1=-NBZ/2
-         NZ2=NBZ/2
-      ELSE
-         ZCM=0.5
-         NZ1=-NBZ/2+1
-         NZ2=NBZ/2
-      ENDIF
+    if(maxpos == 1)then
+        NBX=xsh
+        NBY=int(yrange/xrange*xsh)
+        NBZ=int(zrange/xrange*xsh)
+        xyzscale=xsh/xrange
+    endif
+    if(maxpos == 2)then
+        NBX=int(xrange/yrange*ysh)
+        NBY=ysh
+        NBZ=int(zrange/yrange*ysh)
+        xyzscale=ysh/yrange
+    endif
+    if(maxpos == 3)then
+        NBX=int(xrange/zrange*zsh)
+        NBY=int(yrange/zrange*zsh)
+        NBZ=zsh
+        xyzscale=zsh/zrange
+    endif
 
 
+    if(2*(NBX/2).LT.NBX)then
+        XCM=0.
+        NX1=-NBX/2
+        NX2=NBX/2
+    else
+        XCM=0.5
+        NX1=-NBX/2+1
+        NX2=NBX/2
+    endif
+    if(2*(NBY/2).LT.NBY)then
+        YCM=0.
+        NY1=-NBY/2
+        NY2=NBY/2
+    else
+        YCM=0.5
+        NY1=-NBY/2+1
+        NY2=NBY/2
+    endif
+    if(2*(NBZ/2).LT.NBZ)then
+        ZCM=0.
+        NZ1=-NBZ/2
+        NZ2=NBZ/2
+    else
+        ZCM=0.5
+        NZ1=-NBZ/2+1
+        NZ2=NBZ/2
+    endif
 
-      DO JZ=NZ1,NZ2
-         DO JY=NY1,NY2
-            DO JX=NX1,NX2
-               pp(1)=1.1*dble(JX)/dble(xyzscale)+dble(xmax+xmin)/2.
-               pp(2)=1.1*dble(JY)/dble(xyzscale)+dble(ymax+ymin)/2.
-               pp(3)=1.1*dble(JZ)/dble(xyzscale)+dble(zmax+zmin)/2.
-               call polyhedron_contains_point_3d ( node_num, face_num, &
-               face_order_max, vv, face_order, face, pp, inside )
-               IF (inside .eqv. .true.) THEN
-                  NAT=NAT+1
-                  IXYZ(NAT,1)=JX
-                  IXYZ(NAT,2)=JY
-                  IXYZ(NAT,3)=JZ
-                  ICOMP(NAT,1)=1
-                  ICOMP(NAT,2)=1
-                  ICOMP(NAT,3)=1
-               ENDIF
-            ENDDO
-         ENDDO
-         WRITE(*,*)JZ,NAT
-      ENDDO
+    MXNAT=NBX*NBY*NBZ
+    allocate(ICOMP(MXNAT),stat=error)
+    if(error /= 0) then
+        print*,'error: could not allocate memory for ICOMP, MXNAT=',MXNAT
+        stop
+    endif
+    allocate(IXYZ(MXNAT,3),stat=error)
+    if(error /= 0) then
+        print*,'error: could not allocate memory for IXYZ(3), MXNAT=',MXNAT
+        stop
+    endif
 
-    WRITE(*,*)NAT
-    OPEN(UNIT=12,FILE='shape.dat',STATUS='UNKNOWN')
-    WRITE(12,FMT=92)NBX,NBY,NBZ,NAT,A1,A2,DX
-    DO JX=1,NAT
-       WRITE(12,FMT=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX,1),ICOMP(JX,2),ICOMP(JX,3)
-    ENDDO
-    CLOSE(UNIT=12)
+    do JZ=NZ1,NZ2
+        do JY=NY1,NY2
+            do JX=NX1,NX2
+                pp(1)=1.1*dble(JX)/dble(xyzscale)+dble(xmax+xmin)/2.
+                pp(2)=1.1*dble(JY)/dble(xyzscale)+dble(ymax+ymin)/2.
+                pp(3)=1.1*dble(JZ)/dble(xyzscale)+dble(zmax+zmin)/2.
+                call polyhedron_contains_point_3d ( node_num, face_num, &
+                     face_order_max, vv, face_order, face, pp, inside )
+                if(inside .eqv. .true.) then
+                    NAT=NAT+1
+                    IXYZ(NAT,1)=JX
+                    IXYZ(NAT,2)=JY
+                    IXYZ(NAT,3)=JZ
+!                   The following will be needed if extending to multi-domain particles
+                    ICOMP(NAT)=1
+                endif
+            enddo
+        enddo
+        write(*,*)JZ,NAT
+    enddo
 
+    write(*,*)NAT
+    open(unit=12,file=name_out,status='UNKNOWN')
+    write(12,fmt=92)NBX,NBY,NBZ,NAT,A1,A2,DX
+    do JX=1,NAT
+        write(12,fmt=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX),ICOMP(JX),ICOMP(JX)
+    enddo
+    close(unit=12)
+    
+    deallocate(ICOMP)
+    deallocate(IXYZ)
 
-
-92 Format(' >PIPOBJ: point-in-polyhedron: NBX, NBY, NBZ=',3I4,/,&
-       I7,' = NAT',/,&
-       3F9.4,' = A_1 vector',/,&
-       3F9.4,' = A_2 vector',/,&
-       3F9.6,' = lattice spacings (d_x,d_y,d_z)/d',/,&
-       ' 0.0 0.0 0.0',/,&
-       '     JA  IX  IY  IZ ICOMP(x,y,z)')
-93 Format(I7,3I4,3I2)
+92  format(' >PIPOBJ: point-in-polyhedron: NBX, NBY, NBZ=',3(' ',I0),/,&
+        ' ',I0,' = NAT',/,&
+        3F7.4,' = A_1 vector',/,&
+        3F7.4,' = A_2 vector',/,&
+        3F7.4,' = lattice spacings (d_x,d_y,d_z)/d',/,&
+        ' 0.0 0.0 0.0',/,&
+        ' JA IX IY IZ ICOMP(x,y,z)')
+!   sacrifices text alignment to minimize file size; still contains leading space on each line
+93  format(7(' ',I0))
 
 end
 

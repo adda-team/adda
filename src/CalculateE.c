@@ -639,7 +639,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	tstart=GET_TIME();
 	// choose operational mode
 	if ((cmplxF==NULL) ^ (realF==NULL)) cmplx_mode=(realF==NULL);
-	else LogError(ONE_POS,"One field (either real or complex) must be given to StoreFields()");
+	else LogError(ONE_POS,"One field (either real or complex) must be given to StoreFields");
 	// build file name (without directory)
 	strcpy(fname_sh,fname_preffix);
 	if (which==INCPOL_Y) strcat(fname_sh,F_YSUF);
