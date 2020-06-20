@@ -23,6 +23,8 @@
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
 size_t boxXY;             // boxX*boxY, used for indexing
 double gridspace;         // dipole size (d)
+double gridSpaceX,gridSpaceY,gridSpaceZ; // dipole sizes
+double rectScaleX,rectScaleY,rectScaleZ, maxRectScale; // relative dipole sizes (scales) and maximal one
 double dipvol;            // dipole volume
 double kd;                // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
@@ -59,6 +61,7 @@ bool save_memory;   // whether to sacrifice some speed for memory
 bool ipr_required;  /* whether inner product in MatVec will be used by iterative solver (causes additional
                        initialization, e.g., for OpenCL) */
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
+bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
 // 3D vectors (in particle reference frame)
 double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
@@ -114,8 +117,6 @@ size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for
 size_t local_nRows;                 // number of local rows of decomposition (only real dipoles)
 
 // timing
-time_t wt_start,              // starting wall time
-       last_chp_wt;           // wall time of the last checkpoint
 TIME_TYPE Timing_EField,      // time for calculating scattered fields
           Timing_FileIO,      // time for input and output
           Timing_Integration, // time for all integrations (with precomputed values)
@@ -135,7 +136,7 @@ double hsub;            // height of particle center above surface
  */
 double prIncRefl[3],prIncTran[3];
 
-#ifndef SPARSE //These variables are exclusive to the FFT mode
+#ifndef SPARSE // These variables are exclusive to the FFT mode
 
 // position of the dipoles; in the very end of make_particle() z-components are adjusted to be relative to the local_z0
 unsigned short * restrict position;
@@ -160,11 +161,11 @@ int local_z1_coer;        // ending z, coerced to be not greater than boxZ (and 
 	// starting, ending x for current processor and number of x layers (based on the division of smallX)
 size_t local_x0,local_x1,local_Nx;
 
-#else //These variables are exclusive to the sparse mode
+#else // These variables are exclusive to the sparse mode
 
 int *position; // no reason to restrict this to short in sparse mode; actually it points to a part of position_full
-//in sparse mode, all coordinates must be available to each process
+// in sparse mode, all coordinates must be available to each process
 int * restrict position_full;
 
-#endif //SPARSE
+#endif // !SPARSE
 

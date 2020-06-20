@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: core parts of OpenCL code
  *
- * Copyright (C) 2010-2013 ADDA contributors
+ * Copyright (C) 2010-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -39,15 +39,28 @@
  */
 cl_context context;
 cl_command_queue command_queue;
-cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposef,
-	cltransposeb,cltransposeof,cltransposeob,cltransposefR,cltransposeofR;
-
+cl_kernel clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clzero,clinprod,clnConj,cltransposeof,
+	cltransposeob,cltransposeofR;
 cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
+
+/* defines if bufargvec and bufresultvec are to be uploaded in the beginning of MatVec
+ * it is false only in case when the iterative solver handles the buffer upload
+ */
+bool bufupload=true;
+
+#ifdef OCL_BLAS
+cl_mem buftmp;  // temporary buffer for dot products and Norm (as required by clBLAS library)
+cl_mem bufrvec; // buffer used in iterative solver
+cl_mem bufxvec; // buffer used in iterative solver
+#endif
+
 cl_mem bufRmatrix,bufslicesR,bufslicesR_tr; //for surface
 double *inprodhlp; // extra buffer (on CPU) for calculating inner product in MatVec
 // OpenCL memory counts (current, peak, and maximum for a single object)
 size_t oclMem,oclMemPeak,oclMemMaxObj;
+// OpenCL memory available at device (total and for a single object); cl_ulong should be compatible with size_t
+cl_ulong oclMemDev,oclMemDevObj;
 int gpuInd; // index of GPU to use (starting from 0)
 
 // SEMI-GLOBAL VARIABLES
@@ -286,11 +299,11 @@ static void GetDevice(struct string *copt_ptr)
 			Free_general(dev_vers);
 			Free_general(dr_vers);
 #endif
-			cl_ulong mtot,mobj;
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(mtot),&mtot,NULL));
-			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(mobj),&mobj,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(oclMemDev),&oclMemDev,NULL));
+			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(oclMemDevObj),&oclMemDevObj,NULL));
 			// round numbers are expected so .0f is used, float is just for convenience
-			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",mtot/MBYTE,mobj/MBYTE);
+			PrintBoth(logfile,"Device memory: total - %.0f MB, maximum object - %.0f MB\n",oclMemDev/MBYTE,
+				oclMemDevObj/MBYTE);
 			char *dev_ext=dyn_clGetDeviceInfo(device_id,CL_DEVICE_EXTENSIONS);
 			StrCatSpace(copt_ptr,"-DUSE_DOUBLE");
 			if (strstr(dev_ext,"cl_khr_fp64")==NULL) {
@@ -374,7 +387,7 @@ void oclinit(void)
 #elif (SIZE_MAX==UINT64_MAX)
 	StrCatSpace(&cl_opt,"-DSIZET_ULONG");
 #else
-#	error "No OpenCL alternative for size_t. Create an issue at http://code.google.com/p/a-dda/issues/"
+#	error "No OpenCL alternative for size_t. Create an issue at https://github.com/adda-team/adda/issues"
 #endif
 	coptions=cl_opt.text;
 	D("Building CL program with options: '%s'",cl_opt.text);
@@ -402,22 +415,16 @@ void oclinit(void)
 	CL_CH_ERR(err);
 	clinprod=clCreateKernel(program,"inpr",&err);
 	CL_CH_ERR(err);
-	/* In principle a single kernel (and one optimized one) can be used for all transpose operations, including surface
-	 * ones. However, this will require setting the kernel arguments just before the execution. Thus, using multiple
-	 * kernels seem to be a bit faster.
+	/* In principle a single kernel can be used for all transpose operations, including surface ones. However, this will
+	 * require setting the kernel arguments just before the execution. Thus, using multiple kernels seem to be a bit
+	 * faster.
 	 */
-	cltransposef=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
-	cltransposeb=clCreateKernel(program,"transpose",&err);
-	CL_CH_ERR(err);
 	cltransposeof=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 	cltransposeob=clCreateKernel(program,"transposeo",&err);
 	CL_CH_ERR(err);
 	if (surface) { // kernels for surface
 		clarith3_surface=clCreateKernel(program,"arith3_surface",&err);
-		CL_CH_ERR(err);
-		cltransposefR=clCreateKernel(program,"transpose",&err);
 		CL_CH_ERR(err);
 		cltransposeofR=clCreateKernel(program,"transposeo",&err);
 		CL_CH_ERR(err);
@@ -478,13 +485,10 @@ void oclunload(void)
 	CL_CH_ERR(clReleaseKernel(clarith5));
 	CL_CH_ERR(clReleaseKernel(clnConj));
 	CL_CH_ERR(clReleaseKernel(clinprod));
-	CL_CH_ERR(clReleaseKernel(cltransposef));
-	CL_CH_ERR(clReleaseKernel(cltransposeb));
 	CL_CH_ERR(clReleaseKernel(cltransposeof));
 	CL_CH_ERR(clReleaseKernel(cltransposeob));
 	if (surface) { // kernels for surface
 		CL_CH_ERR(clReleaseKernel(clarith3_surface));
-		CL_CH_ERR(clReleaseKernel(cltransposefR));
 		CL_CH_ERR(clReleaseKernel(cltransposeofR));
 	}
 	CL_CH_ERR(clReleaseCommandQueue(command_queue));

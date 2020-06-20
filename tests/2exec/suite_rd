@@ -1,0 +1,371 @@
+#------------------------- Variable definitons -------------------------------------------------------------------------
+# All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
+# can be defined through other variables defined below. Each variable must be defined only once.
+
+# for RD_TRICKY (when better accuracy is needed)
+;smg12n; -size 8 ;m; ;n; -grid 12
+# default for most tests
+;mgn; ;m; ;g; ;n;
+# default for two-domain particles
+;2mgn; ;2m; ;g; ;n;
+# for large computations (e.g. orientation averaging)
+;mg4n; ;m; -grid 4 ;n;
+# for testing odd grids
+;mg9n; ;m; -grid 9 ;n;
+# default addition to make particle completely non-symmetric
+;sep; ;se; ;p;
+# default for testing of different grids
+;smn; -size 8 ;m; ;n;
+
+# Elementary variables
+;m; -m 1.1 0.1
+;2m; -m 1.1 0.1 1.2 0.2
+;3m; -m 1.05 0.1 1.1 0.2 1.2 0.3
+;g; -grid 8
+;n; -ntheta 5
+;p; -prop 1 2 3
+;se; -shape ellipsoid 0.5 1.5
+
+#----------------------------- List of tests ---------------------------------------------------------------------------
+# The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
+# compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
+# directly to ADDA.
+# Instead of 'all' an exclusion flags can be used - a concanetated list of '!X', where X is either an operational mode
+# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched, 
+# otherwise it is equivalent to 'all'.
+
+!RD_EXT!RD_TRICKY
+
+# testing of different grids - relevant for FFT methods; 
+# Some are turned off for ocl_seq until ocl supports larger prime factors in FFT
+# TODO: add odd grid values (the maximum size can then be decreased to 16)
+!RD_TRICKY -grid 2 ;smn;
+!RD_TRICKY -grid 4 ;smn;
+all -grid 6 ;smn;
+all -grid 8 ;smn;
+all -grid 10 ;smn;
+all -grid 12 ;smn;
+!ocl_seq -grid 14 ;smn;
+all -grid 16 ;smn;
+all -grid 18 ;smn;
+all -grid 20 ;smn;
+!ocl_seq -grid 22 ;smn;
+all -grid 24 ;smn;
+!ocl_seq -grid 26 ;smn;
+all -grid 30 ;smn;
+all -grid 32 ;smn;
+
+all -h alldir_inp
+!RD_TRICKY -alldir_inp adp.dat -Csca ;mgn;
+&RD_TRICKY -alldir_inp adp.dat -Csca ;smn; -grid 16
+
+all -h anisotr
+#all -anisotr ;3m; ;g; ;n;
+
+all -h asym
+!RD_TRICKY  -asym ;sep; ;mgn;
+&RD_TRICKY  -asym ;sep; ;smn; -grid 28
+
+all -h beam
+all -h beam plane
+all -beam plane ;mgn;
+all -h beam lminus
+all -beam lminus 2 1 2 3 ;mgn;
+all -h beam davis3
+all -beam davis3 2 1 2 3 ;mgn;
+!RD_TRICKY -beam davis3 2 ;mg9n;
+all -h beam barton5
+!RD_TRICKY -beam barton5 2 1 2 3 ;mgn;
+&RD_TRICKY -beam barton5 2 1 2 3 ;smg12n;
+!RD_TRICKY -beam barton5 2 ;mg9n;
+!RD_TRICKY -beam dipole 3 2 1 ;p; ;mgn;
+&RD_TRICKY -beam dipole 3 2 1 ;smg12n;
+all -h beam read
+#all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
+
+all -h chpoint
+all -chpoint 1s -eps 3 ;mgn;
+all -h chp_type
+all -chp_type normal -chpoint 1s -eps 3 ;mgn;
+all -chp_dir chp_tmp -chp_type regular -chpoint 1s -eps 3 ;mgn;
+all -h chp_dir
+all -chp_dir chp_tmp -chp_type always -eps 3 ;mgn;
+all -h chp_load
+!mpi_seq!RD_TRICKY -chp_dir chp_tmp -chp_load ;mgn;
+
+all -h Cpr
+!RD_TRICKY -Cpr ;mgn;
+&RD_TRICKY -Cpr ;smg12n;
+!RD_TRICKY -Cpr ;sep; ;mgn;
+
+all -h Csca
+!RD_TRICKY -Csca ;se; ;mgn;
+&RD_TRICKY -Csca ;se; ;smg12n;
+
+all -h dir
+
+all -h dpl
+all -dpl 20 ;mgn;
+
+all -h eps
+all -eps 10 ;mgn;
+
+all -h eq_rad
+all -eq_rad 1 ;mgn;
+
+# It is hard to make meaningful comparison of stdout and log for random placement of granules. However, optical
+# properties are compared using rather large tolerances
+all -h granul
+#CrossSec-Y,CrossSec-X,mueller -granul 0.2 0.5 2 -size 8 -shape coated 0.5 ;3m; ;n;
+#CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
+
+all -h grid
+!RD_TRICKY -grid 4 6 8 ;m; ;n;
+!RD_TRICKY -grid 10 10 10 -shape read sphere.geom -sym enf ;m; ;n;
+
+!ocl_seq -h
+all -h h
+
+all -h init_field
+all -init_field auto ;mgn;
+all -init_field inc ;mgn;
+#all -init_field read IncBeam-Y IncBeam-X ;se; ;mgn;
+all -init_field wkb ;mgn;
+all -init_field zero ;mgn;
+
+all -h int
+#all -int fcd ;mgn;
+#all -int fcd_st ;mgn;
+#all -int igt ;mgn;
+!RD_STAN!RD_TRICKY -int igt 3 -pol igt_so ;mg4n;
+!RD_STAN!RD_TRICKY -int igt 3 0.01 -pol igt_so ;mgn;
+#all -int igt_so ;mgn;
+#all -int nloc 0.1 ;mgn;
+#all -int nloc 1 ;mgn;
+#all -int nloc_av 0.1 ;mgn;
+#all -int nloc_av 1 ;mgn;
+!RD_TRICKY -int poi ;mgn;
+#all -int so ;mgn;
+
+all -h int_surf
+all -int_surf img -surf 4 2 0 ;mgn;
+all -int_surf som -surf 4 2 0 ;mgn;
+
+all -h iter
+all -iter bcgs2 ;mgn;
+all -iter bicg ;mgn;
+all -iter bicgstab ;mgn;
+all -iter cgnr ;mgn;
+all -iter csym ;mgn;
+all -iter qmr ;mgn;
+all -iter qmr2 ;mgn;
+
+all -h jagged
+!RD_TRICKY -jagged 2 ;mg4n;
+&RD_TRICKY -jagged 2 ;mgn;
+
+all -h lambda
+all -lambda 1 ;mgn;
+
+all -h m
+all -m 1.2 0.2 ;g; ;n;
+
+all -h maxiter
+all -maxiter 7 ;mgn;
+
+all -h no_reduced_fft
+all -no_reduced_fft ;mgn;
+!mpi,!mpi_seq -no_reduced_fft -iter cgnr ;mgn;
+
+all -h no_vol_cor
+all -no_vol_cor -size 3 ;mgn;
+
+all -h ntheta
+all -ntheta 10 ;m; ;g;
+
+all -h opt
+all -opt speed ;mgn;
+all -opt mem ;mgn;
+
+all -h orient
+all -orient 30 0 0 ;mgn;
+!RD_TRICKY -orient 10 20 30 ;sep; ;mgn; -scat_matr both
+&RD_TRICKY -orient 10 20 30 ;sep; ;smg12n; -scat_matr both
+!RD_TRICKY -orient avg ;se; ;mg4n;
+&RD_TRICKY -orient avg ;se; ;smg12n;
+!RD_TRICKY -orient avg ap.dat ;se; ;mg4n;
+
+all -h phi_integr
+!RD_TRICKY -phi_integr 31 ;sep; ;mgn;
+&RD_TRICKY -phi_integr 31 ;sep; ;smg12n;
+
+all -h pol
+!RD_STAN!RD_TRICKY -pol cldr ;p; ;mgn;
+!RD_STAN!RD_TRICKY -pol cm ;mgn;
+#all -pol dgf ;mgn;
+#all -pol fcd ;mgn;
+!RD_STAN!RD_TRICKY -pol igt_so ;mgn;
+#all -pol lak ;mgn;
+#all -pol ldr ;p; ;mgn;
+#all -pol ldr avgpol ;p; ;mgn;
+#all -pol nloc 0.1 ;mgn;
+#all -pol nloc 1 ;mgn;
+#all -pol nloc_av 0.1 ;mgn;
+#all -pol nloc_av 1 ;mgn;
+#all -pol rrc ;mgn;
+#all -pol so ;p; ;mgn;
+
+all -h prognosis
+all -prognosis
+
+all -h prop
+!RD_TRICKY -prop 5 1 3 ;se; ;mgn;
+&RD_TRICKY -prop 5 1 3 ;se; ;smg12n;
+all -prop 0 0 -1 ;mgn;
+all -prop 1 0 0 ;mgn;
+all -prop 0 1 0 ;mgn;
+
+all -h recalc_resid
+all -recalc_resid ;mgn;
+
+# -rect_dip skipped
+
+all -h save_geom
+!RD_TRICKY -save_geom -shape coated 0.4 0.1 0.15 0.2 -prognosis
+all -h sg_format
+!RD_TRICKY -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text
+!RD_TRICKY -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format text_ext
+!RD_TRICKY -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat6
+!RD_TRICKY -save_geom -shape ellipsoid 0.5 0.25 -prognosis -sg_format ddscat7
+
+all -h scat
+all -scat dr ;mgn;
+all -scat fin ;mgn;
+all -scat igt_so ;mgn;
+all -scat so ;mgn;
+
+all -h scat_grid_inp
+all -scat_grid_inp sp.dat ;mgn;
+
+all -h scat_matr
+all -scat_matr muel ;mgn;
+all -scat_matr ampl ;mgn;
+all -scat_matr both ;mgn;
+all -scat_matr none ;m; ;g;
+
+all -h scat_plane
+!RD_TRICKY -scat_plane ;se; ;mgn;
+&RD_TRICKY -scat_plane ;se; ;smg12n;
+
+all -h shape
+all -h shape axisymmetric
+!RD_TRICKY -shape axisymmetric 196.txt ;mgn;
+!RD_TRICKY -shape axisymmetric axis.txt ;mgn;
+all -h shape bicoated
+!RD_TRICKY -shape bicoated 3 0.5 ;2mgn;
+all -h shape biellipsoid
+!RD_TRICKY -shape biellipsoid 0.5 1.5 1.5 0.5 1.5 ;2mgn;
+all -h shape bisphere
+all -shape bisphere 2 ;mgn;
+all -h shape box
+all -shape box ;mgn;
+!RD_TRICKY -shape box 0.5 1.5 ;mgn;
+&RD_TRICKY -shape box 0.5 1.5 ;smg12n;
+# Turned off for ocl_seq until ocl supports larger prime factors in FFT
+!ocl_seq!RD_TRICKY -shape box 1.51 1.92 -grid 7 ;m; ;n;
+all -h shape capsule
+!RD_TRICKY -shape capsule 1.5 ;mgn;
+&RD_TRICKY -shape capsule 1.5 ;smg12n;
+all -h shape chebyshev
+!RD_TRICKY -shape chebyshev 0.3 5 ;mgn;
+&RD_TRICKY -shape chebyshev 0.3 5 ;smn; -grid 16
+all -h shape coated
+!RD_TRICKY -shape coated 0.5 ;2mgn;
+!RD_TRICKY -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
+all -h shape cylinder
+all -shape cylinder 1 ;mgn;
+all -h shape egg
+all -shape egg 0.5 0.2 ;mgn;
+all -h shape ellipsoid
+!RD_TRICKY -shape ellipsoid 0.25 2 ;mgn;
+&RD_TRICKY -shape ellipsoid 0.25 2 ;smg12n;
+all -h shape line
+!RD_TRICKY -shape line -grid 16 ;m; ;n;
+!RD_TRICKY -shape line -grid 8 2 3 ;m; ;n;
+all -h shape plate
+!RD_TRICKY -shape plate 0.5 ;mgn;
+&RD_TRICKY -shape plate 0.5 ;smg12n;
+all -h shape prism
+!RD_TRICKY -shape prism 5 1.5 ;mgn;
+&RD_TRICKY -shape prism 5 1.5 ;smg12n;
+all -h shape rbc
+!RD_TRICKY -shape rbc 0.3 0.1 0.3 ;mgn;
+&RD_TRICKY -shape rbc 0.3 0.1 0.3 ;smn; -grid 20
+all -h shape read
+!RD_TRICKY -shape read ellipsoid.geom ;m; ;n;
+!RD_TRICKY -shape read coated.geom ;2m; ;n;
+!RD_TRICKY -shape read ell_ddscat6.dat ;m; ;n;
+!RD_TRICKY -shape read ell_ddscat7.dat ;m; ;n;
+all -h shape sphere
+all -shape sphere ;mgn;
+all -h shape spherebox
+!RD_TRICKY -shape spherebox 0.5 ;2mgn;
+
+all -h size
+all -size 8 ;mgn;
+
+all -h store_beam
+!RD_TRICKY -store_beam ;se; ;mgn;
+
+all -h store_dip_pol
+!RD_TRICKY -store_dip_pol ;se; ;mgn;
+
+all -h store_force
+!RD_TRICKY -store_force ;sep; ;mgn;
+
+all -h store_grans
+#all -store_grans -granul 0.2 1 -size 4 ;2mgn;
+
+all -h store_int_field
+!RD_TRICKY -store_int_field ;se; ;mgn;
+
+all -h store_scat_grid
+!RD_TRICKY -store_scat_grid ;sep; ;mgn;
+&RD_TRICKY -store_scat_grid ;sep; ;smg12n;
+
+all -h surf
+all -surf 4 2 0 ;mgn;
+!RD_TRICKY -surf 4 3 4 ;p; ;mgn;
+!RD_TRICKY -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn;
+!RD_TRICKY -surf 4 inf -prop 1 2 -3 ;se; ;mgn;
+&RD_TRICKY -surf 4 inf -prop 1 2 -3 ;se; ;m; ;n; -size 5 -grid 12
+!RD_TRICKY -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn;
+&RD_TRICKY -surf 4 2 1 -beam dipole 3 2 1 ;p; ;smg12n;
+!RD_TRICKY -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn;
+&RD_TRICKY -surf 4 2 1 -beam dipole 3 2 1 ;p; ;smg12n;
+all -surf 4 2 0 -no_reduced_fft ;mgn;
+!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
+
+all -h sym
+all -sym auto ;mgn;
+all -sym no ;mgn;
+all -sym enf ;mgn;
+!RD_TRICKY -sym auto ;sep; ;mgn;
+&RD_TRICKY -sym auto ;sep; ;smg12n;
+!RD_TRICKY -sym no ;sep; ;mgn;
+&RD_TRICKY -sym no ;sep; ;smg12n;
+!RD_TRICKY -sym enf ;sep; ;mgn;
+&RD_TRICKY -sym enf ;sep; ;smg12n;
+
+all -h test
+all -test ;mgn;
+
+all -h V
+!mpi_seq!ocl_seq!SPA_STAN -V
+
+all -h vec
+!RD_TRICKY -vec ;sep; ;mgn;
+&RD_TRICKY -vec ;sep; ;smn; -grid 28
+
+all -h yz
+all -yz -store_scat_grid ;mgn;

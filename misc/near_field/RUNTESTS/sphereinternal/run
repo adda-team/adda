@@ -6,9 +6,8 @@ if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
   exit $ERR
 fi
-#grep "#@#" adda.out > commvar
 mv sphere.geom target
-tail -n+4 target > target.tmp
+grep -v '^#' target > target.tmp
 nump=`wc -l target.tmp`
 cat >hh <<%EOF%
 0

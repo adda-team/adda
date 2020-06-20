@@ -1,0 +1,61 @@
+#!/bin/bash
+echo '------------adda----------------'
+$ADDABIN -store_beam -store_dip_pol -save_geom -dir . -prop 0 0 1 -pol cm -lambda 0.400 -m 0.5 2 2 0.2 -shape coated 0.5 -eps 9 -dpl 100 -grid 16 &> adda.out
+ERR=$?
+if [ $ERR -ne 0 ]; then
+  echo "ADDA returned error $ERR"
+  exit $ERR
+fi
+mv coated.geom target
+echo '------------gendip-------------------'
+../../gendip > gendip.out
+echo '------------genplane-------------------'
+cat >plane_input_xy <<%EOF%
+    8.0 3
+    -20.0 35.0 55
+     -20.0 35.0 55
+%EOF%
+../../genplane < plane_input_xy > plane_points_xy
+echo '------------nearfield------------'
+cat >input_xy <<%EOF%
+DIPY.SAV
+400            ! lambda
+plane_points_xy
+nearfield_xy
+1 !eincflag
+0 !iformat 
+1 !debug
+0 !internal
+%EOF%
+$MPIEXEC ../../nearfield < input_xy > nearfield.out
+
+echo -------------verifying-------------
+../../checknfsymm < input_xy > checknfsymm.out
+
+echo ------------genline----------------
+cat > line_input <<%EOF%
+-10 7.5  7.5 
+25 7.5  7.5 
+-10 25 350
+%EOF%
+../../genline < line_input > line_points
+echo ------------nearfieldline----------
+cat >inputl <<%EOF%   
+DIPY.SAV  
+400            ! lambda
+line_points
+nearfield_line
+0 !eincflag
+0 !iformat
+0 !debug
+0 !internal
+%EOF%
+$MPIEXEC ../../nearfield < inputl > nearfieldl.out 
+
+grep ERROR gendip.out                     > err.dat
+grep ERROR nearfield.out   | grep -v _SZ >> err.dat 
+grep ERROR checknfsymm.out | grep -v _SZ >> err.dat
+awk '{ ZUM+=$3 } END { printf "%.12f\n", ZUM} ' err.dat
+
+paste nearfield_xy.DAT   nearfield_xy.DAT.ref   |  awk '{ SUM+=($4-$8)*($4-$8)} END { printf "%.12f\n", SUM}' 
+paste nearfield_line.DAT nearfield_line.DAT.ref |  awk '{ SUM+=($4-$8)*($4-$8)} END { printf "%.12f\n", SUM}'

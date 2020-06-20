@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: definitions of communication global variables and routines
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -24,9 +24,9 @@
 
 // UOIP - Used Only In Parallel; to remove spurious 'unused' warnings in sequential mode
 #ifdef PARALLEL
-#define UOIP
+#	define UOIP
 #else
-#define UOIP ATT_UNUSED
+#	define UOIP ATT_UNUSED
 #endif
 
 typedef enum {uchar_type,int_type,int3_type,sizet_type,double_type,double3_type,cmplx_type,cmplx3_type} var_type;

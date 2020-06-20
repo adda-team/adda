@@ -46,7 +46,7 @@
      &      bCXPL2I,bCXPL3R,bCXPL3I
 
          integer xi,yj,zk
-         integer OS
+         integer OS,skipped,line
          complex*16, allocatable :: CXPOL(:,:)
          complex*16, allocatable :: INCBEAM(:,:)
          complex*16, allocatable :: FIELD(:,:)
@@ -75,15 +75,19 @@
          write(*,*) 'Reading target ...'
 !---------------------get number of dipoles-------------------------
          OS=0
+         skipped=0
          open(UNIT=3114,FILE='target',STATUS='OLD',ERR=900)
-         read(3114,*) 
-         read(3114,*)      
-         read(3114,*)
+!             both # and Nmat in the beginning of a line should cause error in the following
  399     read(3114,*,ERR=400,END=200) xi,yj,zk
-         goto 401
- 400          write(*,*) 'NMAT>1'
+         OS=OS+1
          goto 399
- 401          OS=OS+1
+ 400     if (OS.eq.0) then
+           skipped=skipped+1
+         else 
+           line=skipped+OS+1
+           write(*,*) ' ERROR!: Wrong format of target at line',line
+           stop
+         endif
          goto 399
  200     write(*,*) 'Readed Dipoles',OS
          close(3114)
@@ -91,9 +95,9 @@
 !-------------------------------------------------------------------
          write(*,*) 
          open(UNIT=3114,FILE='target',STATUS='OLD',ERR=900)
-         read(3114,*) 
-         read(3114,*)
-         read(3114,*)
+         do i=1,skipped
+           read(3114,*)
+         enddo
          
          iext=0
          open(UNIT=3115,FILE=fbeam,STATUS='OLD',iostat=iosb)

@@ -5,7 +5,7 @@
  *        Common feature of many functions is accepting timing argument. If it is not NULL, it is incremented by the
  *        time used for communication.
  *
- * Copyright (C) 2006-2008,2010-2013 ADDA contributors
+ * Copyright (C) 2006-2008,2010-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -28,7 +28,6 @@
 #include <string.h>
 
 /* There are several optimization ideas used in this file:
- * - pragmas for Intel compiler, indicating that the loop is supposed to be very large, are used.
  * - If usage of some function has coinciding arguments, than a special function for such case is created. In
  * particular, this allows consistent usage of 'restrict' keyword almost for all function arguments.
  * - Deeper optimizations, such as loop unrolling, are left to the compiler.

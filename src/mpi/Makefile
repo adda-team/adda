@@ -2,7 +2,7 @@
 # Most options are defined in Makefile
 # $Date::                            $
 #
-# Copyright (C) 2006-2013 ADDA contributors
+# Copyright (C) 2006-2014 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -34,7 +34,7 @@ endif
 # These are options for a particular Alpha system
 ifeq ($(COMPILER),compaq)
   MPICC := cc
-  LDFLAGS += -lmpi -lelan
+  LDLIBS += -lmpi -lelan
 endif
 
 # If the compiler is used directly, a few additional options are needed
@@ -44,7 +44,7 @@ ifeq ($(MPICC),$(CC))
   #CFLAGS += -I"C:/Program Files/MPICH2/include"
   #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
 
-  LDFLAGS += -lmpi
+  LDLIBS += -lmpi
 # If MPI compiler wrapper is used, environmental variables are set to define C compiler and linker
 else
   # for MPICH
@@ -59,7 +59,9 @@ endif
 #=======================================================================================================================
 
 # Finalize flags
-CFLAGS += -DADDA_MPI
+CFLAGS  += -DADDA_MPI
+CSOURCE += matvec.c
+
 PROG   := $(PROGMPI)
 MYCC   := $(MPICC)
 MYCF   := $(CF)

@@ -1,0 +1,14 @@
+/chp_tmp/
+/out_ref/
+/out_test/
+/tables/
+/chpoint/
+/current_exec/
+/test.tmp
+/ref.tmp
+/alldir_params.dat
+/avg_params.dat
+/scat_params.dat
+/stdout_ref
+/stdout_test
+/ExpCount

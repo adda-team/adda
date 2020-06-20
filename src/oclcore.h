@@ -2,7 +2,7 @@
  * $Date::                            $
  * Descr: all common OpenCL variables and functions; void in non-OpenCL mode
  *
- * Copyright (C) 2010-2013 ADDA contributors
+ * Copyright (C) 2010-2014 ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -22,6 +22,7 @@
 // project headers
 #include "function.h"
 #include "io.h"
+#include <stdbool.h> // for bool
 // system headers
 #ifdef __APPLE__
 #	include <OpenCL/cl.h>
@@ -36,14 +37,19 @@
 
 // global OpenCL variables; names should not interfere with other parts of the code
 extern cl_context context;
+extern bool bufupload;
 extern cl_command_queue command_queue;
-extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposef,
-	cltransposeb,cltransposeof,cltransposeob,cltransposeofR,cltransposefR;
+extern cl_kernel clzero,clarith1,clarith2,clarith3,clarith3_surface,clarith4,clarith5,clnConj,clinprod,cltransposeof,
+	cltransposeob,cltransposeofR;
 extern cl_mem bufXmatrix,bufmaterial,bufposition,bufcc_sqrt,bufargvec,bufresultvec,bufslices,bufslices_tr,bufDmatrix,
 	bufinproduct;
+#ifdef OCL_BLAS
+extern cl_mem buftmp,bufrvec,bufxvec;
+#endif
 extern cl_mem bufRmatrix,bufslicesR,bufslicesR_tr;
 extern double *inprodhlp;
 extern size_t oclMem,oclMemPeak,oclMemMaxObj;
+extern cl_ulong oclMemDev,oclMemDevObj;
 extern int gpuInd;
 
 /* checks error status of CL functions; can either be used as a wrapper that returns error status or applied to return

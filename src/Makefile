@@ -4,7 +4,7 @@
 # version respectively
 # $Date::                            $
 #
-# Copyright (C) 2006-2013 ADDA contributors
+# Copyright (C) 2006-2014 ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -19,11 +19,12 @@
 #=======================================================================================================================
 # !!! This makefile accepts environmental variables CFLAGS, FFLAGS, CPPFLAGS, LDFLAGS, and LDLIBS. First three are
 # passed to C, Fortran, and C++ compiler respectively, and last two are passed to the linker. Values specified below are
-# added to the values given by the environment. These variables can also be given in the command line to make, but it
-# will override all values specified in this Makefile. This is especially critical for CFLAGS which should be overridden
-# only with much care, including all relevant flags in the new value. Moreover, all other variables can be overridden by
-# command line option to make. In particular, this can be relevant for specifying a different version of the compiler
-# (see below).
+# added to the values given by the environment. This can be used in invocation of make as: 
+# > export CFLAGS=...; make ...
+# These variables can also be given in the command line to make, but it will override all values specified in this
+# Makefile. This is especially critical for CFLAGS which should be overridden only with much care, including all
+# relevant flags in the new value. Moreover, all other variables can be overridden by command line option to make. In
+# particular, this can be relevant for specifying a different version of the compiler (see below).
 #=======================================================================================================================
 
 # Test version and features of GNU make
@@ -84,7 +85,7 @@ ifneq ($(if $(MAKECMDGOALS),$(if $(filter $(NONTRIVIAL),$(MAKECMDGOALS)),1,),1),
 # one argument in quotes with its parts separated by spaces, e.g. 'make OPTIONS="DEBUG FFT_TEMPERTON" ...'. OPTIONS that
 # are uncommented below are appended to the list specified elsewhere. Full list of possible options is the following:
 VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOCKFILE NO_FORTRAN NO_CPP \
-              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3
+              OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_GITHASH \
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
 # producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
@@ -92,6 +93,9 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # and turns on additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
+
+# Not clear if that is beneficial
+#OPTIONS += USE_SSE3
 
 # Temperton FFT (fft.h).
 #override OPTIONS += FFT_TEMPERTON
@@ -127,10 +131,13 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
 
+# used AMDs CLBlas library for iterative solver (currently just suported in bicg method, oo effect on the other methods)
+#override OPTIONS += OCL_BLAS
+
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
 # ADDA source (so it is produced in the output of 'adda -V'. If this causes any problems (including significant delays),
 # the functionality can be disabled by uncommenting the following line.
-#override OPTIONS += NO_SVNREV
+#override OPTIONS += NO_GITHASH
 
 # ---Compilers---
 # Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
@@ -179,8 +186,8 @@ override EXTRA_FLAGS +=
 #=======================================================================================================================
 
 # C files are located in source folder (src/), other files may be added below
-CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c comm.c crosssec.c GenerateB.c interaction.c io.c \
-           iterative.c linalg.c make_particle.c matvec.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
+CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c cmplx.c comm.c crosssec.c GenerateB.c interaction.c io.c \
+           iterative.c linalg.c make_particle.c memory.c  mt19937ar.c param.c Romberg.c sinint.c somnec.c \
            timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
@@ -197,7 +204,7 @@ PARENT    := ..
 FFOLDER   := fort
 CPPFOLDER := cpp
 
-LDLIBS    := -lm
+LDLIBS    += -lm
 DEPFLAG   := -MD
 # Fortran and C++ sources generate a lot of warnings, we do not plan to investigate them
 FWARN     := -w
@@ -305,13 +312,18 @@ ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
   # Here only the info is printed, the main logic is in ocl/Makefile
   $(info Read CL sources at runtime)
 endif
-ifneq ($(filter NO_SVNREV,$(OPTIONS)),)
-  CDEFS += -DNO_SVNREV
+ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
+  # Here only the info is printed, the main logic is in ocl/Makefile
+  $(info Using clBLAS)
+endif
+ifneq ($(filter NO_GITHASH,$(OPTIONS)),)
+  CDEFS += -DNO_GITHASH
+  $(info Skipping git hash)
 else
-  # Get revision number if possible
-  REV=$(shell sh updsvnrev.sh)
-  ifneq ($(REV),)
-    $(info Revision $(REV))
+  # Get githash if possible
+  HASH=$(shell sh updgithash.sh)
+  ifneq ($(HASH),)
+    $(info Git hash $(HASH))
   endif
 endif
 # Process EXTRA_FLAGS
@@ -349,6 +361,13 @@ ifeq ($(COMPILER),gnu)
     CWARN += -pedantic
   endif
   
+  # On Windows (with MinGW) there is certain motivation to link Fortran libraries statically, since otherwise three
+  # DLLs (total size about 1.5MB) need to be distributed together with executables. Static linking increases the size
+  # of ADDA by about 0.4MB, but we distribute at least 5 executables (not counting misc/). Moreover, complete static
+  # linking is inconvenient since FFTW3 static libraries are not easily available for Windows (need to be recompiled
+  # manually). Selective static linking can be achived by surrounding '-l...' flags in '-Wl,-Bstatic' ... 
+  # '-Wl,-Bdynamic', but we do not do it here.
+  #
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran

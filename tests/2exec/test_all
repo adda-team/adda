@@ -1,0 +1,126 @@
+#!/bin/bash
+# First obligatory parameter is testing sequence: prev, cross, extra
+# prev - compares with previous versions (!!! check ignores in comp2exec)
+# cross - diffent modes against each other (only one change at a time). Doesn't require previous version and should
+#         result in no fails at all
+# extra - additional (longer) tests, including RD_TRICKY and changing two modes at a time, e.g. mpi_seq SUFR_STAN,
+#         can be run only before the release (if one of the components catches anything, not caught by others, consider
+#         moving this test to cross).
+# Other parameters are optional:
+# Second is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in quotes, implies cross
+# modes), or all (default). 'spa' is sparse and requires combination with something.
+# Third is reference path (relevant only for PREVIOUS), otherwise the default one in comp2exec is used
+# Fourth is the test path (if all test executables are in one folder), otherwise default logic in in comp2exec is used
+# 
+# All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
+# failures (redirect it to file or to colorize it in the terminal)
+
+PREV_TESTS=(seq mpi ocl "seq SPA_EXT" "mpi SPA_EXT" "seq SURF_EXT" "mpi SURF_EXT" "ocl SURF_EXT") 
+            #"seq RD_EXT" "mpi RD_EXT" "ocl RD_EXT" - not relevant vs. v.1.3b4 # "ocl SPA_EXT" is not yet supported
+CROSS_TESTS=(mpi_seq ocl_seq "seq SPA_STAN" "mpi SPA_STAN" "seq SURF_STAN" "mpi SURF_STAN" "ocl SURF_STAN"\ 
+            "seq RD_STAN" "mpi RD_STAN" "ocl RD_STAN") # "ocl SPA_STAN" is not yet supported
+EXTRA_TESTS=("mpi_seq SPA_EXT" "mpi_seq SPA_STAN" "mpi_seq SURF_EXT" "ocl_seq SURF_EXT" "mpi_seq SURF_STAN"\
+             "ocl_seq SURF_STAN" "mpi_seq RD_EXT" "ocl_seq RD_EXT" "mpi_seq RD_STAN" "ocl_seq RD_STAN"\
+             "seq RD_TRICKY" "mpi RD_TRICKY" "ocl RD_TRICKY" "mpi_seq RD_TRICKY" "ocl_seq RD_TRICKY")
+             # "ocl_seq SPA_EXT" and "ocl_seq SPA_STAN" are not yet supported
+# Process input arguments
+if [ -z "$1" ]; then
+  echo "ERROR: no argument is present" >&2
+  exit 1
+else 
+  case "$1" in
+    prev)
+      NAME="PREV_TESTS[@]"
+      ;;
+    cross)
+      NAME="CROSS_TESTS[@]"
+      ;;
+    extra)
+      NAME="EXTRA_TESTS[@]"
+      ;;
+    *)
+      echo "ERROR: Unknown first argument '$1'" >&2
+      exit 1
+      ;;
+  esac
+fi
+MODES=${2:-all}
+OPTIONS=
+if [ -n "$3" ]; then
+  OPTIONS="$OPTIONS REFPATH=\"$3\""
+fi
+if [ -n "$4" ]; then
+  OPTIONS="$OPTIONS ADDASEQ=\"$4/adda\" ADDASPASEQ=\"$4/adda_spa\" ADDAMPI=\"$4/adda_mpi\""
+  OPTIONS="$OPTIONS ADDASPAMPI=\"$4/adda_spa_mpi\" ADDAOCL=\"$4/adda_ocl\" ADDASPAOCL=\"$4/adda_spa_ocl\""
+  # the last one is not yet supported
+fi
+
+# auxiliary function
+function check_mode {
+  # returns 0 (true) if first word of $1 is a valid mode (with respect to $MODES)
+  if [ "$MODES" == "all" ]; then
+    return 0
+  fi
+  local mode=${1%% *}
+  # simplified left and right word boundaries
+  local bl="(^|\s)"
+  local br="($|\s)"
+  if [[ "$mode" =~ [a-zA-Z]+_[a-zA-Z]+ ]]; then # check cross modes, like mpi_seq
+    if [[ "$MODES" =~ $bl${mode%%_*}$br && "$MODES" =~ $bl${mode##*_}$br ]]; then
+      return 0
+    else
+      return 1
+    fi
+  elif [[ "$MODES" =~ $bl$mode$br ]]; then
+    return 0
+  else  
+    return 1
+  fi
+}
+# test the presence of executables
+function test_file_exe {
+  # test if file $1 exists (as given, or with .exe)
+  if [[ (! -f "$1") && (! -f "$1.exe") ]]; then
+    echo "ERROR: file '$1' not found" >&2
+    exit 1
+  fi 
+}
+function test_all_execs {
+  # tests the existence of all standard adda executables in a folder $1
+  if check_mode seq; then
+    test_file_exe "$1/adda"
+    if check_mode spa; then
+      test_file_exe "$1/adda_spa"
+    fi
+  fi
+  if check_mode mpi; then
+    test_file_exe "$1/adda_mpi"
+    if check_mode spa; then
+      test_file_exe "$1/adda_spa_mpi"
+    fi
+  fi
+  if check_mode ocl; then
+    test_file_exe "$1/adda_ocl"
+    # the following combination is not yet supported
+    # if check_mode spa; then
+    #   test_file_exe "$1/adda_spa_ocl"
+    # fi
+  fi  
+}
+if [[ -n "$3" && "$1" == "prev" ]]; then
+  # In principle, we can test some default folders, even if $3 is not given. Even parse comp2exec for current default
+  test_all_execs "$REFPATH"
+fi
+if [[ -n "$4" ]]; then
+  test_all_execs "$4"
+fi
+# main execution
+for cmd in "${!NAME}"; do # Extra complication below for sparse mode
+  if check_mode "$cmd" && ([[ !("$cmd" == *"SPA_EXT"* || "$cmd" == *"SPA_STAN"*) ]] || check_mode spa); then
+    #echo -e "\nInvoking test with '$cmd'"
+    if ! ./comp2exec $cmd; then
+      echo "ERROR during running 'comp2exec $cmd'" >&2
+      exit 1
+    fi
+  fi
+done
