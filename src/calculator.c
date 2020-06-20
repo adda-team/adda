@@ -703,7 +703,6 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
-		MALLOC_VECTOR(E1,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
@@ -889,7 +888,6 @@ void FreeEverything(void)
 	Free_cVector(rvec);
 	Free_cVector(pvec);
 	Free_cVector(Einc);
-	Free_cVector(E1);
 	Free_cVector(Avecbuffer);
 	
 	/* The following can be automated to some extent, either using the information from structure array 'params' in
