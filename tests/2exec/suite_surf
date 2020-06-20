@@ -187,12 +187,7 @@ all -opt mem ;mgn;
 all -h orient
 # changing particle orientation is not yet suppoted with surf
 #all -orient 30 0 0 ;mgn;
-<<<<<<< HEAD
-#all -orient 10 20 30 ;se; ;mgn;
-#all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
-=======
 #all -orient 10 20 30 ;sep; ;mgn; -scat_matr both
->>>>>>> upstream/master
 #all -orient avg ;se; ;mg4n;
 #all -orient avg ap.dat ;se; ;mg4n;
 
@@ -317,11 +312,7 @@ all -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 all -shape bicoated 3 0.5 ;2mgn; -size 2
 all -h shape biellipsoid
-<<<<<<< HEAD
-all -shape biellipsoid 0.5 1.5 0.75 0.5 1.5 ;2mgn; -size 2
-=======
 all -shape biellipsoid 0.5 1.5 1.5 0.5 1.5 ;2mgn; -size 2
->>>>>>> upstream/master
 all -h shape bisphere
 all -shape bisphere 2 ;mgn; -size 2
 all -h shape box

@@ -180,12 +180,7 @@ all -opt mem ;mgn;
 
 all -h orient
 all -orient 30 0 0 ;mgn;
-<<<<<<< HEAD
-all -orient 10 20 30 ;se; ;mgn;
-all -orient 10 20 30 ;se; ;mgn; ;p; -scat_matr both
-=======
 all -orient 10 20 30 ;sep; ;mgn; -scat_matr both
->>>>>>> upstream/master
 all -orient avg ;se; ;mg4n;
 all -orient avg ap.dat ;se; ;mg4n;
 
