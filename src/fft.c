@@ -109,11 +109,7 @@ static size_t lz_Dm,lz_Rm; // local sizes along z for D(2) and R(2) matrices
 static size_t Rsize,R2sizeTot; // sizes of R and R2 matrices
 static int jstartR;            // starting index for y
 static bool weird_nprocs;      // whether weird number of processors is used
-<<<<<<< HEAD
-// clFFT plans
-=======
 
->>>>>>> upstream/master
 #ifdef OPENCL
 // clFFT plans
 #	ifdef CLFFT_AMD

@@ -429,40 +429,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					draine_precalc_data_index=i;
 					break;
 				}
-<<<<<<< HEAD
-				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
-				break;
-			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
-				/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
-				 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-				 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-				 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
-				 */
-				if (polNlocRp==0) res[i]=polCM(mrel[i]);
-				else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
-				break;
-			case POL_NLOC_AV:
-				if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
-				else {
-					double x=gridspace/(2*SQRT2*polNlocRp);
-					double g0,t;
-					// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
-					if (x<1) {
-						t=erf(x);
-						g0=1-t*t*t;
-					}
-					else {
-						t=erfc(x);
-						g0=t*(3-3*t+t*t);
-					}
-					// !!! dynamic part should be added here
-					res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
-				}
-				break;
-			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
-=======
 			}
 			if (draine_precalc_data_index==UNDEF) LogError(ONE_POS,"Non-standard proportions of rectangular dipole "
 				"(%g:%g:%g) are not compatible with CM, LDR, and CLDR polarizabilities. See the manual for details.",
@@ -532,7 +498,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				}
 #undef R3_INDEX
 			}
->>>>>>> upstream/master
 		}
 		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
 	} 
@@ -738,6 +703,7 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
+		MALLOC_VECTOR(E1,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
@@ -876,12 +842,8 @@ static void AllocateEverything(void)
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
 	 * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
-<<<<<<< HEAD
-	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors)
-=======
 	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors).
 	 *    However, OpenCL may additionally use up to 96*min(32,gridX)*gridY*gridZ if available.
->>>>>>> upstream/master
 	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
@@ -927,6 +889,7 @@ void FreeEverything(void)
 	Free_cVector(rvec);
 	Free_cVector(pvec);
 	Free_cVector(Einc);
+	Free_cVector(E1);
 	Free_cVector(Avecbuffer);
 	
 	/* The following can be automated to some extent, either using the information from structure array 'params' in

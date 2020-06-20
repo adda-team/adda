@@ -7,10 +7,7 @@
  * - no generation of interpolation grid, only single run
  * - numerical precision was changed to double
  * - conjugation (that was in place to couple with other parts of nec2 code) was removed
-<<<<<<< HEAD
-=======
  * - a few cosmetic changes to remove compiler warnings (with -pedantic flag)
->>>>>>> upstream/master
  */
 
 /* TODO: Systematic accuracy study of this code is required. At least 7 digits of precision are desired (for test runs)

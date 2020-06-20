@@ -123,11 +123,7 @@ void InitTiming(void)
 void FinalStatistics(void)
 // print final output and statistics
 {
-<<<<<<< HEAD
-	time_t wt_end;
-=======
 	SYSTEM_TIME wt_end;
->>>>>>> upstream/master
 	double totTime;
 	TIME_TYPE Timing_TotalTime;
 
@@ -152,11 +148,7 @@ void FinalStatistics(void)
 				TotalIter,TotalMatVec,nTheta,TotalEFieldPlane);
 		}
 		fprintf(logfile,
-<<<<<<< HEAD
-			"Total wall time:     %.0f\n",totTime=difftime(wt_end,wt_start));
-=======
 			"Total wall time:     "FFORMT"\n",totTime=DiffSystemTime(&wt_start,&wt_end));
->>>>>>> upstream/master
 #ifdef ADDA_MPI
 		fprintf(logfile,
 			"--Everything below is also wall times--\n"
