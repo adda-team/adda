@@ -1,11 +1,19 @@
 This folder contains ADDA executables for 64-bit Windows and all required DLLs. Hence, these executables are ready to
 run. However, all auxilliary files, like the manual or sample input files, are supplied with the main ADDA package, 
 which should be obtained separately.
+<<<<<<< HEAD
+=======
+
+All executables are console applications, which should be run from a terminal (not by clicking the mouse). On Windows
+either use built-in `cmd.exe` or install one of Linux-type shells (like MSYS Bash or Git Bash) or FAR File Manager.
+You can also run ADDA through a system call from any programming/scripting language. 
+>>>>>>> upstream/master
 
 Executables of misc/ packages are located in separate folders for convenience, but they may also require some of these
 DLLs. For instance, those based on Fortran code require:
 libgfortran_64-3.dll
 libquadmath_64-0.dll
+libgcc_s_sjlj_64-1.dll
 
 In general, one either need to add path to required DLLs to the PATH environmental variable or to keep executables and
 DLLs in the same folder.

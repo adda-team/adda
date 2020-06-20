@@ -13,9 +13,12 @@
  *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
  *        Eqs.(25)-(28) - complex conjugate.
  *
+<<<<<<< HEAD
  *        Electron beam is based on: Garcia de Abajo "Optical Excitations in electron microscopy", 
  *        Rev. Mod. Phys. v. 82 p. 213 equations (4) and (5)
  *
+=======
+>>>>>>> upstream/master
  * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
@@ -72,7 +75,10 @@ static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
+<<<<<<< HEAD
 static double el_energy;        // electron beam energy (in keV)
+=======
+>>>>>>> upstream/master
 static double p0;              // amplitude of the incident dipole moment
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
@@ -314,7 +320,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine amplitude of the reflected and transmitted waves
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncRefl);
-						if (msubInf) rc=-1;
+						if (msubInf) {
+							rc=-1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							cvBuildRe(ex,eIncTran);
 							rc=FresnelRS(ki,kt);
@@ -323,7 +332,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					}
 					else { // p-polarized
 						vInvRefl_cr(ex,eIncRefl);
-						if (msubInf) rc=1;
+						if (msubInf) {
+							rc=1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							crCrossProd(ey,ktVec,eIncTran);
 							cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub
@@ -409,7 +421,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {
-					x2_s=x*x/ro2;
+					/* It is possible to rewrite the formulae below to avoid division by ro2, but we prefer
+					 * dimensionless variables. The value for ro2=0 doesn't really matter (cancels afterwards).
+					 * The current code should work OK even for very small ro2
+					 */
+					if (ro2==0) x2_s=0;
+					else x2_s=x*x/ro2;
 					Q2=Q*Q;
 					ro4=ro2*ro2;
 					// some combinations that are used more than once
@@ -426,7 +443,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						t3 = 2*t7*(-1 + I*Q*s2*(-4*t5+t6-2));
 					}
 					else if (beamtype==B_BARTON5) {
-						xy_s=x*y/ro2;
+						if (ro2==0) xy_s=0; // see comment for x2_s above
+						else xy_s=x*y/ro2;
 						t8=8+2*t5; // t8=8+2i*Q*ro^2
 						/* t1 = 1 + s^2(-ro^2*Q^2-i*ro^4*Q^3-2Q^2*x^2)
 						 *    + s^4[2ro^4*Q^4+3iro^6*Q^5-0.5ro^8*Q^6+x^2(8ro^2*Q^4+2iro^4*Q^5)]

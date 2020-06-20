@@ -82,7 +82,8 @@ static inline int AlldirIndex(const int theta,const int phi)
 void InitRotation (void)
 /* initialize matrices used for reference frame transformation; based on Mishchenko M.I. "Calculation of the amplitude
  * matrix for a nonspherical particle in a fixed orientation", Applied Optics 39(6):1026-1031. This is so-called
- * zyz-notation or y-convention.
+ * zyz-notation or y-convention. Instead of rotating the particle (active rotation) we rotate everything else (passive).
+ * Then the beta_matr is the transpose of the active one.
  */
 {
 	double ca,sa,cb,sb,cg,sg;
@@ -537,9 +538,9 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 	cvInit(sum);
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
-	imExp_arr(-kd*n[0],boxX,expsX);
-	imExp_arr(-kd*n[1],boxY,expsY);
-	imExp_arr(-kd*n[2],local_Nz_unif,expsZ);
+	imExp_arr(-kd*n[0]*rectScaleX,boxX,expsX);
+	imExp_arr(-kd*n[1]*rectScaleY,boxY,expsY);
+	imExp_arr(-kd*n[2]*rectScaleZ,local_Nz_unif,expsZ);
 #endif // !SPARSE
 	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
@@ -563,11 +564,11 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 		}
 		a=tmp*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed
-			expY=imExp(-kd*n[1]*iy2);
-			expZ=imExp(-kd*n[2]*iz2);
+			expY=imExp(-kd*n[1]*iy2*rectScaleY);
+			expZ=imExp(-kd*n[2]*iz2*rectScaleZ);
 			tmp=expY*expZ;
 		}
-		expX=imExp(-kd*n[0]*ix);
+		expX=imExp(-kd*n[0]*ix*rectScaleX);
 		a=tmp*expX;
 #endif // SPARSE
 		/* the following line may incur certain overhead (from 0% to 5% depending on tests).
@@ -648,8 +649,13 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	// calculate nN, ki, kt, cs, cp, and phSh
 	if (above) { // simple reflection
 		/* No scattering at exactly 90 degrees for non-trivial surface (to avoid randomness for this case).
+<<<<<<< HEAD
 		 * See A. Small, J. Fung, and V.N. Manoharan, “Generalization of the optical theorem for light scattering from
 		 * a particle at a planar interface,” J. Opt. Soc. Am. A 30, 2519–2525 (2013) for theoretical discussion of
+=======
+		 * See A. Small, J. Fung, and V.N. Manoharan, "Generalization of the optical theorem for light scattering from
+		 * a particle at a planar interface," J. Opt. Soc. Am. A 30, 2519-2525 (2013) for theoretical discussion of
+>>>>>>> upstream/master
 		 * this fact.
 		 */
 		if (fabs(nF[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {
@@ -693,9 +699,9 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	}
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
-	imExp_arr(-kd*nN[0],boxX,expsX);
-	imExp_arr(-kd*nN[1],boxY,expsY);
-	imExp_arr(-kd*nN[2],local_Nz_unif,expsZ);
+	imExp_arr(-kd*nN[0]*rectScaleX,boxX,expsX);
+	imExp_arr(-kd*nN[1]*rectScaleY,boxY,expsY);
+	imExp_arr(-kd*nN[2]*rectScaleZ,local_Nz_unif,expsZ);
 #endif // !SPARSE
 	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
@@ -721,12 +727,21 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		aN=tmpN*expsX[ix];
 		aF=tmpF*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
+<<<<<<< HEAD
 			expY=cexp(-I*kd*nN[1]*iy2);
 			expZ=cexp(-I*kd*nN[2]*iz2);
 			tmpN=expY*expZ;
 			tmpF=expY*conj(expZ);
 		}
 		expX=cexp(-I*kd*nN[0]*ix);
+=======
+			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
+			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
+			tmpN=expY*expZ;
+			tmpF=expY*conj(expZ);
+		}
+		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
+>>>>>>> upstream/master
 		aN=tmpN*expX;
 		aF=tmpF*expX;
 #endif // SPARSE
@@ -751,11 +766,19 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		}
 		aN=tmpN*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
+<<<<<<< HEAD
 			expY=cexp(-I*kd*nN[1]*iy2);
 			expZ=cexp(-I*kd*nN[2]*iz2);
 			tmpN=expY*expZ;
 		}
 		expX=cexp(-I*kd*nN[0]*ix);
+=======
+			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
+			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
+			tmpN=expY*expZ;
+		}
+		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
+>>>>>>> upstream/master
 		aN=tmpN*expX;
 #endif // SPARSE
 		// sum(P*exp(-ik*r.nN))

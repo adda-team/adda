@@ -18,7 +18,11 @@
 #define __const_h
 
 // version number (string)
+<<<<<<< HEAD
 #define ADDA_VERSION "1.3b4"
+=======
+#define ADDA_VERSION "1.4.0-alpha"
+>>>>>>> upstream/master
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -56,9 +60,13 @@
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
 #define MAXIMIZE(A,B) {if ((A)<(B)) (A)=(B);}
-#define IS_EVEN(A) (((A)%2) == 0)
+#define IS_ODD(n) ((n) & 1) // n is integer
+#define IS_EVEN(n) (!(IS_ODD(n)))
+#define SIGN(A) ((A) >= 0.0 ? 1 : -1)
+#define DIV_CEILING(A,B) (((A)%(B)==0) ? (A)/(B) : ((A)/(B))+1 ) // valid only for nonnegative A and B
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A
+#define GREATER_EQ2(a1,a2,b1,b2) ( (a1)>(b1) || ( (a1)==(b1) && (a2)>=(b2) )) // a1.a2>=b1.b2
 
 // parallel definitions
 #ifdef ADDA_MPI
@@ -95,6 +103,7 @@
 #define SQRT2_9PI           0.26596152026762178529329737328959
 #define EULER               0.57721566490153286060651209008241
 #define FULL_ANGLE          360.0
+#define MICRO               1E-6
 
 // sets the maximum box size; otherwise 'position' should be changed
 #define BOX_MAX USHRT_MAX
@@ -136,11 +145,13 @@
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
 // formats for outputs of float values
-#define EFORM "%.10E"        // fixed width
-#define GFORM "%.10g"        // variable width (showing significant digits)
-#define GFORMDEF "%g"        // default output for non-precise values
-#define GFORM_DEBUG "%.2g"   // for debug and error output
-#define CFORM "%.10g%+.10gi" // for complex numbers; may be defined in terms of GFORM
+#define EFORM "%.10E"             // fixed width
+#define GFORM "%.10g"             // variable width (showing significant digits)
+#define GFORMDEF "%g"             // default output for non-precise values
+#define GFORM_FULL "%.16g"        // full precision (for some debugging applications)
+#define GFORM_DEBUG "%.2g"        // for debug and error output
+#define CFORM "%.10g%+.10gi"      // for complex numbers; may be defined in terms of GFORM
+#define CFORM_FULL "%.16g%+.16gi" // full-precision complex
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
@@ -228,6 +239,9 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 };// in alphabetical order
 
 // ldr constants
+/* Based on comparison of the original paper - Draine & Goodman, Astrophys. J. 405, 685-697 (1993) - with Mackowski,
+ * J. Opt. Soc. Am. A 19, 881-893 (2002), one can deduce that b1=10*b2+2*b3 - it can also be derived explicitly.
+ */
 #define LDR_B1  1.8915316
 #define LDR_B2 -0.1648469
 #define LDR_B3  1.7700004

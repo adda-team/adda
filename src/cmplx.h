@@ -21,8 +21,11 @@
 #include "const.h"    // for math constants
 #include "types.h"    // for doublecomplex
 // system headers
-#include <math.h>     // for cos, sin
+#include <math.h>
 #include <string.h>   // for memcpy
+
+// Uncomment this to turn off calculation of imExp using tables
+//#define NO_IMEXP_TABLE
 
 #ifdef USE_SSE3
 #include <xmmintrin.h>
@@ -33,6 +36,16 @@
 // useful macro for printing complex numbers and matrices
 #define REIM(a) creal(a),cimag(a)
 #define REIM3V(a) REIM((a)[0]),REIM((a)[1]),REIM((a)[2])
+
+#ifndef NO_IMEXP_TABLE
+void imExpTableInit(void);
+doublecomplex imExpTable(double arg);
+#endif
+void imExp_arr(doublecomplex arg,int size,doublecomplex *c);
+
+/* We do not use 'restrict' in the following functions since they are all inline - compiler will optimize the code
+ * inside the calling function and decide whether the arrays can alias or not.
+ */
 
 //======================================================================================================================
 // operations on complex numbers
@@ -74,6 +87,7 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
 //======================================================================================================================
 
 static inline doublecomplex imExp(const double arg)
+<<<<<<< HEAD
 // exponent of imaginary argument Exp(i*arg); optimization is performed by compiler
 // this may be faster than using generic cexp, since imaginary type is not supported by all compilers
 {
@@ -127,6 +141,22 @@ static inline void imExp_arr(const doublecomplex arg,const int size,doublecomple
 			b*=a;
 		}
 	}
+=======
+/* exponent of imaginary argument Exp(i*arg)
+ * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
+ */
+{
+#ifdef NO_IMEXP_TABLE
+	/* We tried different standard options. (cos + I*sin) is almost twice slower than cexp, while sincos (GNU extension)
+	 * is slightly faster (3.52 - 2.39 - 2.29 for matvec in test sparse runs, where about 1.23 is for non-exp part -
+	 * median values over 10 runs). So we prefer to use standard cexp.
+	 * When using table (below) the corresponding timing is 1.70.
+	 */
+	return cexp(I*arg);
+#else
+	return imExpTable(arg);
+#endif
+>>>>>>> upstream/master
 }
 
 //======================================================================================================================
@@ -627,6 +657,7 @@ static inline double Rad2Deg(const double rad)
 }
 
 //======================================================================================================================
+<<<<<<< HEAD
 // Bessel function calculations as per http://www.aip.de/groups/soe/local/numres/bookcpdf/c6-6.pdf
 
 //======================================================================================================================
@@ -708,6 +739,8 @@ static inline double besselk1(const double x)
 }
 
 //======================================================================================================================
+=======
+>>>>>>> upstream/master
 
 static inline bool TestBelowDeg(const double deg)
 /* tests if the direction is below the substrate using the degree theta in degrees;

@@ -40,7 +40,7 @@
 extern const Parms_1D parms[2],parms_alpha;
 extern const angle_set beta_int,gamma_int,theta_int,phi_int;
 // defined and initialized in param.c
-extern const int avg_inc_pol;
+extern const bool avg_inc_pol;
 extern const double polNlocRp;
 extern const char *alldir_parms,*scat_grid_parms;
 // defined and initialized in timing.c
@@ -82,6 +82,210 @@ doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
 static size_t block_theta; // size of one block of mueller matrix - 16*nTheta
 static int finish_avg; // whether to stop orientation averaging; defined as int to simplify MPI casting
 static double * restrict out; // used to collect both mueller matrix and integral scattering quantities when orient_avg
+
+/* the following definitions and data are from Gutkowicz-Krusin D, Draine BT. "Propagation of electromagnetic waves on a
+ * rectangular lattice of polarizable points" (2004). Available from: http://arxiv.org/abs/astro-ph/0403082.
+ */ 
+struct draine_coefficients {
+	const double ratios[3];
+	const double R0[3]; // polarizability correction by Eq.(45)
+	const double R1;    // polarizability correction by Eq.(47)
+	const double R2[3]; // polarizability correction by Eq.(48)
+	const double R3[6]; // polarizability correction by Eq.(49)
+};
+static const struct draine_coefficients draine_precalc_data_array[] = {
+	// the array is finalized with zeros to facilitate search
+	{
+		{1, 1, 1},
+		{0, 0, 0}, 0,
+		{0, 0, 0},
+		{0, 0, 0, 0, 0, 0}},
+	{
+		{1, 1, 1.5},
+		{0.20426, 0.20426, -0.40851}, -0.53869,
+		{0.52918, 0.52918, -1.59705},
+		{0.37743, 0.37743, -1.62922, 0.13566, 0.01609, 0.01609}},
+	{
+		{1, 1.5, 1},
+		{0.20426, -0.40851, 0.20426}, -0.53869,
+		{0.52918, -1.59705, 0.52918},
+		{0.37743, -1.62922, 0.37743, 0.01609, 0.13566, 0.01609}},
+	{
+		{1.5, 1, 1},
+		{-0.40851, 0.20426, 0.20426}, -0.53869,
+		{-1.59705, 0.52918, 0.52918},
+		{-1.62922, 0.37743, 0.37743, 0.01609, 0.01609, 0.13566}},
+	{
+		{1, 1.5, 1.5},
+		{0.52383, -0.26192, -0.26192}, -0.50962,
+		{1.13457, -0.82209, -0.82209},
+		{0.80161, -0.80815, -0.80815, 0.16648, 0.16648, -0.18041}},
+	{
+		{1.5, 1, 1.5},
+		{-0.26192, 0.52383, -0.26192}, -0.50962,
+		{-0.82209, 1.13457, -0.82209},
+		{-0.80815, 0.80161, -0.80815, 0.16648, -0.18041, 0.16648}},
+	{
+		{1.5, 1.5, 1},
+		{-0.26192, -0.26192, 0.52383}, -0.50962,
+		{-0.82209, -0.82209, 1.13457},
+		{-0.80815, -0.80815, 0.80161, -0.18041, 0.16648, 0.16648}},
+	{
+		{1, 1, 2},
+		{0.38545, 0.38545, -0.77090}, -1.76582,
+		{0.88788, 0.88788, -3.54158},
+		{0.55693, 0.55693, -3.72878, 0.23735, 0.09360, 0.09360}},
+	{
+		{1, 2, 1},
+		{0.38545, -0.77090, 0.38545}, -1.76582,
+		{0.88788, -3.54158, 0.88788},
+		{0.55693, -3.72878, 0.55693, 0.09360, 0.23735, 0.09360}},
+	{
+		{2, 1, 1},
+		{-0.77090, 0.38545, 0.38545}, -1.76582,
+		{-3.54158, 0.88788, 0.88788},
+		{-3.72878, 0.55693, 0.55693, 0.09360, 0.09360, 0.23735}},
+	{
+		{1, 1.5, 2},
+		{0.81199, -0.21028, -0.60172}, -1.21448,
+		{1.55359, -0.50100, -2.26706},
+		{1.02166, -0.55501, -2.30887, 0.27206, 0.25987, -0.21806}},
+	{
+		{1, 2, 1.5},
+		{0.81199, -0.60172, -0.21028}, -1.21448,
+		{1.55359, -2.26706, -0.50100},
+		{1.02166, -2.30887, -0.55501, 0.25987, 0.27206, -0.21806}},
+	{
+		{1.5, 1, 2},
+		{-0.21028, 0.81199, -0.60172}, -1.21448,
+		{-0.50100, 1.55359, -2.26706},
+		{-0.55501, 1.02166, -2.30887, 0.27206, -0.21806, 0.25987}},
+	{
+		{1.5, 2, 1},
+		{-0.21028, -0.60172, 0.81199}, -1.21448,
+		{-0.50100, -2.26706, 1.55359},
+		{-0.55501, -2.30887, 1.02166, -0.21806, 0.27206, 0.25987}},
+	{
+		{2, 1, 1.5},
+		{-0.60172, 0.81199, -0.21028}, -1.21448,
+		{-2.26706, 1.55359, -0.50100},
+		{-2.30887, 1.02166, -0.55501, 0.25987, -0.21806, 0.27206}},
+	{
+		{2, 1.5, 1},
+		{-0.60172, -0.21028, 0.81199}, -1.21448,
+		{-2.26706, -0.50100, 1.55359},
+		{-2.30887, -0.55501, 1.02166, -0.21806, 0.25987, 0.27206}},
+	{
+		{1, 2, 2},
+		{1.19693, -0.59846, -0.59846}, -1.59967,
+		{2.01512, -1.80739, -1.80739},
+		{1.26456, -1.78732, -1.78732, 0.37528, 0.37528, -0.39535}},
+	{
+		{2, 1, 2},
+		{-0.59846, 1.19693, -0.59846}, -1.59967,
+		{-1.80739, 2.01512, -1.80739},
+		{-1.78732, 1.26456, -1.78732, 0.37528, -0.39535, 0.37528}},
+	{
+		{2, 2, 1},
+		{-0.59846, -0.59846, 1.19693}, -1.59967,
+		{-1.80739, -1.80739, 2.01512},
+		{-1.78732, -1.78732, 1.26456, -0.39535, 0.37528, 0.37528}},
+	{
+		{1, 1, 3},
+		{0.74498, 0.74498, -1.48995}, -5.47612,
+		{1.44677, 1.44677, -8.36967},
+		{0.81662, 0.81662, -8.83412, 0.39793, 0.23223, 0.23223}},
+	{
+		{1, 3, 1},
+		{0.74498, -1.48995, 0.74498}, -5.47612,
+		{1.44677, -8.36967, 1.44677},
+		{0.81662, -8.83412, 0.81662, 0.23223, 0.39793, 0.23223}},
+	{
+		{3, 1, 1},
+		{-1.48995, 0.74498, 0.74498}, -5.47612,
+		{-8.36967, 1.44677, 1.44677},
+		{-8.83412, 0.81662, 0.81662, 0.23223, 0.23223, 0.39793}},
+	{
+		{1, 1.5, 3},
+		{1.38481, -0.14304, -1.24176}, -3.71651,
+		{2.20875, -0.12162, -5.80365},
+		{1.34832, -0.40088, -6.06792, 0.43771, 0.42272, -0.15845}},
+	{
+		{1, 3, 1.5},
+		{1.38481, -1.24176, -0.14304}, -3.71651,
+		{2.20875, -5.80365, -0.12162},
+		{1.34832, -6.06792, -0.40088, 0.42272, 0.43771, -0.15845}},
+	{
+		{1.5, 1, 3},
+		{-0.14304, 1.38481, -1.24176}, -3.71651,
+		{-0.12162, 2.20875, -5.80365},
+		{-0.40088, 1.34832, -6.06792, 0.43771, -0.15845, 0.42272}},
+	{
+		{1.5, 3, 1},
+		{-0.14304, -1.24176, 1.38481}, -3.71651,
+		{-0.12162, -5.80365, 2.20875},
+		{-0.40088, -6.06792, 1.34832, -0.15845, 0.43771, 0.42272}},
+	{
+		{3, 1, 1.5},
+		{-1.24176, 1.38481, -0.14304}, -3.71651,
+		{-5.80365, 2.20875, -0.12162},
+		{-6.06792, 1.34832, -0.40088, 0.42272, -0.15845, 0.43771}},
+	{
+		{3, 1.5, 1},
+		{-1.24176, -0.14304, 1.38481}, -3.71651,
+		{-5.80365, -0.12162, 2.20875},
+		{-6.06792, -0.40088, 1.34832, -0.15845, 0.42272, 0.43771}},
+	{
+		{1, 2, 3},
+		{1.96224, -0.69714, -1.26510}, -3.48931,
+		{2.73708, -1.49246, -4.73393},
+		{1.62638, -1.56624, -4.80661, 0.55590, 0.55480, -0.48211}},
+	{
+		{1, 3, 2},
+		{1.96224, -1.26510, -0.69714}, -3.48931,
+		{2.73708, -4.73393, -1.49246},
+		{1.62638, -4.80661, -1.56624, 0.55480, 0.55590, -0.48211}},
+	{
+		{2, 1, 3},
+		{-0.69714, 1.96224, -1.26510}, -3.48931,
+		{-1.49246, 2.73708, -4.73393},
+		{-1.56624, 1.62638, -4.80661, 0.55590, -0.48211, 0.55480}},
+	{
+		{2, 3, 1},
+		{-0.69714, -1.26510, 1.96224}, -3.48931,
+		{-1.49246, -4.73393, 2.73708},
+		{-1.56624, -4.80661, 1.62638, -0.48211, 0.55590, 0.55480}},
+	{
+		{3, 1, 2},
+		{-1.26510, 1.96224, -0.69714}, -3.48931,
+		{-4.73393, 2.73708, -1.49246},
+		{-4.80661, 1.62638, -1.56624, 0.55480, -0.48211, 0.55590}},
+	{
+		{3, 2, 1},
+		{-1.26510, -0.69714, 1.96224}, -3.48931,
+		{-4.73393, -1.49246, 2.73708},
+		{-4.80661, -1.56624, 1.62638, -0.48211, 0.55480, 0.55590}},
+	{
+		{1, 3, 3},
+		{3.11030, -1.55515, -1.55515}, -4.62875,
+		{3.56356, -4.09616, -4.09616},
+		{2.04073, -3.94766, -3.94766, 0.76142, 0.76142, -0.90991}},
+	{
+		{3, 1, 3},
+		{-1.55515, 3.11030, -1.55515}, -4.62875,
+		{-4.09616, 3.56356, -4.09616},
+		{-3.94766, 2.04073, -3.94766, 0.76142, -0.90991, 0.76142}},
+	{
+		{3, 3, 1},
+		{-1.55515, -1.55515, 3.11030}, -4.62875,
+		{-4.09616, -4.09616, 3.56356},
+		{-3.94766, -3.94766, 2.04073, -0.90991, 0.76142, 0.76142}},
+	{
+		{0, 0, 0},
+		{0, 0, 0}, 0,
+		{0, 0, 0},
+		{0, 0, 0, 0, 0, 0}},
+};
 
 // EXTERNAL FUNCTIONS
 
@@ -163,9 +367,29 @@ static inline double ellTheta(const double a)
 
 //======================================================================================================================
 
+static inline doublecomplex MassaIntegral(const double a,const double b,const double c)
+// http://iopscience.iop.org/1367-2630/15/6/063013/media/NJP465759suppdata.pdf , p. 11, Eq. (54)
+{
+	double currentSqrt = sqrt(a*a + b*b + c*c);
+	doublecomplex integral = 0;
+
+	integral -= 4*c*c*catan(a*b/currentSqrt/c);
+	integral -= 4*b*b*catan(a*c/currentSqrt/b);
+	integral += 2*a*b*log(c + currentSqrt);
+	integral += 2*a*c*log(b + currentSqrt);
+	integral += 4*b*c*log(a + currentSqrt);
+	integral -= 2*a*b*log(currentSqrt - c);
+	integral -= 2*a*c*log(currentSqrt - b);
+	integral -= 4*c*b*log(currentSqrt - a);
+
+	return integral*2;
+}
+
+//======================================================================================================================
+
 static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecomplex res[static 3])
 /* Input is relative refractive index (mrel) - either one or three components (for anisotropic). incpol is relevant only
- * for LDR without avgpol. res is three values (diagonal of polarizability tensor.
+ * for LDR without avgpol. res is three values (diagonal of polarizability tensor).
  *
  * !!! TODO: if this function will be executed many times, it can be optimized by moving time-consuming calculation of
  * certain coefficients to one-call initialization function.
@@ -176,44 +400,36 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
-	double ka,kd2,S;
-	int i;
-	bool asym; // whether polarizability is asymmetric (for isotropic m)
-	const double *incPol;
-	bool pol_avg=true; // temporary fixed value for SO polarizability
+	if(rectDip) {
+		int i;
+		double a,b,c;
+		double omega;
+		double beta;
+		int draine_precalc_data_index=UNDEF;
+#define IS_DOUBLE_EQUAL(x,y) ( fabs((x) - (y)) < ROUND_ERR )
+		if (PolRelation==POL_CLDR || PolRelation==POL_CM) {
+			double temp_rectScaleX=rectScaleX,
+			       temp_rectScaleY=rectScaleY,
+			       temp_rectScaleZ=rectScaleZ;
+			double tmp=MIN(temp_rectScaleX,rectScaleY);
+			tmp=MIN(tmp,rectScaleZ);
+			if(tmp>0) {
+				temp_rectScaleX/=tmp;
+				temp_rectScaleY/=tmp;
+				temp_rectScaleZ/=tmp;
+			}
 
-	asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
-	// !!! this should never happen
-	if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-
-	kd2=kd*kd;
-	if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
-		switch (PolRelation) {
-			case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
-			case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
-			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
-				// no break
-		}
-	}
-	else for (i=0;i<Ncomp;i++) { // loop over components of input m
-		switch (PolRelation) {
-			case POL_CM: res[i]=polCM(mrel[i]); break;
-			case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
-			case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-				res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
-				break;
-			case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
-			case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
-				ka=LAK_C*kd;
-				res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
-				break;
-			case POL_LDR:
-				if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
-				else {
-					if (which==INCPOL_Y) incPol=incPolY;
-					else incPol=incPolX; // which==INCPOL_X
-					S = DotProdSquare(prop,incPol);
+			i=-1;
+			while (draine_precalc_data_array[++i].ratios[0] > 0
+				   || draine_precalc_data_array[i].ratios[1] > 0
+				   || draine_precalc_data_array[i].ratios[2] > 0) {
+				if (IS_DOUBLE_EQUAL(temp_rectScaleX,draine_precalc_data_array[i].ratios[0]) &&
+					IS_DOUBLE_EQUAL(temp_rectScaleY,draine_precalc_data_array[i].ratios[1]) &&
+					IS_DOUBLE_EQUAL(temp_rectScaleZ,draine_precalc_data_array[i].ratios[2])) {
+					draine_precalc_data_index=i;
+					break;
 				}
+<<<<<<< HEAD
 				res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
 				break;
 			case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
@@ -246,14 +462,160 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
 			default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 				// no break
+=======
+			}
+			if (draine_precalc_data_index==UNDEF) LogError(ONE_POS,"Non-standard proportions of rectangular dipole "
+				"(%g:%g:%g) are not compatible with CM, LDR, and CLDR polarizabilities. See the manual for details.",
+				rectScaleX,rectScaleY,rectScaleZ);
+#undef IS_DOUBLE_EQUAL
 		}
-	}
-	if (asym || anisotropy) {
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
-	}
+		double c1=-5.9424219;
+		double c2=0.5178819;
+		double c3=4.0069747;
+		double nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD);
+		doublecomplex correction;
+		doublecomplex L,K;
+		double draineSum;
+
+		int l;
+		for (i=0; i < 3; i++) {
+			if (PolRelation==POL_IGT_SO) {
+				if (i==0) {
+					a=gridSpaceX*0.5;
+					b=gridSpaceY*0.5;
+					c=gridSpaceZ*0.5;
+				} else if (i==1) {
+					a=gridSpaceY*0.5;
+					b=gridSpaceX*0.5;
+					c=gridSpaceZ*0.5;
+
+				} else {
+					a=gridSpaceZ*0.5;
+					b=gridSpaceY*0.5;
+					c=gridSpaceX*0.5;
+				}
+				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice:
+				 * considering dynamic depolarization'. Eq. number noted for some lines of code
+				 */
+				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c))); // Eq.(10)
+				beta=MassaIntegral(a,b,c); // Eq.(11) beta is three-time integral.
+				res[i]=(-2*omega+WaveNum*WaveNum*beta/2)+I*(16.0/3*WaveNum*WaveNum*WaveNum*a*b*c); // Eq.(9)
+				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i]; // Eq.(9)
+				res[i]=8*a*b*c/res[i]; // Eq.(9)
+			}
+			if (PolRelation==POL_CLDR || PolRelation==POL_CM) {
+#define R3_INDEX(i,j)(i==j?i:(i+j+2))
+				//see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
+				// Eq number noted for some lines of code
+				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2); // CM
+				// Eq.(55), corrected value CM for rectangular dipole
+				res[i]=res[i]/(1+res[i]*draine_precalc_data_array[draine_precalc_data_index].R0[i]);
+				res[i]*=dipvol/FOUR_PI;
+				if (PolRelation==POL_CLDR) {
+					draineSum=0;
+					for (l=0; l < 3; l++)
+						draineSum+=prop[l]*prop[l]*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,l)];
+
+					// L is obtaned in Eq.(62)
+					L=c1+mrel[0]*mrel[0]*c2*(1-3*prop[i]*prop[i])-mrel[0]*mrel[0]*c3*prop[i]*prop[i]-FOUR_PI*PI*I*nu/3-
+					  draine_precalc_data_array[draine_precalc_data_index].R1-
+					  (mrel[0]*mrel[0]-1)*draine_precalc_data_array[draine_precalc_data_index].R2[i]-
+					  8*mrel[0]*mrel[0]*prop[i]*prop[i]*
+					  draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draineSum;
+					// K is obtaned in Eq.(63)
+					K=c3+draine_precalc_data_array[draine_precalc_data_index].R1-
+					  4*draine_precalc_data_array[draine_precalc_data_index].R2[i]+
+					  8*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)];
+
+					correction=-FOUR_PI*nu*nu*(L+mrel[0]*mrel[0]*prop[i]*prop[i]*(K-c3)); // Eq.(65)
+					res[i]=res[i]/(1-(res[i]/dipvol)*correction);
+				}
+#undef R3_INDEX
+			}
+>>>>>>> upstream/master
+		}
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+	} 
 	else {
-		res[2]=res[1]=res[0];
-		if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+		double ka,kd2,S;
+		int i;
+		bool asym; // whether polarizability is asymmetric (for isotropic m)
+		const double *incPol;
+		bool pol_avg=true; // temporary fixed value for SO polarizability
+
+		asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
+		// !!! this should never happen
+		if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+
+		kd2=kd*kd;
+		if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
+			switch (PolRelation) {
+				case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
+				case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
+				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+					// no break
+			}
+		}
+		else for (i=0;i<Ncomp;i++) { // loop over components of input m
+			switch (PolRelation) {
+				case POL_CM: res[i]=polCM(mrel[i]); break;
+				case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
+				case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
+					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+					break;
+				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
+				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
+					ka=LAK_C*kd;
+					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
+					break;
+				case POL_LDR:
+					if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));
+					else {
+						if (which==INCPOL_Y) incPol=incPolY;
+						else incPol=incPolX; // which==INCPOL_X
+						S = DotProdSquare(prop,incPol);
+					}
+					res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,S,mrel[i]);
+					break;
+				case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
+					/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
+					 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
+					 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
+					 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+					 */
+					if (polNlocRp==0) res[i]=polCM(mrel[i]);
+					else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);
+					break;
+				case POL_NLOC_AV:
+					if (polNlocRp==0) res[i]=polCM(mrel[i]); // polMplusRR(DGF_B1*kd2,mrel[i]); // just DGF
+					else {
+						double x=gridspace/(2*SQRT2*polNlocRp);
+						double g0,t;
+						// g0 = 1 - erf(x)^3, but careful evaluation is performed to keep precision
+						if (x<1) {
+							t=erf(x);
+							g0=1-t*t*t;
+						}
+						else {
+							t=erfc(x);
+							g0=t*(3-3*t+t*t);
+						}
+						// !!! dynamic part should be added here
+						res[i]=polM(FOUR_PI_OVER_THREE*g0,mrel[i]);
+					}
+					break;
+				case POL_RRC: res[i]=polMplusRR(0,mrel[i]); break;
+				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
+					// no break
+			}
+		}
+		if (asym || anisotropy) {
+			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+		}
+		else {
+			res[2]=res[1]=res[0];
+			if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+		}
 	}
 }
 
@@ -384,7 +746,7 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(arg_full,complex,3*nvoid_Ndip,ALL);
 	}
 	memory+=3*nvoid_Ndip*sizeof(doublecomplex);
-#endif // !SPARSE
+#endif // SPARSE
 	/* additional vectors for iterative methods. Potentially, this procedure can be fully automated for any new
 	 * iterative solver, based on the information contained in structure array 'params' in file iterative.c. However,
 	 * this requires different order of function calls to extract this information beforehand. So currently this part
@@ -514,7 +876,12 @@ static void AllocateEverything(void)
 	 *          more exactly: gridX*gridY*gridZ*(36+48nprocs/boxX [+24/nprocs]) value in [] is only for parallel mode.
 	 * For surf additionally: gridX*gridY*gridZ*(48+48nprocs/boxX)
 	 * 			+ for Sommerfeld table: 128*boxZ*(boxX*boxY-(MIN(boxX,boxY))^2/2)
+<<<<<<< HEAD
 	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors)
+=======
+	 *    For OpenCL mode all MatVec part is allocated on GPU instead of main (CPU) memory (+ a few additional vectors).
+	 *    However, OpenCL may additionally use up to 96*min(32,gridX)*gridY*gridZ if available.
+>>>>>>> upstream/master
 	 * others - nvoid_Ndip*{271(CGNR,BiCG), 367(CSYM,QMR2), 415(BiCGStab,QMR), or 463(BCGS2)}
 	 *          + additional 8*nvoid_Ndip for OpenCL mode and CGNR or Bi-CGSTAB
 	 * PARALLEL: above is total; division over processors of MatVec is uniform, others - according to local_nvoid_Ndip
@@ -540,9 +907,9 @@ static void AllocateEverything(void)
 
 //======================================================================================================================
 
-static void FreeEverything(void)
+void FreeEverything(void)
 /* frees all allocated vectors; should not be called in prognosis mode, since arrays are not
- * actually allocated.
+ * actually allocated. Also called from matvec.c in PRECISE_TIMING.
  */
 {
 	FreeInteraction();
@@ -556,7 +923,6 @@ static void FreeEverything(void)
 	Free_general(position_full); // allocated in MakeParticle();
 	Free_cVector(arg_full);
 #endif // SPARSE
-
 	Free_cVector(xvec);
 	Free_cVector(rvec);
 	Free_cVector(pvec);
