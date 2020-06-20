@@ -449,11 +449,7 @@ Changes to the manual:
 + Section "References": DOIs and URLs were made into hyperlinks.
 
 ------------------------------------------------------------------------------------------------------------------------
-<<<<<<< HEAD
-Ver. 1.3b4 - 19.02.2014
-=======
 Ver. 1.3b4 - 20.02.2014
->>>>>>> upstream/master
 
 + Major changes to the code due to switch to complex types of C99 (issue 70).
 + Major new feature: DDA for particle near surface (substrate) - issue 101. Command line options: '-surf ...', 
@@ -527,8 +523,6 @@ Changes to the manual:
   replaced by H.
 + Section "Fast Fourier transform": specified additional time for FFTs in surface mode.
 + Section "Parallel performance": minor changes, it now explicitly refers to optimal partition of FFT grid.
-<<<<<<< HEAD
-=======
 
 ------------------------------------------------------------------------------------------------------------------------
 Ver. 1.4.0 (in progress) - 2018 (?)
@@ -589,4 +583,3 @@ Changes to the manual:
 * Chanded font for hyperlinks back to Times.
 * Changed source file format to .docx
 * TODO: changed all equations to new Microsoft Word format
->>>>>>> upstream/master
