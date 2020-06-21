@@ -734,7 +734,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	 */
 	if (calc_Cabs) Cabs = AbsCross();
 	if (calc_Cext) Cext = ExtCross(incPol);
-	if (calc_Peels) Peels = EELSProb(incPol);
+	if (calc_Peels) Peels = EELSProb();
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
 		if (IFROOT) {
