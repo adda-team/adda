@@ -101,7 +101,6 @@ static inline doublecomplex imExp(const double arg)
 #else
 	return imExpTable(arg);
 #endif
-
 }
 
 //======================================================================================================================

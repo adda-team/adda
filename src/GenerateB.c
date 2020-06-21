@@ -13,12 +13,6 @@
  *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
  *        Eqs.(25)-(28) - complex conjugate.
  *
-<<<<<<< HEAD
- *        Electron beam is based on: Garcia de Abajo "Optical Excitations in electron microscopy", 
- *        Rev. Mod. Phys. v. 82 p. 213 equations (4) and (5)
- *
-=======
->>>>>>> upstream/master
  * Copyright (C) 2006-2014 ADDA contributors
  * This file is part of ADDA.
  *
@@ -75,10 +69,7 @@ static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
-<<<<<<< HEAD
 static double el_energy;        // electron beam energy (in keV)
-=======
->>>>>>> upstream/master
 static double p0;              // amplitude of the incident dipole moment
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
