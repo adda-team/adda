@@ -18,11 +18,7 @@
 #define __const_h
 
 // version number (string)
-<<<<<<< HEAD
-#define ADDA_VERSION "1.3b4"
-=======
 #define ADDA_VERSION "1.4.0-alpha"
->>>>>>> upstream/master
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here

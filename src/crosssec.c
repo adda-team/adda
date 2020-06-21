@@ -649,13 +649,8 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	// calculate nN, ki, kt, cs, cp, and phSh
 	if (above) { // simple reflection
 		/* No scattering at exactly 90 degrees for non-trivial surface (to avoid randomness for this case).
-<<<<<<< HEAD
-		 * See A. Small, J. Fung, and V.N. Manoharan, “Generalization of the optical theorem for light scattering from
-		 * a particle at a planar interface,” J. Opt. Soc. Am. A 30, 2519–2525 (2013) for theoretical discussion of
-=======
 		 * See A. Small, J. Fung, and V.N. Manoharan, "Generalization of the optical theorem for light scattering from
 		 * a particle at a planar interface," J. Opt. Soc. Am. A 30, 2519-2525 (2013) for theoretical discussion of
->>>>>>> upstream/master
 		 * this fact.
 		 */
 		if (fabs(nF[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {
@@ -727,21 +722,12 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		aN=tmpN*expsX[ix];
 		aF=tmpF*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
-<<<<<<< HEAD
-			expY=cexp(-I*kd*nN[1]*iy2);
-			expZ=cexp(-I*kd*nN[2]*iz2);
-			tmpN=expY*expZ;
-			tmpF=expY*conj(expZ);
-		}
-		expX=cexp(-I*kd*nN[0]*ix);
-=======
 			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
 			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
 			tmpN=expY*expZ;
 			tmpF=expY*conj(expZ);
 		}
 		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
->>>>>>> upstream/master
 		aN=tmpN*expX;
 		aF=tmpF*expX;
 #endif // SPARSE
@@ -766,19 +752,11 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		}
 		aN=tmpN*expsX[ix];
 #else // sparse mode - the difference is that exponents are not precomputed; cexp is used since argument can be complex
-<<<<<<< HEAD
-			expY=cexp(-I*kd*nN[1]*iy2);
-			expZ=cexp(-I*kd*nN[2]*iz2);
-			tmpN=expY*expZ;
-		}
-		expX=cexp(-I*kd*nN[0]*ix);
-=======
 			expY=cexp(-I*kd*nN[1]*iy2*rectScaleY);
 			expZ=cexp(-I*kd*nN[2]*iz2*rectScaleZ);
 			tmpN=expY*expZ;
 		}
 		expX=cexp(-I*kd*nN[0]*ix*rectScaleX);
->>>>>>> upstream/master
 		aN=tmpN*expX;
 #endif // SPARSE
 		// sum(P*exp(-ik*r.nN))

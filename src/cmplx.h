@@ -87,61 +87,6 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
 //======================================================================================================================
 
 static inline doublecomplex imExp(const double arg)
-<<<<<<< HEAD
-// exponent of imaginary argument Exp(i*arg); optimization is performed by compiler
-// this may be faster than using generic cexp, since imaginary type is not supported by all compilers
-{
-	return cos(arg) + I*sin(arg);
-}
-
-//======================================================================================================================
-
-static inline void imExp_arr(const doublecomplex arg,const int size,doublecomplex *c)
-/* construct an array of exponent of imaginary argument c=Exp(i*k*arg), where k=0,1,...,size-1. arg can be complex.
- * Uses stable recurrence from Numerical Recipes. Optimization of the initial simultaneous calculation of sin and cos is
- * performed by compiler; It is assumed that size is at least 1
- */
-{
-	int k;
-	double a,b;
-	doublecomplex d,tmp;
-	double re,im;
-
-	re=creal(arg);
-	im=cimag(arg);
-	// handles real part, no special case for re=0
-	c[0]=1;
-	if (size>1) {
-		// set a=2*sin^2(arg/2), b=sin(arg), d = 1 - exp(i*arg)
-		a=sin(re/2);
-		b=cos(re/2);
-		b*=2*a;
-		a*=2*a;
-		d= a - I*b;
-		// this a bit faster than in the main cycle
-		c[1]=1-d;
-		// main cycle
-		for (k=2;k<size;k++) {
-			/* potentially compiler may group terms to accelerate calculation but lose significant digits. We hope it
-			 * doesn't happen, but it should not be a big problem anyway
-			 */
-			tmp=c[k-1]*d;
-			c[k]=c[k-1]-tmp;
-		}
-	}
-	// handles imaginary part
-	if (im!=0) {
-		a=exp(-fabs(im));
-		if (im>0) for (k=1,b=a;k<size;k++) {
-			c[k]*=b;
-			b*=a;
-		}
-		else for (k=size-1,b=exp(-(size-1)*im);k>0;k--) {
-			c[k]*=b;
-			b*=a;
-		}
-	}
-=======
 /* exponent of imaginary argument Exp(i*arg)
  * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
  */
@@ -156,7 +101,7 @@ static inline void imExp_arr(const doublecomplex arg,const int size,doublecomple
 #else
 	return imExpTable(arg);
 #endif
->>>>>>> upstream/master
+
 }
 
 //======================================================================================================================
@@ -190,15 +135,6 @@ static inline void vReal(const doublecomplex a[static 3],double b[static 3])
 	b[2]=creal(a[2]);
 }
 
-//======================================================================================================================
-
-static inline void vImag(const doublecomplex a[static 3],double b[static 3])
-// takes imaginary part of the complex vector; b=Re(a)
-{
-	b[0]=cimag(a[0]);
-	b[1]=cimag(a[1]);
-	b[2]=cimag(a[2]);
-}
 //======================================================================================================================
 
 static inline void cvBuildRe(const double a[static 3],doublecomplex b[static 3])
@@ -311,7 +247,7 @@ static inline void cvAdd(const doublecomplex a[static 3],const doublecomplex b[s
 //======================================================================================================================
 
 static inline void cvSubtr(const doublecomplex a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
-// subtract two complex vector[3]; c=a-b;
+// add two complex vector[3]; c=a-b;
 {
 	c[0] = a[0] - b[0];
 	c[1] = a[1] - b[1];
