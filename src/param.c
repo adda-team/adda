@@ -219,11 +219,6 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
  * to be the easiest.
  */
 static const struct subopt_struct beam_opt[]={
-	{"electron","<energy> <x> <y> <m_host_re>","Field of an electron with energy <energy> moving along z-axis through "
-		"point (<x>,<y>,0) (in laboratory reference frame) in the host medium with real refractive index "
-		"<m_host_re>. Energy argument is in keV, all coordinate arguments are in um. Orientation of "
-		"the beam is determined by -prop command line option. Implies '-scat_matr none'. Currently does not "
-		"support '-surf'.",4,B_ELECTRON},
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
@@ -234,6 +229,11 @@ static const struct subopt_struct beam_opt[]={
 	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
+	{"electron","<energy> <x> <y> <m_host_re>","Field of an electron with energy <energy> moving along z-axis through "
+		"point (<x>,<y>,0) (in laboratory reference frame) in the host medium with real refractive index "
+		"<m_host_re>. Energy argument is in keV, all coordinate arguments are in um. Orientation of "
+		"the beam is determined by -prop command line option. Implies '-scat_matr none'. Currently does not "
+		"support '-surf'.",4,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},

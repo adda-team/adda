@@ -490,8 +490,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_ELECTRON:
-			ex=incPolX;
-			vCopy(incPolY,ey);
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
@@ -502,8 +500,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				//printf("x y z: %e %e %e\n", x, y, z);
 				//printf("r1 = (%e,%e,%e)\n", r1[0], r1[1], r1[2]);
 
-				x=DotProd(r1,ex)*scale_z; //cm
-				y=DotProd(r1,ey)*scale_z; //cm
+				x=DotProd(r1,incPolX)*scale_z; //cm
+				y=DotProd(r1,incPolY)*scale_z; //cm
 				z=DotProd(r1,prop)*scale_z; //cm
 				//printf("x y z: %e %e %e\n", x, y, z);
 				ro=sqrt(x*x+y*y); //cm
