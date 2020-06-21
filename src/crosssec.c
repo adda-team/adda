@@ -821,9 +821,10 @@ double EELSProb()
         sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
         //creal(field)*cimag(polarisation) - creal(polarisation)*cimag(field); 
     }
-    sum *= INV_PI * i_hbar * i_hbar_eV * 1e-18; /* (* 1e-18) for correction, and then ihbar2 might not be required actually... just
+    sum *= INV_PI * i_hbar * i_hbar_eV * 1e-27; /* (* 1e-18) for correction, and then ihbar2 might not be required actually... just
                                                  * scaling?
                                                  */   
+    sum *= 4*PI*epsilon_0;
     return sum;
 }
 

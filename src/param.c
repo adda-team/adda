@@ -2015,18 +2015,12 @@ void VariablesInterconnect(void)
 		prop_0[2]=1;
 	}
 	// parameter interconnections
-<<<<<<< HEAD
 	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
 	 * when SQ_FINDIP is used
 	 */
     if (beamtype == B_ELECTRON) {
-        calc_Cabs = calc_Cext = calc_Csca =false;
         calc_EELS = true;
     }
-	if (ScatRelation==SQ_FINDIP && calc_Cext) calc_Cabs=true;
-	if (IntRelation==G_SO) reduced_FFT=false;
-=======
->>>>>>> upstream/master
 	if (IntRelation==G_SO) {
 		reduced_FFT=false;
 		// this limitation is due to assumption of reciprocity in DecayCross()

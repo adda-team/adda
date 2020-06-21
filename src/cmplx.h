@@ -592,7 +592,6 @@ static inline double Rad2Deg(const double rad)
 }
 
 //======================================================================================================================
-<<<<<<< HEAD
 // Bessel function calculations as per http://www.aip.de/groups/soe/local/numres/bookcpdf/c6-6.pdf
 
 //======================================================================================================================
@@ -674,8 +673,6 @@ static inline double besselk1(const double x)
 }
 
 //======================================================================================================================
-=======
->>>>>>> upstream/master
 
 static inline bool TestBelowDeg(const double deg)
 /* tests if the direction is below the substrate using the degree theta in degrees;

@@ -725,6 +725,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cdec, // Cross sections
+	EELS,						//EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
@@ -779,6 +780,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+			if (calc_EELS) PrintBoth(CCfile,"Peels\t= "GFORM"\nPppp\t= "GFORM"\n",EELSProb(),1.);
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
@@ -893,10 +895,8 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// Calculate the scattered field on the given grid of angles
 	if (scat_grid) CalcScatGrid(which);
 	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
-	if (!calc_EELS) {
-        if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
-    }   
-    else CalcEELS();
+	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
+	if (calc_EELS) CalcEELS();
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
