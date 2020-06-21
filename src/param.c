@@ -1913,7 +1913,7 @@ void InitVariables(void)
 	calc_Cext=true;
 	calc_Cabs=true;
 	calc_Csca=false;
-	calc_Peels=true;
+	calc_Peels=false;
 	calc_vec=false;
 	calc_asym=false;
 	calc_mat_force=false;
@@ -2016,6 +2016,7 @@ void VariablesInterconnect(void)
 		prop_0[0]=prop_0[1]=0;
 		prop_0[2]=1;
 	}
+	if (beamtype == B_ELECTRON) calc_Peels = true;
 	// parameter interconnections
 	if (IntRelation==G_SO) {
 		reduced_FFT=false;
