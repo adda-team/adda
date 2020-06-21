@@ -24,8 +24,8 @@
 void CalcField(doublecomplex ebuff[static restrict 3],const double n[static restrict 3]);
 void InitRotation(void);
 double ExtCross(const double * restrict incPol);
-double EELSProb();
 double AbsCross(void);
+double EELSProb();
 double DecayCross(void);
 double ScaCross(const char *f_suf);
 void ReadAlldirParms(const char * restrict fname);
