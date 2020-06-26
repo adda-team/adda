@@ -106,10 +106,10 @@ bool store_scat_grid; // Store the scattered field for grid of angles
 bool calc_Cext;       // Calculate the extinction cross-section - always do
 bool calc_Cabs;       // Calculate the absorption cross-section - always do
 bool calc_Csca;       // Calculate the scattering cross-section by integration
+bool calc_Peels;       // Calculate the EELS probability
 bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
 bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
-bool calc_EELS;       // Calculate electron energy loss probability
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
@@ -229,9 +229,10 @@ static const struct subopt_struct beam_opt[]={
 	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
-	{"electron","<energy> <x> <y> <z>","Field of an electron of specified energy, passing  x, y, z coordinates " 
-		"(in laboratory reference frame). Energy is in keV, while corrdinates are in um. Orientation of the "
-        "trajectory is determined by -prop command line option. Implies '-scat_matr none'", 4, B_ELECTRON},
+	{"electron","<energy> <x> <y> <z> <m_host>","Field of an electron with energy <energy> moving along z-axis through "
+		"point (<x>,<y>,<z>) (in laboratory reference frame) in the host medium with real refractive index "
+		"<m_host>. Energy argument is in keV, all coordinate arguments are in nm. Propagation direction of "
+		"the beam is determined by -prop command line option.",5,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},
@@ -1911,10 +1912,10 @@ void InitVariables(void)
 	calc_Cext=true;
 	calc_Cabs=true;
 	calc_Csca=false;
+	calc_Peels=false;
 	calc_vec=false;
 	calc_asym=false;
 	calc_mat_force=false;
-    calc_EELS=false;
 	store_force=false;
 	store_mueller=true;
 	store_ampl=false;
@@ -2014,13 +2015,8 @@ void VariablesInterconnect(void)
 		prop_0[0]=prop_0[1]=0;
 		prop_0[2]=1;
 	}
+	if (beamtype == B_ELECTRON) calc_Peels = true;
 	// parameter interconnections
-	/* very unlikely that calc_Cabs will ever be false, but strictly speaking dCabs should be calculated before Cext,
-	 * when SQ_FINDIP is used
-	 */
-    if (beamtype == B_ELECTRON) {
-        calc_EELS = true;
-    }
 	if (IntRelation==G_SO) {
 		reduced_FFT=false;
 		// this limitation is due to assumption of reciprocity in DecayCross()

@@ -48,6 +48,7 @@ extern bool symX,symY,symZ,symR;
 extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
 	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required,rectDip;
 extern double propAlongZ;
+extern bool calc_Peels;
 
 // 3D vectors
 extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
@@ -67,7 +68,7 @@ extern unsigned char * restrict material;
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,* restrict Einc;
+extern doublecomplex *xvec,*pvec,* restrict Einc,* restrict E1;
 
 // scattering at different angles
 extern int nTheta;

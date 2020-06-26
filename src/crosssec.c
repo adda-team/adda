@@ -810,22 +810,19 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 //======================================================================================================================
 
 double EELSProb()
-// Calculate EELS probability
-{   
-    double sum;
-    size_t i;
-    
-    sum=0;
+// Calculate the EELS Probability
+{
+	double sum = 0;
+	double h_cgs = 1.054571817e-27;
+	double h_ev = 6.582119569e-16;
+	size_t i;
 
-    for (i=0;i<local_nvoid_Ndip;++i) {
-        sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
-        //creal(field)*cimag(polarisation) - creal(polarisation)*cimag(field); 
-    }
-    sum *= INV_PI * i_hbar * i_hbar_eV * 1e-27; /* (* 1e-18) for correction, and then ihbar2 might not be required actually... just
-                                                 * scaling?
-                                                 */   
-    sum *= 4*PI*epsilon_0;
-    return sum;
+	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
+	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	sum*=-1./(PI*h_cgs*h_ev);
+	sum*=1e-21; //(nm)^3 -> (cm)^3
+
+	return sum;
 }
 
 //======================================================================================================================

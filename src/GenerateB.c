@@ -46,6 +46,8 @@ extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
 
+extern void cik01_(doublecomplex *z, doublecomplex *cbi0, doublecomplex *cdi0, doublecomplex *cbi1, doublecomplex *cdi1, doublecomplex *cbk0, doublecomplex *cdk0, doublecomplex *cbk1, doublecomplex *cdk1);
+
 // used in CalculateE.c
 double C0dipole,C0dipole_refl; // inherent cross sections of exciting dipole (in free space and addition due to surface)
 
@@ -69,8 +71,11 @@ static double s,s2;            // beam confinement factor and its square
 static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
-static double el_energy;        // electron beam energy (in keV)
 static double p0;              // amplitude of the incident dipole moment
+static doublecomplex gamma_eps_inv;// 1/gamma_eps
+static doublecomplex e_pref; // prefactor of the field of the electron
+static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
+static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -83,6 +88,14 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
+	//CASE: B_ELECTRON
+	static double e_energy;        // kinetic energy of the electron
+	static doublecomplex m_host;   // refractive index of the host medium
+	static doublecomplex beta_eps;// v*m_host/c
+	static double e_v;      // speed of the electron
+	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
+	const double c_light = 29979245800; //speed of light in vacuum, cm/s
+	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -187,6 +200,27 @@ void InitBeam(void)
 				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
 			}
 			return;
+		case B_ELECTRON:
+			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
+			// initialize parameters
+			scale_z = 1e-7; //nm/сm
+			e_energy=beam_pars[0];
+			TestPositive(e_energy,"kinetic energy of the electron");
+			beam_center_0[0] = beam_pars[1];
+			beam_center_0[1] = beam_pars[2];
+			beam_center_0[2] = beam_pars[3];
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			if (!beam_asym) vInit(beam_center);
+			m_host = beam_pars[4] + 0*I; //complex number in the future
+			TestPositive(creal(m_host),"refractive index of the host medium");
+			beta_eps = sqrt(1-pow(e_energy_rest/(e_energy+e_energy_rest),2))*m_host;
+			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
+			e_w_v = WaveNum/(beta_eps*scale_z);
+			e_w_gv = e_w_v*gamma_eps_inv;
+			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
+			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through ("GFORM3V")",e_energy,creal(m_host),COMP3V(beam_center_0));
+			return;
 		case B_READ:
 			// the safest is to assume cancellation of all symmetries
 			symX=symY=symZ=symR=false;
@@ -197,22 +231,6 @@ void InitBeam(void)
 			}
 			// we do not define beam_asym here, because beam_center is not defined anyway
 			return;
-        case B_ELECTRON:
-			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
-			// initialize parameters
-			el_energy=beam_pars[0];
-			TestPositive(el_energy,"Electron energy");
-			vCopy(beam_pars+1,beam_center_0);
-            beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
-            if (beam_asym) { // if necessary break the symmetry of the problem
-                if (beam_center_0[0]!=0) symX=symR=false;
-                if (beam_center_0[1]!=0) symY=symR=false;
-                if (beam_center_0[2]!=0) symZ=false;
-            }
-            else vInit(beam_center);
-            strcat(beam_descr, "Electron beam\n");
-            scale_x = 1e-9; // nm/m
-            return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM
@@ -248,15 +266,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double ro2,ro4,ro;
-	double x,y,z,x2_s,xy_s;
-    double td1, td2, td3, td4, td5, td6, td7;
-	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,eps_ambient;
+	double vr1[3],vr2[3],vr3[3];
+	double ro,ro2,ro4;
+	double x,y,z,x2_s,xy_s,temp;
+	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,e_wb_gv;
 	const double *ex; // coordinate axis of the beam reference frame
-	double ey[3],tv1[3],tv2[3],tv3[3];
+	double ey[3];
 	double r1[3];
 	const char *fname;
-    eps_ambient = 1.0;      // hard-coded vacuum ambient permittivity (permeability?)
+
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -402,7 +420,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				x=DotProd(r1,ex)*scale_x;
 				y=DotProd(r1,ey)*scale_x;
-                if (i<10) printf("scale x = %.60f \n\t x = %.60f\n", scale_x, x);
 				z=DotProd(r1,prop)*scale_z;
 				ro2=x*x+y*y;
 				Q=1/(2*z-I);
@@ -459,55 +476,55 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 			}
 			return;
+		case B_ELECTRON:
+
+			for (i=0;i<local_nvoid_Ndip;i++) {
+				j=3*i;
+				// set relative coordinates (in beam's coordinate system)
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				temp = DotProd(r1,prop);
+				vMultScal(temp,prop,vr2); //vr2 is r1_parallel
+				vSubtr(r1,vr2,vr1); //vr1 is r1_perpendicular
+				ro = vNorm(vr1)*scale_z;
+				z = vNorm(vr2)*scale_z;
+				if(ro != 0) vNormalize(vr1);
+				if(z != 0) vNormalize(vr2);
+
+				if (ro == 0) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
+				e_wb_gv = e_w_gv*ro;
+				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
+				//if (BesselK is NaN) ...
+
+				t4 = e_pref*imExp(e_w_v*z);
+				cvMultScal_RVec(t8,vr1,v1);
+				//printf("v1 = "CFORM3V"\n", REIM3V(v1));
+				cvMultScal_RVec((-I)*gamma_eps_inv*t7,vr2,v2);
+				//printf("v1 = "CFORM3V"\n", REIM3V(v2));
+				cvAdd(v1,v2,v3);
+				cvMultScal_cmplx(t4,v3,b+j); //E_inc
+
+				t4 = conj(t4);
+				cvInvSign(v1);
+				cvAdd(v1,v2,v3);
+				cvMultScal_cmplx(t4,v3,E1+j); //E_1
+			}
+			return;
 		case B_READ:
 			if (which==INCPOL_Y) fname=beam_fnameY;
 			else fname=beam_fnameX; // which==INCPOL_X
 			ReadField(fname,b);
 			return;
-        case B_ELECTRON:
-            td1 = (el_energy * keV * i_c0 * i_c0 * i_electron_mass) + 1;
-            td1 *= td1;
-            td2 = 1.0 - 1.0/td1;
-            td1 = c0 * cSqrtCut(td2);   // electron velocity in m/s
-            td2 = sqrt(1 - td1*td1*i_c0*i_c0*eps_ambient);
-            td2 = 1.0 / td2;                  /* gamma, Lorentz contraction factor !! actually need velocity of light
-                                             * in material, i.e epsilon/c_0^2 instead of ic_0^2
-                                             */
-            td3 = c0 * WaveNum * 1e6;      // omega
-            td4 = INV_PI*0.5*i_epsilon_0*electron_charge * td3 / (td1*td1 * td2*eps_ambient); // prefactor for E(r, omega)
-			for (i=0;i<local_nvoid_Ndip;i++) {
-				j=3*i;
-				// set relative coordinates (in beam's coordinate system)
-				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				x=DotProd(r1,ex)*scale_x;
-				y=DotProd(r1,ey)*scale_x;
-				z=DotProd(r1,prop)*scale_x;
-				ro=sqrt(x*x+y*y);
-                td5 = td3*ro / (td1 * td2);                         // argument for Bessel's functions
-                ctemp = imExp(td3*z/td1)* td4;                          // exponential prefactor for g(r)
-                t6 = -ctemp * I * besselk0(td5)/td2;        // for "prop" direction
-                t7 = ctemp * besselk1(td5);               // coefficient for R vector
-                vMultScal(x,ex,tv1);
-                vMultScal(y,ey,tv2);
-                vAdd(tv1,tv2,tv3);
-                vNormalize(tv3);                                // direction of R vector (for t7 coeff)
-                cvMultScal_RVec(t6, prop, v1);
-                cvMultScal_RVec(t7, tv3, v2);
-                cvAdd(v1,v2,b+j);
-
-            }
-            return;
 	}
 	LogError(ONE_POS,"Unknown type of incident beam (%d)",(int)beamtype);
 	/* TO ADD NEW BEAM
 	 * add a case above. Identifier ('B_...') should be defined inside 'enum beam' in const.h. This case should set
 	 * complex vector 'b', describing the incident field in the particle reference frame. It is set inside the cycle for
 	 * each dipole of the particle and is calculated using
-	 * 1) 'DipoleCoord' � array of dipole coordinates;
-	 * 2) 'prop' � propagation direction of the incident field;
-	 * 3) 'ex' � direction of incident polarization;
-	 * 4) 'ey' � complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
-	 * 5) 'beam_center' � beam center in the particle reference frame (automatically calculated from 'beam_center_0'
+	 * 1) 'DipoleCoord' - array of dipole coordinates;
+	 * 2) 'prop' - propagation direction of the incident field;
+	 * 3) 'ex' - direction of incident polarization;
+	 * 4) 'ey' - complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
+	 * 5) 'beam_center' - beam center in the particle reference frame (automatically calculated from 'beam_center_0'
 	 *                    defined in InitBeam).
 	 * If the new beam type is compatible with '-surf', include here the corresponding code. For that you will need
 	 * the variables, related to surface - see vars.c after "// related to a nearby surface".

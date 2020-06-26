@@ -50,7 +50,7 @@ extern const double ezLab[3],exSP[3];
 extern const double C0dipole,C0dipole_refl;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-	calc_Csca,calc_EELS,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
+	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan,Timing_IncBeam;
@@ -694,29 +694,7 @@ static void ParticleToBeamRF(double vec[static restrict 3])
 }
 
 //======================================================================================================================
-static void CalcEELS()
-// calculates EELS probability
-{
-    FILE * restrict CCfile;
-    TIME_TYPE tstart;
-    char fname_cs[MAX_FNAME];
-    double EELS;
 
-    CCfile=NULL;
-    D("Calculation of EELS probability started");
-    tstart = GET_TIME();
-    EELS = EELSProb();
-    if (IFROOT){
-        SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_EELS"%s",directory,"");
-        CCfile=FOpenErr(fname_cs,"w",ONE_POS);
-        if (calc_EELS) PrintBoth(CCfile,"gamma\t= "GFORM"\n",EELS);
-        FCloseErr(CCfile,fname_cs,ONE_POS);
-    }
-    D("Calculation of EELS probability finished");
-	Timing_ScatQuan += GET_TIME() - tstart;
-}
-    
-//======================================================================================================================
 static void CalcIntegralScatQuantities(const enum incpol which)
 /* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter, and force on the'
  * particle and each dipole. Cext and Cabs are averaged over orientation, if needed.
@@ -725,7 +703,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cdec, // Cross sections
-	EELS,						//EELS probability
+	Peels,						// EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
@@ -756,6 +734,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	 */
 	if (calc_Cabs) Cabs = AbsCross();
 	if (calc_Cext) Cext = ExtCross(incPol);
+	if (calc_Peels) Peels = EELSProb();
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
 		if (IFROOT) {
@@ -780,7 +759,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
-			if (calc_EELS) PrintBoth(CCfile,"Peels\t= "GFORM"\nPppp\t= "GFORM"\n",EELSProb(),1.);
+			if (calc_Peels) PrintBoth(CCfile,"Peels\t= "GFORM"\nPeff\t= "GFORM"\n",Peels,Peels*inv_G);
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
@@ -895,8 +874,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// Calculate the scattered field on the given grid of angles
 	if (scat_grid) CalcScatGrid(which);
 	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
-	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
-	if (calc_EELS) CalcEELS();
+	if (calc_Cext || calc_Cabs || calc_Csca || calc_Peels || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
