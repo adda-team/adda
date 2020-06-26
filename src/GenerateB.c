@@ -72,17 +72,10 @@ static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
-static double e_energy;        // kinetic energy of the electron
-static doublecomplex m_host;   // refractive index of the host medium
-static doublecomplex beta_eps;// v*m_host/c
 static doublecomplex gamma_eps_inv;// 1/gamma_eps
-static double e_v;      // speed of the electron
 static doublecomplex e_pref; // prefactor of the field of the electron
 static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
 static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
-const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
-const double c_light = 29979245800; //speed of light in vacuum, cm/s
-const double e_energy_rest = 510.99895; //Electron rest mass, keV
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -95,6 +88,14 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
+	//CASE: B_ELECTRON
+	static double e_energy;        // kinetic energy of the electron
+	static doublecomplex m_host;   // refractive index of the host medium
+	static doublecomplex beta_eps;// v*m_host/c
+	static double e_v;      // speed of the electron
+	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
+	const double c_light = 29979245800; //speed of light in vacuum, cm/s
+	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -212,17 +213,13 @@ void InitBeam(void)
 			if (!beam_asym) vInit(beam_center);
 			m_host = beam_pars[4] + 0*I; //complex number in the future
 			TestPositive(creal(m_host),"refractive index of the host medium");
-
 			beta_eps = sqrt(1-pow(e_energy_rest/(e_energy+e_energy_rest),2))*m_host;
 			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
 			e_w_v = WaveNum/(beta_eps*scale_z);
 			e_w_gv = e_w_v*gamma_eps_inv;
-
 			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
 			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
-
-			symX = symY = symZ = symR = false; // symmetry is unlikely to happen
-			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through (%g,%g,%g)",e_energy,creal(m_host),COMP3V(beam_center_0));
+			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through ("GFORM3V")",e_energy,creal(m_host),COMP3V(beam_center_0));
 			return;
 		case B_READ:
 			// the safest is to assume cancellation of all symmetries

@@ -50,7 +50,7 @@ extern const double ezLab[3],exSP[3];
 extern const double C0dipole,C0dipole_refl;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
-	calc_Csca,calc_Peels,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
+	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
 extern const int phi_int_type;
 // defined and initialized in timing.c
 extern TIME_TYPE Timing_EPlane,Timing_EPlaneComm,Timing_IntField,Timing_IntFieldOne,Timing_ScatQuan,Timing_IncBeam;
