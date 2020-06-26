@@ -874,7 +874,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// Calculate the scattered field on the given grid of angles
 	if (scat_grid) CalcScatGrid(which);
 	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
-	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
+	if (calc_Cext || calc_Cabs || calc_Csca || calc_Peels || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");

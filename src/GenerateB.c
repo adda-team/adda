@@ -36,7 +36,6 @@
 // system headers
 #include <stdio.h>
 #include <string.h>
-#include <float.h>
 
 // SEMI-GLOBAL VARIABLES
 
@@ -75,19 +74,14 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 static double e_energy;        // kinetic energy of the electron
 static doublecomplex m_host;   // refractive index of the host medium
-static doublecomplex eps_omega;// dielectric permittivity of the host medium
-static doublecomplex gamma_eps;// gamma-epsilon is same as Lorentz factor, except the speed of light is the speed of light in the medium
+static doublecomplex beta_eps;// v*m_host/c
 static doublecomplex gamma_eps_inv;// 1/gamma_eps
-static double omega;           // angular frequency
-static double v_electron;      // speed of the electron
-static doublecomplex e_inc_pr; // prefactor in the incident field of the electron
+static double e_v;      // speed of the electron
+static doublecomplex e_pref; // prefactor of the field of the electron
 static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
 static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 const double c_light = 29979245800; //speed of light in vacuum, cm/s
-//const double q_electron = -1.60217662e-19; //electric charge of an electron, SI
-//const double c_light = 299792458; //speed of light in vacuum, SI
-//const double eps0 = 8.8541878128e-12; //vacuum permittivity
 const double e_energy_rest = 510.99895; //Electron rest mass, keV
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
@@ -208,6 +202,7 @@ void InitBeam(void)
 		case B_ELECTRON:
 			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
 			// initialize parameters
+			scale_z = 1e-7; //nm/сm
 			e_energy=beam_pars[0];
 			TestPositive(e_energy,"kinetic energy of the electron");
 			beam_center_0[0] = beam_pars[1];
@@ -216,17 +211,15 @@ void InitBeam(void)
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			if (!beam_asym) vInit(beam_center);
 			m_host = beam_pars[4] + 0*I; //complex number in the future
-			eps_omega = m_host*m_host;
-			scale_z = 1e-7; //nm/сm
 			TestPositive(creal(m_host),"refractive index of the host medium");
-			omega = WaveNum*c_light/(m_host*scale_z);
-			printf("Omega = %e\n", omega);
-			v_electron = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
-			gamma_eps_inv = csqrt(1-pow((v_electron/c_light),2)*eps_omega);
-			gamma_eps = 1/gamma_eps_inv;
-			e_inc_pr = 2*q_electron*omega*gamma_eps_inv/(eps_omega*v_electron*v_electron);
-			e_w_v = omega/v_electron;
-			e_w_gv = omega*gamma_eps_inv/v_electron;
+
+			beta_eps = sqrt(1-pow(e_energy_rest/(e_energy+e_energy_rest),2))*m_host;
+			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
+			e_w_v = WaveNum/(beta_eps*scale_z);
+			e_w_gv = e_w_v*gamma_eps_inv;
+
+			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
 
 			symX = symY = symZ = symR = false; // symmetry is unlikely to happen
 			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through (%g,%g,%g)",e_energy,creal(m_host),COMP3V(beam_center_0));
@@ -497,29 +490,26 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				vSubtr(r1,vr2,vr1); //vr1 is r1_perpendicular
 				ro = vNorm(vr1)*scale_z;
 				z = vNorm(vr2)*scale_z;
-				//printf("ro = %e\n", ro);
-				//printf("z = %e\n", z);
-				vNormalize(vr1);
-				vNormalize(vr2);
+				if(ro != 0) vNormalize(vr1);
+				if(z != 0) vNormalize(vr2);
 
-				if (ro < DBL_EPSILON) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = %e", ro);
+				if (ro == 0) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
 				e_wb_gv = e_w_gv*ro;
-				printf("wb/gv = %e + I*%e\n", creal(e_wb_gv), cimag(e_wb_gv));
 				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
-				printf("BesselK(0,wb/gv) = %e + I*%e\n", creal(t7), cimag(t7));
-				printf("BesselK(1,wb/gv) = %e + I*%e\n", creal(t8), cimag(t8));
+				//if (BesselK is NaN) ...
 
-				t4 = imExp(e_w_v*z);
+				t4 = e_pref*imExp(e_w_v*z);
 				cvMultScal_RVec(t8,vr1,v1);
+				//printf("v1 = "CFORM3V"\n", REIM3V(v1));
 				cvMultScal_RVec((-I)*gamma_eps_inv*t7,vr2,v2);
+				//printf("v1 = "CFORM3V"\n", REIM3V(v2));
 				cvAdd(v1,v2,v3);
-				cvMultScal_cmplx(e_inc_pr*t4,v1,b+j); //E_inc
+				cvMultScal_cmplx(t4,v3,b+j); //E_inc
 
 				t4 = conj(t4);
-				cvMultScal_RVec(-t8,vr1,v1);
-				cvMultScal_RVec((-I)*gamma_eps_inv*t7,vr2,v2);
+				cvInvSign(v1);
 				cvAdd(v1,v2,v3);
-				cvMultScal_cmplx(e_inc_pr*t4,v1,E1+j); //E_1
+				cvMultScal_cmplx(t4,v3,E1+j); //E_1
 			}
 			return;
 		case B_READ:

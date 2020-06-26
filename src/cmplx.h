@@ -255,6 +255,16 @@ static inline void cvSubtr(const doublecomplex a[static 3],const doublecomplex b
 
 //======================================================================================================================
 
+static inline void cvInvSign(doublecomplex a[static 3])
+// inverts the sign in the complex double vector[3]
+{
+	a[0]=-a[0];
+	a[1]=-a[1];
+	a[2]=-a[2];
+}
+
+//======================================================================================================================
+
 static inline void cvAdd2Self(doublecomplex a[static 3],const doublecomplex b[static 3],const doublecomplex c[static 3])
 // increment one complex vector[3] by sum of other two; a+=b+c
 {
