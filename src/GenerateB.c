@@ -62,7 +62,7 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
  */
 doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
-char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
+char *beam_descr; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
@@ -82,6 +82,7 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
+	char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -91,7 +92,7 @@ void InitBeam(void)
 	// beam initialization
 	switch (beamtype) {
 		case B_PLANE:
-			if (IFROOT) strcpy(beam_descr,"plane wave");
+			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
 			if (surface) {
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
@@ -151,7 +152,7 @@ void InitBeam(void)
 			 * (breaking scale invariance)
 			 */
 			p0=1/(WaveNum*WaveNum*WaveNum);
-			if (IFROOT) sprintf(beam_descr,"point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
+			if (IFROOT) beam_descr=dyn_sprintf("point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
 			return;
 		case B_LMINUS:
 		case B_DAVIS3:
@@ -169,21 +170,21 @@ void InitBeam(void)
 			scale_z=s*scale_x; // 1/(k*w0^2)
 			// beam info
 			if (IFROOT) {
-				strcpy(beam_descr,"Gaussian beam (");
 				switch (beamtype) {
 					case B_LMINUS:
-						strcat(beam_descr,"L- approximation)\n");
+						tmp_str="L- approximation";
 						break;
 					case B_DAVIS3:
-						strcat(beam_descr,"3rd order approximation, by Davis)\n");
+						tmp_str="3rd order approximation, by Davis";
 						break;
 					case B_BARTON5:
-						strcat(beam_descr,"5th order approximation, by Barton)\n");
+						tmp_str="5th order approximation, by Barton";
 						break;
 					default: break;
 				}
-				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
-				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
+				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
+				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
+				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
 		case B_READ:
@@ -191,8 +192,8 @@ void InitBeam(void)
 			symX=symY=symZ=symR=false;
 			if (surface) inc_scale=1; // since we can't know it, we assume the default case
 			if (IFROOT) {
-				if (beam_Npars==1) sprintf(beam_descr,"specified by file '%s'",beam_fnameY);
-				else sprintf(beam_descr,"specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
+				if (beam_Npars==1) beam_descr=dyn_sprintf("specified by file '%s'",beam_fnameY);
+				else beam_descr=dyn_sprintf("specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
 			}
 			// we do not define beam_asym here, because beam_center is not defined anyway
 			return;
