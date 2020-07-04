@@ -106,7 +106,6 @@ bool store_scat_grid; // Store the scattered field for grid of angles
 bool calc_Cext;       // Calculate the extinction cross-section - always do
 bool calc_Cabs;       // Calculate the absorption cross-section - always do
 bool calc_Csca;       // Calculate the scattering cross-section by integration
-bool calc_Peels;       // Calculate the EELS probability
 bool calc_vec;        // Calculate the unnormalized asymmetry-parameter
 bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
@@ -1912,7 +1911,6 @@ void InitVariables(void)
 	calc_Cext=true;
 	calc_Cabs=true;
 	calc_Csca=false;
-	calc_Peels=false;
 	calc_vec=false;
 	calc_asym=false;
 	calc_mat_force=false;
@@ -2015,7 +2013,6 @@ void VariablesInterconnect(void)
 		prop_0[0]=prop_0[1]=0;
 		prop_0[2]=1;
 	}
-	if (beamtype == B_ELECTRON) calc_Peels = true;
 	// parameter interconnections
 	if (IntRelation==G_SO) {
 		reduced_FFT=false;

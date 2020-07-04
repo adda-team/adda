@@ -491,7 +491,7 @@ static inline void vNormalize(double a[static 3])
 // normalize real vector to have unit norm
 {
 	double c;
-	c=1/sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+	c=1./sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
 	a[0]*=c;
 	a[1]*=c;
 	a[2]*=c;

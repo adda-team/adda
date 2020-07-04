@@ -809,24 +809,6 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 
 //======================================================================================================================
 
-double EELSProb()
-// Calculate the EELS Probability
-{
-	double sum = 0;
-	double h_cgs = 1.054571817e-27;
-	double h_ev = 6.582119569e-16;
-	size_t i;
-
-	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
-	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-	sum*=-1./(PI*h_cgs*h_ev);
-	sum*=1e-21; //(nm)^3 -> (cm)^3
-
-	return sum;
-}
-
-//======================================================================================================================
-
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
@@ -937,24 +919,30 @@ double AbsCross(void)
 
 //======================================================================================================================
 
-double DecayCross(void)
+double EnhCross(void)
 // computes total cross section for the dipole incident field; similar to Cext
 // 4pi*k*Im[p0(*).Escat(r0)]
 {
-	double sum;
+	double sum = 0, c = 0, ty, tt;
 	size_t i;
 
-	/* This is a correct expression only _if_ exciting p0 is real, then
-	 * (using G(r1,r2) = G(r2,r1)^T, valid also for surface)
-	 * p0(*).Escat_i(r0) = p0(*).G_0i.p_i = p_i.G_i0.p0(*) = p_i.G_i0.p0 = p_i.Einc_i
-	 * => Im(p0(*).Escat(r0)) = sum{Im(P.E_inc)}
-	 *
-	 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
-	 * of G_i0.p0(*) together with Einc and use it here afterwards.
-	 */
-	sum=0;
-	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
-	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	if (beamtype==B_DIPOLE){
+		/* This is a correct expression only _if_ exciting p0 is real, then
+		 * (using G(r1,r2) = G(r2,r1)^T, valid also for surface)
+		 * p0(*).Escat_i(r0) = p0(*).G_0i.p_i = p_i.G_i0.p0(*) = p_i.G_i0.p0 = p_i.Einc_i
+		 * => Im(p0(*).Escat(r0)) = sum{Im(P.E_inc)}
+		 *
+		 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
+		 * of G_i0.p0(*) together with Einc and use it here afterwards.
+		 */
+		for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	}
+	else if(beamtype==B_ELECTRON){
+		for (i=0;i<local_nvoid_Ndip;++i) sum-=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	}
+
 	return FOUR_PI*WaveNum*sum;
 }
 
