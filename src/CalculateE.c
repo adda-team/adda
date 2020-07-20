@@ -752,8 +752,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		}
 	}
 	else { // not orient_avg
-		if (beamtype==B_DIPOLE) Cenh=EnhCross(); // this is here to be run by all processors
-		if (beamtype==B_ELECTRON) Cenh=EnhCross();
+		if (beamtype==B_DIPOLE || beamtype==B_ELECTRON) Cenh=EnhCross(); // this is here to be run by all processors
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
@@ -776,24 +775,26 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				if (surface) PrintBoth(CCfile,"Surface\t= "GFORM"\n",self);
 			}
 			if (beamtype==B_ELECTRON) {
-				double Peels, Pcl, Psca;
+				double Peels, Pcl, Crad;
 				double hbar = 1.054571817e-27;
 				double hbar_ev = 6.582119569e-16;
+				Crad = Cenh - Cabs;
 				PrintBoth(CCfile,"Cenh\t= "GFORM"\n",Cenh);
+				PrintBoth(CCfile,"Crad\t= "GFORM"\n",Crad);
 				fprintf(CCfile,"\nEELS and cathodoluminescence\n\n");
 				printf("\nEELS and cathodoluminescence:\n");
 				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Peels *= 1e-21; //(nm)^3 -> (cm)^3
-				PrintBoth(CCfile,"Peels\t= "GFORM"\n",Peels);
-				Pcl = (Cenh - Cabs)/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				Pcl = Crad/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
-				PrintBoth(CCfile,"Crad\t= "GFORM"\nPcl\t= "GFORM"\n",(Cenh - Cabs),Pcl);
+				PrintBoth(CCfile,"Peels\t= "GFORM"\n",Peels);
+				PrintBoth(CCfile,"Pcl\t= "GFORM"\n",Pcl);
 
 			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
-				//Csca=ScaCross(f_suf);
-				//PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
+				Csca=ScaCross(f_suf);
+				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
 			if (calc_vec) {
 				AsymParm_x(dummy,f_suf);

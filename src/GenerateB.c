@@ -91,7 +91,7 @@ void InitBeam(void)
 	//CASE: B_ELECTRON
 	static double e_energy;        // kinetic energy of the electron
 	static double m_host;   // refractive index of the host medium
-	static doublecomplex beta_eps;// v*m_host/c
+	static double beta_eps;// v*m_host/c
 	static double e_v;      // speed of the electron
 	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 	const double c_light = 29979245800; //speed of light in vacuum, cm/s
@@ -218,6 +218,7 @@ void InitBeam(void)
 			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
 			beta_eps = e_v*m_host/c_light;
 			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
+			//double WaveNum1 = WaveNum / 1.5;
 			e_w_v = WaveNum/(beta_eps*scale_z);
 			e_w_gv = e_w_v*gamma_eps_inv;
 			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
@@ -268,14 +269,13 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3],v4[3],gt[6];
-	double vr1[3],vr2[3],vr3[3],vr4[3];
+	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro,ro2,ro4;
 	double x,y,z,x2_s,xy_s,temp;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,e_wb_gv;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
-	double r1[3];
+	double r1[3],r1par[3],r1per[3];
 	const char *fname;
 
 	/* TO ADD NEW BEAM
@@ -486,45 +486,32 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 
 				temp = DotProd(r1,prop);
-				vMultScal(temp,prop,vr2); //vr2 is r1_parallel
-				vSubtr(r1,vr2,vr1); //vr1 is r1_perpendicular
-				ro = vNorm(vr1)*scale_z;
+				vMultScal(temp,prop,r1par);
+				vSubtr(r1,r1par,r1per);
+				ro = vNorm(r1per)*scale_z;
 				z = temp*scale_z;
-				if(ro != 0) vNormalize(vr1);
-				if(ro == 0) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
-
-				/*
-				x=DotProd(r1,incPolX)*scale_z; //cm
-				y=DotProd(r1,incPolY)*scale_z; //cm
-				z=DotProd(r1,prop)*scale_z; //cm
-				ro=sqrt(x*x+y*y); //cm
-				vr3[0] = (x/ro); //ex
-				vr3[1] = (y/ro); //ey
-				vr3[2] = 0; //ez
-				vSubtr(vr1,vr3,vr4);
-				printf("old = "EFORM3V"\n",COMP3V(vr3));
-				printf("new = "EFORM3V"\n",COMP3V(vr1));
-				printf("dif = "EFORM3V"\n",COMP3V(vr4));
-				printf("\n");
-				*/
+				if(ro != 0) vNormalize(r1per);
+				else LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
 
 				e_wb_gv = e_w_gv*ro;
 				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
+				fprintf(logfile,"e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
+				fprintf(logfile,"besselK0re\t=\t"EFORM"\n",creal(t7));
+				fprintf(logfile,"besselK0im\t=\t"EFORM"\n",cimag(t7));
+				fprintf(logfile,"besselK1re\t=\t"EFORM"\n",creal(t8));
+				fprintf(logfile,"besselK1im\t=\t"EFORM"\n",cimag(t8));
 
 				t4 = imExp(e_w_v*z);
-				cvMultScal_RVec(t4*t8,vr1,v1);
+				cvMultScal_RVec(t4*t8,r1per,v1);
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
-				cvSubtr(v3,v4,v1);
-				//printf("Einc_dif = "CFORM3V"\n",COMP3V(v1));
 				cvMultScal_cmplx(e_pref,v3,b+j); //E_inc
 
 				t4 = conj(t4);
-				cvMultScal_RVec(-t4*t8,vr1,v1);
+				cvMultScal_RVec(-t4*t8,r1per,v1);
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
 				cvMultScal_cmplx(e_pref,v3,E1+j); //E_1
-
 			}
 			return;
 		case B_READ:
