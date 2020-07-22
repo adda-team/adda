@@ -1,0 +1,1 @@
+This is an outdated (and slightly erroneous) implementation of EELS in ADDA. It is further developed (and already greatly extended) at fork https://github.com/alkichigin/adda . After the fork will be merged in the main ADDA branch, this branch will be deleted. 
