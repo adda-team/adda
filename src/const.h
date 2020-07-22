@@ -149,6 +149,7 @@
 #define CFORM "%.10g%+.10gi"      // for complex numbers; may be defined in terms of GFORM
 #define CFORM_FULL "%.16g%+.16gi" // full-precision complex
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
+#define EFORM3V "("EFORM","EFORM","EFORM")"
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
 #define GFORM6L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM

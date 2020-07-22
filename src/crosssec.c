@@ -61,7 +61,7 @@ Parms_1D parms_alpha; // parameters of integration over alpha
 Parms_1D parms[2];    // parameters for integration over theta,phi or beta,gamma
 angle_set beta_int,gamma_int,theta_int,phi_int; // sets of angles
 // used in param.c
-char avg_string[MAX_PARAGRAPH]; // string for output of function that reads averaging parameters
+char *avg_string; // string for output of function that reads averaging parameters
 // used in Romberg.c
 bool full_al_range; // whether full range of alpha angle is used
 
@@ -375,7 +375,7 @@ void ReadAvgParms(const char * restrict fname)
 	// close file
 	FCloseErr(input,fname,ALL_POS);
 	// print info to string
-	if (IFROOT) SnprintfErr(ONE_POS,avg_string,MAX_PARAGRAPH,
+	if (IFROOT) avg_string=dyn_sprintf(
 		"alpha: from "GFORMDEF" to "GFORMDEF" in %zu steps\n"
 		"beta: from "GFORMDEF" to "GFORMDEF" in (up to) %zu steps (equally spaced in cosine "
 			"values)\n"
@@ -937,24 +937,30 @@ double AbsCross(void)
 
 //======================================================================================================================
 
-double DecayCross(void)
+double EnhCross(void)
 // computes total cross section for the dipole incident field; similar to Cext
 // 4pi*k*Im[p0(*).Escat(r0)]
 {
-	double sum;
+	double sum = 0, c = 0, ty, tt;
 	size_t i;
 
-	/* This is a correct expression only _if_ exciting p0 is real, then
-	 * (using G(r1,r2) = G(r2,r1)^T, valid also for surface)
-	 * p0(*).Escat_i(r0) = p0(*).G_0i.p_i = p_i.G_i0.p0(*) = p_i.G_i0.p0 = p_i.Einc_i
-	 * => Im(p0(*).Escat(r0)) = sum{Im(P.E_inc)}
-	 *
-	 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
-	 * of G_i0.p0(*) together with Einc and use it here afterwards.
-	 */
-	sum=0;
-	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
-	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	if (beamtype==B_DIPOLE){
+		/* This is a correct expression only _if_ exciting p0 is real, then
+		 * (using G(r1,r2) = G(r2,r1)^T, valid also for surface)
+		 * p0(*).Escat_i(r0) = p0(*).G_0i.p_i = p_i.G_i0.p0(*) = p_i.G_i0.p0 = p_i.Einc_i
+		 * => Im(p0(*).Escat(r0)) = sum{Im(P.E_inc)}
+		 *
+		 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
+		 * of G_i0.p0(*) together with Einc and use it here afterwards.
+		 */
+		for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	}
+	else if(beamtype==B_ELECTRON){
+		for (i=0;i<local_nvoid_Ndip;++i) sum-=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
+		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
+	}
+
 	return FOUR_PI*WaveNum*sum;
 }
 

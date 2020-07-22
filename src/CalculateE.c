@@ -702,7 +702,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 {
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
-	double Cext,Cabs,Csca,Cdec, // Cross sections
+	double Cext,Cabs,Csca,Cenh, // Cross sections
 	Peels,						// EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
@@ -715,7 +715,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	const char *f_suf;
 
 	// redundant initialization to remove warnings
-	Cext=Cabs=Csca=Cdec=0;
+	Cext=Cabs=Csca=Cenh=0;
 	CCfile=NULL;
 
 	D("Calculation of cross sections started");
@@ -734,7 +734,6 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	 */
 	if (calc_Cabs) Cabs = AbsCross();
 	if (calc_Cext) Cext = ExtCross(incPol);
-	if (calc_Peels) Peels = EELSProb();
 	D("Cext and Cabs calculated");
 	if (orient_avg) {
 		if (IFROOT) {
@@ -753,17 +752,16 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		}
 	}
 	else { // not orient_avg
-		if (beamtype==B_DIPOLE) Cdec=DecayCross(); // this is here to be run by all processors
+		if (beamtype==B_DIPOLE || beamtype==B_ELECTRON) Cenh=EnhCross(); // this is here to be run by all processors
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
-			if (calc_Peels) PrintBoth(CCfile,"Peels\t= "GFORM"\nPeff\t= "GFORM"\n",Peels,Peels*inv_G);
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
-				double tot=self+Cdec/C0dipole;
+				double tot=self+Cenh/C0dipole;
 				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
 				printf("\nDecay-rate enhancement:\n");
 				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
@@ -775,6 +773,23 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 					PrintBoth(CCfile,"Nonrad\t= "GFORM"\n",nonrad);
 				}
 				if (surface) PrintBoth(CCfile,"Surface\t= "GFORM"\n",self);
+			}
+			if (beamtype==B_ELECTRON) {
+				double Peels, Pcl, Crad;
+				double hbar = 1.054571817e-27;
+				double hbar_ev = 6.582119569e-16;
+				Crad = Cenh - Cabs;
+				PrintBoth(CCfile,"Cenh\t= "GFORM"\n",Cenh);
+				PrintBoth(CCfile,"Crad\t= "GFORM"\n",Crad);
+				fprintf(CCfile,"\nEELS and cathodoluminescence\n\n");
+				printf("\nEELS and cathodoluminescence:\n");
+				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				Peels *= 1e-21; //(nm)^3 -> (cm)^3
+				Pcl = Crad/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Peels\t= "GFORM"\n",Peels);
+				PrintBoth(CCfile,"Pcl\t= "GFORM"\n",Pcl);
+
 			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
@@ -874,7 +889,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	// Calculate the scattered field on the given grid of angles
 	if (scat_grid) CalcScatGrid(which);
 	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
-	if (calc_Cext || calc_Cabs || calc_Csca || calc_Peels || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
+	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
 	// saves internal fields and/or dipole polarizations to text file
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");

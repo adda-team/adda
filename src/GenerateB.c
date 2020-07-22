@@ -64,7 +64,7 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
  */
 doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
-char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
+char *beam_descr; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
@@ -74,7 +74,7 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 static doublecomplex gamma_eps_inv;// 1/gamma_eps
 static doublecomplex e_pref; // prefactor of the field of the electron
-static doublecomplex e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
+static double e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
 static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
@@ -90,12 +90,13 @@ void InitBeam(void)
 	double w0; // beam width
 	//CASE: B_ELECTRON
 	static double e_energy;        // kinetic energy of the electron
-	static doublecomplex m_host;   // refractive index of the host medium
-	static doublecomplex beta_eps;// v*m_host/c
+	static double m_host;   // refractive index of the host medium
+	static double beta_eps;// v*m_host/c
 	static double e_v;      // speed of the electron
 	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 	const double c_light = 29979245800; //speed of light in vacuum, cm/s
 	const double e_energy_rest = 510.99895; //Electron rest mass, keV
+	char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -105,7 +106,7 @@ void InitBeam(void)
 	// beam initialization
 	switch (beamtype) {
 		case B_PLANE:
-			if (IFROOT) strcpy(beam_descr,"plane wave");
+			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
 			if (surface) {
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
@@ -165,7 +166,7 @@ void InitBeam(void)
 			 * (breaking scale invariance)
 			 */
 			p0=1/(WaveNum*WaveNum*WaveNum);
-			if (IFROOT) sprintf(beam_descr,"point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
+			if (IFROOT) beam_descr=dyn_sprintf("point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
 			return;
 		case B_LMINUS:
 		case B_DAVIS3:
@@ -183,21 +184,21 @@ void InitBeam(void)
 			scale_z=s*scale_x; // 1/(k*w0^2)
 			// beam info
 			if (IFROOT) {
-				strcpy(beam_descr,"Gaussian beam (");
 				switch (beamtype) {
 					case B_LMINUS:
-						strcat(beam_descr,"L- approximation)\n");
+						tmp_str="L- approximation";
 						break;
 					case B_DAVIS3:
-						strcat(beam_descr,"3rd order approximation, by Davis)\n");
+						tmp_str="3rd order approximation, by Davis";
 						break;
 					case B_BARTON5:
-						strcat(beam_descr,"5th order approximation, by Barton)\n");
+						tmp_str="5th order approximation, by Barton";
 						break;
 					default: break;
 				}
-				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
-				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
+				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
+				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
+				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
 		case B_ELECTRON:
@@ -210,24 +211,27 @@ void InitBeam(void)
 			beam_center_0[1] = beam_pars[2];
 			beam_center_0[2] = beam_pars[3];
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			//symX=symY=symZ=symR=false;
 			if (!beam_asym) vInit(beam_center);
-			m_host = beam_pars[4] + 0*I; //complex number in the future
-			TestPositive(creal(m_host),"refractive index of the host medium");
-			beta_eps = sqrt(1-pow(e_energy_rest/(e_energy+e_energy_rest),2))*m_host;
+			m_host = beam_pars[4]; //complex number in the future
+			TestPositive(m_host,"refractive index of the host medium");
+			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			beta_eps = e_v*m_host/c_light;
 			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
+			//double WaveNum1 = WaveNum / 1.5;
 			e_w_v = WaveNum/(beta_eps*scale_z);
 			e_w_gv = e_w_v*gamma_eps_inv;
-			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
 			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
-			if (IFROOT) sprintf(beam_descr,"electron with energy %g keV in host medium with m_host=%g moving through ("GFORM3V")",e_energy,creal(m_host),COMP3V(beam_center_0));
+			//printf("e_pref = "CFORM"\n",REIM(e_pref));
+			if (IFROOT) beam_descr=dyn_sprintf("electron with energy %g keV in host medium with m_host=%g moving through "GFORM3V"",e_energy,creal(m_host),COMP3V(beam_center_0));
 			return;
 		case B_READ:
 			// the safest is to assume cancellation of all symmetries
 			symX=symY=symZ=symR=false;
 			if (surface) inc_scale=1; // since we can't know it, we assume the default case
 			if (IFROOT) {
-				if (beam_Npars==1) sprintf(beam_descr,"specified by file '%s'",beam_fnameY);
-				else sprintf(beam_descr,"specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
+				if (beam_Npars==1) beam_descr=dyn_sprintf("specified by file '%s'",beam_fnameY);
+				else beam_descr=dyn_sprintf("specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
 			}
 			// we do not define beam_asym here, because beam_center is not defined anyway
 			return;
@@ -266,13 +270,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double vr1[3],vr2[3],vr3[3];
 	double ro,ro2,ro4;
 	double x,y,z,x2_s,xy_s,temp;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,e_wb_gv;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
-	double r1[3];
+	double r1[3],r1par[3],r1per[3];
 	const char *fname;
 
 	/* TO ADD NEW BEAM
@@ -477,36 +480,38 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_ELECTRON:
-
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				// set relative coordinates (in beam's coordinate system)
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				temp = DotProd(r1,prop);
-				vMultScal(temp,prop,vr2); //vr2 is r1_parallel
-				vSubtr(r1,vr2,vr1); //vr1 is r1_perpendicular
-				ro = vNorm(vr1)*scale_z;
-				z = vNorm(vr2)*scale_z;
-				if(ro != 0) vNormalize(vr1);
-				if(z != 0) vNormalize(vr2);
 
-				if (ro == 0) LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
+				temp = DotProd(r1,prop);
+				vMultScal(temp,prop,r1par);
+				vSubtr(r1,r1par,r1per);
+				ro = vNorm(r1per)*scale_z;
+				z = temp*scale_z;
+				if(ro != 0) vNormalize(r1per);
+				else LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
+
 				e_wb_gv = e_w_gv*ro;
 				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
-				//if (BesselK is NaN) ...
+				fprintf(logfile,"e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
+				fprintf(logfile,"besselK0re\t=\t"EFORM"\n",creal(t7));
+				fprintf(logfile,"besselK0im\t=\t"EFORM"\n",cimag(t7));
+				fprintf(logfile,"besselK1re\t=\t"EFORM"\n",creal(t8));
+				fprintf(logfile,"besselK1im\t=\t"EFORM"\n",cimag(t8));
 
-				t4 = e_pref*imExp(e_w_v*z);
-				cvMultScal_RVec(t8,vr1,v1);
-				//printf("v1 = "CFORM3V"\n", REIM3V(v1));
-				cvMultScal_RVec((-I)*gamma_eps_inv*t7,vr2,v2);
-				//printf("v1 = "CFORM3V"\n", REIM3V(v2));
+				t4 = imExp(e_w_v*z);
+				cvMultScal_RVec(t4*t8,r1per,v1);
+				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
-				cvMultScal_cmplx(t4,v3,b+j); //E_inc
+				cvMultScal_cmplx(e_pref,v3,b+j); //E_inc
 
 				t4 = conj(t4);
-				cvInvSign(v1);
+				cvMultScal_RVec(-t4*t8,r1per,v1);
+				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
-				cvMultScal_cmplx(t4,v3,E1+j); //E_1
+				cvMultScal_cmplx(e_pref,v3,E1+j); //E_1
 			}
 			return;
 		case B_READ:
