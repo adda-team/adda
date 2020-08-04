@@ -86,9 +86,9 @@ opt_index opt; // main option index; it is also defined as extern in param.h
 // SEMI-GLOBAL VARIABLES
 
 // defined and initialized in crosssec.c
-extern const char avg_string[];
+extern const char *avg_string;
 // defined and initialized in GenerateB.c
-extern const char beam_descr[];
+extern const char *beam_descr;
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -822,7 +822,7 @@ static void ATT_NORETURN NotSupported(const char * restrict type,const char * re
 static const char *ScanStrError(const char * restrict str,const unsigned int size)
 // check if string fits in buffer of size 'size', otherwise produces error message; returns the passed str (redirects)
 {
-	if (strlen(str)>=size) PrintErrorHelp("Too long argument to '-%s' option (only %ud chars allowed). If you really "
+	if (strlen(str)>=size) PrintErrorHelp("Too long argument to '-%s' option (only %u chars allowed). If you really "
 		"need it you may increase MAX_DIRNAME in const.h and recompile",OptionName(),size-1);
 	return str;
 }
@@ -1554,7 +1554,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2019 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2020 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"

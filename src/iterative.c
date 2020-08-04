@@ -823,8 +823,11 @@ ITER_FUNC(CSYM)
 			return;
 		case PHASE_INIT:
 			if (load_chpoint) { // change pointers names according to count parity
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&q_old,&q_new);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// tau_1 = ||r_0||; q_1 = r_0(*)/||r_0||; here r_0 is already stored in q_old
@@ -948,9 +951,12 @@ ITER_FUNC(QMR_CS)
 			vectors[0].size=vectors[1].size=vectors[2].size=sizeof(doublecomplex);
 			return;
 		case PHASE_INIT:
-			if (load_chpoint) { // change pointers names according to count parity
+			if (load_chpoint) {
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&v,&vtilda);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// omega_0=||v_0||=0
@@ -1376,34 +1382,34 @@ static const char *CalcInitField(double zero_resid,const enum incpol which)
 				nCopy(rvec,pvec);
 				inprodR=zero_resid;
 				matvec_ready=true; // here Avecbuffer = A.r_0
-				return "x_0 = 0\n";
+				return "x_0 = 0";
 			}
 			else { // use x_0=Einc
 				nCopy(xvec,pvec);
-				return "x_0 = E_inc\n";
+				return "x_0 = E_inc";
 			}
 		case IF_ZERO:
 			nInit(xvec); // x_0=0
 			nCopy(rvec,pvec); // r_0=b
 			inprodR=zero_resid;
-			return "x_0 = 0\n";
+			return "x_0 = 0";
 		case IF_INC:
 			nCopy(xvec,pvec); // x_0=b, i.e. E_exc=E_inc
 			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 			MatVec(xvec,Avecbuffer,NULL,false,&Timing_MVP,&Timing_MVPComm);
 			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-			return "x_0 = E_inc\n";
+			return "x_0 = E_inc";
 		case IF_WKB:
 			CalcFieldWKB(xvec); // calculate WKB electric field
 			InitFieldfromE(); // transform it into starting vector
-			return "x_0 = result of WKB\n";
+			return "x_0 = result of WKB";
 		case IF_READ: {
 			const char *fname;
 			if (which==INCPOL_Y) fname=infi_fnameY;
 			else fname=infi_fnameX; // which==INCPOL_X
 			ReadField(fname,xvec); // read electric field
 			InitFieldfromE(); // transform it into starting vector
-			return dyn_sprintf("x_0 = from file %s\n",fname);
+			return dyn_sprintf("x_0 = from file %s",fname);
 		}
 	}
 	LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
@@ -1444,9 +1450,12 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
-			sprintf(tmp_str,"%s"RESID_STRING"\n",descr,0,prev_err);
-			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
-			printf("%s",tmp_str);
+			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,RESID_STRING"\n",0,prev_err);
+			// descr may contain filename, thus it is given as a separate argument (not included in tmp_str)
+			if (!orient_avg) {
+				fprintf(logfile,"%s\n%s",descr,tmp_str);
+			}
+			printf("%s\n%s",descr,tmp_str);
 		}
 		// initialize counters
 		niter=1;
