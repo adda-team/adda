@@ -218,7 +218,8 @@ void InitBeam(void)
 			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
 			beta_eps = e_v*m_host/c_light;
 			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
-			//double WaveNum1 = WaveNum / 1.5;
+			//printf("omega = "EFORM"\n",WaveNum*c_light/scale_z);
+			//printf("v = "EFORM"\n",e_v);
 			e_w_v = WaveNum/(beta_eps*scale_z);
 			e_w_gv = e_w_v*gamma_eps_inv;
 			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
@@ -493,15 +494,20 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				if(ro != 0) vNormalize(r1per);
 				else LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
 
+				//printf("z = "EFORM"\n",z);
+				//printf("b = "EFORM"\n",ro);
+				//printf("g = "EFORM"\n",creal(1./gamma_eps_inv));
+
 				e_wb_gv = e_w_gv*ro;
 				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
-				fprintf(logfile,"e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
-				fprintf(logfile,"besselK0re\t=\t"EFORM"\n",creal(t7));
-				fprintf(logfile,"besselK0im\t=\t"EFORM"\n",cimag(t7));
-				fprintf(logfile,"besselK1re\t=\t"EFORM"\n",creal(t8));
-				fprintf(logfile,"besselK1im\t=\t"EFORM"\n",cimag(t8));
+				//printf("e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
+				//printf("besselK0re\t=\t"EFORM"\n",creal(t7));
+				//printf("besselK0im\t=\t"EFORM"\n",cimag(t7));
+				//printf("besselK1re\t=\t"EFORM"\n",creal(t8));
+				//printf("besselK1im\t=\t"EFORM"\n",cimag(t8));
 
 				t4 = imExp(e_w_v*z);
+				//printf("imExp = "CFORM"\n",t4);
 				cvMultScal_RVec(t4*t8,r1per,v1);
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);

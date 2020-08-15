@@ -779,16 +779,16 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				double hbar = 1.054571817e-27;
 				double hbar_ev = 6.582119569e-16;
 				Crad = Cenh - Cabs;
-				PrintBoth(CCfile,"Cenh\t= "GFORM"\n",Cenh);
-				PrintBoth(CCfile,"Crad\t= "GFORM"\n",Crad);
-				fprintf(CCfile,"\nEELS and cathodoluminescence\n\n");
+				PrintBoth(CCfile,"Cenh\t= "EFORM"\n",Cenh);
+				PrintBoth(CCfile,"Crad\t= "EFORM"\n",Crad);
+				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
 				printf("\nEELS and cathodoluminescence:\n");
 				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Peels *= 1e-21; //(nm)^3 -> (cm)^3
 				Pcl = Crad/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
-				PrintBoth(CCfile,"Peels\t= "GFORM"\n",Peels);
-				PrintBoth(CCfile,"Pcl\t= "GFORM"\n",Pcl);
+				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
+				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
 
 			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
