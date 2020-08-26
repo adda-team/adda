@@ -1,2 +1,2 @@
 PAW: Python ADDA Wrapper
-Version 0.2
+Version 0.3
