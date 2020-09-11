@@ -226,6 +226,11 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELCS},
+	{"besselGen","<RePex> <ImPex> <RePey> <ImPey> <RePmx> <ImPmx> <RePmy> <ImPmy> \n\t<order> <angle> [<x> <y> <z>]",
+		"Generalized Bessel beam. The half-cone angle is measured from the z axis. The half-cone angle and beam order "
+		"are obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
+		"(zero, by default). Coordinate arguments are in um.",
+		UNDEF,B_BESSELGEN},
 	{"besselLE","<order> <angle> [<x> <y> <z>]","Bessel beam with linearly polarized electric field. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
@@ -234,11 +239,11 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELLM},
-	{"besselTEC","<order> <angle> [<x> <y> <z>]","Bessel beam forming the TE Bessel beam. The half-cone angle "
+	{"besselTEC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TE Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELTEC},
-	{"besselTMC","<order> <angle> [<x> <y> <z>]","Bessel beam forming the TM Bessel beam. The half-cone angle "
+	{"besselTMC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TM Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELTMC},
@@ -1002,6 +1007,7 @@ PARSE_FUNC(beam)
 			case B_DAVIS3:
 			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
 			case B_BESSELCS: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
+			case B_BESSELGEN: if (Narg!=10 && Narg!=13) NargError(Narg,"10 or 13"); break;
 			case B_BESSELLE: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELLM: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELTEC: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
