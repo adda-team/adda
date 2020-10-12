@@ -23,12 +23,14 @@
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
  * and produce a strong warning, if it is not satisfied. The list of C99 features, used by ADDA, include (but may be not
- * limited to): stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
+ * limited to): stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros.
+ * Naturally, this test is not invoked if this header is included from C++ source file
 */
-# if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
-#   error "Support for C99 standard (at least many of its parts) is strongly recommended for compilation. Otherwise \
-	the compilation will may fail or produce wrong results. If you still want to try, you may enable an override in \
-	the Makefile."
+#ifndef __cplusplus
+#if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
+#	error "Support for C99 standard (at least many of its parts) is strongly recommended for compilation. Otherwise \
+the compilation may fail or produce wrong results. If you still want to try, enable an override in the Makefile."
+#endif
 #endif
 
 /* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family functions. For some
