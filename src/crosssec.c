@@ -61,7 +61,7 @@ Parms_1D parms_alpha; // parameters of integration over alpha
 Parms_1D parms[2];    // parameters for integration over theta,phi or beta,gamma
 angle_set beta_int,gamma_int,theta_int,phi_int; // sets of angles
 // used in param.c
-char *avg_string; // string for output of function that reads averaging parameters
+const char *avg_string; // string for output of function that reads averaging parameters
 // used in Romberg.c
 bool full_al_range; // whether full range of alpha angle is used
 

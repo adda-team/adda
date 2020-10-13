@@ -62,7 +62,7 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
  */
 doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
-char *beam_descr; // string for log file with beam parameters
+const char *beam_descr; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
@@ -82,7 +82,7 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
-	char *tmp_str; // temporary string
+	const char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -180,7 +180,7 @@ void InitBeam(void)
 					case B_BARTON5:
 						tmp_str="5th order approximation, by Barton";
 						break;
-					default: break;
+					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 				}
 				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
 				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
