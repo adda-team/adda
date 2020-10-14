@@ -2328,7 +2328,7 @@ void PrintInfo(void)
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");
-		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
+		fprintf(logfile,"%s "GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
 #ifndef SPARSE
 		if (sh_granul) fprintf(logfile,"  domain %d is filled with %d granules of diameter "GFORMDEF"\n"
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);

@@ -68,7 +68,7 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d_z)
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
-const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
+const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters (first one should end with :)
 size_t gr_N;                     // number of granules
 double gr_vf_real;               // actual granules volume fraction
 size_t mat_count[MAX_NMAT+1];    // number of dipoles in each domain
@@ -1556,7 +1556,7 @@ void InitShape(void)
 				coat_z=sh_pars[3];
 				if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
 					PrintErrorHelp("Inner sphere is not fully inside the outer");
-				if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d= "GFORM3V,
+				if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d="GFORM3V,
 					coat_x,coat_y,coat_z);
 			}
 			else coat_x=coat_y=coat_z=0; // initialize default values
