@@ -26,10 +26,10 @@ double gridspace;         // dipole size (d)
 double gridSpaceX,gridSpaceY,gridSpaceZ; // dipole sizes
 double rectScaleX,rectScaleY,rectScaleZ, maxRectScale; // relative dipole sizes (scales) and maximal one
 double dipvol;            // dipole volume
-double kd;                // k*d=2*PI/dpl
+doublecomplex kd;         // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
-double WaveNum;           // wavenumber of incident light
+doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes
 double memPeak;           // peak memory usage in bytes

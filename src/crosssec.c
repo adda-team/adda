@@ -512,7 +512,7 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
  * angles is used with only small fraction of n, allowing simplifications.
  */
 {
-	double kkk;
+	doublecomplex kkk;
 	doublecomplex a,dpr;
 	doublecomplex sum[3],tbuff[3],tmp=0; // redundant initialization to remove warnings
 	int i;
@@ -671,7 +671,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cs=FresnelRS(ki,kt);
 			cp=FresnelRP(ki,kt,msub);
 		}
-		phSh=imExp(2*WaveNum*hsub*ki);
+		phSh=imExpReal(2*WaveNum*hsub*ki);
 	}
 	else { // transmission; here nF[2] is negative
 		// formulae correspond to plane wave incoming from below, but with change ki<->kt
@@ -690,7 +690,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		cs=FresnelTS(kt,ki);
 		cp=FresnelTP(kt,ki,1/msub);
 		// coefficient comes from  k0->k in definition of F(n) (in denominator)
-		phSh=msub*cexp(I*WaveNum*hsub*(ki-kt));
+		phSh=msub*imExp(WaveNum*hsub*(ki-kt));
 	}
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
@@ -786,12 +786,12 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	if (above) { // ebuff+= [(I-nxn).sum=sum-nF*(nF.sum)] * exp(-2ik*r0*nz), where r0=box_origin_unif
 		cvMultScal_RVec(crDotProd(sumF,nF),nF,t3);
 		cvSubtr(sumF,t3,t3);
-		cvMultScal_cmplx(imExp(-2*WaveNum*ki*box_origin_unif[2]),t3,t3);
+		cvMultScal_cmplx(imExpReal(-2*WaveNum*ki*box_origin_unif[2]),t3,t3);
 		cvAdd(t3,ebuff,ebuff);
 	}
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
 	// All m-scaling for substrate has been accounted in phSh above
-	doublecomplex sc=-I*WaveNum*WaveNum*WaveNum*cexp(-I*WaveNum*crDotProd(nN,box_origin_unif));
+	doublecomplex sc=-I*WaveNum*WaveNum*WaveNum*imExp(-WaveNum*crDotProd(nN,box_origin_unif));
 	// the following additional multiplier implements IGT_SO
 	if (ScatRelation==SQ_IGT_SO) sc*=(1-kd*kd/24);
 	cvMultScal_cmplx(sc,ebuff,ebuff);
@@ -813,7 +813,7 @@ double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
 	doublecomplex ebuff[3];
-	double sum;
+	doublecomplex sum;
 	size_t i;
 
 	if (beamtype==B_PLANE && !surface) {
@@ -830,7 +830,7 @@ double ExtCross(const double * restrict incPol)
 		sum=0;
 		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum*=FOUR_PI*WaveNum;
+		sum*=FOUR_PI*creal(WaveNum);
 		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is applied in CalcField()
 		 * and is independent of propagation or scattering direction. Thus it can be applied to any linear combination
 		 * of plane waves, i.e. any field.
@@ -838,7 +838,7 @@ double ExtCross(const double * restrict incPol)
 		 * Unfortunately, the same reasoning fails for SO of full IGT, because there the correction factor does
 		 * (slightly) depend on the propagation direction.
 		 */
-		if (ScatRelation==SQ_IGT_SO) sum*=(1-kd*kd/24);
+		if (ScatRelation==SQ_IGT_SO) sum*=(1-kd*kd/24); //Does it have to be changed in case of complex kd?
 	}
 	/* TO ADD NEW BEAM
 	 * The formulae above works only if the amplitude of the beam is unity at the focal point. Either make sure that new
@@ -856,7 +856,7 @@ double AbsCross(void)
 	size_t dip,index;
 	int i,j;
 	unsigned char mat;
-	double sum,temp1,temp2;
+	doublecomplex sum,temp1,temp2;
 	doublecomplex m,m2m1;
 	double mult[MAX_NMAT][3]; // multiplier (possibly anisotropic)
 	double mult1[MAX_NMAT];   // multiplier, which is always isotropic
@@ -876,6 +876,7 @@ double AbsCross(void)
 			 * developments," JQSRT 106:558-589 (2007).
 			 * summand: Im(P.Eexc(*))-(2/3)k^3*|P|^2=|P|^2*(-Im(1/cc)-(2/3)k^3)
 			 */
+
 			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
 			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=-cimag(1/cc[i][j])-temp1;
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
@@ -914,7 +915,7 @@ double AbsCross(void)
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	if (surface) sum*=inc_scale;
-	return FOUR_PI*WaveNum*sum;
+	return FOUR_PI*creal(WaveNum)*sum;
 }
 
 //======================================================================================================================
@@ -1118,7 +1119,7 @@ double ScaCross(const char *f_suf)
 {
 	TIME_TYPE tstart;
 	char fname[MAX_FNAME];
-	double res;
+	doublecomplex res;
 
 	SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_LOG_INT_CSCA "%s",directory,f_suf);
 
@@ -1345,7 +1346,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 			r = sqrt(r2);
 			vMultScal(1/r,n,n);
 			// Set the scalar products a.b1 and a.b2
-			a = imExp(WaveNum*r);
+			a = imExpReal(WaveNum*r);
 			ab1 = (3/(r2*r2) - I*3*WaveNum/(r*r2) - WaveNum*WaveNum/r2)*a;
 			ab2 = (-WaveNum*WaveNum/r2 + I*WaveNum*WaveNum*WaveNum/r)*a;
 			// Prepare c1 and c2

@@ -86,7 +86,7 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
 
 //======================================================================================================================
 
-static inline doublecomplex imExp(const double arg)
+static inline doublecomplex imExpReal(const double arg)
 /* exponent of imaginary argument Exp(i*arg)
  * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
  */
@@ -101,6 +101,17 @@ static inline doublecomplex imExp(const double arg)
 #else
 	return imExpTable(arg);
 #endif
+}
+
+//======================================================================================================================
+
+static inline doublecomplex imExp(const doublecomplex arg)
+/* exponent of complex argument Exp(i*arg), arg = a + i*b
+ * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
+ */
+{
+	if(cimag(arg)==0) return imExpTable(arg); //this case is needed to make things faster for real argument
+	else return imExpTable(creal(arg))*exp(-cimag(arg));
 }
 
 //======================================================================================================================

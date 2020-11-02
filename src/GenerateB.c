@@ -151,7 +151,7 @@ void InitBeam(void)
 			 * irradiance). Alternative definition is p0=1, but then the results will scale with unit of length
 			 * (breaking scale invariance)
 			 */
-			p0=1/(WaveNum*WaveNum*WaveNum);
+			p0=1/(WaveNum*WaveNum*WaveNum); //Is it valid if WaveNum is complex?
 			if (IFROOT) beam_descr=dyn_sprintf("point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
 			return;
 		case B_LMINUS:
@@ -164,7 +164,7 @@ void InitBeam(void)
 			vCopy(beam_pars+1,beam_center_0);
 			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
 			if (!beam_asym) vInit(beam_center);
-			s=1/(WaveNum*w0);
+			s=1/(WaveNum*w0); //Is it valid if WaveNum is complex?
 			s2=s*s;
 			scale_x=1/w0;
 			scale_z=s*scale_x; // 1/(k*w0^2)
@@ -280,13 +280,13 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						tc=FresnelTP(ki,kt,1/msub);
 					}
 					// phase shift due to the origin at height hsub
-					cvMultScal_cmplx(rc*cexp(-2*I*WaveNum*ki*hsub),eIncRefl,eIncRefl);
-					cvMultScal_cmplx(tc*cexp(I*WaveNum*(kt-ki)*hsub),eIncTran,eIncTran);
+					cvMultScal_cmplx(rc*imExp(-2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
+					cvMultScal_cmplx(tc*imExp(WaveNum*(kt-ki)*hsub),eIncTran,eIncTran);
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;
 						// b[i] = eIncTran*exp(ik*kt.r)
-						cvMultScal_cmplx(cexp(I*WaveNum*crDotProd(ktVec,DipoleCoord+j)),eIncTran,b+j);
+						cvMultScal_cmplx(imExp(WaveNum*crDotProd(ktVec,DipoleCoord+j)),eIncTran,b+j);
 					}
 				}
 				else if (prop[2]<0) { // beam comes from above the substrate
@@ -317,14 +317,14 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						}
 					}
 					// phase shift due to the origin at height hsub
-					cvMultScal_cmplx(rc*imExp(2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
-					if (!msubInf) cvMultScal_cmplx(tc*cexp(I*WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
+					cvMultScal_cmplx(rc*imExpReal(2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
+					if (!msubInf) cvMultScal_cmplx(tc*imExp(WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;
 						// b[i] = ex*exp(ik*r.a) + eIncRefl*exp(ik*prIncRefl.r)
-						cvMultScal_RVec(imExp(WaveNum*DotProd(DipoleCoord+j,prop)),ex,b+j);
-						cvLinComb1_cmplx(eIncRefl,b+j,imExp(WaveNum*DotProd(DipoleCoord+j,prIncRefl)),b+j);
+						cvMultScal_RVec(imExpReal(WaveNum*DotProd(DipoleCoord+j,prop)),ex,b+j);
+						cvLinComb1_cmplx(eIncRefl,b+j,imExpReal(WaveNum*DotProd(DipoleCoord+j,prIncRefl)),b+j);
 					}
 				}
 			}
@@ -387,9 +387,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				z=DotProd(r1,prop)*scale_z;
 				ro2=x*x+y*y;
 				Q=1/(2*z-I);
-				psi0=-I*Q*cexp(I*Q*ro2);
+				psi0=-I*Q*imExp(Q*ro2);
 				// ctemp=exp(ik*z0)*psi0, z0 - non-scaled coordinate (z/scale_z)
-				ctemp=imExp(WaveNum*z/scale_z)*psi0;
+				ctemp=imExpReal(WaveNum*z/scale_z)*psi0;
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {

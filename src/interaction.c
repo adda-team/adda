@@ -157,7 +157,7 @@ static inline void UnitsGridToCoord(const int i,const int j,const int k,double q
 //=====================================================================================================================
 
 static inline void InterParams(double qvec[static 3],double qmunu[static 6],double *rr,double *rn,double *invr3,
-	double *kr,double *kr2,const bool unitsGrid)
+	doublecomplex *kr,doublecomplex *kr2,const bool unitsGrid)
 /* some common variables needed by the interaction functions - needed for all except IGT
  * It will probably break down for qvec=0, so if any interaction term is required for zero argument, a new function need
  * to be created, which will avoid this singularity
@@ -288,18 +288,18 @@ static inline void InterTerm_core(const double kr,const double kr2,const double 
 //=====================================================================================================================
 
 static inline doublecomplex accImExp(const double x)
-// Without SSE3, this is just an alias for imExp
+// Without SSE3, this is just an alias for imExpReal
 {
-	return imExp(x);
+	return imExpReal(x);
 }
 
 //=====================================================================================================================
 
-static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
+static inline void InterTerm_core(const doublecomplex kr,const doublecomplex kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
 {	
-	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+	const doublecomplex t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
 	*expval=invr3*imExp(kr);
 
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
@@ -328,8 +328,8 @@ static inline void InterTerm_poi(double qvec[static 3],doublecomplex result[stat
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
 	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+	double rr,rn,invr3; // |R|, |R/d|, |R|^-3
+	doublecomplex kr,kr2,expval; // kR, (kR)^2, exp(ikR)/|R|^3
 
 	InterParams(qvec,qmunu,&rr,&rn,&invr3,&kr,&kr2,unitsGrid);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
@@ -975,6 +975,8 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 	doublecomplex expval; // exp(ikR)/|R|^3
 	double tmp[12];
 	int comp;
+	if (cimag(WaveNum)!=0) PrintError("IGT interaction supports only real wavevector (i.e., non-absorbing medium) ");
+	double RealWaveNum=creal(WaveNum);
 
 	// the following looks complicated, but should be easy to optimize by compiler
 	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=maxRectScale*maxRectScale*igt_lim*igt_lim
@@ -984,7 +986,7 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
 		 */
-		propaespacelibreintadda_(qvec,&WaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp);
+		propaespacelibreintadda_(qvec,&RealWaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp);
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {
@@ -1135,7 +1137,7 @@ static inline void ReflTerm_core(const double kr,const double kr2,const double i
 {
 	// this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	*expval=invr3*imExp(kr);
+	*expval=invr3*imExpReal(kr);
 	doublecomplex scale=surfRCn*(*expval);
 
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*scale; }
@@ -1183,7 +1185,7 @@ static inline void SingleSomIntegral(double rho,const double z,doublecomplex val
  */
 {
 	// TODO: these scales can be removed by changes in som_init to use proper wavenumber instead of 2*pi
-	const double scale=WaveNum/TWO_PI;
+	const double scale=creal(WaveNum)/TWO_PI;
 	const double isc=pow(scale,3); // this is subject to under/overflow
 
 	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;

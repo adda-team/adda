@@ -162,6 +162,7 @@ int gr_mat;                      // domain number to granulate
 double a_eq;                     // volume-equivalent radius of the particle
 enum shform sg_format;           // format for saving geometry files
 bool store_grans;                // whether to save granule positions to file
+doublecomplex mhost;             // medium refractive index
 
 // LOCAL VARIABLES
 
@@ -172,6 +173,9 @@ static const char *avg_parms;   // name of file with orientation averaging param
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
+doublecomplex abs_ref_index[MAX_NMAT];  // a set of absolute refractive indexes
+double rel_lambda;				// wavelength in the surrounding medium
+
 /* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.
  * However, the latter can't be easily addressed by the option name (a search over the whole options is required).
  * When thinking about adding a new one, first consider using UNDEF machinery instead
@@ -357,6 +361,7 @@ PARSE_FUNC(jagged);
 PARSE_FUNC(lambda);
 PARSE_FUNC(m);
 PARSE_FUNC(maxiter);
+PARSE_FUNC(mhost);
 PARSE_FUNC(no_reduced_fft);
 PARSE_FUNC(no_vol_cor);
 PARSE_FUNC(ntheta);
@@ -530,6 +535,8 @@ static struct opt_struct options[]={
 		"Default: 1.5 0",UNDEF,NULL},
 	{PAR(maxiter),"<arg>","Sets the maximum number of iterations of the iterative solver, integer.\n"
 		"Default: very large, not realistic value",1,NULL},
+	{PAR(mhost),"<mhost_Re> <mhost_Im>","Complex refractive index of the host medium.\n"
+			"Default: 1+0i",2,NULL},
 	{PAR(no_reduced_fft),"","Do not use symmetry of the interaction matrix to reduce the storage space for the "
 		"Fourier-transformed matrix.",0,NULL},
 	{PAR(no_vol_cor),"","Do not use 'dpl (volume) correction'. If this option is given, ADDA will try to match size of "
@@ -1268,15 +1275,25 @@ PARSE_FUNC(m)
 	for (i=0;i<Nmat;i++) {
 		ScanDoubleError(argv[2*i+1],&mre);
 		ScanDoubleError(argv[2*i+2],&mim);
-		ref_index[i] = mre + I*mim;
-		if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
-			"Consider using, for instance, 1.0001 instead.",i+1);
+		abs_ref_index[i] = mre + I*mim;
 	}
 }
 PARSE_FUNC(maxiter)
 {
 	ScanIntError(argv[1],&maxiter);
 	TestPositive_i(maxiter,"maximum number of iterations");
+}
+PARSE_FUNC(mhost)
+{
+	double mre,mim;
+
+	if (Narg!=2) NargError(Narg,"two");
+	ScanDoubleError(argv[1],&mre);
+	ScanDoubleError(argv[2],&mim);
+	mhost = mre + I*mim;
+	TestNonNegative(mre,"real part of the medium refractive index");
+	TestNonNegative(mim,"imaginary part of the medium refractive index");
+	TestPositive(cabs(mhost),"absolute value of the medium refractive index");
 }
 PARSE_FUNC(no_reduced_fft)
 {
@@ -1858,9 +1875,10 @@ void InitVariables(void)
 	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
+	mhost=1;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
-	ref_index[0]=1.5;
+	abs_ref_index[0]=1.5;
 	// initialize to null to determine further whether it is initialized
 	logfile=NULL;
 	boxX=boxY=boxZ=UNDEF;
@@ -2003,7 +2021,15 @@ void VariablesInterconnect(void)
 	double temp;
 
 	// initialize WaveNum ASAP
-	WaveNum = TWO_PI/lambda;
+	WaveNum = TWO_PI*mhost/lambda;
+	//relative lambda (normalized to the mhost):
+	if(creal(mhost)!=0) rel_lambda=lambda/creal(mhost); else rel_lambda=lambda; //the second case is weird but the only choice
+	//normalizes the refractive index to the mhost:
+	for (int i=0;i<Nmat;i++) {
+		ref_index[i]=abs_ref_index[i]/mhost;
+		if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of surrounding medium, which is not supported. "
+			"Consider using, for instance, 1.0001*mhost instead.",i+1);
+	}
 	// set default incident direction, which is +z for all configurations
 	if (!prop_used) {
 		prop_0[0]=prop_0[1]=0;
@@ -2118,6 +2144,16 @@ void VariablesInterconnect(void)
 			"Sommerfeld integrals (default for the surface mode) requires dipoles to have the same dimensions along "
 			"the x- and y-axes (but not z)");
 	}
+	if (cimag(mhost)!=0) { // currently a lot of limitations for the absorbing medium
+			if (beamtype!=B_PLANE) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
+				" can be used only with plane incident wave");
+			if (rectDip) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+				" is incompatible with rect_dip option");
+			if (surface) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+				" is incompatible with surface");
+			if (IntRelation!=G_POINT_DIP) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+					" is only compatible with the default interaction formulation");
+		}
 	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
@@ -2323,10 +2359,12 @@ void PrintInfo(void)
 		// print basic parameters
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,rectDip ? " (along the x-axis)" : "");
+		printf("medium refractive index: "CFORM"\n",REIM(mhost));
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
-		fprintf(logfile,"lambda: "GFORM"\n",lambda);
+		fprintf(logfile,"lambda: "GFORM" (relative: "GFORM")\n",lambda,rel_lambda);
+		fprintf(logfile,"medium refractive index: "CFORM"\n",REIM(mhost));
 		fprintf(logfile,"shape: ");
 		fprintf(logfile,"%s"GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
 #ifndef SPARSE
@@ -2348,11 +2386,11 @@ void PrintInfo(void)
 		}
 		else {
 			fprintf(logfile,"refractive index: ");
-			if (Nmat==1) fprintf(logfile,CFORM"\n",REIM(ref_index[0]));
+			if (Nmat==1) fprintf(logfile,CFORM" (relative: "CFORM")\n",REIM(abs_ref_index[0]),REIM(ref_index[0]));
 			else {
-				fprintf(logfile,"1. "CFORM"\n",REIM(ref_index[0]));
+				fprintf(logfile,"1. "CFORM" (relative: "CFORM")\n",REIM(abs_ref_index[0]), REIM(ref_index[0]));
 				for (i=1;i<Nmat;i++) {
-					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM"\n",i+1,REIM(ref_index[i]));
+					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM" (relative: "CFORM")\n",i+1,REIM(abs_ref_index[i]),REIM(ref_index[i]));
 					else fprintf(logfile,"                  %d. not specified\n",i+1);
 				}
 			}

@@ -42,6 +42,7 @@
 // defined and initialized in param.c
 extern const enum sh shape;
 extern const double lambda;
+extern doublecomplex mhost;
 extern double sizeX,dpl,a_eq;
 extern const int jagged;
 extern const char *shape_fname;
@@ -1894,7 +1895,7 @@ void InitShape(void)
 		else {
 			if (dpl==UNDEF) {
 				// use default dpl, but make sure that it does not produce too small grid (e.g. for nanoparticles).
-				temp=(int)ceil(sizeX*dpl_def/lambda);
+				temp=(int)ceil(sizeX*dpl_def*creal(mhost)/lambda);
 				boxX=FitBox(MAX(temp,MIN_AUTO_GRID));
 				if (small_Nmat!=UNDEF) PrintError("Given number of refractive indices (%d) is less than number of "
 					"domains (%d). Since computational grid is initialized based on the default dpl, it may change "
@@ -1902,7 +1903,7 @@ void InitShape(void)
 			}
 			else { // if dpl is given in the command line; then believe it
 				boxX=FitBox((int)ceil(sizeX*dpl/lambda));
-				dpl=UNDEF; // dpl is given correct value in make_particle()
+				dpl=UNDEF; // dpl is given correct value in MakeParticle()
 			}
 		}
 	}
@@ -2152,7 +2153,7 @@ void MakeParticle(void)
 				z2=zr*zr;
 				if (ro2*ro2+2*rbcS*ro2*z2+z2*z2+rbcP*ro2+rbcQ*z2+rbcR<=0) mat=0;
 				break;
-			case SH_READ: break; // just to have a complete set of cases; this cases is treated separately below
+			case SH_READ: break; // just to have a complete set of cases; this case is treated separately below
 			case SH_SPHERE:
 				if (xr*xr+yr*yr+zr*zr<=0.25) mat=0;
 				break;
@@ -2205,7 +2206,7 @@ void MakeParticle(void)
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
 	if (sizeX==UNDEF) {
 		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
-		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
+		else if (dpl==UNDEF) dpl=creal(mhost)*dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
 		if (volcor_used) 
 			sizeX=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
@@ -2227,12 +2228,12 @@ void MakeParticle(void)
 	gridSpaceZ=gridspace*rectScaleZ;
 	dipvol=gridSpaceX*gridSpaceY*gridSpaceZ;
 	// initialize equivalent size parameter and cross section
-	kd = TWO_PI/dpl/rectScaleX;
+	kd = WaveNum*gridspace;//TWO_PI/dpl/rectScaleX;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
 	 * slightly different from the one given by '-eq_rad' option.
 	 */
 	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*gridspace;
-	ka_eq = WaveNum*a_eq;
+	ka_eq = creal(WaveNum*a_eq);
 	inv_G = 1/(PI*a_eq*a_eq);
 	
 #ifndef SPARSE

@@ -66,7 +66,7 @@ void cisi(const double x,double *ci,double *si)
 			if (fabs(creal(del)-1)+fabs(cimag(del))<=EPS) break;
 		}
 		if (i>=MAXIT) LogError(ALL_POS,"Failed to converge during calculation of sine integral of "GFORMDEF,x);
-		h*=imExp(-t);
+		h*=imExpReal(-t);
 		*ci=-creal(h);
 		*si=PI_OVER_TWO+cimag(h);
 	}
