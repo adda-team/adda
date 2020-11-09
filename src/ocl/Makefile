@@ -80,8 +80,14 @@ endif
 # !!! End of control section. Everything below is not designed to be modified by user
 #=======================================================================================================================
 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	LDLIBS  += -framework OpenCL
+else
+    LDLIBS  += -lOpenCL
+endif
 CFLAGS  += -DOPENCL 
-LDLIBS  += -lOpenCL
+
 CSOURCE += oclcore.c oclmatvec.c
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)
