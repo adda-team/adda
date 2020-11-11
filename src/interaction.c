@@ -68,7 +68,7 @@ static __m128d exptbl[361];
 #ifndef NO_FORTRAN
 // fort/propaesplibreintadda.f
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *gridspacex,const double *gridspacey,
-	const double *gridspacez,const double *relreq,double *result);
+	const double *gridspacez,const double *relreq,double *result,int *ifail);
 #endif
 // sinint.c
 void cisi(double x,double *ci,double *si);
@@ -974,17 +974,23 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
 	double tmp[12];
-	int comp;
+	int comp,ifail;
 
 	// the following looks complicated, but should be easy to optimize by compiler
 	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=maxRectScale*maxRectScale*igt_lim*igt_lim
 		*(unitsGrid ? 1 : (gridspace*gridspace)) ) {
 		if (unitsGrid) vMultScal(gridspace,qvec,qvec);
-		/* passing complex vectors from Fortran to c is not necessarily portable (at least requires extra effort in
+		/* passing complex vectors from Fortran to C is not necessarily portable (at least requires extra effort in
 		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
 		 * internally for integration in this Fortran routine.
 		 */
-		propaespacelibreintadda_(qvec,&WaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp);
+		propaespacelibreintadda_(qvec,&WaveNum,&gridSpaceX,&gridSpaceY,&gridSpaceZ,&igt_eps,tmp,&ifail);
+		if (ifail!=0) {
+			if (ifail==1) LogWarning(EC_WARN,ALL_POS,"Failed to reach relative accuracy of %g for Green's tensor "
+				"integration for distance "GFORMDEF3V,igt_eps,COMP3V(qvec));
+			else LogWarning(EC_WARN,ALL_POS,"Error in Green's tensor integration (code %d - see dcuhre.f) for distance "
+				GFORMDEF3V,ifail,COMP3V(qvec));
+		}
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
 	}
 	else {
