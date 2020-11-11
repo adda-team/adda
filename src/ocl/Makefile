@@ -82,9 +82,9 @@ endif
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-	LDLIBS  += -framework OpenCL
+  LDLIBS  += -framework OpenCL
 else
-    LDLIBS  += -lOpenCL
+  LDLIBS  += -lOpenCL
 endif
 CFLAGS  += -DOPENCL 
 
