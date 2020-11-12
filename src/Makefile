@@ -143,7 +143,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
 # overriding definition below. To specify a different version of the compiler, e.g. 'gcc-4.7' instead of 'gcc', use
 # command 'make CC=gcc-4.7' (analogously for Fortran and C++ compilers).
-# gnu - tested for gcc 3.2.3 - 4.5.2 (most recent experience only with 4.3 and newer)
+# gnu - tested for multiple versions starting from 3.2.3, but recently only 4.8 and higher
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
@@ -177,6 +177,12 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(HOME)/lib
 #FFTW3_INC_PATH := "$(abspath ./../lib)"
 #FFTW3_LIB_PATH := "$(abspath ./../lib)"
+
+# --Fortran library path--
+# If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
+# For instance, this may happen on macOS. Then uncomment the following line and modify the path if needed. 
+# This variable can also be defined in the enviroment or in the command line of make (see explanation above for OPTIONS) 
+#FORT_LIB_PATH := /usr/local/gfortran/lib
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
@@ -293,6 +299,10 @@ ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   CDEFS += -DNO_FORTRAN
   FSOURCE =
   F90SOURCE =
+else
+  ifdef FORT_LIB_PATH
+    LDFLAGS += -L$(FORT_LIB_PATH)
+  endif
 endif
 ifneq ($(filter NO_CPP,$(OPTIONS)),)
   $(info Without C++ sources)
@@ -374,6 +384,7 @@ ifeq ($(COMPILER),gnu)
     FLIBS += -lgfortran
   else
     # This is not expected to work for f90 sources but we keep it for now
+    $(warning Cannot locate gfortran - trying to continue with g77. If any issues arise, install gfortran)
     CF    := g77
     FLIBS += -lg2c
   endif
