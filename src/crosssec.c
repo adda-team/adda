@@ -812,15 +812,16 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
-	doublecomplex ebuff[3];
+	doublecomplex ebuff[3],escbuff[3];
 	doublecomplex sum;
 	size_t i;
 
 	if (beamtype==B_PLANE && !surface) {
 		CalcField (ebuff,prop);
-		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
+		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
+		sum=FOUR_PI*creal(crDotProd(ebuff,incPol)/WaveNum)/creal(WaveNum); // In case of complex WaveNum
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum*=FOUR_PI/(WaveNum*WaveNum);
+		//sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
 	/* more general formula; normalization is done assuming the unity amplitude of the electric field in the focal point
 	 * of the beam; It does not comply with ScatRelation SO. So SO is, effectively, replaced by DRAINE when calculating
@@ -828,9 +829,24 @@ double ExtCross(const double * restrict incPol)
 	 */
 	else {
 		sum=0;
-		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
+		//for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
+		for (i=0;i<local_nvoid_Ndip;++i)  {
+			cvMultScal_cmplx(chi_inv[0][0],pvec+3*i,ebuff); //Kind of total field
+
+			//cvSubtr(ebuff,Einc+3*i,escbuff); //Kind of scattered field
+
+			//Below are several expressions with the dimension of energy - for testing
+			//sum-=2*cimag((1+0.2*I)*(1+0.2*I))*dipvol*creal(cDotProd(Einc+3*i,escbuff)); //Im(epsilon_1)*Re(E_inc*E_sca*)
+			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(escbuff); //Im(epsilon_1)*|E_sca*|^2
+			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_1)*|E*|^2
+			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(Einc+3*i); //Im(epsilon_1)*|E_inc*|^2
+			//sum+=cimag((1+0.4*I)*(1+0.4*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_2)*|E|^2 - tested: it works! Gives right C_abs (same as SQ_FINDIP) if Re(mhost) = 1.
+			//sum+=cDotProd_Im(pvec+3*i,ebuff); //Im(P.E(*)) - tested: it works! Gives right C_abs (even for Re(mhost) != 1).
+			//sum-=FOUR_PI*cDotProd_Im(pvec+3*i,escbuff); //Im(P.E_sca(*)) - tested: gives the same C_sca as far-field integration if Im(mhost)=0
+			sum+=FOUR_PI*cDotProd_Im(pvec+3*i,Einc+3*i);// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
+		}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum*=FOUR_PI*creal(WaveNum);
+		sum*=creal(WaveNum);
 		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is applied in CalcField()
 		 * and is independent of propagation or scattering direction. Thus it can be applied to any linear combination
 		 * of plane waves, i.e. any field.
@@ -1125,7 +1141,7 @@ double ScaCross(const char *f_suf)
 
 	tstart = GET_TIME();
 	Romberg2D(parms,CscaIntegrand,1,&res,fname);
-	res*=FOUR_PI/(WaveNum*WaveNum);
+	res*=FOUR_PI/cAbs2(WaveNum);
 	if (surface) res*=inc_scale;
 	Timing_Integration += GET_TIME() - tstart;
 	return res;
