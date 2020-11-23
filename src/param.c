@@ -118,6 +118,7 @@ double polNlocRp;            // Gaussian width for non-local polarizability
 const char *alldir_parms;    // name of file with alldir parameters
 const char *scat_grid_parms; // name of file with parameters of scattering grid
 // used in crosssec.c
+doublecomplex abs_ref_index[MAX_NMAT];  // a set of absolute refractive indexes
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
 // used in GenerateB.c
@@ -162,7 +163,6 @@ int gr_mat;                      // domain number to granulate
 double a_eq;                     // volume-equivalent radius of the particle
 enum shform sg_format;           // format for saving geometry files
 bool store_grans;                // whether to save granule positions to file
-doublecomplex mhost;             // medium refractive index
 
 // LOCAL VARIABLES
 
@@ -173,7 +173,6 @@ static const char *avg_parms;   // name of file with orientation averaging param
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
-doublecomplex abs_ref_index[MAX_NMAT];  // a set of absolute refractive indexes
 double rel_lambda;				// wavelength in the surrounding medium
 
 /* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.

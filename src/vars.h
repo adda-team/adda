@@ -35,6 +35,7 @@ extern size_t boxXY;
 extern double gridspace,gridSpaceX,gridSpaceY,gridSpaceZ,rectScaleX,rectScaleY,rectScaleZ,maxRectScale,dipvol,
 	ka_eq,inv_G;
 extern doublecomplex kd,WaveNum;
+extern doublecomplex mhost;
 extern double * restrict DipoleCoord;
 
 extern double memory,memPeak;

@@ -30,6 +30,7 @@ doublecomplex kd;         // k*d=2*PI/dpl
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
+doublecomplex mhost;	  // refractive index of the medium
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes
 double memPeak;           // peak memory usage in bytes

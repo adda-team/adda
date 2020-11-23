@@ -46,6 +46,7 @@ extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 extern const double beam_center_0[3];
 //extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
+extern doublecomplex abs_ref_index[MAX_NMAT];
 extern const double incPolX_0[3],incPolY_0[3];
 extern const enum scat ScatRelation;
 // defined and initialized in timing.c
@@ -831,7 +832,7 @@ double ExtCross(const double * restrict incPol)
 		sum=0;
 		//for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		for (i=0;i<local_nvoid_Ndip;++i)  {
-			cvMultScal_cmplx(chi_inv[0][0],pvec+3*i,ebuff); //Kind of total field
+			//cvMultScal_cmplx(chi_inv[0][0],pvec+3*i,ebuff); //Kind of total field
 
 			//cvSubtr(ebuff,Einc+3*i,escbuff); //Kind of scattered field
 
@@ -841,7 +842,7 @@ double ExtCross(const double * restrict incPol)
 			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_1)*|E*|^2
 			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(Einc+3*i); //Im(epsilon_1)*|E_inc*|^2
 			//sum+=cimag((1+0.4*I)*(1+0.4*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_2)*|E|^2 - tested: it works! Gives right C_abs (same as SQ_FINDIP) if Re(mhost) = 1.
-			//sum+=cDotProd_Im(pvec+3*i,ebuff); //Im(P.E(*)) - tested: it works! Gives right C_abs (even for Re(mhost) != 1).
+			//sum+=cDotProd_Im(pvec+3*i,ebuff); //Im(P.E(*)) - tested: it works! Gives right C_abs (even for Re(mhost)!= 1).
 			//sum-=FOUR_PI*cDotProd_Im(pvec+3*i,escbuff); //Im(P.E_sca(*)) - tested: gives the same C_sca as far-field integration if Im(mhost)=0
 			sum+=FOUR_PI*cDotProd_Im(pvec+3*i,Einc+3*i);// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
 		}
@@ -905,13 +906,15 @@ double AbsCross(void)
 			/* based on Eq.(31) or equivalently Eq.(58) from the same paper (ref. above)
 			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
 			 */
-			temp1 = 2*WaveNum*WaveNum*WaveNum/3;
-			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=-cimag(chi_inv[i][j]);
+			// Now (for complex mhost) the summand is somewhat different, but gives the same result
+			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=dipvol*cimag(abs_ref_index[i]*abs_ref_index[i])*cAbs2(chi_inv[i][j]);
+			//TO DO: Understand how this (the string above) should be changed for anisotropic ref_index
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
 				mat=material[dip];
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
+			sum/=FOUR_PI*creal(mhost)*creal(mhost); //4 Pi and one mhost are not really needed - they are reduced in the end of this function
 			break;
 		case SQ_SO:
 			// !!! the following should never happen
