@@ -66,7 +66,7 @@ using namespace std;
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
 
-enum platname {PN_NVIDIA,PN_AMD,PN_UNDEF};
+enum platname {PN_NVIDIA,PN_AMD,PN_INTEL_HD,PN_UNDEF};
 extern enum platname platformname;
 
 static string 

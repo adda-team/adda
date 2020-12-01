@@ -92,6 +92,7 @@ OLDIGNORE="^Sets parameter 'dipoles per lambda'|^  -rect_dip|^OpenCL memory usag
 OLDIGNORE="$OLDIGNORE|^ADDA v\.|^Built with GNU compilers|^      using MinGW-64|^Copyright \(C\) 2006-20|^Linked to"
 OLDIGNORE="$OLDIGNORE|^(GPU-accelerated|Parallel) version conforming|^Particle is placed|^shape: |^CoupleConstant:"
 OLDIGNORE="$OLDIGNORE|^       position of inner sphere center r/d="
+OLDIGNORE="$OLDIGNORE|^OpenCL FFT algorithm: (by AMD|clFFT)|^Using OpenCL device "
 
 # Path to reference binaries, examples: "." or "./../../win64"
 REFPATH=./../../win64
@@ -228,6 +229,10 @@ elif [ $MODE == "ocl" ]; then
   assign_test EXECREF "$REF_EQ_TEST" "$OCLTEST" "$OCLREF"
   EXECREF="$EXECREF $GPU $SUFREF"
   EXECTEST="$OCLTEST $GPU $SUFTEST"
+  # temporary hack due to the improved support of FFT sizes in clFFT
+  if [ -n "$OLDUSED" ]; then
+    FFTCOMP=1
+  fi
 elif [ $MODE == "ocl_seq" ]; then
   assign_test EXECREF "$SPA_STAN" "$SEQREF" "$SEQTEST"
   OLDUSED=""

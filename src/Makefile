@@ -130,7 +130,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
 
-# used AMDs CLBlas library for iterative solver (currently just suported in bicg method, oo effect on the other methods)
+# Uses clBLAS library for iterative solver (currently, only in BiCG, no effect on the other methods)
 #override OPTIONS += OCL_BLAS
 
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to

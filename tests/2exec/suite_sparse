@@ -214,9 +214,8 @@ all -rect_dip 1 1.5 2 ;mgn;
 all -rect_dip 1 2 1.5 ;mgn;
 all -rect_dip 1.5 1 2 ;mgn;
 all -rect_dip 1.5 2 1 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq -rect_dip 2 1 1.5 ;mgn;
-!ocl_seq -rect_dip 2 1.5 1 ;mgn;
+all -rect_dip 2 1 1.5 ;mgn;
+all -rect_dip 2 1.5 1 ;mgn;
 all -rect_dip 1 2 2 ;mgn;
 all -rect_dip 2 1 2 ;mgn;
 all -rect_dip 2 2 1 ;mgn;
@@ -286,8 +285,7 @@ all -scat_plane ;se; ;mn;
 #all -h shape box
 #all -shape box ;mgn;
 #all -shape box 0.5 1.5 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-#!ocl_seq -shape box 1.51 1.92 -grid 7 ;m; ;n;
+#all -shape box 1.51 1.92 -grid 7 ;m; ;n;
 #all -h shape capsule
 #all -shape capsule 1.5 ;mgn;
 #all -h shape chebyshev

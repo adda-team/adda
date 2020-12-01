@@ -38,7 +38,7 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef CLFFT_AMD
+#ifdef CLFFT
 /* One can also include clFFT.h (the only recommended public header), which can be redundant, but more portable.
  * However, version macros are not documented anyway (in the manual), so there seem to be no perfectly portable way to
  * obtain them.
@@ -1622,6 +1622,9 @@ PARSE_FUNC(V)
 		printf("ADDA v."ADDA_VERSION"\n");
 #endif
 #ifdef OPENCL
+/* The following is not necessarily accurate, since in many build environments the header can be of larger version than
+ * the library. Moreover, we are not testing for more recent versions, since we declare target version 1.2.
+ */
 #	if defined(CL_VERSION_1_2)
 #		define OCL_VERSION "1.2"
 #	elif defined(CL_VERSION_1_1)
@@ -1632,20 +1635,21 @@ PARSE_FUNC(V)
 #		error "OpenCL version not recognized"
 #	endif
 		printf("GPU-accelerated version conforming to OpenCL standard "OCL_VERSION"\n");
-#	ifdef CLFFT_AMD
+#	ifdef CLFFT
 		printf("Linked to clFFT version %d.%d.%d\n",clfftVersionMajor,clfftVersionMinor,clfftVersionPatch);
 #	endif
 #	ifdef OCL_BLAS
-		printf("Linked to clBLAS version %d.%d.%d\n",clblasVersionMajor,clblasVersionMinor,
-			clblasVersionPatch);
+		printf("Linked to clBLAS version %d.%d.%d\n",clblasVersionMajor,clblasVersionMinor,clblasVersionPatch);
 #	endif
 #elif defined(ADDA_MPI)
 		// Version of MPI standard is specified
 		printf("Parallel version conforming to MPI standard %d.%d\n",RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ);
-#	ifdef MPICH2
+#	ifdef MPICH2 // actually an older version of MPICH, compared to MPICH version 3
 		printf("Linked to MPICH2 version "MPICH2_VERSION"\n");
+#	elif defined(MPICH)
+		printf("Linked to MPICH version "MPICH_VERSION"\n");
 #	elif defined(OPEN_MPI)
-		printf("Linked to OpenMPI version %d.%d.%d\n",OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION);
+		printf("Linked to Open MPI version %d.%d.%d\n",OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION);
 #	endif
 		// Additional debug information about MPI implementation
 #	ifndef SUPPORT_MPI_BOOL
@@ -2497,8 +2501,8 @@ void PrintInfo(void)
 #endif
 #if defined(OPENCL) && !defined(SPARSE)
 		fprintf(logfile,"OpenCL FFT algorithm: ");
-#	ifdef CLFFT_AMD
-		fprintf(logfile,"by AMD\n");
+#	ifdef CLFFT
+		fprintf(logfile,"clFFT\n");
 #	elif defined(CLFFT_APPLE)
 		fprintf(logfile,"by Apple\n");
 #	endif

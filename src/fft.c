@@ -33,11 +33,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef CLFFT_AMD
-	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header
+#ifdef CLFFT
+	IGNORE_WARNING(-Wstrict-prototypes) // no way to change the library header (tested with v.2.12.2)
 #	include <clFFT.h> //external library
 	STOP_IGNORE
-	// Defines precision of clFFT transforms. !!! CLFFT_DOUBLE_FAST should be tested when becomes operational
+	// Defines precision of clFFT transforms.
+	// CLFFT_DOUBLE_FAST should be tested when becomes operational - in v.2.12.2 it is identical to CLFFT_DOUBLE
 #	define PRECISION_CLFFT CLFFT_DOUBLE
 #elif defined(CLFFT_APPLE)
 #	include "cpp/clFFT.h" //nearly unmodified APPLE FFT header file
@@ -112,7 +113,7 @@ static bool weird_nprocs;      // whether weird number of processors is used
 
 #ifdef OPENCL
 // clFFT plans
-#	ifdef CLFFT_AMD
+#	ifdef CLFFT
 static clfftPlanHandle clplanX,clplanY,clplanZ;
 static size_t clfftBufSize=0;
 #	elif defined(CLFFT_APPLE)
@@ -137,6 +138,51 @@ static int ifaxX[IFAX_SIZE],ifaxY[IFAX_SIZE],ifaxZ[IFAX_SIZE];
 void cftfax_(const int *nn,int * restrict ifax,double * restrict trigs);
 void cfft99_(double * restrict data,double * restrict _work,const double * restrict trigs,const int * restrict ifax,
 	const int *inc,const int *jump,const int *nn,const int *lot,const int *isign);
+#endif
+
+#ifdef CLFFT
+// Test clFFT version
+#	define CLFFT_VER_REQ 2
+#	define CLFFT_SUBVER_REQ 12
+#	if !GREATER_EQ2(clfftVersionMajor,clfftVersionMinor,CLFFT_VER_REQ,CLFFT_SUBVER_REQ)
+#		error "clFFT version is too old"
+#	endif
+
+// Error-checking functionality for clFFT
+#	define CLFFT_CH_ERR(a) Check_clFFT_Err(a,ALL_POS)
+
+//======================================================================================================================
+
+static const char *Print_clFFT_Errstring(clfftStatus err)
+// produces meaningful error message from the clFFT-specific error code, based on clFFT.h v.2.12.2 (NULL if not found)
+{
+	switch (err) {
+		case CLFFT_BUGCHECK:                  return "Bugcheck";
+		case CLFFT_NOTIMPLEMENTED:            return "Functionality not implemented";
+		case CLFFT_TRANSPOSED_NOTIMPLEMENTED: return "Transposed functionality not implemented";
+		case CLFFT_FILE_NOT_FOUND:            return "File not found";
+		case CLFFT_FILE_CREATE_FAILURE:       return "File creation failure";
+		case CLFFT_VERSION_MISMATCH:          return "Version conflict between client and library";
+		case CLFFT_INVALID_PLAN:              return "Invalid plan";
+		case CLFFT_DEVICE_NO_DOUBLE:          return "Device does not support double precision";
+		case CLFFT_DEVICE_MISMATCH:           return "Mismatch of plan and device";
+		default:                              return NULL;
+	}
+}
+
+//======================================================================================================================
+
+static void Check_clFFT_Err(const clfftStatus err,ERR_LOC_DECL)
+/* Checks error code for clFFT calls and prints error if necessary. First searches among clFFT specific errors. If not
+ * found, uses general error processing for CL calls (since clFFT error codes can take standard cl values as well).
+ */
+{
+	if (err != CLFFT_SUCCESS) {
+		const char *str=Print_clFFT_Errstring(err);
+		if (str!=NULL) LogError(ERR_LOC_CALL,"clFFT error code %d: %s\n",err,str);
+		else PrintCLErr((cl_int)err,ERR_LOC_CALL,NULL);
+	}
+}
 #endif
 
 //======================================================================================================================
@@ -317,8 +363,8 @@ void fftX(const int isign)
 // FFT three components of (buf)Xmatrix(x) for all y,z; called from matvec
 {
 #ifdef OPENCL
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftEnqueueTransform(clplanX,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,NULL,
+#	ifdef CLFFT
+	CLFFT_CH_ERR(clfftEnqueueTransform(clplanX,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufXmatrix,NULL,
 		NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanX,(int)3*local_Nz*smallY,(clFFT_Direction)isign,bufXmatrix,
@@ -348,11 +394,11 @@ void fftY(const int isign)
 // FFT three components of slices_tr(y) for all z; called from matvec
 {
 #ifdef OPENCL
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
+#	ifdef CLFFT
+	CLFFT_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices_tr,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD)
-		CL_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
+		CLFFT_CH_ERR(clfftEnqueueTransform(clplanY,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslicesR_tr,
 			NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanY,(int)3*gridZ*local_gridX,(clFFT_Direction)isign,
@@ -384,11 +430,11 @@ void fftZ(const int isign)
 // FFT three components of slices(z) for all y; called from matvec
 {
 #ifdef OPENCL
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
+#	ifdef CLFFT
+	CLFFT_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)isign,1,&command_queue,0,NULL,NULL,&bufslices,NULL,
 		NULL));
 	if (surface && isign==FFT_FORWARD) // the same operation is applied to bufslicesR, but with inverse transform
-		CL_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
+		CLFFT_CH_ERR(clfftEnqueueTransform(clplanZ,(clfftDirection)FFT_BACKWARD,1,&command_queue,0,NULL,NULL,
 			&bufslicesR,NULL,NULL));
 #	elif defined(CLFFT_APPLE)
 	CL_CH_ERR(clFFT_ExecuteInterleaved(command_queue,clplanZ,(int)3*gridY*local_gridX,(clFFT_Direction)isign,bufslices,
@@ -495,12 +541,10 @@ void CheckNprocs(void)
 	weird_nprocs=false;
 	// remove simple prime divisors of y
 	while (y%2==0) y/=2;
-#ifdef OPENCL
-	/* this is redundant, since OpenCL is not currently intended to run in parallel. In the future it should properly
-	 * handle capabilities of AMD clFFT
-	 */
-	if (y!=1) PrintError("Specified number of processors (%d) is incompatible with clFFT, since the latter currently "
-		"supports only FFTs with size 2^n. Please choose the number of processors to be of the same form.",nprocs);
+#ifdef CLFFT_APPLE
+	// this is redundant (and CLFTT below), since OpenCL is not currently intended to run in parallel
+	if (y!=1) PrintError("Specified number of processors (%d) is incompatible with Apple clFFT, since the latter "
+		"supports only FFTs with size 2^n. Revise the number of processors or recompile with clFFT support.",nprocs);
 #else
 	while (y%3==0) y/=3;
 	while (y%5==0) y/=5;
@@ -508,7 +552,7 @@ void CheckNprocs(void)
 	if (y!=1) PrintError("Specified number of processors (%d) is weird (has prime divisors larger than 5). That is "
 		"incompatible with Temperton FFT. Revise the number of processors (recommended) or recompile with FFTW 3 "
 		"support.",nprocs);
-#	elif defined(FFTW3)
+#	else
 	while (y%7==0) y/=7;
 	// one multiplier of either 11 or 13 is allowed
 	if (y%11==0) y/=11;
@@ -519,6 +563,12 @@ void CheckNprocs(void)
 			"to revise the number of processors.",nprocs);
 		weird_nprocs=true;
 	}
+#		ifdef CLFFT // it allows more factors of 11 and 13, but fails completely otherwise
+	while (y%11==0) y/=11;
+	while (y%13==0) y/=13;
+	if (y!=1) PrintError("Specified number of processors (%d) is weird (has prime divisors larger than 13). That is "
+		"incompatible with clFFT. Revise the number of processors",nprocs);
+#		endif
 #	endif
 #endif
 }
@@ -526,9 +576,10 @@ void CheckNprocs(void)
 //======================================================================================================================
 
 int fftFit(int x,int divis)
-/* find the first number >=x divisible by 2 only (Apple clFFT) or 2,3,5 only (Temperton FFT or clAMDFFT) or also
- * allowing 7 and one of 11 or 13 (FFTW3), and also divisible by 2 and divis. If weird_nprocs is used, only the latter
- * condition is required.
+/* find the first number >=x divisible by 2 only (Apple clFFT) or 2,3,5 only (Temperton FFT) or also
+ * allowing 7 and one of 11 or 13 (FFTW3) or any number of 11 and 13 factors (clFFT), and also divisible by 2 and divis.
+ * If weird_nprocs is used, only the latter condition is required.
+ * In OpenCL mode both CPU and GPU FFT routines are tested (since both are used), otherwise - only CPU ones
  */
 {
 	int y;
@@ -541,16 +592,13 @@ int fftFit(int x,int divis)
 		if (IS_EVEN(x) && x%divis==0) {
 			y=x;
 			while (y%2==0) y/=2; // here Apple clFFT ends
-#ifdef CLFFT_AMD // implies OPENCL
-			while (y%3==0) y/=3;
-			while (y%5==0) y/=5; // here AMD clFFT ends
-#endif
-#ifndef OPENCL
+#ifndef CLFFT_APPLE // we assume that it is defined only in OpenCL mode
 			while (y%3==0) y/=3;
 			while (y%5==0) y/=5; // here Temperton FFT ends
-#	ifdef FFTW3
+#	ifndef FFT_TEMPERTON
+			// the following is for FFTW3 and clFFT
 			while (y%7==0) y/=7;
-			// one multiplier of either 11 or 13 is allowed
+			// one multiplier of either 11 or 13 is allowed - limited by FFTW3
 			if (y%11==0) y/=11;
 			else if (y%13==0) y/=13;
 #	endif
@@ -626,13 +674,16 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp);
 #	endif
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftSetup(NULL)); // first initialize clfft
-#	ifdef DEBUGFULL
+#	ifdef CLFFT
+	// test library version at runtime
 	cl_uint major,minor,patch;
-	CL_CH_ERR(clfftGetVersion(&major,&minor,&patch));
+	CLFFT_CH_ERR(clfftGetVersion(&major,&minor,&patch));
+	if (!GREATER_EQ2(major,minor,CLFFT_VER_REQ,CLFFT_SUBVER_REQ)) LogError(ONE_POS,
+		"clFFT library version (%d.%d) is too old. Version %d.%d or newer is required",
+		major,minor,CLFFT_VER_REQ,CLFFT_SUBVER_REQ);
 	D("clFFT library version - %u.%u.%u",major,minor,patch);
-#	endif
+	// initialize library
+	CLFFT_CH_ERR(clfftSetup(NULL));
 	/* Here and further we explicitly set all plan parameters for clFFT, even those that are equal to the default
 	 * values (as recommended in clFFT manual)
 	 */
@@ -643,15 +694,15 @@ static void fftInitAfterD(void)
 	 * performance hit for "non-standard" values of boxY, but should be overall faster than making an explicit loop over
 	 * smaller kernels (like is now done with Temperton FFT).
 	 */
-	CL_CH_ERR(clfftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
-	CL_CH_ERR(clfftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
-	CL_CH_ERR(clfftSetPlanPrecision(clplanX,PRECISION_CLFFT));
-	CL_CH_ERR(clfftSetResultLocation(clplanX,CLFFT_INPLACE));
-	CL_CH_ERR(clfftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clfftSetPlanScale(clplanX,FFT_FORWARD,1));
-	CL_CH_ERR(clfftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clfftBakePlan(clplanX,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clfftGetTmpBufSize(clplanX,&bufsize));
+	CLFFT_CH_ERR(clfftCreateDefaultPlan(&clplanX,context,CLFFT_1D,&gridX));
+	CLFFT_CH_ERR(clfftSetPlanBatchSize(clplanX,3*local_Nz*smallY));
+	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanX,PRECISION_CLFFT));
+	CLFFT_CH_ERR(clfftSetResultLocation(clplanX,CLFFT_INPLACE));
+	CLFFT_CH_ERR(clfftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,FFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CLFFT_CH_ERR(clfftBakePlan(clplanX,1,&command_queue,NULL,NULL));
+	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanX,&bufsize));
 	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 xdimen;
@@ -664,16 +715,16 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp+1);
 #	endif
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
-	CL_CH_ERR(clfftSetPlanBatchSize(clplanY,3*gridZ*local_gridX));
-	CL_CH_ERR(clfftSetPlanPrecision(clplanY,PRECISION_CLFFT));
-	CL_CH_ERR(clfftSetResultLocation(clplanY,CLFFT_INPLACE));
-	CL_CH_ERR(clfftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clfftSetPlanScale(clplanY,FFT_FORWARD,1));
-	CL_CH_ERR(clfftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clfftBakePlan(clplanY,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clfftGetTmpBufSize(clplanY,&bufsize));
+#	ifdef CLFFT
+	CLFFT_CH_ERR(clfftCreateDefaultPlan(&clplanY,context,CLFFT_1D,&gridY));
+	CLFFT_CH_ERR(clfftSetPlanBatchSize(clplanY,3*gridZ*local_gridX));
+	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanY,PRECISION_CLFFT));
+	CLFFT_CH_ERR(clfftSetResultLocation(clplanY,CLFFT_INPLACE));
+	CLFFT_CH_ERR(clfftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,FFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CLFFT_CH_ERR(clfftBakePlan(clplanY,1,&command_queue,NULL,NULL));
+	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanY,&bufsize));
 	clfftBufSize+=bufsize;
 #	elif defined(CLFFT_APPLE)
 	clFFT_Dim3 ydimen;
@@ -686,7 +737,7 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp+2);
 #	endif
-#	ifdef CLFFT_AMD
+#	ifdef CLFFT
 	/* Here the issue is similar to clplanX described above. However, we are using full gridY instead of boxY, which
 	 * incurs at least a-factor-of-two performance hit. To solve this problem one need to execute separate plans for 3
 	 * components of vectors. Unfortunately, this cannot be simply done using 3-element loop (like in Temperton FFT),
@@ -694,24 +745,24 @@ static void fftInitAfterD(void)
 	 * way to address this issue is to either create three separate cl_mem objects or to change the indexing of levels
 	 * inside the array, so that 3 components are stored together.
 	 */
-	CL_CH_ERR(clfftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
+	CLFFT_CH_ERR(clfftCreateDefaultPlan(&clplanZ,context,CLFFT_1D,&gridZ));
 	/* TODO: last slices can be very slightly thinner than the previous ones, but since the batchsize is part of the
 	 * plan, another plan would be needed to address this. However, we ignore this currently and assume that every
 	 * slice has a thickness of local_gridX.
 	 * This issue also applies to clplanY.
 	 */
-	CL_CH_ERR(clfftSetPlanBatchSize(clplanZ,3*gridY*local_gridX));
-	CL_CH_ERR(clfftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
-	CL_CH_ERR(clfftSetResultLocation(clplanZ,CLFFT_INPLACE));
-	CL_CH_ERR(clfftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CL_CH_ERR(clfftSetPlanScale(clplanZ,FFT_FORWARD,1));
-	CL_CH_ERR(clfftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
-	CL_CH_ERR(clfftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
-	CL_CH_ERR(clfftGetTmpBufSize(clplanZ,&bufsize));
+	CLFFT_CH_ERR(clfftSetPlanBatchSize(clplanZ,3*gridY*local_gridX));
+	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
+	CLFFT_CH_ERR(clfftSetResultLocation(clplanZ,CLFFT_INPLACE));
+	CLFFT_CH_ERR(clfftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,FFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CLFFT_CH_ERR(clfftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
+	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanZ,&bufsize));
 	clfftBufSize+=bufsize;
 	/* In most cases clfftBufSize is zero, except some weird grid sizes like 2x2x60000. Still, we rigorously account
 	 * for this memory. However, we do not update oclMemMaxObj, since even single plan is not guaranteed to allocate a
-	 * single object. So we assume that clFftAmd will either handle maximum object size itself or produce a meaningful
+	 * single object. So we assume that clFFT will either handle maximum object size itself or produce a meaningful
 	 * error.
 	 */
 	oclMem+=clfftBufSize;
@@ -1446,8 +1497,8 @@ void Free_FFT_Dmat(void)
 		my_clReleaseBuffer(bufslicesR);
 		my_clReleaseBuffer(bufslicesR_tr);
 	}
-#	ifdef CLFFT_AMD
-	CL_CH_ERR(clfftTeardown());
+#	ifdef CLFFT
+	CLFFT_CH_ERR(clfftTeardown());
 	oclMem-=clfftBufSize;
 #	elif defined(CLFFT_APPLE)
 	// the following do not return error status
