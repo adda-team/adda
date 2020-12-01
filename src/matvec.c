@@ -150,7 +150,6 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 		Timing_Mult3,Timing_Mult4,Timing_Mult5,Timing_BTf,Timing_BTb,Timing_TYZf,Timing_TYZb,Timing_ipr;
 	double t_FFTXf,t_FFTYf,t_FFTZf,t_FFTXb,t_FFTYb,t_FFTZb,t_Mult1,t_Mult2,t_Mult3,t_Mult4,t_Mult5,t_ipr,t_BTf,t_BTb,
 		t_TYZf,t_TYZb,t_Arithm,t_FFT,t_Comm;
-
 #endif
 
 	/* A = I + S.D.S
