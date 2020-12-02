@@ -291,6 +291,25 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 	MPI_Type_commit(&mpi_dcomplex3);
 	// check MPI version at runtime
 	MPI_Get_version(&ver,&subver);
+	D("MPI library version: %d.%d",ver,subver);
+	/* Microsoft MPI claims to support most of the MPI 2.2 features (and even some of 3.1), but declares only 2.0, see
+	 * https://github.com/microsoft/Microsoft-MPI/issues/15 . We, thus, use the following hack to assume its support for
+	 * MPI 2.2. However, it is not perfect, if different vendor libraries are used at compile and runtime:
+	 * - compiling with MS_MPI and further linking with another library (conforming to MPI 2.0 or 2.1), the hack is too
+	 *   optimistic, and may cause further problems during execution.
+	 * - compiling with another library and further linking with MS_MPI, the hack is skipped and execution fails,
+	 *   although it may have worked.
+	 * However, such cross usage is unlikely because there are not many MPI implementations for Windows, and even the
+	 * main library file for MS_MPI is named differently (msmpi.lib).
+	 * To get more confidence, we can use MPI_Get_library_version(), but this will cause complete failure for some
+	 * older libraries that support MPI 2.2, but do not have this 3.0 function.
+	 */
+#ifdef MSMPI_VER
+	if (ver==2 && subver<2) {
+		D("But we assume that this is Microsoft MPI library that supports MPI 2.2");
+		subver=2;
+	}
+#endif
 	if (!GREATER_EQ2(ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ)) {
 		if (GREATER_EQ2(ver,subver,MPI_VER_REQ,MPI_SUBVER_REQ)) // library fits into minimum requirements
 			LogError(ONE_POS,"MPI library version (%d.%d) is too old for current ADDA executable. Version %d.%d or "
@@ -304,7 +323,6 @@ void InitComm(int *argc_p UOIP,char ***argv_p UOIP)
 				"current ADDA executable or at least %d.%d, if ADDA is recompiled using such library.",
 				ver,subver,RUN_MPI_VER_REQ,RUN_MPI_SUBVER_REQ,MPI_VER_REQ,MPI_SUBVER_REQ);
 	}
-	D("MPI library version: %d.%d",ver,subver);
 	// if MPI crashes, it happens here
 	Synchronize();
 #elif !defined(PARALLEL)

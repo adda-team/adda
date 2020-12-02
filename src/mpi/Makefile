@@ -39,18 +39,26 @@ endif
 
 # If the compiler is used directly, a few additional options are needed
 ifeq ($(MPICC),$(CC))
-  # Depending on a particular MPI installation one may need to manually specify paths to MPI headers and libraries.
-  # Path should be absolute or relative to the location of this Makefile.
-  #CFLAGS += -I"C:/Program Files/MPICH2/include"
-  #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
-
-  LDLIBS += -lmpi
+  # Microsoft MPI on Windows is detected automatically. If you have it installed, but want to use another 
+  # implementation, delete the last symbol on the following line (then this case will not be satisfied)
+  ifdef MSMPI_INC
+    $(info Using Microsoft MPI)
+    CFLAGS += -I'$(MSMPI_INC)'
+    LDFLAGS += -L'$(MSMPI_LIB64)'
+    LDLIBS += -lmsmpi
+  else
+    # Depending on a particular MPI installation one may need to manually specify paths to MPI headers and libraries.
+    # Path should be absolute or relative to the location of this Makefile.
+    #CFLAGS += -I"C:/Program Files/MPICH2/include"
+    #LDFLAGS += -L"C:/Program Files/MPICH2/lib"
+    LDLIBS += -lmpi
+  endif
 # If MPI compiler wrapper is used, environmental variables are set to define C compiler and linker
 else
   # for MPICH
   export MPICH_CC = $(CC)
   export MPICH_CLINKER = $(CC)
-  # for OpenMPI
+  # for Open MPI
   export OMPI_CC = $(CC)
 endif
 
