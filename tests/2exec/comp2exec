@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 # Performs system (black-box) testing of ADDA by comparing the simulation results between different versions/modes
 # First parameter is seq (default), mpi, mpi_seq, ocl, or ocl_seq.
 # One-word mode compares corresponding current version with previous stable version (e.g. 1.0) - some differences are

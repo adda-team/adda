@@ -1,4 +1,7 @@
 #!bin/sh
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+# 
 # Since the script is run by 'sh ...' from the Makefile to be compatible with both Unix and Windows (MinGW), we
 # define its shebang also as 'sh', which means that it is supposed to be compatible with any posix-compliant shell
 # like dash on Ubuntu.

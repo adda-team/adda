@@ -3,8 +3,8 @@
 # based on the sample script located at
 # https://subtrac.sara.nl/userdoc/wiki/lisa/usage/batch/jobmpich4
 #
-# $Author$
-# $Date::                            $
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
 
 # ----- start of PBS parameters
 

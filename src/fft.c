@@ -1,9 +1,7 @@
-/* File: fft.c
- * $Date::                            $
- * Descr: initialization of all FFT for matrix-vector products; and FFT procedures themselves; not used in sparse mode
- *        TODO: A lot of indirect indexing used - way to optimize.
+/* Initialization of all FFT for matrix-vector products; and FFT procedures themselves; not used in sparse mode
+ * TODO: A lot of indirect indexing used - way to optimize.
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

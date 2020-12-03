@@ -1,9 +1,7 @@
-/* FILE : comm.c
- * $Date::                            $
- * Descr: incorporates all parallelization related code, so most of it is directly involved in or closely related to
- *        interprocess communication
+/* Incorporates all parallelization related code, so most of it is directly involved in or closely related to
+ * interprocess communication
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

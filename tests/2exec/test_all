@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 # First obligatory parameter is testing sequence: prev, cross, extra
 # prev - compares with previous versions (!!! check ignores in comp2exec)
 # cross - diffent modes against each other (only one change at a time). Doesn't require previous version and should

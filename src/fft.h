@@ -1,8 +1,6 @@
-/* File: fft.h
- * $Date::                            $
- * Descr: definitions of FFT parameters and routines; void in sparse mode
+/* Definitions of FFT parameters and routines; void in sparse mode
  *
- * Copyright (C) 2006,2008,2010-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

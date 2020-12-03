@@ -1,7 +1,6 @@
-/* FILE : interaction.h
- * Descr: the functions used to calculate the interaction term
+/* Functions used to calculate the interaction term
  *
- * Copyright (C) 2011-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

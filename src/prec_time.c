@@ -1,8 +1,6 @@
-/* File: prec_time.c
- * $Date::                            $
- * Descr: precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
+/* Precision timing routines (OS dependent); definitions (including inline) - in prec_time.h
  *
- * Copyright (C) 2006,2008,2010,2012-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

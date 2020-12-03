@@ -1,8 +1,6 @@
-/* File: const.h
- * $Date::                            $
- * Descr: all the constants used by ADDA code, including enum constants, also defines some useful macros
+/* All the constants used by ADDA code, including enum constants, also defines some useful macros
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -18,7 +16,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.4.0-alpha"
+#define ADDA_VERSION "1.4.0-beta"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here

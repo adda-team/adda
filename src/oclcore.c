@@ -1,8 +1,6 @@
-/* File: oclcore.c
- * $Date::                            $
- * Descr: core parts of OpenCL code
+/* Core parts of the OpenCL code
  *
- * Copyright (C) 2010-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

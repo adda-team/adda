@@ -1,11 +1,7 @@
- /* File: CalculateE.c
- * $Date::                            $
- * Descr: the module to calculate the E field and all scattering quantities
+/* The module to calculate the E field and all scattering quantities.
+ * Routines for most scattering quantities are in crosssec.c. Also saves internal fields to file (optional).
  *
- *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
- *        file (optional).
- *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

@@ -2,6 +2,9 @@
 # First optional parameter is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in
 # quotes, implies cross modes), or all (default). 'spa' is sparse and requires combination with something.
 # Second optional parameter is destination path to copy executables (otherwise, they are left in compilation folders)
+#
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
 
 # process input variables
 MODES=${1:-all}

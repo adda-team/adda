@@ -2,9 +2,8 @@
 # Requires GNU make (at least 3.81) to execute. 
 # Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI), and OpenCL (GPU accelerated)
 # version respectively
-# $Date::                            $
 #
-# Copyright (C) 2006-2014 ADDA contributors
+# Copyright (C) ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

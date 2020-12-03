@@ -1,14 +1,12 @@
-/* File: iterative.c
- * $Date::                            $
- * Descr: a few iterative techniques to solve DDA equations
+/* A few iterative techniques to solve DDA equations
  *
- *        The linear system is composed so that diagonal terms are equal to 1, therefore use of Jacobi preconditioners
- *        does not have any effect.
+ * The linear system is composed so that diagonal terms are equal to 1, therefore use of Jacobi preconditioners does not
+ * have any effect.
  *
- *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
- *        however they do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
+ * CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so), however they
+ * do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
  *
- * Copyright (C) 2006-2015 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

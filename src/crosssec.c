@@ -1,9 +1,7 @@
-/* FILE : crosssec.c
- * $Date::                            $
- * Descr: all the functions to calculate scattering quantities (except Mueller matrix); to read different parameters
- *        from files; and initialize orientation of the particle
+/* All the functions to calculate scattering quantities (except Mueller matrix), to read different parameters from
+ * files, and to initialize orientation of the particle
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

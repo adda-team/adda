@@ -1,8 +1,6 @@
-/* File: parbas.h
- * $Date::                            $
- * Descr: parallel basics; includes necessary headers and checks version of the standard.
+/* Parallel basics; includes necessary headers and checks version of the standard.
  *
- * Copyright (C) 2007-2010,2013-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

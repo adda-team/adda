@@ -1,8 +1,6 @@
-/* File: timing.c
- * $Date::                            $
- * Descr: basic timing and statistics routines
+/* Basic timing and statistics routines
  *
- * Copyright (C) 2006,2008-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

@@ -1,9 +1,7 @@
-/* File: matvec.c
- * $Date::                            $
- * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based
- *        convolution algorithm. Also contains code for SPARSE (non-FFT) mode.
+/* Calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based convolution
+ * algorithm. Also contains code for SPARSE (non-FFT) mode.
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

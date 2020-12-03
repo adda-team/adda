@@ -1,9 +1,7 @@
-/* File: oclmatvec.c
- * $Date::                            $
- * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based
- *        convolution algorithm. This code is special for OpenCL mode.
+/* Calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based convolution
+ * algorithm. This code is special for OpenCL mode.
  *
- * Copyright (C) 2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

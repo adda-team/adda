@@ -1,8 +1,6 @@
-/* File: io.h
- * $Date::                            $
- * Descr: i/o and error handling routines
+/* i/o and error handling routines
  *
- * Copyright (C) 2006,2008-2013
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

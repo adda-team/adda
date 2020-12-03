@@ -1,9 +1,7 @@
-/* File: make_particle.c
- * $Date::                            $
- * Descr: this module initializes the dipole set, either using predefined shapes or reading from a file;
- *        includes granule generator
+/* This module initializes the dipole set, either using predefined shapes or reading from a file;
+ * includes granule generator
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -1928,6 +1926,7 @@ void InitShape(void)
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
+		// when weighted discretization will be implemented, the following may be removed
 		if (n_boxY==0) PrintError("The particle is too thin along the y-axis to be adequately described by the "
 			"current grid. Either specify larger grid (-grid ...) or use rectangular dipoles (-rect_dip ...).");
 		boxY=FitBox(n_boxY);
