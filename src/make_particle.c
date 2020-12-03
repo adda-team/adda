@@ -1928,7 +1928,11 @@ void InitShape(void)
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
+		if (n_boxY==0) PrintError("The particle is too thin along the y-axis to be adequately described by the "
+			"current grid. Either specify larger grid (-grid ...) or use rectangular dipoles (-rect_dip ...).");
 		boxY=FitBox(n_boxY);
+		if (n_boxZ==0) PrintError("The particle is too thin along the z-axis to be adequately described by the "
+			"current grid. Either specify larger grid (-grid ...) or use rectangular dipoles (-rect_dip ...).");
 		boxZ=FitBox(n_boxZ);
 	}
 	else {
@@ -1947,7 +1951,7 @@ void InitShape(void)
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
 	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
-		"supported by size_t type on this system (%zu). If possible, please recompile ADDA in 64-bit mode.",
+		"supported by size_t type on this system (%zu). If possible, recompile ADDA in 64-bit mode.",
 		tmp,SIZE_MAX);
 #endif // !SPARSE
 	Ndip=boxX*boxY*boxZ;
