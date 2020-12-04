@@ -77,7 +77,7 @@ num2str(int num)
 	return string(temp);
 }
 
-// For any n, this function decomposes n into factors for loacal memory tranpose 
+// For any n, this function decomposes n into factors for local memory transpose
 // based fft. Factors (radices) are sorted such that the first one (radixArray[0])
 // is the largest. This base radix determines the number of registers used by each
 // work item and product of remaining radices determine the size of work group needed.
@@ -90,16 +90,16 @@ num2str(int num)
 // 64 and each work item can array for 16 values, 64 work items can compute 256 length
 // 4 ffts by each work item computing 4 length 4 ffts. 
 // Similarly for n = 2048 = 8 x 8 x 8 x 4, each work group has 8 x 8 x 4 = 256 work
-// iterms which each computes 256 (in-parallel) length 8 ffts in-register, followed
+// items which each computes 256 (in-parallel) length 8 ffts in-register, followed
 // by transpose using local memory, followed by 256 length 8 in-register ffts, followed
 // by transpose using local memory, followed by 256 length 8 in-register ffts, followed
 // by transpose using local memory, followed by 512 length 4 in-register ffts. Again,
 // for the last step, each work item computes two length 4 in-register ffts and thus
 // 256 work items are needed to compute all 512 ffts. 
 // For n = 32 = 8 x 4, 4 work items first compute 4 in-register 
-// lenth 8 ffts, followed by transpose using local memory followed by 8 in-register
+// length 8 ffts, followed by transpose using local memory followed by 8 in-register
 // length 4 ffts, where each work item computes two length 4 ffts thus 4 work items
-// can compute 8 length 4 ffts. However if work group size of say 64 is choosen, 
+// can compute 8 length 4 ffts. However if work group size of say 64 is chosen,
 // each work group can compute 64/ 4 = 16 size 32 ffts (batched transform). 
 // Users can play with these parameters to figure what gives best performance on
 // their particular device i.e. some device have less register space thus using
@@ -935,11 +935,11 @@ createLocalMemfftKernelString(cl_fft_plan *plan)
 }
 
 // For n larger than what can be computed using local memory fft, global transposes
-// multiple kernel launces is needed. For these sizes, n can be decomposed using
+// multiple kernel launches is needed. For these sizes, n can be decomposed using
 // much larger base radices i.e. say n = 262144 = 128 x 64 x 32. Thus three kernel
 // launches will be needed, first computing 64 x 32, length 128 ffts, second computing
 // 128 x 32 length 64 ffts, and finally a kernel computing 128 x 64 length 32 ffts. 
-// Each of these base radices can futher be divided into factors so that each of these 
+// Each of these base radices can further be divided into factors so that each of these
 // base ffts can be computed within one kernel launch using in-register ffts and local 
 // memory transposes i.e for the first kernel above which computes 64 x 32 ffts on length 
 // 128, 128 can be decomposed into 128 = 16 x 8 i.e. 8 work items can compute 8 length 
