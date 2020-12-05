@@ -1,4 +1,4 @@
-# Makefile for sequential version of ADDA package
+# Makefile for sequential version of ADDA
 # All options are defined in Makefile
 #
 # Copyright (C) ADDA contributors

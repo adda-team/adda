@@ -1,4 +1,4 @@
-# Makefile for MPI version of ADDA package
+# Makefile for MPI version of ADDA
 # Most options are defined in Makefile
 #
 # Copyright (C) ADDA contributors

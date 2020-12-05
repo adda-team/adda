@@ -1,3 +1,7 @@
+# Main test suite to be used by comp2exec
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 #------------------------- Variable definitons -------------------------------------------------------------------------
 # All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
 # can be defined through other variables defined below. Each variable must be defined only once.

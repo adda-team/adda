@@ -1,4 +1,4 @@
-# Common part of makefiles for different versions of ADDA package
+# Common part of makefiles for different versions of ADDA
 # All options are defined in Makefile and specific makefiles
 #
 # Copyright (C) ADDA contributors

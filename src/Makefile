@@ -1,4 +1,4 @@
-# Main makefile for ADDA package
+# Main makefile for ADDA
 # Requires GNU make (at least 3.81) to execute. 
 # Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI), and OpenCL (GPU accelerated)
 # version respectively
