@@ -20,17 +20,16 @@ The HyperFun Polygonizer is open-source, so it should be able to compile it for 
 !!! There is important issue with the current version of Polygonizer (2.03). It seems that it chooses arbitrary order of vertices when defining the faces. I.e. it is not consistent with vertex normals that are also written to WRL file. The problem is that software that reads these files (see below) discards explicit normals and deducts face alignment from the vertex order. The same (arbitrary) alignment is then saved to OBJ file, which breaks down the 'pip' program.
   
 There are two solutions to this issue:
-* Use additional command line option `-usedc 0` to use the older mesh generation routines in Polygonizer. This may be inferior in terms of speed and size of mesh, but should be free of the described issue.
-* Or align normals during the next step.
+* Either use additional command line option `-usedc 0` to use the older mesh generation routines in Polygonizer. This may be inferior in terms of speed and size of mesh, but should be free of the described issue,
+* or align normals during the next step.
 
 ### 3) Convert WRL file to OBJ file
 
-Under Windows this can be done using [Accutrans](http://www.micromouse.ca), which is trialware, but trial period is not enforced. Open WRL file and save it as a Wavefront OBJ file - you will also see the 3D image of the model - which is nice for extra verification. In between, you may align the face normals of the model, if needed. Click "Align->Flip Polygons - Start/Stop" in the menu. The faces will be colored either white (correct) or red (wrong). If you see red faces click "Align"->"Preset All Layers". It is also possible to use Accutrans from the command line, like `PATH\at3d_2-13-0 -noshow example.wrl`
-but it needs preliminary setting of the output format inside the program. It is also not possible to align normals in this (batch) mode.
+Under Windows this can be done using [Accutrans](http://www.micromouse.ca), which is trialware, but trial period is not enforced. Open WRL file and save it as a Wavefront OBJ file - you will also see the 3D image of the model - which is nice for extra verification. In between, you may align the face normals of the model, if needed. Click "Align->Flip Polygons - Start/Stop" in the menu. The faces will be colored either white (correct) or red (wrong). If you see red faces click "Align->Preset All Layers". It is also possible to use Accutrans from the command line, like `PATH\at3d_2-13-0 -noshow example.wrl` but it needs preliminary setting of the output format inside the program. It is also not possible to align normals in this (batch) mode.
 
 Another GUI application (GPL, available for all OS) is [MeshLab](http://meshlab.sourceforge.net/). It can also align normals using "Filters->Normals, Curvatures and Orientation->Re-Orient all faces coherently" in the menu.
 
-There is also a simple command-line tool [meshconv](http://www.cs.princeton.edu/~min/meshconv/), available for any OS. It should be used like `meshconv -c obj example.wrl` but it does not allow alignment of normals.
+There is also a simple command-line tool [meshconv](https://www.patrickmin.com/meshconv/), available for any OS. It should be used like `meshconv -c obj example.wrl` but it does not allow alignment of normals.
 
 ### 4) Convert OBJ file into DDSCAT shape format (that is readable by ADDA)
 
