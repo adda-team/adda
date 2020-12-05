@@ -525,12 +525,12 @@ cleanocl:
 	
 cleanrunsseq: 
 	@echo "Removing output of sequential version of ADDA"
-	cd $(SEQ) && rm -f -r ExpCount run* test*
+	cd $(SEQ) && rm -f -r ExpCount run???_* test???_*
 
 cleanrunsmpi: 
 	@echo "Removing output of MPI version of ADDA"
-	cd $(MPI) && rm -f -r ExpCount run* test*
+	cd $(MPI) && rm -f -r ExpCount run???_* test???_*
 	
 cleanrunsocl: 
 	@echo "Removing output of OpenCL version of ADDA"
-	cd $(OCL) && rm -f -r ExpCount run* test*
+	cd $(OCL) && rm -f -r ExpCount run???_* test???_*
