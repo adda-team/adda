@@ -1,0 +1,11 @@
+# ignore git files in exports
+.gitattributes export-ignore
+.gitignore export-ignore
+/.github export-ignore
+/win64 export-ignore
+
+# set automatic line-ending conversion for all contributors
+* text=auto
+
+# set line-ending style for windows releases
+win64/README.md text eol=crlf
