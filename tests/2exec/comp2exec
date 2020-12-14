@@ -51,7 +51,7 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 #                      ref(=test)  + '-pol cldr'
 # RD_TRICKY -- test + '-rect_dip 1 1 1.142857 -pol igt_so -int igt 3'
 #                      ref(=test)  + '-pol igt_so -int igt 3'
-#                      additionally high tolerance to numeric differences
+#                      additionally high tolerance to numeric differences and '-size 5' is added in many cases
 #RD_EXT=1
 #RD_STAN=1
 #RD_TRICKY=1
