@@ -421,7 +421,7 @@ static struct opt_struct options[]={
 	{PAR(Csca),"","Calculate scattering cross section (by integrating the scattered field)",0,NULL},
 	{PAR(dir),"<dirname>","Sets directory for output files.\n"
 		"Default: constructed automatically",1,NULL},
-	{PAR(dpl),"<arg>","Sets parameter 'dipoles per lambda' (along the x-axis), float.\n"
+	{PAR(dpl),"<arg>","Sets parameter 'dipoles per lambda', float.\n"
 		"Default: 10|m|, where |m| is the maximum of all given refractive indices.",1,NULL},
 	{PAR(eps),"<arg>","Specifies the stopping criterion for the iterative solver by setting the relative norm of the "
 		"residual 'epsilon' to reach. <arg> is an exponent of base 10 (float), i.e. epsilon=10^(-<arg>).\n"
@@ -430,7 +430,7 @@ static struct opt_struct options[]={
 		"this option specifies the volume-equivalent size parameter. Can not be used together with '-size'. Size is "
 		"defined by some shapes themselves, then this option can be used to override the internal specification and "
 		"scale the shape.\n"
-		"Default: determined by the value of '-size' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
+		"Default: determined by the value of '-size' or by '-grid', '-dpl', '-lambda', and '-rect_dip'.",1,NULL},
 #ifdef OPENCL
 	{PAR(gpu),"<index>","Specifies index of GPU that should be used (starting from 0). Relevant only for OpenCL "
 		"version of ADDA, running on a system with several GPUs.\n"
@@ -447,7 +447,7 @@ static struct opt_struct options[]={
 		"scatterer). This command line option is not relevant when particle geometry is read from a file ('-shape "
 		"read'). If '-jagged' option is used the grid dimension is effectively multiplied by the specified number.\n"
 		"Default: 16 (if neither '-size' nor '-eq_rad' are specified) or defined by\n"
-		"         '-size' or '-eq_rad', '-lambda', and '-dpl'.",UNDEF,NULL},
+		"         '-size' or '-eq_rad', '-lambda', '-dpl', and '-rect_dip'.",UNDEF,NULL},
 	{PAR(h),"[<opt> [<subopt>]]","Shows help. If used without arguments, ADDA shows a list of all available command "
 		"line options. If first argument is specified, help on specific command line option <opt> is shown (only the "
 		"name of the option should be given without preceding dash). For some options (e.g. '-beam' or '-shape') "
@@ -471,10 +471,10 @@ static struct opt_struct options[]={
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
-		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in largest dipole "
-		"dimensions), for which integration is used, (default: infinity); <prec> - minus decimal logarithm of relative "
-		"error of the integration, i.e. epsilon=10^(-<prec>) (default: the same as the argument (or default value) of "
-		"'-eps' command line option).\n"
+		"'igt' - Integration of Green's Tensor. Its parameters are: <lim> - maximum distance (in units of the largest "
+		"dipole size), for which integration is used, (default: infinity); <prec> - minus decimal logarithm of "
+		"relative error of the integration, i.e. epsilon=10^(-<prec>) (default: the same as the argument (or default "
+		"value) of '-eps' command line option).\n"
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
@@ -581,7 +581,7 @@ static struct opt_struct options[]={
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
-		"the corresponding axes. Absolute scale is not relevant, i.e. '1 2 2' is equivalent to '0.5 1 1'.\n"
+		"the corresponding axes. Absolute scale is irrelevant, i.e. '1 2 2' is equivalent to '0.5 1 1'.\n"
 		"Default: 1 1 1",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
@@ -624,7 +624,7 @@ static struct opt_struct options[]={
 		"is used, this option specifies the 'size parameter' of the computational grid. Can not be used together with "
 		"'-eq_rad'. Size is defined by some shapes themselves, then this option can be used to override the internal "
 		"specification and scale the shape.\n"
-		"Default: determined by the value of '-eq_rad' or by '-grid', '-dpl', and '-lambda'.",1,NULL},
+		"Default: determined by the value of '-eq_rad' or by '-grid', '-dpl', '-lambda', and '-rect_dip'.",1,NULL},
 	{PAR(store_beam),"","Save incident beam to a file",0,NULL},
 	{PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
 	{PAR(store_force),"","Calculate the radiation force on each dipole. Implies '-Cpr'",0,NULL},
@@ -1046,7 +1046,7 @@ PARSE_FUNC(eps)
 PARSE_FUNC(eq_rad)
 {
 	ScanDoubleError(argv[1],&a_eq);
-	TestPositive(a_eq,"dpl");
+	TestPositive(a_eq,"equivalent radius");
 }
 #ifdef OPENCL
 PARSE_FUNC(gpu)
@@ -1941,7 +1941,6 @@ void InitVariables(void)
 	rectScaleX=1.0;
 	rectScaleY=1.0;
 	rectScaleZ=1.0;
-	maxRectScale=1;
 
 #ifdef OPENCL
 	gpuInd=0;
@@ -2072,8 +2071,6 @@ void VariablesInterconnect(void)
 		scat_grid=false;
 	}
 	if (rectDip) {
-		maxRectScale=MAX(rectScaleX,rectScaleY);
-		MAXIMIZE(maxRectScale,rectScaleZ);
 		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO)
 			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
 			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
@@ -2082,6 +2079,7 @@ void VariablesInterconnect(void)
 			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
+		if (ScatRelation==SQ_SO) PrintError("'-rect_dip' is incompatible with '-scat so'");
 		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
 			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
 	}	
@@ -2327,7 +2325,7 @@ void PrintInfo(void)
 	if (IFROOT) {
 		// print basic parameters
 		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"%s\n",lambda,dpl,rectDip ? " (along the x-axis)" : "");
+		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
 		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
@@ -2339,8 +2337,6 @@ void PrintInfo(void)
 			"    volume fraction: specified - "GFORMDEF", actual - "GFORMDEF"\n",gr_mat+1,gr_N,gr_d,gr_vf,gr_vf_real);
 #endif // SPARSE
 		fprintf(logfile,"box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		if(rectDip) PrintBoth(logfile,"Using rectangular dipoles with proportions %g:%g:%g (x:y:z)\n",
-			rectScaleX,rectScaleY,rectScaleZ);
 		if (anisotropy) {
 			fprintf(logfile,"refractive index (diagonal elements of the tensor):\n");
 			if (Nmat==1) fprintf(logfile,"    "CFORM3V"\n",REIM3V(ref_index));
@@ -2367,7 +2363,10 @@ void PrintInfo(void)
 			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM"\n",REIM(msub));
 			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
 		}
-		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"%s\n",dpl,rectDip ? " (along the x-axis)" : "");
+		if (rectDip) fprintf(logfile,"Dipole size: "GFORMDEF"x"GFORMDEF"x"GFORMDEF" (relative ratios "GFORMDEF":"
+			GFORMDEF":"GFORMDEF")\n",dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ);
+		else fprintf(logfile,"Dipole size: "GFORMDEF" (cubical)\n",dsX);
+		fprintf(logfile,"Dipoles/lambda: "GFORMDEF"\n",dpl);
 		if (volcor_used) fprintf(logfile,"\t(Volume correction used)\n");
 		fprintf(logfile,"Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		fprintf(logfile,"Total number of occupied dipoles: %zu\n",nvoid_Ndip);
@@ -2466,8 +2465,7 @@ void PrintInfo(void)
 			case G_IGT:
 				fprintf(logfile,"'Integrated Green's tensor' (accuracy "GFORMDEF", ",igt_eps);
 				if (igt_lim==UNDEF) fprintf(logfile,"no distance limit)\n");
-				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes%s)\n",igt_lim,
-					rectDip ? " along the greatest dimension" : "");
+				else fprintf(logfile,"for distance < "GFORMDEF" dipole sizes)\n",igt_lim);
 				break;
 			case G_IGT_SO: fprintf(logfile,"'Integrated Green's tensor [approximation O(kd^2)]'\n"); break;
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;

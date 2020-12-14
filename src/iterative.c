@@ -1358,7 +1358,7 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 	mat=(unsigned char *)(top + boxXY);
 #endif
 	// calculate function of refractive index
-	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kd/2;
+	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kdZ/2;
 	vals[Nmat]=0;
 	// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
 	for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;

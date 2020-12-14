@@ -398,7 +398,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
-	if(rectDip) {
+	if (rectDip) {
 		int i;
 		double a,b,c;
 		double omega;
@@ -445,20 +445,20 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		for (i=0; i < 3; i++) {
 			if (PolRelation==POL_IGT_SO) {
 				if (i==0) {
-					a=gridSpaceX*0.5;
-					b=gridSpaceY*0.5;
-					c=gridSpaceZ*0.5;
+					a=dsX*0.5;
+					b=dsY*0.5;
+					c=dsZ*0.5;
 				} else if (i==1) {
-					a=gridSpaceY*0.5;
-					b=gridSpaceX*0.5;
-					c=gridSpaceZ*0.5;
+					a=dsY*0.5;
+					b=dsX*0.5;
+					c=dsZ*0.5;
 
 				} else {
-					a=gridSpaceZ*0.5;
-					b=gridSpaceY*0.5;
-					c=gridSpaceX*0.5;
+					a=dsZ*0.5;
+					b=dsY*0.5;
+					c=dsX*0.5;
 				}
-				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice:
+				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidal point lattice:
 				 * considering dynamic depolarization'. Eq. number noted for some lines of code
 				 */
 				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c))); // Eq.(10)

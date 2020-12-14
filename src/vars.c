@@ -20,11 +20,12 @@
 // basic variables
 int boxX,boxY,boxZ;       // sizes of box enclosing the particle
 size_t boxXY;             // boxX*boxY, used for indexing
-double gridspace;         // dipole size (d)
-double gridSpaceX,gridSpaceY,gridSpaceZ; // dipole sizes
-double rectScaleX,rectScaleY,rectScaleZ, maxRectScale; // relative dipole sizes (scales) and maximal one
+double gridspace;         // =dsX - DEPRECATED, may only be used in parts incompatible with rectDip
+double dsX,dsY,dsZ;       // dipole sizes along each axis
+double rectScaleX,rectScaleY,rectScaleZ; // relative dipole sizes (scales), in many cases are round numbers
 double dipvol;            // dipole volume
-double kd;                // k*d=2*PI/dpl
+double kd;                // =kdX - DEPRECATED, may only be used in parts incompatible with rectDip
+double kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 double WaveNum;           // wavenumber of incident light
