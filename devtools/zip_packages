@@ -1,11 +1,10 @@
 #!/bin/bash
-# Assumes that a new tag in svn has been allready created.
-# Then creates the ADDA package excluding all the SVN entries. Win32 and Win64 files are zipped separately.
-# maximum compression, recursive
-# Single obligatory argument - name of version (like 1.0)
+# Assumes that a new tag in git has been allready created.
+# Then creates the ADDA package excluding all git and GitHub auxiliary files entries. Win64 files are zipped separately.
+# Single obligatory argument - name of version (like 1.4.0)
 #
-# !!! It is essential to run this script only on Unix system, since the package contain scripts, which has nontrivial
-# permission flags (+x) that should be preserved in the package.
+# !!! We are still struggling to produce correct LF line endings in the main source package, when archiving it on Windows
+# Until this is solved, it is recommende to run the last command on Unix system
 
 #Test arguments
 if [ $# -ne 1 ]; then
@@ -13,23 +12,7 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
  
-# define variables
-URL="http://a-dda.googlecode.com/svn"
-target=\*
-tagname=rel_"$1"
-tagURL="$URL/tags/$tagname"
-filename="../adda_$1"
-# export a clean copy from tag
-svn export "$tagURL"
-if [ $? -ne 0 ]; then
-  echo "ERROR: svn export failed"
-  exit 1
-fi
-# zip general and win packages
-cd "$tagname"
-zip -9 -r "${filename}.zip" $target -x '*win*'
-zip -9 -r "${filename}_win32.zip" win32
-zip -9 -r "${filename}_win64.zip" win64
-# cleanup
 cd ..
-rm -r "$tagname"
+git archive -o adda_${1}_win64.zip v$1:win64 --prefix win64/
+git archive -o adda_${1}.zip v$1
+# -c core.eol=lf

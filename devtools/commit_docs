@@ -1,0 +1,23 @@
+#!/bin/bash
+# Commits docs and const.h for release
+# Accepts exactly one argument - version number (like 1.4.0)
+
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+
+# Test arguments
+if [ $# -ne 1 ]; then
+  echo "ERROR: requires 1 argument"
+  exit 1
+fi
+
+git pull
+if [ $? -ne 0 ]; then
+  echo "ERROR: error during git pull"
+  exit 1
+fi
+git commit -m "Preparing file for release $1: docs and const.h" ../doc/manual.docx ../doc/manual.pdf ../doc/history ../src/const.h 
+if [ $? -ne 0 ]; then
+  echo "ERROR: error during commiting docs"
+  exit 1
+fi

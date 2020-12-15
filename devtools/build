@@ -1,7 +1,9 @@
 #!/bin/bash
+# Builds several versions of ADDA and optionally copies (installs) the obtained executables
 # First optional parameter is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in
 # quotes, implies cross modes), or all (default). 'spa' is sparse and requires combination with something.
 # Second optional parameter is destination path to copy executables (otherwise, they are left in compilation folders)
+# Compilation is performed silently with (-s flag)
 #
 # Copyright (C) ADDA contributors
 # GNU General Public License version 3
@@ -11,7 +13,7 @@ MODES=${1:-all}
 DEST=""
 if [ -n "$2" ]; then
   if [ -d "$2" ]; then
-    DEST=`cd "$2"; pwd`
+    DEST="`cd "$2"; pwd`"
   else
     echo "ERROR: could not find the directory '$2'" >&2
     exit 1
@@ -43,7 +45,7 @@ function check_mode {
 }
 function compile_copy {
   # $1 is mode, $2 - name of executable, $3 - extra options
-  if ! make $1 $3 $XFL; then
+  if ! make -s $1 $3 $XFL; then
     echo "ERROR during compiling ADDA with options '$1 $3 $XFL'" >&2
     exit 1
   fi

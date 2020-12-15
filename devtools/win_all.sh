@@ -1,7 +1,10 @@
 #!/bin/bash
-# Master script to builds and commit Windows executables, all functionality is inside child scripts
-# Accepts exactly one argument - version number (like 1.0)
-# Should be executed on Windows 64-bit
+# Master script to builds and commit Windows executables, most functionality is inside child scripts
+# Accepts exactly one argument - version number (like 1.4.0)
+# Should be executed on Windows
+#
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
 
 # Test arguments
 if [ $# -ne 1 ]; then
@@ -11,33 +14,27 @@ fi
 
 SHELL=/bin/bash
 
-$SHELL win_build_adda.sh 64
+$SHELL commit_docs $1
 if [ $? -ne 0 ]; then
-  echo "ERROR: error during building 64-bit ADDA"
+  echo "ERROR: error during commiting docs"
   exit 1
 fi
-$SHELL win_build_adda.sh 32
+$SHELL build all ../win64
 if [ $? -ne 0 ]; then
-  echo "ERROR: error during building 32-bit ADDA"
+  echo "ERROR: error during building ADDA"
   exit 1
 fi
-$SHELL win_build_misc.sh 64
+$SHELL build_misc ../win64/misc
 if [ $? -ne 0 ]; then
-  echo "ERROR: error during building 64-bit misc tools"
+  echo "ERROR: error during building misc tools"
   exit 1
 fi
-$SHELL win_build_misc.sh 32
-if [ $? -ne 0 ]; then
-  echo "ERROR: error during building 32-bit misc tools"
-  exit 1
-fi
-
 $SHELL win_commit.sh $1
 if [ $? -ne 0 ]; then
-  echo "ERROR: error during commit"
+  echo "ERROR: error during commit of binaries"
   exit 1
 fi
-$SHELL make_tag $1
+git tag -a v$1 -m "New release $1"
 if [ $? -ne 0 ]; then
   echo "ERROR: creating tag failed"
   exit 1

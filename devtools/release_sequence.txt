@@ -1,41 +1,51 @@
-1) test the current source (standard tests)
-> cd ..../adda/src
-> make -s
-> cd ../tests/2exec
-edit comp2exec to compare against previous version
-> sh comp2exec seq, mpi, ocl + mpi_seq, ocl_seq
+Use some normal shell, under Windows - this can be MSYS. Then 'sh' can be omitted in the following commands.
 
-# extra surface tests (optional, causes a number of false positives)
-edit comp2exec to enable SURF_EXT
-> sh comp2exec seq, mpi, ocl
-edit comp2exec to enable SURF_STANDARD (instead of SURF_EXT) and to compare against adda, etc. in the test directory (.)
-> cp ../../src/seq/adda .
-> cp ../../src/mpi/adda_mpi .
-> cp ../../src/ocl/adda_ocl .
-> sh comp2exec seq, mpi, ocl
+1) Test for compiler warnings (about 10 min)
+> sh build_debug 2> log_debug
 
-# sparse tests (first two lines are not required if done above)
-#> cp ../../src/seq/adda .
-#> cp ../../src/mpi/adda_mpi .
-> cd ../../src
-> make seq OPTIONS=SPARSE -s
-> cd ../tests/2exec
-edit comp2exec to enable SPARSE
-> sh comp2exec seq, mpi
-edit comp2exec to compare against adda and adda_mpi + enable SPARSE_STANDARD
-> sh comp2exec seq, mpi
+2) Build and test the current source (a few hours)
+> sh test_new 2> log_test
+Before running the tests, make sure that ../tests/2exec/comp2exec script is properly set up. This includes
+the REFPATH (when comparing against previous version) and GUIDIFF. If the latter is used, you generally do
+not need to redirect stdout.
+It is also possible to separately run build and ../tests/2exec/test_all scripts (see help inside them)
 
-2) make sure that manual.doc/pdf, history, and const.h are up to date. In particular, version number in const.h should
-not contain "a" or "b" (if not explicitly making beta release).
+3) If any changes are made to the code or tests, commit them now. 
+   It is also a good idea to repeat some of the above on different systems.
 
-3) Update CodeDesign and corresponding schemes in doc/gv/
+4) make sure that manual.doc/pdf, history, and const.h are up to date. See also versions.txt
+- version number in const.h should not contain "alpha" or "beta" (if not explicitly making beta release).
+- history should contain version date of the in-progress release.
+- manual should have correct version (including links on the first page). Look through the whole manual
+  (for figure placement, etc.). Update sample outputs in appendices, if needed. 
+- use doiLink macro in Word and produce pdf (better with Actobat plugin - leads to twice smaller size). 
+  Look through the pdf once more.
 
-(on 64-bit Windows)
-4) sh win_all.sh #.#
+5) Update CodeDesign and corresponding schemes in doc/gv/
 
-(on Linux)
-5) ./zip_packages #.#
+6) Make sure that the DLLs in win64/ correspond to the latest executables (to be copied there). They can be 
+   staged for commit (including deleted older ones) - then they will be committed together with executables.  
 
-6) Upload packages to GoogleCode
-7) Update Wiki pages: PackageDescription, ReleaseNotes, Features
-8) Send announcement to users.
+7) Run the following aggregate script (on Windows), inserting appropriate version number:
+> sh win_all.sh #.#.#
+You can also go through it line by line.
+
+8) It is a good idea to test that the resulting executables can be run with given DLLs. For example you can run
+'set PATH=""' or 'export PATH=""' in a terminal before running the executables (to make other DLLs on your system
+unavailable).
+
+9) Now you are ready to go live (check your commits):
+> git push --tags
+
+10) Prepare binary and source packages
+> zip_packages #.#.#
+
+11) Create release at GitHub using this tag (Release notes is a shortened version of history). Attach the above 
+packages to it.
+
+12) Update wiki page Features
+
+13) Send announcement to users.
+
+14) With the next commit update ignore patterns in tests/2exec/comp2exec and, possibly, testing suites to compare 
+against the latest release

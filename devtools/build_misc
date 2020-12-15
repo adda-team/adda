@@ -1,0 +1,41 @@
+#!/bin/bash
+# Builds misc tools and optionally copies (installs) the obtained executables
+# The only optional parameter is destination path to copy executables (otherwise, they are left in compilation folders)
+# Executables of each misc package are copied into a separate directory in this path
+#
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+
+# process input variables
+MISCDIR="`pwd`/../misc"
+DEST="$MISCDIR"
+if [ -n "$1" ]; then
+  if [ -d "$1" ]; then
+    DEST="`cd "$1"; pwd`"
+  else
+    echo "ERROR: could not find the directory '$1'" >&2
+    exit 1
+  fi
+fi
+
+MISCDIR="`pwd`/../misc"
+
+for dir in `ls "$MISCDIR"`; do
+  MAKEFILE="$MISCDIR/$dir/Makefile"
+  if [ -f "$MAKEFILE" ]; then
+    echo "Processing misc/$dir"
+    # The following is a bit complicated. Ideally should be replaced by something like
+    # make install
+    dest="$DEST/$dir"
+    if [ ! -d "$dest" ]; then
+        mkdir "$dest"
+    fi
+    cd "$dest"
+    make -f "$MAKEFILE" srcdir="$MISCDIR/$dir"
+    if [ $? -ne 0 ]; then
+      echo "ERROR: compilation in 'misc/$dir' failed"
+      exit 1
+    fi
+    rm -f *.o
+  fi
+done
