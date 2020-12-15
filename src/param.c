@@ -402,8 +402,8 @@ static struct opt_struct options[]={
 		"integral scattering quantities.\n"
 		"Default: "FD_ALLDIR_PARMS,1,NULL},
 	{PAR(anisotr),"","Specifies that refractive index is anisotropic (its tensor is limited to be diagonal in particle "
-		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with CLDR polarizability and "
-		"all SO formulations.",0,NULL},
+		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
+		"formulations, and '-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types (if present) are floats.\n"
@@ -439,7 +439,8 @@ static struct opt_struct options[]={
 #ifndef SPARSE
 	{PAR(granul),"<vol_frac> <diam> [<dom_number>]","Specifies that one particle domain should be randomly filled with "
 		"spherical granules with specified diameter <diam> and volume fraction <vol_frac>. Domain number to fill is "
-		"given by the last optional argument. Algorithm may fail for volume fractions > 30-50%.\n"
+		"given by the last optional argument. Algorithm may fail for volume fractions > 30-50%. Cannot be used with "
+		"'-rect_dip'.\n"
 		"Default <dom_number>: 1",UNDEF,NULL},
 #endif // !SPARSE
 	{PAR(grid),"<nx> [<ny> <nz>]","Sets dimensions of the computation grid (any positive integers). In most "
@@ -487,6 +488,7 @@ static struct opt_struct options[]={
 #ifdef SPARSE
 		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
 #endif
+		"Only poi and igt can be used with '-rect_dip'.\n"
 		"Default: poi",UNDEF,NULL},
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * Modify string constants after 'PAR(int)': add new argument (possibly with additional sub-arguments) to list
@@ -569,6 +571,7 @@ static struct opt_struct options[]={
 		"'nloc_av' - same as 'nloc' but based on averaging of Gh over the dipole volume.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
 		"'so' - under development and incompatible with '-anisotr'.\n"
+		"Only poi,cldr, and igt_so can be used with '-rect_dip'.\n"
 		"Default: ldr (without averaging) or cldr (for -rect_dip).",UNDEF,NULL},
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * Modify string constants after 'PAR(pol)': add new argument (possibly with additional sub-arguments) to list
@@ -581,7 +584,9 @@ static struct opt_struct options[]={
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
-		"the corresponding axes. Absolute scale is irrelevant, i.e. '1 2 2' is equivalent to '0.5 1 1'.\n"
+		"the corresponding axes. Absolute scale is irrelevant, i.e. '1 2 2' is equivalent to '0.5 1 1'. Cannot be used "
+		"with '-anisotr', '-granul', '-scat so'. The compatible polarizability and interaction-term formulations are "
+		"also limited.\n"
 		"Default: 1 1 1",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
@@ -595,7 +600,7 @@ static struct opt_struct options[]={
 		"'dr' - (by Draine) standard formulation for point dipoles\n"
 		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
 		"'igt_so' - second order in kd approximation to Integration of Green's Tensor.\n"
-		"'so' - under development and incompatible with '-anisotr'.\n"
+		"'so' - under development and incompatible with '-anisotr' and '-rect_dip'.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering angles for "
 		"calculating Mueller matrix (possibly integrated over 'phi').\n"

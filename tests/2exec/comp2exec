@@ -90,8 +90,8 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Following two variable determine what is ignored when comparing against older executables. CMDIGNORE skipps the whole
 # runs (matches command line), OLDIGNORE - specifies lines in output files to be skipped
 # Currently formulated to compare 1.4* with 1.3b4
-CMDIGNORE="^-h eq_rad|^-h grid|^-h int|^-h size|rect_dip|^-shape box 1.51|^-shape line|;mg9n;"
-OLDIGNORE="^Sets parameter 'dipoles per lambda'|^  -rect_dip|^OpenCL memory usage|^#lattice spacings:|^Default: ldr"
+CMDIGNORE="^-h anisotr|^-h eq_rad|^-h grid|^-h granul|^-h int|^-h pol|^-h size|^-h scat|rect_dip|^-shape box 1.51|^-shape line|;mg9n;"
+OLDIGNORE="^Sets parameter 'dipoles per lambda'|^  -rect_dip|^OpenCL memory usage|^#lattice spacings:"
 OLDIGNORE="$OLDIGNORE|^ADDA v\.|^Built with GNU compilers|^      using MinGW-64|^Copyright \(C\) 2006-20|^Linked to"
 OLDIGNORE="$OLDIGNORE|^(GPU-accelerated|Parallel) version conforming|^Particle is placed|^shape: |^CoupleConstant:"
 OLDIGNORE="$OLDIGNORE|^       position of inner sphere center r/d="
