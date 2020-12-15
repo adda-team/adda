@@ -1015,7 +1015,7 @@ void CalcAlldir(void)
 	// Calculate field
 	tstart = GET_TIME();
 	npoints = theta_int.N*phi_int.N;
-	if (IFROOT) printf("Calculating scattered field for the whole solid angle:\n");
+	if (IFROOT) PRINTFB("Calculating scattered field for the whole solid angle:\n");
 	for (i=0,point=0;i<theta_int.N;++i) {
 		th=Deg2Rad(theta_int.val[i]);
 		cthet=cos(th);
@@ -1042,7 +1042,7 @@ void CalcAlldir(void)
 			E_ad[index+1]=crDotProd(ebuff,incPolpar);
 			point++;
 			// show progress
-			if (((10*point)%npoints)<10 && IFROOT) printf(" %d%%",100*point/npoints);
+			if (((10*point)%npoints)<10 && IFROOT) PRINTFB(" %d%%",100*point/npoints);
 		}
 	}
 	// accumulate fields
@@ -1059,7 +1059,7 @@ void CalcAlldir(void)
 		for (i=0;i<theta_int.N;++i) if (TestBelowDeg(theta_int.val[i]))
 			for (j=0,point=phi_int.N*i;j<phi_int.N;j++,point++) E2_alldir[point]*=scale;
 	}
-	if (IFROOT) printf("  done\n");
+	if (IFROOT) PRINTFB("  done\n");
 	// timing
 	Timing_EFieldAD = GET_TIME() - tstart;
 	Timing_EField += Timing_EFieldAD;
@@ -1084,7 +1084,7 @@ void CalcScatGrid(const enum incpol which)
 	// set type of cycling through angles
 	if (angles.type==SG_GRID) n=angles.phi.N;
 	else n=1; // angles.type==SG_PAIRS
-	if (IFROOT) printf("Calculating grid of scattered field:\n");
+	if (IFROOT) PRINTFB("Calculating grid of scattered field:\n");
 	// main cycle
 	for (i=0,point=0;i<angles.theta.N;++i) {
 		th=Deg2Rad(angles.theta.val[i]);
@@ -1105,12 +1105,12 @@ void CalcScatGrid(const enum incpol which)
 			Egrid[index+1]=crDotProd(ebuff,incPolpar);
 			point++;
 			// show progress; the value is always from 0 to 100, so conversion to int is safe
-			if (((10*point)%angles.N)<10 && IFROOT) printf(" %d%%",(int)(100*point/angles.N));
+			if (((10*point)%angles.N)<10 && IFROOT) PRINTFB(" %d%%",(int)(100*point/angles.N));
 		}
 	}
 	// accumulate fields; timing
 	Accumulate(Egrid,cmplx_type,2*angles.N,&Timing_EFieldSGComm);
-	if (IFROOT) printf("  done\n");
+	if (IFROOT) PRINTFB("  done\n");
 	Timing_EFieldSG = GET_TIME() - tstart;
 	Timing_EField += Timing_EFieldSG;
 }

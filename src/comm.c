@@ -341,9 +341,8 @@ void Stop(const int code)
 {
 #ifdef ADDA_MPI
 	if (code!=EXIT_SUCCESS) { // error occurred
-		fflush(stdout);
+		fflush(NULL);
 		fprintf(stderr,"Aborting process %d\n",ringid);
-		fflush(stderr);
 		MPI_Abort(MPI_COMM_WORLD,code);
 	}
 	else { // regular termination
@@ -359,7 +358,7 @@ void Stop(const int code)
 			Free_general(displs);
 		}
 		// wait for all processors
-		fflush(stdout);
+		fflush(NULL);
 		Synchronize();
 		// finalize MPI communications
 		MPI_Finalize();

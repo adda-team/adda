@@ -51,6 +51,11 @@
 #	include <clBLAS.version.h>
 #endif
 
+#ifdef WINDOWS
+#	include <windows.h> // all windows functions need this
+#	include <io.h>      // for _isatty
+#endif
+
 #ifndef NO_GITHASH
 #	include "githash.h" // for GITHASH, this file is automatically created during compilation
 #endif
@@ -79,7 +84,10 @@
 
 // GLOBAL VARIABLES
 
-opt_index opt; // main option index; it is also defined as extern in param.h
+opt_index opt;     // main option index; it is also defined as extern in param.h
+#ifdef WINDOWS
+bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as extern in io.h
+#endif
 
 // SEMI-GLOBAL VARIABLES
 
@@ -170,6 +178,7 @@ static const char *avg_parms;   // name of file with orientation averaging param
 static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,...)
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
+static int sobuf;               // mode for stdout buffering
 /* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.
  * However, the latter can't be easily addressed by the option name (a search over the whole options is required).
  * When thinking about adding a new one, first consider using UNDEF machinery instead
@@ -178,6 +187,7 @@ static bool prop_used;          // whether '-prop ...' was used in the command l
 static bool orient_used;        // whether '-orient ...' was used in the command line
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
+static bool so_buf_used;        // whether '-so_buf ...' was used in the command line
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -378,6 +388,7 @@ PARSE_FUNC(sg_format);
 #endif
 PARSE_FUNC(shape);
 PARSE_FUNC(size);
+PARSE_FUNC(so_buf);
 PARSE_FUNC(store_beam);
 PARSE_FUNC(store_dip_pol);
 PARSE_FUNC(store_force);
@@ -630,6 +641,10 @@ static struct opt_struct options[]={
 		"'-eq_rad'. Size is defined by some shapes themselves, then this option can be used to override the internal "
 		"specification and scale the shape.\n"
 		"Default: determined by the value of '-eq_rad' or by '-grid', '-dpl', '-lambda', and '-rect_dip'.",1,NULL},
+	{PAR(so_buf),"{no|line|full}","Manually sets the buffering of stdout: no buffer, a single line, or using a large "
+		"buffer (typically, 0.5-4 KB).\n"
+		"Default: 'line' or 'full' when the stdout is printed directly to a terminal or is redirected, respectively",
+		1,NULL},
 	{PAR(store_beam),"","Save incident beam to a file",0,NULL},
 	{PAR(store_dip_pol),"","Save dipole polarizations to a file",0,NULL},
 	{PAR(store_force),"","Calculate the radiation force on each dipole. Implies '-Cpr'",0,NULL},
@@ -717,8 +732,8 @@ void PrintErrorHelp(const char * restrict fmt, ... )
 				"Type '%s -h %s' for details\n",optname,use,exename,optname);
 		}
 		WrapLines(msg);
+		fflush(NULL);
 		fprintf(stderr,"%s",msg);
-		fflush(stderr);
 	}
 	// wait for root to generate an error message
 	Synchronize();
@@ -739,6 +754,7 @@ static void ATT_NORETURN ATT_PRINTF(1,2) PrintErrorHelpSafe(const char * restric
 	if (IFROOT) {
 		// produce error message
 		va_start(args,fmt);
+		fflush(NULL);
 		fprintf(stderr,"ERROR: ");
 		vfprintf(stderr,fmt,args);
 		fprintf(stderr,"\n");
@@ -754,7 +770,6 @@ static void ATT_NORETURN ATT_PRINTF(1,2) PrintErrorHelpSafe(const char * restric
 			fprintf(stderr,"Usage: -%s %s\n"
 			               "Type '%s -h %s' for details\n",optname,use,exename,optname);
 		}
-		fflush(stderr);
 	}
 	// wait for root to generate an error message
 	Synchronize();
@@ -1498,6 +1513,14 @@ PARSE_FUNC(size)
 	ScanDoubleError(argv[1],&sizeX);
 	TestPositive(sizeX,"particle size");
 }
+PARSE_FUNC(so_buf)
+{
+	if (strcmp(argv[1],"no")==0) sobuf=_IONBF;
+	else if (strcmp(argv[1],"line")==0) sobuf=_IOLBF;
+	else if (strcmp(argv[1],"full")==0) sobuf=_IOFBF;
+	else NotSupported("Buffering mode for stdout",argv[1]);
+	so_buf_used=true;
+}
 PARSE_FUNC(store_beam)
 {
 	store_beam = true;
@@ -1946,7 +1969,11 @@ void InitVariables(void)
 	rectScaleX=1.0;
 	rectScaleY=1.0;
 	rectScaleZ=1.0;
-
+	so_buf_used=false;
+	sobuf=0; // should not be tested against this default value (as it may conflict with existing modes)
+#ifdef WINDOWS
+	emulLinebuf=false;
+#endif
 #ifdef OPENCL
 	gpuInd=0;
 #endif
@@ -2010,6 +2037,24 @@ void VariablesInterconnect(void)
 // finish parameters initialization based on their interconnections
 {
 	double temp;
+
+	// the following should be done before any output to stdout
+#ifdef WINDOWS
+	/* on Windows we emulate default POSIX behavior. The default system behavior is modified only if required for this
+	 * emulation or requested by user. We assume that _IOLBF is (almost) equivalent to _IOFBF in setvbuf (as specified
+	 * in documentation of Microsoft C runtime library).
+	 */
+	if (so_buf_used) {
+		setvbuf(stdout,NULL,sobuf,BUFSIZ);
+		if (sobuf==_IOLBF) emulLinebuf=true;
+	}
+	else if(_isatty(_fileno(stdout))) {
+		setvbuf(stdout,NULL,_IOLBF,BUFSIZ);
+		emulLinebuf=true;
+	}
+#else // otherwise, we set buffer only if explicitly specified by the user
+	if (so_buf_used) setvbuf(stdout,NULL,sobuf,BUFSIZ);
+#endif
 
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI/lambda;
@@ -2279,7 +2324,7 @@ void DirectoryLog(const int argc,char **argv)
 	// make new directory and print info
 	if (IFROOT) {
 		MkDirErr(directory,ONE_POS);
-		printf("all data is saved in '%s'\n",directory);
+		PRINTFB("all data is saved in '%s'\n",directory);
 	}
 	// make logname; do it for all processors to enable additional logging in LogError
 	if (IFROOT) SnprintfErr(ONE_POS,logfname,MAX_FNAME,"%s/"F_LOG,directory);
@@ -2329,10 +2374,10 @@ void PrintInfo(void)
 
 	if (IFROOT) {
 		// print basic parameters
-		printf("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
-		printf("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
-		printf("Required relative residual norm: "GFORMDEF"\n",iter_eps);
-		printf("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
+		PRINTFB("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
+		PRINTFB("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
+		PRINTFB("Required relative residual norm: "GFORMDEF"\n",iter_eps);
+		PRINTFB("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
 		fprintf(logfile,"lambda: "GFORM"\n",lambda);
 		fprintf(logfile,"shape: ");

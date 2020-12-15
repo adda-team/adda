@@ -196,7 +196,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			"Total = "FFORMPT"\n\n"
 			"Precise timing is not working for MatVec in OpenCL mode. Only the total time is provided.\n",
 			DiffSystemTime(tvp,tvp+1));
-		printf("\nPrecise timing is complete. Finishing execution.\n");
+		PRINTFB("\nPrecise timing is complete. Finishing execution.\n");
 	}
 	FreeEverything();
 	Stop(EXIT_SUCCESS);

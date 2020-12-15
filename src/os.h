@@ -20,7 +20,6 @@
  */
 #if defined(_WIN32) || defined(_WIN64)
 #	define WINDOWS
-#	include <windows.h> // all windows functions need this
 /* this list is not exhaustive. gcc should define __POSIX__ on POSIX-compliant systems, however other compilers do not
  * necessarily do the same. Moreover, extra condition check is used for OSX. You may also define it manually.
  */

@@ -1207,7 +1207,7 @@ static void CalcSomTable(void)
 	memory+=tmp*sizeof(doublecomplex);
 	if (!prognosis) {
 		MALLOC_VECTOR(somTable,complex,tmp,ALL);
-		if (IFROOT) printf("Calculating table of Sommerfeld integrals\n");
+		if (IFROOT) PRINTFB("Calculating table of Sommerfeld integrals\n");
 		ind=0;
 		for (k=0;k<local_Nz_Rm;k++) {
 			z=k*dsZ+ZsumShift;

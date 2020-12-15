@@ -668,7 +668,7 @@ static void fftInitAfterD(void)
 	SYSTEM_TIME tvp[4];
 #	endif
 
-	if (IFROOT) printf("Initializing clFFT\n");
+	if (IFROOT) PRINTFB("Initializing clFFT\n");
 #	ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp);
 #	endif
@@ -792,7 +792,7 @@ static void fftInitAfterD(void)
 #	ifdef PRECISE_TIMING
 	SYSTEM_TIME tvp[7];
 #	endif
-	if (IFROOT) printf("Initializing FFTW3\n");
+	if (IFROOT) PRINTFB("Initializing FFTW3\n");
 #	ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp);
 #	endif
@@ -883,7 +883,7 @@ static void InitRmatrix(const double invNgrid)
 	MALLOC_VECTOR(BT_buffer,double,bufsize,ALL);
 	MALLOC_VECTOR(BT_rbuffer,double,bufsize,ALL);
 #endif
-	if (IFROOT) printf("Calculating reflected Green's function (Rmatrix)\n");
+	if (IFROOT) PRINTFB("Calculating reflected Green's function (Rmatrix)\n");
 	/* Interaction matrix values are calculated all at once for performance reasons. They are stored in Rmatrix with
 	 * indexing corresponding to R2matrix (to facilitate copying) but NDCOMP elements instead of one. Afterwards they
 	 * are replaced by Fourier transforms (with different indexing) component-wise (in cycle over NDCOMP)
@@ -897,7 +897,7 @@ static void InitRmatrix(const double invNgrid)
 			index=NDCOMP*Index2matrix(i,j,k,R2sizeY);
 			(*ReflTerm_int)(i,j,k,Rmatrix+index);
 	} // end of i,j,k loop
-	if (IFROOT) printf("Fourier transform of Rmatrix");
+	if (IFROOT) PRINTFB("Fourier transform of Rmatrix\n");
 	for(Rcomp=0;Rcomp<NDCOMP;Rcomp++) { // main cycle over components of Rmatrix
 		// fill R2matrix with precomputed values from Rmatrix
 		for (ind=0;ind<R2sizeTot;ind++) R2matrix[ind]=Rmatrix[NDCOMP*ind+Rcomp];
@@ -929,9 +929,7 @@ static void InitRmatrix(const double invNgrid)
 				Rmatrix[indexto]=-invNgrid*slice_tr[indexfrom];
 			}
 		} // end slice X
-		if (IFROOT) printf(".");
 	} // end of Rcomp
-	if (IFROOT) printf("\n");
 #ifdef PARALLEL
 	// deallocate buffers for BlockTranspose_DRm
 	Free_general(BT_buffer);
@@ -1262,7 +1260,7 @@ void InitDmatrix(void)
 	GET_SYSTEM_TIME(tvp+1);
 	Elapsed(tvp,tvp+1,&Timing_beg); // it includes a lot of OpenCL stuff
 #endif
-	if (IFROOT) printf("Calculating Green's function (Dmatrix)\n");
+	if (IFROOT) PRINTFB("Calculating Green's function (Dmatrix)\n");
 	/* Interaction matrix values are calculated all at once for performance reasons. They are stored in Dmatrix with
 	 * indexing corresponding to D2matrix (to facilitate copying) but NDCOMP elements instead of one. Afterwards they
 	 * are replaced by Fourier transforms (with different indexing) component-wise (in cycle over NDCOMP)
@@ -1285,7 +1283,7 @@ void InitDmatrix(void)
 			if (i!=0 || j!=0 || kcor!=0) (*InterTerm_int)(i,j,kcor,Dmatrix+index);
 		}
 	} // end of i,j,k loop
-	if (IFROOT) printf("Fourier transform of Dmatrix");
+	if (IFROOT) PRINTFB("Fourier transform of Dmatrix\n");
 #ifdef PRECISE_TIMING
 	GET_SYSTEM_TIME(tvp+11); // same as the last time-stamp in the following loop
 	Elapsed(tvp+1,tvp+11,&Timing_Gcalc);
@@ -1366,9 +1364,7 @@ void InitDmatrix(void)
 			ElapsedInc(tvp+10,tvp+11,&Timing_ar3);
 #endif
 		} // end slice X
-		if (IFROOT) printf(".");
 	} // end of Dcomp
-	if (IFROOT) printf("\n");
 	// free vectors used for computation of Dmatrix; slice and slice_tr are freed after InitRmatrix
 	Free_cVector(D2matrix);
 #ifdef PARALLEL

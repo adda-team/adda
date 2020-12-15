@@ -672,7 +672,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	Synchronize();
 	if (IFROOT) CatNFiles(directory,tmpl,fname_sh);
 #endif
-	if (IFROOT) printf("%s saved to file\n",fullname);
+	if (IFROOT) PRINTFB("%s saved to file\n",fullname);
 	Timing_FileIO += GET_TIME() - tstart;
 }
 
@@ -758,7 +758,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				if (surface) self+=C0dipole_refl/C0dipole;
 				double tot=self+Cdec/C0dipole;
 				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
-				printf("\nDecay-rate enhancement:\n");
+				PRINTFB("\nDecay-rate enhancement:\n");
 				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
 				if (calc_Cabs) { // for simplicity we keep a single condition here
 					double nonrad=Cabs/C0dipole;
@@ -783,7 +783,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			}
 		} // end of root
 		if (calc_mat_force) {
-			if (IFROOT) printf("Calculating the force per dipole\n");
+			if (IFROOT) PRINTFB("Calculating the force per dipole\n");
 			if (store_force) MALLOC_VECTOR(Frp,double,local_nRows,ALL);
 			else Frp=NULL;
 			Frp_mat(Finc_tot,Fsca_tot,Frp);

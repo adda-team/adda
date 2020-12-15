@@ -624,7 +624,7 @@ static void calculate_one_orientation(double * restrict res)
 
 	// calculate scattered field for y - polarized incident light
 	if (IFROOT) {
-		printf("\nhere we go, calc Y\n\n");
+		PRINTFB("\nhere we go, calc Y\n\n");
 		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
 	}
 	InitCC(INCPOL_Y);
@@ -640,7 +640,7 @@ static void calculate_one_orientation(double * restrict res)
 		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
 		if (IFROOT) {
-			printf("\nhere we go, calc X\n\n");
+			PRINTFB("\nhere we go, calc X\n\n");
 			if (!orient_avg) fprintf(logfile,"\nhere we go, calc X\n\n");
 		}
 		if (PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
@@ -655,7 +655,7 @@ static void calculate_one_orientation(double * restrict res)
 	D("MuellerMatrix finished");
 	if (IFROOT && orient_avg) {
 		tstart=GET_TIME();
-		if (store_mueller) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
+		if (store_mueller) PRINTFB("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
 		D("Integration over alpha completed on root");

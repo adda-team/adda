@@ -371,7 +371,7 @@ static void ProgressReport(void)
 		else temp="- ";
 		SnprintfErr(ONE_POS,progr_string,MAX_LINE,RESID_STRING"  %s",niter,err,temp);
 		if (!orient_avg) fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
-		printf("%s\n",progr_string);
+		PRINTFB("%s\n",progr_string);
 		prev_err=err;
 	}
 	niter++;
@@ -1511,7 +1511,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 			if (!orient_avg) {
 				fprintf(logfile,"%s\n%s",descr,tmp_str);
 			}
-			printf("%s\n%s",descr,tmp_str);
+			PRINTFB("%s\n%s",descr,tmp_str);
 		}
 		// initialize counters
 		niter=1;
@@ -1596,7 +1596,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 			temp=sqrt(resid_scale*inprodR);
 			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",temp);
 			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
-			printf("%s",tmp_str);
+			PRINTFB("%s",tmp_str);
 		}
 	}
 	// post-processing

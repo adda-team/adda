@@ -304,6 +304,11 @@ all -h shape spherebox
 all -h size
 all -size 8 ;mgn;
 
+all -h so_buf
+all -so_buf no ;mgn;
+all -so_buf line ;mgn;
+all -so_buf full ;mgn;
+
 all -h store_beam
 !RD_TRICKY -store_beam ;se; ;mgn;
 

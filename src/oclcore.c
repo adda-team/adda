@@ -24,6 +24,7 @@
 #include "oclcore.h" // corresponding header
 // project headers
 #include "debug.h"
+#include "io.h"
 #include "memory.h"
 #include "vars.h"
 // system headers
@@ -286,7 +287,7 @@ static void GetDevice(struct string *copt_ptr)
 	const cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type; this can be changed in the future
 	int gpuN=0;
 
-	printf("Searching for OpenCL devices\n");
+	PRINTFB("Searching for OpenCL devices\n");
 	// little trick to get just the number of the Platforms
 	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
 	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms with successful
@@ -431,7 +432,7 @@ void oclinit(void)
 	err=clBuildProgram(program,0,NULL,cl_opt.text,NULL,NULL);
 	if (err!=CL_SUCCESS) {
 		char *buffer=dyn_clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG);
-		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
+		PRINTFB("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
 		Free_general(buffer);
 		CL_CH_ERR(err);
 	}

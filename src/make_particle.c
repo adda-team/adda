@@ -239,7 +239,7 @@ static void SaveGeometry(void)
 	// combine all files into one and clean
 	if (IFROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
 #endif
-	if (IFROOT) printf("Geometry saved to file\n");
+	if (IFROOT) PRINTFB("Geometry saved to file\n");
 	Timing_FileIO+=GET_TIME()-tstart;
 }
 
@@ -621,7 +621,7 @@ static size_t PlaceGranules(void)
 	 */
 	sm_gr=minval>tmp1 && (gdX<2 || gdY<2 || gdZ<2);
 	if (sm_gr) {
-		if (IFROOT) printf("Using algorithm for small granules\n");
+		if (IFROOT) PRINTFB("Using algorithm for small granules\n");
 		/* redefine auxiliary grid; now the grid size is chosen to be always >= 2*D. Thus we can be sure that granule
 		 * can intersect with granule in either left or right (x=+-1) cell but not both (and analogously with other
 		 * coordinates).
@@ -635,7 +635,7 @@ static size_t PlaceGranules(void)
 		gdZ=(z1-z0)/gZ;
 	}
 	else { // large granules
-		if (IFROOT) printf("Using algorithm for large granules\n");
+		if (IFROOT) PRINTFB("Using algorithm for large granules\n");
 		gX2=2*gX;
 		gdXh=gdX/2;
 		gY2=2*gY;
@@ -997,7 +997,7 @@ static size_t PlaceGranules(void)
 			}
 		}
 	}
-	if (IFROOT) printf("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
+	if (IFROOT) PRINTFB("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
 		               "                   possible granules= %zu (efficiency 2 = "GFORMDEF")\n",
 		               count,count_gr/(double)count,count_gr,gr_N/(double)count_gr);
 	MyInnerProduct(&nd,sizet_type,1,&Timing_GranulComm);
@@ -1019,7 +1019,7 @@ static size_t PlaceGranules(void)
 	// close granule file if needed and print info
 	if (store_grans && IFROOT) {
 		FCloseErr(file,fname,ONE_POS);
-		printf("Granule coordinates saved to file\n");
+		PRINTFB("Granule coordinates saved to file\n");
 	}
 	return nd;
 }

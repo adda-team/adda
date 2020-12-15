@@ -29,6 +29,7 @@
 #endif
 
 #ifdef WINDOWS
+#	include <windows.h> // all windows functions need this
 #	define SYSTEM_TIME LARGE_INTEGER
 #	define GET_SYSTEM_TIME(t) QueryPerformanceCounter(t)
 #elif defined(POSIX)

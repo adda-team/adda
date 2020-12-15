@@ -412,7 +412,7 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 			"InProd = "FFORMPT"\n\n",
 			t_Mult1,t_Arithm,t_FFTXf,t_FFT,t_BTf,t_Comm,t_Mult2,t_FFTZf,DiffSystemTime(tvp,tvp+17),t_TYZf,t_FFTYf,
 			t_Mult3,t_FFTYb,t_TYZb,t_FFTZb,t_Mult4,t_BTb,t_FFTXb,t_Mult5,t_ipr);
-		printf("\nPrecise timing is complete. Finishing execution.\n");
+		PRINTFB("\nPrecise timing is complete. Finishing execution.\n");
 	}
 	FreeEverything();
 	Stop(EXIT_SUCCESS);
