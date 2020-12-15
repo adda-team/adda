@@ -15,7 +15,10 @@
 #ifndef __function_h
 #define __function_h
 
-#include "const.h" // for GREATER_EQ2
+// redefine it here instead of including const.h to avoid warnings in C++ code that uses this header
+#ifndef GREATER_EQ2
+#	define GREATER_EQ2(a1,a2,b1,b2) ( (a1)>(b1) || ( (a1)==(b1) && (a2)>=(b2) )) // a1.a2>=b1.b2
+#endif
 
 // attribute options for GCC compilers (Intel compiler may also recognize them)
 #ifdef __GNUC__

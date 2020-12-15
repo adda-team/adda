@@ -56,7 +56,6 @@ static doublecomplex surfRCn; // reflection coefficient for normal incidence
 static bool XlessY; // whether boxX is not larger than boxY (used for SomTable)
 static doublecomplex * restrict somTable; // table of Sommerfeld integrals
 static size_t * restrict somIndex; // array for indexing somTable (in the xy-plane)
-static double igtLimR2; // IGT distance threshold squared
 
 #ifdef USE_SSE3
 static __m128d c1, c2, c3, zo, inv_2pi, p360, prad_to_deg;
@@ -66,6 +65,7 @@ static __m128d exptbl[361];
 // EXTERNAL FUNCTIONS
 
 #ifndef NO_FORTRAN
+static double igtLimR2; // IGT distance threshold squared
 // fort/propaesplibreintadda.f
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *gridspacex,const double *gridspacey,
 	const double *gridspacez,const double *relreq,double *result,int *ifail);
