@@ -44,6 +44,7 @@ ALLPROGS = gendip genplane genline nearfield checknfsymm
 srcdir = .
 vpath %.f $(srcdir)/
 vpath Makefile $(srcdir)/
+vpath %.c $(srcdir)/
 
 #=======================================================================================================================
 
