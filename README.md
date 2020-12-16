@@ -15,10 +15,6 @@ Please also look at [a list of more specific references](https://github.com/adda
 
 We encourage users to provide feedback in any possible way. If you have any questions, please [write](mailto:adda-discuss@googlegroups.com) to the [discussion group](http://groups.google.com/group/adda-discuss). If you have any suggestions or a bug report, submit it directly to the [issue tracker](https://github.com/adda-team/adda/issues), taking advantage of the open development process. Please also provide feedback on the existing issues - you may upvote issues that you find important (GitHub account is required) and/or provide some meaningful comments.
 
-### Migrated from Google Code
-
-This project has been moved from the Google Code platform. All functionality is already here, but some updates of the docs still remain - the progress can be tracked at [#210](https://github.com/adda-team/adda/issues/210). If you encounter any artefacts, you may also turn to the [archived repository](https://code.google.com/archive/p/a-dda). All links to the previous repository should be automatically redirected to the archived one, but the formatting of some wiki pages there is broken.
-
 ### Directory structure
 
 * `.github/` - GitHub-related settings
