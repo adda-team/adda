@@ -24,6 +24,8 @@
 #include "prec_time.h"
 #include "sparse_ops.h"
 #include "vars.h"
+// system headers
+#include <stdlib.h>
 
 // SEMI-GLOBAL VARIABLES
 

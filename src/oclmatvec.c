@@ -21,6 +21,8 @@
 #include "oclcore.h"
 #include "prec_time.h"
 #include "vars.h"
+// system headers
+#include <stdlib.h>
 
 // SEMI-GLOBAL VARIABLES
 

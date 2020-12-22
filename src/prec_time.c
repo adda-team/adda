@@ -20,7 +20,8 @@
 #  define PRECISE_TIMING
 #endif
 
-#include "prec_time.h" // corresponding header, there all other needed includes are added
+#include "const.h"     // keep this first
+#include "prec_time.h" // corresponding header
 
 // LOCAL VARIABLES
 
