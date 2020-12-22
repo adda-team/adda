@@ -679,7 +679,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cp=1;
 		}
 		  // since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
-		else if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) cs=cp=0;
+		else if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) cs=cp=0;
 		else { // no special treatment here, since other cases, including 90deg-scattering, are taken care above.
 			kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
 			cs=FresnelRS(ki,kt);
@@ -694,7 +694,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			return;
 		}
 		kt=-msub*nF[2];
-		if (cabs(msub-1)<ROUND_ERR && fabs(kt)<SQRT_RND_ERR) ki=kt;
+		if (cabs(msub-1)<ROUND_ERR && cabs(kt)<SQRT_RND_ERR) ki=kt;
 		else ki=cSqrtCut(1 - msub*msub*(nF[0]*nF[0]+nF[1]*nF[1]));
 		// here nN may be complex, but normalized to n.n=1
 		nN[0]=msub*nF[0];
