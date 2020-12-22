@@ -1,0 +1,8 @@
+# A separate file to be recognized, when exporting this folder individually
+
+# ignore git files in exports
+.gitattributes export-ignore
+.gitignore export-ignore
+
+# set line-ending style for windows releases
+README.md text eol=crlf

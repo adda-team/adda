@@ -1,5 +1,5 @@
 This folder contains ADDA executables for 64-bit Windows and all required DLLs. Hence, these executables are ready to run, except for:
-* MPI executables (including `misc/neafield/nearfield.exe`) require Microsoft MPI [to be installed](https://github.com/adda-team/adda/wiki/InstallingMPI#windows
+* MPI executables (including `misc/neafield/nearfield.exe`) require Microsoft MPI [to be installed](https://github.com/adda-team/adda/wiki/InstallingMPI#windows)
 * OpenCL executables require GPU with [OpenCL support](https://github.com/adda-team/adda/wiki/OpenCL#windows).
 * All auxilliary files, like the [manual](https://github.com/adda-team/adda/blob/master/doc/manual.pdf) or [sample input files](https://github.com/adda-team/adda/tree/master/input), are supplied with the main (source) ADDA package. It should be [obtained separately](https://github.com/adda-team/adda/releases). Note that those text files will most probably contain Unix-style line endings. This is OK for ADDA but may cause inconveniences if you try to edit them in Windows Notepad. Use [more universal editor](https://notepad-plus-plus.org/) instead.
 

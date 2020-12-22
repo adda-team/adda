@@ -5,9 +5,7 @@ Use some normal shell, under Windows - this can be MSYS. Then 'sh' can be omitte
 
 2) Build and test the current source (a few hours)
 > sh test_new 2> log_test
-Before running the tests, make sure that ../tests/2exec/comp2exec script is properly set up. This includes
-the REFPATH (when comparing against previous version) and GUIDIFF. If the latter is used, you generally do
-not need to redirect stdout.
+Before running the tests, make sure that ../tests/2exec/comp2exec script is properly set up. This includes the REFPATH (when comparing against previous version) and GUIDIFF. If the latter is used, you generally do not need to redirect stdout.
 It is also possible to separately run build and ../tests/2exec/test_all scripts (see help inside them)
 
 3) If any changes are made to the code or tests, commit them now. 
@@ -16,36 +14,29 @@ It is also possible to separately run build and ../tests/2exec/test_all scripts 
 4) make sure that manual.doc/pdf, history, and const.h are up to date. See also versions.txt
 - version number in const.h should not contain "alpha" or "beta" (if not explicitly making beta release).
 - history should contain version date of the in-progress release.
-- manual should have correct version (including links on the first page). Look through the whole manual
-  (for figure placement, etc.). Update sample outputs in appendices, if needed. 
-- use doiLink macro in Word and produce pdf (better with Actobat plugin - leads to twice smaller size). 
-  Look through the pdf once more.
+- manual should have correct version (including links on the first page). Look through the whole manual (for figure placement, etc.). Update sample outputs in appendices, if needed.
+- use doiLink macro in Word and produce pdf (better with Acrobat plugin - leads to twice smaller size). Look through the pdf once more.
 
 5) Update CodeDesign and corresponding schemes in doc/gv/
 
-6) Make sure that the DLLs in win64/ correspond to the latest executables (to be copied there). They can be 
-   staged for commit (including deleted older ones) - then they will be committed together with executables.  
+6) Make sure that the DLLs in win64/ correspond to the latest executables (to be copied there). They can be staged for commit (including deleted older ones) - then they will be committed together with executables.
 
 7) Run the following aggregate script (on Windows), inserting appropriate version number:
 > sh win_all.sh #.#.#
 You can also go through it line by line.
 
-8) It is a good idea to test that the resulting executables can be run with given DLLs. For example you can run
-'set PATH=""' or 'export PATH=""' in a terminal before running the executables (to make other DLLs on your system
-unavailable).
+8) It is a good idea to test that the resulting executables can be run with given DLLs. For example you can run 'set PATH=""' or 'export PATH=""' in a terminal before running the executables (to make other DLLs on your system unavailable).
 
 9) Now you are ready to go live (check your commits):
-> git push --tags
+> git push --follow-tags (!!! NOT SURE !!!)
 
-10) Prepare binary and source packages
-> zip_packages #.#.#
+10) Prepare source and binary packages (placing them in releases/ folder, assuming that it exists)
+> zip_packages #.#.# releases/
 
-11) Create release at GitHub using this tag (Release notes is a shortened version of history). Attach the above 
-packages to it.
+11) Create release at GitHub using this tag. Include release notes, which is a shortened version of history (but focus on the benefits for users, and add links whenever possible, use previous release as an example). Attach the above win64 package to it. Source package is automatically produced by GitHub, so no need to upload it (let's keep it locally for archiving purposes).
 
 12) Update wiki page Features
 
-13) Send announcement to users.
+13) Send announcement to users. Focus on the most interesting features, but refer to the release notes for more information. Also provide standard links to motivate involvement of users. Potentially, include links to some recent relevant papers. Use announcement for the previous version as example.
 
-14) With the next commit update ignore patterns in tests/2exec/comp2exec and, possibly, testing suites to compare 
-against the latest release
+14) With the next commit update ignore patterns in tests/2exec/comp2exec and, possibly, testing suites to compare against the latest release

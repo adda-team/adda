@@ -6,6 +6,3 @@
 
 # set automatic line-ending conversion for all contributors
 * text=auto
-
-# set line-ending style for windows releases
-win64/README.md text eol=crlf

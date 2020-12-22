@@ -566,7 +566,7 @@ Ver. 1.4.0 - 15.12.2020
 * Added support for Microsoft MPI - works out of the box on Windows (d5814aa).
 * Behavior of '-maxiter ...' command line option was changed. Now when given number is reached ADDA produces a warning
   and continues to calculate scattering quantities (#111).
-+ Added separate timing for matrix-vector products (#16). Presicion of total wall time was improved on most operating
++ Added separate timing for matrix-vector products (#16). Precision of total wall time was improved on most operating
   systems (Windows and POSIX).
 * Optimized computation of exp(i*x) for real x using tables (#169). It accelerates sparse mode by 30-50% (similar to 
   more specialized SSE3 code), but can be turned off by defining NO_IMEXPTABLE in cmplx.h.
@@ -582,7 +582,7 @@ Ver. 1.4.0 - 15.12.2020
   cases (#277).
 * Removed 6 dots in stdout after the "Fourier transform of Dmatrix" (or Rmatrix). They were not properly buffered in
   many cases.
-+ Set the official pronounciation of ADDA - /'adda/.
++ Set the official pronunciation of ADDA - /'adda/.
 
 Changes to `misc/`:
 * `near_field` made robust with respect to comments in shape files. Now also works with inhomogeneous particles (#259).
@@ -630,7 +630,7 @@ Changes to the manual:
   timers (precise ones are used when available).
 + Section "Precise timing": added a caveat for OpenCL mode.
 + Section "Geometry files": added mention that sample files can be produced by ADDA itself.
-+ Section "stdout": added explanation of '-buf_so' command line option.
++ Section "stdout": added explanation of '-so_buf' command line option.
 * Chanded font for hyperlinks back to Times.
 * Changed source file format to .docx
 * Changed all equations to new Microsoft Word format
