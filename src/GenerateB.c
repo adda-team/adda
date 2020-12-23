@@ -192,6 +192,7 @@ void InitBeam(void)
 				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
 			}
 			return;
+		case B_BESSELASD:
 		case B_BESSELCS:
 		case B_BESSELGEN:
 		case B_BESSELLE:
@@ -217,6 +218,9 @@ void InitBeam(void)
 			if (IFROOT) {
 				strcpy(beam_descr,"Bessel beam (");
 				switch (beamtype) {
+					case B_BESSELASD:
+						strcat(beam_descr,"angular spectrum decomposition)\n");
+						break;
 					case B_BESSELCS:
 						strcat(beam_descr,"circularly symmetric energy density)\n");
 						break;
@@ -278,6 +282,14 @@ void InitBeam(void)
 }
 
 //======================================================================================================================
+void Fpw(doublecomplex *F,int l,doublecomplex k,double r0,double tht0, double phi0, double alph, double bet)
+{
+	doublecomplex fexp = cexp(I*l*bet + I*k*r0*(sin(alph)*sin(tht0)*cos(bet-phi0)+cos(alph)*cos(tht0)));
+	*F = (cos(alph)*cos(bet)*cos(bet)+sin(bet)*sin(bet))*fexp;
+	*(F+1) = -(1-cos(alph))*sin(bet)*cos(bet)*fexp;
+	*(F+2) = -sin(alph)*cos(bet)*fexp;
+}
+
 
 void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 doublecomplex *restrict b) // the b vector for the incident field
@@ -285,15 +297,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double ro, ro2,ro4;
-	double x,y,z,x2_s,xy_s,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2];
+	doublecomplex v1[3],v2[3],v3[3],gt[6],fint[3],sum[3];
+	double ro,ro2,ro4,r;
+	double x,y,z,x2_s,xy_s,tht,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2],db;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
 	double jn2[2]; // for Bessel functions on n and n+1 orders
-	int n1;
+	int n1,it,N;
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -484,315 +496,51 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 			}
 			return;
-		/*
-		case B_BESSELCS:
-		case B_BESSELLE:
-		case B_BESSELLM:
-		case B_BESSELTEC:
-		case B_BESSELTMC:
+		case B_BESSELASD:
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				x=DotProd(r1,ex);
 				y=DotProd(r1,ey);
 				z=DotProd(r1,prop);
-				ro2=x*x+y*y;
-				ro=sqrt(ro2);	// radial distance in a cylindrical coordinate system
-				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
-				t1=WaveNum*sin(alpha0);
-				t2=WaveNum*cos(alpha0);
-				// common factor
-				ctemp=cpow(I,n0)*cexp(I*n0*phi)*cexp(I*t2*z)/WaveNum/WaveNum;
-				// t3,t4,t5 - x,y,z field components are described in the doc file "Bessel beam fields" (in the doc folder)
-				if (n0==0){
-					if (ro==0){
-						switch (beamtype) {
-							case B_BESSELCS:
-								t3=0.5*WaveNum*WaveNum*(cos(alpha0)-0.5*sin(alpha0)*sin(alpha0)+1.0);
-								t4=0.0;
-								t5=0.0;
-								break;
-							case B_BESSELLE:
-								t3=t2*WaveNum;
-								t4=0.0;
-								t5=0.0;
-								break;
-							case B_BESSELLM:
-								t3=0.0;
-								t4=-0.25*WaveNum*WaveNum*(3.0+cos(2*alpha0));
-								t5=0.0;
-								break;
-							case B_BESSELTEC:
-								t3=I*t2*t2/sin(alpha0);
-								t4=0.25*WaveNum*WaveNum*(3.0+cos(2*alpha0))/sin(alpha0);
-								t5=0.0;
-								break;
-							case B_BESSELTMC:
-								t3=WaveNum*WaveNum/tan(alpha0);
-								t4=0.25*I*WaveNum*WaveNum*(3.0+cos(2*alpha0))/tan(alpha0);
-								t5=0.0;
-								break;
-							default: break;
-						}
-					}
-					else{
-						arg=ro*WaveNum*sin(alpha0);
-						if (arg<ROUND_ERR){
-							jn2[0]=1.0;
-							jn2[1]=0.0;
-						}
-						else {
-							n1=n0+1;
-							bjndd_(&n1, &arg, jn1, td1, td2);
-							jn2[0]=jn1[n0];
-							jn2[1]=jn1[n0+1];
-						}
-						switch (beamtype) {
-							case B_BESSELCS:
-								t3= 0.5*(
-										jn2[1]*t1/ro*cos(2*phi) +
-										jn2[0]*pow(WaveNum,2)*(cos(alpha0)-
-											pow(sin(alpha0)*cos(phi),2)+1.0));
-								t4= 0.125*(
-										jn2[1]*4*t1/ro*sin(2*phi) +
-										jn2[0]*(pow(WaveNum,2)*(cos(2*alpha0)-1)*sin(2*phi)));
-								t5= -0.5*I*(WaveNum+t2)*
-										jn2[1]*t1*cos(phi);
-								break;
-							case B_BESSELLE:
-								t3= jn2[0]*t2*WaveNum;
-								t4= 0;
-								t5= -WaveNum*I*jn2[1]*t1*cos(phi);
-								break;
-							case B_BESSELLM:
-								t3= jn2[1]*t1/ro*(-sin(2*phi)) +
-									jn2[0]*0.25/ro2*((cpow(WaveNum*ro,2)*(1-cos(2*alpha0)))*sin(2*phi));
-								t4= 0.25*(
-										jn2[1]*4*t1/ro*cos(2*phi) -
-										jn2[0]*(cpow(WaveNum,2)*cos(2*phi)+
-												cpow(WaveNum,2)*(3+2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= t2*jn2[1]*I*t1*sin(phi);
-								break;
-							case B_BESSELTEC:
-								t3= 0.5/ro2*cexp(-2*I*phi)*(
-										jn2[1]*2*WaveNum*ro*cexp(2*I*phi)*sin(2*phi) +
-										jn2[0]*(cexp(2*I*phi)*cpow(WaveNum*ro,2)*(2.*I*cos(alpha0)/tan(alpha0) -
-												sin(alpha0)*sin(2*phi))));
-								t4= -1./ro2/4.*(
-										jn2[1]*4*WaveNum*ro*cos(2*phi) -
-										jn2[0]/sin(alpha0)*(cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= 1./ro/tan(alpha0)*WaveNum*cexp(-I*phi)*(
-										jn2[1]*ro*t1);
-								break;
-							case B_BESSELTMC:
-								t3= 1./ro2*(
-										jn2[1]*t2*ro*I*sin(2*phi) +
-										jn2[0]*(-cpow(WaveNum*ro,2)*(1./tan(alpha0)+I/4.*sin(2*alpha0)*sin(2*phi))));
-								t4= -I/tan(alpha0)/ro2*(
-										jn2[1]*t1*ro*cos(2*phi) -
-										jn2[0]/4.*((cpow(WaveNum*ro,2))*cos(2*phi) +
-												cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= -0.5*I*WaveNum*(
-										-jn2[1]*2*WaveNum*(cos(phi) - I*pow(cos(alpha0),2)*sin(phi)));
-								break;
-								default: break;
-						}
-					}
+				r=sqrt(x*x+y*y+z*z);	// radial distance in a spherical coordinate system
+				tht=atan2(sqrt(x*x+y*y),z);	// polar angle
+				phi=atan2(y,x);			// azimuthal angle
+
+				// Integration
+				N=1000;
+				db=2.*PI/N;
+
+				Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,0);
+				sum[0] = fint[0];	sum[1] = fint[1];	sum[2] = fint[2];
+
+				for (it=1;it<N;it++) {
+					Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,it*db);
+					sum[0] += fint[0];
+					sum[1] += fint[1];
+					sum[2] += fint[2];
 				}
-				else if (n0==1){
-					if (ro==0){
-						t3=0.0; t4=0.0; t5=0.0;
-					}
-					else{
-						arg=ro*WaveNum*sin(alpha0);
-						if (arg<ROUND_ERR){
-							jn2[0]=0.0;
-							jn2[1]=0.0;
-						}
-						else {
-							n1=n0+1;
-							bjndd_(&n1, &arg, jn1, td1, td2);
-							jn2[0]=jn1[n0];
-							jn2[1]=jn1[n0+1];
-						}
-						switch (beamtype) {
-							case B_BESSELCS:
-								t3= 0.5*(
-										jn2[1]*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) +
-										jn2[0]*pow(WaveNum,2)*(cos(alpha0)-
-											pow(sin(alpha0)*cos(phi),2)+1.0));
-								t4= 0.125*(
-										jn2[1]*4*t1/ro*(-I*n0*cos(2*phi)+sin(2*phi)) +
-										jn2[0]*(pow(WaveNum,2)*(cos(2*alpha0)-1)*sin(2*phi)));
-								t5= -0.5*I*(WaveNum+t2)*cexp(-I*phi)*(
-										jn2[1]*cexp(I*phi)*t1*cos(phi) -
-										jn2[0]*n0/ro);
-								break;
-							case B_BESSELLE:
-								t3= jn2[0]*t2*WaveNum;
-								t4= 0;
-								t5= -WaveNum*I*(
-										jn2[1]*t1*cos(phi) -
-										jn2[0]*cexp(-I*phi)/ro*n0);
-								break;
-							case B_BESSELLM:
-								t3= jn2[1]*t1/ro*(I*n0*cos(2*phi)-sin(2*phi)) +
-									jn2[0]*0.25/ro2*((cpow(WaveNum*ro,2)*(1-cos(2*alpha0)))*sin(2*phi));
-								t4= 0.25*(
-										jn2[1]*4*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) -
-										jn2[0]*(cpow(WaveNum,2)*cos(2*phi)+
-												cpow(WaveNum,2)*(3+2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= t2*(
-										jn2[1]*I*t1*sin(phi) +
-										jn2[0]/ro*n0*cexp(-I*phi));
-								break;
-							case B_BESSELTEC:
-								t3= 0.5/ro2*cexp(-2*I*phi)*(
-										jn2[1]*2*WaveNum*ro*cexp(2*I*phi)*(-I*n0*cos(2*phi) + sin(2*phi)) +
-										jn2[0]*(cexp(2*I*phi)*cpow(WaveNum*ro,2)*(2.*I*cos(alpha0)/tan(alpha0) -
-												sin(alpha0)*sin(2*phi))));
-								t4= -1./ro2/4.*(
-										jn2[1]*4*WaveNum*ro*(cos(2*phi) + I*n0*sin(2*phi)) -
-										jn2[0]/sin(alpha0)*(cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= 1./ro/tan(alpha0)*WaveNum*cexp(-I*phi)*(
-										jn2[1]*ro*t1 -
-										jn2[0]*2*n0);
-								break;
-							case B_BESSELTMC:
-								t3= 1./ro2*(
-										jn2[1]*t2*ro*(n0*cos(2*phi) + I*sin(2*phi)) +
-										jn2[0]*(-cpow(WaveNum*ro,2)*(1./tan(alpha0)+I/4.*sin(2*alpha0)*sin(2*phi))));
-								t4= -I/tan(alpha0)/ro2*(
-										jn2[1]*t1*ro*(cos(2*phi) + I*n0*sin(2*phi)) -
-										jn2[0]/4.*((cpow(WaveNum*ro,2))*cos(2*phi) +
-												cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2))));
-								t5= -0.5*I*WaveNum*(
-										-jn2[1]*2*WaveNum*(cos(phi) - I*pow(cos(alpha0),2)*sin(phi)) +
-										 jn2[0]*n0*cexp(-I*phi)/ro*(3+cos(2*alpha0))/sin(alpha0));
-								break;
-								default: break;
-						}
-					}
-				}
-				else {
-					if (ro==0){
-						if (n0==2){
-							switch (beamtype) {
-								case B_BESSELCS:
-									t3=-0.125*I*t1*t1; t4=0.125*t1*t1; t5=0.0;
-									break;
-								case B_BESSELLE:
-									t3=0.0; t4=0.0; t5=0.0;
-									break;
-								case B_BESSELLM:
-									t3=-0.25*t1*t1; t4=0.25*I*t1*t1; t5=0.0;
-									break;
-								case B_BESSELTEC:
-									t3=0.25*t1*t1/sin(alpha0); t4=0.25*I*t1*t1/sin(alpha0); t5=0.0;
-									break;
-								case B_BESSELTMC:
-									t3=0.25*I*t1*t1/tan(alpha0); t4=-0.25*t1*t1/tan(alpha0); t5=0.0;
-									break;
-								default: break;
-							}
-						}
-						else {
-							t3=0.0; t4=0.0; t5=0.0;
-						}
-					}
-					else{
-						arg=ro*WaveNum*sin(alpha0);
-						if (arg<ROUND_ERR){
-							jn2[0]=0.0;
-							jn2[1]=0.0;
-						}
-						else {
-							n1=n0+1;
-							bjndd_(&n1, &arg, jn1, td1, td2);
-							jn2[0]=jn1[n0];
-							jn2[1]=jn1[n0+1];
-						}
-						switch (beamtype) {
-							case B_BESSELCS:
-								t3= 0.5*(
-										jn2[1]*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) +
-										jn2[0]*((n0-1)*n0*cexp(-2*I*phi)/ro2+pow(WaveNum,2)*(cos(alpha0)-
-											pow(sin(alpha0)*cos(phi),2)+1.0)));
-								t4= 0.125*(
-										jn2[1]*4*t1/ro*(-I*n0*cos(2*phi)+sin(2*phi)) +
-										jn2[0]*(4*I*(n0-1)*n0/ro2*cos(2*phi)+(4*(n0-1)*n0/ro2 +
-												pow(WaveNum,2)*(cos(2*alpha0)-1))*sin(2*phi)));
-								t5= -0.5*I*(WaveNum+t2)*(
-										jn2[1]*t1*cos(phi) -
-										jn2[0]*cexp(-I*phi)*n0/ro);
-								break;
-							case B_BESSELLE:
-								t3= jn2[0]*t2*WaveNum;
-								t4= 0;
-								t5= -WaveNum*I*(
-										jn2[1]*t1*cos(phi) -
-										jn2[0]*cexp(-I*phi)/ro*n0);
-								break;
-							case B_BESSELLM:
-								t3= jn2[1]*t1/ro*(I*n0*cos(2*phi)-sin(2*phi)) +
-									jn2[0]*0.25/ro2*(-4*I*(n0-1)*n0*cos(2*phi)+(-4*(n0-1)*n0 +
-										cpow(WaveNum*ro,2)*(1-cos(2*alpha0)))*sin(2*phi));
-								t4= 0.25*(
-										jn2[1]*4*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) -
-										jn2[0]*((-4*(n0-1)*n0/ro2 + cpow(WaveNum,2))*cos(2*phi) +
-												cpow(WaveNum,2)*(3+2*cos(2*alpha0)*pow(sin(phi),2)) +
-												4*I*(n0-1)*n0/ro2*sin(2*phi)));
-								t5= t2*(
-										jn2[1]*I*t1*sin(phi) +
-										jn2[0]/ro*n0*cexp(-I*phi));
-								break;
-							case B_BESSELTEC:
-								t3= 0.5/ro2*cexp(-2*I*phi)*(
-										jn2[1]*2*WaveNum*ro*cexp(2*I*phi)*(-I*n0*cos(2*phi) + sin(2*phi)) +
-										jn2[0]*(2.*I*(n0-1)*n0/sin(alpha0) +
-												cexp(2*I*phi)*cpow(WaveNum*ro,2)*(2.*I*cos(alpha0)/tan(alpha0) -
-												sin(alpha0)*sin(2*phi))));
-								t4= -1./ro2/4.*(
-										jn2[1]*4*WaveNum*ro*(cos(2*phi) + I*n0*sin(2*phi)) -
-										jn2[0]/sin(alpha0)*((-4*(n0-1)*n0+cpow(WaveNum*ro,2))*cos(2*phi) +
-												cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2)) +
-												4*I*(n0-1)*n0*sin(2*phi)));
-								t5= 1./ro/tan(alpha0)*WaveNum*cexp(-I*phi)*(
-										jn2[1]*ro*t1 -
-										jn2[0]*2*n0);
-								break;
-							case B_BESSELTMC:
-								t3= 1./ro2*(
-										jn2[1]*t2*ro*(n0*cos(2*phi) + I*sin(2*phi)) +
-										jn2[0]*(-cexp(-2*I*phi)*(n0-1)*n0*1./tan(alpha0) -
-												cpow(WaveNum*ro,2)*(1./tan(alpha0)+I/4.*sin(2*alpha0)*sin(2*phi))));
-								t4= -I/tan(alpha0)/ro2*(
-										jn2[1]*t1*ro*(cos(2*phi) + I*n0*sin(2*phi)) -
-										jn2[0]/4.*((-4*(n0-1)*n0+cpow(WaveNum*ro,2))*cos(2*phi) +
-												cpow(WaveNum*ro,2)*(3 + 2*cos(2*alpha0)*pow(sin(phi),2)) +
-												4*I*(n0-1)*n0*sin(2*phi)));
-								t5= -0.5*I*WaveNum*(
-										-jn2[1]*2*WaveNum*(cos(phi) - I*pow(cos(alpha0),2)*sin(phi)) +
-										 jn2[0]*n0*cexp(-I*phi)/ro*(3+cos(2*alpha0))/sin(alpha0));
-								break;
-							default: break;
-						}
-					}
-				}
+
+				t3=sum[0]/N;	t4=sum[1]/N;	t5=sum[2]/N;
+
+				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
+
 				cvMultScal_RVec(t3,ex,v1);
 				cvMultScal_RVec(t4,ey,v2);
 				cvMultScal_RVec(t5,prop,v3);
 				cvAdd2Self(v1,v2,v3);
-				cvMultScal_cmplx(ctemp,v1,b+j);
+				cvMultScal_cmplx(1.,v1,b+j);
 			}
 			return;
-		*/
 		case B_BESSELCS:
 		case B_BESSELGEN:
 		case B_BESSELLE:
 		case B_BESSELLM:
 		case B_BESSELTEC:
 		case B_BESSELTMC:
+			t1=WaveNum*sin(alpha0);
+			t2=WaveNum*cos(alpha0);
+
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
@@ -802,14 +550,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				ro2=x*x+y*y;
 				ro=sqrt(ro2);	// radial distance in a cylindrical coordinate system
 				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
-				t1=WaveNum*sin(alpha0);
-				t2=WaveNum*cos(alpha0);
 				// common factor
 				ctemp=cpow(I,n0)*cexp(I*n0*phi)*cexp(I*t2*z)/WaveNum/WaveNum;
-
-				arg=ro*WaveNum*sin(alpha0);
+				arg=ro*t1;
 				if (arg<ROUND_ERR){
-					jn2[0]=0.0;
+					if (n0 == 0) jn2[0]=1.0;
+					else jn2[0]=0.0;
 					jn2[1]=0.0;
 				}
 				else {
@@ -820,7 +566,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 				switch (beamtype) {
 					case B_BESSELCS:
-						p[0][0]=0.5; p[0][1]=0;		p[1][0]=0; p[1][1]=0;
+						p[0][0]=0.50; p[0][1]=0;		p[1][0]=0; p[1][1]=0;
 						p[2][0]=0; p[2][1]=0; 		p[3][0]=0.5; p[3][1]=0;
 						break;
 					case B_BESSELGEN:
@@ -846,47 +592,87 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					default: break;
 				}
 				t3 = 0; t4 = 0; t5 = 0;
-				if ((fabs(p[0][0])>=ROUND_ERR) || (fabs(p[0][1])>=ROUND_ERR)) {		//Pex - LMy
-					t3 += (p[0][0]+I*p[0][1])*0.25*(
-							jn2[1]*4.*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) +
-							jn2[0]*(4.*(n0-1)*n0/ro2*cexp(-2*I*phi) +
-									cpow(WaveNum,2)*(3+cos(2*alpha0)-2*cos(2*phi)*pow(sin(alpha0),2))));
-					t4 += (p[0][0]+I*p[0][1])*(
-							jn2[1]*t1/ro*(-I*n0*cos(2*phi)+sin(2*phi)) +
-							jn2[0]/ro2*(I*(n0-1)*n0*pow(cos(phi),2)+0.5*sin(2*phi)*(2*(n0-1)*n0 -
-								cpow(WaveNum*ro,2)*pow(sin(alpha0),2)) - I*(n0-1)*n0*pow(sin(phi),2)));
-					t5 += (p[0][0]+I*p[0][1])*t2*I*(
-							-jn2[1]*t1*cos(phi) +
-							 jn2[0]/ro*n0*cexp(-I*phi));
+				if (ro<=ROUND_ERR) {
+					if ((fabs(p[0][0])>=ROUND_ERR) || (fabs(p[0][1])>=ROUND_ERR)) {		//Pex - LMy
+						t3 += (p[0][0]+I*p[0][1])*0.25*(
+								jn2[0]*(cpow(WaveNum,2)*(3+cos(2*alpha0)-2*cos(2*phi)*pow(sin(alpha0),2))));
+						t4 += (p[0][0]+I*p[0][1])*(
+								jn2[0]/4.*(sin(2*phi)*(-2*cpow(WaveNum,2)*pow(sin(alpha0),2))));
+						t5 += (p[0][0]+I*p[0][1])*t2*I*(
+								 n0*cexp(-I*phi));
+					}
+					if ((fabs(p[1][0])>=ROUND_ERR) || (fabs(p[1][1])>=ROUND_ERR)) {		//Pey - LMx
+						t3 += -(p[1][0]+I*p[1][1])*(
+								jn2[0]*0.5*sin(2*phi)*cpow(WaveNum,2)*pow(sin(alpha0),2));
+						t4 += -(p[1][0]+I*p[1][1])*( -
+								jn2[0]*(pow(cos(phi),2)*(cpow(WaveNum,2)) +
+									pow(sin(phi),2)*cpow(WaveNum,2)*pow(cos(alpha0),2)));
+						t5 += -(p[1][0]+I*p[1][1])*t2*(
+								n0*cexp(-I*phi));
+					}
+					if ((fabs(p[2][0])>=ROUND_ERR) || (fabs(p[2][1])>=ROUND_ERR)) { 	//Pmx - LEy
+						t3 += 0;
+						t4 += -(p[2][0]+I*p[2][1])*jn2[0]*t2*WaveNum;
+						t5 += -(p[2][0]+I*p[2][1])*WaveNum*(
+								-jn2[1]*I*t1*sin(phi) -
+								n0*cexp(-I*phi));
+					}
+					if ((fabs(p[3][0])>=ROUND_ERR) || (fabs(p[3][1])>=ROUND_ERR)) {		//Pmy - LEx
+						t3 += (p[3][0]+I*p[3][1])*jn2[0]*t2*WaveNum;
+						t4 += 0;
+						t5 += (p[3][0]+I*p[3][1])*WaveNum*I*(
+								-jn2[1]*t1*cos(phi) +
+								n0*cexp(-I*phi));
+					}
 				}
-				if ((fabs(p[1][0])>=ROUND_ERR) || (fabs(p[1][1])>=ROUND_ERR)) {		//Pey - LMx
-					t3 += -(p[1][0]+I*p[1][1])*(
-							jn2[1]*t1/ro*(I*n0*cos(2*phi)-sin(2*phi)) +
-							jn2[0]/ro2*(-I*(n0-1)*n0*pow(cos(phi),2)+0.5*sin(2*phi)*(-2*(n0-1)*n0 +
-							cpow(WaveNum*ro,2)*pow(sin(alpha0),2)) + I*(n0-1)*n0*pow(sin(phi),2)));
-					t4 += -(p[1][0]+I*p[1][1])*(
-							jn2[1]*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) -
-							jn2[0]*(pow(cos(phi),2)*(-(n0-1)*n0/ro2 + cpow(WaveNum,2)) +
-								pow(sin(phi),2)*((n0-1)*n0/ro2 + cpow(WaveNum,2)*pow(cos(alpha0),2)) +
-								I*(n0-1)*n0/ro2*sin(2*phi)));
-					t5 += -(p[1][0]+I*p[1][1])*t2*(
-							jn2[1]*I*t1*sin(phi) +
-							jn2[0]/ro*n0*cexp(-I*phi));
+				else {
+					if ((fabs(p[0][0])>=ROUND_ERR) || (fabs(p[0][1])>=ROUND_ERR)) {		//Pex - LMy
+						t3 += (p[0][0]+I*p[0][1])*0.25*(
+								jn2[1]*4.*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) +
+								jn2[0]*(4.*(n0-1)*n0/ro2*cexp(-2*I*phi) +
+										cpow(WaveNum,2)*(3+cos(2*alpha0)-2*cos(2*phi)*pow(sin(alpha0),2))));
+						t4 += (p[0][0]+I*p[0][1])*(
+								jn2[1]*t1/ro*(-I*n0*cos(2*phi)+sin(2*phi)) +
+								jn2[0]/4./ro2*(4.*I*(n0-1)*n0*cos(2*phi) + sin(2*phi)*(4*(n0-1)*n0 -
+									2*cpow(WaveNum*ro,2)*pow(sin(alpha0),2))));
+						t5 += (p[0][0]+I*p[0][1])*t2*I*(
+								-jn2[1]*t1*cos(phi) +
+								 jn2[0]/ro*n0*cexp(-I*phi));
+					}
+					if ((fabs(p[1][0])>=ROUND_ERR) || (fabs(p[1][1])>=ROUND_ERR)) {		//Pey - LMx
+						t3 += -(p[1][0]+I*p[1][1])*(
+								jn2[1]*t1/ro*(I*n0*cos(2*phi)-sin(2*phi)) +
+								jn2[0]/ro2*(-I*(n0-1)*n0*pow(cos(phi),2)+0.5*sin(2*phi)*(-2*(n0-1)*n0 +
+								cpow(WaveNum*ro,2)*pow(sin(alpha0),2)) + I*(n0-1)*n0*pow(sin(phi),2)));
+						t4 += -(p[1][0]+I*p[1][1])*(
+								jn2[1]*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) -
+								jn2[0]*(pow(cos(phi),2)*(-(n0-1)*n0/ro2 + cpow(WaveNum,2)) +
+									pow(sin(phi),2)*((n0-1)*n0/ro2 + cpow(WaveNum,2)*pow(cos(alpha0),2)) +
+									I*(n0-1)*n0/ro2*sin(2*phi)));
+						t5 += -(p[1][0]+I*p[1][1])*t2*(
+								jn2[1]*I*t1*sin(phi) +
+								jn2[0]/ro*n0*cexp(-I*phi));
+					}
+					if ((fabs(p[2][0])>=ROUND_ERR) || (fabs(p[2][1])>=ROUND_ERR)) { 	//Pmx - LEy
+						t3 += 0;
+						t4 += -(p[2][0]+I*p[2][1])*jn2[0]*t2*WaveNum;
+						t5 += -(p[2][0]+I*p[2][1])*WaveNum*(
+								-jn2[1]*I*t1*sin(phi) -
+								 jn2[0]*cexp(-I*phi)/ro*n0);
+					}
+					if ((fabs(p[3][0])>=ROUND_ERR) || (fabs(p[3][1])>=ROUND_ERR)) {		//Pmy - LEx
+						t3 += (p[3][0]+I*p[3][1])*jn2[0]*t2*WaveNum;
+						t4 += 0;
+						t5 += (p[3][0]+I*p[3][1])*WaveNum*I*(
+								-jn2[1]*t1*cos(phi) +
+								 jn2[0]*cexp(-I*phi)/ro*n0);
+					}
 				}
-				if ((fabs(p[2][0])>=ROUND_ERR) || (fabs(p[2][1])>=ROUND_ERR)) { 	//Pmx - LEy
-					t3 += 0;
-					t4 += -(p[2][0]+I*p[2][1])*jn2[0]*t2*WaveNum;
-					t5 += -(p[2][0]+I*p[2][1])*WaveNum*(
-							-jn2[1]*I*t1*sin(phi) -
-							 jn2[0]*cexp(-I*phi)/ro*n0);
-				}
-				if ((fabs(p[3][0])>=ROUND_ERR) || (fabs(p[3][1])>=ROUND_ERR)) {		//Pmy - LEx
-					t3 += (p[3][0]+I*p[3][1])*jn2[0]*t2*WaveNum;
-					t4 += 0;
-					t5 += (p[3][0]+I*p[3][1])*WaveNum*I*(
-							-jn2[1]*t1*cos(phi) +
-							 jn2[0]*cexp(-I*phi)/ro*n0);
-				}
+
+
+				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
+
+
 				cvMultScal_RVec(t3,ex,v1);
 				cvMultScal_RVec(t4,ey,v2);
 				cvMultScal_RVec(t5,prop,v3);
