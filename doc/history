@@ -525,61 +525,112 @@ Changes to the manual:
 + Section "Parallel performance": minor changes, it now explicitly refers to optimal partition of FFT grid.
 
 ------------------------------------------------------------------------------------------------------------------------
-Ver. 1.4.0 (in progress) - 2018 (?)
+Ver. 1.4.0 - 15.12.2020
 
 * ADDA moved to GitHub with a lot of related changes to documentation (#210):
   * `doc/copyleft` was renamed/moved to `./LICENSE`
-  * top-level `README` replaces previous homepage.
+  * top-level `README.md` replaces previous homepage.
   * wiki pages ReleaseNotes and Downloads (created recently - #189, #72) were deprecated in favor of GitHub releases.
   * wiki page GettingStarted renamed into Home
-  * TODO: wiki page PackageDescription was deprecated in favor of `README` in each directory
-  * all links to Google Code updated to point to GitHub in source files, manual, wikis, and even some adda-discuss messages.
+  * wiki page PackageDescription was deprecated in favor of `README.md` in each directory
+  * all links to Google Code updated to point to GitHub in source files, manual, wikis, and even some adda-discuss
+    messages.
+  * Changed machinery of `svnrev` to `githash` (#237).
+  * Changed svn:ignore to .gitignore with some optimizations.
+  * Changed template for comments in the top of source files, removed svn fields.
+  * Updated release scripts 
 
 * Many changes to OpenCL part:
   * Significant speed improvements (especially for relatively small problems). It is partly based on additional GPU
     memory consumption (if available), controlled by `-opt ...` command line option.
-  * Switched from discontinued library clAmdFft to clFFT.
+  * Switched from discontinued library clAmdFft to clFFT (#204). It supports the same sizes of transforms as FFTW3. 
   * Test implementation of the whole iterative solver (currently only BiCG) on the GPU using clBLAS (#199).
   + Added rigorous accounting (in OpenCL memory) for clFFT internal buffers.
   * OpenCL part of `matvec.c` moved into seperate file `oclmatvec.c`
   * Function wrappers for clBLAS (#213).
-  * Added error checks (`CL_CH_ERR`) to many ocl function calls.
+  * Added error checks (`CL_CH_ERR`) to many ocl function calls. Special error checks for clFFT and clBLAS calls.
+  * Improved compilation flags for MacOS - now works out of the box (#279).
+  * Fixed a few bugs on the way (#157, #207). 
 
-* Adopted semantiv versioning.  
++ Non-cubical (rectangular cuboid) dipoles - a major new feature (#196). Lattice spacings are now hardcoded into the
+  saved geometry files. Dipole size is shown in the log.
++ Remove limitations of grid size dimensions to be even (#95).
+* Improvement of `tests/2exec` to ignore most of the legitimate messages. Compatible with both bash 3.1 and later 
+  versions. Enhanced syntax of suites for fine tuning. New suite `suite_rd` and modes for rectangular dipoles. Added 
+  `test_all` for systematic testing. `diff_numeric.awk` now can compare complex numbers.
+- Windows 32-bit executables are no more provided.
+* Adopted semantic versioning.  
 * Minimum MPI version requirement is now 2.1.
 * Improved detection of optional MPI features (#201).
+* Improved description and version detection for modern MPI implementations (#203, #246).
+* Added support for Microsoft MPI - works out of the box on Windows (d5814aa).
 * Behavior of '-maxiter ...' command line option was changed. Now when given number is reached ADDA produces a warning
   and continues to calculate scattering quantities (#111).
-+ Added separate timing for matrix-vector products (#16). Presicion of total wall time was improved on most operating
++ Added separate timing for matrix-vector products (#16). Precision of total wall time was improved on most operating
   systems (Windows and POSIX).
-* Added compilation option `ACCIMEXP` to have faster calculation of imaginary exponent (mostly relevant to sparse
-  mode), #169.
-- A few minor bugs fixed or addressed (#198, #216).
-+ Added wiki pages: InstallingclAmdBlas.
+* Optimized computation of exp(i*x) for real x using tables (#169). It accelerates sparse mode by 30-50% (similar to 
+  more specialized SSE3 code), but can be turned off by defining NO_IMEXPTABLE in cmplx.h.
+* Fixed redundant IFAIL errors in IGT routines (f6d6400).
+- Several minor bugs fixed or addressed (#198, #215, #216, #228, #266, #269, #270, #271, #276).
+* Minor changes to output - couple of spaces added/removed (758fea0).
++ Added wiki pages: UsingEclipse, InstallingclFFT, and InstallingclBLAS.
+* Deprecated wiki pages InstallingclAmdFft and InstallingclAmdBlas (the latter newly created).
+* Updated wiki pages CompilingADDA, InstallingFFTW3, InstallingMinGW, OpenCL, SparseMode, InstallingMPI, Acknowledgements.
+* Build scripts improved and updated. One wrapper can be used to build and test at once.
++ New command line option: -so_buf {no|line|full} for manually specifying the buffering of stdout. On Widows line 
+  buffering and default POSIX behavior (when command line is not used) is emulated, which improves performance in some
+  cases (#277).
+* Removed 6 dots in stdout after the "Fourier transform of Dmatrix" (or Rmatrix). They were not properly buffered in
+  many cases.
++ Set the official pronunciation of ADDA - /'adda/.
+
+Changes to `misc/`:
+* `near_field` made robust with respect to comments in shape files. Now also works with inhomogeneous particles (#259).
+* `parse_log` updated (bb2efa6)
+* `pip` updated for massive simulation (many files, billions of dipoles) (#262).
 
 Changes to Makefiles:
 * Fixed bug preventing use of LDLIBS from environment (b6e54fb)
 * Updated comments to recommend linking to DLLs directly
+* Changed optimization level during debug build from -O2 to -O1 (or -Og) (c9ad8bf)
 
 Changes to the manual:
++ Section "Introduction": specified pronounciation of ADDA.
++ Section "Sequential mode": mentioned that ADDA is a console application.
 * Section "How to use the manual" renamed into "Using the manual".
-+ Section "General applicability": added statement that the DDA is a "numerically exact" method.
++ Section "General applicability": added statement that the DDA is a "numerically exact" method and more clear 
+  description for particles smaller than wavelength.
+* Section "Extensions of the DDA": made it explicit that all refractive indices need to be scaled by m0.  
 * Section "System Requirements": mentioned extra memory that can be allocated in OpenCL mode. Eq.(4) for Mtot was made
-  less ambiguous with respect to the part "only if parallel" (#206).
+  less ambiguous with respect to the part "only if parallel" (#206), also the range before Nreal now uses less confusing
+  notation. 
 + Section "Reference frames": added advice when unsure about dipole coordinates.
-+ Section "Predefined shapes": added clarification and reference to description of RBC shape.
-+ Section "Beam type": added explicit statements that beam arguments are in laboratory reference frame.
-+ Section "DDA formulation": the sum in the main equations was changed to include Rii (assuming Gii=0).
++ Section "The computational grid": mentioned that the default unit of length is 1/k, removed mentions that grid sizes are required to be even. Added description of rectangular dipoles (also affects many other parts of the manual).
++ Section "Construction of a dipole set": recommended disabling volume correction in a number of computational scenarios.
++ Section "Predefined shapes": added clarification and reference to description of RBC shape, added explicit mention of argument bounds for many shapes. 
++ Section "Beam type": added explicit statements that beam arguments are in laboratory reference frame. Recommended use 
+  of -no_vol_cor for point-dipole excitation.
++ Section "DDA formulation": the sum in the main equations was changed to include Rii (assuming Gii=0). Added a note about notation (G and H instead of G0 and G).
++ Section "Polarizability prescription": added a lot of formulae for rectangular dipoles, reworked usage recommendations.
++ Section "Interaction term": explained differences for rectangular dipoles, reworked usage recommendations.
++ Section "How to calculate scattering quantities": added rationale for using a specific definition of the scattering 
+  amplitude F(n)
 + Section "Mueller matrix and its derivatives": Footnote describing Stokes scattering matrix was corrected (integrated
   -> averaged). Corrected special symbols (||) in Eq.(42) and "phi" symbols in Eq.(41).
 + Section "Integral scattering quantities": added a note that Cext is directly related to a molar extinction coefficient
   of a suspension of particles. Added note that definition of efficiencies is different from those based on
   geometric-shadow cross section.
-+ Section "Near-field": mentioned that outer-box workaround can be used to compute near field in the surface mode.
-+ Section "Iterative Solver": changed the desciption of `-maxiter` option. Added formula to estimate Niter for nanoparticles.
++ Section "Decay-rate enhancement": added specific formulae in the case when intrinsic losses are present (corresponding intrinsic quantum yield q0<1), based on a recent publication.  
++ Section "Internal fields and dipole polarizations": recommended the use of -no_vol_cor.
++ Section "Near-field": recommended the use of -no_vol_cor, mentioned that outer-box workaround can be used to compute
+  near field in the surface mode.
++ Section "Iterative Solver": changed the desciption of `-maxiter` option. Added formula to estimate Niter for
+  nanoparticles. Threshold for convergence 𝜀 renamed into 𝜀_iter to avoid confusion with dielectric permittivity.
 + Section "Basic timing": added reference to #197 (problem with clock in OpenCL mode), updated the description of wall
   timers (precise ones are used when available).
-+ TODO: Section "Precise timing": added specifics in OpenCL mode.
++ Section "Precise timing": added a caveat for OpenCL mode.
++ Section "Geometry files": added mention that sample files can be produced by ADDA itself.
++ Section "stdout": added explanation of '-so_buf' command line option.
 * Chanded font for hyperlinks back to Times.
 * Changed source file format to .docx
-* TODO: changed all equations to new Microsoft Word format
+* Changed all equations to new Microsoft Word format

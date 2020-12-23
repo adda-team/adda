@@ -6,7 +6,6 @@ if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
   exit $ERR
 fi
-#grep "#@#" adda.out > commvar
 mv box.geom target
 echo '------------gendip--------------'
 ../../gendip > gendip.out

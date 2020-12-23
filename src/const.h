@@ -1,8 +1,6 @@
-/* File: const.h
- * $Date::                            $
- * Descr: all the constants used by ADDA code, including enum constants, also defines some useful macros
+/* All the constants used by ADDA code, including enum constants, also defines some useful macros
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -18,17 +16,19 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.4.0-alpha"
+#define ADDA_VERSION "1.4.0"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
  * and produce a strong warning, if it is not satisfied. The list of C99 features, used by ADDA, include (but may be not
- * limited to): stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros
+ * limited to): stdbool.h, snprintf, %z argument in printf, '//' comments, restricted pointers, variadic macros.
+ * Naturally, this test is not invoked if this header is included from C++ source file
 */
-# if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
-#   error "Support for C99 standard (at least many of its parts) is strongly recommended for compilation. Otherwise \
-	the compilation will may fail or produce wrong results. If you still want to try, you may enable an override in \
-	the Makefile."
+#ifndef __cplusplus
+#if !defined(OVERRIDE_STDC_TEST) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L))
+#	error "Support for C99 standard (at least many of its parts) is strongly recommended for compilation. Otherwise \
+the compilation may fail or produce wrong results. If you still want to try, enable an override in the Makefile."
+#endif
 #endif
 
 /* The following is to ensure that mingw64 with "-std=c99" will use c99-compliant printf-family functions. For some
@@ -56,7 +56,9 @@
 #define MIN(A,B) (((A) > (B)) ? (B) : (A))
 #define MAX(A,B) (((A) < (B)) ? (B) : (A))
 #define MAXIMIZE(A,B) {if ((A)<(B)) (A)=(B);}
-#define IS_EVEN(A) (((A)%2) == 0)
+#define IS_ODD(n) ((n) & 1) // n is integer
+#define IS_EVEN(n) (!(IS_ODD(n)))
+#define SIGN(A) ((A) >= 0.0 ? 1 : -1)
 #define DIV_CEILING(A,B) (((A)%(B)==0) ? (A)/(B) : ((A)/(B))+1 ) // valid only for nonnegative A and B
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A
@@ -139,11 +141,13 @@
 #define MIN_TERM_WIDTH 20 // ADDA never takes value less than that from environmental variables
 
 // formats for outputs of float values
-#define EFORM "%.10E"        // fixed width
-#define GFORM "%.10g"        // variable width (showing significant digits)
-#define GFORMDEF "%g"        // default output for non-precise values
-#define GFORM_DEBUG "%.2g"   // for debug and error output
-#define CFORM "%.10g%+.10gi" // for complex numbers; may be defined in terms of GFORM
+#define EFORM "%.10E"             // fixed width
+#define GFORM "%.10g"             // variable width (showing significant digits)
+#define GFORMDEF "%g"             // default output for non-precise values
+#define GFORM_FULL "%.16g"        // full precision (for some debugging applications)
+#define GFORM_DEBUG "%.2g"        // for debug and error output
+#define CFORM "%.10g%+.10gi"      // for complex numbers; may be defined in terms of GFORM
+#define CFORM_FULL "%.16g%+.16gi" // full-precision complex
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
@@ -231,6 +235,9 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 };// in alphabetical order
 
 // ldr constants
+/* Based on comparison of the original paper - Draine & Goodman, Astrophys. J. 405, 685-697 (1993) - with Mackowski,
+ * J. Opt. Soc. Am. A 19, 881-893 (2002), one can deduce that b1=10*b2+2*b3 - it can also be derived explicitly.
+ */
 #define LDR_B1  1.8915316
 #define LDR_B2 -0.1648469
 #define LDR_B3  1.7700004

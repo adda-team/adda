@@ -1,3 +1,7 @@
+# Main test suite to be used by comp2exec
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 #------------------------- Variable definitons -------------------------------------------------------------------------
 # All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
 # can be defined through other variables defined below. Each variable must be defined only once.
@@ -8,6 +12,8 @@
 ;2mgn; ;2m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
+# for testing odd grids
+;mg9n; ;m; -grid 9 ;n;
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
 # default for testing of different grids
@@ -33,7 +39,6 @@
 all
 
 # testing of different grids - relevant for FFT methods; 
-# Some are turned off for ocl_seq until ocl supports larger prime factors in FFT
 # TODO: add odd grid values (the maximum size can then be decreased to 16)
 all -grid 2 ;smn;
 all -grid 4 ;smn;
@@ -41,13 +46,13 @@ all -grid 6 ;smn;
 all -grid 8 ;smn;
 all -grid 10 ;smn;
 all -grid 12 ;smn;
-!ocl_seq -grid 14 ;smn;
+all -grid 14 ;smn;
 all -grid 16 ;smn;
 all -grid 18 ;smn;
 all -grid 20 ;smn;
-!ocl_seq -grid 22 ;smn;
+all -grid 22 ;smn;
 all -grid 24 ;smn;
-!ocl_seq -grid 26 ;smn;
+all -grid 26 ;smn;
 all -grid 30 ;smn;
 all -grid 32 ;smn;
 
@@ -67,9 +72,10 @@ all -h beam lminus
 all -beam lminus 2 1 2 3 ;mgn;
 all -h beam davis3
 all -beam davis3 2 1 2 3 ;mgn;
+all -beam davis3 2 ;mg9n;
 all -h beam barton5
 all -beam barton5 2 1 2 3 ;mgn;
-all -beam barton5 2 ;mgn;
+all -beam barton5 2 ;mg9n;
 all -beam dipole 3 2 1 ;p; ;mgn;
 all -h beam read
 all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
@@ -228,9 +234,8 @@ all -rect_dip 1 1.5 2 ;mgn;
 all -rect_dip 1 2 1.5 ;mgn;
 all -rect_dip 1.5 1 2 ;mgn;
 all -rect_dip 1.5 2 1 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq -rect_dip 2 1 1.5 ;mgn;
-!ocl_seq -rect_dip 2 1.5 1 ;mgn;
+all -rect_dip 2 1 1.5 ;mgn;
+all -rect_dip 2 1.5 1 ;mgn;
 all -rect_dip 1 2 2 ;mgn;
 all -rect_dip 2 1 2 ;mgn;
 all -rect_dip 2 2 1 ;mgn;
@@ -290,6 +295,7 @@ all -scat_plane ;se; ;mgn;
 all -h shape
 all -h shape axisymmetric
 all -shape axisymmetric 196.txt ;mgn;
+all -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 all -shape bicoated 3 0.5 ;2mgn;
 all -h shape biellipsoid
@@ -299,8 +305,7 @@ all -shape bisphere 2 ;mgn;
 all -h shape box
 all -shape box ;mgn;
 all -shape box 0.5 1.5 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq -shape box 1.51 1.92 -grid 7 ;m; ;n;
+all -shape box 1.51 1.92 -grid 7 ;m; ;n;
 all -h shape capsule
 all -shape capsule 1.5 ;mgn;
 all -h shape chebyshev
@@ -335,6 +340,11 @@ all -shape spherebox 0.5 ;2mgn;
 
 all -h size
 all -size 8 ;mgn;
+
+all -h so_buf
+all -so_buf no ;mgn;
+all -so_buf line ;mgn;
+all -so_buf full ;mgn;
 
 all -h store_beam
 all -store_beam ;se; ;mgn;

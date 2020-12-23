@@ -1,5 +1,3 @@
-/githash.h
-
 # The same ignores apply to all compilation folders
 /*/*.exe
 /*/*.dll
@@ -16,6 +14,5 @@
 /*/*.geom
 /*/out
 /*/*.clstr
-
 
 

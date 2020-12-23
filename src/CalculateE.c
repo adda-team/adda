@@ -1,11 +1,7 @@
- /* File: CalculateE.c
- * $Date::                            $
- * Descr: the module to calculate the E field and all scattering quantities
+/* The module to calculate the E field and all scattering quantities.
+ * Routines for most scattering quantities are in crosssec.c. Also saves internal fields to file (optional).
  *
- *        Routines for most scattering quantities are in crosssec.c. Also saves internal fields to
- *        file (optional).
- *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -639,7 +635,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	tstart=GET_TIME();
 	// choose operational mode
 	if ((cmplxF==NULL) ^ (realF==NULL)) cmplx_mode=(realF==NULL);
-	else LogError(ONE_POS,"One field (either real or complex) must be given to StoreFields()");
+	else LogError(ONE_POS,"One field (either real or complex) must be given to StoreFields");
 	// build file name (without directory)
 	strcpy(fname_sh,fname_preffix);
 	if (which==INCPOL_Y) strcat(fname_sh,F_YSUF);
@@ -676,7 +672,7 @@ static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	Synchronize();
 	if (IFROOT) CatNFiles(directory,tmpl,fname_sh);
 #endif
-	if (IFROOT) printf("%s saved to file\n",fullname);
+	if (IFROOT) PRINTFB("%s saved to file\n",fullname);
 	Timing_FileIO += GET_TIME() - tstart;
 }
 
@@ -762,7 +758,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				if (surface) self+=C0dipole_refl/C0dipole;
 				double tot=self+Cdec/C0dipole;
 				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
-				printf("\nDecay-rate enhancement:\n");
+				PRINTFB("\nDecay-rate enhancement:\n");
 				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
 				if (calc_Cabs) { // for simplicity we keep a single condition here
 					double nonrad=Cabs/C0dipole;
@@ -787,7 +783,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			}
 		} // end of root
 		if (calc_mat_force) {
-			if (IFROOT) printf("Calculating the force per dipole\n");
+			if (IFROOT) PRINTFB("Calculating the force per dipole\n");
 			if (store_force) MALLOC_VECTOR(Frp,double,local_nRows,ALL);
 			else Frp=NULL;
 			Frp_mat(Finc_tot,Fsca_tot,Frp);

@@ -1,8 +1,6 @@
-/* File: Romberg.h
- * $Date::                            $
- * Descr: definitions of Romberg routines
+/* Definitions of Romberg routines
  *
- * Copyright (C) 2006,2008,2010,2012-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

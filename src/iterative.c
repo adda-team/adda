@@ -1,14 +1,12 @@
-/* File: iterative.c
- * $Date::                            $
- * Descr: a few iterative techniques to solve DDA equations
+/* A few iterative techniques to solve DDA equations
  *
- *        The linear system is composed so that diagonal terms are equal to 1, therefore use of Jacobi preconditioners
- *        does not have any effect.
+ * The linear system is composed so that diagonal terms are equal to 1, therefore use of Jacobi preconditioners does not
+ * have any effect.
  *
- *        CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so),
- *        however they do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
+ * CS methods still converge to the right result even when matrix is slightly non-symmetric (e.g. -int so), however they
+ * do it much slowly than usually. It is recommended then to use BiCGStab or BCGS2.
  *
- * Copyright (C) 2006-2015 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -39,6 +37,7 @@
 #ifdef OCL_BLAS
 #	include "oclcore.h"
 #	include <clBLAS.h> //external library
+#	include <clBLAS.version.h>
 #endif
 
 // SEMI-GLOBAL VARIABLES
@@ -137,11 +136,66 @@ static const struct iter_params_struct params[]={
 void MatVec(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,TIME_TYPE *timing,
 	TIME_TYPE *comm_timing);
 
+#ifdef OCL_BLAS
+// Test clBLAS version (specific numbers is because we never considered earlier versions)
+#	define CLBLAS_VER_REQ 2
+#	define CLBLAS_SUBVER_REQ 12
+#	if !GREATER_EQ2(clblasVersionMajor,clblasVersionMinor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ)
+#		error "clBLAS version is too old"
+#	endif
+
+// Error-checking functionality for clBLAS
+#	define CLBLAS_CH_ERR(a) Check_clBLAS_Err(a,ALL_POS)
+
+//======================================================================================================================
+
+static const char *Print_clBLAS_Errstring(clblasStatus err)
+// produces meaningful error message from the clBLAS-specific error code, based on clBLAS.h v.2.12.0 (NULL if not found)
+{
+	switch (err) {
+		case clblasNotImplemented:      return "Functionality not implemented";
+		case clblasNotInitialized:      return "Library not initialized";
+		case clblasInvalidMatA:         return "Invalid matrix A";
+		case clblasInvalidMatB:         return "Invalid matrix B";
+		case clblasInvalidMatC:         return "Invalid matrix C";
+		case clblasInvalidVecX:         return "Invalid vector X";
+		case clblasInvalidVecY:         return "Invalid vector Y";
+		case clblasInvalidDim:          return "Invalid input dimensions";
+		case clblasInvalidLeadDimA:     return "Leading dimension of matrix A smaller than the first size";
+		case clblasInvalidLeadDimB:     return "Leading dimension of matrix B smaller than the second size";
+		case clblasInvalidLeadDimC:     return "Leading dimension of matrix C smaller than the third size";
+		case clblasInvalidIncX:         return "Null increment for vector X";
+		case clblasInvalidIncY:         return "Null increment for vector Y";
+		case clblasInsufficientMemMatA: return "Insufficient memory for matrix A";
+		case clblasInsufficientMemMatB: return "Insufficient memory for matrix B";
+		case clblasInsufficientMemMatC: return "Insufficient memory for matrix C";
+		case clblasInsufficientMemVecX: return "Insufficient memory for vector X";
+		case clblasInsufficientMemVecY: return "Insufficient memory for vector Y";
+		default:                        return NULL;
+	}
+}
+
+//======================================================================================================================
+
+static void Check_clBLAS_Err(const clblasStatus err,ERR_LOC_DECL)
+/* Checks error code for clBLAS calls and prints error if necessary. First searches among clBLAS specific errors. If not
+ * found, uses general error processing for CL calls (since clBLAS error codes can take standard cl values as well).
+ */
+{
+	if (err != clblasSuccess) {
+		const char *str=Print_clBLAS_Errstring(err);
+		if (str!=NULL) LogError(ERR_LOC_CALL,"clBLAS error code %d: %s\n",err,str);
+		else PrintCLErr((cl_int)err,ERR_LOC_CALL,NULL);
+	}
+}
+
+#endif
+
 //======================================================================================================================
 
 static void MatVec_wrapper(doublecomplex * restrict in,doublecomplex * restrict out,double * inprod,bool her,
 	TIME_TYPE *timing,TIME_TYPE *comm_timing)
-/* fuction wrapper for MatVec to be called within the iterative solver if the solver is able to use clBLAS, i.e.
+/* function wrapper for MatVec to be called within the iterative solver if the solver is able to use clBLAS, i.e.
  * the host and GPU memory does not have to be synchronized. Currently it is only used in the BiCG solver.
  */
 {
@@ -317,7 +371,7 @@ static void ProgressReport(void)
 		else temp="- ";
 		SnprintfErr(ONE_POS,progr_string,MAX_LINE,RESID_STRING"  %s",niter,err,temp);
 		if (!orient_avg) fprintf(logfile,"%s  progress ="FFORM_PROG"\n",progr_string,progr);
-		printf("%s\n",progr_string);
+		PRINTFB("%s\n",progr_string);
 		prev_err=err;
 	}
 	niter++;
@@ -537,15 +591,17 @@ ITER_FUNC(BiCG_CS)
 			scalars[0].ptr=&ro_old;
 			scalars[0].size=sizeof(doublecomplex);
 			return;
-		case PHASE_INIT: 
+		case PHASE_INIT:
 #ifdef OCL_BLAS
-			D("clblasSetup started");
-			CL_CH_ERR(clblasSetup());
-#	ifdef DEBUGFULL
+			; // This initialization part need to be moved somewhere during further adoption of clBLAS
 			cl_uint major,minor,patch;
-			CL_CH_ERR(clblasGetVersion(&major,&minor,&patch));
+			CLBLAS_CH_ERR(clblasGetVersion(&major,&minor,&patch));
+			if (!GREATER_EQ2(major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ)) LogError(ONE_POS,
+				"clBLAS library version (%d.%d) is too old. Version %d.%d or newer is required",
+				major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ);
 			D("clBLAS library version - %u.%u.%u",major,minor,patch);
-#	endif
+			D("clblasSetup started");
+			CLBLAS_CH_ERR(clblasSetup());
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufpvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,pvec,0,
 				NULL,NULL));
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufrvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,rvec,0,
@@ -563,7 +619,7 @@ ITER_FUNC(BiCG_CS)
 			 */
 			CREATE_CL_BUFFER(bufro_new,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
 			CREATE_CL_BUFFER(bufmu,CL_MEM_READ_WRITE,sizeof(doublecomplex),NULL);
-			CL_CH_ERR(clblasZdotu(local_nRows,bufro_new,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,
+			CLBLAS_CH_ERR(clblasZdotu(local_nRows,bufro_new,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,
 				NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufro_new,CL_TRUE,0,sizeof(doublecomplex),&ro_new,0,NULL,NULL));
 #else
@@ -587,9 +643,9 @@ ITER_FUNC(BiCG_CS)
 				// p_k=beta_k-1*p_k-1+r_k-1
 #ifdef OCL_BLAS
 				cl_double2 clbeta = {.s={creal(beta),cimag(beta)}};
-				CL_CH_ERR(clblasZscal(local_nRows,clbeta,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+				CLBLAS_CH_ERR(clblasZscal(local_nRows,clbeta,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
 				cl_double2 clunit = {.s={1,0}};
-				CL_CH_ERR(clblasZaxpy(local_nRows,clunit,bufrvec,0,1,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
+				CLBLAS_CH_ERR(clblasZaxpy(local_nRows,clunit,bufrvec,0,1,bufpvec,0,1,1,&command_queue,0,NULL,NULL));
 #else
 				nIncrem10_cmplx(pvec,rvec,beta,NULL,NULL);
 #endif
@@ -599,7 +655,7 @@ ITER_FUNC(BiCG_CS)
 			else MatVec_wrapper(pvec,Avecbuffer,NULL,false,&Timing_OneIterMVP,&Timing_OneIterMVPComm);
 			// mu_k=p_k.q_k; check for mu_k!=0
 #ifdef OCL_BLAS
-			CL_CH_ERR(clblasZdotu(local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,
+			CLBLAS_CH_ERR(clblasZdotu(local_nRows,bufmu,0,bufpvec,0,1,bufAvecbuffer,0,1,buftmp,1,&command_queue,0,NULL,
 				NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufmu,CL_TRUE,0,sizeof(doublecomplex),&mu,0,NULL,NULL));
 #else
@@ -613,7 +669,7 @@ ITER_FUNC(BiCG_CS)
 			// x_k=x_k-1+alpha_k*p_k
 #ifdef OCL_BLAS
 			cl_double2 clalpha = {.s={creal(alpha),cimag(alpha)}};
-			CL_CH_ERR(clblasZaxpy(local_nRows,clalpha,bufpvec,0,1,bufxvec,0,1,1,&command_queue,0,NULL,NULL));
+			CLBLAS_CH_ERR(clblasZaxpy(local_nRows,clalpha,bufpvec,0,1,bufxvec,0,1,1,&command_queue,0,NULL,NULL));
 #else
 			nIncrem01_cmplx(xvec,pvec,alpha,NULL,NULL);
 #endif
@@ -622,8 +678,8 @@ ITER_FUNC(BiCG_CS)
 #ifdef OCL_BLAS
 			cl_double2 cltemp = {.s={creal(temp),cimag(temp)}};
 			CREATE_CL_BUFFER(bufinprodRp1,CL_MEM_READ_WRITE,sizeof(double),NULL);
-			CL_CH_ERR(clblasZaxpy(local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
-			CL_CH_ERR(clblasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			CLBLAS_CH_ERR(clblasZaxpy(local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
+			CLBLAS_CH_ERR(clblasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinprodRp1,CL_TRUE,0,sizeof(double),&inprodRp1,0,NULL,NULL));
 			inprodRp1=inprodRp1*inprodRp1;
 #else
@@ -823,8 +879,11 @@ ITER_FUNC(CSYM)
 			return;
 		case PHASE_INIT:
 			if (load_chpoint) { // change pointers names according to count parity
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&q_old,&q_new);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// tau_1 = ||r_0||; q_1 = r_0(*)/||r_0||; here r_0 is already stored in q_old
@@ -948,9 +1007,12 @@ ITER_FUNC(QMR_CS)
 			vectors[0].size=vectors[1].size=vectors[2].size=sizeof(doublecomplex);
 			return;
 		case PHASE_INIT:
-			if (load_chpoint) { // change pointers names according to count parity
+			if (load_chpoint) {
+				/* change pointers names according to count parity. Based on the fact that first two are swapped at each
+				 * iteration (and niter>=1), while second two - at each iteration starting from niter=2.
+				 */
 				if (IS_EVEN(niter)) SwapPointers(&v,&vtilda);
-				else SwapPointers(&p_old,&p_new);
+				else if (niter>1) SwapPointers(&p_old,&p_new);
 			}
 			else {
 				// omega_0=||v_0||=0
@@ -1296,7 +1358,7 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 	mat=(unsigned char *)(top + boxXY);
 #endif
 	// calculate function of refractive index
-	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kd/2;
+	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kdZ/2;
 	vals[Nmat]=0;
 	// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
 	for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;
@@ -1376,34 +1438,34 @@ static const char *CalcInitField(double zero_resid,const enum incpol which)
 				nCopy(rvec,pvec);
 				inprodR=zero_resid;
 				matvec_ready=true; // here Avecbuffer = A.r_0
-				return "x_0 = 0\n";
+				return "x_0 = 0";
 			}
 			else { // use x_0=Einc
 				nCopy(xvec,pvec);
-				return "x_0 = E_inc\n";
+				return "x_0 = E_inc";
 			}
 		case IF_ZERO:
 			nInit(xvec); // x_0=0
 			nCopy(rvec,pvec); // r_0=b
 			inprodR=zero_resid;
-			return "x_0 = 0\n";
+			return "x_0 = 0";
 		case IF_INC:
 			nCopy(xvec,pvec); // x_0=b, i.e. E_exc=E_inc
 			// calculate A.(x_0=b), r_0=b-A.(x_0=b) and |r_0|^2
 			MatVec(xvec,Avecbuffer,NULL,false,&Timing_MVP,&Timing_MVPComm);
 			nSubtr(rvec,pvec,Avecbuffer,&inprodR,&Timing_InitIterComm);
-			return "x_0 = E_inc\n";
+			return "x_0 = E_inc";
 		case IF_WKB:
 			CalcFieldWKB(xvec); // calculate WKB electric field
 			InitFieldfromE(); // transform it into starting vector
-			return "x_0 = result of WKB\n";
+			return "x_0 = result of WKB";
 		case IF_READ: {
 			const char *fname;
 			if (which==INCPOL_Y) fname=infi_fnameY;
 			else fname=infi_fnameX; // which==INCPOL_X
 			ReadField(fname,xvec); // read electric field
 			InitFieldfromE(); // transform it into starting vector
-			return dyn_sprintf("x_0 = from file %s\n",fname);
+			return dyn_sprintf("x_0 = from file %s",fname);
 		}
 	}
 	LogError(ONE_POS,"Unknown method to calculate initial field (%d)",(int)InitField);
@@ -1444,9 +1506,12 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 		// print start values
 		if (IFROOT) {
 			prev_err=sqrt(resid_scale*inprodR);
-			sprintf(tmp_str,"%s"RESID_STRING"\n",descr,0,prev_err);
-			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
-			printf("%s",tmp_str);
+			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,RESID_STRING"\n",0,prev_err);
+			// descr may contain filename, thus it is given as a separate argument (not included in tmp_str)
+			if (!orient_avg) {
+				fprintf(logfile,"%s\n%s",descr,tmp_str);
+			}
+			PRINTFB("%s\n%s",descr,tmp_str);
 		}
 		// initialize counters
 		niter=1;
@@ -1531,7 +1596,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 			temp=sqrt(resid_scale*inprodR);
 			SnprintfErr(ONE_POS,tmp_str,MAX_LINE,"Final (recalculated) residual norm: "EFORM"\n",temp);
 			if (!orient_avg) fprintf(logfile,"%s",tmp_str);
-			printf("%s",tmp_str);
+			PRINTFB("%s",tmp_str);
 		}
 	}
 	// post-processing

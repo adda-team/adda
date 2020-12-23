@@ -1,4 +1,9 @@
 #!/bin/bash
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
+# A wrapper to run comp2exec with several predefined sets of parameters to perform extensive testing
+#
 # First obligatory parameter is testing sequence: prev, cross, extra
 # prev - compares with previous versions (!!! check ignores in comp2exec)
 # cross - diffent modes against each other (only one change at a time). Doesn't require previous version and should
@@ -6,6 +11,7 @@
 # extra - additional (longer) tests, including RD_TRICKY and changing two modes at a time, e.g. mpi_seq SUFR_STAN,
 #         can be run only before the release (if one of the components catches anything, not caught by others, consider
 #         moving this test to cross).
+#
 # Other parameters are optional:
 # Second is compilation modes: seq, mpi, ocl, spa, any combination of them (separated by space in quotes, implies cross
 # modes), or all (default). 'spa' is sparse and requires combination with something.

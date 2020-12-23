@@ -1,19 +1,17 @@
-/* File: GenerateB.c
- * $Date::                            $
- * Descr: generate a incident beam
+/* Generates the incident beam
  *
- *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
- *        in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,1427-1443 (1988).
- *        Eq.(22) - complex conjugate.
+ * Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
+ * in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,1427-1443 (1988).
+ * Eq.(22) - complex conjugate.
  *
- *        Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
- *        Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo).
+ * Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
+ * Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo).
  *
- *        Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field
- *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
- *        Eqs.(25)-(28) - complex conjugate.
+ * Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field components
+ * for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
+ * Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -65,7 +63,7 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
  */
 doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
-char beam_descr[MAX_MESSAGE2]; // string for log file with beam parameters
+const char *beam_descr; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
@@ -89,6 +87,7 @@ void InitBeam(void)
 {
 	double w0; // beam width
 	int n_par; // for besselGen
+	const char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -97,7 +96,7 @@ void InitBeam(void)
 	// beam initialization
 	switch (beamtype) {
 		case B_PLANE:
-			if (IFROOT) strcpy(beam_descr,"plane wave");
+			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
 			if (surface) {
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
@@ -112,7 +111,7 @@ void InitBeam(void)
 					/* Special case for msub near 1 to remove discontinuities for near-grazing incidence. The details
 					 * are discussed in CalcFieldSurf() in crosssec.c.
 					 */
-					if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+					if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
 					else kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction and full wavevector of wave transmitted into substrate
 					ktVec[0]=msub*prop_0[0];
@@ -125,7 +124,7 @@ void InitBeam(void)
 					ki=-prop_0[2];
 					if (!msubInf) {
 						// same special case as above
-						if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+						if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
 						else kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 						// determine propagation direction of wave transmitted into substrate
 						ktVec[0]=prop_0[0];
@@ -157,7 +156,7 @@ void InitBeam(void)
 			 * (breaking scale invariance)
 			 */
 			p0=1/(WaveNum*WaveNum*WaveNum);
-			if (IFROOT) sprintf(beam_descr,"point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
+			if (IFROOT) beam_descr=dyn_sprintf("point dipole at "GFORMDEF3V,COMP3V(beam_center_0));
 			return;
 		case B_LMINUS:
 		case B_DAVIS3:
@@ -175,21 +174,21 @@ void InitBeam(void)
 			scale_z=s*scale_x; // 1/(k*w0^2)
 			// beam info
 			if (IFROOT) {
-				strcpy(beam_descr,"Gaussian beam (");
 				switch (beamtype) {
 					case B_LMINUS:
-						strcat(beam_descr,"L- approximation)\n");
+						tmp_str="L- approximation";
 						break;
 					case B_DAVIS3:
-						strcat(beam_descr,"3rd order approximation, by Davis)\n");
+						tmp_str="3rd order approximation, by Davis";
 						break;
 					case B_BARTON5:
-						strcat(beam_descr,"5th order approximation, by Barton)\n");
+						tmp_str="5th order approximation, by Barton";
 						break;
-					default: break;
+					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 				}
-				sprintf(beam_descr+strlen(beam_descr),"\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
-				                                      "\tCenter position: "GFORMDEF3V,w0,s,COMP3V(beam_center_0));
+				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
+				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"
+				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
 		case B_BESSELASD:
@@ -250,8 +249,8 @@ void InitBeam(void)
 			symX=symY=symZ=symR=false;
 			if (surface) inc_scale=1; // since we can't know it, we assume the default case
 			if (IFROOT) {
-				if (beam_Npars==1) sprintf(beam_descr,"specified by file '%s'",beam_fnameY);
-				else sprintf(beam_descr,"specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
+				if (beam_Npars==1) beam_descr=dyn_sprintf("specified by file '%s'",beam_fnameY);
+				else beam_descr=dyn_sprintf("specified by files '%s' and '%s'",beam_fnameY,beam_fnameX);
 			}
 			// we do not define beam_asym here, because beam_center is not defined anyway
 			return;
@@ -361,7 +360,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine amplitude of the reflected and transmitted waves
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncRefl);
-						if (msubInf) rc=-1;
+						if (msubInf) {
+							rc=-1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							cvBuildRe(ex,eIncTran);
 							rc=FresnelRS(ki,kt);
@@ -370,7 +372,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					}
 					else { // p-polarized
 						vInvRefl_cr(ex,eIncRefl);
-						if (msubInf) rc=1;
+						if (msubInf) {
+							rc=1;
+							tc=0; // to remove compiler warnings
+						}
 						else {
 							crCrossProd(ey,ktVec,eIncTran);
 							cvMultScal_cmplx(1/msub,eIncTran,eIncTran); // normalize eIncTran by ||ktVec||=msub
@@ -455,7 +460,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {
-					x2_s=x*x/ro2;
+					/* It is possible to rewrite the formulae below to avoid division by ro2, but we prefer
+					 * dimensionless variables. The value for ro2=0 doesn't really matter (cancels afterwards).
+					 * The current code should work OK even for very small ro2
+					 */
+					if (ro2==0) x2_s=0;
+					else x2_s=x*x/ro2;
 					Q2=Q*Q;
 					ro4=ro2*ro2;
 					// some combinations that are used more than once
@@ -472,7 +482,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						t3 = 2*t7*(-1 + I*Q*s2*(-4*t5+t6-2));
 					}
 					else if (beamtype==B_BARTON5) {
-						xy_s=x*y/ro2;
+						if (ro2==0) xy_s=0; // see comment for x2_s above
+						else xy_s=x*y/ro2;
 						t8=8+2*t5; // t8=8+2i*Q*ro^2
 						/* t1 = 1 + s^2(-ro^2*Q^2-i*ro^4*Q^3-2Q^2*x^2)
 						 *    + s^4[2ro^4*Q^4+3iro^6*Q^5-0.5ro^8*Q^6+x^2(8ro^2*Q^4+2iro^4*Q^5)]

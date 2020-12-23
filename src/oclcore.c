@@ -1,8 +1,6 @@
-/* File: oclcore.c
- * $Date::                            $
- * Descr: core parts of OpenCL code
+/* Core parts of the OpenCL code
  *
- * Copyright (C) 2010-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -26,6 +24,7 @@
 #include "oclcore.h" // corresponding header
 // project headers
 #include "debug.h"
+#include "io.h"
 #include "memory.h"
 #include "vars.h"
 // system headers
@@ -70,15 +69,16 @@ const char *coptions;
 
 // LOCAL VARIABLES
 
-/* platform name. Defines whether the device is by NVIDIA, AMD, or something else ... It is used for compiler options
- * and (potentially) for conditional kernels
+/* platform name. Defines whether the device is by NVIDIA, AMD, Intel HD or something else ... It is used for compiler
+ * options and (potentially) for conditional kernels
  */
 enum platname {
-	PN_NVIDIA, // Nvidia GPU
-	PN_AMD,    // AMD GPU
-	PN_UNDEF   // Unknown OpenCL platform
+	PN_NVIDIA,   // Nvidia GPU
+	PN_AMD,      // AMD GPU
+	PN_INTEL_HD, // Intel HD Graphics
+	PN_UNDEF     // Unknown OpenCL platform
 };
-enum platname platformname; // also used in cpp/fft_setup.cpp
+enum platname platformname; // also used in cpp/fft_kernelstring.cpp
 
 // ids of program, platform and device
 static cl_program program;
@@ -139,11 +139,11 @@ static void StrCatSpace(struct string *dest,const char *src)
 //======================================================================================================================
 
 static const char *print_cl_errstring(cl_int err)
-// produces meaningful error message from the error code
+// produces meaningful error message from the error code; based on cl.h v.3.0
 {
 	switch (err) {
 		case CL_SUCCESS:                         return "Success!";
-		case CL_DEVICE_NOT_FOUND:                return "Device not found.";
+		case CL_DEVICE_NOT_FOUND:                return "Device not found";
 		case CL_DEVICE_NOT_AVAILABLE:            return "Device not available";
 		case CL_COMPILER_NOT_AVAILABLE:          return "Compiler not available";
 		case CL_MEM_OBJECT_ALLOCATION_FAILURE:   return "Memory object allocation failure";
@@ -155,6 +155,18 @@ static const char *print_cl_errstring(cl_int err)
 		case CL_IMAGE_FORMAT_NOT_SUPPORTED:      return "Image format not supported";
 		case CL_BUILD_PROGRAM_FAILURE:           return "Program build failure";
 		case CL_MAP_FAILURE:                     return "Map failure";
+#ifdef CL_VERSION_1_1
+		case CL_MISALIGNED_SUB_BUFFER_OFFSET:    return "Misaligned sub-buffer";
+		case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST: return "Error for event in wait list";
+#endif
+#ifdef CL_VERSION_1_2
+		case CL_COMPILE_PROGRAM_FAILURE:         return "Compile program failure";
+		case CL_LINKER_NOT_AVAILABLE:            return "Linker not available";
+		case CL_LINK_PROGRAM_FAILURE:            return "Link program failure";
+		case CL_DEVICE_PARTITION_FAILED:         return "Device partition failed";
+		case CL_KERNEL_ARG_INFO_NOT_AVAILABLE:   return "Kernel argument info not available";
+#endif
+
 		case CL_INVALID_VALUE:                   return "Invalid value";
 		case CL_INVALID_DEVICE_TYPE:             return "Invalid device type";
 		case CL_INVALID_PLATFORM:                return "Invalid platform";
@@ -188,6 +200,24 @@ static const char *print_cl_errstring(cl_int err)
 		case CL_INVALID_GL_OBJECT:               return "Invalid OpenGL object";
 		case CL_INVALID_BUFFER_SIZE:             return "Invalid buffer size";
 		case CL_INVALID_MIP_LEVEL:               return "Invalid mip-map level";
+		case CL_INVALID_GLOBAL_WORK_SIZE:        return "Invalid global work size";
+#ifdef CL_VERSION_1_1
+		case CL_INVALID_PROPERTY:                return "Invalid property";
+#endif
+#ifdef CL_VERSION_1_2
+		case CL_INVALID_IMAGE_DESCRIPTOR:        return "Invalid image descriptor";
+		case CL_INVALID_COMPILER_OPTIONS:        return "Invalid compiler options";
+		case CL_INVALID_LINKER_OPTIONS:          return "Invalid linker options";
+		case CL_INVALID_DEVICE_PARTITION_COUNT:  return "Invalid device partition count";
+#endif
+#ifdef CL_VERSION_2_0
+		case CL_INVALID_PIPE_SIZE:               return "Invalid pipe size";
+		case CL_INVALID_DEVICE_QUEUE:            return "Invalid device queue";
+#endif
+#ifdef CL_VERSION_2_2
+		case CL_INVALID_SPEC_ID:                 return "Invalid specialization ID";
+		case CL_MAX_SIZE_RESTRICTION_EXCEEDED:   return "Max size restriction exceeded";
+#endif
 		default:                                 return "Unknown";
 	}
 }
@@ -254,10 +284,10 @@ static void GetDevice(struct string *copt_ptr)
 	cl_uint num_of_platforms,num_of_devices;
 	cl_platform_id *platform_id;
 	cl_device_id *devices;
-	const cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type
+	const cl_int devtype=CL_DEVICE_TYPE_GPU; // set preferred device type; this can be changed in the future
 	int gpuN=0;
 
-	printf("Searching for OpenCL devices\n");
+	PRINTFB("Searching for OpenCL devices\n");
 	// little trick to get just the number of the Platforms
 	CL_CH_ERR(clGetPlatformIDs(0,NULL,&num_of_platforms));
 	/* OpenCL standard is somewhat unclear whether clGetPlatformIDs can return zero num_of_platforms with successful
@@ -282,22 +312,29 @@ static void GetDevice(struct string *copt_ptr)
 			Free_general(devices);
 			// get platform and device name
 			used_platform_id=platform_id[i];
-			char *pname=dyn_clGetPlatformInfo(platform_id[i],CL_PLATFORM_NAME);
+			char *pname=dyn_clGetPlatformInfo(used_platform_id,CL_PLATFORM_NAME);
 			if (strcmp(pname,"NVIDIA CUDA")==0) platformname=PN_NVIDIA;
 			else if (strcmp(pname,"ATI Stream")==0) platformname=PN_AMD;
+			else if (strcmp(pname,"Intel(R) OpenCL HD Graphics")==0) platformname=PN_INTEL_HD;
 			// the program can potentially work with unknown compatible device, but performance is unpredictable.
 			else platformname=PN_UNDEF;
 			char *devicename=dyn_clGetDeviceInfo(device_id,CL_DEVICE_NAME);
-			PrintBoth(logfile,"Using OpenCL device %s, based on %s.\n",devicename,pname);
+			PrintBoth(logfile,"Using OpenCL device %s, based on %s\n",devicename,pname);
 			Free_general(pname);
 			Free_general(devicename);
 			// get further device info
 #ifdef DEBUGFULL
+			// the following strings may be tested for minimally required OpenCL version during runtime
 			char *dev_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_VERSION);
 			char *dr_vers=dyn_clGetDeviceInfo(device_id,CL_DRIVER_VERSION);
-			D("Device version: %s. Driver version: %s.",dev_vers,dr_vers);
+			D("Device version: %s, driver version: %s",dev_vers,dr_vers);
 			Free_general(dev_vers);
 			Free_general(dr_vers);
+#	ifdef CL_VERSION_1_1
+			char *dev_c_vers=dyn_clGetDeviceInfo(device_id,CL_DEVICE_OPENCL_C_VERSION);
+			D("Device C language version: %s",dev_c_vers);
+			Free_general(dev_c_vers);
+#	endif
 #endif
 			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_GLOBAL_MEM_SIZE,sizeof(oclMemDev),&oclMemDev,NULL));
 			CL_CH_ERR(clGetDeviceInfo(device_id,CL_DEVICE_MAX_MEM_ALLOC_SIZE,sizeof(oclMemDevObj),&oclMemDevObj,NULL));
@@ -395,7 +432,7 @@ void oclinit(void)
 	err=clBuildProgram(program,0,NULL,cl_opt.text,NULL,NULL);
 	if (err!=CL_SUCCESS) {
 		char *buffer=dyn_clGetProgramBuildInfo(program,device_id,CL_PROGRAM_BUILD_LOG);
-		printf("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
+		PRINTFB("Following errors occurred during building of OpenCL program:\n%s\n",buffer);
 		Free_general(buffer);
 		CL_CH_ERR(err);
 	}
@@ -432,7 +469,18 @@ void oclinit(void)
 #ifdef OCL_READ_SOURCE_RUNTIME
 	Free_general(cSourceString);
 #endif
+#ifdef CL_VERSION_1_2
+	err=clUnloadPlatformCompiler(used_platform_id);
+	/* On Intel HD Graphics 630 (on Windows 10 system with additional Nvidia GTX 1050) the above call causes surprising
+	 * error, but further execution seems to be normal. The closest issue seems to be
+	 * https://issuetracker.unity3d.com/issues/clunloadplatformcompiler-returna-cl-out-of-host-memory-on-intel-i7-1065g7
+	 * For now, we just exclude this particular case from the error check. Interestingly, the call to clUnloadCompiler
+	 * does not cause errors (but causes warnings during compilation).
+	 */
+	if (!(platformname==PN_INTEL_HD && err==CL_OUT_OF_HOST_MEMORY)) CL_CH_ERR(err);
+#else
 	CL_CH_ERR(clUnloadCompiler());
+#endif
 	D("OpenCL init complete");
 }
 

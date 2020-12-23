@@ -1,3 +1,7 @@
+# Shortened test suite for '-rect_dip ...' mode of ADDA (to be used by comp2exec)
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 #------------------------- Variable definitons -------------------------------------------------------------------------
 # All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
 # can be defined through other variables defined below. Each variable must be defined only once.
@@ -10,6 +14,8 @@
 ;2mgn; ;2m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
+# for testing odd grids
+;mg9n; ;m; -grid 9 ;n;
 # default addition to make particle completely non-symmetric
 ;sep; ;se; ;p;
 # default for testing of different grids
@@ -35,7 +41,6 @@
 !RD_EXT!RD_TRICKY
 
 # testing of different grids - relevant for FFT methods; 
-# Some are turned off for ocl_seq until ocl supports larger prime factors in FFT
 # TODO: add odd grid values (the maximum size can then be decreased to 16)
 !RD_TRICKY -grid 2 ;smn;
 !RD_TRICKY -grid 4 ;smn;
@@ -43,26 +48,25 @@ all -grid 6 ;smn;
 all -grid 8 ;smn;
 all -grid 10 ;smn;
 all -grid 12 ;smn;
-!ocl_seq -grid 14 ;smn;
+all -grid 14 ;smn;
 all -grid 16 ;smn;
 all -grid 18 ;smn;
 all -grid 20 ;smn;
-!ocl_seq -grid 22 ;smn;
+all -grid 22 ;smn;
 all -grid 24 ;smn;
-!ocl_seq -grid 26 ;smn;
+all -grid 26 ;smn;
 all -grid 30 ;smn;
 all -grid 32 ;smn;
 
 all -h alldir_inp
-!RD_TRICKY -alldir_inp adp.dat -Csca ;mgn;
-&RD_TRICKY -alldir_inp adp.dat -Csca ;smn; -grid 16
+all -alldir_inp adp.dat -Csca ;mgn;
 
 all -h anisotr
 #all -anisotr ;3m; ;g; ;n;
 
 all -h asym
-!RD_TRICKY  -asym ;sep; ;mgn;
-&RD_TRICKY  -asym ;sep; ;smn; -grid 28
+!RD_TRICKY -asym ;sep; ;mgn;
+&RD_TRICKY -asym ;sep; ;smn; -grid 28
 
 all -h beam
 all -h beam plane
@@ -71,10 +75,10 @@ all -h beam lminus
 all -beam lminus 2 1 2 3 ;mgn;
 all -h beam davis3
 all -beam davis3 2 1 2 3 ;mgn;
+all -beam davis3 2 ;mg9n;
 all -h beam barton5
-!RD_TRICKY -beam barton5 2 1 2 3 ;mgn;
-&RD_TRICKY -beam barton5 2 1 2 3 ;smg12n;
-all -beam barton5 2 ;mgn;
+all -beam barton5 2 1 2 3 ;mgn;
+all -beam barton5 2 ;mg9n;
 !RD_TRICKY -beam dipole 3 2 1 ;p; ;mgn;
 &RD_TRICKY -beam dipole 3 2 1 ;smg12n;
 all -h beam read
@@ -91,8 +95,7 @@ all -h chp_load
 !mpi_seq!RD_TRICKY -chp_dir chp_tmp -chp_load ;mgn;
 
 all -h Cpr
-!RD_TRICKY -Cpr ;mgn;
-&RD_TRICKY -Cpr ;smg12n;
+all -Cpr ;mgn;
 !RD_TRICKY -Cpr ;sep; ;mgn;
 
 all -h Csca
@@ -102,7 +105,8 @@ all -h Csca
 all -h dir
 
 all -h dpl
-all -dpl 20 ;mgn;
+!RD_TRICKY -dpl 20 ;mgn;
+&RD_TRICKY -dpl 20 ;m; ;n;
 
 all -h eps
 all -eps 10 ;mgn;
@@ -162,7 +166,8 @@ all -h jagged
 &RD_TRICKY -jagged 2 ;mgn;
 
 all -h lambda
-all -lambda 1 ;mgn;
+!RD_TRICKY -lambda 1 ;mgn;
+&RD_TRICKY -lambda 10 ;mgn;
 
 all -h m
 all -m 1.2 0.2 ;g; ;n;
@@ -186,15 +191,12 @@ all -opt mem ;mgn;
 
 all -h orient
 all -orient 30 0 0 ;mgn;
-!RD_TRICKY -orient 10 20 30 ;sep; ;mgn; -scat_matr both
-&RD_TRICKY -orient 10 20 30 ;sep; ;smg12n; -scat_matr both
-!RD_TRICKY -orient avg ;se; ;mg4n;
-&RD_TRICKY -orient avg ;se; ;smg12n;
-!RD_TRICKY -orient avg ap.dat ;se; ;mg4n;
+all -orient 10 20 30 ;sep; ;mgn; -scat_matr both
+all -orient avg ;se; ;mg4n;
+all -orient avg ap.dat ;se; ;mg4n;
 
 all -h phi_integr
-!RD_TRICKY -phi_integr 31 ;sep; ;mgn;
-&RD_TRICKY -phi_integr 31 ;sep; ;smg12n;
+all -phi_integr 31 ;sep; ;mgn;
 
 all -h pol
 !RD_STAN!RD_TRICKY -pol cldr ;p; ;mgn;
@@ -216,8 +218,7 @@ all -h prognosis
 all -prognosis
 
 all -h prop
-!RD_TRICKY -prop 5 1 3 ;se; ;mgn;
-&RD_TRICKY -prop 5 1 3 ;se; ;smg12n;
+all -prop 5 1 3 ;se; ;mgn;
 all -prop 0 0 -1 ;mgn;
 all -prop 1 0 0 ;mgn;
 all -prop 0 1 0 ;mgn;
@@ -239,7 +240,7 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-all -scat so ;mgn;
+#all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;
@@ -251,12 +252,12 @@ all -scat_matr both ;mgn;
 all -scat_matr none ;m; ;g;
 
 all -h scat_plane
-!RD_TRICKY -scat_plane ;se; ;mgn;
-&RD_TRICKY -scat_plane ;se; ;smg12n;
+all -scat_plane ;se; ;mgn;
 
 all -h shape
 all -h shape axisymmetric
 !RD_TRICKY -shape axisymmetric 196.txt ;mgn;
+!RD_TRICKY -shape axisymmetric axis.txt ;mgn;
 all -h shape bicoated
 !RD_TRICKY -shape bicoated 3 0.5 ;2mgn;
 all -h shape biellipsoid
@@ -265,16 +266,12 @@ all -h shape bisphere
 all -shape bisphere 2 ;mgn;
 all -h shape box
 all -shape box ;mgn;
-!RD_TRICKY -shape box 0.5 1.5 ;mgn;
-&RD_TRICKY -shape box 0.5 1.5 ;smg12n;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq!RD_TRICKY -shape box 1.51 1.92 -grid 7 ;m; ;n;
+all -shape box 0.5 1.5 ;mgn;
+!RD_TRICKY -shape box 1.51 1.92 -grid 7 ;m; ;n;
 all -h shape capsule
-!RD_TRICKY -shape capsule 1.5 ;mgn;
-&RD_TRICKY -shape capsule 1.5 ;smg12n;
+all -shape capsule 1.5 ;mgn;
 all -h shape chebyshev
-!RD_TRICKY -shape chebyshev 0.3 5 ;mgn;
-&RD_TRICKY -shape chebyshev 0.3 5 ;smn; -grid 16
+all -shape chebyshev 0.3 5 ;mgn;
 all -h shape coated
 !RD_TRICKY -shape coated 0.5 ;2mgn;
 !RD_TRICKY -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
@@ -283,17 +280,14 @@ all -shape cylinder 1 ;mgn;
 all -h shape egg
 all -shape egg 0.5 0.2 ;mgn;
 all -h shape ellipsoid
-!RD_TRICKY -shape ellipsoid 0.25 2 ;mgn;
-&RD_TRICKY -shape ellipsoid 0.25 2 ;smg12n;
+all -shape ellipsoid 0.25 2 ;mgn;
 all -h shape line
 !RD_TRICKY -shape line -grid 16 ;m; ;n;
 !RD_TRICKY -shape line -grid 8 2 3 ;m; ;n;
 all -h shape plate
-!RD_TRICKY -shape plate 0.5 ;mgn;
-&RD_TRICKY -shape plate 0.5 ;smg12n;
+all -shape plate 0.5 ;mgn;
 all -h shape prism
-!RD_TRICKY -shape prism 5 1.5 ;mgn;
-&RD_TRICKY -shape prism 5 1.5 ;smg12n;
+all -shape prism 5 1.5 ;mgn;
 all -h shape rbc
 !RD_TRICKY -shape rbc 0.3 0.1 0.3 ;mgn;
 &RD_TRICKY -shape rbc 0.3 0.1 0.3 ;smn; -grid 20
@@ -309,6 +303,11 @@ all -h shape spherebox
 
 all -h size
 all -size 8 ;mgn;
+
+all -h so_buf
+all -so_buf no ;mgn;
+all -so_buf line ;mgn;
+all -so_buf full ;mgn;
 
 all -h store_beam
 !RD_TRICKY -store_beam ;se; ;mgn;
@@ -326,8 +325,7 @@ all -h store_int_field
 !RD_TRICKY -store_int_field ;se; ;mgn;
 
 all -h store_scat_grid
-!RD_TRICKY -store_scat_grid ;sep; ;mgn;
-&RD_TRICKY -store_scat_grid ;sep; ;smg12n;
+all -store_scat_grid ;sep; ;mgn;
 
 all -h surf
 all -surf 4 2 0 ;mgn;
@@ -346,12 +344,9 @@ all -h sym
 all -sym auto ;mgn;
 all -sym no ;mgn;
 all -sym enf ;mgn;
-!RD_TRICKY -sym auto ;sep; ;mgn;
-&RD_TRICKY -sym auto ;sep; ;smg12n;
-!RD_TRICKY -sym no ;sep; ;mgn;
-&RD_TRICKY -sym no ;sep; ;smg12n;
-!RD_TRICKY -sym enf ;sep; ;mgn;
-&RD_TRICKY -sym enf ;sep; ;smg12n;
+all -sym auto ;sep; ;mgn;
+all -sym no ;sep; ;mgn;
+all -sym enf ;sep; ;mgn;
 
 all -h test
 all -test ;mgn;

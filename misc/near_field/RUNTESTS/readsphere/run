@@ -7,7 +7,6 @@ if [ $ERR -ne 0 ]; then
   exit $ERR
 fi
 mv read.geom target
-#grep "#@#" adda.out > commvar
 echo '------------gendip-------------------'
 ../../gendip > gendip.out
 echo '------------genplane-------------------'
