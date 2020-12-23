@@ -174,8 +174,8 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(FFTWLIB)
 #FFTW3_INC_PATH := $(HOME)/include
 #FFTW3_LIB_PATH := $(HOME)/lib
-FFTW3_INC_PATH := "$(abspath ./../../fftw)"
-FFTW3_LIB_PATH := "$(abspath ./../../fftw)"
+FFTW3_INC_PATH := "C:/fftw"
+FFTW3_LIB_PATH := "C:/fftw"
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
