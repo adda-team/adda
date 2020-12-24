@@ -191,7 +191,6 @@ void InitBeam(void)
 				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
-		case B_BESSELASD:
 		case B_BESSELCS:
 		case B_BESSELGEN:
 		case B_BESSELLE:
@@ -217,8 +216,6 @@ void InitBeam(void)
 			if (IFROOT) {
 				strcpy(beam_descr,"Bessel beam (");
 				switch (beamtype) {
-					case B_BESSELASD:
-						strcat(beam_descr,"angular spectrum decomposition)\n");
 						break;
 					case B_BESSELCS:
 						strcat(beam_descr,"circularly symmetric energy density)\n");
@@ -507,42 +504,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 			}
 			return;
-		case B_BESSELASD:
-			for (i=0;i<local_nvoid_Ndip;i++) {
-				j=3*i;
-				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				x=DotProd(r1,ex);
-				y=DotProd(r1,ey);
-				z=DotProd(r1,prop);
-				r=sqrt(x*x+y*y+z*z);	// radial distance in a spherical coordinate system
-				tht=atan2(sqrt(x*x+y*y),z);	// polar angle
-				phi=atan2(y,x);			// azimuthal angle
-
-				// Integration
-				N=1000;
-				db=2.*PI/N;
-
-				Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,0);
-				sum[0] = fint[0];	sum[1] = fint[1];	sum[2] = fint[2];
-
-				for (it=1;it<N;it++) {
-					Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,it*db);
-					sum[0] += fint[0];
-					sum[1] += fint[1];
-					sum[2] += fint[2];
-				}
-
-				t3=sum[0]/N;	t4=sum[1]/N;	t5=sum[2]/N;
-
-				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
-
-				cvMultScal_RVec(t3,ex,v1);
-				cvMultScal_RVec(t4,ey,v2);
-				cvMultScal_RVec(t5,prop,v3);
-				cvAdd2Self(v1,v2,v3);
-				cvMultScal_cmplx(1.,v1,b+j);
-			}
-			return;
 		case B_BESSELCS:
 		case B_BESSELGEN:
 		case B_BESSELLE:
@@ -679,11 +640,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 								 jn2[0]*cexp(-I*phi)/ro*n0);
 					}
 				}
-
-
-				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
-
-
 				cvMultScal_RVec(t3,ex,v1);
 				cvMultScal_RVec(t4,ey,v2);
 				cvMultScal_RVec(t5,prop,v3);
