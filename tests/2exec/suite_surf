@@ -40,22 +40,26 @@
 !SURF_EXT
 
 # testing of different grids - relevant for FFT methods; 
-# TODO: add odd grid values (the maximum size can then be decreased to 16)
+all -grid 1 ;smn;
 all -grid 2 ;smn;
+all -grid 3 ;smn;
 all -grid 4 ;smn;
+all -grid 5 ;smn;
 all -grid 6 ;smn;
+all -grid 7 ;smn;
 all -grid 8 ;smn;
+all -grid 9 ;smn;
 all -grid 10 ;smn;
+all -grid 11 ;smn;
 all -grid 12 ;smn;
+all -grid 13 ;smn;
 all -grid 14 ;smn;
+all -grid 15 ;smn;
 all -grid 16 ;smn;
+all -grid 17 ;smn;
 all -grid 18 ;smn;
+all -grid 19 ;smn;
 all -grid 20 ;smn;
-all -grid 22 ;smn;
-all -grid 24 ;smn;
-all -grid 26 ;smn;
-all -grid 30 ;smn;
-all -grid 32 ;smn;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;

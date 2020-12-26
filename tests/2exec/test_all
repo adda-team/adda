@@ -21,8 +21,8 @@
 # All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
 # failures (redirect it to file or to colorize it in the terminal)
 
-PREV_TESTS=(seq mpi ocl "seq SPA_EXT" "mpi SPA_EXT" "seq SURF_EXT" "mpi SURF_EXT" "ocl SURF_EXT") 
-            #"seq RD_EXT" "mpi RD_EXT" "ocl RD_EXT" - not relevant vs. v.1.3b4 # "ocl SPA_EXT" is not yet supported
+PREV_TESTS=(seq mpi ocl "seq SPA_EXT" "mpi SPA_EXT" "seq SURF_EXT" "mpi SURF_EXT" "ocl SURF_EXT"\ 
+            "seq RD_EXT" "mpi RD_EXT" "ocl RD_EXT") # "ocl SPA_EXT" is not yet supported
 CROSS_TESTS=(mpi_seq ocl_seq "seq SPA_STAN" "mpi SPA_STAN" "seq SURF_STAN" "mpi SURF_STAN" "ocl SURF_STAN"\ 
             "seq RD_STAN" "mpi RD_STAN" "ocl RD_STAN") # "ocl SPA_STAN" is not yet supported
 EXTRA_TESTS=("mpi_seq SPA_EXT" "mpi_seq SPA_STAN" "mpi_seq SURF_EXT" "ocl_seq SURF_EXT" "mpi_seq SURF_STAN"\
