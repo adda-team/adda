@@ -1,24 +1,21 @@
-/* FILE : Romberg.c
- * $Date::                            $
- * Descr: routines for 1D and 2D Romberg integration
+/* Routines for 1D and 2D Romberg integration
  *
- *        1D Romberg integration routine based on Davis P.J., Rabinowitz P. "Methods of numerical integration", Academic
- *        Press, 1975 (Chapter 6.3). When function is periodic simple, trapezoidal rule is more suitable (Chapter 2.9),
- *        it is implemented inside the general Romberg framework. 1D Romberg works on precalculated array of data.
+ * 1D Romberg integration routine based on Davis P.J., Rabinowitz P. "Methods of numerical integration", Academic Press,
+ * 1975 (Chapter 6.3). When function is periodic simple, trapezoidal rule is more suitable (Chapter 2.9), it is
+ * implemented inside the general Romberg framework. 1D Romberg works on precalculated array of data.
  *
- *        Error estimates (for both cases) are based on the "bracketing" criterion (pp.330-331), they seems to be
- *        reliable (it is not so certain for trapezoid rule).
+ * Error estimates (for both cases) are based on the "bracketing" criterion (pp.330-331), they seems to be reliable (it
+ * is not so certain for trapezoid rule).
  *
- *        2D Romberg is two-level integration, where final error is estimated based on both the errors of outer and
- *        inner integration. It uses function pointer to calculate values as needed. Therefore it is adaptive, but can
- *        also be used in non-adaptive regime on precalculated values. Two instances of Romberg 2D should not be used in
- *        parallel (they use common storage). E.g. calculation of Csca inside orientation averaging must not be done.
+ * 2D Romberg is two-level integration, where final error is estimated based on both the errors of outer and inner
+ * integration. It uses function pointer to calculate values as needed. Therefore it is adaptive, but can also be used
+ * in non-adaptive regime on precalculated values. Two instances of Romberg 2D should not be used in parallel (they use
+ * common storage). E.g. calculation of Csca inside orientation averaging must not be done.
  *
- *        Integration parameters are described in a special structure Parms_1D defined in types.h. They must be set
- *        outside of the Romberg routine. All the routines normalize the result on the interval width, i.e. actually
- *        averaging takes place.
+ * Integration parameters are described in a special structure Parms_1D defined in types.h. They must be set outside of
+ * the Romberg routine. All routines normalize the result on the interval width, i.e. actually averaging takes place.
  *
- * Copyright (C) 2006-2010,2012-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

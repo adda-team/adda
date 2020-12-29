@@ -13,7 +13,7 @@ c     permittivity", Phys. Rev. E 70(3), 036606-6 (2004).
 c     license: GNU GPL
 
       subroutine propaespacelibreintadda(Rij,k0a,
-     $      gridspacex,gridspacey,gridspacez,relreq,result)
+     $      gridspacex,gridspacey,gridspacez,relreq,result,IFAIL)
       implicit none
       integer i,j
 c     definition of the position of the dipole, observation, wavenumber
@@ -21,7 +21,7 @@ c     ,wavelength, spacing lattice
       double precision result(12)
       double precision k0a,gridspacexm,gridspaceym,gridspacezm
       double precision x,y,z,gridspacex,gridspacey,gridspacez
-      double precision k0,xx0,yy0,zz0
+      double precision k0,xx0,yy0,zz0,RR
       double precision Rij(3)
       
 c     The structure of the result is the following:
@@ -43,16 +43,23 @@ c     Variables needs for the integration
       y=Rij(2)
       z=Rij(3)
       k0=k0a
-      gridspacexm=gridspacex*0.1d0
-      gridspaceym=gridspacey*0.1d0
-      gridspacezm=gridspacez*0.1d0
+      gridspacexm=gridspacex*0.01d0
+      gridspaceym=gridspacey*0.01d0
+      gridspacezm=gridspacez*0.01d0
 c     We perform the integration of the tensor
 c     definition for the integration
       MINCLS = 1000
       MAXCLS = 1000000
       KEY = 0
-      ABSREQ = 0.d0
-      
+
+c     Based on the conservative estimate from below of the largest
+c     component of the integral. For moderate and large distances the
+c     integral will actually scale as k^2/R, for small distances R^-3
+c     dependence will lead to larger values than based on its center
+      RR=x*x+y*y+z*z
+      ABSREQ = RELREQ*gridspacex*gridspacey*gridspacez/(RR**1.5d0)
+c      ABSREQ=0
+
       A(1)=-gridspacex/2.d0
       A(2)=-gridspacey/2.d0
       A(3)=-gridspacez/2.d0
@@ -60,6 +67,9 @@ c     definition for the integration
       B(2)=+gridspacey/2.d0
       B(3)=+gridspacez/2.d0
       
+c     If some of the coordinates are small, the corresponding 
+c     non-diagonal terms of the Green's tensor are further considered
+c     null (during each integrand evaluation)
       xx0=1.d0
       yy0=1.d0
       zz0=1.d0
@@ -80,9 +90,12 @@ c     definition for the integration
          result(N)=result(N)/gridspacex/gridspacey/gridspacez
       enddo
 
-      if (ifail.ne.0) then
-         write(*,*) 'IFAIL in IGT routine',IFAIL
-      endif
+c     We return IFAIL instead of testing it here to avoid output to
+c     terminal directly from Fortran, which leads to dependence on
+c     quadmath library
+c     if (ifail.ne.0) then
+c        write(*,*) 'IFAIL in IGT routine',IFAIL
+c     endif
 
       end
 c*************************************************************

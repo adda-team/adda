@@ -5,6 +5,9 @@
 #
 # All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
 # failures (redirect it to file or to colorize it in the terminal)
+#
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
 
 # we do not define the default value, since called scripts can process empty value on their own
 MODES="$1"
@@ -23,7 +26,7 @@ function test_error {
   fi
 }
 
-# uncomment any of the following for quicker tests
+# comment out any of the following for quicker tests
 test_error prev
 test_error cross
 test_error extra

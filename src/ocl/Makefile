@@ -1,8 +1,7 @@
-# Makefile for ocl version of ADDA package
-# All options are defined in Makefile
-# $Date::                            $
+# Makefile for ocl version of ADDA
+# Most options are defined in Makefile
 #
-# Copyright (C) 2010-2014 ADDA contributors
+# Copyright (C) ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -21,7 +20,8 @@
 
 # Depending on a particular OpenCL installation one may need to manually specify paths to corresponding headers and
 # libraries. Path should be absolute or relative to the location of this Makefile.
-# On Windows it is also possible to link to OpenCL.dll directly.
+# On Windows it is also possible to link to OpenCL.dll directly (but not if it is located in C:/Windows/System32).
+#CFLAGS += -I"C:/msys/local/OpenCL-Headers"
 #CFLAGS += -I"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/include"
 #LDFLAGS += -L"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v3.2/lib/Win32"
 
@@ -41,12 +41,12 @@ else # the following is only for non-sparse mode
     else
       $(error Apple clFFT (CLFFT_APPLE) is implemented in C++, hence incompatible with NO_CPP)
     endif
-  else # AMD clFFT flags
+  else # clFFT flags
     # Depending on a particular clFFT installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
     # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
-    #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdFft\include"
-    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdFft\bin64"
+    #CFLAGS  += -I"C:/msys/local/clFFT-2.12.2/include"
+    #LDFLAGS += -L"C:/msys/local/clFFT-2.12.2/bin"
   
     LDLIBS += -lclFFT
 
@@ -56,17 +56,17 @@ else # the following is only for non-sparse mode
     # Uncomment the following line if you experience problems during linking, like
     # "...libclFFT.so: undefined reference to `clRetainContext@OPENCL_1.0'"
     # This is caused by Nvidia OpenCL libraries on Linux (hopefully it will disappear in next releases of this library)
-    # The drawback of this workaround is that a warning would appear at each execution of adda_ocl. If you don't like 
-    # it, provide another libOpenCL.so (e.g. that from AMD, or better - open-source one from 
-    # https://forge.imag.fr/projects/ocl-icd/) for linking.
+    # The potential drawback of this workaround is that a warning may appear at each execution of adda_ocl. If you 
+    # don't like it, provide another libOpenCL.so (e.g. that from AMD, or better - open-source one from 
+    # https://github.com/OCL-dev/ocl-icd) for linking.
     #LDFLAGS +=-Wl,--unresolved-symbols=ignore-in-shared-libs
   endif
   ifneq ($(filter OCL_BLAS,$(OPTIONS)),)
     # Depending on a particular clBLAS installation one may need to manually specify paths to its headers and 
     # libraries. Path should be absolute or relative to the location of this Makefile.
     # On Windows (as in example below) it is recommended to link to *.dll instead of *.lib
-    #CFLAGS  += -I"C:\Program Files (x86)\AMD\clAmdBlas\include"
-    #LDFLAGS += -L"C:\Program Files (x86)\AMD\clAmdBlas\bin64"
+    #CFLAGS  += -I"C:/msys/local/clBLAS-2.12.0/include"
+    #LDFLAGS += -L"C:/msys/local/clBLAS-2.12.0/bin"
     
     LDLIBS += -lclBLAS
 
@@ -80,8 +80,14 @@ endif
 # !!! End of control section. Everything below is not designed to be modified by user
 #=======================================================================================================================
 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  LDLIBS  += -framework OpenCL
+else
+  LDLIBS  += -lOpenCL
+endif
 CFLAGS  += -DOPENCL 
-LDLIBS  += -lOpenCL
+
 CSOURCE += oclcore.c oclmatvec.c
 
 ifneq ($(filter OCL_READ_SOURCE_RUNTIME,$(OPTIONS)),)

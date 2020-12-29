@@ -1,8 +1,6 @@
-/* FILE : chebyshev.c
- * $Date::                            $
- * Descr: routines for determining parameters of the chebyshev particles
+/* Routines for determining parameters of the chebyshev particles
  *
- * Copyright (C) 2011-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

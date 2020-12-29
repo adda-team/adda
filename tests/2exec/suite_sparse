@@ -1,3 +1,7 @@
+# Shortened test suite for SPARSE mode of ADDA (to be used by comp2exec)
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 #------------------------- Variable definitons -------------------------------------------------------------------------
 # All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
 # can be defined through other variables defined below. Each variable must be defined only once.
@@ -214,9 +218,8 @@ all -rect_dip 1 1.5 2 ;mgn;
 all -rect_dip 1 2 1.5 ;mgn;
 all -rect_dip 1.5 1 2 ;mgn;
 all -rect_dip 1.5 2 1 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq -rect_dip 2 1 1.5 ;mgn;
-!ocl_seq -rect_dip 2 1.5 1 ;mgn;
+all -rect_dip 2 1 1.5 ;mgn;
+all -rect_dip 2 1.5 1 ;mgn;
 all -rect_dip 1 2 2 ;mgn;
 all -rect_dip 2 1 2 ;mgn;
 all -rect_dip 2 2 1 ;mgn;
@@ -286,8 +289,7 @@ all -scat_plane ;se; ;mn;
 #all -h shape box
 #all -shape box ;mgn;
 #all -shape box 0.5 1.5 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-#!ocl_seq -shape box 1.51 1.92 -grid 7 ;m; ;n;
+#all -shape box 1.51 1.92 -grid 7 ;m; ;n;
 #all -h shape capsule
 #all -shape capsule 1.5 ;mgn;
 #all -h shape chebyshev
@@ -322,6 +324,11 @@ all -shape read ell_ddscat7.dat ;m; ;n;
 
 all -h size 
 all -size 8 ;mgn;
+
+all -h so_buf
+all -so_buf no ;mgn;
+all -so_buf line ;mgn;
+all -so_buf full ;mgn;
 
 all -h store_beam
 all -store_beam ;se; ;mn;

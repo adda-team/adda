@@ -1,9 +1,7 @@
-/* File: calculator.c
- * $Date::                            $
- * Descr: all the initialization is done here before actually calculating internal fields;
- *        includes calculation of couple constants
+/* All the initialization is done here before actually calculating internal fields,
+ * includes calculation of couple constants
  *
- * Copyright (C) 2006-2010,2013-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -400,7 +398,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
  * calculated from one m) or to another one, then a scalar function is used. See comments in the code for more details.
  */
 {
-	if(rectDip) {
+	if (rectDip) {
 		int i;
 		double a,b,c;
 		double omega;
@@ -447,20 +445,20 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		for (i=0; i < 3; i++) {
 			if (PolRelation==POL_IGT_SO) {
 				if (i==0) {
-					a=gridSpaceX*0.5;
-					b=gridSpaceY*0.5;
-					c=gridSpaceZ*0.5;
+					a=dsX*0.5;
+					b=dsY*0.5;
+					c=dsZ*0.5;
 				} else if (i==1) {
-					a=gridSpaceY*0.5;
-					b=gridSpaceX*0.5;
-					c=gridSpaceZ*0.5;
+					a=dsY*0.5;
+					b=dsX*0.5;
+					c=dsZ*0.5;
 
 				} else {
-					a=gridSpaceZ*0.5;
-					b=gridSpaceY*0.5;
-					c=gridSpaceX*0.5;
+					a=dsZ*0.5;
+					b=dsY*0.5;
+					c=dsX*0.5;
 				}
-				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidalpoint lattice:
+				/* see Enrico Massa 'Discrete-dipole approximation on a rectangular cuboidal point lattice:
 				 * considering dynamic depolarization'. Eq. number noted for some lines of code
 				 */
 				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c))); // Eq.(10)
@@ -499,7 +497,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 #undef R3_INDEX
 			}
 		}
-		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n", REIM3V(res));
+		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant: "CFORM3V"\n", REIM3V(res));
 	} 
 	else {
 		double ka,kd2,S;
@@ -575,11 +573,11 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			}
 		}
 		if (asym || anisotropy) {
-			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant:"CFORM3V"\n",REIM3V(res));
+			if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant: "CFORM3V"\n",REIM3V(res));
 		}
 		else {
 			res[2]=res[1]=res[0];
-			if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant:"CFORM"\n",REIM(res[0]));
+			if (!orient_avg && IFROOT) PrintBoth(logfile,"CoupleConstant: "CFORM"\n",REIM(res[0]));
 		}
 	}
 }
@@ -626,7 +624,7 @@ static void calculate_one_orientation(double * restrict res)
 
 	// calculate scattered field for y - polarized incident light
 	if (IFROOT) {
-		printf("\nhere we go, calc Y\n\n");
+		PRINTFB("\nhere we go, calc Y\n\n");
 		if (!orient_avg) fprintf(logfile,"\nhere we go, calc Y\n\n");
 	}
 	InitCC(INCPOL_Y);
@@ -642,7 +640,7 @@ static void calculate_one_orientation(double * restrict res)
 		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
 		if (IFROOT) {
-			printf("\nhere we go, calc X\n\n");
+			PRINTFB("\nhere we go, calc X\n\n");
 			if (!orient_avg) fprintf(logfile,"\nhere we go, calc X\n\n");
 		}
 		if (PolRelation==POL_LDR && !avg_inc_pol) InitCC(INCPOL_X);
@@ -657,7 +655,7 @@ static void calculate_one_orientation(double * restrict res)
 	D("MuellerMatrix finished");
 	if (IFROOT && orient_avg) {
 		tstart=GET_TIME();
-		if (store_mueller) printf("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
+		if (store_mueller) PRINTFB("\nError of alpha integration (Mueller) is "GFORMDEF"\n",
 			Romberg1D(parms_alpha,block_theta,muel_alpha,res+2));
 		memcpy(res,muel_alpha-2,2*sizeof(double));
 		D("Integration over alpha completed on root");
@@ -871,7 +869,7 @@ static void AllocateEverything(void)
 
 void FreeEverything(void)
 /* frees all allocated vectors; should not be called in prognosis mode, since arrays are not
- * actually allocated. Also called from matvec.c in PRECISE_TIMING.
+ * actually allocated. Also called from matvec.c and oclmatvec.c in PRECISE_TIMING.
  */
 {
 	FreeInteraction();

@@ -1,4 +1,6 @@
 # Processes GraphWiz files in the same directory using the dot tool
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
 SHELL := /bin/sh
 GVSRC := $(wildcard *.gv)
 EXT   := svg
@@ -10,7 +12,7 @@ else
   DOT := "C:\Program Files (x86)\Graphviz2.30\bin\dot"
 endif
 # Relative path to folder with wiki files (images are copied there on install) 
-WIKIPATH := ../../web/wiki
+WIKIPATH := ../../wiki/img
 
 OUTPUT   := $(GVSRC:.gv=.$(EXT))
 

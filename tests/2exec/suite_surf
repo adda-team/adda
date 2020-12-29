@@ -1,3 +1,7 @@
+# Shortened test suite for '-surf ...' mode of ADDA (to be used by comp2exec)
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+#
 #------------------------- Variable definitons -------------------------------------------------------------------------
 # All variable names should be enclosed in ';' and start the line - its value is assigned to the rest of the line. It
 # can be defined through other variables defined below. Each variable must be defined only once.
@@ -36,23 +40,26 @@
 !SURF_EXT
 
 # testing of different grids - relevant for FFT methods; 
-# Some are turned off for ocl_seq until ocl supports larger prime factors in FFT
-# TODO: add odd grid values (the maximum size can then be decreased to 16)
+all -grid 1 ;smn;
 all -grid 2 ;smn;
+all -grid 3 ;smn;
 all -grid 4 ;smn;
+all -grid 5 ;smn;
 all -grid 6 ;smn;
+all -grid 7 ;smn;
 all -grid 8 ;smn;
+all -grid 9 ;smn;
 all -grid 10 ;smn;
+all -grid 11 ;smn;
 all -grid 12 ;smn;
-!ocl_seq -grid 14 ;smn;
+all -grid 13 ;smn;
+all -grid 14 ;smn;
+all -grid 15 ;smn;
 all -grid 16 ;smn;
+all -grid 17 ;smn;
 all -grid 18 ;smn;
+all -grid 19 ;smn;
 all -grid 20 ;smn;
-!ocl_seq -grid 22 ;smn;
-all -grid 24 ;smn;
-!ocl_seq -grid 26 ;smn;
-all -grid 30 ;smn;
-all -grid 32 ;smn;
 
 all -h alldir_inp
 all -alldir_inp adp.dat -Csca ;mgn;
@@ -242,9 +249,8 @@ all -rect_dip 1 1 2 ;mgn;
 #all -rect_dip 1 2 1.5 ;mgn;
 #all -rect_dip 1.5 1 2 ;mgn;
 #all -rect_dip 1.5 2 1 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-#!ocl_seq -rect_dip 2 1 1.5 ;mgn;
-#!ocl_seq -rect_dip 2 1.5 1 ;mgn;
+#all -rect_dip 2 1 1.5 ;mgn;
+#all -rect_dip 2 1.5 1 ;mgn;
 #all -rect_dip 1 2 2 ;mgn;
 #all -rect_dip 2 1 2 ;mgn;
 all -rect_dip 2 2 1 ;mgn;
@@ -318,8 +324,7 @@ all -shape bisphere 2 ;mgn; -size 2
 all -h shape box
 all -shape box ;mgn;
 all -shape box 0.5 1.5 ;mgn;
-# Turned off for ocl_seq until ocl supports larger prime factors in FFT
-!ocl_seq -shape box 1.51 1.92 -grid 7 ;m; ;n; -size 2
+all -shape box 1.51 1.92 -grid 7 ;m; ;n; -size 2
 all -h shape capsule
 all -shape capsule 1.5 ;mgn; -size 2
 all -h shape chebyshev
@@ -354,6 +359,11 @@ all -shape spherebox 0.5 ;2mgn;
 
 all -h size
 all -size 2 ;mgn;
+
+all -h so_buf
+all -so_buf no ;mgn;
+all -so_buf line ;mgn;
+all -so_buf full ;mgn;
 
 all -h store_beam
 all -store_beam ;se; ;mgn;

@@ -1,11 +1,9 @@
-/* File: vars.h
- * $Date::                            $
- * Descr: all the global variables are declared here
+/* All the global variables are declared here
  *
- *        'Global' means used in three or more source files. Variables that are used in only two source files are called
- *        'semi-global' and not listed here. They are defined in one file and referenced with 'extern' in another one.
+ * 'Global' means used in three or more source files. Variables that are used in only two source files are called
+ * 'semi-global' and not listed here. They are defined in one file and referenced with 'extern' in another one.
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -32,8 +30,7 @@
 // basic variables
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;
-extern double gridspace,gridSpaceX,gridSpaceY,gridSpaceZ,rectScaleX,rectScaleY,rectScaleZ,maxRectScale,dipvol,kd,
-	ka_eq,inv_G,WaveNum;
+extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,kd,kdX,kdY,kdZ,ka_eq,inv_G,WaveNum;
 extern double * restrict DipoleCoord;
 
 extern double memory,memPeak;

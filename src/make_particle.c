@@ -1,9 +1,7 @@
-/* File: make_particle.c
- * $Date::                            $
- * Descr: this module initializes the dipole set, either using predefined shapes or reading from a file;
- *        includes granule generator
+/* This module initializes the dipole set, either using predefined shapes or reading from a file;
+ * includes granule generator
  *
- * Copyright (C) 2006-2013 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -65,10 +63,10 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 #endif
 
 // used in interaction.c
-double ZsumShift; // distance between the lowest (in Z) dipoles and its image (in units of d_z)
+double ZsumShift; // real distance between the lowest (in Z) dipoles and its image
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
-const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters
+const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters (first one should end with :)
 size_t gr_N;                     // number of granules
 double gr_vf_real;               // actual granules volume fraction
 size_t mat_count[MAX_NMAT+1];    // number of dipoles in each domain
@@ -87,12 +85,13 @@ static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
 #endif
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
-static double Ndip;             // total number of dipoles (in a circumscribing cube)
-static double dpl_def;          // default value of dpl
-static int minX,minY,minZ;      // minimum values of dipole positions in dipole file
-static FILE * restrict dipfile; // handle of dipole file
-static enum shform read_format; // format of dipole file, which is read
-static double cX,cY,cZ;         // center for DipoleCoord in units of dipoles (counted from 0)
+static double Ndip;              // total number of dipoles (in a circumscribing cube)
+static double dpl_def;           // default value of dpl
+static int minX,minY,minZ;       // minimum values of dipole positions in dipole file
+static FILE * restrict dipfile;  // handle of dipole file
+static enum shform read_format;  // format of dipole file, which is read
+static double cX,cY,cZ;          // center for DipoleCoord in units of dipoles (counted from 0)
+static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (dsX/dsMax...)
 
 #ifndef SPARSE
 
@@ -204,10 +203,10 @@ static void SaveGeometry(void)
 				             "%zu = NAT\n"
 				             "1 0 0 = A_1 vector\n"
 				             "0 1 0 = A_2 vector\n"
-				             "%g %g %g = lattice spacings (d_x,d_y,d_z)/d\n",
+				             "%g %g %g = lattice spacings (dx,dy,dz)/d\n",
 				             shapename,boxX,boxY,boxZ,nvoid_Ndip,rectScaleX,rectScaleY,rectScaleZ);
 
-				if (sg_format==SF_DDSCAT7) fprintf(geom,"%g %g %g = coordinates (x0,y0,z0)/d of the zero dipole "
+				if (sg_format==SF_DDSCAT7) fprintf(geom,"%g %g %g = coordinates (x0/dx,y0/dy,z0/dz) of the zero dipole "
 					"(IX=IY=IZ=0)\n",(1-boxX)/2.0,(1-boxY)/2.0,(1-boxZ)/2.0);
 				fprintf(geom,"JA  IX  IY  IZ ICOMP(x,y,z)\n");
 				break;
@@ -240,7 +239,7 @@ static void SaveGeometry(void)
 	// combine all files into one and clean
 	if (IFROOT) CatNFiles(directory,F_GEOM_TMP,save_geom_fname);
 #endif
-	if (IFROOT) printf("Geometry saved to file\n");
+	if (IFROOT) PRINTFB("Geometry saved to file\n");
 	Timing_FileIO+=GET_TIME()-tstart;
 }
 
@@ -566,6 +565,8 @@ static size_t PlaceGranules(void)
 	char fname[MAX_FNAME]; // filename of file
 	double minval;         // minimum size of auxiliary grid
 
+	// next line should never happen
+	if (rectDip) LogError(ONE_POS,"Incompatibility error in PlaceGranules");
 	/* redundant initialization to remove warnings; most of this is due to the fact that code for small and large
 	 * granules is largely independent (although there are some common parts, which motivates against complete
 	 * separation of them into two functions).
@@ -620,7 +621,7 @@ static size_t PlaceGranules(void)
 	 */
 	sm_gr=minval>tmp1 && (gdX<2 || gdY<2 || gdZ<2);
 	if (sm_gr) {
-		if (IFROOT) printf("Using algorithm for small granules\n");
+		if (IFROOT) PRINTFB("Using algorithm for small granules\n");
 		/* redefine auxiliary grid; now the grid size is chosen to be always >= 2*D. Thus we can be sure that granule
 		 * can intersect with granule in either left or right (x=+-1) cell but not both (and analogously with other
 		 * coordinates).
@@ -634,7 +635,7 @@ static size_t PlaceGranules(void)
 		gdZ=(z1-z0)/gZ;
 	}
 	else { // large granules
-		if (IFROOT) printf("Using algorithm for large granules\n");
+		if (IFROOT) PRINTFB("Using algorithm for large granules\n");
 		gX2=2*gX;
 		gdXh=gdX/2;
 		gY2=2*gY;
@@ -996,7 +997,7 @@ static size_t PlaceGranules(void)
 			}
 		}
 	}
-	if (IFROOT) printf("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
+	if (IFROOT) PRINTFB("Granule generator: total random placements= %zu (efficiency 1 = "GFORMDEF")\n"
 		               "                   possible granules= %zu (efficiency 2 = "GFORMDEF")\n",
 		               count,count_gr/(double)count,count_gr,gr_N/(double)count_gr);
 	MyInnerProduct(&nd,sizet_type,1,&Timing_GranulComm);
@@ -1018,7 +1019,7 @@ static size_t PlaceGranules(void)
 	// close granule file if needed and print info
 	if (store_grans && IFROOT) {
 		FCloseErr(file,fname,ONE_POS);
-		printf("Granule coordinates saved to file\n");
+		PRINTFB("Granule coordinates saved to file\n");
 	}
 	return nd;
 }
@@ -1330,6 +1331,7 @@ void InitShape(void)
 	double n_sizeX; // new value for size
 	double yx_ratio,zx_ratio;
 	double tmp1,tmp2;
+	double rsMax; // maximum of rectScale*
 #ifndef SPARSE
 	double tmp3;
 #endif
@@ -1363,6 +1365,11 @@ void InitShape(void)
 		if (tmp2<tmp1) tmp2=tmp1;
 	}
 	dpl_def=10*sqrt(tmp2);
+	// initialize relative dipole sizes
+	rsMax=MAX(rectScaleX,MAX(rectScaleY,rectScaleZ));
+	drelX=rectScaleX/rsMax;
+	drelY=rectScaleY/rsMax;
+	drelZ=rectScaleZ/rsMax;
 	// initialization of global option index for error messages
 	opt=opt_sh;
 	// shape initialization
@@ -1556,7 +1563,7 @@ void InitShape(void)
 				coat_z=sh_pars[3];
 				if (coat_x*coat_x+coat_y*coat_y+coat_z*coat_z>0.25*(1-coat_ratio)*(1-coat_ratio))
 					PrintErrorHelp("Inner sphere is not fully inside the outer");
-				if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d= "GFORM3V,
+				if (IFROOT) buf=rea_sprintf(buf,"\n       position of inner sphere center r/d="GFORM3V,
 					coat_x,coat_y,coat_z);
 			}
 			else coat_x=coat_y=coat_z=0; // initialize default values
@@ -1894,14 +1901,14 @@ void InitShape(void)
 		else {
 			if (dpl==UNDEF) {
 				// use default dpl, but make sure that it does not produce too small grid (e.g. for nanoparticles).
-				temp=(int)ceil(sizeX*dpl_def/lambda);
+				temp=(int)ceil((sizeX/drelX)*dpl_def/lambda);
 				boxX=FitBox(MAX(temp,MIN_AUTO_GRID));
 				if (small_Nmat!=UNDEF) PrintError("Given number of refractive indices (%d) is less than number of "
 					"domains (%d). Since computational grid is initialized based on the default dpl, it may change "
 					"depending on the actual refractive indices.",small_Nmat,Nmat_need);
 			}
 			else { // if dpl is given in the command line; then believe it
-				boxX=FitBox((int)ceil(sizeX*dpl/lambda));
+				boxX=FitBox((int)ceil((sizeX/drelX)*dpl/lambda));
 				dpl=UNDEF; // dpl is given correct value in make_particle()
 			}
 		}
@@ -1928,7 +1935,12 @@ void InitShape(void)
 	else if (n_boxZ==UNDEF) LogError(ONE_POS,"Both zx_ratio and n_boxZ are undefined");
 	// set boxY and boxZ
 	if (boxY==UNDEF) { // assumed that boxY and boxZ are either both defined or both not defined
+		// when weighted discretization will be implemented, the following may be removed
+		if (n_boxY==0) PrintError("The particle is too thin along the y-axis to be adequately described by the "
+			"current grid. Either specify larger grid (-grid ...) or use rectangular dipoles (-rect_dip ...).");
 		boxY=FitBox(n_boxY);
+		if (n_boxZ==0) PrintError("The particle is too thin along the z-axis to be adequately described by the "
+			"current grid. Either specify larger grid (-grid ...) or use rectangular dipoles (-rect_dip ...).");
 		boxZ=FitBox(n_boxZ);
 	}
 	else {
@@ -1947,7 +1959,7 @@ void InitShape(void)
 	// initialize number of dipoles; first check that it fits into size_t type
 	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
 	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
-		"supported by size_t type on this system (%zu). If possible, please recompile ADDA in 64-bit mode.",
+		"supported by size_t type on this system (%zu). If possible, recompile ADDA in 64-bit mode.",
 		tmp,SIZE_MAX);
 #endif // !SPARSE
 	Ndip=boxX*boxY*boxZ;
@@ -1966,7 +1978,7 @@ void InitShape(void)
 //======================================================================================================================
 
 void MakeParticle(void)
-// creates a particle; initializes all dipoles counts, dpl, gridspace
+// creates a particle; initializes all dipoles counts, dpl, dipole sizes
 {
 	
 	size_t index,dip,i3;
@@ -2172,7 +2184,7 @@ void MakeParticle(void)
 		position_tmp[3*index]=(unsigned short)i;
 		position_tmp[3*index+1]=(unsigned short)j;
 		position_tmp[3*index+2]=(unsigned short)k;
-		// afterwards multiplied by gridspace
+		// afterwards multiplied by dipole sizes
 		material_tmp[index]=(unsigned char)mat;
 		index++;
 	} // End box loop
@@ -2203,35 +2215,48 @@ void MakeParticle(void)
 	local_nRows=3*local_nvoid_Ndip;
 	// initialize dpl and gridspace
 	volcor_used=(volcor && (volume_ratio!=UNDEF));
+	double dipVR=drelX*drelY*drelZ; // ratio of dipole volume to enclosing cube
 	if (sizeX==UNDEF) {
-		if (a_eq!=UNDEF) dpl=lambda*pow(nvoid_Ndip*THREE_OVER_FOUR_PI*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/a_eq;
+		if (a_eq!=UNDEF) dpl=lambda*pow(dipVR*nvoid_Ndip*THREE_OVER_FOUR_PI,ONE_THIRD)/a_eq;
 		else if (dpl==UNDEF) dpl=dpl_def; // default value of dpl
 		// sizeX is determined to give correct volume
-		if (volcor_used) 
-			sizeX=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/dpl/rectScaleX;
-		else sizeX=lambda*boxX*rectScaleX/dpl;
+		if (volcor_used) sizeX=lambda*pow(dipVR*nvoid_Ndip/volume_ratio,ONE_THIRD)/dpl;
+		else sizeX=lambda*boxX*drelX/dpl;
 	}
 	else {
 		// dpl is determined to give correct volume
-		if (volcor_used) 
-			dpl=lambda*pow(nvoid_Ndip/volume_ratio*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)/sizeX/rectScaleX;
-		else dpl=lambda*boxX/sizeX;
+		if (volcor_used) dpl=lambda*pow(dipVR*nvoid_Ndip/volume_ratio,ONE_THIRD)/sizeX;
+		else dpl=lambda*boxX*drelX/sizeX;
 	}
 	// Check consistency for FCD
 	if ((IntRelation==G_FCD || PolRelation==POL_FCD) && dpl<=2)
 		LogError(ONE_POS,"Too small dpl for FCD formulation, should be at least 2");
-	// initialize gridspace and dipvol
-	gridspace=lambda/dpl/rectScaleX;
-	gridSpaceX=gridspace*rectScaleX;
-	gridSpaceY=gridspace*rectScaleY;
-	gridSpaceZ=gridspace*rectScaleZ;
-	dipvol=gridSpaceX*gridSpaceY*gridSpaceZ;
+	// initialize gridspace, dipvol, and kd*
+	double dsMax=lambda/dpl; // maximum dipole size
+	dsX=dsMax*drelX;
+	dsY=dsMax*drelY;
+	dsZ=dsMax*drelZ;
+	dipvol=dsX*dsY*dsZ;
+	kdX=WaveNum*dsX;
+	kdY=WaveNum*dsY;
+	kdZ=WaveNum*dsZ;
+	/* the following two variables are deprecated in rectDip regime, so we set them to huge values to cause errors
+	 * further on (to be certain, which code works with rectDip and which not). However, when rectDip is not used, we
+	 * leave those variables, as they were before
+	 */
+	if (rectDip) {
+		gridspace=DBL_MAX;
+		kd=DBL_MAX;
+	}
+	else {
+		gridspace=dsX;
+		kd=TWO_PI/dpl;
+	}
 	// initialize equivalent size parameter and cross section
-	kd = TWO_PI/dpl/rectScaleX;
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
 	 * slightly different from the one given by '-eq_rad' option.
 	 */
-	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*rectScaleX*rectScaleY*rectScaleZ,ONE_THIRD)*gridspace;
+	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*dipVR,ONE_THIRD)*dsMax;
 	ka_eq = WaveNum*a_eq;
 	inv_G = 1/(PI*a_eq*a_eq);
 	
@@ -2293,9 +2318,9 @@ void MakeParticle(void)
 	double minZco=0; // minimum Z coordinates of dipoles
 	for (index=0; index<local_nvoid_Ndip; index++) {
 		i3=3*index;
-		DipoleCoord[i3] = (position[i3]-cX)*gridSpaceX;
-		DipoleCoord[i3+1] = (position[i3+1]-cY)*gridSpaceY;
-		DipoleCoord[i3+2] = (position[i3+2]-cZ)*gridSpaceZ;
+		DipoleCoord[i3] = (position[i3]-cX)*dsX;
+		DipoleCoord[i3+1] = (position[i3+1]-cY)*dsY;
+		DipoleCoord[i3+2] = (position[i3+2]-cZ)*dsZ;
 		if (minZco>DipoleCoord[i3+2]) minZco=DipoleCoord[i3+2]; // crude way to find the minimum on the way
 	}
 	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
@@ -2327,14 +2352,14 @@ void MakeParticle(void)
 	local_z0_unif=local_z0; // TODO: should be changed afterwards
 #endif // !SPARSE
 
-	box_origin_unif[0]=-gridSpaceX*cX;
-	box_origin_unif[1]=-gridSpaceY*cY;
+	box_origin_unif[0]=-dsX*cX;
+	box_origin_unif[1]=-dsY*cY;
 #ifndef SPARSE
-	box_origin_unif[2]=gridSpaceZ*(local_z0_unif-cZ);
-	if (surface) ZsumShift=2*((hsub/gridSpaceZ)-cZ+local_z0);
+	box_origin_unif[2]=dsZ*(local_z0_unif-cZ);
+	if (surface) ZsumShift=2*(hsub+(local_z0-cZ)*dsZ);
 #else
-	box_origin_unif[2]=-gridSpaceZ*cZ;
-	if (surface) ZsumShift=2*((hsub/gridSpaceZ)-cZ);
+	box_origin_unif[2]=-dsZ*cZ;
+	if (surface) ZsumShift=2*(hsub-cZ*dsZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif

@@ -65,8 +65,13 @@
 #define POF	.7853981635
 /* MAXH=100 seems sufficient to obtain convergence in all cases; larger values doesn't seem to improve the accuracy
  * even when smaller CRIT is used. Probably other approximations are employed somewhere.
+ * However, larger MAXH is required for distances larger than several wavelengths to reach specified CRIT. In practice,
+ * such CRIT is not needed for large distances, since Sommerfeld integrals are only a correction to the analytical
+ * reflection term. Thus, we increased MAXH to 500 for now, but final solution is left for
+ * https://github.com/adda-team/adda/issues/176
+ * If you get convergence errors, increase MAXH further
  */
-#define MAXH	100
+#define MAXH	500
 #define CRIT	1.0E-4
 #define NM	131072
 #define NTS	4
@@ -965,38 +970,37 @@ static void abort_on_error( int why )
   switch( why )
   {
     case -1 : /* abort if input file name too long */
-      fprintf( stderr, "%s\n",
-	  "nec2c: input file name too long - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: input file name too long - aborting");
       break;
 
     case -2 : /* abort if output file name too long */
-      fprintf( stderr, "%s\n",
-	  "nec2c: output file name too long - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: output file name too long - aborting");
       break;
 
     case -3 : /* abort on input file read error */
-      fprintf( stderr, "%s\n",
-	  "nec2c: error reading input file - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: error reading input file - aborting");
       break;
 
     case -4 : /* Abort on malloc failure */
-      fprintf( stderr, "%s\n",
-	  "nec2c: A memory allocation request has failed - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: A memory allocation request has failed - aborting");
       break;
 
     case -5 : /* Abort if a GF card is read */
-      fprintf( stderr, "%s\n",
-	  "nec2c: NGF solution option not supported - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: NGF solution option not supported - aborting");
       break;
 
     case -6: /* No convergence in gshank() */
-            fprintf( stderr, "%s\n",
-	  "nec2c: No convergence in gshank() - aborting" );
+      fprintf(stderr,"No convergence in gshank() - aborting. Try to increase MAXH in somnec.c and recompile\n");
       break;
 
     case -7: /* Error in hankel() */
-            fprintf( stderr, "%s\n",
-	  "nec2c: hankel not valid for z=0. - aborting" );
+      fprintf(stderr, "%s\n",
+	  "nec2c: hankel not valid for z=0. - aborting");
       break;
   }  /* switch( why ) */
 

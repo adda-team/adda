@@ -3,6 +3,7 @@
 # it was designed for DAS-3 cluster
 # (http://www.cs.vu.nl/das3/)
 # Auth: Adianto Wibisono
+# GNU General Public License version 3
 #
 # Choose shell
 #$ -S /bin/sh

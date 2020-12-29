@@ -1,19 +1,17 @@
-/* File: GenerateB.c
- * $Date::                            $
- * Descr: generate a incident beam
+/* Generates the incident beam
  *
- *        Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
- *        in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,1427-1443 (1988).
- *        Eq.(22) - complex conjugate.
+ * Lminus beam is based on: G. Gouesbet, B. Maheu, G. Grehan, "Light scattering from a sphere arbitrary located
+ * in a Gaussian beam, using a Bromwhich formulation", J.Opt.Soc.Am.A 5,1427-1443 (1988).
+ * Eq.(22) - complex conjugate.
  *
- *        Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
- *        Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo).
+ * Davis beam is based on: L. W. Davis, "Theory of electromagnetic beams," Phys.Rev.A 19, 1177-1179 (1979).
+ * Eqs.(15a),(15b) - complex conjugate; in (15a) "Q" changed to "Q^2" (typo).
  *
- *        Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field
- *        components for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
- *        Eqs.(25)-(28) - complex conjugate.
+ * Barton beam is based on: J. P. Barton and D. R. Alexander, "Fifth-order corrected electromagnetic-field components
+ * for a fundamental Gaussian-beam," J.Appl.Phys. 66,2800-2802 (1989).
+ * Eqs.(25)-(28) - complex conjugate.
  *
- * Copyright (C) 2006-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -64,7 +62,7 @@ double beam_center_0[3]; // position of the beam center in laboratory reference 
  */
 doublecomplex eIncRefl[3],eIncTran[3];
 // used in param.c
-char *beam_descr; // string for log file with beam parameters
+const char *beam_descr; // string for log file with beam parameters
 
 // LOCAL VARIABLES
 static double s,s2;            // beam confinement factor and its square
@@ -96,7 +94,7 @@ void InitBeam(void)
 	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 	const double c_light = 29979245800; //speed of light in vacuum, cm/s
 	const double e_energy_rest = 510.99895; //Electron rest mass, keV
-	char *tmp_str; // temporary string
+	const char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -121,7 +119,7 @@ void InitBeam(void)
 					/* Special case for msub near 1 to remove discontinuities for near-grazing incidence. The details
 					 * are discussed in CalcFieldSurf() in crosssec.c.
 					 */
-					if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+					if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
 					else kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 					// determine propagation direction and full wavevector of wave transmitted into substrate
 					ktVec[0]=msub*prop_0[0];
@@ -134,7 +132,7 @@ void InitBeam(void)
 					ki=-prop_0[2];
 					if (!msubInf) {
 						// same special case as above
-						if (cabs(msub-1)<ROUND_ERR && fabs(ki)<SQRT_RND_ERR) kt=ki;
+						if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
 						else kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
 						// determine propagation direction of wave transmitted into substrate
 						ktVec[0]=prop_0[0];
@@ -194,7 +192,7 @@ void InitBeam(void)
 					case B_BARTON5:
 						tmp_str="5th order approximation, by Barton";
 						break;
-					default: break;
+					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 				}
 				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
 				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")\n"

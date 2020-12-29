@@ -1,8 +1,6 @@
-/* File: cmplx.h
- * $Date::                            $
- * Descr: inline complex functions, functions on length-3 real and complex vectors, and several auxiliary functions
+/* Inline complex functions, functions on length-3 real and complex vectors, and several auxiliary functions
  *
- * Copyright (C) 2006-2008,2010,2012-2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as

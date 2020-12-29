@@ -1,0 +1,38 @@
+#!/bin/bash
+# Compiles ADDA (in debug mode) with various compilation flags - used to find compilation warnings
+# Compilation is performed silently with (-s flag)
+#
+# All warnings and errors go to stderr, so one may look mostly at this stream to catch failures 
+# (i.e. redirect it to file), however it is commonly colorized by make, so should be OK as is
+#
+# Copyright (C) ADDA contributors
+# GNU General Public License version 3
+
+function compile_debug {
+  # $1 is mode, $2 - extra options
+  if ! make -s $1 OPTIONS="DEBUG $2"; then
+    echo "ERROR during compiling ADDA with options '$1 OPTIONS=\"DEBUG $2\"'" >&2
+    exit 1
+  fi
+}
+
+# main code; we do not do any special cleaning, since believe that make tracks all dependences
+cd ./../src
+compile_debug all ""
+compile_debug all "DEBUGFULL"
+compile_debug all "FFT_TEMPERTON"
+compile_debug all "NO_FORTRAN"
+compile_debug all "PRECISE_TIMING"
+compile_debug all "USE_SSE3"
+
+compile_debug seq "NOT_USE_LOCK"
+compile_debug seq "ONLY_LOCKFILE"
+compile_debug seq "OVERRIDE_STDC_TEST"
+compile_debug seq "NO_GITHASH"
+
+compile_debug ocl "OCL_READ_SOURCE_RUNTIME"
+compile_debug ocl "OCL_BLAS"
+compile_debug ocl "CLFFT_APPLE"
+
+compile_debug "seq mpi" "SPARSE"
+compile_debug "seq mpi" "SPARSE USE_SSE3"

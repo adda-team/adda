@@ -1,10 +1,9 @@
-# Main makefile for ADDA package
+# Main makefile for ADDA
 # Requires GNU make (at least 3.81) to execute. 
 # Actual compiling goes in folders 'seq', 'mpi', and 'ocl' for sequential, parallel (MPI), and OpenCL (GPU accelerated)
 # version respectively
-# $Date::                            $
 #
-# Copyright (C) 2006-2014 ADDA contributors
+# Copyright (C) ADDA contributors
 # This file is part of ADDA.
 #
 # ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -88,9 +87,8 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
               OVERRIDE_STDC_TEST OCL_READ_SOURCE_RUNTIME CLFFT_APPLE SPARSE USE_SSE3 OCL_BLAS NO_GITHASH \
 
 # Debug mode. By default, release configuration is used (no debug, no warnings, maximum optimization). DEBUG turns on
-# producing debugging symbols (-g) and warnings and brings optimization down to O2 (this is required to produce all
-# possible warnings by the compiler). DEBUGFULL turns off optimization completely (for more accurate debugging symbols)
-# and turns on additional diagnostic messages in the source code (debug.c/h).
+# producing debugging symbols (-g) and warnings and brings optimization down to O1. DEBUGFULL turns off optimization 
+# completely and turns on additional diagnostic messages in the source code (debug.c/h).
 #override OPTIONS += DEBUG
 #override OPTIONS += DEBUGFULL
 
@@ -131,7 +129,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # APPLE clFFT (fft.h)
 #override OPTIONS += CLFFT_APPLE
 
-# used AMDs CLBlas library for iterative solver (currently just suported in bicg method, oo effect on the other methods)
+# Uses clBLAS library for iterative solver (currently, only in BiCG, no effect on the other methods)
 #override OPTIONS += OCL_BLAS
 
 # By default, this Makefile invokes a Bash script that will determine the current subversion revision and pass it to
@@ -143,7 +141,7 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # Choose one of the following. Can also be specified from command line to make (see explanation above for OPTIONS),
 # overriding definition below. To specify a different version of the compiler, e.g. 'gcc-4.7' instead of 'gcc', use
 # command 'make CC=gcc-4.7' (analogously for Fortran and C++ compilers).
-# gnu - tested for gcc 3.2.3 - 4.5.2 (most recent experience only with 4.3 and newer)
+# gnu - tested for multiple versions starting from 3.2.3, but recently only 4.8 and higher
 # intel - tested on icc 9.0 - 11.0
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
@@ -177,6 +175,12 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(HOME)/lib
 #FFTW3_INC_PATH := "$(abspath ./../lib)"
 #FFTW3_LIB_PATH := "$(abspath ./../lib)"
+
+# --Fortran library path--
+# If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
+# For instance, this may happen on macOS. Then uncomment the following line and modify the path if needed. 
+# This variable can also be defined in the enviroment or in the command line of make (see explanation above for OPTIONS) 
+#FORT_LIB_PATH := /usr/local/gfortran/lib
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
@@ -293,6 +297,10 @@ ifneq ($(filter NO_FORTRAN,$(OPTIONS)),)
   CDEFS += -DNO_FORTRAN
   FSOURCE =
   F90SOURCE =
+else
+  ifdef FORT_LIB_PATH
+    LDFLAGS += -L$(FORT_LIB_PATH)
+  endif
 endif
 ifneq ($(filter NO_CPP,$(OPTIONS)),)
   $(info Without C++ sources)
@@ -347,17 +355,24 @@ CPPLIBS +=
 DBGFLAG := -g
 # Compiler-specific options
 ifeq ($(COMPILER),gnu)
+  # produces version string in format like 80203
+  GCC_VERSION := $(shell gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \
+    -e 's/^[0-9]\{3,4\}$$/&00/')
+   
   CC      := gcc
   CSTD    := -std=c99
-  COPT1   := -O2
+  # in version 4.8 gcc introduced convenient flag for optimizations that do not interfere with debugging
+  ifeq "$(shell expr $(GCC_VERSION) \>= 40800)" "1"
+    COPT1 := -Og
+  else
+    COPT1 := -O1
+  endif
   COPT2   := -O3 -ffast-math -funroll-loops
   CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
              -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-overlength-strings
   # gcc versions prior to 4.7.2 are affected by bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=7263 , which causes
   # -pedantic flag to generates warnings on every occurence of I (complex i)
-  GCC_GTEQ_472 := $(shell expr `gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \
-    -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40702)
-  ifeq "$(GCC_GTEQ_472)" "1"
+  ifeq "$(shell expr $(GCC_VERSION) \>= 40702)" "1"
     CWARN += -pedantic
   endif
   
@@ -375,6 +390,7 @@ ifeq ($(COMPILER),gnu)
     FLIBS += -lgfortran
   else
     # This is not expected to work for f90 sources but we keep it for now
+    $(warning Cannot locate gfortran - trying to continue with g77. If any issues arise, install gfortran)
     CF    := g77
     FLIBS += -lg2c
   endif
@@ -385,9 +401,10 @@ ifeq ($(COMPILER),gnu)
   # routines), so we consider the following combination thorough enough
   CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
+  # This compiler was not tested since 2015. If you happen to use this compiler, please report results to the authors.
   CC    := icc
   CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
-  COPT1 := -O2
+  COPT1 := -O1
   COPT2 := -O3
   CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1498,1572,2259
 
@@ -407,7 +424,7 @@ else ifeq ($(COMPILER),compaq)
   CC    := cc
   CF    := f77
   #CSTD  = -std=c99
-  COPT1 := -O2
+  COPT1 := -O1
   COPT2 := -fast
   CWARN := -w0 -msg_disable nestedcomment,unknownpragma,unreachcode
 else ifeq ($(COMPILER),ibm)
@@ -419,7 +436,7 @@ else ifeq ($(COMPILER),ibm)
   CC    := xlc
   CF    := xlf
   CSTD  := -qlanglvl=extc99
-  COPT1 := -O2
+  COPT1 := -O1
   COPT2 := -O3 -qcache=auto
   DEPFLAG := -qmakedep=gcc
   CWARN   := -qsuppress=1506-224:1506-342:1500-036
@@ -429,7 +446,7 @@ else ifeq ($(COMPILER),hpux)
   CC    := cc
   CF    := f90
   CSTD  := -AC99
-  COPT1 := +O2 +DD64
+  COPT1 := +O1 +DD64
   COPT2 := +O3 +DD64
   DEPFLAG :+= +Md
   CWARN :=
@@ -509,12 +526,12 @@ cleanocl:
 	
 cleanrunsseq: 
 	@echo "Removing output of sequential version of ADDA"
-	cd $(SEQ) && rm -f -r ExpCount run* test*
+	cd $(SEQ) && rm -f -r ExpCount run???_* test???_*
 
 cleanrunsmpi: 
 	@echo "Removing output of MPI version of ADDA"
-	cd $(MPI) && rm -f -r ExpCount run* test*
+	cd $(MPI) && rm -f -r ExpCount run???_* test???_*
 	
 cleanrunsocl: 
 	@echo "Removing output of OpenCL version of ADDA"
-	cd $(OCL) && rm -f -r ExpCount run* test*
+	cd $(OCL) && rm -f -r ExpCount run???_* test???_*

@@ -1,9 +1,7 @@
-/* File: oclmatvec.c
- * $Date::                            $
- * Descr: calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based
- *        convolution algorithm. This code is special for OpenCL mode.
+/* Calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based convolution
+ * algorithm. This code is special for OpenCL mode.
  *
- * Copyright (C) 2014 ADDA contributors
+ * Copyright (C) ADDA contributors
  * This file is part of ADDA.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -21,7 +19,10 @@
 #include "fft.h"
 #include "io.h"
 #include "oclcore.h"
+#include "prec_time.h"
 #include "vars.h"
+// system headers
+#include <stdlib.h>
 
 // SEMI-GLOBAL VARIABLES
 
@@ -29,6 +30,13 @@
 extern const size_t RsizeY,clxslices,local_gridX,slicesize;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
+
+// EXTERNAL FUNCTIONS
+
+#ifdef PRECISE_TIMING
+// calculator.c
+void FreeEverything(void); // for proper finalization
+#endif
 
 //======================================================================================================================
 
@@ -77,10 +85,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	transposed=(!reduced_FFT) && her;
 	ipr=(inprod!=NULL);
 	if (ipr && !ipr_required) LogError(ONE_POS,"Incompatibility error in MatVec");
+#ifdef PRECISE_TIMING
+	SYSTEM_TIME tvp[2];
+	GET_SYSTEM_TIME(tvp);
+#endif
 	// FFT_matvec code
 	if (ipr) *inprod = 0.0;
 	const cl_char ndcomp=NDCOMP;
-	// little workaround for kernel cannot take bool arguments
+	// little workaround for kernels that cannot take bool arguments
 	const cl_char transp=(cl_char)transposed;
 	const cl_char redfft=(cl_char)reduced_FFT;
 
@@ -175,6 +187,22 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	if (bufupload) CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufresultvec,CL_TRUE,0,local_nRows*sizeof(doublecomplex),
 		resultvec,0,NULL,NULL));
 	if (ipr) MyInnerProduct(inprod,double_type,1,comm_timing);
+#ifdef PRECISE_TIMING
+	GET_SYSTEM_TIME(tvp+1);
+
+	if (IFROOT) {
+		PrintBoth(logfile,
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"                MatVec timing              \n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"Total = "FFORMPT"\n\n"
+			"Precise timing is not working for MatVec in OpenCL mode. Only the total time is provided.\n",
+			DiffSystemTime(tvp,tvp+1));
+		PRINTFB("\nPrecise timing is complete. Finishing execution.\n");
+	}
+	FreeEverything();
+	Stop(EXIT_SUCCESS);
+#endif
 	(*timing) += GET_TIME() - tstart;
 	TotalMatVec++;
 }
