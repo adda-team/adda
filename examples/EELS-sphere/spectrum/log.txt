@@ -1,5 +1,0 @@
---- Spectrum: executing simulations
-../../src/seq/adda -shape sphere -size 150 -grid 16 -beam electron 100 100 0 0 1 -prop 0 0 -1 -eps 5 -sym enf -scat_matr none -pol cm -no_vol_cor 
-mp_file: ../refractive_index/Ag_JC.csv
-Varying energy from 3.0 to 5.11 eV
---- 5.37 seconds

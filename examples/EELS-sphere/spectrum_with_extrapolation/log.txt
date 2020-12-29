@@ -1,6 +1,0 @@
---- Spectrum with extrapolation: executing simulations
-../../src/seq/adda -shape sphere -size 150 -beam electron 100 100 0 0 1 -prop 0 0 -1 -eps 5 -sym enf -scat_matr none -pol cm -no_vol_cor 
-mp_file: ../refractive_index/Ag_JC.csv
-Varying energy from 3.0 to 5.11 eV
-Varying grids: [16 13 11 10  8  7  6  5  4]
---- 13.22 seconds

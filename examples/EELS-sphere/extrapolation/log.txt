@@ -1,8 +1,0 @@
---- Extrapolation: executing simulations
-../../src/seq/adda -shape sphere -size 150 -beam electron 100 100 0 0 1 -prop 0 0 -1 -eps 5 -sym enf -scat_matr none -pol cm -no_vol_cor  -lambda 344.4005511766979 -m 0.14 1.14
-mp_file: ../refractive_index/Ag_JC.csv
-ev = 3.62
-mp_re = 0.14
-mp_im = 1.14
-Varying grids: [16 13 11 10  8  7  6  5  4]
---- 1.29 seconds
