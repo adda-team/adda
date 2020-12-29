@@ -499,7 +499,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				//printf("g = "EFORM"\n",creal(1./gamma_eps_inv));
 
 				e_wb_gv = e_w_gv*ro;
-				cik01_(&e_wb_gv, &t1, &t1, &t1, &t1, &t7, &t1, &t8, &t1);
+				cik01_(&e_wb_gv, &t1, &t2, &t3, &t4, &t7, &t5, &t8, &t6);
 				//printf("e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
 				//printf("besselK0re\t=\t"EFORM"\n",creal(t7));
 				//printf("besselK0im\t=\t"EFORM"\n",cimag(t7));
