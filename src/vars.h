@@ -89,9 +89,6 @@ extern double inc_scale,hsub,prIncRefl[3],prIncTran[3];
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 
 extern unsigned short * restrict position;
-
-extern doublecomplex * restrict Xmatrix;
-
 // auxiliary grids and their partition over processors
 extern size_t gridX,gridY,gridZ;
 extern size_t gridYZ;
