@@ -10,11 +10,11 @@ aw_parameters = dict(
 
     mp_file = "../refractive_index/Ag_JC.csv", #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
     ev_range = (3,5), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
-    ev = 3.6, #[eV]. Used in "scan_" and "extrapolation_" functions.
+    ev = 3.5, #[eV]. Used in "scan_" and "extrapolation_" functions.
     
     #Used in "scan_" functions. Assuming beam propagation vector = (0,0,whatever).
-    scan_x_range = (0,100), #[nm], (x_left, x_right)
-    scan_y_range = (0,100), #[nm], (y_bottom, y_top)
+    scan_x_range = (0,90), #[nm], (x_left, x_right)
+    scan_y_range = (0,90), #[nm], (y_bottom, y_top)
     scan_step = 1 #dipoles per each step, must be an integer >= 1
     #The beam must always blast exactly in the middle between the dipoles,
     #so start and stop coordinates will be adjusted, covering more area than you entered. Obligatory to use "no_vol_cor" with scan.
@@ -78,5 +78,7 @@ if __name__ == '__main__':
     # Collect and map scanned EELS probabilities on particle's cross-section
     aw.scan_collect("Peels",dirname)
     aw.scan_plot("Peels",dirname)
+    aw.scan_collect("Pcl",dirname)
+    aw.scan_plot("Pcl",dirname)
 
 

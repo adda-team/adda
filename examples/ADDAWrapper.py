@@ -295,7 +295,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     ax.grid(which="both", axis="x", linestyle="dotted")
     ax.legend()  
     plt.draw()
-    plt.pause(0.001)
+    #plt.pause(0.001)
     plt.savefig(f"{dirname}/{match}_fit.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.pdf")
 
@@ -395,13 +395,14 @@ def scan_plot(match,dirname):
     ax = fig.add_subplot(1, 1, 1)
     ax.set_aspect('equal')
     d = size/grid
-    plt.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower")
+    plt.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower", cmap="rainbow")
     # plt.scatter(x, y, c=z, marker="s") # scatter is the most stable function for visualization, so use this for debugging
     ax.set_xlabel("x$_0$, nm")
     ax.set_ylabel("y$_0$, nm")
     plt.colorbar().set_label(label_for_plot(match))
+    #plt.axis('off')
     plt.draw()
-    plt.pause(0.001)
+    #plt.pause(0.001)
     plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.pdf")
 
