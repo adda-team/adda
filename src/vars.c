@@ -140,12 +140,6 @@ double prIncRefl[3],prIncTran[3];
 
 // position of the dipoles; in the very end of make_particle() z-components are adjusted to be relative to the local_z0
 unsigned short * restrict position;
-
-/* holds input vector (on expanded grid) to matvec. Also used as buffer in certain algorithms, that do not call MatVec
- * (this should be strictly ensured !!!)
- */
-doublecomplex * restrict Xmatrix;
-
 // auxiliary grids and their partition over processors
 size_t gridX,gridY,gridZ; /* sizes of the 'matrix' X, size_t - to remove type conversions we assume that 'int' is enough
                              for it, but this declaration is to avoid type casting in calculations */
