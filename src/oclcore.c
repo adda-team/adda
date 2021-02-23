@@ -524,6 +524,13 @@ void my_clReleaseBuffer(cl_mem buffer)
 void oclunload(void)
 // unload all OpenCL kernels and similar stuff; buffers are released in Free_FFT_Dmat()
 {
+#ifdef DEBUGFULL
+	// uncomment the following two lines to further debug clRelease... calls
+//	#undef CL_CH_ERR
+//	#define CL_CH_ERR(a) printf("Executing '"#a"'\n");fflush(stdout);CheckCLErr(a,ALL_POS,NULL)
+#endif
+
+	D("oclunload started");
 	CL_CH_ERR(clReleaseProgram(program));
 	CL_CH_ERR(clReleaseKernel(clzero));
 	CL_CH_ERR(clReleaseKernel(clarith1));
@@ -541,4 +548,5 @@ void oclunload(void)
 	}
 	CL_CH_ERR(clReleaseCommandQueue(command_queue));
 	CL_CH_ERR(clReleaseContext(context));
+	D("oclunload finished");
 }
