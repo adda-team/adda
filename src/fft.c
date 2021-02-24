@@ -1466,6 +1466,7 @@ void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)
 {
 #ifdef OPENCL
+	CL_CH_ERR(clFinish(command_queue)); // finish queue before freeing resources
 #	ifdef OCL_BLAS
 	if (IterMethod==IT_BICG_CS) { // currently, used only in one iterative solver
 		my_clReleaseBuffer(buftmp);

@@ -505,7 +505,7 @@ cl_mem my_clCreateBuffer(cl_mem_flags mem_flags,size_t size,void *host_ptr,ERR_L
 //======================================================================================================================
 
 void my_clReleaseBuffer(cl_mem buffer)
-// wrapper to release buffer and decrease memory count
+// wrapper to release buffer and decrease memory count; for extra safety run clFinish before this function
 {
 	cl_uint count;
 	CL_CH_ERR(clGetMemObjectInfo(buffer,CL_MEM_REFERENCE_COUNT,sizeof(count),&count,NULL));
@@ -522,7 +522,7 @@ void my_clReleaseBuffer(cl_mem buffer)
 //======================================================================================================================
 
 void oclunload(void)
-// unload all OpenCL kernels and similar stuff; buffers are released in Free_FFT_Dmat()
+// unload all OpenCL kernels and similar stuff; clFinish() is called and buffers are released in Free_FFT_Dmat()
 {
 #ifdef DEBUGFULL
 	// uncomment the following two lines to further debug clRelease... calls

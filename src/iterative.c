@@ -686,6 +686,7 @@ ITER_FUNC(BiCG_CS)
 			nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
 #endif
 #ifdef OCL_BLAS
+			CL_CH_ERR(clFinish(command_queue)); // finish queue before freeing resources
 			my_clReleaseBuffer(bufinprodRp1);
 			my_clReleaseBuffer(bufro_new);
 			my_clReleaseBuffer(bufmu);
