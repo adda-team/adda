@@ -1580,7 +1580,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2020 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2021 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -1590,29 +1590,30 @@ PARSE_FUNC(V)
 		"You should have received a copy of the GNU General Public License along with this program. If not, see "
 		"<http://www.gnu.org/licenses/>.\n";
 	char ccver_str[MAX_LINE];
-#if defined(__DECC)
-	char cctype;
-#elif defined(__BORLANDC__)
-	int ccver;
-#endif
 	size_t num;
 	int bits,len;
 
 	if (IFROOT) {
 		// compiler & version (works only for selected compilers)
-		// Intel
-#if defined(__ICC) || defined(__INTEL_COMPILER)
+		// Intel (classic)
+#ifdef __INTEL_COMPILER
 #	define COMPILER "Intel"
-#	ifdef __INTEL_COMPILER
-#		define CCVERSION __INTEL_COMPILER
+// in the end of 2020 the version was incremented from 19 to 2021, while __INTEL_COMPILER from 1900 to 2021
+#	if __INTEL_COMPILER >= 2000
+		sprintf(ccver_str,"%d.%d",__INTEL_COMPILER,__INTEL_COMPILER_UPDATE);
+#	elif __INTEL_COMPILER >= 1400
+		sprintf(ccver_str,"%d.%d.%d",__INTEL_COMPILER/100,__INTEL_COMPILER%100,__INTEL_COMPILER_UPDATE);
 #	else
-#		define CCVERSION __ICC
+		sprintf(ccver_str,"%d.%d",__INTEL_COMPILER/100,__INTEL_COMPILER%100);
 #	endif
-		sprintf(ccver_str,"%d.%d",CCVERSION/100,CCVERSION%100);
+		// Intel oneAPI (LLVM); there is icx and dpcpp, but the latter doesn't support c99
+#elif defined (__INTEL_LLVM_COMPILER)
+#	define COMPILER "Intel oneAPI"
+		sprintf(ccver_str,"%d.%d",__INTEL_LLVM_COMPILER/100,__INTEL_LLVM_COMPILER%100);
 		// DEC (Compaq)
 #elif defined(__DECC)
 #	define COMPILER "DEC (Compaq)"
-		cctype=(__DECC_VER/10000)%10;
+		char cctype=(__DECC_VER/10000)%10;
 		if (cctype==6) cctype='T';
 		else if (cctype==8) cctype='S';
 		else if (cctype==9) cctype='V';
@@ -1621,6 +1622,7 @@ PARSE_FUNC(V)
 		// Borland
 #elif defined(__BORLANDC__)
 #	define COMPILER "Borland"
+		int ccver;
 		sprintf(ccver_str,"%x",__BORLANDC__);
 		sscanf(ccver_str,"%d",&ccver);
 		sprintf(ccver_str,"%d.%d",ccver/100,ccver%100);
@@ -1707,6 +1709,8 @@ PARSE_FUNC(V)
 		printf("      using MinGW-64 environment version "__MINGW64_VERSION_STR"\n");
 #elif defined(__MINGW32_VERSION)
 		printf("      using MinGW-32 environment version %g\n",__MINGW32_VERSION);
+#elif ( defined(__INTEL_COMPILER) || defined (__INTEL_LLVM_COMPILER) ) && defined(_MSC_VER)
+		printf("      using Microsoft Visual Studio environment version %d.%d\n",_MSC_VER/100,_MSC_VER%100);
 #endif
 		// extra build flags - can it be shortened by some clever defines?
 		const char build_opts[]=
@@ -1765,7 +1769,6 @@ PARSE_FUNC(V)
 	// exit
 	Stop(EXIT_SUCCESS);
 #undef COMPILER
-#undef CCVERSION
 #undef COMPILER_UNKNOWN
 #undef BUILD_OPTS_SIZE
 }
@@ -1907,7 +1910,7 @@ void InitVariables(void)
 	shapename="sphere";
 	store_int_field=false;
 	store_dip_pol=false;
-	PolRelation=UNDEF;
+	PolRelation=(enum pol)UNDEF;
 	avg_inc_pol=false;
 	ScatRelation=SQ_DRAINE;
 	IntRelation=G_POINT_DIP;
@@ -1962,7 +1965,7 @@ void InitVariables(void)
 	recalc_resid=false;
 	surface=false;
 	msubInf=false;
-	ReflRelation=UNDEF;
+	ReflRelation=(enum refl)UNDEF;
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
 	infi_fnameX=NULL;

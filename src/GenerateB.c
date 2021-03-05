@@ -115,7 +115,7 @@ void InitBeam(void)
 				else if (prop_0[2]<0) { // beam comes from above the substrate
 					inc_scale=1;
 					vRefl(prop_0,prIncRefl);
-					ki=-prop_0[2];
+					ki=-prop_0[2]; // always real
 					if (!msubInf) {
 						// same special case as above
 						if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
@@ -315,7 +315,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						}
 					}
 					// phase shift due to the origin at height hsub
-					cvMultScal_cmplx(rc*imExp(2*WaveNum*ki*hsub),eIncRefl,eIncRefl);
+					cvMultScal_cmplx(rc*imExp(2*WaveNum*creal(ki)*hsub),eIncRefl,eIncRefl); // assumes real ki
 					if (!msubInf) cvMultScal_cmplx(tc*cexp(I*WaveNum*(ki-kt)*hsub),eIncTran,eIncTran);
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {

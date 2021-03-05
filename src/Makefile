@@ -368,8 +368,11 @@ ifeq ($(COMPILER),gnu)
     COPT1 := -O1
   endif
   COPT2   := -O3 -ffast-math -funroll-loops
-  CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-overlength-strings
+  CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes -Wformat=2 -Wnested-externs \
+             -Wstrict-aliasing=1 -Wshadow -Wcast-align  -Wcomment -Wno-overlength-strings -Wno-format-nonliteral
+  # the following may be used to catch doublecomplex -> double implicit conversions (discarding imaginary parts),
+  # but produces too many false positives. You can invoke it as 'make OPTIONS=DEBUG | grep imaginary'
+  #CWARN += -Wconversion -Wno-sign-conversion -Wno-float-conversion
   # gcc versions prior to 4.7.2 are affected by bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=7263 , which causes
   # -pedantic flag to generates warnings on every occurence of I (complex i)
   ifeq "$(shell expr $(GCC_VERSION) \>= 40702)" "1"
@@ -447,7 +450,7 @@ else ifeq ($(COMPILER),hpux)
   CSTD  := -AC99
   COPT1 := +O1 +DD64
   COPT2 := +O3 +DD64
-  DEPFLAG :+= +Md
+  DEPFLAG := +Md
   CWARN :=
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)

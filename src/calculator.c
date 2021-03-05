@@ -365,14 +365,14 @@ static inline double ellTheta(const double a)
 
 //======================================================================================================================
 
-static inline doublecomplex MassaIntegral(const double a,const double b,const double c)
+static inline double MassaIntegral(const double a,const double b,const double c)
 // http://iopscience.iop.org/1367-2630/15/6/063013/media/NJP465759suppdata.pdf , p. 11, Eq. (54)
 {
 	double currentSqrt = sqrt(a*a + b*b + c*c);
-	doublecomplex integral = 0;
+	double integral = 0;
 
-	integral -= 4*c*c*catan(a*b/currentSqrt/c);
-	integral -= 4*b*b*catan(a*c/currentSqrt/b);
+	integral -= 4*c*c*atan(a*b/currentSqrt/c);
+	integral -= 4*b*b*atan(a*c/currentSqrt/b);
 	integral += 2*a*b*log(c + currentSqrt);
 	integral += 2*a*c*log(b + currentSqrt);
 	integral += 4*b*c*log(a + currentSqrt);
@@ -462,7 +462,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				 * considering dynamic depolarization'. Eq. number noted for some lines of code
 				 */
 				omega=4*asin(b*c/sqrt((a*a+b*b)*(a*a+c*c))); // Eq.(10)
-				beta=MassaIntegral(a,b,c); // Eq.(11) beta is three-time integral.
+				beta=MassaIntegral(a,b,c); // Eq.(11) beta is the volume integral
 				res[i]=(-2*omega+WaveNum*WaveNum*beta/2)+I*(16.0/3*WaveNum*WaveNum*WaveNum*a*b*c); // Eq.(9)
 				res[i]=FOUR_PI/(mrel[0]*mrel[0]-1)-res[i]; // Eq.(9)
 				res[i]=8*a*b*c/res[i]; // Eq.(9)
@@ -983,7 +983,7 @@ void Calculator (void)
 		block_theta= 16*(size_t)nTheta;
 		if (TestExtendThetaRange()) nTheta=2*(nTheta-1);
 	}
-	else dtheta_deg=dtheta_rad=block_theta=0;
+	else block_theta=dtheta_deg=dtheta_rad=0;
 	finish_avg=false;
 	// Do preliminary setup for MatVec
 	TIME_TYPE startInitInt=GET_TIME();
