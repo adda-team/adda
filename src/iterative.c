@@ -597,7 +597,7 @@ ITER_FUNC(BiCG_CS)
 			cl_uint major,minor,patch;
 			CLBLAS_CH_ERR(clblasGetVersion(&major,&minor,&patch));
 			if (!GREATER_EQ2(major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ)) LogError(ONE_POS,
-				"clBLAS library version (%d.%d) is too old. Version %d.%d or newer is required",
+				"clBLAS library version (%u.%u) is too old. Version %d.%d or newer is required",
 				major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ);
 			D("clBLAS library version - %u.%u.%u",major,minor,patch);
 			D("clblasSetup started");
