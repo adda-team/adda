@@ -11,8 +11,9 @@
 :: Both "Classic" and "oneAPI" (LLVM) compilers were tested
 :: Visual Studio Build Tools were obtained from https://visualstudio.microsoft.com/downloads/
 :: Intel C++ Compiler Classic and Intel Fortran Compiler Classic - from
-:: https://software.intel.com/content/www/us/en/develop/articles/oneapi-standalone-components.html#inpage-nav-4-undefined
-:: https://software.intel.com/content/www/us/en/develop/articles/oneapi-standalone-components.html#inpage-nav-7-1
+:: https://software.intel.com/content/www/us/en/develop/articles/oneapi-standalone-components.html#inpage-nav-5-undefined
+:: https://software.intel.com/content/www/us/en/develop/articles/oneapi-standalone-components.html#inpage-nav-8-1
+:: The latter two packages also include oneAPI compilers.
 ::
 :: To perform the compilation:
 :: 1) Find and click "x64 Native Tools Command Prompt for VS 2019" in Windows Run menu

@@ -615,8 +615,15 @@ static void fftInitBeforeD(void)
 #ifdef FFTW3
 	int grXint=gridX,grYint=gridY,grZint=gridZ; // this is needed to provide 'int *' to grids
 
+/* For some reason, the following FFTW strings cannot be found by Visual Studio linker. They are not present in .def
+ * file for the corresponding library (in v. 3.3.5), while the default way to produce .lib file for linking with this
+ * linker is through the .def file (http://www.fftw.org/install/windows.html). Potentially, this can be solved by using
+ * 'dumpbin /exports ...' on the provided DLL, but it will probably require some manual editing.
+ */
+#ifndef _MSC_VER
 	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",fftw_version,fftw_cc,
 		fftw_codelet_optim);
+#endif
 	planYf_slice=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,slice_tr,NULL,1,gridY,FFT_FORWARD,
 		PLAN_FFTW_DM);
 	planZf_slice=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
