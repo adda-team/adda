@@ -213,32 +213,32 @@ void InitBeam(void)
 			beam_asym=(beam_Npars==(5 + n_par) && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
 			symR=symX=symY=symZ=FALSE;
 			if (!beam_asym) vInit(beam_center);
+			// beam info
 			if (IFROOT) {
-				strcpy(beam_descr,"Bessel beam (");
 				switch (beamtype) {
-						break;
 					case B_BESSELCS:
-						strcat(beam_descr,"circularly symmetric energy density)\n");
+						tmp_str="circularly symmetric energy density)\n";
 						break;
 					case B_BESSELGEN:
-						strcat(beam_descr,"generalized)\n");
+						tmp_str="generalized)\n";
 						break;
 					case B_BESSELLE:
-						strcat(beam_descr,"linear electric field)\n");
+						tmp_str="linear electric field)\n";
 						break;
 					case B_BESSELLM:
-						strcat(beam_descr,"linear magnetic field)\n");
+						tmp_str="linear magnetic field)\n";
 						break;
 					case B_BESSELTEC:
-						strcat(beam_descr,"forming the TE Bessel beam)\n");
+						tmp_str="forming the TE Bessel beam)\n";
 						break;
 					case B_BESSELTMC:
-						strcat(beam_descr,"forming the TM Bessel beam)\n");
+						tmp_str="forming the TM Bessel beam)\n";
 						break;
-					default: break;
+					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 				}
-				sprintf(beam_descr+strlen(beam_descr),"\tOrder=""%d""\n\t""Half-cone angle: "GFORMDEF"\n"
-				                                      "\tCenter position: "GFORMDEF3V,n0,alpha0,COMP3V(beam_center_0));
+				beam_descr=dyn_sprintf("Bessel beam (%s)\n"
+									   "\tOrder=""%d""\n\t""Half-cone angle: "GFORMDEF"\n"
+									   "\tCenter position: "GFORMDEF3V,tmp_str,n0,alpha0,COMP3V(beam_center_0));
 			}
 			return;
 		case B_READ:
@@ -293,15 +293,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3],gt[6],fint[3],sum[3];
-	double ro,ro2,ro4,r;
-	double x,y,z,x2_s,xy_s,tht,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2],db;
+	doublecomplex v1[3],v2[3],v3[3],gt[6];
+	double ro,ro2,ro4;
+	double x,y,z,x2_s,xy_s,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2];
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
 	double jn2[2]; // for Bessel functions on n and n+1 orders
-	int n1,it,N;
+	int n1;
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
