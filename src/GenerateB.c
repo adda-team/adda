@@ -222,7 +222,7 @@ void InitBeam(void)
 			e_w_gv = e_w_v*gamma_eps_inv;
 			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
 			//printf("e_pref = "CFORM"\n",REIM(e_pref));
-			if (IFROOT) beam_descr=dyn_sprintf("electron with energy %g keV in host medium with m_host=%g moving through "GFORM3V"",e_energy,creal(m_host),COMP3V(beam_center_0));
+			if (IFROOT) beam_descr=dyn_sprintf("The electron with the %g keV energy moving through "GFORM3V" in the host medium with m_host=%g",e_energy,creal(m_host),COMP3V(beam_center_0));
 			return;
 		case B_READ:
 			// the safest is to assume cancellation of all symmetries
@@ -516,6 +516,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
 				cvMultScal_cmplx(e_pref,v3,E1+j); //E_1
+				//printf("E1\t=\t"CFORM3V"\n",REIM3V(E1+j));
 			}
 			return;
 		case B_READ:

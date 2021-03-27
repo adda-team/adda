@@ -778,14 +778,13 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				PrintBoth(CCfile,"Cenh\t= "EFORM"\n",Cenh);
 				PrintBoth(CCfile,"Crad\t= "EFORM"\n",Crad);
 				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
-				printf("\nEELS and cathodoluminescence:\n");
+				printf("\nEELS and Cathodoluminescence:\n");
 				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Peels *= 1e-21; //(nm)^3 -> (cm)^3
 				Pcl = Crad/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
 				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
 				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
 				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
-
 			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {

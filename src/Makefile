@@ -142,16 +142,12 @@ VALID_OPTS := DEBUG DEBUGFULL FFT_TEMPERTON PRECISE_TIMING NOT_USE_LOCK ONLY_LOC
 # overriding definition below. To specify a different version of the compiler, e.g. 'gcc-4.7' instead of 'gcc', use
 # command 'make CC=gcc-4.7' (analogously for Fortran and C++ compilers).
 # gnu - tested for multiple versions starting from 3.2.3, but recently only 4.8 and higher
-# intel - tested on icc 9.0 - 11.0
+# intel (Intel C++ and Fortran Compilers Classic) - tested for versions starting from 9.0, but recently only on 2021.1
+# intelX (Intel oneAPI C++ Compiler, based on LLVM, and new Fortran compiler) - tested on version 2021.1 
 # compaq - tested on Compaq C V6.5-303 (dtk) - last tested in 2007
 # ibm - tested on xlc 8.0 - last tested in 2008
 # hpux - tested on ia64
 # other -
-# WARNING: Currently intel compiler version 11.0 has problems with CUDA version 3.2 (Nvidia) CL headers. In particular,
-# cl_platform.h defines some types with __attribute__(vector...) not checking for support of these attributes (against
-# gcc version). Compiling with option '-no-gcc' does not seem to work either. So the only feasible option to use icc
-# with ocl seems to manually modify this (system) header or replace them with that from AMD SDK. Hopefully, this will
-# be fixed in later versions of CUDA and/or icc.
 COMPILER := gnu
 
 # Additional options for compiler. Flags specified below are appended to the ones specified in the environment or
@@ -173,14 +169,14 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(FFTWLIB)
 #FFTW3_INC_PATH := $(HOME)/include
 #FFTW3_LIB_PATH := $(HOME)/lib
-FFTW3_INC_PATH := /opt/homebrew/include
-FFTW3_LIB_PATH := /opt/homebrew/lib
+#FFTW3_INC_PATH := "$(abspath ./../lib)"
+#FFTW3_LIB_PATH := "$(abspath ./../lib)"
 
 # --Fortran library path--
 # If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
 # For instance, this may happen on macOS. Then uncomment the following line and modify the path if needed. 
 # This variable can also be defined in the enviroment or in the command line of make (see explanation above for OPTIONS) 
-FORT_LIB_PATH := /opt/homebrew/Cellar/gcc/10.2.0_3/lib/gcc/10
+#FORT_LIB_PATH := /usr/local/gfortran/lib
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
@@ -195,8 +191,8 @@ CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c cmplx.c comm.c cross
            timing.c vars.c
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
-           propaesplibreintadda.f 
-F90SOURCE := bessel.f90
+           propaesplibreintadda.f
+F90SOURCE := 
 # C++ files are located in src/cpp folder, other files may be added below
 CPPSOURCE :=
 
@@ -367,9 +363,12 @@ ifeq ($(COMPILER),gnu)
   else
     COPT1 := -O1
   endif
-  COPT2   := -O3 -ffast-math -funroll-loops
-  CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wnested-externs -Wcomment -Wno-overlength-strings
+  COPT2   := -Ofast
+  CWARN   := -Wall -Wextra -Wcast-qual -Wpointer-arith -Wwrite-strings -Wstrict-prototypes -Wformat=2 -Wnested-externs \
+             -Wstrict-aliasing=1 -Wshadow -Wcast-align -Wcomment -Wno-overlength-strings -Wno-format-nonliteral
+  # the following may be used to catch doublecomplex -> double implicit conversions (discarding imaginary parts),
+  # but produces too many false positives. You can invoke it as 'make OPTIONS=DEBUG | grep imaginary'
+  #CWARN += -Wconversion -Wno-sign-conversion -Wno-float-conversion
   # gcc versions prior to 4.7.2 are affected by bug http://gcc.gnu.org/bugzilla/show_bug.cgi?id=7263 , which causes
   # -pedantic flag to generates warnings on every occurence of I (complex i)
   ifeq "$(shell expr $(GCC_VERSION) \>= 40702)" "1"
@@ -386,7 +385,6 @@ ifeq ($(COMPILER),gnu)
   # Use gfortran if available (GCC 4 and later), otherwise try g77
   ifeq ($(shell which gfortran > /dev/null 2>&1 && echo 0),0)
     CF    := gfortran
-  LDFLAGS += -L/usr/local/gfortran/lib
     FLIBS += -lgfortran
   else
     # This is not expected to work for f90 sources but we keep it for now
@@ -401,22 +399,28 @@ ifeq ($(COMPILER),gnu)
   # routines), so we consider the following combination thorough enough
   CPPWARN := -Wall -Wextra
 else ifeq ($(COMPILER),intel)
-  # This compiler was not tested since 2015. If you happen to use this compiler, please report results to the authors.
   CC    := icc
-  CSTD  := -std=c99 -vec-report0 # the last flag is used to always remove vectorization remarks
+  CSTD  := -std=c99
   COPT1 := -O1
-  COPT2 := -O3
-  CWARN := -Wall -Wcheck -diag-disable 981,1418,1419,1498,1572,2259
-
+  COPT2 := -Ofast
+  # remove 2259 to diagnose silent conversion between doublecomplex and double, but it will cause false positives
+  CWARN := -Wcheck -w3 -diag-disable 1418,1419,1572,2259,2282,11074,11076 
   CF    := ifort
-  FWARN += -vec-report0
-  FLIBS += -lifcore
-
+  #FLIBS := -lifcore
   CCPP  := icpc
-  CPPWARN := -Wall -Wcheck -diag-disable 279,981,1418,1419
-  # it seems that icpc relies on gcc stdc++ library anyway, but icc not always adds it during linking
+  #CPPLIBS += -lstdc++
+  CPPWARN := -Wcheck -w3 -diag-disable 279,1418,1419,11074,11076
+else ifeq ($(COMPILER),intelX)
+  CC    := icx
+  CSTD  := -std=c99
+  COPT1 := -O1
+  COPT2 := -Ofast
+  CWARN := -Wall -Wno-implicit-const-int-float-conversion -Wno-misleading-indentation
+  CF    := ifx
+  CCPP  := icpx
+  CPPWARN := -Wall
+  # it seems that icpx relies on gcc stdc++ library anyway, but icc not always adds it during linking
   CPPLIBS += -lstdc++
-  # if IPO is used, corresponding flags should be added to linker options: LDFLAGS += ...
 else ifeq ($(COMPILER),compaq)
   # This compiler was not tested since 2007. In particular, warning options may not fit exactly the C99 standard, to
   # which the code was transferred. Its support for 64 bit compilations is also undefined. No C++ compiler is defined.
@@ -448,7 +452,7 @@ else ifeq ($(COMPILER),hpux)
   CSTD  := -AC99
   COPT1 := +O1 +DD64
   COPT2 := +O3 +DD64
-  DEPFLAG :+= +Md
+  DEPFLAG := +Md
   CWARN :=
   CFLAGS += -DNOT_USE_LOCK
 else ifeq ($(COMPILER),other)
