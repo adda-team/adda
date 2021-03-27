@@ -103,17 +103,6 @@ static complex double ct1, ct2, ct3, ck1, ck1sq, cksm;
 /* common /cntour/ */
 static complex double a, b;
 
-/*-----------------------------------------------------------------------*/
-
-// a single function from cmplx.h not to include the whole file
-static inline double cAbs2(const complex double z)
-// square of absolute value of complex number; |z|^2
-{
-	return creal(z)*creal(z) + cimag(z)*cimag(z);
-}
-
-/*-----------------------------------------------------------------------*/
-
 void som_init(complex double epscf)
 {
   complex double erv, ezv;

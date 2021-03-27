@@ -169,14 +169,14 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(FFTWLIB)
 #FFTW3_INC_PATH := $(HOME)/include
 #FFTW3_LIB_PATH := $(HOME)/lib
-#FFTW3_INC_PATH := "$(abspath ./../lib)"
-#FFTW3_LIB_PATH := "$(abspath ./../lib)"
+FFTW3_INC_PATH := "/opt/homebrew/include"
+FFTW3_LIB_PATH := "/opt/homebrew/lib"
 
 # --Fortran library path--
 # If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
 # For instance, this may happen on macOS. Then uncomment the following line and modify the path if needed. 
 # This variable can also be defined in the enviroment or in the command line of make (see explanation above for OPTIONS) 
-#FORT_LIB_PATH := /usr/local/gfortran/lib
+FORT_LIB_PATH := /usr/local/gfortran/lib
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
@@ -192,7 +192,7 @@ CSOURCE := ADDAmain.c CalculateE.c calculator.c chebyshev.c cmplx.c comm.c cross
 # Fortran files are located in src/fort folder, other files may be added below
 FSOURCE := d07hre.f d09hre.f d113re.f d132re.f dadhre.f dchhre.f dcuhre.f dfshre.f dinhre.f drlhre.f dtrhre.f \
            propaesplibreintadda.f
-F90SOURCE := 
+F90SOURCE := bessel.f90
 # C++ files are located in src/cpp folder, other files may be added below
 CPPSOURCE :=
 
