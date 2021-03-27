@@ -239,10 +239,9 @@ static const struct subopt_struct beam_opt[]={
 	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
-	{"electron","<energy> <x> <y> <z> <m_host>","Field of an electron with <energy> keV energy moving along z-axis through "
-		"the point (<x>,<y>,<z>) (in laboratory reference frame) in the host medium with real refractive index "
-		"<m_host>. Energy argument is in keV, all coordinate arguments are in nm. Propagation direction of "
-		"the beam is determined by -prop command line option.",5,B_ELECTRON},
+	{"electron","<energy> <x> <y> <z>","Field of an electron with <energy> keV energy moving along z-axis through "
+		"the point (<x>,<y>,<z>) (in laboratory reference frame). Energy argument is in keV, all coordinate arguments are in nm."
+		"Propagation direction of the beam is determined by -prop command line option.",4,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},
@@ -2204,7 +2203,7 @@ void VariablesInterconnect(void)
 			"the x- and y-axes (but not z)");
 	}
 	if (cimag(mhost)!=0) { // currently a lot of limitations for the absorbing medium
-			if (beamtype!=B_PLANE) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
+			if (beamtype!=B_PLANE && beamtype!=B_ELECTRON) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
 				" can be used only with plane incident wave");
 			if (rectDip) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
 				" is incompatible with rect_dip option");

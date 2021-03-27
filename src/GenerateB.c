@@ -88,13 +88,13 @@ void InitBeam(void)
 	double w0; // beam width
 	//CASE: B_ELECTRON
 	static double e_energy;        // kinetic energy of the electron
-	static double m_host;   // refractive index of the host medium
-	static double beta_eps;// v*m_host/c
+	static doublecomplex beta_eps;// v*m_host/c
 	static double e_v;      // speed of the electron
 	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
 	const double c_light = 29979245800; //speed of light in vacuum, cm/s
 	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	const char *tmp_str; // temporary string
+	doublecomplex temp;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -211,18 +211,22 @@ void InitBeam(void)
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			//symX=symY=symZ=symR=false;
 			if (!beam_asym) vInit(beam_center);
-			m_host = beam_pars[4]; //complex number in the future
-			TestPositive(m_host,"refractive index of the host medium");
 			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
-			beta_eps = e_v*m_host/c_light;
-			gamma_eps_inv = csqrt(1-beta_eps*beta_eps);
+			beta_eps = e_v*mhost/c_light;
+			temp = 1-beta_eps*beta_eps;
+			if (cimag(temp) == -0) temp = conj(temp);
+			//printf("temp\t=\t"CFORM"\n",REIM(temp));
+			gamma_eps_inv = csqrt(temp);
+			//printf("gamma_eps_inv\t=\t"CFORM"\n",REIM(gamma_eps_inv));
 			//printf("omega = "EFORM"\n",WaveNum*c_light/scale_z);
 			//printf("v = "EFORM"\n",e_v);
-			e_w_v = WaveNum/(beta_eps*scale_z);
+			e_w_v = creal(WaveNum/(beta_eps*scale_z));
+			//printf("e_w_v\t=\t"CFORM"\n",REIM(e_w_v));
 			e_w_gv = e_w_v*gamma_eps_inv;
-			e_pref = 2*q_electron*e_w_gv/(m_host*m_host*e_v);
+			//printf("e_w_gv\t=\t"CFORM"\n",REIM(e_w_gv));
+			e_pref = 2*q_electron*e_w_gv/(mhost*mhost*e_v);
 			//printf("e_pref = "CFORM"\n",REIM(e_pref));
-			if (IFROOT) beam_descr=dyn_sprintf("The electron with the %g keV energy moving through "GFORM3V" in the host medium with m_host=%g",e_energy,creal(m_host),COMP3V(beam_center_0));
+			if (IFROOT) beam_descr=dyn_sprintf("The electron with the %g keV energy moving through "GFORM3V,e_energy,COMP3V(beam_center_0));
 			return;
 		case B_READ:
 			// the safest is to assume cancellation of all symmetries
@@ -510,6 +514,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
 				cvMultScal_cmplx(e_pref,v3,b+j); //E_inc
+				printf("Einc\t=\t"CFORM3V"\n",REIM3V(b+j));
 
 				t4 = conj(t4);
 				cvMultScal_RVec(-t4*t8,r1per,v1);

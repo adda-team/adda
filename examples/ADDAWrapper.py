@@ -44,12 +44,11 @@ def mp_single_read(mp_file,ev):
 def cmdline_construct(aw_parameters,adda_cmdlineargs):
     cmdline = aw_parameters["adda_exec"]
     for arg in adda_cmdlineargs:
-        if arg != "mh":
-            cmdline += f" -{arg} {adda_cmdlineargs[arg]}"
+        cmdline += f" -{arg} {adda_cmdlineargs[arg]}"
     return cmdline
 
-def ev_to_nm(ev,mh):
-    return 1239.8419842361123824 / (ev * mh)
+def ev_to_nm(ev):
+    return 1239.8419842361123824 / ev
 
 def parse_value(file,match):
     with open(file, "r") as file:
@@ -79,7 +78,6 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     mp_file = aw_parameters["mp_file"]
     ev_min, ev_max = aw_parameters["ev_range"]
-    mh = adda_cmdlineargs["mh"]
     mdata = mp_range_read(mp_file,ev_min,ev_max)
     print_log(f"{cmdline}",dirname)
     print_log(f"mp_file: {mp_file}",dirname)
@@ -87,10 +85,10 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdlines = []
     for i in mdata:
         cmdline_i = cmdline
-        cmdline_i += f" -dir {dirname}/{i[0]}"
-        cmdline_i += " -lambda %s" % ev_to_nm(i[0],mh)
-        cmdline_i += f" -m {i[1]/mh} {i[2]/mh}"
-        #cmdline_i += f" -m 1.33 0 {i[1]/mh} {i[2]/mh}"
+        cmdline_i += f" -dir '{dirname}/{i[0]}'"
+        cmdline_i += " -lambda %s" % ev_to_nm(i[0])
+        cmdline_i += f" -m {i[1]} {i[2]}"
+        #cmdline_i += f" -m 1.33 0 {i[1]} {i[2]}"
         cmdline_i += " > /dev/null"
         cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
@@ -137,11 +135,10 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     mp_file = aw_parameters["mp_file"]
     ev = aw_parameters["ev"]
     mdata = mp_single_read(mp_file,ev)
-    mh = adda_cmdlineargs["mh"]
-    lam = ev_to_nm(ev,mh)
+    lam = ev_to_nm(ev)
     adda_cmdlineargs["lambda"] = lam
-    mre = mdata[1]/mh
-    mim = mdata[2]/mh
+    mre = mdata[1]
+    mim = mdata[2]
     adda_cmdlineargs["m"] = f"{mre} {mim}"
     m_abs = math.sqrt(mre**2 + mim**2)
     size = adda_cmdlineargs["size"]
@@ -163,7 +160,7 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdlines = []
     for i in grids:
         cmdline_i = cmdline
-        cmdline_i += f" -dir {dirname}/{i}"
+        cmdline_i += f" -dir '{dirname}/{i}'"
         cmdline_i += f" -grid {i}"
         cmdline_i += " > /dev/null"
         cmdlines.append(cmdline_i)
@@ -237,13 +234,12 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     mp_file = aw_parameters["mp_file"]
     ev_min, ev_max = aw_parameters["ev_range"]
     mdata = mp_range_read(mp_file,ev_min,ev_max)
-    mh = adda_cmdlineargs["mh"]
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
     ev = float(mdata[0][0])
-    lam = ev_to_nm(ev,mh)
-    mre = float(mdata[0][1])/mh
-    mim = float(mdata[0][2])/mh
+    lam = ev_to_nm(ev)
+    mre = float(mdata[0][1])
+    mim = float(mdata[0][2])
     m_abs = math.sqrt(mre**2 + mim**2)
     y_min = (2*math.pi/lam)*(size/grid)*m_abs #y = k*d*|m|
     y_max = 4*y_min
@@ -269,10 +265,10 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
         os.mkdir(f"{dirname}/{grid_i}")
         for mdata_j in mdata:
             cmdline_i = cmdline
-            cmdline_i += f" -dir {dirname}/{grid_i}/{mdata_j[0]}"
+            cmdline_i += f" -dir '{dirname}/{grid_i}/{mdata_j[0]}'"
             cmdline_i += f" -grid {grid_i}"
-            cmdline_i += " -lambda %s" % ev_to_nm(mdata_j[0],mh)
-            cmdline_i += f" -m {mdata_j[1]/mh} {mdata_j[2]/mh}"
+            cmdline_i += " -lambda %s" % ev_to_nm(mdata_j[0])
+            cmdline_i += f" -m {mdata_j[1]} {mdata_j[2]}"
             cmdline_i += " > /dev/null"
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
@@ -337,10 +333,9 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     mp_file = aw_parameters["mp_file"]
     ev = aw_parameters["ev"]
     mdata = mp_single_read(mp_file,ev)
-    mh = adda_cmdlineargs["mh"]
-    mre = mdata[1]/mh
-    mim = mdata[2]/mh
-    adda_cmdlineargs["lambda"] = ev_to_nm(ev,mh)
+    mre = mdata[1]
+    mim = mdata[2]
+    adda_cmdlineargs["lambda"] = ev_to_nm(ev)
     adda_cmdlineargs["m"] = f"{mre} {mim}"
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
@@ -379,7 +374,7 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     for x0_i in x0s:
         for y0_i in y0s:
             cmdline_i = cmdline
-            cmdline_i += f" -dir {dirname}/{x0_i}_{y0_i}"
+            cmdline_i += f" -dir '{dirname}/{x0_i}_{y0_i}'"
             beam_list[2], beam_list[3] = str(x0_i), str(y0_i)
             beam = (" ").join(beam_list)
             cmdline_i += f" -beam {beam}"
