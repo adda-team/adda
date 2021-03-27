@@ -1815,8 +1815,10 @@ void InitShape(void)
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
 	 *    symR - symmetry of rotation for 90 degrees over the Z axis
 	 * 4) initialize the following:
-	 * sh_form_str - descriptive string, should contain format descriptor (like "%g", but using macro GFORM is
-	 *               recommended) - it would be replaced by box size along the x-axis afterwards (in param.c).
+	 * sh_form_str1, sh_form_str2 - descriptive strings before and after the value of sizeX (to be used in param.c). For
+	 *     instance, sh_form_str1="name; diameter:", sh_form_str2=", parameter=5" would result in the final line like:
+	 *     "name; diameter:10, parameter=5". So you should NOT include sizeX into these strings, and sh_form_str2 can be
+	 *     omitted if not needed.
 	 * Either yx_ratio (preferably) or n_boxY. The former is a ratio of particle sizes along y and x axes. Initialize
 	 *     n_boxY directly only if it is not proportional to boxX, like in shape LINE above, since boxX is not
 	 *     initialized at this moment. If yx_ratio is not initialized, set it explicitly to UNDEF.

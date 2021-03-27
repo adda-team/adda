@@ -76,8 +76,8 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
  */
 {
 	if (cimag(a)==0) {
-		if (creal(a)>=0) return sqrt(a);
-		else return I*sqrt(-a);
+		if (creal(a)>=0) return sqrt(creal(a));
+		else return I*sqrt(-creal(a));
 	}
 	else return csqrt(a);
 }

@@ -103,6 +103,15 @@ static complex double a, b;
 
 /*-----------------------------------------------------------------------*/
 
+// a single function from cmplx.h not to include the whole file
+static inline double cAbs2(const complex double z)
+// square of absolute value of complex number; |z|^2
+{
+	return creal(z)*creal(z) + cimag(z)*cimag(z);
+}
+
+/*-----------------------------------------------------------------------*/
+
 void som_init(complex double epscf)
 {
   complex double erv, ezv;
@@ -117,7 +126,7 @@ void som_init(complex double epscf)
   ck1=csqrt(ck1sq);
   ck1r=creal(ck1);
   tkmag=100.*cabs(ck1);
-  tsmag=100.*ck1*conj(ck1);
+  tsmag=100.*cAbs2(ck1);
   cksm=ck2sq/(ck1sq+ck2sq);
   ct1=.5*(ck1sq-ck2sq);
   erv=ck1sq*ck1sq;
@@ -169,7 +178,7 @@ static void bessel(complex double z, complex double *j0, complex double *j0p )
     init = TRUE;
   } /* if(init == 0) */
 
-  zms=z*conj(z);
+  zms=cAbs2(z);
   if(zms <= 1.e-12)
   {
     *j0=1;
@@ -590,7 +599,7 @@ static void hankel( complex double z, complex double *h0, complex double *h0p )
 
   } /* if( ! init ) */
 
-  zms=z*conj(z);
+  zms=cAbs2(z);
   if(zms == 0.)
     abort_on_error(-7);
 
@@ -867,7 +876,7 @@ static void saoa( double t, complex double *ans)
       cgam2=-cgam2;
   }
 
-  xlr=xl*conj(xl);
+  xlr=cAbs2(xl);
   if(xlr >= tsmag)
   {
     if(cimag(xl) >= 0.)
