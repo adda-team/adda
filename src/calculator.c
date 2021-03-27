@@ -500,7 +500,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant: "CFORM3V"\n", REIM3V(res));
 	} 
 	else {
-		double ka,kd2,S;
+		double S;
+		doublecomplex ka,kd2;
 		int i;
 		bool asym; // whether polarizability is asymmetric (for isotropic m)
 		const double *incPol;
@@ -529,7 +530,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
 				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
 					ka=LAK_C*kd;
-					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
+					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExpReal(ka)-1),mrel[i]);
 					break;
 				case POL_LDR:
 					if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));

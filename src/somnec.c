@@ -38,6 +38,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "cmplx.h"
+
 #ifndef	TRUE
 #define	TRUE	1
 #endif
@@ -222,7 +224,7 @@ static void bessel(complex double z, complex double *j0, complex double *j0p )
   p1z=1.+(P11-P21*zi2)*zi2;
   q0z=(Q20*zi2-Q10)*zi;
   q1z=(Q11-Q21*zi2)*zi;
-  zk=cexp(I*(z-POF));
+  zk=imExp(z-POF);
   zi2=1./zk;
   cz=.5*(zk+zi2);
   sz=I*.5*(zi2-zk);
@@ -650,7 +652,7 @@ static void hankel( complex double z, complex double *h0, complex double *h0p )
   p1z=1.+(P11-P21*zi2)*zi2;
   q0z=(Q20*zi2-Q10)*zi;
   q1z=(Q11-Q21*zi2)*zi;
-  zk=cexp(I*(z-POF))*csqrt(zi)*C3;
+  zk=imExp(z-POF)*csqrt(zi)*C3;
   *h0=zk*(p0z+I*q0z);
   *h0p=I*zk*(p1z+I*q1z);
 
