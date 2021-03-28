@@ -94,7 +94,6 @@ void InitBeam(void)
 	const double c_light = 29979245800; //speed of light in vacuum, cm/s
 	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	const char *tmp_str; // temporary string
-	doublecomplex temp;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -213,10 +212,7 @@ void InitBeam(void)
 			if (!beam_asym) vInit(beam_center);
 			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
 			beta_eps = e_v*mhost/c_light;
-			temp = 1-beta_eps*beta_eps;
-			if (cimag(temp) == -0) temp = conj(temp);
-			//printf("temp\t=\t"CFORM"\n",REIM(temp));
-			gamma_eps_inv = csqrt(temp);
+			gamma_eps_inv = cSqrtCut(1-beta_eps*beta_eps);
 			//printf("gamma_eps_inv\t=\t"CFORM"\n",REIM(gamma_eps_inv));
 			//printf("omega = "EFORM"\n",WaveNum*c_light/scale_z);
 			//printf("v = "EFORM"\n",e_v);

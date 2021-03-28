@@ -2254,6 +2254,11 @@ void MakeParticle(void)
 	else {
 		gridspace=dsX;
 		kd=TWO_PI/dpl;
+
+		//2021.03.28 While implementing -mhost into alkichigin/adda, found a bug resulting  in CoupleConstant difference in values
+		//sunmosk uses this definition for kd, but ADDA master uses the above. The above gives wrong result, this gives the right one.
+		kd = WaveNum*gridspace;//TWO_PI/dpl/rectScaleX;
+		//
 	}
 	// initialize equivalent size parameter and cross section
 	/* from this moment on a_eq and all derived quantities are based on the real a_eq, which can in several cases be
