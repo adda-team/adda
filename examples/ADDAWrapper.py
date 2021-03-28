@@ -50,6 +50,9 @@ def cmdline_construct(aw_parameters,adda_cmdlineargs):
 def ev_to_nm(ev):
     return 1239.8419842361123824 / ev
 
+def nm_to_ev(nm):
+    return 1239.8419842361123824 / nm
+
 def parse_value(file,match):
     with open(file, "r") as file:
             for line in file:
@@ -218,8 +221,6 @@ def extrapolation_plot(match, dirname):
     ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     ax.legend()
-    plt.draw()
-    #plt.pause(0.001)
     plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
 
@@ -318,7 +319,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
     ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="error bar", color="blue", alpha=0.2)
-    ax.legend()  
+    ax.legend()
     plt.savefig(f"{dirname}/{match}_fit.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.pdf")
 

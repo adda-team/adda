@@ -16,7 +16,7 @@ aw_parameters = dict(
     #So "prop" must be "0 0 whatever" and rotations with "orient" must be made by 90 degrees.
     scan_x_range = (0,30), #[nm], (x_left, x_right)
     scan_y_range = (0,30), #[nm], (y_bottom, y_top)
-    scan_step = 2 #dipoles per each step, must be an integer >= 1
+    scan_step = 1 #dipoles per each step, must be an integer >= 1
     #The beam must always blast exactly in the middle between the dipoles,
     #so start and stop coordinates will be adjusted, covering more area than you entered. Obligatory to use "no_vol_cor" with scan.
 )
