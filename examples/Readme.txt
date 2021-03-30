@@ -1,5 +1,5 @@
 ADDA Wrapper
-Version 0.4
+Version 0.5
 2020.10
 
 Script performs batch simulations using ADDA. For more info read the following articles.

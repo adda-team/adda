@@ -13,6 +13,16 @@ def label_for_plot(match):
     else:
         return match
 
+def label_for_plot_arbunits(match):
+    if match[0] == "P":
+        return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", arb. units."
+    elif match[0] == "C":
+        return match + ", arb. units"
+    elif match[0] == "Q":
+        return match
+    else:
+        return match
+
 def color_for_plot(match):
     if match == "Peels":
         return "royalblue"
@@ -21,11 +31,17 @@ def color_for_plot(match):
     else:
         return "black"
 
-def print_log(string, dirname=False):
-    print(string)
+def print_log(string, dirname=False, silent=False):
+    if silent == False:
+        print(string)
     if dirname != False:
         with open(dirname + "/log.txt", 'a') as file:
             file.write(string + "\n")
+
+def delkeys_silent(dictionary, keys):
+    for key in keys:
+        if key in dictionary:
+            del dictionary[key]
 
 def mp_range_read(mp_file,ev_min,ev_max):
     mdata = np.genfromtxt(mp_file,delimiter=',')
@@ -35,6 +51,20 @@ def mp_range_read(mp_file,ev_min,ev_max):
     ev_max_nearest = min(mdata_slice) if len(mdata_slice) != 0 else mdata[-1,0]
     mdata = mdata[(mdata[:,0] >= ev_min_nearest) & (mdata[:,0] <= ev_max_nearest),:]
     return mdata
+
+def dipole_middles(point1, point2, d, odd):
+    (x_left,y_bottom) = point1
+    (x_right,y_top) = point2
+    left = math.floor(x_left/d + odd) - odd
+    right = math.ceil(x_right/d + odd) - odd
+    bottom = math.floor(y_bottom/d + odd) - odd
+    top = math.ceil(y_top/d + odd) - odd
+    #print(left,right,bottom,top)
+    x0s = np.linspace(left*d, right*d, abs(round(right - left))+1)
+    x0s = np.around(x0s,8)
+    y0s = np.linspace(bottom*d, top*d, abs(round(top - bottom))+1)
+    y0s = np.around(y0s,8)
+    return x0s, y0s
 
 def mp_single_read(mp_file,ev):
     mdata = np.genfromtxt(mp_file,delimiter=',')
@@ -97,7 +127,7 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
     
-def spectrum_collect(match,dirname):
+def spectrum_collect(match,dirname, silent=False):
     evs = sorted([float(d.name) for d in os.scandir(dirname) if d.is_dir()])
     values = []
     for ev in evs:
@@ -106,7 +136,7 @@ def spectrum_collect(match,dirname):
         writer = csv.writer(file, delimiter=',')
         writer.writerow(["ev",match])
         writer.writerows(zip(evs,values))
-        print_log(f"Saved {dirname}/{match}.csv")
+        print_log(f"Saved {dirname}/{match}.csv", silent=silent)
 
 def spectrum_plot(match,dirname):
     data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
@@ -116,6 +146,7 @@ def spectrum_plot(match,dirname):
     plt.xlim([min(data[:,0]),max(data[:,0])])
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     ax.set_xlabel("eV")
+    ax.set_ylabel(label_for_plot(match))
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.grid(which="both", axis="x", linestyle="dotted")
@@ -123,7 +154,134 @@ def spectrum_plot(match,dirname):
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
-    ax.legend()
+    #ax.legend()
+    fig.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.pdf")
+    
+def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
+    aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
+    start_time = time.time()
+    shutil.rmtree(dirname, ignore_errors=True)
+    os.makedirs(dirname, exist_ok=True)
+    print()
+    print_log("--- Spectrum for a set of points on a line: executing simulations",dirname)
+    print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
+    mp_file = aw_parameters["mp_file"]
+    ev_min, ev_max = aw_parameters["ev_range"]
+    mdata = mp_range_read(mp_file,ev_min,ev_max)
+
+    size = adda_cmdlineargs["size"]
+    grid = adda_cmdlineargs["grid"]
+    point1 = aw_parameters["spectrumline_startpoint"]
+    point2 = aw_parameters["spectrumline_endpoint"]
+    howmanypoints = aw_parameters["spectrumline_points"]
+    x_step, y_step = (point2[0]-point1[0])/(howmanypoints-1), (point2[1]-point1[1])/(howmanypoints-1)
+    #adjusting area so the points are exactly in the middle between the dipoles
+    d = size/grid #nm
+    odd = 0.5*(grid % 2)
+    x0s, y0s = dipole_middles(point1,point2,d,odd)
+    # print(x0s)
+    # print(y0s)
+    points = []
+    for i in range(0,howmanypoints):
+        x0_i = point1[0] + x_step*i
+        y0_i = point1[1] + y_step*i
+        x_i = min(x0s, key=lambda val: abs(val - x0_i))
+        y_i = min(y0s, key=lambda val: abs(val - y0_i))
+        #print(i, x0_i, x_i, y0_i, y_i)
+        points.append((x_i,y_i))
+    points = np.array(points)
+    #print(points)
+    
+    # fig = plt.figure(constrained_layout=True)
+    # ax = fig.add_subplot(1, 1, 1)
+    # ax.plot(points[:,0], points[:,1], linewidth=3, marker="o")
+    # ratio = (points[:,1].max()-points[:,1].min() + d)/(points[:,0].max()-points[:,0].min() + d)
+    # print(ratio)
+    # ax.set_box_aspect(ratio)
+    
+    beam_list = adda_cmdlineargs["beam"].split(" ")
+    delkeys_silent(adda_cmdlineargs, ["lambda","m","beam"])
+    cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
+    print_log(f"{cmdline}",dirname)
+    print_log(f"mp_file: {mp_file}",dirname)
+    print_log(f"dipole size = {d} nm",dirname)
+    print_log(f"Varying position from {points[0,:]} nm to {points[-1,:]} nm ({howmanypoints} points)",dirname)
+    print_log(f"Varying energy from {mdata[0][0]} to {mdata[-1][0]} eV",dirname)
+    cmdlines = []
+    counter = 0
+    for p in points:
+        counter += 1
+        point_dir = f"{dirname}/" + "{:03d}".format(counter) + f"_{p[0]}_{p[1]}"
+        #print(point_dir)
+        os.mkdir(point_dir)
+        beam_list[2], beam_list[3] = str(p[0]), str(p[1])
+        beam = (" ").join(beam_list)
+        #print(beam)
+        for i in mdata:
+            cmdline_i = cmdline
+            cmdline_i += f" -beam {beam}"
+            cmdline_i += f" -dir '{point_dir}/{i[0]}'"
+            cmdline_i += " -lambda %s" % ev_to_nm(i[0])
+            cmdline_i += f" -m {i[1]} {i[2]}"
+            cmdline_i += " > /dev/null"
+            cmdlines.append(cmdline_i)
+    exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
+    print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
+    
+def spectrumline_collect(match, dirname):
+    dirs = sorted([d.name for d in os.scandir(dirname) if d.is_dir()])
+    #print(dirs)
+    points = []
+    ys = []
+    for dir_i in dirs:
+        spectrum_collect(match,f"{dirname}/{dir_i}", silent=True)
+        ys_i = np.genfromtxt(f"{dirname}/{dir_i}/{match}.csv", delimiter=',')[1:,1]
+        ys.append(ys_i)
+        points.append(dir_i.split("_"))
+    #points = np.array(points)
+    #print(points)
+    xs = np.genfromtxt(f"{dirname}/{dirs[0]}/{match}.csv", delimiter=',')[1:,0]
+    with open(f"{dirname}/{match}.csv", 'w') as file:
+        writer = csv.writer(file, delimiter=',')
+        writer.writerows(zip(["Point no.", "x [nm]", "y [nm]"],*points))
+        writer.writerow("-"*(len(points)+1))
+        valuenames = ["eV"] + ['Peels']*len(points)
+        writer.writerow(valuenames)
+        writer.writerows(zip(xs,*ys))
+        print(f"Saved to {dirname}/{match}.csv")
+
+def spectrumline_plot(match, dirname):
+    #alldata = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',',dtype=None, encoding=None)
+    data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')
+    
+    fig = plt.figure(constrained_layout=True)
+    ax = fig.add_subplot(1, 1, 1)
+    plt.xlim([min(data[5:,0]),max(data[5:,0])])
+    
+    #ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    ax.set_xlabel("eV")
+    ax.set_ylabel(label_for_plot_arbunits(match))
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+
+    ax.tick_params(bottom=True, top=True, left=True, right=False, which = "both")
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+    ax.grid(which="both", axis="x", linestyle="dotted", zorder=0)
+    
+    xs = data[5:,0]
+    #print(xs)
+    for point in data.T[1:]:
+        num = int(point[0])
+        ys = point[5:]/max(point[5:]) + .02*num
+        #print(num)
+        #print(ys)
+        #y = i + 3*np.sin(2*x + 1.5*random.random()*np.ones(len(x))) + .1*np.random.rand(len(x))
+        ax.plot(xs, ys, color=color_for_plot(match), linewidth=1, zorder=(1-0.001*num))
+        ax.fill_between(xs, min(ys), ys, facecolor="white", alpha=.4, zorder=(1-0.001*num))
+    
+    #ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
+    #ax.legend()
     fig.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
 
@@ -206,14 +364,14 @@ def extrapolation_plot(match, dirname):
     plt.ion()
     fig = plt.figure(constrained_layout=True)
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(data[:,1], data[:,2], label=label_for_plot(match), color=color_for_plot(match), marker="o", linestyle="none")
+    ax.plot(data[:,1], data[:,2], label=label_for_plot(match)+" (simulated)", color=color_for_plot(match), marker="o", linestyle="none")
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     ys_fitted = np.linspace(data[:,1][0],0,100)
     results_fit = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     a = results_fit[:,0]
     error = results_fit[:,1]
     points_fitted = a[0] + a[1]*ys_fitted + a[2]*ys_fitted**2
-    ax.plot(ys_fitted, points_fitted, label=label_for_plot(match), color="black", linewidth=3)
+    ax.plot(ys_fitted, points_fitted, label=label_for_plot(match)+" (fit)", color="black", linewidth=3)
     ax.errorbar(0, a[0], yerr=error[0], color="black", linestyle="", marker="s", capsize=3, barsabove=True, label = "Error bar")
     ax.set_xlabel("y = kd|m|")
     ax.xaxis.set_minor_locator(AutoMinorLocator())
@@ -311,6 +469,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     plt.xlim([min(data[:,0]),max(data[:,0])])
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     ax.set_xlabel("eV")
+    #ax.set_ylabel(label_for_plot(match))
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.grid(which="both", axis="x", linestyle="dotted")
@@ -319,6 +478,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
     ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="error bar", color="blue", alpha=0.2)
+    
     ax.legend()
     plt.savefig(f"{dirname}/{match}_fit.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.pdf")
@@ -347,14 +507,8 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     d = size/grid #nm
     print_log(f"dipole size = {d} nm",dirname)
     odd = 0.5*(grid % 2)
-    left = math.floor(x_left/d + odd) - odd
-    right = math.ceil(x_right/d + odd) - odd
-    bottom = math.floor(y_bottom/d + odd) - odd
-    top = math.ceil(y_top/d + odd) - odd
-    x0s = np.linspace(left*d, right*d, round(right - left + 1))[0::step]
-    x0s = np.around(x0s,8)
-    y0s = np.linspace(bottom*d, top*d, round(top - bottom + 1))[0::step]
-    y0s = np.around(y0s,8)
+    x0s, y0s = dipole_middles((x_left,y_bottom),(x_right,y_top),d,odd)
+    x0s, y0s = x0s[0::step], y0s[0::step]
     # print(x0s)
     # print(y0s)
     beam_list = adda_cmdlineargs["beam"].split(" ")
@@ -369,8 +523,8 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log(f"ev = {ev}",dirname)
     print_log(f"mp_re = {mdata[1]}",dirname)
     print_log(f"mp_im = {mdata[2]}",dirname)
-    print_log(f"Varying (x_left,x_right) = ({left},{right}) dipole sizes",dirname)
-    print_log(f"Varying (y_bottom,y_top) = ({bottom},{top}) dipole sizes",dirname)
+    print_log(f"Varying (x_left,x_right) = ({x0s[0]*d},{x0s[-1]*d}) dipole sizes",dirname)
+    print_log(f"Varying (y_bottom,y_top) = ({y0s[0]*d},{y0s[-1]*d}) dipole sizes",dirname)
     cmdlines = []
     for x0_i in x0s:
         for y0_i in y0s:

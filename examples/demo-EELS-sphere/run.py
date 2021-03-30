@@ -12,6 +12,10 @@ aw_parameters = dict(
     ev_range = (2.5,4.5), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
     ev = 3.45, #[eV]. Used in "scan_" and "extrapolation_" functions.
     
+    spectrumline_startpoint = (0,50), # (x,y) [nm]
+    spectrumline_endpoint = (50,50), # (x,y) [nm]
+    spectrumline_points = 10, #how many points, including startpoint and endpoint
+    
     #Used in "scan_" functions. Beam propagation must be orthogonal to the grid.
     #So "prop" must be "0 0 whatever" and rotations with "orient" must be made by 90 degrees.
     scan_x_range = (0,30), #[nm], (x_left, x_right)
@@ -57,7 +61,7 @@ if __name__ == '__main__':
     # Collect and plot CL probabilities
     aw.spectrum_collect("Pcl",dirname)
     aw.spectrum_plot("Pcl",dirname)
-    
+
     # Execute extrapolation for single energy ev
     dirname = os.path.abspath(__file__ + "/../" + "extrapolation")
     aw.extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname)
