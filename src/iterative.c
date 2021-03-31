@@ -98,7 +98,11 @@ struct iter_params_struct {
 	int vec_N;        // number of additional vectors to describe the state
 	void (*func)(const enum phase); // pointer to implementation of the iterative solver
 };
-static doublecomplex dumb ATT_UNUSED; // dumb variable, used in workaround for issue 146
+
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 1100) && (__INTEL_COMPILER < 1200)
+#	define WORKAROUND146 // workaround for issue 146 (should not be relevant to modern compilers)
+static doublecomplex dumb;
+#endif
 
 #define ITER_FUNC(name) static void name(const enum phase ph)
 
@@ -456,6 +460,13 @@ ITER_FUNC(BCGS2)
 			scalars[0].size=scalars[1].size=sizeof(doublecomplex);
 			vectors[0].ptr=vec2; // u[0]
 			vectors[0].size=sizeof(doublecomplex);
+#ifdef __INTEL_COMPILER // workaround for issue 286
+			/* otherwise, the Intel compiler Classic (last tested for v. 2021.2) produces broken code with -O1 and
+			 * higher, by ignoring some of the pointer assignments above r[1],r[2],u[1],u[2]. We were not able to solve
+			 * the issue by dumb variable assignments
+			 */
+			fflush(stdout);
+#endif
 			return;
 		case PHASE_INIT:
 			if (!load_chpoint) {
@@ -597,7 +608,7 @@ ITER_FUNC(BiCG_CS)
 			cl_uint major,minor,patch;
 			CLBLAS_CH_ERR(clblasGetVersion(&major,&minor,&patch));
 			if (!GREATER_EQ2(major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ)) LogError(ONE_POS,
-				"clBLAS library version (%d.%d) is too old. Version %d.%d or newer is required",
+				"clBLAS library version (%u.%u) is too old. Version %d.%d or newer is required",
 				major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ);
 			D("clBLAS library version - %u.%u.%u",major,minor,patch);
 			D("clblasSetup started");
@@ -686,6 +697,7 @@ ITER_FUNC(BiCG_CS)
 			nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
 #endif
 #ifdef OCL_BLAS
+			CL_CH_ERR(clFinish(command_queue)); // finish queue before freeing resources
 			my_clReleaseBuffer(bufinprodRp1);
 			my_clReleaseBuffer(bufro_new);
 			my_clReleaseBuffer(bufmu);
@@ -962,7 +974,9 @@ ITER_FUNC(CSYM)
 			// tau_k+1 = -s_k*tau_k; ||r_k|| = |tau_k+1|
 			tau*=-s_new;
 			inprodRp1=cAbs2(tau);
-			dumb=tau; // dumb statement to workaround issue 146
+#ifdef WORKAROUND146
+			dumb=tau;
+#endif
 			return; // end of PHASE_ITER
 	}
 	LogError(ONE_POS,"Unknown phase (%d) of the iterative solver",(int)ph);
@@ -1028,7 +1042,9 @@ ITER_FUNC(QMR_CS)
 				// c_0=c_-1=1; s_0=s_-1=0
 				c_new=c_old=1.0;
 				s_new=s_old=0.0;
-				dumb=beta; // dumb statement to workaround issue 146
+#ifdef WORKAROUND146
+				dumb=beta;
+#endif
 			}
 			return;
 		case PHASE_ITER:
@@ -1156,7 +1172,9 @@ ITER_FUNC(QMR_CS_2)
 				eps=1;
 				theta_old=0;
 				eta=-1;
-				dumb=eps; // dumb statement to workaround issue 146
+#ifdef WORKAROUND146
+				dumb=eps;
+#endif
 			}
 			return;
 		case PHASE_ITER:

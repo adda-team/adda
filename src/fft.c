@@ -615,8 +615,15 @@ static void fftInitBeforeD(void)
 #ifdef FFTW3
 	int grXint=gridX,grYint=gridY,grZint=gridZ; // this is needed to provide 'int *' to grids
 
+/* For some reason, the following FFTW strings cannot be found by Visual Studio linker. They are not present in .def
+ * file for the corresponding library (in v. 3.3.5), while the default way to produce .lib file for linking with this
+ * linker is through the .def file (http://www.fftw.org/install/windows.html). Potentially, this can be solved by using
+ * 'dumpbin /exports ...' on the provided DLL, but it will probably require some manual editing.
+ */
+#ifndef _MSC_VER
 	D("FFTW library version: %s\n     compiler: %s\n     codelet optimizations: %s",fftw_version,fftw_cc,
 		fftw_codelet_optim);
+#endif
 	planYf_slice=fftw_plan_many_dft(1,&grYint,gridZ,slice_tr,NULL,1,gridY,slice_tr,NULL,1,gridY,FFT_FORWARD,
 		PLAN_FFTW_DM);
 	planZf_slice=fftw_plan_many_dft(1,&grZint,gridY,slice,NULL,1,gridZ,slice,NULL,1,gridZ,FFT_FORWARD,PLAN_FFTW_DM);
@@ -651,8 +658,7 @@ static void fftInitBeforeD(void)
 static void fftInitAfterD(void)
 /* second part of fft initialization
  * completely separate code is used for OpenCL and FFTW3, because even precise-timing output is significantly different.
- * In particular, FFTW3 uses separate plans for forward and backward, while clFFT (by Apple or AMD) uses one plan for
- * both directions.
+ * In particular, FFTW3 uses separate plans for forward and backward, while clFFT uses one plan for both directions.
  *
  * clFft access the OpenCL buffers directly, so they are not anyhow affected by the definition of complex numbers in the
  * main part of the code (although, it is consistent with it)
@@ -677,7 +683,7 @@ static void fftInitAfterD(void)
 	cl_uint major,minor,patch;
 	CLFFT_CH_ERR(clfftGetVersion(&major,&minor,&patch));
 	if (!GREATER_EQ2(major,minor,CLFFT_VER_REQ,CLFFT_SUBVER_REQ)) LogError(ONE_POS,
-		"clFFT library version (%d.%d) is too old. Version %d.%d or newer is required",
+		"clFFT library version (%u.%u) is too old. Version %d.%d or newer is required",
 		major,minor,CLFFT_VER_REQ,CLFFT_SUBVER_REQ);
 	D("clFFT library version - %u.%u.%u",major,minor,patch);
 	// initialize library
@@ -697,8 +703,9 @@ static void fftInitAfterD(void)
 	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanX,PRECISION_CLFFT));
 	CLFFT_CH_ERR(clfftSetResultLocation(clplanX,CLFFT_INPLACE));
 	CLFFT_CH_ERR(clfftSetLayout(clplanX,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,FFT_FORWARD,1));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	// more robust to use clfftDirection(FFT_FORWARD) instead of CLFFT_FORWARD, but here the scale is symmetric
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,CLFFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanX,CLFFT_BACKWARD,1)); // override the default 1/N scale for backward direction
 	CLFFT_CH_ERR(clfftBakePlan(clplanX,1,&command_queue,NULL,NULL));
 	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanX,&bufsize));
 	clfftBufSize+=bufsize;
@@ -719,8 +726,8 @@ static void fftInitAfterD(void)
 	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanY,PRECISION_CLFFT));
 	CLFFT_CH_ERR(clfftSetResultLocation(clplanY,CLFFT_INPLACE));
 	CLFFT_CH_ERR(clfftSetLayout(clplanY,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,FFT_FORWARD,1));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,CLFFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanY,CLFFT_BACKWARD,1)); // override the default 1/N scale for backward direction
 	CLFFT_CH_ERR(clfftBakePlan(clplanY,1,&command_queue,NULL,NULL));
 	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanY,&bufsize));
 	clfftBufSize+=bufsize;
@@ -753,8 +760,8 @@ static void fftInitAfterD(void)
 	CLFFT_CH_ERR(clfftSetPlanPrecision(clplanZ,PRECISION_CLFFT));
 	CLFFT_CH_ERR(clfftSetResultLocation(clplanZ,CLFFT_INPLACE));
 	CLFFT_CH_ERR(clfftSetLayout(clplanZ,CLFFT_COMPLEX_INTERLEAVED,CLFFT_COMPLEX_INTERLEAVED));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,FFT_FORWARD,1));
-	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,FFT_BACKWARD,1)); // override the default (1/N) scale for backward direction
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,CLFFT_FORWARD,1));
+	CLFFT_CH_ERR(clfftSetPlanScale(clplanZ,CLFFT_BACKWARD,1)); // override the default 1/N scale for backward direction
 	CLFFT_CH_ERR(clfftBakePlan(clplanZ,1,&command_queue,NULL,NULL));
 	CLFFT_CH_ERR(clfftGetTmpBufSize(clplanZ,&bufsize));
 	clfftBufSize+=bufsize;
@@ -1466,6 +1473,7 @@ void Free_FFT_Dmat(void)
 // free all vectors that were allocated in fft.c (all used for FFT and MatVec)
 {
 #ifdef OPENCL
+	CL_CH_ERR(clFinish(command_queue)); // finish queue before freeing resources
 #	ifdef OCL_BLAS
 	if (IterMethod==IT_BICG_CS) { // currently, used only in one iterative solver
 		my_clReleaseBuffer(buftmp);

@@ -5,6 +5,7 @@
 /*/*.dll
 /*/adda*
 /*/*.o
+/*/*.obj
 /*/*.d
 /*/.*opts
 /*/*stackdump

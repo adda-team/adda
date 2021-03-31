@@ -503,15 +503,16 @@ void ReadScatGridParms(const char * restrict fname)
 //======================================================================================================================
 static inline double eta2(const double n[static restrict 3])
 /* calculates IGT_SO correction for scattering at direction n. Exact formula is based on integration of exp(ikn.r) over
- * the dipole volume, resulting in Product(sinc(kd[mu]*n[mu]/2),mu). But here we use a second-order approximation
+ * the dipole volume, resulting in Product(sinc(kd[mu]*n[mu]/2),mu). But here we use a second-order approximation.
+ * Does not depend on n for cubical dipoles.
  */
 {
 	return 1-(kdX*kdX*n[0]*n[0]+kdY*kdY*n[1]*n[1]+kdZ*kdZ*n[2]*n[2])/24;
 }
 
 //======================================================================================================================
-static inline double eta2cmplx(const doublecomplex n[static restrict 3])
-// same as eta2, but for complex input vector
+static inline doublecomplex eta2cmplx(const doublecomplex n[static restrict 3])
+// same as eta2, but for complex input vector. Does not depend on n (and is real) for cubical dipoles if n.n=1
 {
 	return 1-(kdX*kdX*n[0]*n[0]+kdY*kdY*n[1]*n[1]+kdZ*kdZ*n[2]*n[2])/24;
 }
@@ -673,7 +674,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		}
 		cvBuildRe(nF,nN);
 		nN[2]*=-1;
-		ki=nF[2];
+		ki=nF[2]; // real
 		if (msubInf) {
 			cs=-1;
 			cp=1;
@@ -685,7 +686,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cs=FresnelRS(ki,kt);
 			cp=FresnelRP(ki,kt,msub);
 		}
-		phSh=imExp(2*WaveNum*hsub*ki);
+		phSh=imExp(2*WaveNum*hsub*creal(ki)); // assumes real ki
 	}
 	else { // transmission; here nF[2] is negative
 		// formulae correspond to plane wave incoming from below, but with change ki<->kt
@@ -800,7 +801,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	if (above) { // ebuff+= [(I-nxn).sum=sum-nF*(nF.sum)] * exp(-2ik*r0*nz), where r0=box_origin_unif
 		cvMultScal_RVec(crDotProd(sumF,nF),nF,t3);
 		cvSubtr(sumF,t3,t3);
-		cvMultScal_cmplx(imExp(-2*WaveNum*ki*box_origin_unif[2]),t3,t3);
+		cvMultScal_cmplx(imExp(-2*WaveNum*creal(ki)*box_origin_unif[2]),t3,t3); // assumes real ki
 		cvAdd(t3,ebuff,ebuff);
 	}
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
