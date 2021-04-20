@@ -170,6 +170,7 @@ enum sh { // shape types
 	SH_CAPSULE,      // capsule
 	SH_CHEBYSHEV,    // Chebyshev particle (axisymmetric)
 	SH_COATED,       // coated sphere
+	SH_COATED2,	//spherical core-shell particle with a second shell
 	SH_CYLINDER,     // cylinder
 	SH_EGG,          // egg
 	SH_ELLIPSOID,    // general ellipsoid
