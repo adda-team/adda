@@ -97,7 +97,6 @@ static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (d
 
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
-static double coreshell_x, coreshell_y, coreshell_z, coreshell_r2, core_x, core_y, core_z, core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
 static double chebeps,r0_2; // for Chebyshev
 static int chebn; // for Chebyshev
@@ -1578,28 +1577,6 @@ void InitShape(void)
 			Nmat_need=2;
 			break;
 		}
-		case SH_COATED2: {
-			double coreshell_ratio, core_ratio;
-			
-			coreshell_ratio=sh_pars[0];
-			core_ratio=sh_pars[1];
-		
-			if (IFROOT) {
-				sh_form_str1="coated2; diameter(d):";
-				sh_form_str2=dyn_sprintf(", coreshell/total diameter dcs/d="GFORM," core/total diameter dc/d="GFORM,coreshell_ratio,core_ratio);
-			}
-			
-				coreshell_x=coreshell_y=coreshell_z=0;
-
-				core_x=core_y=core_z=0;
-			
-			coreshell_r2=0.25*coreshell_ratio*coreshell_ratio;
-			core_r2=0.25*core_ratio*core_ratio;
-			volume_ratio=PI_OVER_SIX;
-			yx_ratio=zx_ratio=1;
-			Nmat_need=3;
-			break;
-		}
 		case SH_CYLINDER: {
 			double diskratio;
 
@@ -1838,8 +1815,10 @@ void InitShape(void)
 	 *    symX, symY, symZ - symmetries of reflection over planes YZ, XZ, XY respectively.
 	 *    symR - symmetry of rotation for 90 degrees over the Z axis
 	 * 4) initialize the following:
-	 * sh_form_str - descriptive string, should contain format descriptor (like "%g", but using macro GFORM is
-	 *               recommended) - it would be replaced by box size along the x-axis afterwards (in param.c).
+	 * sh_form_str1, sh_form_str2 - descriptive strings before and after the value of sizeX (to be used in param.c). For
+	 *     instance, sh_form_str1="name; diameter:", sh_form_str2=", parameter=5" would result in the final line like:
+	 *     "name; diameter:10, parameter=5". So you should NOT include sizeX into these strings, and sh_form_str2 can be
+	 *     omitted if not needed.
 	 * Either yx_ratio (preferably) or n_boxY. The former is a ratio of particle sizes along y and x axes. Initialize
 	 *     n_boxY directly only if it is not proportional to boxX, like in shape LINE above, since boxX is not
 	 *     initialized at this moment. If yx_ratio is not initialized, set it explicitly to UNDEF.
@@ -2013,7 +1992,6 @@ void MakeParticle(void)
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
 	double xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
-	double xcoreshell,ycoreshell,zcoreshell,xcore,ycore,zcore;
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
 	/* The following are dipole coordinates (in units of d/2) relative to the grid center. For jagged they point to the 
@@ -2139,16 +2117,6 @@ void MakeParticle(void)
 					zcoat=zr-coat_z;
 					if (xcoat*xcoat+ycoat*ycoat+zcoat*zcoat<=coat_r2) mat=1;
 					else mat=0;
-				}
-				break;
-			case SH_COATED2:
-				if(xr*xr+yr*yr+zr*zr<=0.25) {
-					if(xr*xr+yr*yr+zr*zr<=core_r2)
-						mat=2;
-					else {
-						if(xr*xr+yr*yr+zr*zr<=coreshell_r2) mat=1;
-						else mat=0;
-					}
 				}
 				break;
 			case SH_CYLINDER:
