@@ -97,7 +97,7 @@ static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (d
 
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
-static double coreshell_x, coreshell_y, coreshell_z, coreshell_r2, core_x, core_y, core_z, core_r2; // for coated2
+static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
 static double chebeps,r0_2; // for Chebyshev
 static int chebn; // for Chebyshev
@@ -1579,21 +1579,18 @@ void InitShape(void)
 			break;
 		}
 		case SH_COATED2: {
-			double coreshell_ratio, core_ratio;
+			double shell_ratio, core_ratio;
 			
-			coreshell_ratio=sh_pars[0];
+			shell_ratio=sh_pars[0];
 			core_ratio=sh_pars[1];
-		
+			TestRangeII(shell_ratio,"intermediate/outer diameter ratio",0,1);
+			TestRangeII(core_ratio,"inner/outer diameter ratio",0,shell_ratio);
 			if (IFROOT) {
 				sh_form_str1="coated2; diameter(d):";
-				sh_form_str2=dyn_sprintf(", coreshell/total diameter dcs/d="GFORM," core/total diameter dc/d="GFORM,coreshell_ratio,core_ratio);
+				sh_form_str2=dyn_sprintf(", intermediate sphere (shell) diameter dcs/d="GFORM", inner core diameter "
+					"dc/d="GFORM,shell_ratio,core_ratio);
 			}
-			
-				coreshell_x=coreshell_y=coreshell_z=0;
-
-				core_x=core_y=core_z=0;
-			
-			coreshell_r2=0.25*coreshell_ratio*coreshell_ratio;
+			shell_r2=0.25*shell_ratio*shell_ratio;
 			core_r2=0.25*core_ratio*core_ratio;
 			volume_ratio=PI_OVER_SIX;
 			yx_ratio=zx_ratio=1;
@@ -2143,13 +2140,11 @@ void MakeParticle(void)
 				}
 				break;
 			case SH_COATED2:
-				if(xr*xr+yr*yr+zr*zr<=0.25) {
-					if(xr*xr+yr*yr+zr*zr<=core_r2)
-						mat=2;
-					else {
-						if(xr*xr+yr*yr+zr*zr<=coreshell_r2) mat=1;
-						else mat=0;
-					}
+				r2=xr*xr+yr*yr+zr*zr;
+				if (r2<=0.25) {
+					if (r2<=core_r2) mat=2;
+					else if (r2<=shell_r2) mat=1;
+					else mat=0;
 				}
 				break;
 			case SH_CYLINDER:
