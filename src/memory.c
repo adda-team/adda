@@ -32,7 +32,7 @@
 #define MALLOC_ERROR LogError(ERR_LOC_CALL,"Could not malloc %s",name)
 #define CHECK_NULL(size,v) if ((size)!=0 && (v)==NULL) MALLOC_ERROR
 #define CHECK_SIZE(size,type) if ((SIZE_MAX/sizeof(type))<(size)) MALLOC_ERROR
-#define IF_FREE(v) if((v)!=NULL) free(v)
+#define IF_FREE(v) if ((v)!=NULL) free(v)
 #define OVERFLOW LogError(ERR_LOC_CALL,"Integer overflow in '%s'",name);
 
 //======================================================================================================================

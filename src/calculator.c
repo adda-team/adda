@@ -411,7 +411,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			       temp_rectScaleZ=rectScaleZ;
 			double tmp=MIN(temp_rectScaleX,rectScaleY);
 			tmp=MIN(tmp,rectScaleZ);
-			if(tmp>0) {
+			if (tmp>0) {
 				temp_rectScaleX/=tmp;
 				temp_rectScaleY/=tmp;
 				temp_rectScaleZ/=tmp;
@@ -637,7 +637,7 @@ static void calculate_one_orientation(double * restrict res)
 		 * Y direction. In case of rotational symmetry this is not needed but requires lots more programming so we leave
 		 * this optimization to a later time.
 		 */
-		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
+		if (CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
 		if (IFROOT) {
 			PRINTFB("\nhere we go, calc X\n\n");
@@ -648,7 +648,7 @@ static void calculate_one_orientation(double * restrict res)
 		 * If new formulation depends on the incident polarization (unlikely) update the test above.
 		 */
 
-		if(CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
+		if (CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
 	}
 	D("CalculateE finished");
 	MuellerMatrix();

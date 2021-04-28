@@ -333,7 +333,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	romin=zmin=DBL_MAX;
 	romax=zmax=-DBL_MAX;
 	// reading is performed in lines
-	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+	while (FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		scanned=sscanf(linebuf,"%lf %lf",&ro,&z);
 		// if sscanf returns EOF, that is a blank line -> just skip
@@ -1143,7 +1143,7 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 	// reading is performed in lines
 	nd=0;
 	scanned=0; // redundant initialization to remove warnings
-	while(FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+	while (FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
 			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x,&y,&z); break;
@@ -1243,7 +1243,7 @@ static void ReadDipFile(const char * restrict fname)
 	
 	mat=1; // the default value for single-domain shape formats
 	scanned=0; // redundant initialization to remove warnings
-	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+	while (fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
 			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0); break;
@@ -2148,7 +2148,7 @@ void MakeParticle(void)
 				}
 				break;
 			case SH_CYLINDER:
-				if(xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
+				if (xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
 				break;
 			case SH_EGG:
 				ro2=xr*xr+yr*yr;
@@ -2167,7 +2167,7 @@ void MakeParticle(void)
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
-				if(ro2<=0.25 && fabs(zr)<=hdratio) {
+				if (ro2<=0.25 && fabs(zr)<=hdratio) {
 					if (ro2<=ri_2) mat=0;
 					else {
 						tmp1=sqrt(ro2)-0.5+hdratio; // ro-ri
@@ -2178,7 +2178,7 @@ void MakeParticle(void)
 			case SH_PRISM:
 				xshift=xr-xcenter;
 				ro2=xshift*xshift+yr*yr;
-				if(ro2<=rc_2 && fabs(zr)<=hdratio) {
+				if (ro2<=rc_2 && fabs(zr)<=hdratio) {
 					if (ro2<=ri_2) mat=0;
 					/* this can be optimized considering special cases for small N. For larger N the relevant
 					 * fraction of dipoles decrease as N^-2, so this part is less problematic.

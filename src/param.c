@@ -1015,7 +1015,7 @@ PARSE_FUNC(beam)
 		found=true;
 		break;
 	}
-	if(!found) NotSupported("Beam type",argv[1]);
+	if (!found) NotSupported("Beam type",argv[1]);
 }
 PARSE_FUNC(chp_dir)
 {
@@ -1706,7 +1706,7 @@ PARSE_FUNC(V)
 		// determine number of bits in size_t; not the most efficient way, but should work robustly
 		num=SIZE_MAX;
 		bits=1;
-		while(num>>=1) bits++;
+		while (num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
 #ifdef __MINGW64_VERSION_STR
 		printf("      using MinGW-64 environment version "__MINGW64_VERSION_STR"\n");
@@ -2031,7 +2031,7 @@ void ParseParameters(const int argc,char **argv)
 			found=true;
 			break;
 		}
-		if(!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
+		if (!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
 		argv[i]--; // shift back
 		i+=Narg;
 	}
@@ -2054,7 +2054,7 @@ void VariablesInterconnect(void)
 		setvbuf(stdout,NULL,sobuf,BUFSIZ);
 		if (sobuf==_IOLBF) emulLinebuf=true;
 	}
-	else if(_isatty(_fileno(stdout))) {
+	else if (_isatty(_fileno(stdout))) {
 		setvbuf(stdout,NULL,_IOLBF,BUFSIZ);
 		emulLinebuf=true;
 	}

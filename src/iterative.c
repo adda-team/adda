@@ -338,7 +338,7 @@ static void LoadIterChpoint(void)
 	for (i=0;i<params[ind_m].vec_N;i++) if (fread(vectors[i].ptr,vectors[i].size,local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// check if EOF reached and close file
-	if(fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
+	if (fread(&ch,1,1,chp_file)!=0) LogError(ALL_POS,"File '%s' is too long",fname);
 	FCloseErr(chp_file,fname,ALL_POS);
 	// initialize auxiliary variables
 	epsB=iter_eps*iter_eps/resid_scale;
