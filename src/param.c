@@ -279,6 +279,9 @@ static const struct subopt_struct shape_opt[]={
 		"eps is a real number, such that |eps|<=1, while n is a natural number",2,SH_CHEBYSHEV},
 	{"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has a diameter d (first "
 		"domain). The included sphere has a diameter d_in (optional position of the center: x,y,z).",UNDEF,SH_COATED},
+	{"coated2","<ds/d> <dc/d>","Three concentric spheres (core with 2 shells). Outer sphere has a diameter d (first "
+		"domain), intermediate sphere (shell) - ds (second domain), and the internal core - dc (third domain).",2,
+		SH_COATED2},
 	{"cylinder","<h/d>","Homogeneous cylinder with height (length) h and diameter d (its axis of symmetry coincides "
 		"with the z-axis).",1,SH_CYLINDER},
 	{"egg","<eps> <nu>","Axisymmetric egg shape given by a^2=r^2+nu*r*z-(1-eps)z^2, where 'a' is scaling factor. "
