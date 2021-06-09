@@ -38,7 +38,7 @@ adda_cmdlineargs = dict(
     prop = "0 0 -1", #beam propagation direction vector
     
     # Precision and performance
-    eps = 4, #Residual norm
+    eps = 2, #Residual norm
     
     # Additional options
     sym = "enf", #Do not simulate second polarization
@@ -46,7 +46,9 @@ adda_cmdlineargs = dict(
     no_vol_cor = "", #Disable volume correction
     iter = "qmr2", #Iterative solver
     pol = "igt_so", #Polarizability prescription
-    int = "igt 5", #Interaction term
+    int = "igt 3", #Interaction term
+    Csca = "", #Calculate Csca with the Romberg integral. Needed to properly calculate Cathodoluminesce
+    alldir_inp = os.path.abspath(__file__ + "/../../Csca_integration.txt")
 )
 
 ### Executing commands

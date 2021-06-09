@@ -15,7 +15,7 @@ def label_for_plot(match):
 
 def label_for_plot_arbunits(match):
     if match[0] == "P":
-        return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", arb. units."
+        return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", arb. units"
     elif match[0] == "C":
         return match + ", arb. units"
     elif match[0] == "Q":
@@ -138,23 +138,45 @@ def spectrum_collect(match,dirname, silent=False):
         writer.writerows(zip(evs,values))
         print_log(f"Saved {dirname}/{match}.csv", silent=silent)
 
-def spectrum_plot(match,dirname):
-    data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
-    
+def plot_create():
     fig = plt.figure(constrained_layout=True)
     ax = fig.add_subplot(1, 1, 1)
-    plt.xlim([min(data[:,0]),max(data[:,0])])
     ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     ax.set_xlabel("eV")
-    ax.set_ylabel(label_for_plot(match))
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.grid(which="both", axis="x", linestyle="dotted")
+    ax.grid(which="both", axis="x", linestyle="dotted", zorder=0)
     ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+    plot_setrcparams()
+    return fig, ax
+
+def plot_setaspect(ax):
+    xleft, xright = ax.get_xlim()
+    ybottom, ytop = ax.get_ylim()
+    ax.set_aspect(abs((xright-xleft)/(ybottom-ytop))*.5625)
+
+def plot_setrcparams():
+    SMALL_SIZE = 12
+    MEDIUM_SIZE = 14
+    BIGGER_SIZE = 16
     
+    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+def spectrum_plot(match,dirname):
+    data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
+    fig,ax = plot_create()
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
+    ax.set_xlim([min(data[:,0]),max(data[:,0])])
+    ax.set_ylabel(label_for_plot(match))
     #ax.legend()
+    plot_setaspect(ax)
     fig.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
     
@@ -196,9 +218,7 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     # fig = plt.figure(constrained_layout=True)
     # ax = fig.add_subplot(1, 1, 1)
     # ax.plot(points[:,0], points[:,1], linewidth=3, marker="o")
-    # ratio = (points[:,1].max()-points[:,1].min() + d)/(points[:,0].max()-points[:,0].min() + d)
-    # print(ratio)
-    # ax.set_box_aspect(ratio)
+    # #return
     
     beam_list = adda_cmdlineargs["beam"].split(" ")
     delkeys_silent(adda_cmdlineargs, ["lambda","m","beam"])
@@ -206,7 +226,7 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log(f"{cmdline}",dirname)
     print_log(f"mp_file: {mp_file}",dirname)
     print_log(f"dipole size = {d} nm",dirname)
-    print_log(f"Varying position from {points[0,:]} nm to {points[-1,:]} nm ({howmanypoints} points)",dirname)
+    print_log(f"Varying position from {tuple(points[0,:])} nm to {tuple(points[-1,:])} nm ({howmanypoints} points)",dirname)
     print_log(f"Varying energy from {mdata[0][0]} to {mdata[-1][0]} eV",dirname)
     cmdlines = []
     counter = 0
@@ -251,39 +271,36 @@ def spectrumline_collect(match, dirname):
         writer.writerows(zip(xs,*ys))
         print(f"Saved to {dirname}/{match}.csv")
 
-def spectrumline_plot(match, dirname):
+def spectrumline_plot(match, dirname, average=False):
     #alldata = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',',dtype=None, encoding=None)
     data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')
+    fig1,ax1 = plot_create()
+    ax1.set_ylabel(label_for_plot_arbunits(match))
+    fig2,ax2 = plot_create()
+    ax2.set_ylabel(label_for_plot(match))
     
-    fig = plt.figure(constrained_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
-    plt.xlim([min(data[5:,0]),max(data[5:,0])])
-    
-    #ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-    ax.set_xlabel("eV")
-    ax.set_ylabel(label_for_plot_arbunits(match))
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-
-    ax.tick_params(bottom=True, top=True, left=True, right=False, which = "both")
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
-    ax.grid(which="both", axis="x", linestyle="dotted", zorder=0)
     
     xs = data[5:,0]
     #print(xs)
+    ys2 = np.zeros(np.shape(data.T[0][5:]))
     for point in data.T[1:]:
         num = int(point[0])
         ys = point[5:]/max(point[5:]) + .02*num
+        ys2 += point[5:]
         #print(num)
         #print(ys)
-        #y = i + 3*np.sin(2*x + 1.5*random.random()*np.ones(len(x))) + .1*np.random.rand(len(x))
-        ax.plot(xs, ys, color=color_for_plot(match), linewidth=1, zorder=(1-0.001*num))
-        ax.fill_between(xs, min(ys), ys, facecolor="white", alpha=.4, zorder=(1-0.001*num))
-    
-    #ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
-    #ax.legend()
-    fig.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
+        ax1.plot(xs, ys, color=color_for_plot(match), linewidth=1.5, zorder=(1-0.001*num))
+        ax1.fill_between(xs, min(ys), ys, facecolor="white", alpha=.3, zorder=(1-0.001*num))
+    ys2 /= num
+    ax1.set_xlim([min(xs),max(xs)])
+    ax2.set_xlim([min(xs),max(xs)])
+    ax2.plot(xs, ys2, color=color_for_plot(match), linewidth=3)
+    plot_setaspect(ax1)
+    plot_setaspect(ax2)
+    fig1.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
+    fig2.savefig(f"{dirname}/{match}_averaged.pdf", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}_averaged.pdf")
 
 def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -361,11 +378,8 @@ def extrapolation_collect(match, dirname):
     
 def extrapolation_plot(match, dirname):
     data = np.genfromtxt(f"{dirname}/{match}.csv",delimiter=',')[1:]
-    plt.ion()
-    fig = plt.figure(constrained_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
+    fig,ax = plot_create()
     ax.plot(data[:,1], data[:,2], label=label_for_plot(match)+" (simulated)", color=color_for_plot(match), marker="o", linestyle="none")
-    ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
     ys_fitted = np.linspace(data[:,1][0],0,100)
     results_fit = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     a = results_fit[:,0]
@@ -374,11 +388,8 @@ def extrapolation_plot(match, dirname):
     ax.plot(ys_fitted, points_fitted, label=label_for_plot(match)+" (fit)", color="black", linewidth=3)
     ax.errorbar(0, a[0], yerr=error[0], color="black", linestyle="", marker="s", capsize=3, barsabove=True, label = "Error bar")
     ax.set_xlabel("y = kd|m|")
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     ax.legend()
+    plot_setaspect(ax)
     plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
 
@@ -463,23 +474,12 @@ def spectrum_with_extrapolation_collect(match, dirname):
 
 def spectrum_with_extrapolation_plot(match,dirname):
     data = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
-    
-    fig = plt.figure(constrained_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
-    plt.xlim([min(data[:,0]),max(data[:,0])])
-    ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-    ax.set_xlabel("eV")
-    #ax.set_ylabel(label_for_plot(match))
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.grid(which="both", axis="x", linestyle="dotted")
-    ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
-    
+    fig,ax = plot_create()
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
     ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="error bar", color="blue", alpha=0.2)
-    
+    ax.set_xlim([min(data[:,0]),max(data[:,0])])
     ax.legend()
+    plot_setaspect(ax)
     plt.savefig(f"{dirname}/{match}_fit.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.pdf")
 
@@ -523,8 +523,8 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log(f"ev = {ev}",dirname)
     print_log(f"mp_re = {mdata[1]}",dirname)
     print_log(f"mp_im = {mdata[2]}",dirname)
-    print_log(f"Varying (x_left,x_right) = ({x0s[0]*d},{x0s[-1]*d}) dipole sizes",dirname)
-    print_log(f"Varying (y_bottom,y_top) = ({y0s[0]*d},{y0s[-1]*d}) dipole sizes",dirname)
+    print_log(f"Varying (x_left,x_right) = ({x_left},{x_right}) nm",dirname)
+    print_log(f"Varying (y_bottom,y_top) = ({y_bottom},{y_top}) nm",dirname)
     cmdlines = []
     for x0_i in x0s:
         for y0_i in y0s:
@@ -574,23 +574,24 @@ def scan_plot(match, dirname, details=True):
     # print(x)
     # print(y)
     # print(z)
-    plt.ion()
-    fig = plt.figure(constrained_layout=True)
+    fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
+    plot_setrcparams()
     ax.set_aspect('equal')
     d = size/grid
-    plt.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower", cmap="rainbow")
+    im = ax.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower", cmap="rainbow")
     # plt.scatter(x, y, c=z, marker="s") # scatter is the most stable function for visualization, so use this for debugging
     ax.set_xlabel("x$_0$, nm")
     ax.set_ylabel("y$_0$, nm")
     
     if details == True:
-        cbar = plt.colorbar()
+        cbar = fig.colorbar(im)
         cbar.set_label(label_for_plot(match))
         cbar.formatter.set_powerlimits((0, 0))
     else:
         plt.axis('off')
-
+    
+    
     plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")
 

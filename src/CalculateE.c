@@ -748,12 +748,16 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		}
 	}
 	else { // not orient_avg
-		if (beamtype==B_DIPOLE || beamtype==B_ELECTRON) Cenh=EnhCross(); // this is here to be run by all processors
+
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
+			if (beamtype==B_DIPOLE || beamtype==B_ELECTRON) {
+				Cenh=EnhCross(); // this is here to be run by all processors
+				PrintBoth(CCfile,"Cenh\t= "GFORM"\nQenh\t= "GFORM"\n",Cenh,Cenh*inv_G);
+			}
 			if (beamtype==B_DIPOLE) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
@@ -770,27 +774,29 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				}
 				if (surface) PrintBoth(CCfile,"Surface\t= "GFORM"\n",self);
 			}
-			if (beamtype==B_ELECTRON) {
-				double Peels, Pcl, Crad;
-				double hbar = 1.054571817e-27;
-				double hbar_ev = 6.582119569e-16;
-				Crad = Cenh - Cabs;
-				PrintBoth(CCfile,"Cenh\t= "EFORM"\n",Cenh);
-				PrintBoth(CCfile,"Crad\t= "EFORM"\n",Crad);
-				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
-				printf("\nEELS and Cathodoluminescence:\n");
-				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
-				Peels *= 1e-21; //(nm)^3 -> (cm)^3
-				Pcl = Crad/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
-				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
-				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
-				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
-			}
 			if (all_dir) fprintf(CCfile,"\nIntegration\n\n");
 			if (calc_Csca) {
 				Csca=ScaCross(f_suf);
 				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
+			if (beamtype==B_ELECTRON) {
+				double Peels, Pcl, Crad;
+				double hbar = 1.054571817e-27;
+				double hbar_ev = 6.582119569e-16;
+				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
+				printf("\nEELS and Cathodoluminescence:\n");
+				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				Peels *= 1e-21; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
+
+				//Csca = Cext-Cabs;
+				//PrintBoth(CCfile,"Csca=Cext-Cabs\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
+				if (calc_Csca) Pcl = (Cenh - (Cext - Csca))/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				else Pcl = (Cenh - Cabs)/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
+			}
+
 			if (calc_vec) {
 				AsymParm_x(dummy,f_suf);
 				AsymParm_y(dummy+1,f_suf);

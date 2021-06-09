@@ -10,11 +10,6 @@ aw_parameters = dict(
 
     mp_file = os.path.abspath(__file__ + "/../../refractive_index/" + "Au_JHW.csv"), #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
     ev_range = (0.5,3), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
-    ev = 1.95, #[eV]. Used in "scan_" and "extrapolation_" functions.
-    
-    spectrumline_startpoint = (10,0), # (x,y) [nm]
-    spectrumline_endpoint = (10,80), # (x,y) [nm]
-    spectrumline_points = 15, #how many points, including startpoint and endpoint
     
     #Used in "scan_" functions. Beam propagation must be orthogonal to the grid.
     #So "prop" must be "0 0 whatever" and rotations with "orient" must be made by 90 degrees.
@@ -25,7 +20,6 @@ aw_parameters = dict(
     #so start and stop coordinates will be adjusted, covering more area than you entered. Obligatory to use "no_vol_cor" with scan.
 )
 
-# Not an arg yet, soon to be implemented into ADDA
 hd = (92.6-7.8)/7.8
 
 # ADDA command line arguments
@@ -42,7 +36,7 @@ adda_cmdlineargs = dict(
     prop = "0 0 -1", #beam propagation direction vector
     
     # Precision and performance
-    eps = 4, #Residual norm
+    eps = 2, #Residual norm
     
     # Additional options
     sym = "enf", #Do not simulate second polarization
@@ -51,6 +45,8 @@ adda_cmdlineargs = dict(
     iter = "qmr2", #Iterative solver
     pol = "igt_so", #Polarizability prescription
     int = "igt 3", #Interaction term
+    Csca = "", #Calculate Csca with the Romberg integral. Needed to properly calculate Cathodoluminesce
+    alldir_inp = os.path.abspath(__file__ + "/../../Csca_integration.txt")
 )
 
 ### Executing commands
@@ -58,17 +54,20 @@ if __name__ == '__main__':
 
     # Execute spectra simulations for different positions of the beam to find plasmon peaks
     dirname = os.path.abspath(__file__ + "/../" + "spectrumline")
-    aw.spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname)
-    # Collect and plot EELS spectra
-    aw.spectrumline_collect("Peels",dirname)
-    aw.spectrumline_plot("Peels",dirname)
-    aw.spectrumline_collect("Pcl",dirname)
-    aw.spectrumline_plot("Pcl",dirname)
+    aw_parameters["spectrumline_startpoint"] = (10,0) # (x,y) [nm]
+    aw_parameters["spectrumline_endpoint"] = (10,50) # (x,y) [nm]
+    aw_parameters["spectrumline_points"] = 15 # how many points, including startpoint and endpoint
+    aw.spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname) # Execute simulation
+    aw.spectrumline_collect("Peels",dirname) # Collect EELS spectrum
+    aw.spectrumline_plot("Peels",dirname) # Plot EELS spectrum
+    aw.spectrumline_collect("Pcl",dirname) # Collect CL spectrum
+    aw.spectrumline_plot("Pcl",dirname) # Plot CL spectrum
     
     # Execute scan of particle's cross-section for single energy ev
-    dirname = dirname = os.path.abspath(__file__ + "/../" + "scan")
+    dirname = dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
+    aw_parameters["ev"] = 2.4
     aw.scan_execute(aw_parameters,adda_cmdlineargs,dirname)
-    # Collect and map scanned EELS probabilities on particle's cross-section
+    # Collect and map scanned EELS/CL probabilities on particle's cross-section
     aw.scan_collect("Peels",dirname)
     aw.scan_plot("Peels",dirname)
     aw.scan_collect("Pcl",dirname)

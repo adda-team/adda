@@ -825,24 +825,6 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 
 //======================================================================================================================
 
-double EELSProb()
-// Calculate the EELS Probability
-{
-	double sum = 0;
-	double h_cgs = 1.054571817e-27;
-	double h_ev = 6.582119569e-16;
-	size_t i;
-
-	for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
-	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-	sum*=-1./(PI*h_cgs*h_ev);
-	sum*=1e-21; //(nm)^3 -> (cm)^3
-
-	return sum;
-}
-
-//======================================================================================================================
-
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
