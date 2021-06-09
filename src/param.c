@@ -285,6 +285,9 @@ static const struct subopt_struct shape_opt[]={
 		"eps is a real number, such that |eps|<=1, while n is a natural number",2,SH_CHEBYSHEV},
 	{"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has a diameter d (first "
 		"domain). The included sphere has a diameter d_in (optional position of the center: x,y,z).",UNDEF,SH_COATED},
+	{"coated2","<ds/d> <dc/d>","Three concentric spheres (core with 2 shells). Outer sphere has a diameter d (first "
+		"domain), intermediate sphere (shell) - ds (second domain), and the internal core - dc (third domain).",2,
+		SH_COATED2},
 	{"cylinder","<h/d>","Homogeneous cylinder with height (length) h and diameter d (its axis of symmetry coincides "
 		"with the z-axis).",1,SH_CYLINDER},
 	{"egg","<eps> <nu>","Axisymmetric egg shape given by a^2=r^2+nu*r*z-(1-eps)z^2, where 'a' is scaling factor. "
@@ -1021,7 +1024,7 @@ PARSE_FUNC(beam)
 		found=true;
 		break;
 	}
-	if(!found) NotSupported("Beam type",argv[1]);
+	if (!found) NotSupported("Beam type",argv[1]);
 }
 PARSE_FUNC(chp_dir)
 {
@@ -1722,7 +1725,7 @@ PARSE_FUNC(V)
 		// determine number of bits in size_t; not the most efficient way, but should work robustly
 		num=SIZE_MAX;
 		bits=1;
-		while(num>>=1) bits++;
+		while (num>>=1) bits++;
 		printf(" (%d-bit)\n",bits);
 #ifdef __MINGW64_VERSION_STR
 		printf("      using MinGW-64 environment version "__MINGW64_VERSION_STR"\n");
@@ -2048,7 +2051,7 @@ void ParseParameters(const int argc,char **argv)
 			found=true;
 			break;
 		}
-		if(!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
+		if (!found) PrintErrorHelpSafe("Unknown option '-%s'",argv[i]);
 		argv[i]--; // shift back
 		i+=Narg;
 	}
@@ -2071,7 +2074,7 @@ void VariablesInterconnect(void)
 		setvbuf(stdout,NULL,sobuf,BUFSIZ);
 		if (sobuf==_IOLBF) emulLinebuf=true;
 	}
-	else if(_isatty(_fileno(stdout))) {
+	else if (_isatty(_fileno(stdout))) {
 		setvbuf(stdout,NULL,_IOLBF,BUFSIZ);
 		emulLinebuf=true;
 	}

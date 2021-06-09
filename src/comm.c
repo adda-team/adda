@@ -134,7 +134,7 @@ void CatNFiles(const char * restrict dir,const char * restrict tmpl,const char *
 		SnprintfShiftErr(ONE_POS,shift,fname_in,MAX_TMP_FNAME,tmpl,i);
 		in=FOpenErr(fname_in,"r",ONE_POS);
 		// copy file in to out
-		while((c=getc(in))!=EOF) putc(c,out);
+		while ((c=getc(in))!=EOF) putc(c,out);
 		// close and remove tmp file
 		FCloseErr(in,fname_in,ONE_POS);
 		RemoveErr(fname_in,ONE_POS);
@@ -600,7 +600,7 @@ void ReadField(const char * restrict fname,doublecomplex *restrict field)
 	size_t line=SkipNLines(file,1);
 	line+=SkipComments(file);
 	i=j=0;
-	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+	while (FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		if (i<local_nvoid_d0) { // just count non-blank lines
 			if (sscanf(linebuf,test_form)!=EOF) i++;

@@ -98,6 +98,7 @@ static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (d
 
 // shape parameters
 static double coat_x,coat_y,coat_z,coat_r2;
+static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
 static double chebeps,r0_2; // for Chebyshev
 static int chebn; // for Chebyshev
@@ -333,7 +334,7 @@ static void InitContour(const char *fname,double *ratio,double *shSize)
 	romin=zmin=DBL_MAX;
 	romax=zmax=-DBL_MAX;
 	// reading is performed in lines
-	while(FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+	while (FGetsError(file,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		scanned=sscanf(linebuf,"%lf %lf",&ro,&z);
 		// if sscanf returns EOF, that is a blank line -> just skip
@@ -1143,7 +1144,7 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 	// reading is performed in lines
 	nd=0;
 	scanned=0; // redundant initialization to remove warnings
-	while(FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
+	while (FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
 			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x,&y,&z); break;
@@ -1243,7 +1244,7 @@ static void ReadDipFile(const char * restrict fname)
 	
 	mat=1; // the default value for single-domain shape formats
 	scanned=0; // redundant initialization to remove warnings
-	while(fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
+	while (fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
 			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0); break;
@@ -1576,6 +1577,25 @@ void InitShape(void)
 			if (coat_z!=0) symZ=false;
 			yx_ratio=zx_ratio=1;
 			Nmat_need=2;
+			break;
+		}
+		case SH_COATED2: {
+			double shell_ratio, core_ratio;
+			
+			shell_ratio=sh_pars[0];
+			core_ratio=sh_pars[1];
+			TestRangeII(shell_ratio,"intermediate/outer diameter ratio",0,1);
+			TestRangeII(core_ratio,"inner/outer diameter ratio",0,shell_ratio);
+			if (IFROOT) {
+				sh_form_str1="coated2; diameter(d):";
+				sh_form_str2=dyn_sprintf(", intermediate sphere (shell) diameter dcs/d="GFORM", inner core diameter "
+					"dc/d="GFORM,shell_ratio,core_ratio);
+			}
+			shell_r2=0.25*shell_ratio*shell_ratio;
+			core_r2=0.25*core_ratio*core_ratio;
+			volume_ratio=PI_OVER_SIX;
+			yx_ratio=zx_ratio=1;
+			Nmat_need=3;
 			break;
 		}
 		case SH_CYLINDER: {
@@ -2120,8 +2140,16 @@ void MakeParticle(void)
 					else mat=0;
 				}
 				break;
+			case SH_COATED2:
+				r2=xr*xr+yr*yr+zr*zr;
+				if (r2<=0.25) {
+					if (r2<=core_r2) mat=2;
+					else if (r2<=shell_r2) mat=1;
+					else mat=0;
+				}
+				break;
 			case SH_CYLINDER:
-				if(xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
+				if (xr*xr+yr*yr<=0.25 && fabs(zr)<=hdratio) mat=0;
 				break;
 			case SH_EGG:
 				ro2=xr*xr+yr*yr;
@@ -2140,7 +2168,7 @@ void MakeParticle(void)
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
-				if(ro2<=0.25 && fabs(zr)<=hdratio) {
+				if (ro2<=0.25 && fabs(zr)<=hdratio) {
 					if (ro2<=ri_2) mat=0;
 					else {
 						tmp1=sqrt(ro2)-0.5+hdratio; // ro-ri
@@ -2151,7 +2179,7 @@ void MakeParticle(void)
 			case SH_PRISM:
 				xshift=xr-xcenter;
 				ro2=xshift*xshift+yr*yr;
-				if(ro2<=rc_2 && fabs(zr)<=hdratio) {
+				if (ro2<=rc_2 && fabs(zr)<=hdratio) {
 					if (ro2<=ri_2) mat=0;
 					/* this can be optimized considering special cases for small N. For larger N the relevant
 					 * fraction of dipoles decrease as N^-2, so this part is less problematic.

@@ -10,6 +10,8 @@
 ;mgn; ;m; ;g; ;n;
 # default for two-domain particles
 ;2mgn; ;2m; ;g; ;n;
+# default for three-domain particles
+;3mgn; ;3m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -shape read sphere4.geom -sym enf ;n;
 # for testing odd grids
@@ -297,6 +299,8 @@ all -scat_plane ;se; ;mn;
 #all -h shape coated
 #all -shape coated 0.5 ;2mgn;
 #all -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
+#all -h shape coated2
+#all -shape coated2 0.7 0.4 ;3mgn;
 #all -h shape cylinder
 #all -shape cylinder 1 ;mgn;
 #all -h shape egg

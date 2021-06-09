@@ -939,7 +939,7 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 		if (!inter_avg) for (comp=0;comp<NDCOMP;comp++) {
 			// br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa + qamunu*(3-3ikr-kr^2)
 			br = (6*kr2-15 + I*(15*kr-kr3))*qmunu[comp];
-			if(dmunu[comp]) br += 3 - 2*kr2 + I*(kr3-3*kr);
+			if (dmunu[comp]) br += 3 - 2*kr2 + I*(kr3-3*kr);
 			br = br*qa + (3-I*3*kr-kr2)*qamunu[comp];
 			// Gf1=expval*i*m*br*kd^2/12kr
 			Gf1=I*expval*m*br*kd2/(12*kr);

@@ -12,6 +12,8 @@
 ;mgn; ;m; ;g; ;n;
 # default for two-domain particles
 ;2mgn; ;2m; ;g; ;n;
+# default for three-domain particles
+;3mgn; ;3m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
 # for testing odd grids
@@ -279,6 +281,8 @@ all -shape chebyshev 0.3 5 ;mgn;
 all -h shape coated
 !RD_TRICKY -shape coated 0.5 ;2mgn;
 !RD_TRICKY -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
+all -h shape coated2
+!RD_TRICKY -shape coated2 0.7 0.4 ;3mgn;
 all -h shape cylinder
 all -shape cylinder 1 ;mgn;
 all -h shape egg
