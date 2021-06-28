@@ -86,7 +86,7 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
-	int n_par; // for besselGen
+	int n_par; // for besselM
 	const char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
@@ -193,14 +193,14 @@ void InitBeam(void)
 			return;
 		case B_BESSELASD:
 		case B_BESSELCS:
-		case B_BESSELGEN:
+		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
 		case B_BESSELTEC:
 		case B_BESSELTMC:
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
-			if (beamtype==B_BESSELGEN) {
+			if (beamtype==B_BESSELM) {
 				n_par = 8;
 				hvp[0] = beam_pars[0]; hvp[1] = beam_pars[1];
 				hvp[2] = beam_pars[2]; hvp[3] = beam_pars[3];
@@ -223,7 +223,7 @@ void InitBeam(void)
 					case B_BESSELCS:
 						tmp_str="circularly symmetric energy density)\n";
 						break;
-					case B_BESSELGEN:
+					case B_BESSELM:
 						tmp_str="generalized)\n";
 						break;
 					case B_BESSELLE:
@@ -545,7 +545,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_BESSELCS:
-		case B_BESSELGEN:
+		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
 		case B_BESSELTEC:
@@ -578,28 +578,28 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 				switch (beamtype) {
 					case B_BESSELCS:
-						p[0][0]=0.50; p[0][1]=0;		p[1][0]=0; p[1][1]=0;
+						p[0][0]=0.50; p[0][1]=0;	p[1][0]=0; p[1][1]=0;
 						p[2][0]=0; p[2][1]=0; 		p[3][0]=0.5; p[3][1]=0;
 						break;
-					case B_BESSELGEN:
-						p[0][0]=0.5; p[0][1]=0;		p[1][0]=0; p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 		p[3][0]=0.5; p[3][1]=0;
+					case B_BESSELM:
+						p[0][0]=hvp[0]; p[0][1]=hvp[1];	p[1][0]=hvp[2]; p[1][1]=hvp[3];
+						p[2][0]=hvp[4]; p[2][1]=hvp[5];	p[3][0]=hvp[6]; p[3][1]=hvp[7];
 						break;
 					case B_BESSELLE:
-						p[0][0]=0; p[0][1]=0;	p[1][0]=0; p[1][1]=0;
+						p[0][0]=0; p[0][1]=0;	p[1][0]=0; 	p[1][1]=0;
 						p[2][0]=0; p[2][1]=0; 	p[3][0]=1.; p[3][1]=0;
 						break;
 					case B_BESSELLM:
-						p[0][0]=0; p[0][1]=0;	p[1][0]=-1.; p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; p[3][1]=0;
+						p[0][0]=0; p[0][1]=0;	p[1][0]=-1.; 	p[1][1]=0;
+						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; 		p[3][1]=0;
 						break;
 					case B_BESSELTEC:
 						p[0][0]=0; p[0][1]=0; 	p[1][0]=1./sin(alpha0); p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; p[3][1]=1./tan(alpha0);
+						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; 				p[3][1]=1./tan(alpha0);
 						break;
 					case B_BESSELTMC:
-						p[0][0]=0; p[0][1]=0; 	p[1][0]=0; p[1][1]=1./tan(alpha0);
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=-1./sin(alpha0); p[3][1]=0;
+						p[0][0]=0; p[0][1]=0; 	p[1][0]=0; 					p[1][1]=1./tan(alpha0);
+						p[2][0]=0; p[2][1]=0; 	p[3][0]=-1./sin(alpha0);	p[3][1]=0;
 						break;
 					default: break;
 				}
