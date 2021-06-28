@@ -191,6 +191,7 @@ void InitBeam(void)
 				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
+		case B_BESSELASD:
 		case B_BESSELCS:
 		case B_BESSELGEN:
 		case B_BESSELLE:
@@ -216,6 +217,9 @@ void InitBeam(void)
 			// beam info
 			if (IFROOT) {
 				switch (beamtype) {
+					case B_BESSELASD:
+						tmp_str="angular spectrum decomposition)\n";
+						break;
 					case B_BESSELCS:
 						tmp_str="circularly symmetric energy density)\n";
 						break;
@@ -293,15 +297,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
-	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double ro,ro2,ro4;
-	double x,y,z,x2_s,xy_s,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2];
+	doublecomplex v1[3],v2[3],v3[3],gt[6],fint[3],sum[3];
+	double ro,ro2,ro4,r;
+	double x,y,z,x2_s,xy_s,tht,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2],db;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
 	double jn2[2]; // for Bessel functions on n and n+1 orders
-	int n1;
+	int n1,it,N;
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -502,6 +506,42 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					cvAdd2Self(v1,v2,v3);
 					cvMultScal_cmplx(ctemp,v1,b+j);
 				}
+			}
+			return;
+		case B_BESSELASD:
+			for (i=0;i<local_nvoid_Ndip;i++) {
+				j=3*i;
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				x=DotProd(r1,ex);
+				y=DotProd(r1,ey);
+				z=DotProd(r1,prop);
+				r=sqrt(x*x+y*y+z*z);	// radial distance in a spherical coordinate system
+				tht=atan2(sqrt(x*x+y*y),z);	// polar angle
+				phi=atan2(y,x);			// azimuthal angle
+
+				// Integration
+				N=10;
+				db=2.*PI/N;
+
+				Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,0);
+				sum[0] = fint[0];	sum[1] = fint[1];	sum[2] = fint[2];
+
+				for (it=1;it<N;it++) {
+					Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,it*db);
+					sum[0] += fint[0];
+					sum[1] += fint[1];
+					sum[2] += fint[2];
+				}
+
+				t3=sum[0]/N;	t4=sum[1]/N;	t5=sum[2]/N;
+
+				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
+
+				cvMultScal_RVec(t3,ex,v1);
+				cvMultScal_RVec(t4,ey,v2);
+				cvMultScal_RVec(t5,prop,v3);
+				cvAdd2Self(v1,v2,v3);
+				cvMultScal_cmplx(1.,v1,b+j);
 			}
 			return;
 		case B_BESSELCS:
