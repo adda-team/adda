@@ -73,7 +73,7 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 static int n0;                 // Bessel beam order
 static double alpha0;          // half-cone angle
-static double hvp[8];		   // Hertz vector potentials' components
+static double hvp[8];		   // Matrix M components
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -219,6 +219,7 @@ void InitBeam(void)
 				switch (beamtype) {
 					case B_BESSELCS:
 						tmp_str="circularly symmetric energy density)\n";
+						break;
 					case B_BESSELCSp:
 						tmp_str="circularly symmetric energy density (alternative))\n";
 						break;
@@ -298,13 +299,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
 	double ro,ro2,ro4;
-	double x,y,z,x2_s,xy_s,phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],p[4][2];
+	double x,y,z,x2_s,xy_s;
 	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
-	double jn2[2]; // for Bessel functions on n and n+1 orders
-	int n1;
+	double fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
+	int n1; // for Bessel beams
+	doublecomplex M[4]; // matrix M for Bessel beams
+	double phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],K,Kt,Kz; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -514,8 +517,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		case B_BESSELLM:
 		case B_BESSELTEC:
 		case B_BESSELTMC:
-			t1=WaveNum*sin(alpha0);
-			t2=WaveNum*cos(alpha0);
+			K =fabs(WaveNum);
+			Kt=fabs(WaveNum)*sin(alpha0);
+			Kz=fabs(WaveNum)*cos(alpha0);
 
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
@@ -527,130 +531,80 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				ro=sqrt(ro2);	// radial distance in a cylindrical coordinate system
 				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
 				// common factor
-				ctemp=cpow(I,n0)*cexp(I*n0*phi)*cexp(I*t2*z)/WaveNum/WaveNum;
-				arg=ro*t1;
+				ctemp=cexp(I*n0*phi)*cexp(I*Kz*z)/K/K;
+				arg=kt*ro;
 				if (arg<ROUND_ERR){
-					if (n0 == 0) jn2[0]=1.0;
-					else jn2[0]=0.0;
-					jn2[1]=0.0;
+					if (n0 == 0) fn[2]=1.0;
+					else fn[2]=0.0;
+					fn[0]=0.0; fn[1]=0.0; fn[3]=0.0; fn[4]=0.0;
 				}
 				else {
-					n1=n0+1;
+					n1=n0+2;
 					bjndd_(&n1, &arg, jn1, td1, td2);
-					jn2[0]=jn1[n0];
-					jn2[1]=jn1[n0+1];
+					if (n0 == 0) {
+						fn[0] = jn1[2]*cexp(-2*I*phi);
+						fn[1] =-jn1[1]*cexp(-I*phi);
+						fn[2] = jn1[0];
+						fn[3] = jn1[1]*cexp(I*phi);
+						fn[4] = jn1[2]*cexp(2*I*phi);
+					}
+					else if (n0 == 1) {
+						fn[0] =-jn1[1]*cexp(-2*I*phi);
+						fn[1] = jn1[0]*cexp(-I*phi);
+						fn[2] = jn1[1];
+						fn[3] = jn1[2]*cexp(I*phi);
+						fn[4] = jn1[3]*cexp(2*I*phi);
+					}
+					else {
+						fn[0] = jn1[n0-2]*cexp(-2*I*phi);
+						fn[1] = jn1[n0-1]*cexp(-I*phi);
+						fn[2] = jn1[n0];
+						fn[3] = jn1[n0+1]*cexp(I*phi);
+						fn[4] = jn1[n0+2]*cexp(2*I*phi);
+					}
 				}
-				switch (beamtype) {
+				switch (beamtype) { // definition of matrix M elements ((Mex,Mey),(Mmx,Mmy))
 					case B_BESSELCS:
-						p[0][0]=0.5;	p[0][1]=0;		p[1][0]=0;		p[1][1]=0;
-						p[2][0]=0;		p[2][1]=0; 		p[3][0]=0.5;	p[3][1]=0;
+						M[0]=0.5;	M[1]=0;
+						M[2]=0;		M[3]=0.5;
 						break;
 					case B_BESSELCSp:
-						p[0][0]=0.5;	p[0][1]=0;		p[1][0]=0;		p[1][1]=0;
-						p[2][0]=0;		p[2][1]=0; 		p[3][0]=-0.5;	p[3][1]=0;
+						M[0]=0.5;	M[1]=0;
+						M[2]=0;		M[3]=-0.5;
 						break;
 					case B_BESSELM:
-						p[0][0]=hvp[0]; p[0][1]=hvp[1];	p[1][0]=hvp[2]; p[1][1]=hvp[3];
-						p[2][0]=hvp[4]; p[2][1]=hvp[5];	p[3][0]=hvp[6]; p[3][1]=hvp[7];
+						M[0]=hvp[0]+I*hvp[1];	M[1]=hvp[2]+I*hvp[3];
+						M[2]=hvp[4]+I*hvp[5];	M[3]=hvp[6]+I*hvp[7];
 						break;
 					case B_BESSELLE:
-						p[0][0]=0; p[0][1]=0;	p[1][0]=0; 	p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=1.; p[3][1]=0;
+						M[0]=0;		M[1]=0;
+						M[2]=0;		M[3]=1;
 						break;
 					case B_BESSELLM:
-						p[0][0]=0; p[0][1]=0;	p[1][0]=-1.; 	p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; 		p[3][1]=0;
+						M[0]=0;		M[1]=1;
+						M[2]=0;		M[3]=0;
 						break;
 					case B_BESSELTEC:
-						p[0][0]=0; p[0][1]=0; 	p[1][0]=1./sin(alpha0); p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=0; 				p[3][1]=1./tan(alpha0);
+						M[0]=-K/Kt;		M[1]=0;
+						M[2]=0;			M[3]=Kz/Kt;
 						break;
 					case B_BESSELTMC:
-						p[0][0]=0; p[0][1]=0; 	p[1][0]=0; 					p[1][1]=1./tan(alpha0);
-						p[2][0]=0; p[2][1]=0; 	p[3][0]=-1./sin(alpha0);	p[3][1]=0;
+						M[0]=0; 		M[1]=Kz/Kt;
+						M[2]=K/Kt;		M[2]=0;
 						break;
 					default: break;
 				}
-				t3 = 0; t4 = 0; t5 = 0;
-				if (ro<=ROUND_ERR) {
-					if ((fabs(p[0][0])>=ROUND_ERR) || (fabs(p[0][1])>=ROUND_ERR)) {		//Pex - LMy
-						t3 += (p[0][0]+I*p[0][1])*0.25*(
-								jn2[0]*(cpow(WaveNum,2)*(3+cos(2*alpha0)-2*cos(2*phi)*pow(sin(alpha0),2))));
-						t4 += (p[0][0]+I*p[0][1])*(
-								jn2[0]/4.*(sin(2*phi)*(-2*cpow(WaveNum,2)*pow(sin(alpha0),2))));
-						t5 += (p[0][0]+I*p[0][1])*t2*I*(
-								 n0*cexp(-I*phi));
-					}
-					if ((fabs(p[1][0])>=ROUND_ERR) || (fabs(p[1][1])>=ROUND_ERR)) {		//Pey - LMx
-						t3 += -(p[1][0]+I*p[1][1])*(
-								jn2[0]*0.5*sin(2*phi)*cpow(WaveNum,2)*pow(sin(alpha0),2));
-						t4 += -(p[1][0]+I*p[1][1])*( -
-								jn2[0]*(pow(cos(phi),2)*(cpow(WaveNum,2)) +
-									pow(sin(phi),2)*cpow(WaveNum,2)*pow(cos(alpha0),2)));
-						t5 += -(p[1][0]+I*p[1][1])*t2*(
-								n0*cexp(-I*phi));
-					}
-					if ((fabs(p[2][0])>=ROUND_ERR) || (fabs(p[2][1])>=ROUND_ERR)) { 	//Pmx - LEy
-						t3 += 0;
-						t4 += -(p[2][0]+I*p[2][1])*jn2[0]*t2*WaveNum;
-						t5 += -(p[2][0]+I*p[2][1])*WaveNum*(
-								-jn2[1]*I*t1*sin(phi) -
-								n0*cexp(-I*phi));
-					}
-					if ((fabs(p[3][0])>=ROUND_ERR) || (fabs(p[3][1])>=ROUND_ERR)) {		//Pmy - LEx
-						t3 += (p[3][0]+I*p[3][1])*jn2[0]*t2*WaveNum;
-						t4 += 0;
-						t5 += (p[3][0]+I*p[3][1])*WaveNum*I*(
-								-jn2[1]*t1*cos(phi) +
-								n0*cexp(-I*phi));
-					}
-				}
-				else {
-					if ((fabs(p[0][0])>=ROUND_ERR) || (fabs(p[0][1])>=ROUND_ERR)) {		//Pex - LMy
-						t3 += (p[0][0]+I*p[0][1])*0.25*(
-								jn2[1]*4.*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) +
-								jn2[0]*(4.*(n0-1)*n0/ro2*cexp(-2*I*phi) +
-										cpow(WaveNum,2)*(3+cos(2*alpha0)-2*cos(2*phi)*pow(sin(alpha0),2))));
-						t4 += (p[0][0]+I*p[0][1])*(
-								jn2[1]*t1/ro*(-I*n0*cos(2*phi)+sin(2*phi)) +
-								jn2[0]/4./ro2*(4.*I*(n0-1)*n0*cos(2*phi) + sin(2*phi)*(4*(n0-1)*n0 -
-									2*cpow(WaveNum*ro,2)*pow(sin(alpha0),2))));
-						t5 += (p[0][0]+I*p[0][1])*t2*I*(
-								-jn2[1]*t1*cos(phi) +
-								 jn2[0]/ro*n0*cexp(-I*phi));
-					}
-					if ((fabs(p[1][0])>=ROUND_ERR) || (fabs(p[1][1])>=ROUND_ERR)) {		//Pey - LMx
-						t3 += -(p[1][0]+I*p[1][1])*(
-								jn2[1]*t1/ro*(I*n0*cos(2*phi)-sin(2*phi)) +
-								jn2[0]/ro2*(-I*(n0-1)*n0*pow(cos(phi),2)+0.5*sin(2*phi)*(-2*(n0-1)*n0 +
-								cpow(WaveNum*ro,2)*pow(sin(alpha0),2)) + I*(n0-1)*n0*pow(sin(phi),2)));
-						t4 += -(p[1][0]+I*p[1][1])*(
-								jn2[1]*t1/ro*(cos(2*phi)+I*n0*sin(2*phi)) -
-								jn2[0]*(pow(cos(phi),2)*(-(n0-1)*n0/ro2 + cpow(WaveNum,2)) +
-									pow(sin(phi),2)*((n0-1)*n0/ro2 + cpow(WaveNum,2)*pow(cos(alpha0),2)) +
-									I*(n0-1)*n0/ro2*sin(2*phi)));
-						t5 += -(p[1][0]+I*p[1][1])*t2*(
-								jn2[1]*I*t1*sin(phi) +
-								jn2[0]/ro*n0*cexp(-I*phi));
-					}
-					if ((fabs(p[2][0])>=ROUND_ERR) || (fabs(p[2][1])>=ROUND_ERR)) { 	//Pmx - LEy
-						t3 += 0;
-						t4 += -(p[2][0]+I*p[2][1])*jn2[0]*t2*WaveNum;
-						t5 += -(p[2][0]+I*p[2][1])*WaveNum*(
-								-jn2[1]*I*t1*sin(phi) -
-								 jn2[0]*cexp(-I*phi)/ro*n0);
-					}
-					if ((fabs(p[3][0])>=ROUND_ERR) || (fabs(p[3][1])>=ROUND_ERR)) {		//Pmy - LEx
-						t3 += (p[3][0]+I*p[3][1])*jn2[0]*t2*WaveNum;
-						t4 += 0;
-						t5 += (p[3][0]+I*p[3][1])*WaveNum*I*(
-								-jn2[1]*t1*cos(phi) +
-								 jn2[0]*cexp(-I*phi)/ro*n0);
-					}
-				}
-				cvMultScal_RVec(t3,ex,v1);
-				cvMultScal_RVec(t4,ey,v2);
-				cvMultScal_RVec(t5,prop,v3);
+
+				t1 = (((K*K+Kz*Kz)/2.0*M[0] +  K*Kz*M[3])*fn[2] +
+						  Kt*Kt/4.0*((M[0]+I*M[1])*fn[0] + (M[0]-I*M[1])*fn[4]));	// Ex
+				t2 = (((K*K+Kz*Kz)/2.0*M[1] -  K*Kz*M[2])*fn[2] +
+						I*Kt*Kt/4.0*((M[0]+I*M[1])*fn[0] - (M[0]-I*M[1])*fn[4]));	// Ey
+				t3 = ((I*Kz*(M[0]+I*M[1]) + K*(M[2]+I*M[3]))*fn[1] -
+					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2;			// Ez
+
+				cvMultScal_RVec(t1,ex,v1);
+				cvMultScal_RVec(t2,ey,v2);
+				cvMultScal_RVec(t3,prop,v3);
 				cvAdd2Self(v1,v2,v3);
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
