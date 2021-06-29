@@ -192,6 +192,7 @@ void InitBeam(void)
 			}
 			return;
 		case B_BESSELCS:
+		case B_BESSELCSp:
 		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
@@ -218,6 +219,8 @@ void InitBeam(void)
 				switch (beamtype) {
 					case B_BESSELCS:
 						tmp_str="circularly symmetric energy density)\n";
+					case B_BESSELCSp:
+						tmp_str="circularly symmetric energy density (alternative))\n";
 						break;
 					case B_BESSELM:
 						tmp_str="generalized)\n";
@@ -505,6 +508,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_BESSELCS:
+		case B_BESSELCSp:
 		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
@@ -538,8 +542,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 				switch (beamtype) {
 					case B_BESSELCS:
-						p[0][0]=0.50; p[0][1]=0;	p[1][0]=0; p[1][1]=0;
-						p[2][0]=0; p[2][1]=0; 		p[3][0]=0.5; p[3][1]=0;
+						p[0][0]=0.5;	p[0][1]=0;		p[1][0]=0;		p[1][1]=0;
+						p[2][0]=0;		p[2][1]=0; 		p[3][0]=0.5;	p[3][1]=0;
+						break;
+					case B_BESSELCSp:
+						p[0][0]=0.5;	p[0][1]=0;		p[1][0]=0;		p[1][1]=0;
+						p[2][0]=0;		p[2][1]=0; 		p[3][0]=-0.5;	p[3][1]=0;
 						break;
 					case B_BESSELM:
 						p[0][0]=hvp[0]; p[0][1]=hvp[1];	p[1][0]=hvp[2]; p[1][1]=hvp[3];

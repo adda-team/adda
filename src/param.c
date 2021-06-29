@@ -234,6 +234,10 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELCS},
+	{"besselCSp","<order> <angle> [<x> <y> <z>]","Alternative Bessel beam with circularly symmetric energy density. The half-cone angle "
+		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
+		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
+		UNDEF,B_BESSELCSp},
 	{"besselM","<ReMex> <ImMex> <ReMey> <ImPey> <ReMmx> <ImMmx> <ReMmy> <ImMmy> \n\t<order> <angle> [<x> <y> <z>]",
 		"Generalized Bessel beam. The half-cone angle is measured from the z axis. The half-cone angle and beam order "
 		"are obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
@@ -1025,6 +1029,7 @@ PARSE_FUNC(beam)
 			case B_DAVIS3:
 			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
 			case B_BESSELCS: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
+			case B_BESSELCSp: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELM: if (Narg!=10 && Narg!=13) NargError(Narg,"10 or 13"); break;
 			case B_BESSELLE: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELLM: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
