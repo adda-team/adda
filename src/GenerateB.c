@@ -309,9 +309,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	double ey[3];
 	double r1[3];
 	double fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
-	int n1; // for Bessel beams
-	doublecomplex M[4]; // matrix M for Bessel beams
-	double phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],K,Kt,Kz; // for Bessel beams
+	int n1,N,it; // for Bessel beams
+	doublecomplex M[4],sum[3],fint[3]; // matrix M for Bessel beams
+	double phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],K,Kt,Kz,r,tht,db; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -521,9 +521,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				x=DotProd(r1,ex);
 				y=DotProd(r1,ey);
 				z=DotProd(r1,prop);
-				r=sqrt(x*x+y*y+z*z);	// radial distance in a spherical coordinate system
+				r=sqrt(x*x+y*y+z*z);		// radial distance in a spherical coordinate system
 				tht=atan2(sqrt(x*x+y*y),z);	// polar angle
-				phi=atan2(y,x);			// azimuthal angle
+				phi=atan2(y,x);				// azimuthal angle
 
 				// Integration
 				N=10;
@@ -539,13 +539,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					sum[2] += fint[2];
 				}
 
-				t3=sum[0]/N;	t4=sum[1]/N;	t5=sum[2]/N;
+				t1=sum[0]/N;	t2=sum[1]/N;	t3=sum[2]/N;
 
-				///printf("\n i: %d \t %g\t %g\t %g\t %g\t %g\t %g",i,creal(t3),cimag(t3),creal(t4),cimag(t4),creal(t5),cimag(t5));
-
-				cvMultScal_RVec(t3,ex,v1);
-				cvMultScal_RVec(t4,ey,v2);
-				cvMultScal_RVec(t5,prop,v3);
+				cvMultScal_RVec(t1,ex,v1);
+				cvMultScal_RVec(t2,ey,v2);
+				cvMultScal_RVec(t3,prop,v3);
 				cvAdd2Self(v1,v2,v3);
 				cvMultScal_cmplx(1.,v1,b+j);
 			}
@@ -572,7 +570,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
 				// common factor
 				ctemp=cexp(I*n0*phi)*cexp(I*Kz*z)/K/K;
-				arg=kt*ro;
+				arg=Kt*ro;
 				if (arg<ROUND_ERR){
 					if (n0 == 0) fn[2]=1.0;
 					else fn[2]=0.0;
@@ -584,24 +582,18 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					if (n0 == 0) {
 						fn[0] = jn1[2]*cexp(-2*I*phi);
 						fn[1] =-jn1[1]*cexp(-I*phi);
-						fn[2] = jn1[0];
-						fn[3] = jn1[1]*cexp(I*phi);
-						fn[4] = jn1[2]*cexp(2*I*phi);
 					}
 					else if (n0 == 1) {
 						fn[0] =-jn1[1]*cexp(-2*I*phi);
 						fn[1] = jn1[0]*cexp(-I*phi);
-						fn[2] = jn1[1];
-						fn[3] = jn1[2]*cexp(I*phi);
-						fn[4] = jn1[3]*cexp(2*I*phi);
 					}
 					else {
 						fn[0] = jn1[n0-2]*cexp(-2*I*phi);
 						fn[1] = jn1[n0-1]*cexp(-I*phi);
-						fn[2] = jn1[n0];
-						fn[3] = jn1[n0+1]*cexp(I*phi);
-						fn[4] = jn1[n0+2]*cexp(2*I*phi);
 					}
+					fn[2] = jn1[0];
+					fn[3] = jn1[1]*cexp(I*phi);
+					fn[4] = jn1[2]*cexp(2*I*phi);
 				}
 				switch (beamtype) { // definition of matrix M elements ((Mex,Mey),(Mmx,Mmy))
 					case B_BESSELCS:
