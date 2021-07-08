@@ -308,10 +308,10 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
-	double fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
+	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
 	int n1,N,it; // for Bessel beams
 	doublecomplex M[4],sum[3],fint[3]; // matrix M for Bessel beams
-	double phi,arg,td1[n0+2],td2[n0+2],jn1[n0+2],K,Kt,Kz,r,tht,db; // for Bessel beams
+	double phi,arg,td1[n0+3],td2[n0+3],jn1[n0+3],K,Kt,Kz,r,tht,db; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -591,9 +591,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						fn[0] = jn1[n0-2]*cexp(-2*I*phi);
 						fn[1] = jn1[n0-1]*cexp(-I*phi);
 					}
-					fn[2] = jn1[0];
-					fn[3] = jn1[1]*cexp(I*phi);
-					fn[4] = jn1[2]*cexp(2*I*phi);
+					fn[2] = jn1[n0];
+					fn[3] = jn1[n0+1]*cexp(I*phi);
+					fn[4] = jn1[n0+2]*cexp(2*I*phi);
 				}
 				switch (beamtype) { // definition of matrix M elements ((Mex,Mey),(Mmx,Mmy))
 					case B_BESSELCS:
@@ -632,7 +632,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				t2 = (((K*K+Kz*Kz)/2.0*M[1] -  K*Kz*M[2])*fn[2] +
 						I*Kt*Kt/4.0*((M[0]+I*M[1])*fn[0] - (M[0]-I*M[1])*fn[4]));	// Ey
 				t3 = ((I*Kz*(M[0]+I*M[1]) + K*(M[2]+I*M[3]))*fn[1] -
-					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2;			// Ez
+					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2.0;			// Ez
 
 				cvMultScal_RVec(t1,ex,v1);
 				cvMultScal_RVec(t2,ey,v2);
