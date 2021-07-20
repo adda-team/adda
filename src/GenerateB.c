@@ -197,21 +197,22 @@ void InitBeam(void)
 		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
-		case B_BESSELTEC:
-		case B_BESSELTMC:
+		case B_BESSELTEL:
+		case B_BESSELTML:
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
+			n0=round(beam_pars[0]);
+			alpha0=beam_pars[1];
+			TestPositive(n0,"Bessel beam order");
 			if (beamtype==B_BESSELM) {
-				n_par = 8;
-				hvp[0] = beam_pars[0]; hvp[1] = beam_pars[1];
-				hvp[2] = beam_pars[2]; hvp[3] = beam_pars[3];
-				hvp[4] = beam_pars[4]; hvp[5] = beam_pars[5];
-				hvp[6] = beam_pars[6]; hvp[7] = beam_pars[7];
+				n_par=8;
+				hvp[0]=beam_pars[2]; hvp[1]=beam_pars[3];
+				hvp[2]=beam_pars[4]; hvp[3]=beam_pars[5];
+				hvp[4]=beam_pars[6]; hvp[5]=beam_pars[7];
+				hvp[6]=beam_pars[8]; hvp[7]=beam_pars[9];
 			}
-			else n_par = 0;
-			n0=round(beam_pars[0 + n_par]);
-			alpha0 = beam_pars[1 + n_par];
-			vCopy(beam_pars+2 + n_par,beam_center_0);
+			else n_par=0;
+			vCopy(beam_pars+2+n_par,beam_center_0);
 			beam_asym=(beam_Npars==(5 + n_par) && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
 			symR=symX=symY=symZ=FALSE;
 			if (!beam_asym) vInit(beam_center);
@@ -236,10 +237,10 @@ void InitBeam(void)
 					case B_BESSELLM:
 						tmp_str="linear magnetic field)\n";
 						break;
-					case B_BESSELTEC:
+					case B_BESSELTEL:
 						tmp_str="forming the TE Bessel beam)\n";
 						break;
-					case B_BESSELTMC:
+					case B_BESSELTML:
 						tmp_str="forming the TM Bessel beam)\n";
 						break;
 					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
@@ -553,8 +554,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		case B_BESSELM:
 		case B_BESSELLE:
 		case B_BESSELLM:
-		case B_BESSELTEC:
-		case B_BESSELTMC:
+		case B_BESSELTEL:
+		case B_BESSELTML:
 			K =fabs(WaveNum);
 			Kt=fabs(WaveNum)*sin(alpha0);
 			Kz=fabs(WaveNum)*cos(alpha0);
@@ -605,8 +606,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						M[2]=0;		M[3]=-0.5;
 						break;
 					case B_BESSELM:
-						M[0]=hvp[0]+I*hvp[1];	M[1]=hvp[2]+I*hvp[3];
-						M[2]=hvp[4]+I*hvp[5];	M[3]=hvp[6]+I*hvp[7];
+						M[0]=hvp[0]+I*hvp[4];	M[1]=hvp[1]+I*hvp[5];
+						M[2]=hvp[2]+I*hvp[6];	M[3]=hvp[3]+I*hvp[7];
 						break;
 					case B_BESSELLE:
 						M[0]=0;		M[1]=0;
@@ -616,11 +617,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						M[0]=0;		M[1]=1;
 						M[2]=0;		M[3]=0;
 						break;
-					case B_BESSELTEC:
+					case B_BESSELTEL:
 						M[0]=-K/Kt;		M[1]=0;
 						M[2]=0;			M[3]=Kz/Kt;
 						break;
-					case B_BESSELTMC:
+					case B_BESSELTML:
 						M[0]=0; 		M[1]=Kz/Kt;
 						M[2]=K/Kt;		M[2]=0;
 						break;

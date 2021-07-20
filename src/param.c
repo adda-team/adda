@@ -242,7 +242,7 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELCSp},
-	{"besselM","<ReMex> <ImMex> <ReMey> <ImPey> <ReMmx> <ImMmx> <ReMmy> <ImMmy> \n\t<order> <angle> [<x> <y> <z>]",
+	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy> <x> <y> <z>]",
 		"Generalized Bessel beam. The half-cone angle is measured from the z axis. The half-cone angle and beam order "
 		"are obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). Coordinate arguments are in um.",
@@ -255,14 +255,14 @@ static const struct subopt_struct beam_opt[]={
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
 		UNDEF,B_BESSELLM},
-	{"besselTEC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TE Bessel beam. The half-cone angle "
+	{"besselTEL","<order> <angle> [<x> <y> <z>]","Bessel beam forming TE Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELTEC},
-	{"besselTMC","<order> <angle> [<x> <y> <z>]","Bessel beam forming TM Bessel beam. The half-cone angle "
+		UNDEF,B_BESSELTEL},
+	{"besselTML","<order> <angle> [<x> <y> <z>]","Bessel beam forming TM Bessel beam. The half-cone angle "
 		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
 		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELTMC},
+		UNDEF,B_BESSELTML},
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
@@ -1035,11 +1035,11 @@ PARSE_FUNC(beam)
 			case B_BESSELASD: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELCS: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELCSp: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELM: if (Narg!=10 && Narg!=13) NargError(Narg,"10 or 13"); break;
+			case B_BESSELM: if (Narg!=6 && Narg!=10 && Narg!=13) NargError(Narg,"6, 10, or 13"); break;
 			case B_BESSELLE: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			case B_BESSELLM: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELTEC: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELTMC: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
+			case B_BESSELTEL: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
+			case B_BESSELTML: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM

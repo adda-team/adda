@@ -107,7 +107,7 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 // sizes of some arrays
 #define MAX_NMAT         15   // maximum number of different refractive indices (<256)
 #define MAX_N_SH_PARMS   25   // maximum number of shape parameters
-#define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
+#define MAX_N_BEAM_PARMS 13   // maximum number of beam parameters
 
 // sizes of filenames and other strings
 /* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to override this limit. On
@@ -291,8 +291,8 @@ enum beam { // beam types
 	B_BESSELM, // Generalized Bessel beam
 	B_BESSELLE, // Bessel beam with linearly polarized electric field
 	B_BESSELLM, // Bessel beam with linearly polarized magnetic field
-	B_BESSELTEC, // Bessel beam forming TE Bessel beam 
-	B_BESSELTMC, // Bessel beam forming TM Bessel beam 
+	B_BESSELTEL, // Bessel beam forming TE Bessel beam
+	B_BESSELTML, // Bessel beam forming TM Bessel beam
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_DIPOLE,  // field of a point dipole
 	B_LMINUS,  // 1st order description of the Gaussian beam
