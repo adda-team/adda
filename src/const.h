@@ -181,7 +181,8 @@ enum sh { // shape types
 	SH_READ,         // read from file
 	//SH_SDISK_ROT,  // disc cut of a sphere -- not operational
 	SH_SPHERE,       // sphere
-	SH_SPHEREBOX     // sphere in a box
+	SH_SPHEREBOX,     // sphere in a box
+	SH_SUPERELLIPSOID // superellipsoid
 	/* TO ADD NEW SHAPE
 	 * add an identifier starting with 'SH_' and a descriptive comment to this list in alphabetical order.
 	 */
