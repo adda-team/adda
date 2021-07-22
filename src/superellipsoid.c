@@ -1,4 +1,4 @@
-/* Routines for determining parameters of the chebyshev particles
+/* Routines for determining volume ratio of superellipsoids.
  *
  * Copyright (C) ADDA contributors
  * This file is part of ADDA.
@@ -44,10 +44,11 @@ static const double g = 4.7421875000000;
 
 //======================================================================================================================
 
-static double Gamma(double x) {
-  // Calculate the gamma function.
-  // Argument must be > 0, but no check performed here.
-  // Algorithm used here works on the complex plane, but only need it on the real line.
+static double Gamma(double x)
+// Calculate the gamma function.
+// Argument must be > 0, but no check performed here.
+// Algorithm used here works on the complex plane, but only need it on the real line.
+{
   int i;
   const int N = 14; // Number of terms in Lanczos sum
   double t, result;
@@ -79,8 +80,44 @@ static double Gamma(double x) {
   }
 }
 
+//======================================================================================================================
 
-static double Beta(double x, double y) {
-  /* Calculate the beta function */
+static double Beta(double x,double y)
+// Calculate the beta function
+{
   return Gamma(x) * Gamma(y) / Gamma(x + y);
+}
+
+//======================================================================================================================
+
+double SuperellipsoidVolumeRatio(double aspY,double aspZ,double n,double e)
+// Calculate volume ratio for a superellipsoid.
+// Volume analytically given by Wriedt (2002) eq. 4, derived in Ref. 40.
+// Note that the relevant box volume is 8a^3. So, the ratio is
+// ratio = (1/4) (b/a) (c/a) n B(n/2 +1, n) e B(e/2, e/2).
+{
+  double nterm,eterm;
+
+  // lim_{n -> 0} n B(n/2 + 1, n) = 1, and lim_{e -> 0} e B(e/2, e/2) = 4.
+  // But direct calculation doesn't work if n and e are too small.
+  // Below a threshold, set them to limiting values.
+  // The threshold is lower than what is probably practical for DDA calculations
+  // since we use finite-size dipoles.
+
+  const double veps = 1e-5;
+  if (n<veps) {
+    nterm = 1;
+  }
+  else {
+    nterm = n*Beta(n/2 + 1,n);
+  }
+
+  if (e<veps) {
+    eterm = 4;
+  }
+  else {
+    eterm = e*Beta(e/2,e/2);
+  }
+
+  return 0.25 * aspY * aspZ * nterm * eterm;
 }

@@ -306,7 +306,7 @@ static const struct subopt_struct shape_opt[]={
 	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",1,SH_SPHEREBOX},
 	{"superellipsoid","<b/a> <c/a> <e> <n>","Homogeneous superellipsoid with semimajor axes a, b, c. "
    "e and n give the roundedness in x-y and z directions, respectively. The set of points defining a"
-   "superellipsoid is given by ( (x/a)^(2/e) + (y/b)^(2/e) )^(e/n) + (z/c)^(2/n) <= 1.",4,SH_ELLIPSOID},
+   "superellipsoid is given by ( (x/a)^(2/e) + (y/b)^(2/e) )^(e/n) + (z/c)^(2/n) <= 1.",4,SH_SUPERELLIPSOID},
 #endif // !SPARSE
 	/* TO ADD NEW SHAPE
 	 * add a row to this list in alphabetical order. It contains: shape name (used in command line), usage string, help
