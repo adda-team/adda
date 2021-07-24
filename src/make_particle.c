@@ -107,7 +107,7 @@ static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circ
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
-static double se_e, se_n; // exponent parameters for superellipsoid
+static double se_e,se_n; // exponent parameters for superellipsoid
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo,contCurZ;
@@ -1829,9 +1829,7 @@ void InitShape(void)
 
 		 // Has reflection symmetry across all 3 axes, but has
 		 // 90 degree rotation symmetry about z only if a = b.
-		 if (aspectY!=1) {
-			 symR=false;
-	   }
+		 if (aspectY!=1) symR=false;
 
 		 if (IFROOT) {
 			 sh_form_str1="superellipsoid; size along x-axis:";
@@ -2258,19 +2256,15 @@ void MakeParticle(void)
 					oneOverE=1/se_e;
 					// the inside/outside function
 					tmp1=pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE);
-					if (tmp1<=0.25 && fabs(zr)<=haspZ){
-						mat=0;
-					}
+					if (tmp1<=0.25 && fabs(zr)<=haspZ) mat=0;
 				}
 				else if (se_n>0 && se_e==0){
 				  // Cross sections along z are rectangles (superellipse with e=0)
 					// but with a and b scaled according to z.
 					oneOverN=1/se_n;
 					// the scale factor
-					tmp1=pow(1 - pow(4*invsqZ*zr*zr,oneOverN), 0.5*se_n);
-					if (fabs(xr)<=0.5*tmp1 && fabs(yr)<=haspY*tmp1 && fabs(zr)<=haspZ) {
-						mat=0;
-					}
+					tmp1=pow(1 - pow(4*invsqZ*zr*zr,oneOverN),0.5*se_n);
+					if (fabs(xr)<=0.5*tmp1 && fabs(yr)<=haspY*tmp1 && fabs(zr)<=haspZ) mat=0;
 				}
 				else {
 					// The usual case with n, e > 0.
@@ -2282,9 +2276,7 @@ void MakeParticle(void)
 					tmp1=pow(pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE),
 									 eOverN);
 					tmp2=pow(invsqZ*zr*zr,oneOverN);
-					if (pow(4,oneOverN) * (tmp1 + tmp2) <= 1) {
-						mat=0;
-					}
+					if (pow(4,oneOverN) * (tmp1+tmp2) <= 1) mat=0;
 				}
 				break;
 		}

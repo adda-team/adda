@@ -71,12 +71,12 @@ static double Gamma(double x)
     result = coeffs[0];
 
     for (i = 1; i <= N; i++){
-      result += coeffs[i] / (x - 1 + i);
+      result += coeffs[i]/(x-1+i);
     }
 
-    t = x + g - 0.5;
+    t = x+g-0.5;
 
-    return sqrt(TWO_PI) * pow(t, x - 0.5) * exp(-t) * result;
+    return sqrt(TWO_PI) * pow(t,x-0.5) * exp(-t) * result;
   }
 }
 
@@ -85,7 +85,7 @@ static double Gamma(double x)
 static double Beta(double x,double y)
 // Calculate the beta function
 {
-  return Gamma(x) * Gamma(y) / Gamma(x + y);
+  return Gamma(x)*Gamma(y)/Gamma(x+y);
 }
 
 //======================================================================================================================
@@ -105,19 +105,11 @@ double SuperellipsoidVolumeRatio(double aspY,double aspZ,double n,double e)
   // since we use finite-size dipoles.
 
   const double veps = 1e-5;
-  if (n<veps) {
-    nterm = 1;
-  }
-  else {
-    nterm = n*Beta(n/2 + 1,n);
-  }
+  if (n<veps) nterm = 1;
+  else nterm = n*Beta(n/2+1,n);
 
-  if (e<veps) {
-    eterm = 4;
-  }
-  else {
-    eterm = e*Beta(e/2,e/2);
-  }
+  if (e<veps) eterm = 4;
+  else eterm = e*Beta(e/2,e/2);
 
   return 0.25 * aspY * aspZ * nterm * eterm;
 }
