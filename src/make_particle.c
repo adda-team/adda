@@ -1611,6 +1611,7 @@ void InitShape(void)
 			}
 			hdratio=diskratio/2;
 			volume_ratio=PI_OVER_FOUR*diskratio;
+			printf("%f\n",volume_ratio);
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1841,11 +1842,14 @@ void InitShape(void)
 		 yx_ratio=aspectY;
 		 zx_ratio=aspectZ;
 		 Nmat_need=1;
-		 volume_ratio=SuperellipsoidVolumeRatio(aspectY,aspectZ,se_e,se_n);
+		 volume_ratio=SuperellipsoidVolumeRatio(aspectY,aspectZ,se_n,se_e);
 
 		 // set inverse squares of aspect ratios
 		 invsqY=1/(aspectY*aspectY);
 		 invsqZ=1/(aspectZ*aspectZ);
+		 // set half-aspect ratios (used for edge cases with e or n = 0)
+		 haspY=aspectY/2;
+		 haspZ=aspectZ/2;
 		 break;
 	 }
 #endif // !SPARSE
@@ -2243,16 +2247,44 @@ void MakeParticle(void)
 				else if (fabs(yr)<=0.5 && fabs(zr)<=0.5) mat=0;
 				break;
 			case SH_SUPERELLIPSOID:
-				// Need exponent ratios
-				oneOverN=1/se_n;
-				oneOverE=1/se_e;
-				eOverN=se_e/se_n;
-
-				tmp1=pow(pow(xr*xr,oneOverE) + pow(invsqY,oneOverE)*pow(yr*yr,oneOverE),
-				         eOverN);
-				tmp2=pow(invsqZ*zr*zr,oneOverN);
-				if (pow(4,oneOverN) * (tmp1 + tmp2) <= 1) {
-					mat=0;
+			  // Need to deal with singularities when exponents e or n = 0
+				if (se_n==0 && se_e==0) {
+					// This is a box
+					if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
+				}
+				else if (se_n==0 && se_e>0) {
+					// Uniform cross-sections along z (parallel to x-y plane) that are
+					// superellipses.
+					oneOverE=1/se_e;
+					// the inside/outside function
+					tmp1=pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE);
+					if (tmp1<=0.25 && fabs(zr)<=haspZ){
+						mat=0;
+					}
+				}
+				else if (se_n>0 && se_e==0){
+				  // Cross sections along z are rectangles (superellipse with e=0)
+					// but with a and b scaled according to z.
+					oneOverN=1/se_n;
+					// the scale factor
+					tmp1=pow(1 - pow(4*invsqZ*zr*zr,oneOverN), 0.5*se_n);
+					if (fabs(xr)<=0.5*tmp1 && fabs(yr)<=haspY*tmp1 && fabs(zr)<=haspZ) {
+						mat=0;
+					}
+				}
+				else {
+					// The usual case with n, e > 0.
+					// Singular behavior for very small n and e is still possible!
+					// Need exponent ratios
+					oneOverN=1/se_n;
+					oneOverE=1/se_e;
+					eOverN=se_e/se_n;
+					tmp1=pow(pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE),
+									 eOverN);
+					tmp2=pow(invsqZ*zr*zr,oneOverN);
+					if (pow(4,oneOverN) * (tmp1 + tmp2) <= 1) {
+						mat=0;
+					}
 				}
 				break;
 		}
