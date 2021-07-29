@@ -178,8 +178,8 @@ def spectrum_plot(match,dirname):
     ax.set_ylabel(label_for_plot(match))
     #ax.legend()
     plot_setaspect(ax)
-    fig.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.pdf")
+    fig.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.svg")
     
 def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -298,10 +298,10 @@ def spectrumline_plot(match, dirname, average=False):
     #ax1.set_yscale('log')
     plot_setaspect(ax1)
     plot_setaspect(ax2)
-    fig1.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.pdf")
-    fig2.savefig(f"{dirname}/{match}_averaged.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}_averaged.pdf")
+    fig1.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.svg")
+    fig2.savefig(f"{dirname}/{match}_averaged.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}_averaged.svg")
 
 def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -391,8 +391,8 @@ def extrapolation_plot(match, dirname):
     ax.set_xlabel("y = kd|m|")
     ax.legend()
     plot_setaspect(ax)
-    plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.pdf")
+    plt.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.svg")
 
 def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -481,8 +481,8 @@ def spectrum_with_extrapolation_plot(match,dirname):
     ax.set_xlim([min(data[:,0]),max(data[:,0])])
     ax.legend()
     plot_setaspect(ax)
-    plt.savefig(f"{dirname}/{match}_fit.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}_fit.pdf")
+    plt.savefig(f"{dirname}/{match}_fit.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}_fit.svg")
 
 def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -589,6 +589,6 @@ def scan_plot(match, dirname, details=True):
     else:
         plt.axis('off')
     
-    plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.pdf")
+    plt.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.svg")
 
