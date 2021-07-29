@@ -161,6 +161,7 @@ def plot_setrcparams():
     MEDIUM_SIZE = 14
     BIGGER_SIZE = 16
     
+    plt.rc('font', **{'family': 'serif', 'serif': 'Arial'})
     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
     plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
     plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
@@ -279,7 +280,6 @@ def spectrumline_plot(match, dirname, average=False):
     fig2,ax2 = plot_create()
     ax2.set_ylabel(label_for_plot(match))
     
-    
     xs = data[5:,0]
     #print(xs)
     ys2 = np.zeros(np.shape(data.T[0][5:]))
@@ -295,6 +295,7 @@ def spectrumline_plot(match, dirname, average=False):
     ax1.set_xlim([min(xs),max(xs)])
     ax2.set_xlim([min(xs),max(xs)])
     ax2.plot(xs, ys2, color=color_for_plot(match), linewidth=3)
+    #ax1.set_yscale('log')
     plot_setaspect(ax1)
     plot_setaspect(ax2)
     fig1.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
@@ -379,13 +380,13 @@ def extrapolation_collect(match, dirname):
 def extrapolation_plot(match, dirname):
     data = np.genfromtxt(f"{dirname}/{match}.csv",delimiter=',')[1:]
     fig,ax = plot_create()
-    ax.plot(data[:,1], data[:,2], label=label_for_plot(match)+" (simulated)", color=color_for_plot(match), marker="o", linestyle="none")
+    ax.plot(data[:,1], data[:,2], label=label_for_plot(match)+" (simulated)", color=color_for_plot(match), marker="o", markersize=12, linestyle="none", zorder=2)
     ys_fitted = np.linspace(data[:,1][0],0,100)
     results_fit = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     a = results_fit[:,0]
     error = results_fit[:,1]
     points_fitted = a[0] + a[1]*ys_fitted + a[2]*ys_fitted**2
-    ax.plot(ys_fitted, points_fitted, label=label_for_plot(match)+" (fit)", color="black", linewidth=3)
+    ax.plot(ys_fitted, points_fitted, label=label_for_plot(match)+" (fit)", color="black", linewidth=3, zorder=3)
     ax.errorbar(0, a[0], yerr=error[0], color="black", linestyle="", marker="s", capsize=3, barsabove=True, label = "Error bar")
     ax.set_xlabel("y = kd|m|")
     ax.legend()
@@ -547,9 +548,6 @@ def scan_collect(match, dirname):
         xy = dir_i.split("_")
         xs.append(float(xy[0]))
         ys.append(float(xy[1]))
-        # if dir_i == "7.799999999999999_34.612500000000004" or dir_i == "7.799999999999999_34.6125":
-        #     print(dir_i)
-        #     return
         values.append(parse_value(f"{dirname}/{dir_i}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
             writer = csv.writer(file, delimiter=',')
@@ -590,7 +588,6 @@ def scan_plot(match, dirname, details=True):
         cbar.formatter.set_powerlimits((0, 0))
     else:
         plt.axis('off')
-    
     
     plt.savefig(f"{dirname}/{match}.pdf", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.pdf")

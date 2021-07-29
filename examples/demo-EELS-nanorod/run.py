@@ -64,7 +64,7 @@ if __name__ == '__main__':
     aw.spectrumline_plot("Pcl",dirname) # Plot CL spectrum
     
     # Execute scan of particle's cross-section for single energy ev
-    dirname = dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
+    dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
     aw_parameters["ev"] = 2.4
     aw.scan_execute(aw_parameters,adda_cmdlineargs,dirname)
     # Collect and map scanned EELS/CL probabilities on particle's cross-section
