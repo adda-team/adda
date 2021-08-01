@@ -2136,8 +2136,8 @@ void VariablesInterconnect(void)
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
 		if (ScatRelation==SQ_SO) PrintError("'-rect_dip' is incompatible with '-scat so'");
-		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
-			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
+		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT && IntRelation!=G_IGT_SO) PrintError("The specified interaction formulation is "
+			"designed only for cubical dipoles. Currently, only 'poi', 'igt' and 'igt_so' can be used with rectangular dipoles");
 	}	
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");

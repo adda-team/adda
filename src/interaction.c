@@ -222,9 +222,9 @@ static inline __m128d accImExp_pd(const double x)
 
 	ipx = _mm_cvtsi32_sd(ipx,ix);
 	__m128d pz = _mm_sub_pd(ipx,px); // the residual -z=(ix-x)
-	__m128d py = _mm_mul_pd(pz,pz);	
+	__m128d py = _mm_mul_pd(pz,pz);
 	__m128d yy = _mm_shuffle_pd(py,py,0); // now (y,y)
-	__m128d zy = _mm_shuffle_pd(yy,pz,1);	
+	__m128d zy = _mm_shuffle_pd(yy,pz,1);
 
 	__m128d scz = _mm_mul_pd(c1,yy);	// Taylor series approximation
 	scz = _mm_add_pd(c2,scz);
@@ -265,7 +265,7 @@ static inline doublecomplex accImExp(const double x)
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
-{	
+{
 	const __m128d ie = accImExp_pd(kr);
 	const __m128d sc = _mm_mul_pd(_mm_set1_pd(invr3),ie);
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
@@ -316,7 +316,7 @@ static inline doublecomplex accImExp(const double x)
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
-{	
+{
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
 	*expval=invr3*imExp(kr);
 
@@ -381,7 +381,7 @@ static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[stat
 	doublecomplex eikfr; // exp(i*k_F*R)
 	// next line should never happen
 	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd");
-	
+
 	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -427,7 +427,7 @@ static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[s
 	doublecomplex eikfr;
 	// next line should never happen
 	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd_st");
-	
+
 	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
 	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
@@ -462,159 +462,222 @@ static inline bool TestTableSize(const double rn)
 
 //=====================================================================================================================
 
-void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex result[static restrict 6])
-/* Interaction term between two dipoles for approximate IGT. arguments are described in .h file
- * Can't be easily made operational for arbitrary real distance due to predefined tables. 
- * Thus, works only for cubical dipoles
- *
+
+double calculate_F_term(double Rvec[static 3], const int mu, const int nu, const double Vr_div_R) {
+    //double R = vNorm(Rvec);
+    //double Vr = Rvec[0]*Rvec[1]*Rvec[2];
+    if (mu == nu) {
+        return atan(Vr_div_R/Rvec[mu]/Rvec[mu]);
+    } else {
+        return -atanh(Vr_div_R/Rvec[mu]/Rvec[nu]);
+    }
+
+
+}
+
+double calculate_B_term(double Rvec[static 3], const int mu, const int nu, const double R, const double Vr, const double Vr_div_R) {
+    //double R = vNorm(Rvec);
+    //double Vr = Rvec[0]*Rvec[1]*Rvec[2];
+    double B_term = 0;
+    if (mu == nu) {
+        double R_tau2;
+        for (int tau = 0; tau < 3; tau++) {
+            if (tau == mu) {
+                B_term += 2*Vr/Rvec[tau]*log(Rvec[tau] + R);
+            } else {
+                R_tau2 = Rvec[tau]*Rvec[tau];
+                B_term += Vr/Rvec[tau]*log(Rvec[tau] + R) - R_tau2*atan(Vr_div_R/R_tau2);
+            }
+        }
+
+    } else {
+        B_term = -0.5*(Vr*R/Rvec[mu]/Rvec[nu] + (Rvec[mu]*Rvec[mu] + Rvec[nu]*Rvec[nu])*atanh(Vr_div_R/Rvec[mu]/Rvec[nu]));
+    }
+    return B_term;
+}
+
+doublecomplex calculate_A_term(const int mu, const int nu, doublecomplex G, const double R, const double qmunu,\
+    const double invr3, const double halfk2)
+{
+    double Gst, Gext;
+    if (mu == nu) {
+        Gst = -invr3*(1 - 3*qmunu);
+        Gext = halfk2/R*(1 + qmunu);
+    } else {
+        Gst = invr3*3*qmunu;
+        Gext =  halfk2/R*qmunu;
+    }
+    return G - Gst - Gext;
+}
+
+doublecomplex calculate_conv2_A_term(double Rvec[static 3], const int mu, const int nu, \
+        const double u, const double D, const double k2, doublecomplex ksi, doublecomplex ksi2, doublecomplex G, \
+        const double _3u_minus_1, const double _5u_minus_1, const double _7u_minus_1, \
+        const double invr2, const double factor1, const double factor2, doublecomplex factor3)
+{
+    //double R = vNorm(Rvec);
+    //double Vr = Rvec[0] * Rvec[1] * Rvec[2];
+
+    double d_mu, d_nu;
+
+# define SET_d(name) \
+ { \
+    switch (name) {\
+    case 0:d_##name=dsX; break;\
+    case 1:d_##name=dsY; break;\
+    case 2:d_##name=dsZ; break;\
+    }\
+}
+    SET_d(mu);
+    SET_d(nu);
+
+
+    double relativeR2 = Rvec[mu]*Rvec[nu]*invr2;
+    double D2 = D*D;
+    double d_mu2 = d_mu*d_mu;
+    double d_nu2 = d_nu*d_nu;
+    double relativeRrd = invr2;
+    if (mu == nu) {
+        relativeRrd *= 2*d_mu2*Rvec[mu]*Rvec[mu];
+    } else {
+        relativeRrd *= Rvec[mu]*Rvec[nu]*(d_mu2 + d_nu2);
+    }
+
+//    double _3u_minus_1 = 3*u - 1;
+//    double _5u_minus_1 = 5*u - 1;
+//    double _7u_minus_1 = 7*u - 1;
+
+    //first part
+    //double factor1 = halfk2/R/R_2;
+    double first_part = 3*relativeR2*_5u_minus_1*D2 - 6*relativeRrd;
+    if (mu == nu) {
+        first_part += _3u_minus_1*D2 + 2*d_mu2;
+    }
+    first_part *= factor1;
+
+
+    //second part
+    //double factor2 = 3/R_2/R_2/R;
+    double second_part = 5*relativeR2*_7u_minus_1*D2 - 10*relativeRrd;
+    if (mu == nu) {
+        second_part += -_5u_minus_1*D2 + 2*d_mu2;
+    }
+    second_part *= factor2;
+
+
+    //double k2 = WaveNum*WaveNum;
+    //second part
+    //doublecomplex factor3 = expval/R_2;
+    //doublecomplex factor3 = FOUR_PI*WaveNum*WaveNum*expval/R_2;
+    //doublecomplex ksi2 = -k2*R_2;
+    doublecomplex _3_3ksi_ksi2 = 3 - 3*ksi + ksi2;
+    doublecomplex third_part = (relativeR2*_7u_minus_1*D2 - 2*relativeRrd)*(5*_3_3ksi_ksi2 + ksi2*(1 - ksi));
+    if (mu == nu) {
+        third_part += (-_5u_minus_1*D2 + 2*d_mu2)*_3_3ksi_ksi2 - _3u_minus_1*D2*ksi2*(1 - ksi);
+    }
+    third_part *= factor3;
+    third_part -= k2*G*u*D2;
+
+
+    return third_part - second_part - first_part;
+}
+
+void InterTerm_igt_so(double qvec[static 3], doublecomplex result[static restrict 6])
+/*
  * There is still some space for speed optimization here (e.g. move mu,nu-independent operations out of the cycles over
  * components).
  */
 {
 	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+	double qvec1[3], qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
 	doublecomplex expval; // exp(ikR)/|R|^3
+    doublecomplex ksi; // ikR
+	int ind0,comp,mu,nu;//,indmunu,mu1,nu1;
+	int indX,indY,indZ;
+	double D;//sqrt(dsX^2 + dsY^2 + dsZ^2)
+	double u;//sum(dsX^2*Rx^2 + dsY^2*Ry^2  + dsZ^2*Rz^2)/(D^2*R^2)
+    double Rvec[3];
+    double signum;
+    double invvol;
+    double dsX2;
+    double dsY2;
+    double dsZ2;
+    double halfk2;
+    double F_term[6];
+    double B_term[6];
+    doublecomplex A_term[6];
+    doublecomplex conv2_A_term[6];
+    double invr;
 
-	double q2[3];
-	double kd2,q4,temp,invrn2,invrn4;
-	doublecomplex br,Gm0;
-	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	double t3q,t4q,t5tr,t6tr;
-	// next line should never happen
-	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_igt_so_int");
-	
-	UnitsGridToCoord(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
-	rn=rr/gridspace;
+    halfk2 = 0.5*WaveNum*WaveNum;
+    rr=vNorm(qvec);
+    invr = 1.0/rr;
+    invr3=invr*invr*invr;
+    kr=WaveNum*rr;
+    kr2=kr*kr;
+    vCopy(qvec, qvec1);
+    vMultScal(invr,qvec1,qvec1);
+    OuterSym(qvec1,qmunu);
 
-	kd2=kd*kd;
-	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
-		//====== G close for IGT =============
-		ivec[0]=i;
-		ivec[1]=j;
-		ivec[2]=k;
-		// transformation of negative coordinates
-		for (ic=0;ic<3;ic++) {
-			if (ivec[ic]<0) {
-				sigV[ic]=-1;
-				qvec[ic]*=-1;
-				ivec[ic]*=-1;
-			}
-			else sigV[ic]=1;
-		}
-		// transformation to case i>=j>=k>=0
-		// building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
-		if (ivec[0]>=ivec[1]) { // i>=j
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[1]=1;
-					ord[2]=2;
-				}
-				else {
-					ord[1]=2;
-					ord[2]=1;
-				}
-			}
-			else {
-				ord[0]=2;
-				ord[1]=0;
-				ord[2]=1;
-			}
-		}
-		else {
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=1;
-				ord[1]=0;
-				ord[2]=2;
-			}
-			else {
-				ord[2]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[0]=1;
-					ord[1]=2;
-				}
-				else {
-					ord[0]=2;
-					ord[1]=1;
-				}
-			}
-		}
-		// change parameters according to coordinate transforms
-		Permutate(qvec,ord);
-		Permutate_i(ivec,ord);
-		// compute inverse permutation
-		memcpy(invord,ord,3*sizeof(int));
-		Permutate_i(invord,ord);
-		if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-		// set some indices
-		ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
-		ind1=3*ind0;
-		ind2m=6*ind0;
-		// cycle over tensor components
-		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-			sig=sigV[mu]*sigV[nu]; // sign of some terms below
-			/* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
-			 * are invariant to permutations because both constituent vectors and indices are permutated. So this
-			 * variables can be used, as precomputed above.
-			 */
-			mu1=invord[mu];
-			nu1=invord[nu];
-			/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
-			 * This is {{0,1,3},{1,2,4},{3,4,5}}
-			 */
-			indmunu=mu1+nu1;
-			if (mu1==2 || nu1==2) indmunu++;
-			ind2=ind2m+indmunu;
-			ind3=3*ind2;
-			ind4=6*ind2;
-			// computing several quantities with table integrals
-			t3q=DotProd(qvec,tab3+ind1);
-			t4q=DotProd(qvec,tab4+ind3);
-			t5tr=TrSym(tab5+ind2m);
-			t6tr=TrSym(tab6+ind4);
-			//====== computing Gc0 =====
-			/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
-			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
-			 */
-			br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) +(kr/24)*qmunu[comp]*(kr+I*3);
-			if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
-			br*=kd2;
-			// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
-			br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
-			if (dmunu[comp]) br += tab1[ind0]*(-1+I*kr+kr2);
-			// Gc0=expval*br
-			result[comp]=expval*br;
-		}
-	}
-	else {
-		//====== Gfar (and part of Gmedian) for IGT =======
-		// Gf0 = Gp*(1-kd^2/24)
-		for (comp=0;comp<NDCOMP;comp++) result[comp]*=1-kd2/24;
-		if (kr < G_BOUND_MEDIAN) {
-			//===== G median for IGT ========
-			vMult(qvec,qvec,q2);
-			q4=DotProd(q2,q2);
-			invrn2=1/(rn*rn);
-			invrn4=invrn2*invrn2;
-			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-				// Gm0=expval*br*temp; temp is defined below
-				temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
-				if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
-				temp*=7*invrn4/64;
-				Gm0=expval*(-1+I*kr)*temp;
-				// result = Gf + Gm0
-				result[comp]+=Gm0;
-			}
-		}
-	}
-	PRINT_GVAL;
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+
+	dsX2 = dsX*dsX;
+	dsY2 = dsY*dsY;
+	dsZ2 = dsZ*dsZ;
+    D = sqrt(dsX2 + dsY2 + dsZ2);
+    u=(dsX2*qvec[0]*qvec[0] + dsY2*qvec[1]*qvec[1]  + dsZ2*qvec[2]*qvec[2])/(D*D*rr*rr);
+    ksi=I*kr;
+    for (ind0=0;ind0<6;ind0++) {
+        F_term[ind0] = 0;
+        B_term[ind0] = 0;
+    }
+
+
+    //iterate over corners of the ij dipole, 8 corners
+    for (indX=-1;indX<2;indX+=2) for (indY=-1;indY<2;indY+=2) for (indZ=-1;indZ<2;indZ+=2) {
+        Rvec[0] = qvec[0] + 0.5*indX*dsX;
+        Rvec[1] = qvec[1] + 0.5*indY*dsY;
+        Rvec[2] = qvec[2] + 0.5*indZ*dsZ;
+        signum = 1.0*indX*indY*indZ;
+        double R = vNorm(Rvec);
+        double Vr = Rvec[0]*Rvec[1]*Rvec[2];
+        double Vr_div_R = Vr/R;
+        //iterate over all mu_nu components [3x3] but 6 independent components 2,3 = 3,2; 3,1 = 1,3; 1,2 = 2,1
+        for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+            F_term[comp] += signum*calculate_F_term(Rvec, mu, nu, Vr_div_R);
+            B_term[comp] += signum*calculate_B_term(Rvec, mu, nu, R, Vr, Vr_div_R);
+        }
+    }
+
+    //iterate over all mu_nu components [3x3] but 6 independent components 2,3 = 3,2; 3,1 = 1,3; 1,2 = 2,1
+    double _3u_minus_1 = 3*u - 1;
+    double _5u_minus_1 = 5*u - 1;
+    double _7u_minus_1 = 7*u - 1;
+    double R_2 = rr*rr;
+    double invr2 = 1/R_2;
+    double k2 = WaveNum*WaveNum;
+    double factor1 = halfk2*invr3;
+    double factor2 = 3*invr3*invr2;
+    doublecomplex factor3 = expval*invr2;
+    doublecomplex ksi2 = -k2*R_2;
+    for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+        A_term[comp] = calculate_A_term(mu, nu, result[comp], rr, qmunu[comp], invr3, halfk2);
+        conv2_A_term[comp] = calculate_conv2_A_term(qvec, mu, nu, u, D, k2,\
+                                                    ksi, ksi2, result[comp],\
+                                                    _3u_minus_1, _5u_minus_1, _7u_minus_1,\
+                                                    invr2, factor1, factor2, factor3);
+    }
+
+    invvol = 1.0/dipvol;
+
+    //0.0416666666666667 is 1/24;
+    for (comp=0;comp<6;comp++) {
+        result[comp] = invvol*(halfk2*B_term[comp] - F_term[comp]) + A_term[comp] + 0.0416666666666667*conv2_A_term[comp];
+    }
 }
 
-NO_REAL_WRAPPER(InterTerm_igt_so)
+WRAPPERS_INTER(InterTerm_igt_so)
 
 //=====================================================================================================================
 
@@ -699,7 +762,7 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
 	double sx,x,t1,t2,expMx,invRp3;
 	// next line should never happen
 	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_nloc_both");
-	
+
 	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
 	rn=rr/gridspace;
 	if (nloc_Rp==0) {
@@ -976,7 +1039,7 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
 			}
 		}
 	}
-	PRINT_GVAL;
+    PRINT_GVAL;
 }
 
 NO_REAL_WRAPPER(InterTerm_so)
@@ -1003,7 +1066,27 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 				GFORMDEF3V,ifail,COMP3V(qvec));
 		}
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
-		PRINT_GVAL;
+// test IGT_SO
+//        doublecomplex result1[6];
+//
+//        InterTerm_igt_so(qvec, result1);
+//
+//        for (comp=0;comp<6;comp++) {
+//            double norm_IGT = cAbs2(result[comp]);
+//            double norm_SO = cAbs2(result1[comp]);
+//            if (norm_IGT == 0 && fabs(norm_SO) > 1e-10) {
+//                int rrrr = 1;
+//            }
+//            if (norm_IGT != 0) {
+//                double errrr  = fabs(cAbs2(result[comp]-result1[comp]))/norm_IGT*100;
+//                if (errrr > 0.0001) {
+//                    int rrrr = 1;
+//                }
+//            }
+//
+//        }
+
+
 	}
 	else InterTerm_poi(qvec,result);
 }
@@ -1410,7 +1493,7 @@ void InitInteraction(void)
 			// no break
 	}
 	// read tables if needed
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
+	if (IntRelation == G_SO) ReadTables();
 
 	// Interaction through reflection from surface
 	if (surface) {
@@ -1464,7 +1547,7 @@ void InitInteraction(void)
 void FreeInteraction(void)
 // Free buffers used for interaction calculation
 {
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
+	if (IntRelation == G_SO) FreeTables();
 	if (surface && ReflRelation==GR_SOM) {
 		Free_general(somIndex);
 		Free_cVector(somTable);
