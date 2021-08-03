@@ -103,6 +103,7 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
     os.makedirs(dirname, exist_ok=True)
+    os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
     print()
     print_log("--- Spectrum: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
@@ -118,7 +119,7 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdlines = []
     for i in mdata:
         cmdline_i = cmdline
-        cmdline_i += f" -dir '{dirname}/{i[0]}'"
+        cmdline_i += f" -dir '{dirname}/ADDA_output/{i[0]}'"
         cmdline_i += " -lambda %s" % ev_to_nm(i[0])
         cmdline_i += f" -m {i[1]} {i[2]}"
         #cmdline_i += f" -m 1.33 0 {i[1]} {i[2]}"
@@ -128,10 +129,10 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
     
 def spectrum_collect(match,dirname, silent=False):
-    evs = sorted([float(d.name) for d in os.scandir(dirname) if d.is_dir()])
+    evs = sorted([float(d.name) for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
     values = []
     for ev in evs:
-        values.append(parse_value(f"{dirname}/{ev}/CrossSec-Y",match))
+        values.append(parse_value(f"{dirname}/ADDA_output/{ev}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
         writer = csv.writer(file, delimiter=',')
         writer.writerow(["ev",match])
@@ -221,8 +222,8 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     # ax.plot(points[:,0], points[:,1], linewidth=3, marker="o")
     # #return
     
-    beam_list = adda_cmdlineargs["beam"].split(" ")
-    delkeys_silent(adda_cmdlineargs, ["lambda","m","beam"])
+    beam_list = adda_cmdlineargs["beam_center"].split(" ")
+    delkeys_silent(adda_cmdlineargs, ["lambda","m","beam_center"])
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     print_log(f"{cmdline}",dirname)
     print_log(f"mp_file: {mp_file}",dirname)
@@ -236,13 +237,14 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
         point_dir = f"{dirname}/" + "{:03d}".format(counter) + f"_{p[0]}_{p[1]}"
         #print(point_dir)
         os.mkdir(point_dir)
-        beam_list[2], beam_list[3] = str(p[0]), str(p[1])
-        beam = (" ").join(beam_list)
+        os.mkdir(point_dir+"/ADDA_output")
+        beam_list[0], beam_list[1] = str(p[0]), str(p[1])
+        beam_center = (" ").join(beam_list)
         #print(beam)
         for i in mdata:
             cmdline_i = cmdline
-            cmdline_i += f" -beam {beam}"
-            cmdline_i += f" -dir '{point_dir}/{i[0]}'"
+            cmdline_i += f" -beam_center {beam_center}"
+            cmdline_i += f" -dir '{point_dir}/ADDA_output/{i[0]}'"
             cmdline_i += " -lambda %s" % ev_to_nm(i[0])
             cmdline_i += f" -m {i[1]} {i[2]}"
             cmdline_i += " > /dev/null"
@@ -308,6 +310,7 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
     os.makedirs(dirname, exist_ok=True)
+    os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
     print()
     print_log("--- Extrapolation: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
@@ -339,28 +342,28 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdlines = []
     for i in grids:
         cmdline_i = cmdline
-        cmdline_i += f" -dir '{dirname}/{i}'"
+        cmdline_i += f" -dir '{dirname}/ADDA_output/{i}'"
         cmdline_i += f" -grid {i}"
         cmdline_i += " > /dev/null"
         cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
-    with open(f"{dirname}/adda_cmdlineargs.csv", 'w') as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
         writer = csv.writer(file)
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
 def extrapolation_collect(match, dirname):
-    with open(f"{dirname}/adda_cmdlineargs.csv") as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
     mre = float(adda_cmdlineargs["m"].split(" ")[0])
     mim = float(adda_cmdlineargs["m"].split(" ")[1])
     m_abs = math.sqrt(mre**2 + mim**2)
-    grids = np.array(sorted([int(d.name) for d in os.scandir(dirname) if d.is_dir()]))
+    grids = np.array(sorted([int(d.name) for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()]))
     values = []
     for grid_i in grids:
-        values.append(parse_value(f"{dirname}/{grid_i}/CrossSec-Y",match))
+        values.append(parse_value(f"{dirname}/ADDA_output/{grid_i}/CrossSec-Y",match))
     ys = (2*math.pi/float(adda_cmdlineargs["lambda"]))*(float(adda_cmdlineargs["size"])/grids)*m_abs #y = k*d*|m|
     weights = ys**-3
     fit,cov = np.polyfit(ys, values, 2, w=weights, cov=True)
@@ -398,7 +401,8 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
-    os.makedirs(dirname,exist_ok=True) 
+    os.makedirs(dirname,exist_ok=True)
+    os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
     print()
     print_log("--- Spectrum with extrapolation: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
@@ -419,7 +423,7 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     #grids = np.flip([220,186,156,132,110,92,78,66,56])
     adda_cmdlineargs["lambda"] = lam
     adda_cmdlineargs["m"] = f"{mre} {mim}"
-    with open(f"{dirname}/adda_cmdlineargs.csv", 'w') as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
         writer = csv.writer(file)
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
@@ -433,10 +437,10 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log(f"Varying grids: {grids}",dirname)
     cmdlines = []
     for grid_i in grids:
-        os.mkdir(f"{dirname}/{grid_i}")
+        os.mkdir(f"{dirname}/ADDA_output/{grid_i}")
         for mdata_j in mdata:
             cmdline_i = cmdline
-            cmdline_i += f" -dir '{dirname}/{grid_i}/{mdata_j[0]}'"
+            cmdline_i += f" -dir '{dirname}/ADDA_output/{grid_i}/{mdata_j[0]}'"
             cmdline_i += f" -grid {grid_i}"
             cmdline_i += " -lambda %s" % ev_to_nm(mdata_j[0])
             cmdline_i += f" -m {mdata_j[1]} {mdata_j[2]}"
@@ -446,14 +450,14 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
 def spectrum_with_extrapolation_collect(match, dirname):
-    with open(f"{dirname}/adda_cmdlineargs.csv") as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
     mre = float(adda_cmdlineargs["m"].split(" ")[0])
     mim = float(adda_cmdlineargs["m"].split(" ")[1])
     m_abs = math.sqrt(mre**2 + mim**2)
-    grids = np.array(sorted([int(d.name) for d in os.scandir(dirname) if d.is_dir()]))
-    evs = sorted([float(d.name) for d in os.scandir(f"{dirname}/{grids[0]}") if d.is_dir()])
+    grids = np.array(sorted([int(d.name) for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()]))
+    evs = sorted([float(d.name) for d in os.scandir(f"{dirname}/ADDA_output/{grids[0]}") if d.is_dir()])
     ys = (2*math.pi/float(adda_cmdlineargs["lambda"]))*(float(adda_cmdlineargs["size"])/grids)*m_abs #y = k*d*|m|
     weights = ys**-3
     fit_values = []
@@ -461,7 +465,7 @@ def spectrum_with_extrapolation_collect(match, dirname):
     for ev_i in evs:
         values = []
         for grid_j in grids:
-            values.append(parse_value(f"{dirname}/{grid_j}/{ev_i}/CrossSec-Y",match))
+            values.append(parse_value(f"{dirname}/ADDA_output/{grid_j}/{ev_i}/CrossSec-Y",match))
         fit,cov = np.polyfit(ys, values, 2, w=weights, cov=True)
         a = np.flip(fit)
         error = 2*np.sqrt(np.flip(np.diag(cov)))
@@ -477,7 +481,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     data = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     fig,ax = plot_create()
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
-    ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="error bar", color="blue", alpha=0.2)
+    ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="Error bar", color="blue", alpha=0.2)
     ax.set_xlim([min(data[:,0]),max(data[:,0])])
     ax.legend()
     plot_setaspect(ax)
@@ -489,6 +493,7 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
     os.makedirs(dirname, exist_ok=True)
+    os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
     print()
     print_log("--- Scan: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
@@ -512,10 +517,10 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     x0s, y0s = x0s[0::step], y0s[0::step]
     # print(x0s)
     # print(y0s)
-    beam_list = adda_cmdlineargs["beam"].split(" ")
-    del adda_cmdlineargs["beam"]
+    beam_list = adda_cmdlineargs["beam_center"].split(" ")
+    del adda_cmdlineargs["beam_center"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
-    with open(f"{dirname}/adda_cmdlineargs.csv", 'w') as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
         writer = csv.writer(file)
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
@@ -530,17 +535,17 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     for x0_i in x0s:
         for y0_i in y0s:
             cmdline_i = cmdline
-            cmdline_i += f" -dir '{dirname}/{x0_i}_{y0_i}'"
-            beam_list[2], beam_list[3] = str(x0_i), str(y0_i)
-            beam = (" ").join(beam_list)
-            cmdline_i += f" -beam {beam}"
+            cmdline_i += f" -dir '{dirname}/ADDA_output/{x0_i}_{y0_i}'"
+            beam_list[0], beam_list[1] = str(x0_i), str(y0_i)
+            beam_center = (" ").join(beam_list)
+            cmdline_i += f" -beam_center {beam_center}"
             cmdline_i += " > /dev/null"
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
 def scan_collect(match, dirname):
-    dirs = sorted([d.name for d in os.scandir(dirname) if d.is_dir()])
+    dirs = sorted([d.name for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
     xs = []
     ys = []
     values = []
@@ -548,7 +553,7 @@ def scan_collect(match, dirname):
         xy = dir_i.split("_")
         xs.append(float(xy[0]))
         ys.append(float(xy[1]))
-        values.append(parse_value(f"{dirname}/{dir_i}/CrossSec-Y",match))
+        values.append(parse_value(f"{dirname}/ADDA_output/{dir_i}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
             writer = csv.writer(file, delimiter=',')
             writer.writerow(["x","y",match])
@@ -556,7 +561,7 @@ def scan_collect(match, dirname):
             print(f"Saved to {dirname}/{match}.csv")
 
 def scan_plot(match, dirname, details=True):
-    with open(f"{dirname}/adda_cmdlineargs.csv") as file:
+    with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
     size = float(adda_cmdlineargs["size"])

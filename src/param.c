@@ -95,6 +95,7 @@ bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as ex
 extern const char *avg_string;
 // defined and initialized in GenerateB.c
 extern const char *beam_descr;
+extern double beam_center_0[3];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -117,6 +118,8 @@ bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
+bool use_beam_center; // Whether -beam_center argument is used or not
+bool use_beam_subopt; // Whether beam center coordinates are taken from -beam sub-option
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;            // whether to average CC over incident polarization
@@ -236,12 +239,12 @@ static const struct subopt_struct beam_opt[]={
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
-	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
+	{"dipole","[<x> <y> <z>]","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
-		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
-	{"electron","<energy> <x> <y> <z>","Field of an electron with <energy> keV energy moving along z-axis through "
-		"the point (<x>,<y>,<z>) (in laboratory reference frame). Energy argument is in keV, all coordinate arguments are in nm."
-		"Propagation direction of the beam is determined by -prop command line option.",4,B_ELECTRON},
+		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",UNDEF,B_DIPOLE},
+	{"electron","<energy>","Field of an electron with <energy> in keV."
+		"Center of the beam coordinates are determined by -beam_center command line option. All coordinate arguments are in nm.\n"
+		"Propagation direction of the beam is determined by -prop command line option.\n",1,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um.",UNDEF,B_LMINUS},
@@ -347,6 +350,7 @@ void InitBeam(void);
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
+PARSE_FUNC(beam_center);
 PARSE_FUNC(beam);
 PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
@@ -426,6 +430,8 @@ static struct opt_struct options[]={
 		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
 		"formulations, and '-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
+	{PAR(beam_center),"<x> <y> <z>","Center of the beam."
+		"Default: 0 0 0",3,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types (if present) are floats.\n"
 		"Default: plane",UNDEF,beam_opt},
@@ -990,6 +996,14 @@ PARSE_FUNC(asym)
 	calc_vec = true;
 	calc_Csca = true;
 }
+PARSE_FUNC(beam_center)
+{
+	if (Narg!=3) NargError(Narg,"-beam_center requires 3 arguments");
+	use_beam_center = true;
+	ScanDoubleError(argv[1],&beam_center_0[0]);
+	ScanDoubleError(argv[2],&beam_center_0[1]);
+	ScanDoubleError(argv[3],&beam_center_0[2]);
+}
 PARSE_FUNC(beam)
 {
 	int i,j,need;
@@ -1010,7 +1024,14 @@ PARSE_FUNC(beam)
 		switch (beamtype) {
 			case B_LMINUS:
 			case B_DAVIS3:
-			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
+			case B_BARTON5:
+				if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
+				if (Narg==4) use_beam_subopt=true;
+				break;
+			case B_DIPOLE:
+				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
+				if (Narg==3) use_beam_subopt=true;
+				break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
@@ -1917,6 +1938,11 @@ void InitVariables(void)
 	directory="";
 	lambda=TWO_PI;
 	mhost=1;
+	use_beam_center=false;
+	use_beam_subopt=false;
+	beam_center_0[0]=0;
+	beam_center_0[1]=0;
+	beam_center_0[2]=0;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
 	abs_ref_index[0]=1.5;
@@ -2207,7 +2233,7 @@ void VariablesInterconnect(void)
 	}
 	if (cimag(mhost)!=0) { // currently a lot of limitations for the absorbing medium
 			if (beamtype!=B_PLANE && beamtype!=B_ELECTRON) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
-				" can be used only with plane incident wave");
+				" can be used only with plane/electron incident field");
 			if (rectDip) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
 				" is incompatible with rect_dip option");
 			if (surface) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"

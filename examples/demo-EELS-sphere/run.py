@@ -2,7 +2,7 @@ import sys, os, multiprocessing
 if sys.path[1] != os.path.abspath(__file__ + "/../../") : sys.path.insert(1,os.path.abspath(__file__ + "/../../")) #This is to import ADDA Wrapper from parent directory
 import ADDAWrapper as aw
 
-# PythonADDAWrapper parameters
+# ADDAWrapper parameters
 aw_parameters = dict(
     #adda_exec = "../../win64/adda.exe", #path to ADDA executable
     adda_exec = os.path.abspath(__file__ + "/../../../src/seq/adda"), #path to ADDA executable
@@ -34,7 +34,8 @@ adda_cmdlineargs = dict(
     mhost = "1 0", #refractive index of the host medium
     
     # Beam
-    beam = "electron 100 60 0 0", #Energy[keV] x[nm] y[nm] z[nm] m_host
+    beam = "electron 100", #Energy[keV]
+    beam_center = "60 0 0", # x[nm] y[nm] z[nm] - beam center coordinates 
     prop = "0 0 -1", #beam propagation direction vector
     
     # Precision and performance

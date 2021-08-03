@@ -43,6 +43,8 @@ extern const double beam_pars[];
 extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
+extern const bool use_beam_center;
+extern const bool use_beam_subopt;
 
 extern void cik01_(doublecomplex *z, doublecomplex *cbi0, doublecomplex *cdi0, doublecomplex *cbi1, doublecomplex *cdi1, doublecomplex *cbk0, doublecomplex *cdk0, doublecomplex *cbk1, doublecomplex *cdk1);
 
@@ -101,10 +103,13 @@ void InitBeam(void)
 	// initialization of global option index for error messages
 	opt=opt_beam;
 	// beam initialization
+	if (use_beam_center==true && use_beam_subopt==true) LogError(ONE_POS,"Beam center coordinates can not "
+			"be defined both in -beam and in -beam_center options. Please use only one of the options.");
 	switch (beamtype) {
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
+			if (use_beam_center==true) LogError(ONE_POS,"Plane wave currently does not support -beam_center");
 			if (surface) {
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
 					"the incident direction to have (arbitrary) small positive or negative z-component");
@@ -149,7 +154,10 @@ void InitBeam(void)
 			}
 			return;
 		case B_DIPOLE:
-			vCopy(beam_pars,beam_center_0);
+			if (use_beam_subopt==true){
+				LogWarning(EC_WARN,ALL_POS,"Providing beam center coordinates from the -beam option will be deprecated soon. Please use -beam_center option instead.");
+				vCopy(beam_pars,beam_center_0);
+			}
 			if (surface) {
 				if (beam_center_0[2]<=-hsub)
 					PrintErrorHelp("External dipole should be placed strictly above the surface");
@@ -172,7 +180,11 @@ void InitBeam(void)
 			// initialize parameters
 			w0=beam_pars[0];
 			TestPositive(w0,"beam width");
-			vCopy(beam_pars+1,beam_center_0);
+			if (use_beam_subopt==true){
+				LogWarning(EC_WARN,ALL_POS,"Providing beam center coordinates from the -beam option will be deprecated soon. Please use -beam_center option instead.");
+				vCopy(beam_pars+1,beam_center_0);
+			}
+
 			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
 			if (!beam_asym) vInit(beam_center);
 			s=1/(WaveNum*w0); //Is it valid if WaveNum is complex?
@@ -204,9 +216,6 @@ void InitBeam(void)
 			scale_z = 1e-7; //nm/сm
 			e_energy=beam_pars[0];
 			TestPositive(e_energy,"kinetic energy of the electron");
-			beam_center_0[0] = beam_pars[1];
-			beam_center_0[1] = beam_pars[2];
-			beam_center_0[2] = beam_pars[3];
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			//symX=symY=symZ=symR=false;
 			if (!beam_asym) vInit(beam_center);
@@ -291,6 +300,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		ex=incPolX;
 		vCopy(incPolY,ey);
 	}
+
+	printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
 
 	switch (beamtype) {
 		case B_PLANE: // plane is separate to be fast (for non-surface)
@@ -510,7 +521,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
 				cvAdd(v1,v2,v3);
 				cvMultScal_cmplx(e_pref,v3,b+j); //E_inc
-				printf("Einc\t=\t"CFORM3V"\n",REIM3V(b+j));
+				//printf("Einc\t=\t"CFORM3V"\n",REIM3V(b+j));
 
 				t4 = conj(t4);
 				cvMultScal_RVec(-t4*t8,r1per,v1);

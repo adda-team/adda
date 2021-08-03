@@ -1,6 +1,6 @@
 ADDA Wrapper
-Version 0.5
-2020.10
+Version 0.6
+2021.08
 
 Script performs batch simulations using ADDA. For more info read the following articles.
 ADDA: Maxim A. Yurkin, "User Manual for the Discrete Dipole Approximation Code ADDA"
