@@ -104,13 +104,13 @@ void InitBeam(void)
 	opt=opt_beam;
 	// beam initialization
 	if (use_beam_center==true && use_beam_subopt==true) LogError(ONE_POS,"Beam center coordinates can not "
-			"be defined both in -beam and in -beam_center options. Please use only one of the options.");
+			"be defined both in -beam and in -beam_center options. Please define in only one of the options.");
 	switch (beamtype) {
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
-			if (use_beam_center==true) LogError(ONE_POS,"Plane wave currently does not support -beam_center");
 			if (surface) {
+				if (use_beam_center==true) LogError(ONE_POS,"Plane wave currently does not support -beam_center with -surf");
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
 					"the incident direction to have (arbitrary) small positive or negative z-component");
 				if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
@@ -379,7 +379,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			else for (i=0;i<local_nvoid_Ndip;i++) { // standard (non-surface) plane wave
 				j=3*i;
-				ctemp=imExp(WaveNum*DotProd(DipoleCoord+j,prop)); // ctemp=exp(ik*r.a)
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				ctemp=imExp(WaveNum*DotProd(r1,prop)); // ctemp=exp(ik*r.a)
+				//ctemp=imExp(WaveNum*DotProd(DipoleCoord+j,prop)); // ctemp=exp(ik*r.a)
 				cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 			}
 			return;
