@@ -301,7 +301,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		vCopy(incPolY,ey);
 	}
 
-	printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
+	//printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
 
 	switch (beamtype) {
 		case B_PLANE: // plane is separate to be fast (for non-surface)

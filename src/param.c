@@ -430,7 +430,9 @@ static struct opt_struct options[]={
 		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
 		"formulations, and '-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
-	{PAR(beam_center),"<x> <y> <z>","Center of the beam."
+	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam with respect to the initial point in time. "
+			"For plane, Gaussian, and Bessel field it determines the phase in space. "
+			"For a dipole and an electron it determines the position in space.\n"
 		"Default: 0 0 0",3,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types (if present) are floats.\n"
@@ -609,7 +611,8 @@ static struct opt_struct options[]={
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only estimate the required "
 		"RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. Normalization (to the unity "
-		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
+		"vector) is performed automatically. For point-dipole incident beam this determines its direction."
+		"For electron incident beam this determines electron propagation direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
@@ -2499,6 +2502,7 @@ void PrintInfo(void)
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
+		fprintf(logfile,"Incident beam center position: "GFORMDEF3V"\n",COMP3V(beam_center_0));
 		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop_0));
 		if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
 		else { // polarizations are not shown for dipole incident field
