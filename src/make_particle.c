@@ -1611,7 +1611,6 @@ void InitShape(void)
 			}
 			hdratio=diskratio/2;
 			volume_ratio=PI_OVER_FOUR*diskratio;
-			printf("%f\n",volume_ratio);
 			yx_ratio=1;
 			zx_ratio=diskratio;
 			Nmat_need=1;
@@ -1814,42 +1813,42 @@ void InitShape(void)
 			Nmat_need=2;
 			break;
 		}
-	 case SH_SUPERELLIPSOID: {
+	case SH_SUPERELLIPSOID: {
 		 double aspectY, aspectZ;
 
 		 // Read and test parameters
-		 aspectY=sh_pars[0];
-		 TestPositive(aspectY,"aspect ratio y/x");
-		 aspectZ=sh_pars[1];
-		 TestPositive(aspectZ,"aspect ratio z/x");
-		 se_e=sh_pars[2];
-		 TestRangeII(se_e,"superellipsoid exponent e",0,10);
-		 se_n=sh_pars[3];
-		 TestRangeII(se_n,"superellipsoid exponent n",0,10);
+		aspectY=sh_pars[0];
+		TestPositive(aspectY,"aspect ratio y/x");
+		aspectZ=sh_pars[1];
+		TestPositive(aspectZ,"aspect ratio z/x");
+		se_e=sh_pars[2];
+		TestRangeII(se_e,"superellipsoid exponent e",0,10);
+		se_n=sh_pars[3];
+		TestRangeII(se_n,"superellipsoid exponent n",0,10);
 
-		 // Has reflection symmetry across all 3 axes, but has
-		 // 90 degree rotation symmetry about z only if a = b.
-		 if (aspectY!=1) symR=false;
+		// Has reflection symmetry across all 3 axes, but has
+		// 90 degree rotation symmetry about z only if a = b.
+		if (aspectY!=1) symR=false;
 
-		 if (IFROOT) {
-			 sh_form_str1="superellipsoid; size along x-axis:";
-			 sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
-			                          aspectY,aspectZ,se_e,se_n);
-		 }
+		if (IFROOT) {
+			sh_form_str1="superellipsoid; size along x-axis:";
+			sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
+						 aspectY,aspectZ,se_e,se_n);
+		}
 
-		 yx_ratio=aspectY;
-		 zx_ratio=aspectZ;
-		 Nmat_need=1;
-		 volume_ratio=SuperellipsoidVolumeRatio(aspectY,aspectZ,se_n,se_e);
+		yx_ratio=aspectY;
+		zx_ratio=aspectZ;
+		Nmat_need=1;
+		volume_ratio=SuperellipsoidVolumeRatio(aspectY,aspectZ,se_n,se_e);
 
-		 // set inverse squares of aspect ratios
-		 invsqY=1/(aspectY*aspectY);
-		 invsqZ=1/(aspectZ*aspectZ);
-		 // set half-aspect ratios (used for edge cases with e or n = 0)
-		 haspY=aspectY/2;
-		 haspZ=aspectZ/2;
-		 break;
-	 }
+		// set inverse squares of aspect ratios
+		invsqY=1/(aspectY*aspectY);
+		invsqZ=1/(aspectZ*aspectZ);
+		// set half-aspect ratios (used for edge cases with e or n = 0)
+		haspY=aspectY/2;
+		haspZ=aspectZ/2;
+		break;
+	}
 #endif // !SPARSE
 		case SH_READ: { // it is first, because always relevant
 			symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
