@@ -185,7 +185,7 @@ void InitBeam(void)
 				vCopy(beam_pars+1,beam_center_0);
 			}
 
-			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			if (!beam_asym) vInit(beam_center);
 			s=1/(WaveNum*w0); //Is it valid if WaveNum is complex?
 			s2=s*s;
@@ -301,7 +301,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		vCopy(incPolY,ey);
 	}
 
-	//printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
+	printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
+	printf("beam_center = "EFORM3V"\n",COMP3V(beam_center));
 
 	switch (beamtype) {
 		case B_PLANE: // plane is separate to be fast (for non-surface)
