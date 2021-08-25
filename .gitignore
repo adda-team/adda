@@ -22,3 +22,4 @@ src/.settings/language.settings.xml
 src/.cproject
 src/githash.h
 src/githash.h
+*.h

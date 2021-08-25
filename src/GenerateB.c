@@ -42,6 +42,8 @@ extern const double beam_pars[];
 extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
+extern const bool use_beam_center;
+extern const bool use_beam_subopt;
 
 extern void bjndd_(int *n, double *x, double *bj, double *dj, double *fj);
 
@@ -86,7 +88,6 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
-	int n_par; // for besselM
 	const char *tmp_str; // temporary string
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
@@ -94,11 +95,14 @@ void InitBeam(void)
 	// initialization of global option index for error messages
 	opt=opt_beam;
 	// beam initialization
+	if (use_beam_center==true && use_beam_subopt==true) LogError(ONE_POS,"Beam center coordinates can not "
+			"be defined both in -beam and in -beam_center options. Please define in only one of the options.");
 	switch (beamtype) {
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
 			beam_asym=false;
 			if (surface) {
+				if (use_beam_center==true) LogError(ONE_POS,"Plane wave currently does not support -beam_center with -surf");
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
 					"the incident direction to have (arbitrary) small positive or negative z-component");
 				if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
@@ -142,7 +146,10 @@ void InitBeam(void)
 			}
 			return;
 		case B_DIPOLE:
-			vCopy(beam_pars,beam_center_0);
+			if (use_beam_subopt==true){
+				LogWarning(EC_WARN,ALL_POS,"Providing beam center coordinates from the -beam option will be deprecated soon. Please use -beam_center option instead.");
+				vCopy(beam_pars,beam_center_0);
+			}
 			if (surface) {
 				if (beam_center_0[2]<=-hsub)
 					PrintErrorHelp("External dipole should be placed strictly above the surface");
@@ -165,8 +172,11 @@ void InitBeam(void)
 			// initialize parameters
 			w0=beam_pars[0];
 			TestPositive(w0,"beam width");
-			vCopy(beam_pars+1,beam_center_0);
-			beam_asym=(beam_Npars==4 && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
+			if (use_beam_subopt==true){
+				LogWarning(EC_WARN,ALL_POS,"Providing beam center coordinates from the -beam option will be deprecated soon. Please use -beam_center option instead.");
+				vCopy(beam_pars+1,beam_center_0);
+			}
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			if (!beam_asym) vInit(beam_center);
 			s=1/(WaveNum*w0);
 			s2=s*s;
@@ -203,17 +213,14 @@ void InitBeam(void)
 			// initialize parameters
 			n0=round(beam_pars[0]);
 			alpha0=beam_pars[1];
-			TestPositive(n0,"Bessel beam order");
+			TestNonNegative(n0,"Bessel beam order");
 			if (beamtype==B_BESSELM) {
-				n_par=8;
 				hvp[0]=beam_pars[2]; hvp[1]=beam_pars[3];
 				hvp[2]=beam_pars[4]; hvp[3]=beam_pars[5];
 				hvp[4]=beam_pars[6]; hvp[5]=beam_pars[7];
 				hvp[6]=beam_pars[8]; hvp[7]=beam_pars[9];
 			}
-			else n_par=0;
-			vCopy(beam_pars+2+n_par,beam_center_0);
-			beam_asym=(beam_Npars==(5 + n_par) && (beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0));
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			symR=symX=symY=symZ=FALSE;
 			if (!beam_asym) vInit(beam_center);
 			// beam info
@@ -405,7 +412,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			else for (i=0;i<local_nvoid_Ndip;i++) { // standard (non-surface) plane wave
 				j=3*i;
-				ctemp=imExp(WaveNum*DotProd(DipoleCoord+j,prop)); // ctemp=exp(ik*r.a)
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+				ctemp=imExp(WaveNum*DotProd(r1,prop)); // ctemp=exp(ik*r.a)
+				//ctemp=imExp(WaveNum*DotProd(DipoleCoord+j,prop)); // ctemp=exp(ik*r.a)
 				cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 			}
 			return;

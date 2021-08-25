@@ -95,6 +95,7 @@ bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as ex
 extern const char *avg_string;
 // defined and initialized in GenerateB.c
 extern const char *beam_descr;
+extern double beam_center_0[3];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -117,6 +118,8 @@ bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
+bool use_beam_center; // Whether -beam_center argument is used or not
+bool use_beam_subopt; // Whether beam center coordinates are taken from -beam sub-option
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;            // whether to average CC over incident polarization
@@ -230,43 +233,36 @@ static const struct subopt_struct beam_opt[]={
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
 		UNDEF,B_BARTON5},
-	{"besselASD","<order> <angle> [<x> <y> <z>]","Angular spectrum decomposition of Bessel beam. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELASD},
-	{"besselCS","<order> <angle> [<x> <y> <z>]","Bessel beam with circularly symmetric energy density. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELCS},
-	{"besselCSp","<order> <angle> [<x> <y> <z>]","Alternative Bessel beam with circularly symmetric energy density. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELCSp},
-	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy> <x> <y> <z>]",
-		"Generalized Bessel beam. The half-cone angle is measured from the z axis. The half-cone angle and beam order "
-		"are obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
-		"(zero, by default). Coordinate arguments are in um.",
+	{"besselASD","<order> <angle>","Angular spectrum decomposition of Bessel beam. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELASD},
+	{"besselCS","<order> <angle>","Bessel beam with circularly symmetric energy density. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELCS},
+	{"besselCSp","<order> <angle>","Alternative Bessel beam with circularly symmetric energy density. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELCSp},
+	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy>]",
+		"Generalized Bessel beam. The half-cone angle (in rad) is measured from the z axis. The beam order and half-cone angle "
+		" and 4 real components of matrix M are obligatory and 4 imaginary components of matrix M are optional "
+		"(zero, by default).",
 		UNDEF,B_BESSELM},
-	{"besselLE","<order> <angle> [<x> <y> <z>]","Bessel beam with linearly polarized electric field. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELLE},
-	{"besselLM","<order> <angle> [<x> <y> <z>]","Bessel beam with linearly polarized magnetic field. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELLM},
-	{"besselTEL","<order> <angle> [<x> <y> <z>]","Bessel beam forming TE Bessel beam. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELTEL},
-	{"besselTML","<order> <angle> [<x> <y> <z>]","Bessel beam forming TM Bessel beam. The half-cone angle "
-		"is measured from the z axis. The half-cone angle and beam order are obligatory and x, y, z coordinates of the "
-		"center of the beam (in laboratory reference frame) are optional (zero, by default). Coordinate arguments are in um.",
-		UNDEF,B_BESSELTML},
+	{"besselLE","<order> <angle>","Bessel beam with linearly polarized electric field. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELLE},
+	{"besselLM","<order> <angle>","Bessel beam with linearly polarized magnetic field. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELLM},
+	{"besselTEL","<order> <angle>","Bessel beam forming TE Bessel beam. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELTEL},
+	{"besselTML","<order> <angle>","Bessel beam forming TM Bessel beam. The half-cone angle (in rad) "
+		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
+		2,B_BESSELTML},
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
-	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
+	{"dipole","[<x> <y> <z>]","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
@@ -371,6 +367,7 @@ void InitBeam(void);
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
+PARSE_FUNC(beam_center);
 PARSE_FUNC(beam);
 PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
@@ -449,6 +446,10 @@ static struct opt_struct options[]={
 		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
 		"formulations, and '-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
+	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam with respect to the initial point in time. "
+				"For plane, Gaussian, and Bessel field it determines the phase in space. "
+				"For a dipole and an electron it determines the position in space.\n"
+		"Default: 0 0 0",3,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types (if present) are floats.\n"
 		"Default: plane",UNDEF,beam_opt},
@@ -1011,6 +1012,14 @@ PARSE_FUNC(asym)
 	calc_vec = true;
 	calc_Csca = true;
 }
+PARSE_FUNC(beam_center)
+{
+	if (Narg!=3) NargError(Narg,"-beam_center requires 3 arguments");
+	use_beam_center = true;
+	ScanDoubleError(argv[1],&beam_center_0[0]);
+	ScanDoubleError(argv[2],&beam_center_0[1]);
+	ScanDoubleError(argv[3],&beam_center_0[2]);
+}
 PARSE_FUNC(beam)
 {
 	int i,j,need;
@@ -1031,15 +1040,22 @@ PARSE_FUNC(beam)
 		switch (beamtype) {
 			case B_LMINUS:
 			case B_DAVIS3:
-			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
-			case B_BESSELASD: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELCS: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELCSp: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELM: if (Narg!=6 && Narg!=10 && Narg!=13) NargError(Narg,"6, 10, or 13"); break;
-			case B_BESSELLE: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELLM: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELTEL: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
-			case B_BESSELTML: if (Narg!=2 && Narg!=5) NargError(Narg,"2 or 5"); break;
+			case B_BARTON5:
+				if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
+				if (Narg==4) use_beam_subopt=true;
+				break;
+			case B_DIPOLE:
+				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
+				if (Narg==3) use_beam_subopt=true;
+				break;
+			case B_BESSELASD: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELCS: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELCSp: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELM: if (Narg!=6 && Narg!=10) NargError(Narg,"6 or 10"); break;
+			case B_BESSELLE: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELLM: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELTEL: if (Narg!=2) NargError(Narg,"2"); break;
+			case B_BESSELTML: if (Narg!=2) NargError(Narg,"2"); break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
@@ -1935,6 +1951,11 @@ void InitVariables(void)
 	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
+	use_beam_center=false;
+	use_beam_subopt=false;
+	beam_center_0[0]=0;
+	beam_center_0[1]=0;
+	beam_center_0[2]=0;
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
 	ref_index[0]=1.5;
@@ -2471,6 +2492,7 @@ void PrintInfo(void)
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
+		fprintf(logfile,"Incident beam center position: "GFORMDEF3V"\n",COMP3V(beam_center_0));
 		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop_0));
 		if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
 		else { // polarizations are not shown for dipole incident field
