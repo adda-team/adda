@@ -144,8 +144,6 @@ static unsigned short * restrict position_tmp;
 
 // chebyshev.c
 void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,double *vr);
-// superellipsoid.c
-double SuperellipsoidVolumeRatio(double aspY,double aspZ,double se_n,double se_e);
 
 //======================================================================================================================
 
@@ -1813,42 +1811,61 @@ void InitShape(void)
 			Nmat_need=2;
 			break;
 		}
-	case SH_SUPERELLIPSOID: {
-		 double aspectY, aspectZ;
+		case SH_SUPERELLIPSOID: {
+			double aspectY, aspectZ;
 
-		 // Read and test parameters
-		aspectY=sh_pars[0];
-		TestPositive(aspectY,"aspect ratio y/x");
-		aspectZ=sh_pars[1];
-		TestPositive(aspectZ,"aspect ratio z/x");
-		se_e=sh_pars[2];
-		TestRangeII(se_e,"superellipsoid exponent e",0,10);
-		se_n=sh_pars[3];
-		TestRangeII(se_n,"superellipsoid exponent n",0,10);
+			// Read and test parameters
+			aspectY=sh_pars[0];
+			TestPositive(aspectY,"aspect ratio y/x");
+			aspectZ=sh_pars[1];
+			TestPositive(aspectZ,"aspect ratio z/x");
+			se_e=sh_pars[2];
+			TestNonNegative(se_e,"superellipsoid exponent e");
+			se_n=sh_pars[3];
+			TestNonNegative(se_n,"superellipsoid exponent n");
 
-		// Has reflection symmetry across all 3 axes, but has
-		// 90 degree rotation symmetry about z only if a = b.
-		if (aspectY!=1) symR=false;
+			// Has reflection symmetry across all 3 axes, but has
+			// 90 degree rotation symmetry about z only if a = b.
+			if (aspectY!=1) symR=false;
 
-		if (IFROOT) {
-			sh_form_str1="superellipsoid; size along x-axis:";
-			sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
-						 aspectY,aspectZ,se_e,se_n);
+			if (IFROOT) {
+				sh_form_str1="superellipsoid; size along x-axis:";
+				sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
+					aspectY,aspectZ,se_e,se_n);
+				}
+
+			yx_ratio=aspectY;
+			zx_ratio=aspectZ;
+			Nmat_need=1;
+			/* Volume analytically given by Wriedt (2002) eq. 4, derived in Ref. 40.
+			Note that the relevant box volume is 8a^3. So, the ratio is
+			ratio = (1/4) (b/a) (c/a) n B(n/2 +1, n) e B(e/2, e/2).
+			Use lgamma to avoid numerical problems. Explicitly handle edge cases
+			when n or e are 0.
+			Store n B(n/2 + 1, n) in tmp1 */
+			if (se_n==0) {
+				tmp1=1;
+			}
+			else {
+				tmp1=exp(log(se_n) + lgamma(se_n/2+1) + lgamma(se_n) - lgamma(3*se_n/2+1));
+			}
+			// Store e B(e/2, e/2) in tmp2
+			if (se_e==0) {
+				tmp2=4;
+			}
+			else {
+				tmp2=exp(log(se_e) + 2*lgamma(se_e/2) - lgamma(se_e));
+			}
+			volume_ratio=0.25*aspectY*aspectZ*tmp1*tmp2;
+
+			// set inverse squares of aspect ratios
+			invsqY=1/(aspectY*aspectY);
+			invsqZ=1/(aspectZ*aspectZ);
+			// set half-aspect ratios (used for edge cases with e or n = 0)
+			haspY=aspectY/2;
+			haspZ=aspectZ/2;
+			break;
 		}
-
-		yx_ratio=aspectY;
-		zx_ratio=aspectZ;
-		Nmat_need=1;
-		volume_ratio=SuperellipsoidVolumeRatio(aspectY,aspectZ,se_n,se_e);
-
-		// set inverse squares of aspect ratios
-		invsqY=1/(aspectY*aspectY);
-		invsqZ=1/(aspectZ*aspectZ);
-		// set half-aspect ratios (used for edge cases with e or n = 0)
-		haspY=aspectY/2;
-		haspZ=aspectZ/2;
-		break;
-	}
 #endif // !SPARSE
 		case SH_READ: { // it is first, because always relevant
 			symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
@@ -2267,7 +2284,6 @@ void MakeParticle(void)
 				}
 				else {
 					// The usual case with n, e > 0.
-					// Singular behavior for very small n and e is still possible!
 					// Need exponent ratios
 					oneOverN=1/se_n;
 					oneOverE=1/se_e;
