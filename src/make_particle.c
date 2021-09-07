@@ -96,6 +96,7 @@ static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (d
 #ifndef SPARSE
 
 // shape parameters
+static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 static double coat_x,coat_y,coat_z,coat_r2;
 static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
@@ -107,7 +108,7 @@ static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circ
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
-static double se_e,se_n; // exponent parameters for superellipsoid
+static double seE,seN,seT,seR,seToverR,seInvR; // for superellipsoid
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo,contCurZ;
@@ -1331,7 +1332,6 @@ void InitShape(void)
 {
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
-	double yx_ratio,zx_ratio;
 	double tmp1,tmp2;
 	double rsMax; // maximum of rectScale*
 #ifndef SPARSE
@@ -1816,54 +1816,44 @@ void InitShape(void)
 
 			// Read and test parameters
 			aspectY=sh_pars[0];
-			TestPositive(aspectY,"aspect ratio y/x");
+			TestPositive(aspectY,"aspect ratio b/a");
 			aspectZ=sh_pars[1];
-			TestPositive(aspectZ,"aspect ratio z/x");
-			se_e=sh_pars[2];
-			TestNonNegative(se_e,"superellipsoid exponent e");
-			se_n=sh_pars[3];
-			TestNonNegative(se_n,"superellipsoid exponent n");
-
-			// Has reflection symmetry across all 3 axes, but has
-			// 90 degree rotation symmetry about z only if a = b.
+			TestPositive(aspectZ,"aspect ratio c/a");
+			seE=sh_pars[2];
+			TestNonNegative(seE,"superellipsoid exponent e");
+			seN=sh_pars[3];
+			TestNonNegative(seN,"superellipsoid exponent n");
+			// Has reflection symmetry across all 3 axes, but 90 degree rotation symmetry about z - only if a=b
 			if (aspectY!=1) symR=false;
-
 			if (IFROOT) {
 				sh_form_str1="superellipsoid; size along x-axis:";
 				sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
-					aspectY,aspectZ,se_e,se_n);
+					aspectY,aspectZ,seE,seN);
 				}
-
 			yx_ratio=aspectY;
 			zx_ratio=aspectZ;
 			Nmat_need=1;
-			/* Volume analytically given by Wriedt (2002) eq. 4, derived in Ref. 40.
-			Note that the relevant box volume is 8a^3. So, the ratio is
-			ratio = (1/4) (b/a) (c/a) n B(n/2 +1, n) e B(e/2, e/2).
-			Use lgamma to avoid numerical problems. Explicitly handle edge cases
-			when n or e are 0.
-			Store n B(n/2 + 1, n) in tmp1 */
-			if (se_n==0) {
-				tmp1=1;
-			}
-			else {
-				tmp1=exp(log(se_n) + lgamma(se_n/2+1) + lgamma(se_n) - lgamma(3*se_n/2+1));
-			}
-			// Store e B(e/2, e/2) in tmp2
-			if (se_e==0) {
-				tmp2=4;
-			}
-			else {
-				tmp2=exp(log(se_e) + 2*lgamma(se_e/2) - lgamma(se_e));
-			}
+			/* Volume is given analytically by Eq.(4) in T. Wriedt, "Using the T-matrix method for light scattering
+			 * computations by non-axisymmetric particles: Superellipsoids and realistically shaped particles," Part.
+			 * Part. Sys. Charact. 19, 256-268 (2002).
+			 * Since the relevant box volume is 8a^3, the volume ratio (1/4)(b/a)(c/a)*n*B(n/2 +1,n)*e*B(e/2,e/2).
+			 * Both n*B(n/2 +1,n) and e*B(e/2,e/2) are continuous to zero, and can be reliably computed using lgamma.
+			 * Still we need to explicitly handle edge cases when n or e are 0.
+			 */
+			// tmp1=n*B(n/2+1,n)
+			if (seN==0) tmp1=1;
+			else tmp1=exp(log(seN) + lgamma(seN/2+1) + lgamma(seN) - lgamma(3*seN/2+1));
+			// tmp2=e*B(e/2,e/2)
+			if (seE==0) tmp2=4;
+			else tmp2=exp(log(seE) + 2*lgamma(seE/2) - lgamma(seE));
 			volume_ratio=0.25*aspectY*aspectZ*tmp1*tmp2;
-
-			// set inverse squares of aspect ratios
-			invsqY=1/(aspectY*aspectY);
-			invsqZ=1/(aspectZ*aspectZ);
-			// set half-aspect ratios (used for edge cases with e or n = 0)
-			haspY=aspectY/2;
-			haspZ=aspectZ/2;
+			// set additional parameters when possible
+			seInvR=seE/2;
+			if (seE!=0) seR=2/seE;
+			if (seN!=0) {
+				seT=2/seN;
+				seToverR=seE/seN;
+			}
 			break;
 		}
 #endif // !SPARSE
@@ -2067,6 +2057,10 @@ void MakeParticle(void)
 	int j,k,ns;
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
+	/* Normalized dipole coordinates for superellipsoid: |x/a|, |y/b|, |z/c|. They should be from 0 to 1 if no void grid
+	 * layers are used. Currently cannot be used for other shapes.
+	 */
+	double xn,yn,zn;
 	double xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
@@ -2078,8 +2072,6 @@ void MakeParticle(void)
 	int mat;
 	unsigned short us_tmp;
 	TIME_TYPE tgran;
-	// inverses and ratios of superellipsoid exponents
-	double oneOverN, oneOverE, eOverN;
 #endif // !SPARSE
 
 	/* TO ADD NEW SHAPE
@@ -2261,37 +2253,36 @@ void MakeParticle(void)
 				else if (fabs(yr)<=0.5 && fabs(zr)<=0.5) mat=0;
 				break;
 			case SH_SUPERELLIPSOID:
-			  // Need to deal with singularities when exponents e or n = 0
-				if (se_n==0 && se_e==0) {
-					// This is a box
-					if (fabs(yr)<=haspY && fabs(zr)<=haspZ) mat=0;
-				}
-				else if (se_n==0 && se_e>0) {
-					// Uniform cross-sections along z (parallel to x-y plane) that are
-					// superellipses.
-					oneOverE=1/se_e;
-					// the inside/outside function
-					tmp1=pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE);
-					if (tmp1<=0.25 && fabs(zr)<=haspZ) mat=0;
-				}
-				else if (se_n>0 && se_e==0){
-				  // Cross sections along z are rectangles (superellipse with e=0)
-					// but with a and b scaled according to z.
-					oneOverN=1/se_n;
-					// the scale factor
-					tmp1=pow(1 - pow(4*invsqZ*zr*zr,oneOverN),0.5*se_n);
-					if (fabs(xr)<=0.5*tmp1 && fabs(yr)<=haspY*tmp1 && fabs(zr)<=haspZ) mat=0;
-				}
-				else {
-					// The usual case with n, e > 0.
-					// Need exponent ratios
-					oneOverN=1/se_n;
-					oneOverE=1/se_e;
-					eOverN=se_e/se_n;
-					tmp1=pow(pow(xr*xr,oneOverE) + pow(invsqY*yr*yr,oneOverE),
-									 eOverN);
-					tmp2=pow(invsqZ*zr*zr,oneOverN);
-					if (pow(4,oneOverN) * (tmp1+tmp2) <= 1) mat=0;
+				xn=fabs(2*xr);
+				yn=fabs(2*yr/yx_ratio);
+				zn=fabs(2*zr/zx_ratio);
+				// separate check for bounding box to avoid overflows in power functions
+				if (yn<=1 && zn<=1) {
+					/* First we consider zero e and n, then use two separate ways to separate the powers in
+					 * (xn^r + yn^r)^(t/r): either, (...)^(t/r) or (...)^t. This ensures that we do not have very small
+					 * value (susceptible to underflow) taken to a large power or vice versa. Moreover, the description
+					 * is continuous with decreasing n and/or e. Although the cases of n=0 or e=0 still need a separate
+					 * if clause, they do appear as natural limiting cases.
+					 */
+					if (seN==0 && seE==0) mat=0; // a box
+					else if (seE > MIN(seN,1)) { // implies that e!=0
+						/* n=0 => xy-sections are superellipses independent of z, while xz- and yz-sections are
+						 * rectangles
+						 */
+						tmp1=pow(xn,seR) + pow(yn,seR);
+						if (tmp1<=1 && (seN==0 || pow(tmp1,seToverR) + pow(zn,seT) <= 1) ) mat=0;
+					}
+					else { // here n!=0
+						/* e=0 => xz- and yz-sections are superellipses independent of y and x, respectively, while
+						 * xy-sections are rectangles
+						 */
+						if (seE==0) tmp1=MAX(xn,yn);
+						// in the following we ensure that the argument taken to (potentially large) power r is <=1
+						else if (xn<yn) tmp1=yn*pow(1+pow(xn/yn,seR),seInvR);
+						else if (xn>yn) tmp1=xn*pow(1+pow(yn/xn,seR),seInvR);
+						else tmp1=yn*pow(2,seInvR);
+						if (pow(tmp1,seT) + pow(zn,seT) <= 1) mat=0;
+					}
 				}
 				break;
 		}
