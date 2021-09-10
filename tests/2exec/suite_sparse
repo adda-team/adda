@@ -36,7 +36,7 @@
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
 # Instead of 'all' an exclusion flags can be used - a concanetated list of '!X', where X is either an operational mode
-# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched, 
+# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched,
 # otherwise it is equivalent to 'all'.
 
 all ;g;
@@ -155,7 +155,7 @@ all -maxiter 5 ;mgn;
 
 all -h no_reduced_fft
 all -no_reduced_fft ;mgn;
-!mpi,!mpi_seq -no_reduced_fft -iter cgnr ;mgn; 
+!mpi,!mpi_seq -no_reduced_fft -iter cgnr ;mgn;
 
 all -h no_vol_cor
 all -no_vol_cor -size 3 ;mgn;
@@ -273,7 +273,7 @@ all -h scat_matr
 all -scat_matr muel ;mgn;
 all -scat_matr ampl ;mgn;
 all -scat_matr both ;mgn;
-all -scat_matr none ;m; ;g; 
+all -scat_matr none ;m; ;g;
 
 all -h scat_plane
 all -scat_plane ;se; ;mn;
@@ -325,8 +325,10 @@ all -shape read ell_ddscat7.dat ;m; ;n;
 #all -shape sphere ;mgn;
 #all -h shape spherebox
 #all -shape spherebox 0.5 ;2mgn;
+#all -h shape superellipsoid
+#all -shape superellipsoid 0.5 0.75 0.5 1.5 ;mgn;
 
-all -h size 
+all -h size
 all -size 8 ;mgn;
 
 all -h so_buf
@@ -360,9 +362,9 @@ all -surf 4 inf -prop 1 2 -3 ;se; ;mn;
 all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;ss; ;mn;
 all -surf 4 inf -beam dipole 3 2 1 ;p; ;ss; ;mn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
-!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
+!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;
 
-all -h sym 
+all -h sym
 all -sym auto ;mn; ;ss;
 all -sym no ;mn; ;ss;
 all -sym enf ;mn; ;ss;

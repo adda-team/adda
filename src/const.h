@@ -16,7 +16,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.4.0"
+#define ADDA_VERSION "1.5.0-alpha"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -162,26 +162,27 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 	(a)[13],(a)[14],(a)[15]
 
 enum sh { // shape types
-	SH_AXISYMMETRIC, // axisymmetric
-	SH_BICOATED,     // two coated spheres
-	SH_BIELLIPSOID,  // two general ellipsoids
-	SH_BISPHERE,     // two spheres
-	SH_BOX,          // box (may be rectangular)
-	SH_CAPSULE,      // capsule
-	SH_CHEBYSHEV,    // Chebyshev particle (axisymmetric)
-	SH_COATED,       // coated sphere
-	SH_COATED2,      // three concentric spheres (core with 2 shells)
-	SH_CYLINDER,     // cylinder
-	SH_EGG,          // egg
-	SH_ELLIPSOID,    // general ellipsoid
-	SH_LINE,         // line with width of one dipole
-	SH_PLATE,        // plate
-	SH_PRISM,        // right rectangular prism
-	SH_RBC,          // Red Blood Cell
-	SH_READ,         // read from file
-	//SH_SDISK_ROT,  // disc cut of a sphere -- not operational
-	SH_SPHERE,       // sphere
-	SH_SPHEREBOX     // sphere in a box
+	SH_AXISYMMETRIC,  // axisymmetric
+	SH_BICOATED,      // two coated spheres
+	SH_BIELLIPSOID,   // two general ellipsoids
+	SH_BISPHERE,      // two spheres
+	SH_BOX,           // box (may be rectangular)
+	SH_CAPSULE,       // capsule
+	SH_CHEBYSHEV,     // Chebyshev particle (axisymmetric)
+	SH_COATED,        // coated sphere
+	SH_COATED2,       // three concentric spheres (core with 2 shells)
+	SH_CYLINDER,      // cylinder
+	SH_EGG,           // egg
+	SH_ELLIPSOID,     // general ellipsoid
+	SH_LINE,          // line with width of one dipole
+	SH_PLATE,         // plate
+	SH_PRISM,         // right rectangular prism
+	SH_RBC,           // Red Blood Cell
+	SH_READ,          // read from file
+	//SH_SDISK_ROT,   // disc cut of a sphere -- not operational
+	SH_SPHERE,        // sphere
+	SH_SPHEREBOX,     // sphere in a box
+	SH_SUPERELLIPSOID // superellipsoid
 	/* TO ADD NEW SHAPE
 	 * add an identifier starting with 'SH_' and a descriptive comment to this list in alphabetical order.
 	 */
