@@ -4,7 +4,7 @@
 !  Point in Polyhedron                                                              !
 !  Original version 0.80125 (2008 January 25) (Subversion:9) by Roman Schuh         !
 !  Further changes are tracked by version control of ADDA, see also README          !
-!  (uses I0 format identifier from Fortran95 standard)                              !
+!  (uses I0 format identifier and ceining() from Fortran95 standard)                !
 !                                                                                   !
 !  The program calls the ivread_wr.f90 subroutine.                                  !
 !  This routine is based on the ivread.f90 routine by John Burkardt (1999).         !
@@ -32,12 +32,13 @@
 !  A divide by three or by four scheme is also included in MilkShape-1.5.7.         !
 !                                                                                   !
 !-----------------------------------------------------------------------------------!
+  implicit none
   integer, parameter :: face_max = 100000
   integer, parameter :: node_max = 100000
   integer, parameter :: face_order_max = 3
 
   integer node_num
-  integer na, ppos
+  integer ppos
   integer face_num, n_surfaces
   real face_point(3,face_max)
   real face_normal(3,face_max)
@@ -53,9 +54,8 @@
   integer NAT,MXNAT,error
   integer, dimension(:), allocatable :: ICOMP
   integer, dimension(:,:), allocatable :: IXYZ
-  real A1(3),A2(3),DX(3)
-  integer JX,JY,JZ,NB,NFAC,NLAY,NX2,NY1,NY2,NZ1,NZ2
-  real ASPR,PI,REFF2,Y2M,YCM,Z2,ZCM
+  real DX(3),RD0(3)
+  integer JX,JY,JZ
 
   real xave,xrange
   real xmax
@@ -66,11 +66,11 @@
   real zave,zrange
   real zmax
   real zmin
-  real maxxyz,xyzscale
+  real maxxyz,ds
   real array (3)
   integer maxpos,numiargc
   integer NBX,NBY,NBZ
-  integer xsh,ysh,zsh, shape_size
+  integer xsh,ysh,zsh,shape_size
   character*80 strafg
   
 !
@@ -95,11 +95,11 @@
     endif
 !   check for presence of extension of filename, add .obj if none
     ppos=scan(filein_name,".",BACK=.true.)
-	print *,'!!!',filein_name,'!!!'
+    print *,'!!!',filein_name,'!!!'
     if(ppos > 0) then
         name_out = filein_name(1:ppos)//'dat'
     else
-		name_out = trim(filein_name)//'.dat'
+        name_out = trim(filein_name)//'.dat'
         filein_name = trim(filein_name)//'.obj'
     endif
 
@@ -119,20 +119,18 @@
     face_order = 3
 
     call ivread_wr(filein_name,face_point,face_normal,face_area,face_num,node_num,v4,face)
-    
+
+!   This is very non-optimal in view of memory requirements and makes some of the code
+!   in single precision, some in double. Partly, this is justified by the pip routine
+!   that computes solid angle for each face and then sums them over the faces,
+!   potentially losing a lot of precision. At this point, we do not want to investigate
+!   this issue (not to touch other source files)
     vv(1:3,1:node_num)=dble(v4(1:3,1:node_num))
     
+!   This incurs redundant (duplicate) printing of the corresponding information, 
+!   since this function is also called from ivread_wr above
     call cor3_limits(node_max, node_num, v4,&
          xmin, xave, xmax, ymin, yave, ymax, zmin, zave, zmax)
-    
-    PI=4.*atan(1.)
-
-    do JX=1,3
-        A1(JX)=0.
-        A2(JX)=0.
-    enddo
-    A1(1)=1.
-    A2(2)=1.
 
     xrange=xmax-xmin
     yrange=ymax-ymin
@@ -143,54 +141,29 @@
     array(2)=yrange
     array(3)=zrange
     maxpos=maxloc(array,1)
+    ds=maxxyz/shape_size
 
     if(maxpos == 1)then
         NBX=xsh
-        NBY=int(yrange/xrange*xsh)
-        NBZ=int(zrange/xrange*xsh)
-        xyzscale=xsh/xrange
+        NBY=ceiling(yrange/xrange*xsh)
+        NBZ=ceiling(zrange/xrange*xsh)
     endif
     if(maxpos == 2)then
-        NBX=int(xrange/yrange*ysh)
+        NBX=ceiling(xrange/yrange*ysh)
         NBY=ysh
-        NBZ=int(zrange/yrange*ysh)
-        xyzscale=ysh/yrange
+        NBZ=ceiling(zrange/yrange*ysh)
     endif
     if(maxpos == 3)then
-        NBX=int(xrange/zrange*zsh)
-        NBY=int(yrange/zrange*zsh)
+        NBX=ceiling(xrange/zrange*zsh)
+        NBY=ceiling(yrange/zrange*zsh)
         NBZ=zsh
-        xyzscale=zsh/zrange
     endif
 
-
-    if(2*(NBX/2).LT.NBX)then
-        XCM=0.
-        NX1=-NBX/2
-        NX2=NBX/2
-    else
-        XCM=0.5
-        NX1=-NBX/2+1
-        NX2=NBX/2
-    endif
-    if(2*(NBY/2).LT.NBY)then
-        YCM=0.
-        NY1=-NBY/2
-        NY2=NBY/2
-    else
-        YCM=0.5
-        NY1=-NBY/2+1
-        NY2=NBY/2
-    endif
-    if(2*(NBZ/2).LT.NBZ)then
-        ZCM=0.
-        NZ1=-NBZ/2
-        NZ2=NBZ/2
-    else
-        ZCM=0.5
-        NZ1=-NBZ/2+1
-        NZ2=NBZ/2
-    endif
+!   the following is approximately equal to xmin/ds + 0.5 and similar, but the exact equality
+!   is only for the largest dimension. In any case the grid is centered on the bounding box
+    RD0(1) = ((xmax+xmin)/ds - NBX + 1)/2.0
+    RD0(2) = ((ymax+ymin)/ds - NBY + 1)/2.0
+    RD0(3) = ((zmax+zmin)/ds - NBZ + 1)/2.0
 
     MXNAT=NBX*NBY*NBZ
     allocate(ICOMP(MXNAT),stat=error)
@@ -204,12 +177,12 @@
         stop
     endif
 
-    do JZ=NZ1,NZ2
-        do JY=NY1,NY2
-            do JX=NX1,NX2
-                pp(1)=1.1*dble(JX)/dble(xyzscale)+dble(xmax+xmin)/2.
-                pp(2)=1.1*dble(JY)/dble(xyzscale)+dble(ymax+ymin)/2.
-                pp(3)=1.1*dble(JZ)/dble(xyzscale)+dble(zmax+zmin)/2.
+    do JZ=0,(NBZ-1)
+        do JY=0,(NBY-1)
+            do JX=0,(NBX-1)
+                pp(1)=dble((JX+RD0(1))*ds)
+                pp(2)=dble((JY+RD0(2))*ds)
+                pp(3)=dble((JZ+RD0(3))*ds)
                 call polyhedron_contains_point_3d ( node_num, face_num, &
                      face_order_max, vv, face_order, face, pp, inside )
                 if(inside .eqv. .true.) then
@@ -227,7 +200,7 @@
 
     write(*,*)NAT
     open(unit=12,file=name_out,status='UNKNOWN')
-    write(12,fmt=92)NBX,NBY,NBZ,NAT,A1,A2,DX
+    write(12,fmt=92)NBX,NBY,NBZ,NAT,DX,RD0
     do JX=1,NAT
         write(12,fmt=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX),ICOMP(JX),ICOMP(JX)
     enddo
@@ -236,15 +209,20 @@
     deallocate(ICOMP)
     deallocate(IXYZ)
 
-92  format(' >PIPOBJ: point-in-polyhedron: NBX, NBY, NBZ=',3(' ',I0),/,&
+!   uses scientific format for lattice spacings and offset to guarantee that the values fit
+!   the width (with at least one remaining space) even if the three digits are used for 
+!   exponent and minus is used for offset
+92  format(' >PIPOBJ: point-in-polyhedron: NBX, NBY, NBZ=',3(X,I0),/,&
         ' ',I0,' = NAT',/,&
-        3F7.4,' = A_1 vector',/,&
-        3F7.4,' = A_2 vector',/,&
-        3F7.4,' = lattice spacings (d_x,d_y,d_z)/d',/,&
-        ' 0.0 0.0 0.0',/,&
+        ' 1 0 0 = A_1 vector',/,&
+        ' 0 1 0 = A_2 vector',/,&
+        3ES14.6,' = lattice spacings (dx,dy,dz)/d',/,&
+        3ES14.5,' = coordinates (x0/dx,y0/dy,z0/dz) of the zero dipole (IX=IY=IZ=0)',/,&
         ' JA IX IY IZ ICOMP(x,y,z)')
-!   sacrifices text alignment to minimize file size; still contains leading space on each line
-93  format(7(' ',I0))
+!   sacrifices text alignment to minimize file size; still contains leading space on 
+!   each line for some historic reasons related to Fortran90 (otherwise compiler may
+!   strip the first character). The latter applies to the format above as well
+93  format(7(X,I0))
 
 end
 
