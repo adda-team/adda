@@ -75,7 +75,8 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 static int n0;                 // Bessel beam order
 static double alpha0;          // half-cone angle
-static double hvp[8];		   // Matrix M components
+static doublecomplex K,Kt,Kz;  // wave vector components
+static double M[4];		   	   // Matrix M components
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
@@ -214,11 +215,41 @@ void InitBeam(void)
 			n0=round(beam_pars[0]);
 			alpha0=beam_pars[1];
 			TestNonNegative(n0,"Bessel beam order");
-			if (beamtype==B_BESSELM) {
-				hvp[0]=beam_pars[2]; hvp[1]=beam_pars[3];
-				hvp[2]=beam_pars[4]; hvp[3]=beam_pars[5];
-				hvp[4]=beam_pars[6]; hvp[5]=beam_pars[7];
-				hvp[6]=beam_pars[8]; hvp[7]=beam_pars[9];
+			K =fabs(WaveNum);
+			Kt=fabs(WaveNum)*sin(alpha0);
+			Kz=fabs(WaveNum)*cos(alpha0);
+			switch (beamtype) { // definition of matrix M elements ((Mex,Mey),(Mmx,Mmy))
+				case B_BESSELCS:
+					M[0]=0.5;	M[1]=0;
+					M[2]=0;		M[3]=0.5;
+					break;
+				case B_BESSELCSp:
+					M[0]=0.5;	M[1]=0;
+					M[2]=0;		M[3]=-0.5;
+					break;
+				case B_BESSELM:
+					M[0]=beam_pars[2]+I*beam_pars[6];
+					M[1]=beam_pars[3]+I*beam_pars[7];
+					M[2]=beam_pars[4]+I*beam_pars[8];
+					M[3]=beam_pars[5]+I*beam_pars[9];
+					break;
+				case B_BESSELLE:
+					M[0]=0;		M[1]=0;
+					M[2]=0;		M[3]=1;
+					break;
+				case B_BESSELLM:
+					M[0]=0;		M[1]=1;
+					M[2]=0;		M[3]=0;
+					break;
+				case B_BESSELTEL:
+					M[0]=-K/Kt;		M[1]=0;
+					M[2]=0;			M[3]=Kz/Kt;
+					break;
+				case B_BESSELTML:
+					M[0]=0; 		M[1]=Kz/Kt;
+					M[2]=K/Kt;		M[2]=0;
+					break;
+				default: break;
 			}
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 			symR=symX=symY=symZ=FALSE;
@@ -227,33 +258,33 @@ void InitBeam(void)
 			if (IFROOT) {
 				switch (beamtype) {
 					case B_BESSELASD:
-						tmp_str="angular spectrum decomposition)\n";
+						tmp_str="angular spectrum decomposition";
 						break;
 					case B_BESSELCS:
-						tmp_str="circularly symmetric energy density)\n";
+						tmp_str="circularly symmetric energy density";
 						break;
 					case B_BESSELCSp:
-						tmp_str="circularly symmetric energy density (alternative))\n";
+						tmp_str="circularly symmetric energy density (alternative)";
 						break;
 					case B_BESSELM:
-						tmp_str="generalized)\n";
+						tmp_str="generalized";
 						break;
 					case B_BESSELLE:
-						tmp_str="linear electric field)\n";
+						tmp_str="linear electric field";
 						break;
 					case B_BESSELLM:
-						tmp_str="linear magnetic field)\n";
+						tmp_str="linear magnetic field";
 						break;
 					case B_BESSELTEL:
-						tmp_str="forming the TE Bessel beam)\n";
+						tmp_str="forming the TE Bessel beam";
 						break;
 					case B_BESSELTML:
-						tmp_str="forming the TM Bessel beam)\n";
+						tmp_str="forming the TM Bessel beam";
 						break;
 					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 				}
 				beam_descr=dyn_sprintf("Bessel beam (%s)\n"
-									   "\tOrder=""%d""\n\t""Half-cone angle: "GFORMDEF"\n"
+									   "\tOrder: ""%d""\n\t""Half-cone angle: "GFORMDEF"\n"
 									   "\tCenter position: "GFORMDEF3V,tmp_str,n0,alpha0,COMP3V(beam_center_0));
 			}
 			return;
@@ -316,10 +347,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
-	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
 	int n1,N,it; // for Bessel beams
-	doublecomplex M[4],sum[3],fint[3]; // matrix M for Bessel beams
-	double phi,arg,td1[n0+3],td2[n0+3],jn1[n0+3],K,Kt,Kz,r,tht,db; // for Bessel beams
+	doublecomplex vort;  // vortex phase of Bessel beam rotated on 90 deg
+	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
+	doublecomplex sum[3],fint[3];
+	double phi,arg,td1[n0+3],td2[n0+3],jn1[n0+3],r,tht,db; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -525,6 +557,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			}
 			return;
 		case B_BESSELASD:
+			if (which==INCPOL_X) vort = cpow(I,n0);
+			else vort = 1.;
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
@@ -555,7 +589,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_RVec(t2,ey,v2);
 				cvMultScal_RVec(t3,prop,v3);
 				cvAdd2Self(v1,v2,v3);
-				cvMultScal_cmplx(1.,v1,b+j);
+				cvMultScal_cmplx(vort,v1,b+j);
 			}
 			return;
 		case B_BESSELCS:
@@ -565,10 +599,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		case B_BESSELLM:
 		case B_BESSELTEL:
 		case B_BESSELTML:
-			K =fabs(WaveNum);
-			Kt=fabs(WaveNum)*sin(alpha0);
-			Kz=fabs(WaveNum)*cos(alpha0);
-
+			if (which==INCPOL_X) vort = cpow(I,n0);
+			else vort = 1.;
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
@@ -579,12 +611,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				ro=sqrt(ro2);	// radial distance in a cylindrical coordinate system
 				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
 				// common factor
-				ctemp=cexp(I*n0*phi)*cexp(I*Kz*z)/K/K;
+				ctemp=cexp(I*n0*phi)*cexp(I*Kz*z)/K/K*vort;
 				arg=Kt*ro;
 				if (arg<ROUND_ERR){
-					if (n0 == 0) fn[2]=1.0;
-					else fn[2]=0.0;
-					fn[0]=0.0; fn[1]=0.0; fn[3]=0.0; fn[4]=0.0;
+					if (n0 == 0) fn[2]=1.;
+					else fn[2]=0;
+					fn[0]=0; fn[1]=0; fn[3]=0; fn[4]=0;
 				}
 				else {
 					n1=n0+2;
@@ -605,44 +637,13 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					fn[3] = jn1[n0+1]*cexp(I*phi);
 					fn[4] = jn1[n0+2]*cexp(2*I*phi);
 				}
-				switch (beamtype) { // definition of matrix M elements ((Mex,Mey),(Mmx,Mmy))
-					case B_BESSELCS:
-						M[0]=0.5;	M[1]=0;
-						M[2]=0;		M[3]=0.5;
-						break;
-					case B_BESSELCSp:
-						M[0]=0.5;	M[1]=0;
-						M[2]=0;		M[3]=-0.5;
-						break;
-					case B_BESSELM:
-						M[0]=hvp[0]+I*hvp[4];	M[1]=hvp[1]+I*hvp[5];
-						M[2]=hvp[2]+I*hvp[6];	M[3]=hvp[3]+I*hvp[7];
-						break;
-					case B_BESSELLE:
-						M[0]=0;		M[1]=0;
-						M[2]=0;		M[3]=1;
-						break;
-					case B_BESSELLM:
-						M[0]=0;		M[1]=1;
-						M[2]=0;		M[3]=0;
-						break;
-					case B_BESSELTEL:
-						M[0]=-K/Kt;		M[1]=0;
-						M[2]=0;			M[3]=Kz/Kt;
-						break;
-					case B_BESSELTML:
-						M[0]=0; 		M[1]=Kz/Kt;
-						M[2]=K/Kt;		M[2]=0;
-						break;
-					default: break;
-				}
 
-				t1 = (((K*K+Kz*Kz)/2.0*M[0] +  K*Kz*M[3])*fn[2] +
-						  Kt*Kt/4.0*((M[0]+I*M[1])*fn[0] + (M[0]-I*M[1])*fn[4]));	// Ex
-				t2 = (((K*K+Kz*Kz)/2.0*M[1] -  K*Kz*M[2])*fn[2] +
-						I*Kt*Kt/4.0*((M[0]+I*M[1])*fn[0] - (M[0]-I*M[1])*fn[4]));	// Ey
+				t1 = (((K*K+Kz*Kz)/2.*M[0] +  K*Kz*M[3])*fn[2] +
+						  Kt*Kt/4.*((M[0]+I*M[1])*fn[0] + (M[0]-I*M[1])*fn[4]));	// Ex
+				t2 = (((K*K+Kz*Kz)/2.*M[1] -  K*Kz*M[2])*fn[2] +
+						I*Kt*Kt/4.*((M[0]+I*M[1])*fn[0] - (M[0]-I*M[1])*fn[4]));	// Ey
 				t3 = ((I*Kz*(M[0]+I*M[1]) + K*(M[2]+I*M[3]))*fn[1] -
-					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2.0;			// Ez
+					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2.;			// Ez
 
 				cvMultScal_RVec(t1,ex,v1);
 				cvMultScal_RVec(t2,ey,v2);
