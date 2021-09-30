@@ -13,7 +13,9 @@ Executable is named `pip`, it accepts up tp two command line parameters:
 - `<grid>` - maximum shape size (number of dipoles) along the largest dimension that is determined automatically. If omitted, the default value of 80 is used (and further arguments cannot be used).
 - `<filename>`. Input shape is read from `<filename>.obj` and DDSCAT7 shape is saved into `<filename>.dat`. If omitted, PIP will use the default filename `shape` (read `shape.obj` and save `shape.dat`). If `<filename>` includes extension, then it will be used for input file (instead of `.obj`).
 
-It should be possible to read other 3D formats, which are supported by routines in `ivread_wr.f90` - see comments in the source files. However, only .obj format is sufficiently tested. Moreover, the algorithm requires consistent alignment of face normals - they should all point outward. Should work for very large number of dipoles (limited only by memory and computational time).
+It should be possible to read other 3D formats, which are supported by routines in `ivread_wr.f90` - see comments in the source files. However, only .obj format is sufficiently tested. Should work for very large number of dipoles (limited only by memory and computational time). Existing limitations:
+* By default, the code supports only triangular and quadrilateral faces. However, support for polygons of higher order can be added by changing the line `integer, parameter :: face_order_max = 4` in `FEM-Geo-Wr.f90` and recompiling.
+* The algorithm requires consistent alignment of face normals (more specifically, order of vertices in each face) - they should all point outward. This is usually automatically satisfied by modern 3D editors.
 
 To test executable run `pip 20` in the current folder. It will use provided `shape.obj` that defines a star-shaped object and produce `shape.dat` which should be identical to provided `shape_test.dat`.
 

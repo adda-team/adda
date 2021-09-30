@@ -1,4 +1,4 @@
-subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_num,cor3,face) 
+subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_num,cor3,face,order_max,face_order) 
 ! 
 !  ivread.f90  Wriedt 04 July 2000
 !
@@ -109,7 +109,8 @@ subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_
   integer, parameter :: face_max = 100000
   integer, parameter :: line_max = 100000
   integer, parameter :: material_max = 200
-  integer, parameter :: order_max = 3
+! yurkin - order_max is now an argument
+  integer order_max
   integer, parameter :: texture_max = 10
 !
   integer arg_num
