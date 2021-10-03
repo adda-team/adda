@@ -38,20 +38,23 @@
   integer, parameter :: node_max = 100000
 ! Change the following, if higher-order faces are used
   integer, parameter :: face_order_max = 4
+! Change the following to .true. if experiencing problems with multiple materials
+  logical, parameter :: ignore_mat = .false.
 
   integer node_num
   integer ppos
-  integer face_num, n_surfaces
-  real face_point(3,face_max)
+  integer face_num
   real face_normal(3,face_max)
   real face_area(face_max)
   character (len = 100) filein_name,name_out
   integer face_order(face_max)
   integer face(face_order_max,face_max)
+  integer face_material(face_max)
+  integer material_num
   real v4(3,node_max)
   real (kind = 8) vv(3,node_max)
   real (kind = 8) pp(3)
-  logical inside
+  integer inside_mat
   
   integer NAT,MXNAT,error
   integer, dimension(:), allocatable :: ICOMP
@@ -59,15 +62,16 @@
   real DX(3),RD0(3)
   integer JX,JY,JZ
 
-  real xave,xrange
+  real xrange
   real xmax
   real xmin
-  real yave,yrange
+  real yrange
   real ymax
   real ymin
-  real zave,zrange
+  real zrange
   real zmax
   real zmin
+  real vertex_range(6)
   real maxxyz,ds
   real array (3)
   integer maxpos,numiargc
@@ -75,139 +79,141 @@
   integer xsh,ysh,zsh,shape_size
   character*80 strafg
   
-!
-!   only particles consisting of one (!) closed surface are considered 
-!
-    n_surfaces=1
+  numiargc=iargc()
 
-    numiargc=iargc()
-
-    if(numiargc == 0) then
-        shape_size = 80
-        filein_name='shape.obj'
-    else if(numiargc == 1) then
-        call getarg(1,strafg)
-        read(unit=strafg,fmt=*)shape_size
-        filein_name='shape.obj'
-    else
-        call getarg(1,strafg)
-        read(unit=strafg,fmt=*)shape_size
-        call getarg(2,strafg)
-        read(unit=strafg,fmt=*)filein_name
-    endif
+  if(numiargc == 0) then
+      shape_size = 80
+      filein_name='shape.obj'
+  else if(numiargc == 1) then
+      call getarg(1,strafg)
+      read(unit=strafg,fmt=*)shape_size
+      filein_name='shape.obj'
+  else
+      call getarg(1,strafg)
+      read(unit=strafg,fmt=*)shape_size
+      call getarg(2,strafg)
+      read(unit=strafg,fmt=*)filein_name
+  endif
 !   check for presence of extension of filename, add .obj if none
-    ppos=scan(filein_name,".",BACK=.true.)
-    print *,'!!!',filein_name,'!!!'
-    if(ppos > 0) then
-        name_out = filein_name(1:ppos)//'dat'
-    else
-        name_out = trim(filein_name)//'.dat'
-        filein_name = trim(filein_name)//'.obj'
-    endif
+  ppos=scan(filein_name,".",BACK=.true.)
+  print *,'!!!',filein_name,'!!!'
+  if(ppos > 0) then
+      name_out = filein_name(1:ppos)//'dat'
+  else
+      name_out = trim(filein_name)//'.dat'
+      filein_name = trim(filein_name)//'.obj'
+  endif
 
-    print *, 'Maximum shape size = ', shape_size
-    print *, 'Input file = ', filein_name
-    print *, 'Output file = ', name_out
+  print *, 'Maximum shape size = ', shape_size
+  print *, 'Input file = ', filein_name
+  print *, 'Output file = ', name_out
 
-    xsh = shape_size
-    ysh = shape_size
-    zsh = shape_size
-    
-    NAT = 0
-    DX(1) = 1.0
-    DX(2) = 1.0
-    DX(3) = 1.0
-    
-    call ivread_wr(filein_name,face_point,face_normal,face_area,face_num,node_num,v4,face,face_order_max,face_order)
+  xsh = shape_size
+  ysh = shape_size
+  zsh = shape_size
+  
+  NAT = 0
+  DX(1) = 1.0
+  DX(2) = 1.0
+  DX(3) = 1.0
+  
+  call ivread_wr(filein_name,face_normal,face_area,face_num,node_num,v4,face, &
+    face_order_max,face_order,face_material,material_num,vertex_range)
 
 !   This is very non-optimal in view of memory requirements and makes some of the code
 !   in single precision, some in double. Partly, this is justified by the pip routine
 !   that computes solid angle for each face and then sums them over the faces,
 !   potentially losing a lot of precision. At this point, we do not want to investigate
 !   this issue (not to touch other source files)
-    vv(1:3,1:node_num)=dble(v4(1:3,1:node_num))
-    
-!   This incurs redundant (duplicate) printing of the corresponding information, 
-!   since this function is also called from ivread_wr above
-    call cor3_limits(node_max, node_num, v4,&
-         xmin, xave, xmax, ymin, yave, ymax, zmin, zave, zmax)
+  vv(1:3,1:node_num)=dble(v4(1:3,1:node_num))
+  
+  if ( ignore_mat .and. ( material_num /= 1 )) then
+    material_num = 1
+    face_material(1:face_num) = 1
+  end if
+  
+  xmin = vertex_range(1)
+  xmax = vertex_range(2)
+  ymin = vertex_range(3)
+  ymax = vertex_range(4)
+  zmin = vertex_range(5)
+  zmax = vertex_range(6)
+  
+  xrange=xmax-xmin
+  yrange=ymax-ymin
+  zrange=zmax-zmin
 
-    xrange=xmax-xmin
-    yrange=ymax-ymin
-    zrange=zmax-zmin
+  maxxyz=max(xrange,yrange,zrange)
+  array(1)=xrange
+  array(2)=yrange
+  array(3)=zrange
+  maxpos=maxloc(array,1)
+  ds=maxxyz/shape_size
 
-    maxxyz=max(xrange,yrange,zrange)
-    array(1)=xrange
-    array(2)=yrange
-    array(3)=zrange
-    maxpos=maxloc(array,1)
-    ds=maxxyz/shape_size
-
-    if(maxpos == 1)then
-        NBX=xsh
-        NBY=ceiling(yrange/xrange*xsh)
-        NBZ=ceiling(zrange/xrange*xsh)
-    endif
-    if(maxpos == 2)then
-        NBX=ceiling(xrange/yrange*ysh)
-        NBY=ysh
-        NBZ=ceiling(zrange/yrange*ysh)
-    endif
-    if(maxpos == 3)then
-        NBX=ceiling(xrange/zrange*zsh)
-        NBY=ceiling(yrange/zrange*zsh)
-        NBZ=zsh
-    endif
+  if(maxpos == 1)then
+      NBX=xsh
+      NBY=ceiling(yrange/xrange*xsh)
+      NBZ=ceiling(zrange/xrange*xsh)
+  endif
+  if(maxpos == 2)then
+      NBX=ceiling(xrange/yrange*ysh)
+      NBY=ysh
+      NBZ=ceiling(zrange/yrange*ysh)
+  endif
+  if(maxpos == 3)then
+      NBX=ceiling(xrange/zrange*zsh)
+      NBY=ceiling(yrange/zrange*zsh)
+      NBZ=zsh
+  endif
 
 !   the following is approximately equal to xmin/ds + 0.5 and similar, but the exact equality
 !   is only for the largest dimension. In any case the grid is centered on the bounding box
-    RD0(1) = ((xmax+xmin)/ds - NBX + 1)/2.0
-    RD0(2) = ((ymax+ymin)/ds - NBY + 1)/2.0
-    RD0(3) = ((zmax+zmin)/ds - NBZ + 1)/2.0
+  RD0(1) = ((xmax+xmin)/ds - NBX + 1)/2.0
+  RD0(2) = ((ymax+ymin)/ds - NBY + 1)/2.0
+  RD0(3) = ((zmax+zmin)/ds - NBZ + 1)/2.0
 
-    MXNAT=NBX*NBY*NBZ
-    allocate(ICOMP(MXNAT),stat=error)
-    if(error /= 0) then
-        print*,'error: could not allocate memory for ICOMP, MXNAT=',MXNAT
-        stop
-    endif
-    allocate(IXYZ(MXNAT,3),stat=error)
-    if(error /= 0) then
-        print*,'error: could not allocate memory for IXYZ(3), MXNAT=',MXNAT
-        stop
-    endif
+  MXNAT=NBX*NBY*NBZ
+  allocate(ICOMP(MXNAT),stat=error)
+  if(error /= 0) then
+      print*,'error: could not allocate memory for ICOMP, MXNAT=',MXNAT
+      stop
+  endif
+  allocate(IXYZ(MXNAT,3),stat=error)
+  if(error /= 0) then
+      print*,'error: could not allocate memory for IXYZ(3), MXNAT=',MXNAT
+      stop
+  endif
 
-    do JZ=0,(NBZ-1)
-        do JY=0,(NBY-1)
-            do JX=0,(NBX-1)
-                pp(1)=dble((JX+RD0(1))*ds)
-                pp(2)=dble((JY+RD0(2))*ds)
-                pp(3)=dble((JZ+RD0(3))*ds)
-                call polyhedron_contains_point_3d ( node_num, face_num, &
-                     face_order_max, vv, face_order, face, pp, inside )
-                if(inside .eqv. .true.) then
-                    NAT=NAT+1
-                    IXYZ(NAT,1)=JX
-                    IXYZ(NAT,2)=JY
-                    IXYZ(NAT,3)=JZ
-!                   The following will be needed if extending to multi-domain particles
-                    ICOMP(NAT)=1
-                endif
-            enddo
-        enddo
-        write(*,*)JZ,NAT
-    enddo
+  do JZ=0,(NBZ-1)
+      do JY=0,(NBY-1)
+          do JX=0,(NBX-1)
+              pp(1)=dble((JX+RD0(1))*ds)
+              pp(2)=dble((JY+RD0(2))*ds)
+              pp(3)=dble((JZ+RD0(3))*ds)
+              call polyhedron_contains_point_3d ( node_num, face_num, face_order_max, &
+                vv, face_order, face, pp, face_material, material_num, inside_mat )
+              if(inside_mat > 0) then
+                  NAT=NAT+1
+                  IXYZ(NAT,1)=JX
+                  IXYZ(NAT,2)=JY
+                  IXYZ(NAT,3)=JZ
+                  ICOMP(NAT)=inside_mat
+              endif
+          enddo
+      enddo
+      write(*,*)JZ,NAT
+  enddo
 
-    write(*,*)NAT
-    open(unit=12,file=name_out,status='UNKNOWN')
-    write(12,fmt=92)NBX,NBY,NBZ,NAT,DX,RD0
-    do JX=1,NAT
-        write(12,fmt=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX),ICOMP(JX),ICOMP(JX)
-    enddo
-    close(unit=12)
-    
-    deallocate(ICOMP)
-    deallocate(IXYZ)
+  write(*,*)NAT
+  open(unit=12,file=name_out,status='UNKNOWN')
+  write(12,fmt=92)NBX,NBY,NBZ,NAT,DX,RD0
+  do JX=1,NAT
+      write(12,fmt=93)JX,IXYZ(JX,1),IXYZ(JX,2),IXYZ(JX,3),ICOMP(JX),ICOMP(JX),ICOMP(JX)
+  enddo
+  close(unit=12)
+  
+  deallocate(ICOMP)
+  deallocate(IXYZ)
 
 !   uses scientific format for lattice spacings and offset to guarantee that the values fit
 !   the width (with at least one remaining space) even if the three digits are used for 
