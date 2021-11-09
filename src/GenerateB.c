@@ -252,7 +252,7 @@ void InitBeam(void)
 				default: break;
 			}
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
-			symR=symX=symY=symZ=FALSE;
+			symR=symX=symY=symZ=false;
 			if (!beam_asym) vInit(beam_center);
 			// beam info
 			if (IFROOT) {
@@ -663,11 +663,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	 * add a case above. Identifier ('B_...') should be defined inside 'enum beam' in const.h. This case should set
 	 * complex vector 'b', describing the incident field in the particle reference frame. It is set inside the cycle for
 	 * each dipole of the particle and is calculated using
-	 * 1) 'DipoleCoord' – array of dipole coordinates;
-	 * 2) 'prop' – propagation direction of the incident field;
-	 * 3) 'ex' – direction of incident polarization;
-	 * 4) 'ey' – complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
-	 * 5) 'beam_center' – beam center in the particle reference frame (automatically calculated from 'beam_center_0'
+	 * 1) 'DipoleCoord' ï¿½ array of dipole coordinates;
+	 * 2) 'prop' ï¿½ propagation direction of the incident field;
+	 * 3) 'ex' ï¿½ direction of incident polarization;
+	 * 4) 'ey' ï¿½ complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');
+	 * 5) 'beam_center' ï¿½ beam center in the particle reference frame (automatically calculated from 'beam_center_0'
 	 *                    defined in InitBeam).
 	 * If the new beam type is compatible with '-surf', include here the corresponding code. For that you will need
 	 * the variables, related to surface - see vars.c after "// related to a nearby surface".
