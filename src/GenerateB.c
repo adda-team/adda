@@ -214,7 +214,6 @@ void InitBeam(void)
 			// initialize parameters
 			n0=round(beam_pars[0]);
 			alpha0=beam_pars[1];
-			TestNonNegative(n0,"Bessel beam order");
 			K =fabs(WaveNum);
 			Kt=fabs(WaveNum)*sin(alpha0);
 			Kz=fabs(WaveNum)*cos(alpha0);
@@ -347,11 +346,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
 	double r1[3];
-	int n1,N,it; // for Bessel beams
+	int n1,N,it,q; // for Bessel beams
 	doublecomplex vort;  // vortex phase of Bessel beam rotated on 90 deg
 	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
 	doublecomplex sum[3],fint[3];
-	double phi,arg,td1[n0+3],td2[n0+3],jn1[n0+3],r,tht,db; // for Bessel beams
+	double phi,arg,td1[abs(n0)+3],td2[abs(n0)+3],jn1[abs(n0)+3],r,tht,db; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
@@ -619,23 +618,56 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					fn[0]=0; fn[1]=0; fn[3]=0; fn[4]=0;
 				}
 				else {
-					n1=n0+2;
-					bjndd_(&n1, &arg, jn1, td1, td2);
-					if (n0 == 0) {
-						fn[0] = jn1[2]*cexp(-2*I*phi);
-						fn[1] =-jn1[1]*cexp(-I*phi);
+					n1=abs(n0)+2;
+					if (n0 <= -3) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
+						if (n1 % 2 == 0) q=1;	else q=-1;
+						fn[0] =  q*jn1[-n0+2]*cexp(-2*I*phi);
+						fn[1] = -q*jn1[-n0+1]*cexp(-I*phi);
+						fn[2] =  q*jn1[-n0];
+						fn[3] = -q*jn1[-n0-1]*cexp(I*phi);
+						fn[4] =  q*jn1[-n0-2]*cexp(2*I*phi);
 					}
-					else if (n0 == 1) {
-						fn[0] =-jn1[1]*cexp(-2*I*phi);
-						fn[1] = jn1[0]*cexp(-I*phi);
-					}
-					else {
+					if (n0 >= 2) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
 						fn[0] = jn1[n0-2]*cexp(-2*I*phi);
 						fn[1] = jn1[n0-1]*cexp(-I*phi);
+						fn[2] = jn1[n0];
+						fn[3] = jn1[n0+1]*cexp(I*phi);
+						fn[4] = jn1[n0+2]*cexp(2*I*phi);
 					}
-					fn[2] = jn1[n0];
-					fn[3] = jn1[n0+1]*cexp(I*phi);
-					fn[4] = jn1[n0+2]*cexp(2*I*phi);
+					if (n0 == -2) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
+						fn[0] =  jn1[4]*cexp(-2*I*phi);
+						fn[1] = -jn1[3]*cexp(-I*phi);
+						fn[2] =  jn1[2];
+						fn[3] = -jn1[1]*cexp(I*phi);
+						fn[4] =  jn1[0]*cexp(2*I*phi);
+					}
+					if (n0 == -1) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
+						fn[0] = -jn1[3]*cexp(-2*I*phi);
+						fn[1] =  jn1[2]*cexp(-I*phi);
+						fn[2] = -jn1[1];
+						fn[3] =  jn1[0]*cexp(I*phi);
+						fn[4] =  jn1[1]*cexp(2*I*phi);
+					}
+					if (n0 == 0) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
+						fn[0] =  jn1[2]*cexp(-2*I*phi);
+						fn[1] = -jn1[1]*cexp(-I*phi);
+						fn[2] =  jn1[0];
+						fn[3] =  jn1[1]*cexp(I*phi);
+						fn[4] =  jn1[2]*cexp(2*I*phi);
+					}
+					if (n0 == 1) {
+						bjndd_(&n1, &arg, jn1, td1, td2);
+						fn[0] = -jn1[1]*cexp(-2*I*phi);
+						fn[1] =  jn1[0]*cexp(-I*phi);
+						fn[2] =  jn1[1];
+						fn[3] =  jn1[2]*cexp(I*phi);
+						fn[4] =  jn1[3]*cexp(2*I*phi);
+					}
 				}
 
 				t1 = (((K*K+Kz*Kz)/2.*M[0] +  K*Kz*M[3])*fn[2] +
