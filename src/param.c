@@ -233,9 +233,6 @@ static const struct subopt_struct beam_opt[]={
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
 		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
 		UNDEF,B_BARTON5},
-	{"besselASD","<order> <angle>","Angular spectrum decomposition of Bessel beam. The half-cone angle (in rad) "
-		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
-		2,B_BESSELASD},
 	{"besselCS","<order> <angle>","Bessel beam with circularly symmetric energy density. The half-cone angle (in rad) "
 		"is measured from the z axis. The beam order and half-cone angle are obligatory.",
 		2,B_BESSELCS},
@@ -1048,7 +1045,6 @@ PARSE_FUNC(beam)
 				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
 				if (Narg==3) use_beam_subopt=true;
 				break;
-			case B_BESSELASD: if (Narg!=2) NargError(Narg,"2"); break;
 			case B_BESSELCS: if (Narg!=2) NargError(Narg,"2"); break;
 			case B_BESSELCSp: if (Narg!=2) NargError(Narg,"2"); break;
 			case B_BESSELM: if (Narg!=6 && Narg!=10) NargError(Narg,"6 or 10"); break;

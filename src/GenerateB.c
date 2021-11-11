@@ -202,7 +202,6 @@ void InitBeam(void)
 				                       "\tCenter position: "GFORMDEF3V,tmp_str,w0,s,COMP3V(beam_center_0));
 			}
 			return;
-		case B_BESSELASD:
 		case B_BESSELCS:
 		case B_BESSELCSp:
 		case B_BESSELM:
@@ -256,9 +255,6 @@ void InitBeam(void)
 			// beam info
 			if (IFROOT) {
 				switch (beamtype) {
-					case B_BESSELASD:
-						tmp_str="angular spectrum decomposition";
-						break;
 					case B_BESSELCS:
 						tmp_str="circularly symmetric energy density";
 						break;
@@ -324,15 +320,6 @@ void InitBeam(void)
 }
 
 //======================================================================================================================
-void Fpw(doublecomplex *F,int l,doublecomplex k,double r0,double tht0, double phi0, double alph, double bet)
-{
-	doublecomplex fexp = cexp(I*l*bet + I*k*r0*(sin(alph)*sin(tht0)*cos(bet-phi0)+cos(alph)*cos(tht0)));
-	*F = (cos(alph)*cos(bet)*cos(bet)+sin(bet)*sin(bet))*fexp;
-	*(F+1) = -(1-cos(alph))*sin(bet)*cos(bet)*fexp;
-	*(F+2) = -sin(alph)*cos(bet)*fexp;
-}
-
-
 void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 doublecomplex *restrict b) // the b vector for the incident field
 // generates incident beam at every dipole
@@ -553,42 +540,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					cvAdd2Self(v1,v2,v3);
 					cvMultScal_cmplx(ctemp,v1,b+j);
 				}
-			}
-			return;
-		case B_BESSELASD:
-			if (which==INCPOL_X) vort = cpow(I,n0);
-			else vort = 1.;
-			for (i=0;i<local_nvoid_Ndip;i++) {
-				j=3*i;
-				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
-				x=DotProd(r1,ex);
-				y=DotProd(r1,ey);
-				z=DotProd(r1,prop);
-				r=sqrt(x*x+y*y+z*z);		// radial distance in a spherical coordinate system
-				tht=atan2(sqrt(x*x+y*y),z);	// polar angle
-				phi=atan2(y,x);				// azimuthal angle
-
-				// Integration
-				N=10;
-				db=2.*PI/N;
-
-				Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,0);
-				sum[0] = fint[0];	sum[1] = fint[1];	sum[2] = fint[2];
-
-				for (it=1;it<N;it++) {
-					Fpw(fint,n0,WaveNum,r,tht,phi,alpha0,it*db);
-					sum[0] += fint[0];
-					sum[1] += fint[1];
-					sum[2] += fint[2];
-				}
-
-				t1=sum[0]/N;	t2=sum[1]/N;	t3=sum[2]/N;
-
-				cvMultScal_RVec(t1,ex,v1);
-				cvMultScal_RVec(t2,ey,v2);
-				cvMultScal_RVec(t3,prop,v3);
-				cvAdd2Self(v1,v2,v3);
-				cvMultScal_cmplx(vort,v1,b+j);
 			}
 			return;
 		case B_BESSELCS:
