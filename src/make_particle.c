@@ -97,6 +97,7 @@ static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (d
 #ifndef SPARSE
 
 // shape parameters
+static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 static double coat_x,coat_y,coat_z,coat_r2;
 static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
@@ -108,6 +109,7 @@ static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circ
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
+static double seE,seN,seT,seR,seToverR,seInvR; // for superellipsoid
 // for axisymmetric; all coordinates defined here are relative
 static double * restrict contSegRoMin,* restrict contSegRoMax,* restrict contRo,* restrict contZ;
 static double contCurRo,contCurZ;
@@ -1234,14 +1236,14 @@ static void ReadDipFile(const char * restrict fname)
 {
 	int x,y,z,x0,y0,z0,mat,scanned;
 	size_t index=0,line=0;
-	char linebuf[BUF_LINE];	
+	char linebuf[BUF_LINE];
 #ifndef SPARSE
 	// to remove possible overflows
 	size_t boxX_l=(size_t)boxX;
 #endif // !SPARSE
 
 	TIME_TYPE tstart=GET_TIME();
-	
+
 	mat=1; // the default value for single-domain shape formats
 	scanned=0; // redundant initialization to remove warnings
 	while (fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
@@ -1311,7 +1313,7 @@ static int FitBox_yz(const double size)
  * The distance between the center of the outer super-dipole (J^3 original dipoles) and the particle (enclosing box)
  * boundary is between 0.25 and 0.75 of super-dipole size, corresponding to the discretization along the x-axis, for
  * which the optimum distance of 0.5 (the dipole cube fits tight into the boundary) is automatically satisfied.
- * 
+ *
  * !!! However, it is still possible that the whole outer layer of dipoles would be void because the estimate does not
  * take into account the details of the shape e.g. its curvature. For instance, 'adda -grid 4 -shape ellipsoid 1 2.13'
  * results in grid 4x4x9, but the layers z=0, z=8 will be void. This is because the dipole centers in this layers always
@@ -1331,7 +1333,6 @@ void InitShape(void)
 {
 	int n_boxX,n_boxY,n_boxZ; // new values for dimensions
 	double n_sizeX; // new value for size
-	double yx_ratio,zx_ratio;
 	double tmp1,tmp2;
 	double rsMax; // maximum of rectScale*
 #ifndef SPARSE
@@ -1581,7 +1582,7 @@ void InitShape(void)
 		}
 		case SH_COATED2: {
 			double shell_ratio, core_ratio;
-			
+
 			shell_ratio=sh_pars[0];
 			core_ratio=sh_pars[1];
 			TestRangeII(shell_ratio,"intermediate/outer diameter ratio",0,1);
@@ -1811,6 +1812,51 @@ void InitShape(void)
 			Nmat_need=2;
 			break;
 		}
+		case SH_SUPERELLIPSOID: {
+			double aspectY, aspectZ;
+
+			// Read and test parameters
+			aspectY=sh_pars[0];
+			TestPositive(aspectY,"aspect ratio b/a");
+			aspectZ=sh_pars[1];
+			TestPositive(aspectZ,"aspect ratio c/a");
+			seE=sh_pars[2];
+			TestNonNegative(seE,"superellipsoid exponent e");
+			seN=sh_pars[3];
+			TestNonNegative(seN,"superellipsoid exponent n");
+			// Has reflection symmetry across all 3 axes, but 90 degree rotation symmetry about z - only if a=b
+			if (aspectY!=1) symR=false;
+			if (IFROOT) {
+				sh_form_str1="superellipsoid; size along x-axis:";
+				sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
+					aspectY,aspectZ,seE,seN);
+				}
+			yx_ratio=aspectY;
+			zx_ratio=aspectZ;
+			Nmat_need=1;
+			/* Volume is given analytically by Eq.(4) in T. Wriedt, "Using the T-matrix method for light scattering
+			 * computations by non-axisymmetric particles: Superellipsoids and realistically shaped particles," Part.
+			 * Part. Sys. Charact. 19, 256-268 (2002).
+			 * Since the relevant box volume is 8a^3, the volume ratio (1/4)(b/a)(c/a)*n*B(n/2 +1,n)*e*B(e/2,e/2).
+			 * Both n*B(n/2 +1,n) and e*B(e/2,e/2) are continuous to zero, and can be reliably computed using lgamma.
+			 * Still we need to explicitly handle edge cases when n or e are 0.
+			 */
+			// tmp1=n*B(n/2+1,n)
+			if (seN==0) tmp1=1;
+			else tmp1=exp(log(seN) + lgamma(seN/2+1) + lgamma(seN) - lgamma(3*seN/2+1));
+			// tmp2=e*B(e/2,e/2)
+			if (seE==0) tmp2=4;
+			else tmp2=exp(log(seE) + 2*lgamma(seE/2) - lgamma(seE));
+			volume_ratio=0.25*aspectY*aspectZ*tmp1*tmp2;
+			// set additional parameters when possible
+			seInvR=seE/2;
+			if (seE!=0) seR=2/seE;
+			if (seN!=0) {
+				seT=2/seN;
+				seToverR=seE/seN;
+			}
+			break;
+		}
 #endif // !SPARSE
 		case SH_READ: { // it is first, because always relevant
 			symX=symY=symZ=symR=false; // input file is assumed fully asymmetric
@@ -2003,20 +2049,24 @@ void InitShape(void)
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, dipole sizes
 {
-	
+
 	size_t index,dip,i3;
 	TIME_TYPE tstart;
 	int i;
 #ifndef SPARSE
 	size_t local_nRows_tmp;
-	int j,k,ns;	
+	int j,k,ns;
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
+	/* Normalized dipole coordinates for superellipsoid: |x/a|, |y/b|, |z/c|. They should be from 0 to 1 if no void grid
+	 * layers are used. Currently cannot be used for other shapes.
+	 */
+	double xn,yn,zn;
 	double xcoat,ycoat,zcoat,r2,ro2,z2,zshift,xshift;
 	int local_z0_unif; // should be global or semi-global
 	int largerZ,smallerZ; // number of larger and smaller z in intersections with contours
-	/* The following are dipole coordinates (in units of d/2) relative to the grid center. For jagged they point to the 
-	 * center of a larger dipole. Units are chosen to keep integer (otherwise half-integers are possible), but the step 
+	/* The following are dipole coordinates (in units of d/2) relative to the grid center. For jagged they point to the
+	 * center of a larger dipole. Units are chosen to keep integer (otherwise half-integers are possible), but the step
 	 * of variation is 2*jagged.
 	 */
 	int xj,yj,zj;
@@ -2030,15 +2080,15 @@ void MakeParticle(void)
 	 * variables defined above.
 	 */
 	tstart=GET_TIME();
-	
+
 	cX=(boxX-1)/2.0;
 	cY=(boxY-1)/2.0;
 	cZ=(boxZ-1)/2.0;
-		
+
 #ifndef SPARSE //shapes other than "read" are disabled in sparse mode
-	index=0;	
+	index=0;
 	local_nRows_tmp=MultOverflow(3,local_Ndip,ALL_POS,"local_nRows_tmp");
-	
+
 	/* allocate temporary memory; even if prognosis, since they are needed for exact estimation; they will be
 	 * reallocated afterwards (when local_nRows is known).
 	 */
@@ -2049,10 +2099,10 @@ void MakeParticle(void)
 		xj=2*jagged*(i/jagged)+jagged-boxX;
 		yj=2*jagged*(j/jagged)+jagged-boxY;
 		zj=2*jagged*(k/jagged)+jagged-boxZ;
-		/* all the following coordinates should be scaled by the same sizeX. So we scale xj,yj,zj by 2boxX with extra 
-		 * ratio for rectangular dipoles. Thus, yr and zr are not necessarily in fixed ranges (like from -1/2 to 1/2). 
-		 * This is done to treat adequately cases when particle dimensions are the same (along different axes), but e.g. 
-		 * boxY!=boxX (so there are some extra void dipoles). All anisotropies in the particle itself are treated in 
+		/* all the following coordinates should be scaled by the same sizeX. So we scale xj,yj,zj by 2boxX with extra
+		 * ratio for rectangular dipoles. Thus, yr and zr are not necessarily in fixed ranges (like from -1/2 to 1/2).
+		 * This is done to treat adequately cases when particle dimensions are the same (along different axes), but e.g.
+		 * boxY!=boxX (so there are some extra void dipoles). All anisotropies in the particle itself are treated in
 		 * the specific shape modules below (see e.g. ELLIPSOID).
 		 */
 		xr=(0.5*xj)/boxX;
@@ -2203,6 +2253,39 @@ void MakeParticle(void)
 				if (xr*xr+yr*yr+zr*zr<=coat_r2) mat=1;
 				else if (fabs(yr)<=0.5 && fabs(zr)<=0.5) mat=0;
 				break;
+			case SH_SUPERELLIPSOID:
+				xn=fabs(2*xr);
+				yn=fabs(2*yr/yx_ratio);
+				zn=fabs(2*zr/zx_ratio);
+				// separate check for bounding box to avoid overflows in power functions
+				if (yn<=1 && zn<=1) {
+					/* First we consider zero e and n, then use two separate ways to separate the powers in
+					 * (xn^r + yn^r)^(t/r): either, (...)^(t/r) or (...)^t. This ensures that we do not have very small
+					 * value (susceptible to underflow) taken to a large power or vice versa. Moreover, the description
+					 * is continuous with decreasing n and/or e. Although the cases of n=0 or e=0 still need a separate
+					 * if clause, they do appear as natural limiting cases.
+					 */
+					if (seN==0 && seE==0) mat=0; // a box
+					else if (seE > MIN(seN,1)) { // implies that e!=0
+						/* n=0 => xy-sections are superellipses independent of z, while xz- and yz-sections are
+						 * rectangles
+						 */
+						tmp1=pow(xn,seR) + pow(yn,seR);
+						if (tmp1<=1 && (seN==0 || pow(tmp1,seToverR) + pow(zn,seT) <= 1) ) mat=0;
+					}
+					else { // here n!=0
+						/* e=0 => xz- and yz-sections are superellipses independent of y and x, respectively, while
+						 * xy-sections are rectangles
+						 */
+						if (seE==0) tmp1=MAX(xn,yn);
+						// in the following we ensure that the argument taken to (potentially large) power r is <=1
+						else if (xn<yn) tmp1=yn*pow(1+pow(xn/yn,seR),seInvR);
+						else if (xn>yn) tmp1=xn*pow(1+pow(yn/xn,seR),seInvR);
+						else tmp1=yn*pow(2,seInvR);
+						if (pow(tmp1,seT) + pow(zn,seT) <= 1) mat=0;
+					}
+				}
+				break;
 		}
 		/* TO ADD NEW SHAPE
 		 * add a case above (in alphabetical order). Identifier ('SH_...') should be defined inside 'enum sh' in
@@ -2295,7 +2378,7 @@ void MakeParticle(void)
 	a_eq = pow(THREE_OVER_FOUR_PI*nvoid_Ndip*dipVR,ONE_THIRD)*dsMax;
 ka_eq = creal(WaveNum*a_eq);
 	inv_G = 1/(PI*a_eq*a_eq);
-	
+
 #ifndef SPARSE
 	// granulate one domain, if needed
 	if (sh_granul) {
@@ -2370,7 +2453,7 @@ ka_eq = creal(WaveNum*a_eq);
 		"small",minZco,hsub);
 	// save geometry
 	if (save_geom)
-#ifndef SPARSE 
+#ifndef SPARSE
 		SaveGeometry();
 #else
 		LogError(ONE_POS,"Saving the geometry is not supported in sparse mode");
@@ -2400,6 +2483,6 @@ ka_eq = creal(WaveNum*a_eq);
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif
 #endif // SPARSE
-	
+
 	Timing_Particle += GET_TIME() - tstart;
 }
