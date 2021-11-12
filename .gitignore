@@ -3,6 +3,7 @@
 /*/*.dll
 /*/adda*
 /*/*.o
+/*/*.obj
 /*/*.d
 /*/.*opts
 /*/*stackdump
@@ -14,12 +15,3 @@
 /*/*.geom
 /*/out
 /*/*.clstr
-
-
-src/githash.h
-src/.cproject
-src/.settings/language.settings.xml
-src/.cproject
-src/githash.h
-src/githash.h
-*.h

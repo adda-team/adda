@@ -19,4 +19,10 @@
 /*/*.clstr
 
 
+*.DS_Store
+*.project
+*.cproject
+githash.h
+
+
 
