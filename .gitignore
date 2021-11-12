@@ -15,3 +15,6 @@
 /*/*.geom
 /*/out
 /*/*.clstr
+
+*.project
+*.DS_Store
