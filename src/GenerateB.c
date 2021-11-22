@@ -336,7 +336,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	int n1,N,it,q; // for Bessel beams
 	doublecomplex vort;  // vortex phase of Bessel beam rotated on 90 deg
 	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
-	doublecomplex sum[3],fint[3];
 	double phi,arg,td1[abs(n0)+3],td2[abs(n0)+3],jn1[abs(n0)+3],r,tht,db; // for Bessel beams
 	const char *fname;
 	/* TO ADD NEW BEAM
