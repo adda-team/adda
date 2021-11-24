@@ -828,6 +828,7 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
+	doublecomplex epshost = mhost*mhost;
 	doublecomplex ebuff[3],escbuff[3];
 	doublecomplex sum;
 	size_t i;
@@ -847,22 +848,10 @@ double ExtCross(const double * restrict incPol)
 		sum=0;
 		//for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		for (i=0;i<local_nvoid_Ndip;++i)  {
-			//cvMultScal_cmplx(chi_inv[0][0],pvec+3*i,ebuff); //Kind of total field
-
-			//cvSubtr(ebuff,Einc+3*i,escbuff); //Kind of scattered field
-
-			//Below are several expressions with the dimension of energy - for testing
-			//sum-=2*cimag((1+0.2*I)*(1+0.2*I))*dipvol*creal(cDotProd(Einc+3*i,escbuff)); //Im(epsilon_1)*Re(E_inc*E_sca*)
-			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(escbuff); //Im(epsilon_1)*|E_sca*|^2
-			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_1)*|E*|^2
-			//sum+=cimag((1+0.2*I)*(1+0.2*I))*dipvol*cvNorm2(Einc+3*i); //Im(epsilon_1)*|E_inc*|^2
-			//sum+=cimag((1+0.4*I)*(1+0.4*I))*dipvol*cvNorm2(ebuff); //Im(epsilon_2)*|E|^2 - tested: it works! Gives right C_abs (same as SQ_FINDIP) if Re(mhost) = 1.
-			//sum+=cDotProd_Im(pvec+3*i,ebuff); //Im(P.E(*)) - tested: it works! Gives right C_abs (even for Re(mhost)!= 1).
-			//sum-=FOUR_PI*cDotProd_Im(pvec+3*i,escbuff); //Im(P.E_sca(*)) - tested: gives the same C_sca as far-field integration if Im(mhost)=0
-			sum+=FOUR_PI*cDotProd_Im(pvec+3*i,Einc+3*i);// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
+			sum+=FOUR_PI*cimag(epshost*cDotProd(pvec+3*i,Einc+3*i));// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
 		}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum*=creal(WaveNum);
+		sum/=creal(WaveNum);
 		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is applied in CalcField()
 		 * and is independent of propagation or scattering direction. Thus it can be applied to any linear combination
 		 * of plane waves, i.e. any field.
@@ -958,6 +947,7 @@ double EnhCross(void)
 // computes total cross section for the dipole incident field; similar to Cext
 // 4pi*k*Im[p0(*).Escat(r0)]
 {
+	doublecomplex epshost = mhost*mhost;
 	double sum = 0, c = 0, ty, tt;
 	size_t i;
 
@@ -970,15 +960,15 @@ double EnhCross(void)
 		 * For complex p0 an efficient calculation strategy (not to waste evaluations of interaction) is to compute an array
 		 * of G_i0.p0(*) together with Einc and use it here afterwards.
 		 */
-		for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
+		for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(epshost*cDotProd_conj(pvec+3*i,Einc+3*i)); // sum{Im(P.E_inc)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	}
 	else if(beamtype==B_ELECTRON){
-		for (i=0;i<local_nvoid_Ndip;++i) sum-=cimag(cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
+		for (i=0;i<local_nvoid_Ndip;++i) sum-=cimag(epshost*cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	}
 
-	return FOUR_PI*WaveNum*sum;
+	return FOUR_PI*sum/creal(WaveNum);
 }
 
 //======================================================================================================================

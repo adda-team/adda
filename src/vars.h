@@ -30,8 +30,8 @@
 // basic variables
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;
-extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,kdX,kdY,kdZ,ka_eq,inv_G;
-extern doublecomplex kd,WaveNum;
+extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,ka_eq,inv_G;
+extern doublecomplex kdX,kdY,kdZ,kd,WaveNum;
 extern doublecomplex mhost;
 extern double * restrict DipoleCoord;
 
