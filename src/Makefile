@@ -176,7 +176,7 @@ FFTW3_LIB_PATH := "/opt/homebrew/lib"
 # If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
 # For instance, this may happen on macOS. Then uncomment the following line and modify the path if needed. 
 # This variable can also be defined in the enviroment or in the command line of make (see explanation above for OPTIONS) 
-FORT_LIB_PATH := /usr/local/gfortran/lib
+#FORT_LIB_PATH := /usr/local/gfortran/lib
 
 #=======================================================================================================================
 # !!! End of control section. Everything below is not designed to be modified by user. However, advanced users may wish
