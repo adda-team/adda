@@ -25,7 +25,7 @@
  * removed, then even MPI 2.0 will do.
  */
 #define MPI_VER_REQ 2
-#define MPI_SUBVER_REQ 0
+#define MPI_SUBVER_REQ 1
 // check MPI version for conformity during compilation
 #if !defined(MPI_VERSION) || !defined(MPI_SUBVERSION)
 #	error "Can not determine MPI version, hence MPI is too old."
