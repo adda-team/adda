@@ -92,11 +92,11 @@ static FILE * restrict dipfile;  // handle of dipole file
 static enum shform read_format;  // format of dipole file, which is read
 static double cX,cY,cZ;          // center for DipoleCoord in units of dipoles (counted from 0)
 static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (dsX/dsMax...)
+static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 
 #ifndef SPARSE
 
 // shape parameters
-static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 static double coat_x,coat_y,coat_z,coat_r2;
 static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
