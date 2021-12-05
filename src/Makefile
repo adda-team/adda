@@ -169,8 +169,8 @@ override EXTRA_FLAGS +=
 #FFTW3_LIB_PATH := $(FFTWLIB)
 #FFTW3_INC_PATH := $(HOME)/include
 #FFTW3_LIB_PATH := $(HOME)/lib
-FFTW3_INC_PATH := "/opt/homebrew/include"
-FFTW3_LIB_PATH := "/opt/homebrew/lib"
+#FFTW3_INC_PATH := "$(abspath ./../lib)"
+#FFTW3_LIB_PATH := "$(abspath ./../lib)"
 
 # --Fortran library path--
 # If your environment does not specify search path for Fortran libraries, you may get errors during linking of ADDA.
