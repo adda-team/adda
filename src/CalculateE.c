@@ -197,8 +197,10 @@ void MuellerMatrix(void)
 				si=sin(alph);
 				for (i=0;i<nTheta;i++) {
 					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
-					// Note, that amplitude matrix for vortex beams (Bessel beams) have to be multiplied
-					// by phase factor exp(-I*n0*alpha)
+					/* Note, that amplitude matrix for vortex beams (e.g., Bessel ones) have to be additionally
+					 * multiplied by the phase factor exp(-I*n0*alpha). However, it does not change the Mueller matrix
+					 * and we do not save the amplitude matrix in this case.
+					 */
 					if (yzplane) { // here the default (alpha=0) is yz-plane, so par=Y, per=X
 						s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
 						s3 = -si*ampl_alphaY[index+1] + co*ampl_alphaX[index+1]; // s3 = -si*s20 + co*s30

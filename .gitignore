@@ -1,7 +1,10 @@
 # If you need some ignores, which are specific to your workflow (e.g. IDE), consider
 # including them into $GIT_DIR/info/exclude (in this repository) or globally into $XDG_CONFIG_HOME/git/ignore
 # See https://git-scm.com/docs/gitignore 
-# The same ignores apply to all compilation folders
 
+# for MacOS
+.DS_Store
+
+# for Eclipse
 .сproject
 .project 

@@ -47,7 +47,7 @@ extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_int
 extern double propAlongZ;
 
 // 3D vectors
-extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
+extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center_0[3],beam_center[3],box_origin_unif[3];
 
 // file info
 extern const char * restrict directory;

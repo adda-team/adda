@@ -63,11 +63,15 @@ double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence alon
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
 // 3D vectors (in particle reference frame)
-double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
-double incPolX[3],incPolY[3]; // incident polarizations (in particle RF)
+double prop[3];               // incident direction
+double incPolX[3],incPolY[3]; // incident polarizations
 double beam_center[3];        // coordinates of the beam center
 double box_origin_unif[3];    /* coordinates of the center of the first dipole in the local computational box (after
                                  uniform distribution of non-void dipoles among all processors) */
+
+// 3D vectors (in laboratory reference frame)
+double prop_0[3];             // incident direction 
+double beam_center_0[3];      // coordinates of the beam center
 
 // file info
 const char * restrict directory; // directory to save data in

@@ -40,9 +40,6 @@ extern const doublecomplex cc[][3];
 #ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 #endif
-// defined and initialized in GenerateB.c
-extern const double beam_center_0[3];
-//extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
 extern const double incPolX_0[3],incPolY_0[3];
 extern const enum scat ScatRelation;
@@ -831,7 +828,8 @@ double ExtCross(const double * restrict incPol)
 	double sum;
 	size_t i;
 
-	if (beamtype==B_PLANE && !surface) {
+	// this can be considered a legacy case, which works only for the simplest plane way centered at the particle 
+	if (beamtype==B_PLANE && !surface && !beam_asym) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
@@ -851,7 +849,7 @@ double ExtCross(const double * restrict incPol)
 		 * expected to be accurate for not very elongated dipoles and/or not very spread out incident field.
 		 *
 		 * In principle, the situation is similar for SO of full IGT, but there the correction factor depends on the
-		 * propagation direction.even for cubical dipoles
+		 * propagation direction even for cubical dipoles
 		 */
 		if (ScatRelation==SQ_IGT_SO) sum*=eta2(prop);
 	}
