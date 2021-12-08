@@ -17,4 +17,7 @@
 typedef double complex doublecomplex_t;
 
 void calc_igt_so(double qvec[static 3], const double wave_num, const double ds_x, const double ds_y, const double ds_z, doublecomplex_t result[static restrict 6]);
+void calc_igt_so_near(double qvec[static 3], const double wave_num, const double ds_x, const double ds_y, const double ds_z, doublecomplex_t result[static restrict 6]);
+void calc_igt_so_middle(double qvec[static 3], const double wave_num, const double ds_x, const double ds_y, const double ds_z, doublecomplex_t result[static restrict 6]);
+void calc_igt_so_far(double qvec[static 3], const double wave_num, const double ds_x, const double ds_y, const double ds_z, doublecomplex_t result[static restrict 6]);
 
