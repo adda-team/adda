@@ -504,9 +504,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		int i;
 		bool asym; // whether polarizability is asymmetric (for isotropic m)
 		const double *incPol;
-		bool pol_avg=true; // temporary fixed value for SO polarizability
 
-		asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
+		asym = (PolRelation==POL_CLDR); // whether non-scalar tensor is produced for scalar m
 		// !!! this should never happen
 		if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 
@@ -514,7 +513,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
 			switch (PolRelation) {
 				case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
-				case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
 				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 					// no break
 			}

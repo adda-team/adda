@@ -197,8 +197,7 @@ enum pol { // which way to calculate coupleconstant
 	POL_LDR,     // Lattice Dispersion Relation
 	POL_NLOC,    // non-local extension (Gaussian dipole-density, formula based on lattice sums)
 	POL_NLOC_AV, // same as NLOC, but based on averaging of Gaussian over the dipole volume
-	POL_RRC,     // Radiative Reaction correction
-	POL_SO       // Second Order formulation
+	POL_RRC     // Radiative Reaction correction
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add an identifier starting with 'POL_' and a descriptive comment to this list in the alphabetical order.
 	 */
@@ -209,8 +208,7 @@ enum scat { // how to calculate scattering quantities
 	SQ_DRAINE, // classical, as Draine
 	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole when calculating
 	              absorption cross section */
-	SQ_IGT_SO, // Integration of Green's tensor (second order in kd approximation)
-	SQ_SO      // Second Order formulation
+	SQ_IGT_SO // Integration of Green's tensor (second order in kd approximation)
 };
 // in alphabetical order
 
@@ -221,8 +219,7 @@ enum inter { // how to calculate interaction term
 	G_IGT_SO,    // approximate integration of Green's tensor (based on ideas of SO)
 	G_NLOC,      // non-local extension (interaction of Gaussian dipole-densities)
 	G_NLOC_AV,   // same as NLOC, but based on averaging of Gaussian over the dipole volume
-	G_POINT_DIP, // as point dipoles
-	G_SO         // Second Order formulation
+	G_POINT_DIP // as point dipoles
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * add an identifier starting with 'G_' and a descriptive comment to this list in the alphabetical order.
 	 */
@@ -245,16 +242,11 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 
 // 2nd_order constants; derived from c1=ln(5+3^(3/2))-ln(2)/2-pi/4 and c2=pi/6
 #define SO_B1 1.5867182426530356710958782335228 // 4c1/3
-#define SO_B2 0.13488017286410948123541594310740 // c1/3 - c2/2
-#define SO_B3 0.11895825700597042937085940122438 // (5/2)c1 - c2
 
 // other constants for polarizability
 #define DGF_B1 1.6119919540164696407169668466385  // (4pi/3)^(1/3)
 #define LAK_C  0.62035049089940001666800681204778 // (4pi/3)^(-1/3)
 
-// two boundaries for separation between G_SO 'close', 'median', and 'far'
-#define G_BOUND_CLOSE  1 // k*R^2/d < GB_CLOSE => 'close'
-#define G_BOUND_MEDIAN 1 // k*R < GB_MEDIAN => 'median'
 
 enum iter { // iterative methods
 	IT_BCGS2,    // Enhanced Bi-Conjugate Gradient Stabilized (2)

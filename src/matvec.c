@@ -86,7 +86,7 @@ static inline size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 
 static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
-	if (transposed) { // used only for G_SO
+	if (transposed) {
 		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
 		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
 		 */
@@ -106,7 +106,7 @@ static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool trans
 
 static inline size_t IndexRmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
-	if (transposed) { // used only for G_SO !!!
+	if (transposed) {
 		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
 		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
 		 */
