@@ -62,14 +62,14 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
 	 * C,S - diagonal => symmetric
 	 * (!! will change if tensor (non-diagonal) polarizability is used !!)
-	 * D - symmetric except for interactions like obsolete (and deleted) G_SO
+	 * D - symmetric except for interactions which break the reciprocity of the Green's tensor (none currently)
 	 *
 	 * D.x=F(-1)(F(D).F(X))
 	 * F(D) is just a vector
 	 *
-	 * G_SO: F(D(T)) (k) =  F(D) (-k)
+	 * If D is non-symmetric one can use F(D(T)) (k) =  F(D) (-k)
 	 *       k - vector index
-	 *!!! IMPORTANT G_SO is obsolete and deleted, you can review it in git history
+	 *
 	 * For reflected matrix the situation is similar.
 	 * R.x=F(-1)(F(R).H(X)), where R is a vector, similar with G, where R[i,j,k=0] is for interaction of two bottom
 	 * dipoles. H(X) is FxFy(Fz^(-1)(X)), where Fx,... are Fourier transforms along corresponding coordinates. It can be

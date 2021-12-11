@@ -293,7 +293,6 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-# the results for so are indeed different, because surf uses formulae for non-plane beams
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;

@@ -628,7 +628,6 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 #endif
 
 	const bool above=(nF[2]>-ROUND_ERR); // we assume above-the-surface scattering for all boundary cases (like 90 deg)
-
 	cvInit(sumN);
 	if (above) cvInit(sumF); //additional storage for directly propagated scattering
 
@@ -659,7 +658,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cs=-1;
 			cp=1;
 		}
-		  // since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
+		// since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
 		else if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) cs=cp=0;
 		else { // no special treatment here, since other cases, including 90deg-scattering, are taken care above.
 			kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
@@ -818,8 +817,7 @@ double ExtCross(const double * restrict incPol)
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
 	/* more general formula; normalization is done assuming the unity amplitude of the electric field in the focal point
-	 * of the beam; It does not comply with ScatRelation SO. So SO is, effectively, replaced by DRAINE when calculating
-	 * Cext for non-plane beams.
+	 * of the beam
 	 */
 	else {
 		sum=0;
@@ -830,8 +828,8 @@ double ExtCross(const double * restrict incPol)
 		 * independent of propagation or scattering direction. For rectangular dipoles, it is only approximate but
 		 * expected to be accurate for not very elongated dipoles and/or not very spread out incident field.
 		 *
-		 * In principle, the situation is similar for SO of full IGT, but there the correction factor depends on the
-		 * propagation direction.even for cubical dipoles
+		 * In principle, the situation is similar for full IGT, but there the correction factor depends on the
+		 * propagation direction even for cubical dipoles
 		 */
 		if (ScatRelation==SQ_IGT_SO) sum*=eta2(prop);
 	}
@@ -851,10 +849,8 @@ double AbsCross(void)
 	size_t dip,index;
 	int i,j;
 	unsigned char mat;
-	double sum,temp1,temp2;
-	doublecomplex m;
+	double sum,temp1;
 	double mult[MAX_NMAT][3]; // multiplier (possibly anisotropic)
-	double mult1[MAX_NMAT];   // multiplier, which is always isotropic
 
 	// Cabs = 4*pi*sum
 	/* In this function IGT_SO is equivalent to DRAINE. It may seem more logical to make IGT_SO same as FINDIP. However,

@@ -17,13 +17,13 @@
 // project headers
 #include "cmplx.h"
 #include "comm.h"
+#include "igt_so.h"
 #include "io.h"
 #include "memory.h"
 #include "vars.h"
 // system headers
 #include <float.h> // for DBL_EPSILON
 #include <stdlib.h>
-#include "igt_so.h"
 
 // GLOBAL VARIABLES
 
@@ -71,13 +71,6 @@ int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1
  * first step for the OpenMP implementation.
  */
 
-// tables of integrals
-static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,* restrict tab6,
-	* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
-/* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
- * generally compatible with Free_iMatrix function syntax.
- */
-static int ** restrict tab_index; // matrix for indexing of table arrays
 // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
 static doublecomplex surfRCn; // reflection coefficient for normal incidence
@@ -445,28 +438,9 @@ WRAPPERS_INTER(InterTerm_fcd_st)
 
 //=====================================================================================================================
 
-static inline bool TestTableSize(const double rn)
-// tests if rn fits into the table; if not, returns false and produces info message
+void InterTerm_igt_so(double qvec[static 3],doublecomplex result[static restrict 6])
 {
-	static bool warned=false;
-
-	if (rn>TAB_RMAX) {
-		if (!warned) {
-			warned=true;
-			LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), so O(kd^2) accuracy of "
-				"Green's function is not guaranteed",TAB_RMAX);
-		}
-		return false;
-	}
-	else return true;
-}
-
-//=====================================================================================================================
-
-
-void InterTerm_igt_so(double qvec[static 3], doublecomplex result[static restrict 6])
-{
-     calc_igt_so(qvec, WaveNum, dsX, dsY, dsZ, result);
+	CalcIGTso(qvec,WaveNum,dsX,dsY,dsZ,result);
 }
 
 WRAPPERS_INTER(InterTerm_igt_so)
@@ -622,26 +596,20 @@ static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[stat
 				GFORMDEF3V,ifail,COMP3V(qvec));
 		}
 		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
-// test IGT_SO
-//        doublecomplex result1[6];
-//
-//        InterTerm_igt_so(qvec, result1);
-//
-//        for (comp=0;comp<6;comp++) {
-//            double norm_IGT = cAbs2(result[comp]);
-//            double norm_SO = cAbs2(result1[comp]);
-//            if (norm_IGT == 0 && fabs(norm_SO) > 1e-10) {
-//                int rrrr = 1;
-//            }
-//            if (norm_IGT != 0) {
-//                double errrr  = fabs(cAbs2(result[comp]-result1[comp]))/norm_IGT*100;
-//                if (errrr > 0.0001) {
-//                    int rrrr = 1;
-//                }
-//            }
-//
-//        }
+		PRINT_GVAL;
 
+// test IGT_SO
+//		doublecomplex result1[6];
+//		InterTerm_igt_so(qvec, result1);
+//		for (comp=0;comp<6;comp++) {
+//			double norm_IGT = cAbs2(result[comp]);
+//			double norm_SO = cAbs2(result1[comp]);
+//			if (norm_IGT == 0 && fabs(norm_SO) > 1e-10) int rrrr = 1;
+//			if (norm_IGT != 0) {
+//				double errrr  = fabs(cAbs2(result[comp]-result1[comp]))/norm_IGT*100;
+//				if (errrr > 0.0001) int rrrr = 1;
+//			}
+//		}
 
 	}
 	else InterTerm_poi(qvec,result);
@@ -663,7 +631,7 @@ WRAPPERS_INTER(InterTerm_igt)
  *
  * 2) Create two separate functions named InterTerm_<name>_int and InterTerm_<name>_real with declarations described in
  * interaction.h. If the new formulation does not support arbitrary real input vector (e.g. it is based on tables), then
- * use "NO_REAL_WRAPPER(InterTerm_<name>)" instead of the real-input declaration. See InterTerm_igt_so_int() for example.
+ * use "NO_REAL_WRAPPER(InterTerm_<name>)" instead of the real-input declaration.
  *
  * In any case you may benefit from existing utility functions InterParams() and InterTerm_core(). Adhering to the
  * naming conventions is important to be able to use macros here and below in InitInteraction().
@@ -950,9 +918,9 @@ void InitInteraction(void)
 		 * Add here the assignment of function pointers for the new formulation. It is recommended to use special macro,
 		 * assuming that you conformed to naming conventions for functions themselves. If new formulation requires
 		 * initialization, add it here, preferably by a separate function. Initialization should honor the 'prognosis'
-		 * flag. Additional memory should be counted always, but allocated only when not prognosis. See ReadTables()
-		 * for example (called below). If the new formulation does not support arbitrary real input vector (e.g. it is
-		 * based on tables), then test for InteractionRealArgs and add an exception (see G_IGT_SO for example).
+		 * flag. Additional memory should be counted always, but allocated only when not prognosis. If the new
+		 * formulation does not support arbitrary real input vector (e.g. it is based on tables), then test for
+		 * InteractionRealArgs and add an exception.
 		 */
 		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
 			// no break
@@ -978,8 +946,7 @@ void InitInteraction(void)
 			 * requires initialization add it here, preferably by a separate function. Initialization should honor the
 			 * 'prognosis' flag. Additional memory should be counted always, but allocated only when not prognosis. See
 			 * CalcSomTable() for example. If the new formulation does not support arbitrary real input vector (e.g. it
-			 * is based on tables), then test for InteractionRealArgs and add an exception (for example, see G_IGT_SO in
-			 * IntRelation above).
+			 * is based on tables), then test for InteractionRealArgs and add an exception.
 			 */
 			default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
 				// no break

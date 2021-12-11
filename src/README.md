@@ -6,7 +6,7 @@ Main source of ADDA, including Makefiles and other scripts. C++ and Fortran sour
 * `mpi/Makefile` - makefile for MPI version (called from the main makefile)
 * `ocl/Makefile` - makefile for OpenCL version (called from the main makefile)
 * `seq/Makefile` - makefile for sequential version (called from the main makefile)
-* `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `chebyshev.c`, `cmplx.c/h`, `comm.c/h`, `const.h`, `crosssec.c/h`, `debug.c/h`, `fft.c/h`, `function.h`, `GenerateB.c`, `interaction.c/h`, `io.c/h`, `iterative.c`, `linalg.c/h`, `make_particle.c`, `matvec.c`, `memory.c/h`, `oclcore.c/h`, `oclmatvec.c`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `sparse_ops.h`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of ADDA (see [CodeDesign](https://github.com/adda-team/adda/wiki/CodeDesign))
+* `ADDAmain.c`, `CalculateE.c`, `calculator.c`, `chebyshev.c`, `cmplx.c/h`, `comm.c/h`, `const.h`, `crosssec.c/h`, `debug.c/h`, `fft.c/h`, `function.h`, `GenerateB.c`, `igt_so.c/h`, `interaction.c/h`, `io.c/h`, `iterative.c`, `linalg.c/h`, `make_particle.c`, `matvec.c`, `memory.c/h`, `oclcore.c/h`, `oclmatvec.c`, `os.h`, `param.c/h`, `parbas.h`, `prec_time.c/h`, `Romberg.c/h`, `sinint.c`, `sparse_ops.h`, `timing.c/h`, `types.h`, `vars.c/h` – C source and header files of ADDA (see [CodeDesign](https://github.com/adda-team/adda/wiki/CodeDesign))
 * `Makefile` – main makefile
 * `common.mk` - common part of child makefiles, including all compilation directives
 * `iw_compile.bat` - batch script to compile ADDA with Intel compilers on Windows
