@@ -35,12 +35,12 @@
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
 # Instead of 'all' an exclusion flags can be used - a concanetated list of '!X', where X is either an operational mode
-# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched, 
+# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched,
 # otherwise it is equivalent to 'all'.
 
 all
 
-# testing of different grids - relevant for FFT methods; 
+# testing of different grids - relevant for FFT methods;
 all -grid 1 ;smn;
 all -grid 2 ;smn;
 all -grid 3 ;smn;
@@ -342,6 +342,8 @@ all -h shape sphere
 all -shape sphere ;mgn;
 all -h shape spherebox
 all -shape spherebox 0.5 ;2mgn;
+all -h shape superellipsoid
+all -shape superellipsoid 0.5 0.75 0.5 1.5 ;mgn;
 
 all -h size
 all -size 8 ;mgn;
@@ -377,7 +379,7 @@ all -surf 4 inf -prop 1 2 -3 ;se; ;mgn;
 all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn;
 all -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
-!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn; 
+!mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;
 
 all -h sym
 all -sym auto ;mgn;

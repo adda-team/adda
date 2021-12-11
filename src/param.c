@@ -304,6 +304,10 @@ static const struct subopt_struct shape_opt[]={
 #ifndef SPARSE
 	{"sphere","","Homogeneous sphere",0,SH_SPHERE},
 	{"spherebox","<d_sph/Dx>","Sphere (diameter d_sph) in a cube (size Dx, first domain)",1,SH_SPHEREBOX},
+	{"superellipsoid","<b/a> <c/a> <e> <n>","Homogeneous superellipsoid with semi-axes a, b, c along the x, y, and z "
+		"directions, respectively. Nonnegative e and n control the shape of cross sections parallel and perpendicular "
+		"to the xy-plane, respectively, according to [(x/a)^(2/e) + (y/b)^(2/e)]^(e/n) + (z/c)^(2/n) <= 1. Large "
+		"values of e and/or n lead to spiky shapes with potential discretization problems.",4,SH_SUPERELLIPSOID},
 #endif // !SPARSE
 	/* TO ADD NEW SHAPE
 	 * add a row to this list in alphabetical order. It contains: shape name (used in command line), usage string, help
@@ -1189,7 +1193,7 @@ PARSE_FUNC(int)
 {
 	double tmp;
 	bool noExtraArgs=true;
-	
+
 	if (Narg<1 || Narg>3) NargError(Narg,"from 1 to 3");
 	if (strcmp(argv[1],"fcd")==0) IntRelation=G_FCD;
 	else if (strcmp(argv[1],"fcd_st")==0) IntRelation=G_FCD_ST;
@@ -2132,7 +2136,7 @@ void VariablesInterconnect(void)
 		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT && IntRelation!=G_IGT_SO)
 			PrintError("The specified interaction formulation is designed only for cubical dipoles. Currently, only "
 				"'poi', 'igt', and 'igt_so' can be used with rectangular dipoles");
-	}	
+	}
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");
 		/* TO ADD NEW POLARIZABILITY FORMULATION

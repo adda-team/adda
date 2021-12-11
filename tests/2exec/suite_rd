@@ -305,6 +305,8 @@ all -h shape sphere
 all -shape sphere ;mgn;
 all -h shape spherebox
 !RD_TRICKY -shape spherebox 0.5 ;2mgn;
+all -h shape superellipsoid
+!RD_TRICKY -shape superellipsoid 0.5 0.75 0.5 1.5 ;mgn;
 
 all -h size
 all -size 8 ;mgn;

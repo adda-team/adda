@@ -362,7 +362,6 @@ subroutine geo_polygon_normal_3d ( n, v, normal )
   integer n
 
   real ( kind = 8 ) dvec_length
-  integer i
   integer j
   real ( kind = 8 ) normal(dim_num)
   real ( kind = 8 ) normal_norm
@@ -452,7 +451,6 @@ subroutine geo_polygon_solid_angle_3d ( n, v, p, solid_angle )
   real ( kind = 8 ) b(dim_num)
   real ( kind = 8 ) dvec_length
   real ( kind = 8 ) dvec_triple_product
-  integer i
   integer i_wrap
   integer j
   integer jp1

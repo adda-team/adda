@@ -90,7 +90,8 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Following two variable determine what is ignored when comparing against older executables. CMDIGNORE skipps the whole
 # runs (matches command line), OLDIGNORE - specifies lines in output files to be skipped
 # Currently formulated to compare 1.5* with 1.4.0
-CMDIGNORE="coated2|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so"
+
+CMDIGNORE="coated2|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h"
 OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2"
 
 # Path to reference binaries, examples: "." or "./../../win64"
