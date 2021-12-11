@@ -234,21 +234,28 @@ static const struct subopt_struct beam_opt[]={
 		"Specification of coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_BARTON5},
 #ifndef NO_FORTRAN
 	{"besselCS","<order> <angle>","Bessel beam with circularly symmetric energy density. Order is integer (of any "
-		"sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CS},
+		"sign, but it works correctly only for |order|<12) and the half-cone angle (in degrees) is measured "
+		"from the z-axis.",2,B_BES_CS},
 	{"besselCSp","<order> <angle>","Alternative Bessel beam with circularly symmetric energy density. Order is "
-		"integer (of any sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CSp},
+		"integer (of any sign, but it works correctly only for |order|<12) and the half-cone angle (in degrees) "
+		"is measured from the z-axis.",2,B_BES_CSp},
 	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy>]",
-		"Generalized Bessel beam. Order is integer (of any sign) and the half-cone angle (in degrees) is measured from "
-		"the z-axis. The beam is defined by 2x2 matrix M: (Mex, Mey, Mmx, Mmy). Real parts of these four elements are "
-		"obligatory, while imaginary parts are optional (zero, by default).",UNDEF,B_BES_M},
-	{"besselLE","<order> <angle>","Bessel beam with linearly polarized electric field. Order is integer (of any sign) "
-		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LE},
-	{"besselLM","<order> <angle>","Bessel beam with linearly polarized magnetic field. Order is integer (of any sign) "
-		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LM},
-	{"besselTEL","<order> <angle>","Linear component of the TE Bessel beam. Order is integer (of any sign) and the "
-		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TEL},
-	{"besselTML","<order> <angle>","Linear component of the TM Bessel beam. Order is integer (of any sign) and the "
-		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TML},
+		"Generalized Bessel beam. Order is integer (of any sign, but it works correctly only for |order|<12) and "
+		"the half-cone angle (in degrees) is measured from the z-axis. The beam is defined by 2x2 matrix M: "
+		"(Mex, Mey, Mmx, Mmy). Real parts of these four elements are obligatory, while imaginary parts are optional "
+		"(zero, by default).",UNDEF,B_BES_M},
+	{"besselLE","<order> <angle>","Bessel beam with linearly polarized electric field. Order is integer "
+		"(of any sign, but it works correctly only for |order|<12) and the half-cone angle (in degrees) is "
+		"measured from the z-axis.",2,B_BES_LE},
+	{"besselLM","<order> <angle>","Bessel beam with linearly polarized magnetic field. Order is integer "
+		"(of any sign, but it works correctly only for |order|<12) and the half-cone angle (in degrees) is "
+		"measured from the z-axis.",2,B_BES_LM},
+	{"besselTEL","<order> <angle>","Linear component of the TE Bessel beam. Order is integer (of any sign, but it "
+		"works correctly only for |order|<12) and the half-cone angle (in degrees) is measured from the z-axis.",
+		2,B_BES_TEL},
+	{"besselTML","<order> <angle>","Linear component of the TM Bessel beam. Order is integer (of any sign, but it "
+		"works correctly only for |order|<12) and the half-cone angle (in degrees) is measured from the z-axis.",
+		2,B_BES_TML},
 #endif // !NO_FORTRAN
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "

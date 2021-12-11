@@ -190,39 +190,50 @@ void InitBeam(void)
 		case B_BES_TML:
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
-			n0=round(beam_pars[0]);
-			alpha0=beam_pars[1];
+			ConvertToInteger(beam_pars[0],"beam order",n0);
+			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,11);
+			/* Current realization of Bessel function J(n0,arg) has problems
+			 * for |n0|>11 and arg in the vicinity of 0
+			 */
+			alpha0 = Deg2Rad(beam_pars[1]);
 			K =fabs(WaveNum);
 			Kt=fabs(WaveNum)*sin(alpha0);
 			Kz=fabs(WaveNum)*cos(alpha0);
 			switch (beamtype) { // definition of elements of matrix M ((Mex,Mey),(Mmx,Mmy))
 				case B_BES_CS:
+					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					M[0]=0.5;	M[1]=0;
 					M[2]=0;		M[3]=0.5;
 					break;
 				case B_BES_CSp:
+					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					M[0]=0.5;	M[1]=0;
 					M[2]=0;		M[3]=-0.5;
 					break;
 				case B_BES_M:
+					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					M[0]=beam_pars[2]+I*beam_pars[6];
 					M[1]=beam_pars[3]+I*beam_pars[7];
 					M[2]=beam_pars[4]+I*beam_pars[8];
 					M[3]=beam_pars[5]+I*beam_pars[9];
 					break;
 				case B_BES_LE:
+					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					M[0]=0;		M[1]=0;
 					M[2]=0;		M[3]=1;
 					break;
 				case B_BES_LM:
+					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					M[0]=0;		M[1]=1;
 					M[2]=0;		M[3]=0;
 					break;
 				case B_BES_TEL:
+					TestRangeNN(beam_pars[1],"half-cone angle for TEL type",0,90);
 					M[0]=-K/Kt;		M[1]=0;
 					M[2]=0;			M[3]=Kz/Kt;
 					break;
 				case B_BES_TML:
+					TestRangeNN(beam_pars[1],"half-cone angle for TML type",0,90);
 					M[0]=0; 		M[1]=Kz/Kt;
 					M[2]=K/Kt;		M[2]=0;
 					break;
@@ -559,6 +570,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						fn[2] = jn1[n0];
 						fn[3] = jn1[n0+1]*cexp(I*phi);
 						fn[4] = jn1[n0+2]*cexp(2*I*phi);
+
 					}
 					if (n0 == -2) {
 						bjndd_(&n1, &arg, jn1, td1, td2);
