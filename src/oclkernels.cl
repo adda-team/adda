@@ -220,7 +220,7 @@ __kernel void arith3(__global double2 *slices_tr,__global const double2 *Dmatrix
 		xv[Xcomp]=slices_tr[i+(xl+Xcomp*local_gridX)*gridY*gridZ];
 	}
 	// indexDmatrix_mv
-	if (transposed==1) { // used only for G_SO
+	if (transposed==1) { // almost never happens
 		if (xa>0) xa=gridX-xa;
 		if (y>0) ya=gridY-y;
 		if (z>0) za=gridZ-z;
@@ -284,7 +284,7 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 		xv[Xcomp]=slices_tr[i+x*gridY*gridZ+Xcomp*gridY*gridZ*local_gridX];
 	}
 	// indexDmatrix_mv
-	if (transposed==1) { // used only for G_SO
+	if (transposed==1) { // almost never happens
 		if (x>0) xa=gridX-x;
 		if (y>0) ya=gridY-y;
 		if (z>0) za=gridZ-z;
@@ -319,7 +319,7 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 	xa=x+get_global_offset(2);
 	ya=y;
 	za=z;
-	if (transposed==1) { // used only for G_SO
+	if (transposed==1) { // almost never happens
 		if ((x)>0) xa=gridX-x;
 		else xa=x;
 		if (y>0) ya=gridY-y;
@@ -339,7 +339,7 @@ __kernel void arith3_surface(__global double2 *slices_tr,__global const double2 
 		fmat[1]*=-1;
 		fmat[4]*=-1;
 	}
-	if (transposed) {
+	if (transposed) { // almost never happens
 		fmat[2]*=-1;
 		fmat[4]*=-1;
 	}
