@@ -431,8 +431,8 @@ static struct opt_struct options[]={
 		"integral scattering quantities.\n"
 		"Default: "FD_ALLDIR_PARMS,1,NULL},
 	{PAR(anisotr),"","Specifies that refractive index is anisotropic (its tensor is limited to be diagonal in particle "
-		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
-		"formulations, and '-rect_dip'.",0,NULL},
+		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr' and "
+		"'-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
 	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam with respect to the initial point in time. "
 			"For plane, Gaussian, and Bessel field it determines the phase in space. "
@@ -501,7 +501,7 @@ static struct opt_struct options[]={
 #endif
 		"'zero' is a zero vector,\n"
 		"Default: auto",UNDEF,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc_av <Rp>|poi|so}",
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc_av <Rp>|poi}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
@@ -512,16 +512,15 @@ static struct opt_struct options[]={
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
-		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
+		"'igt_so' - second-order approximate evaluation of IGT.\n"
 		"'nloc' - non-local interaction of two Gaussian dipole densities (based on point value of Gh), <Rp> is the "
 		"width of the latter in um (must be non-negative).\n"
 		"'nloc_av' - same as 'nloc' but based on averaging over the cube volume.\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
-		"'so' - under development and incompatible with '-anisotr'.\n"
 #ifdef SPARSE
 		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
 #endif
-		"Only poi and igt can be used with '-rect_dip'.\n"
+		"Only poi, igt, and igt_so can be used with '-rect_dip'.\n"
 		"Default: poi",UNDEF,NULL},
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * Modify string constants after 'PAR(int)': add new argument (possibly with additional sub-arguments) to list
@@ -591,13 +590,13 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
 		"'dgf' - Digitized Green's Function (second order approximation to LAK).\n"
 		"'fcd' - Filtered Coupled Dipoles (requires dpl to be larger than 2).\n"
-		"'igt_so' - Integration of Green's Tensor over a cube (second order approximation).\n"
+		"'igt_so' - Integration of Green's tensor over a cube (second-order approximation).\n"
 		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
@@ -605,7 +604,6 @@ static struct opt_struct options[]={
 		"(must be non-negative).\n"
 		"'nloc_av' - same as 'nloc' but based on averaging of Gh over the dipole volume.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
-		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Only poi,cldr, and igt_so can be used with '-rect_dip'.\n"
 		"Default: ldr (without averaging) or cldr (for -rect_dip).",UNDEF,NULL},
 		/* TO ADD NEW POLARIZABILITY FORMULATION
@@ -621,8 +619,8 @@ static struct opt_struct options[]={
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
 		"the corresponding axes. Absolute scale is irrelevant, i.e. '1 2 2' is equivalent to '0.5 1 1'. Cannot be used "
-		"with '-anisotr', '-granul', '-scat so'. The compatible polarizability and interaction-term formulations are "
-		"also limited.\n"
+		"with '-anisotr' and '-granul'. The compatible polarizability and interaction-term formulations are also "
+		"limited.\n"
 		"Default: 1 1 1",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
@@ -632,11 +630,10 @@ static struct opt_struct options[]={
 		"extension can differ depending on argument of '-sg_format' option).",
 		UNDEF,NULL},
 #endif // !SPARSE
-	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
+	{PAR(scat),"{dr|fin|igt_so}","Sets prescription to calculate scattering quantities.\n"
 		"'dr' - (by Draine) standard formulation for point dipoles\n"
 		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
-		"'igt_so' - second order in kd approximation to Integration of Green's Tensor.\n"
-		"'so' - under development and incompatible with '-anisotr' and '-rect_dip'.\n"
+		"'igt_so' - second-order approximation to integration of Green's tensor.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering angles for "
 		"calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -1267,7 +1264,6 @@ PARSE_FUNC(int)
 		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
-	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1281,7 +1277,7 @@ PARSE_FUNC(int_surf)
 {
 	if (strcmp(argv[1],"img")==0) ReflRelation=GR_IMG;
 	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
-	else NotSupported("Interaction term prescription",argv[1]);
+	else NotSupported("Reflection term prescription",argv[1]);
 	/* TO ADD NEW REFLECTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h.
@@ -1426,7 +1422,6 @@ PARSE_FUNC(pol)
 		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
-	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1481,7 +1476,6 @@ PARSE_FUNC(scat)
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
 	else if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
 	else if (strcmp(argv[1],"igt_so")==0) ScatRelation=SQ_IGT_SO;
-	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
 PARSE_FUNC(scat_grid_inp)
@@ -2131,13 +2125,13 @@ void VariablesInterconnect(void)
 		prop_0[2]=1;
 	}
 	// parameter interconnections
-	if (IntRelation==G_SO) {
+	if (false) { // left for future developments - put here options which rely on symmetry
 		reduced_FFT=false;
 		// this limitation is due to assumption of reciprocity in DecayCross()
-		if (beamtype==B_DIPOLE) PrintError("'-beam dipole' and '-int so' can not be used together");
+		if (beamtype==B_DIPOLE) PrintError("'-beam dipole' is incompatible with non-symmetric Green's tensor");
 	}
 	/* TO ADD NEW INTERACTION FORMULATION
-	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the definition of reduced_FFT
+	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the test above (now redundant)
 	 */
 	if (calc_Csca || calc_vec) all_dir = true;
 	// by default, one of the scattering options is activated
@@ -2191,20 +2185,17 @@ void VariablesInterconnect(void)
 		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO)
 			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
 			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
-		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
-			"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
-			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
+		else if (PolRelation!=POL_IGT_SO && (IntRelation==G_IGT || IntRelation==G_IGT_SO)) LogWarning(EC_WARN,ONE_POS,
+			"Using IGT interaction with point-dipole polarizability formulations will produce wrong results for "
+			"rectangular dipoles. In most cases you should use '-rect_dip ... -int igt_so ... -pol igt_so'");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
-		if (ScatRelation==SQ_SO) PrintError("'-rect_dip' is incompatible with '-scat so'");
-		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
-			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
+		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT && IntRelation!=G_IGT_SO)
+			PrintError("The specified interaction formulation is designed only for cubical dipoles. Currently, only "
+				"'poi', 'igt', and 'igt_so' can be used with rectangular dipoles");
 	}
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");
-		if (PolRelation==POL_SO) PrintError("'-anisotr' is incompatible with '-pol so'");
-		if (ScatRelation==SQ_SO) PrintError("'-anisotr' is incompatible with '-scat so'");
-		if (IntRelation==G_SO) PrintError("'-anisotr' is incompatible with '-int so'");
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * If the new polarizability formulation is incompatible with anisotropic material, add an exception here
 		 */
@@ -2573,7 +2564,6 @@ void PrintInfo(void)
 				fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
-			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
@@ -2585,7 +2575,6 @@ void PrintInfo(void)
 			case SQ_DRAINE: fprintf(logfile,"'by Draine'\n"); break;
 			case SQ_FINDIP: fprintf(logfile,"'Finite Dipoles'\n"); break;
 			case SQ_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
-			case SQ_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");
@@ -2601,7 +2590,6 @@ void PrintInfo(void)
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_NLOC_AV: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
-			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
