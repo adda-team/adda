@@ -57,6 +57,7 @@ static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 #ifndef NO_FORTRAN
 static int n0;                 // Bessel beam order
+int vorticity;				   // Vorticity of vortex beams (n0 for Bessel beams)
 static double alpha0;          // half-cone angle
 static doublecomplex K,Kt,Kz;  // wave-vector components
 static doublecomplex M[4];     // Components of matrix M
@@ -89,6 +90,7 @@ void InitBeam(void)
 	// beam initialization
 	beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
 	if (!beam_asym) vInit(beam_center); // not to calculate it for each orientation
+	vorticity = 0;
 	switch (beamtype) {
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
@@ -190,11 +192,9 @@ void InitBeam(void)
 		case B_BES_TML:
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
-			ConvertToInteger(beam_pars[0],"beam order",n0);
-			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,11);
-			/* Current realization of Bessel function J(n0,arg) has problems
-			 * for |n0|>11 and arg in the vicinity of 0
-			 */
+			ConvertToInteger(beam_pars[0],"beam order",&n0);
+			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,899);
+			vorticity = n0;
 			alpha0 = Deg2Rad(beam_pars[1]);
 			K =fabs(WaveNum);
 			Kt=fabs(WaveNum)*sin(alpha0);
@@ -212,10 +212,16 @@ void InitBeam(void)
 					break;
 				case B_BES_M:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
-					M[0]=beam_pars[2]+I*beam_pars[6];
-					M[1]=beam_pars[3]+I*beam_pars[7];
-					M[2]=beam_pars[4]+I*beam_pars[8];
-					M[3]=beam_pars[5]+I*beam_pars[9];
+					if (beam_Npars==6) {
+						M[0]=beam_pars[2];	M[1]=beam_pars[3];
+						M[2]=beam_pars[4];	M[3]=beam_pars[5];
+					}
+					else {
+						M[0]=beam_pars[2]+I*beam_pars[6];
+						M[1]=beam_pars[3]+I*beam_pars[7];
+						M[2]=beam_pars[4]+I*beam_pars[8];
+						M[3]=beam_pars[5]+I*beam_pars[9];
+					}
 					break;
 				case B_BES_LE:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
@@ -570,7 +576,6 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 						fn[2] = jn1[n0];
 						fn[3] = jn1[n0+1]*cexp(I*phi);
 						fn[4] = jn1[n0+2]*cexp(2*I*phi);
-
 					}
 					if (n0 == -2) {
 						bjndd_(&n1, &arg, jn1, td1, td2);

@@ -44,6 +44,7 @@ extern const Parms_1D phi_sg;
 extern const double ezLab[3],exSP[3];
 // defined and initialized in GenerateB.c
 extern const double C0dipole,C0dipole_refl;
+extern int vorticity;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
 	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
@@ -172,6 +173,7 @@ void MuellerMatrix(void)
 	double matrix[4][4];
 	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
 	doublecomplex s1,s2,s3,s4;
+	doublecomplex vort;
 	char fname[MAX_FNAME];
 	int i;
 	size_t index,index1,k_or,j,n,ind;
@@ -198,8 +200,8 @@ void MuellerMatrix(void)
 				for (i=0;i<nTheta;i++) {
 					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
 					/* Note, that amplitude matrix for vortex beams (e.g., Bessel ones) have to be additionally
-					 * multiplied by the phase factor exp(-I*n0*alpha). However, it does not change the Mueller matrix
-					 * and we do not save the amplitude matrix in this case.
+					 * multiplied by the phase factor exp(-I*vorticity*alpha). However, it does not change the
+					 * Mueller matrix and we do not save the amplitude matrix in this case.
 					 */
 					if (yzplane) { // here the default (alpha=0) is yz-plane, so par=Y, per=X
 						s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
@@ -334,15 +336,16 @@ void MuellerMatrix(void)
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
 					ph=Deg2Rad(phi);
+					vort=cexp(-I*vorticity*ph);
 					// rather complicated (but general) approach to determine rotation angle from XY to scattering plane
 					SetScatPlane(cthet,sthet,ph,tmp3,incPolper);
 					co=-DotProd(incPolper,incPolY);
 					si=DotProd(incPolper,incPolX);
 					// transform the amplitude matrix, multiplying by rotation matrix from per-par to X-Y
-					s2 = co*EgridX[index+1] + si*EgridY[index+1]; // s2 =  co*s20 + si*s30
-					s3 = si*EgridX[index+1] - co*EgridY[index+1]; // s3 =  si*s20 - co*s30
-					s4 = co*EgridX[index] + si*EgridY[index]; // s4 =  co*s40 + si*s10
-					s1 = si*EgridX[index] - co*EgridY[index]; // s1 =  si*s40 - co*s10
+					s2 = vort*(co*EgridX[index+1] + si*EgridY[index+1]); // s2 =  co*s20 + si*s30
+					s3 = vort*(si*EgridX[index+1] - co*EgridY[index+1]); // s3 =  si*s20 - co*s30
+					s4 = vort*(co*EgridX[index] + si*EgridY[index]); // s4 =  co*s40 + si*s10
+					s1 = vort*(si*EgridX[index] - co*EgridY[index]); // s1 =  si*s40 - co*s10
 					index+=2;
 
 					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4,theta);
