@@ -25,7 +25,7 @@ double dsX,dsY,dsZ;       // dipole sizes along each axis
 double rectScaleX,rectScaleY,rectScaleZ; // relative dipole sizes (scales), in many cases are round numbers
 double dipvol;            // dipole volume
 doublecomplex kd;         // =kdX - DEPRECATED, may only be used in parts incompatible with rectDip
-double kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
+doublecomplex kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
