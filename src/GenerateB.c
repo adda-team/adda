@@ -193,7 +193,7 @@ void InitBeam(void)
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
 			ConvertToInteger(beam_pars[0],"beam order",&n0);
-			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,899);
+			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,50);
 			vorticity = n0;
 			alpha0 = Deg2Rad(beam_pars[1]);
 			K =fabs(WaveNum);
