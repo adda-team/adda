@@ -848,7 +848,7 @@ double ExtCross(const double * restrict incPol)
 		 * independent of propagation or scattering direction. For rectangular dipoles, it is only approximate but
 		 * expected to be accurate for not very elongated dipoles and/or not very spread out incident field.
 		 *
-		 * In principle, the situation is similar for SO of full IGT, but there the correction factor depends on the
+		 * In principle, the situation is similar for full IGT, but there the correction factor depends on the
 		 * propagation direction even for cubical dipoles
 		 */
 		if (ScatRelation==SQ_IGT_SO) sum*=eta2(prop);

@@ -8,3 +8,4 @@
 # for Eclipse
 .сproject
 .project 
+src/.DS_Store
