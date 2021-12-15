@@ -45,7 +45,7 @@ adda_cmdlineargs = dict(
     no_vol_cor = "", #Disable volume correction
     iter = "qmr2", #Iterative solver
     pol = "igt_so", #Polarizability prescription
-    int = "igt 3", #Interaction term
+    int = "igt_so", #Interaction term
     Csca = "", #Calculate Csca with the Romberg integral. Needed to properly calculate Cathodoluminesce
     alldir_inp = os.path.abspath(__file__ + "/../../Csca_integration.txt")
 )
