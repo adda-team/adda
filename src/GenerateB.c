@@ -46,6 +46,7 @@ extern const opt_index opt_beam;
 
 // used in CalculateE.c
 double C0dipole,C0dipole_refl; // inherent cross sections of exciting dipole (in free space and addition due to surface)
+int vorticity;                 // Vorticity of vortex beams (besN for Bessel beams)
 // used in param.c
 const char *beam_descr; // string for log file with beam parameters
 
@@ -56,11 +57,10 @@ static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktra
 static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
 #ifndef NO_FORTRAN
-static int n0;                 // Bessel beam order
-int vorticity;				   // Vorticity of vortex beams (n0 for Bessel beams)
-static double alpha0;          // half-cone angle
-static doublecomplex K,Kt,Kz;  // wave-vector components
-static doublecomplex M[4];     // Components of matrix M
+static int besN;                  // Bessel beam order
+static double besAlpha;           // half-cone angle (in radians)
+static doublecomplex besKt,besKz; // wave-vector components (transverse and longitudinal)
+static doublecomplex besM[4];     // Matrix M defining the generalized Bessel beam
 #endif
 /* TO ADD NEW BEAM
  * Add here all internal variables (beam parameters), which you initialize in InitBeam() and use in GenerateB()
@@ -192,89 +192,76 @@ void InitBeam(void)
 		case B_BES_TML:
 			if (surface) PrintError("Currently, Bessel incident beam is not supported for '-surf'");
 			// initialize parameters
-			ConvertToInteger(beam_pars[0],"beam order",&n0);
-			TestRangeII(abs(n0),"beam order (might cause the incorrect calculation of Bessel function)",0,50);
-			vorticity = n0;
-			alpha0 = Deg2Rad(beam_pars[1]);
-			K =fabs(WaveNum);
-			Kt=fabs(WaveNum)*sin(alpha0);
-			Kz=fabs(WaveNum)*cos(alpha0);
+			ConvertToInteger(beam_pars[0],"beam order",&besN);
+			TestRangeII(besN,"beam order (might cause the incorrect calculation of Bessel function)",-50,50);
+			vorticity=besN;
+			besAlpha=Deg2Rad(beam_pars[1]);
+			besKt=WaveNum*sin(besAlpha);
+			besKz=WaveNum*cos(besAlpha);
 			switch (beamtype) { // definition of elements of matrix M ((Mex,Mey),(Mmx,Mmy))
 				case B_BES_CS:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
-					M[0]=0.5;	M[1]=0;
-					M[2]=0;		M[3]=0.5;
+					besM[0]=0.5;  besM[1]=0;
+					besM[2]=0;    besM[3]=0.5;
+					if (IFROOT) tmp_str="circularly symmetric energy density";
 					break;
 				case B_BES_CSp:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
-					M[0]=0.5;	M[1]=0;
-					M[2]=0;		M[3]=-0.5;
+					besM[0]=0.5;  besM[1]=0;
+					besM[2]=0;    besM[3]=-0.5;
+					if (IFROOT) tmp_str="circularly symmetric energy density, alternative type";
 					break;
 				case B_BES_M:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
 					if (beam_Npars==6) {
-						M[0]=beam_pars[2];	M[1]=beam_pars[3];
-						M[2]=beam_pars[4];	M[3]=beam_pars[5];
+						besM[0]=beam_pars[2];
+						besM[1]=beam_pars[3];
+						besM[2]=beam_pars[4];
+						besM[3]=beam_pars[5];
 					}
 					else {
-						M[0]=beam_pars[2]+I*beam_pars[6];
-						M[1]=beam_pars[3]+I*beam_pars[7];
-						M[2]=beam_pars[4]+I*beam_pars[8];
-						M[3]=beam_pars[5]+I*beam_pars[9];
+						besM[0]=beam_pars[2]+I*beam_pars[6];
+						besM[1]=beam_pars[3]+I*beam_pars[7];
+						besM[2]=beam_pars[4]+I*beam_pars[8];
+						besM[3]=beam_pars[5]+I*beam_pars[9];
 					}
+					if (IFROOT) tmp_str="generalized";
 					break;
 				case B_BES_LE:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
-					M[0]=0;		M[1]=0;
-					M[2]=0;		M[3]=1;
+					besM[0]=0;  besM[1]=0;
+					besM[2]=0;  besM[3]=1;
+					if (IFROOT) tmp_str="linear electric field";
 					break;
 				case B_BES_LM:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
-					M[0]=0;		M[1]=1;
-					M[2]=0;		M[3]=0;
+					besM[0]=0;  besM[1]=1;
+					besM[2]=0;  besM[3]=0;
+					if (IFROOT) tmp_str="linear magnetic field";
 					break;
+				/* TODO: for the following two types, both 0 and 90 degrees should be fine, but may require some
+				 * rearrangement of formulae. Then the tests for range of alpha should be moved outside of the case
+				 */
 				case B_BES_TEL:
 					TestRangeNN(beam_pars[1],"half-cone angle for TEL type",0,90);
-					M[0]=-K/Kt;		M[1]=0;
-					M[2]=0;			M[3]=Kz/Kt;
+					besM[0]=-WaveNum/besKt;  besM[1]=0;
+					besM[2]=0;               besM[3]=besKz/besKt;
+					if (IFROOT) tmp_str="linear component of the TE";
 					break;
 				case B_BES_TML:
 					TestRangeNN(beam_pars[1],"half-cone angle for TML type",0,90);
-					M[0]=0; 		M[1]=Kz/Kt;
-					M[2]=K/Kt;		M[2]=0;
+					besM[0]=0;              besM[1]=besKz/besKt;
+					besM[2]=WaveNum/besKt;  besM[2]=0;
+					if (IFROOT) tmp_str="linear component of the TM";
 					break;
 				default: LogError(ONE_POS,"Incompatibility error in GenerateB");
 			}
+			// TODO: some symmetries can be retained in some special cases
 			symR=symX=symY=symZ=false;
 			// beam info
-			if (IFROOT) {
-				switch (beamtype) {
-					case B_BES_CS:
-						tmp_str="circularly symmetric energy density";
-						break;
-					case B_BES_CSp:
-						tmp_str="circularly symmetric energy density, alternative type";
-						break;
-					case B_BES_M:
-						tmp_str="generalized";
-						break;
-					case B_BES_LE:
-						tmp_str="linear electric field";
-						break;
-					case B_BES_LM:
-						tmp_str="linear magnetic field";
-						break;
-					case B_BES_TEL:
-						tmp_str="linear component of the TE";
-						break;
-					case B_BES_TML:
-						tmp_str="linear component of the TM";
-						break;
-					default: LogError(ONE_POS,"Incompatibility error in GenerateB");
-				}
-				beam_descr=dyn_sprintf("Bessel beam (%s)\n"
-									   "\tOrder: ""%d""\n\t""Half-cone angle: "GFORMDEF"\n",tmp_str,n0,alpha0);
-			}
+			if (IFROOT) beam_descr=dyn_sprintf("Bessel beam (%s)\n"
+				                               "\tOrder: %d, half-cone angle: "GFORMDEF" deg\n",
+				                               tmp_str,besN,beam_pars[1]);
 			return;
 #endif // !NO_FORTRAN
 		case B_READ:
@@ -333,11 +320,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	 */
 	doublecomplex eIncRefl[3],eIncTran[3];
 #ifndef NO_FORTRAN
-	double ro;
-	int n1,q; // for Bessel beams
-	doublecomplex vort;  // vortex phase of Bessel beam rotated on 90 deg
-	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2 respectively)
-	double phi,arg,td1[abs(n0)+3],td2[abs(n0)+3],jn1[abs(n0)+3]; // for Bessel beams
+	// for Bessel beams
+	int n1,q;
+	doublecomplex vort;  // vortex phase of Bessel beam rotated by 90 deg
+	doublecomplex fn[5]; // for general functions f(n,ro,phi) of Bessel beams (fn-2, fn-1, fn, fn+1, fn+2, respectively)
+	double phi,arg,td1[abs(besN)+3],td2[abs(besN)+3],jn1[abs(besN)+3]; // for Bessel beams
 #endif
 	const char *fname;
 	/* TO ADD NEW BEAM
@@ -539,84 +526,88 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		case B_BES_LM:
 		case B_BES_TEL:
 		case B_BES_TML:
-			if (which==INCPOL_X) vort = cpow(I,n0);
-			else vort = 1.;
+			/* we assume that matrix M determines x-polarization (in the beam reference frame), while y-one is obtained
+			 * by rotation with additional phase shift
+			 */
+			vort=(which==INCPOL_Y) ? cpow(I,besN) : 1;
 			for (i=0;i<local_nvoid_Ndip;i++) {
 				j=3*i;
 				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
 				x=DotProd(r1,ex);
 				y=DotProd(r1,ey);
 				z=DotProd(r1,prop);
-				ro2=x*x+y*y;
-				ro=sqrt(ro2);	// radial distance in a cylindrical coordinate system
-				phi=atan2(y,x);	// angular coordinate in a cylindrical coordinate system
-				// common factor
-				ctemp=cexp(I*n0*phi)*cexp(I*Kz*z)/K/K*vort;
-				arg=Kt*ro;
-				if (arg<ROUND_ERR){
-					if (n0 == 0) fn[2]=1.;
+				phi=atan2(y,x); // angular coordinate in a cylindrical coordinate system
+				ctemp=imExp(besN*phi)*cexp(I*besKz*z)*vort/(WaveNum*WaveNum); // common factor
+				arg=besKt*sqrt(x*x+y*y); // argument of Bessel functions
+				if (arg<ROUND_ERR) {
+					// TODO: the following seems incorrect for n=+-1 or +-2 (other fn will be non-zero)
+					if (besN==0) fn[2]=1.;
 					else fn[2]=0;
-					fn[0]=0; fn[1]=0; fn[3]=0; fn[4]=0;
+					fn[0]=fn[1]=fn[3]=fn[4]=0;
 				}
 				else {
-					n1=abs(n0)+2;
-					if (n0 <= -3) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						if (n1 % 2 == 0) q=1;	else q=-1;
-						fn[0] =  q*jn1[-n0+2]*cexp(-2*I*phi);
-						fn[1] = -q*jn1[-n0+1]*cexp(-I*phi);
-						fn[2] =  q*jn1[-n0];
-						fn[3] = -q*jn1[-n0-1]*cexp(I*phi);
-						fn[4] =  q*jn1[-n0-2]*cexp(2*I*phi);
+					// TODO: the following looks very complicated, try to simplify
+					n1=abs(besN)+2;
+					if (besN<=-3) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						if (n1%2==0) q=1;
+						else q=-1;
+						fn[0] =  q*jn1[-besN+2]*imExp(-2*phi);
+						fn[1] = -q*jn1[-besN+1]*imExp(-phi);
+						fn[2] =  q*jn1[-besN];
+						fn[3] = -q*jn1[-besN-1]*imExp(phi);
+						fn[4] =  q*jn1[-besN-2]*imExp(2*phi);
 					}
-					if (n0 >= 2) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						fn[0] = jn1[n0-2]*cexp(-2*I*phi);
-						fn[1] = jn1[n0-1]*cexp(-I*phi);
-						fn[2] = jn1[n0];
-						fn[3] = jn1[n0+1]*cexp(I*phi);
-						fn[4] = jn1[n0+2]*cexp(2*I*phi);
+					if (besN >= 2) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						fn[0] = jn1[besN-2]*imExp(-2*phi);
+						fn[1] = jn1[besN-1]*imExp(-phi);
+						fn[2] = jn1[besN];
+						fn[3] = jn1[besN+1]*imExp(phi);
+						fn[4] = jn1[besN+2]*imExp(2*phi);
 					}
-					if (n0 == -2) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						fn[0] =  jn1[4]*cexp(-2*I*phi);
-						fn[1] = -jn1[3]*cexp(-I*phi);
+					if (besN == -2) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						fn[0] =  jn1[4]*imExp(-2*phi);
+						fn[1] = -jn1[3]*imExp(-phi);
 						fn[2] =  jn1[2];
-						fn[3] = -jn1[1]*cexp(I*phi);
-						fn[4] =  jn1[0]*cexp(2*I*phi);
+						fn[3] = -jn1[1]*imExp(phi);
+						fn[4] =  jn1[0]*imExp(2*phi);
 					}
-					if (n0 == -1) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						fn[0] = -jn1[3]*cexp(-2*I*phi);
-						fn[1] =  jn1[2]*cexp(-I*phi);
+					if (besN == -1) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						fn[0] = -jn1[3]*imExp(-2*phi);
+						fn[1] =  jn1[2]*imExp(-phi);
 						fn[2] = -jn1[1];
-						fn[3] =  jn1[0]*cexp(I*phi);
-						fn[4] =  jn1[1]*cexp(2*I*phi);
+						fn[3] =  jn1[0]*imExp(phi);
+						fn[4] =  jn1[1]*imExp(2*phi);
 					}
-					if (n0 == 0) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						fn[0] =  jn1[2]*cexp(-2*I*phi);
-						fn[1] = -jn1[1]*cexp(-I*phi);
+					if (besN == 0) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						fn[0] =  jn1[2]*imExp(-2*phi);
+						fn[1] = -jn1[1]*imExp(-phi);
 						fn[2] =  jn1[0];
-						fn[3] =  jn1[1]*cexp(I*phi);
-						fn[4] =  jn1[2]*cexp(2*I*phi);
+						fn[3] =  jn1[1]*imExp(phi);
+						fn[4] =  jn1[2]*imExp(2*phi);
 					}
-					if (n0 == 1) {
-						bjndd_(&n1, &arg, jn1, td1, td2);
-						fn[0] = -jn1[1]*cexp(-2*I*phi);
-						fn[1] =  jn1[0]*cexp(-I*phi);
+					if (besN == 1) {
+						bjndd_(&n1,&arg,jn1,td1,td2);
+						fn[0] = -jn1[1]*imExp(-2*phi);
+						fn[1] =  jn1[0]*imExp(-phi);
 						fn[2] =  jn1[1];
-						fn[3] =  jn1[2]*cexp(I*phi);
-						fn[4] =  jn1[3]*cexp(2*I*phi);
+						fn[3] =  jn1[2]*imExp(phi);
+						fn[4] =  jn1[3]*imExp(2*phi);
 					}
 				}
-
-				t1 = (((K*K+Kz*Kz)/2.*M[0] +  K*Kz*M[3])*fn[2] +
-						  Kt*Kt/4.*((M[0]+I*M[1])*fn[0] + (M[0]-I*M[1])*fn[4]));	// Ex
-				t2 = (((K*K+Kz*Kz)/2.*M[1] -  K*Kz*M[2])*fn[2] +
-						I*Kt*Kt/4.*((M[0]+I*M[1])*fn[0] - (M[0]-I*M[1])*fn[4]));	// Ey
-				t3 = ((I*Kz*(M[0]+I*M[1]) + K*(M[2]+I*M[3]))*fn[1] -
-					  (I*Kz*(M[0]-I*M[1]) - K*(M[2]-I*M[3]))*fn[3])*Kt/2.;			// Ez
+				/* TODO: all factors before f[n] should be calculated in InitBeam beforehand
+				 * this will improve speed and allow robust calculation in the limit, e.g., of kt->0
+				 */
+				t1 = (((WaveNum*WaveNum+besKz*besKz)/2.*besM[0] +  WaveNum*besKz*besM[3])*fn[2] +
+					  besKt*besKt/4.*((besM[0]+I*besM[1])*fn[0] + (besM[0]-I*besM[1])*fn[4])); // Ex
+				t2 = (((WaveNum*WaveNum+besKz*besKz)/2.*besM[1] -  WaveNum*besKz*besM[2])*fn[2] +
+					  I*besKt*besKt/4.*((besM[0]+I*besM[1])*fn[0] - (besM[0]-I*besM[1])*fn[4])); // Ey
+				t3 = ((I*besKz*(besM[0]+I*besM[1]) + WaveNum*(besM[2]+I*besM[3]))*fn[1] -
+					  (I*besKz*(besM[0]-I*besM[1]) - WaveNum*(besM[2]-I*besM[3]))*fn[3])*besKt/2.; // Ez
 
 				cvMultScal_RVec(t1,ex,v1);
 				cvMultScal_RVec(t2,ey,v2);

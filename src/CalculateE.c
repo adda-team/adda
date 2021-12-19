@@ -200,8 +200,9 @@ void MuellerMatrix(void)
 				for (i=0;i<nTheta;i++) {
 					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
 					/* Note, that amplitude matrix for vortex beams (e.g., Bessel ones) have to be additionally
-					 * multiplied by the phase factor exp(-I*vorticity*alpha). However, it does not change the
-					 * Mueller matrix and we do not save the amplitude matrix in this case.
+					 * multiplied by the phase factor exp(-I*vorticity*alpha) and additional factor I^vorticity for
+					 * scat_plane (see below). However, it does not change the Mueller matrix and we do not save the
+					 * amplitude matrix here. Hence, these phase factors are ignored for orientation averaging.
 					 */
 					if (yzplane) { // here the default (alpha=0) is yz-plane, so par=Y, per=X
 						s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
@@ -249,15 +250,19 @@ void MuellerMatrix(void)
 				FCloseErr(mueller,F_MUEL,ONE_POS);
 			}
 		}
-		if (scat_plane) { // par=X, per=-Y
+		if (scat_plane) { // par=X*i^n, per=-Y*i^n (n - vorticity)
 			if (store_ampl) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_AMPL,directory);
 				ampl=FOpenErr(fname,"w",ONE_POS);
 				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
+				vort=cpow(I,vorticity);
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(-EplaneY[2*i]),REIM(EplaneX[2*i+1]),
-						REIM(-EplaneY[2*i+1]),REIM(EplaneX[2*i]));
+					s1=-EplaneY[2*i]*vort;
+					s2=EplaneX[2*i+1]*vort;
+					s3=-EplaneY[2*i+1]*vort;
+					s4=EplaneX[2*i]*vort;
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(s1),REIM(s2),REIM(s3),REIM(s4));
 				}
 				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
@@ -267,6 +272,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
+					// here we ignore common phase factor in the amplitude matrix (vort above)
 					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
@@ -278,10 +284,11 @@ void MuellerMatrix(void)
 			/* compute Mueller Matrix in full space angle.
 			 * E-fields are stored in arrays EgridX and EgridY for incoming X and Y polarized light.
 			 * It is converted to the scattering matrix elements (see e.g Bohren and Huffman) :
-			 * s2 = cos(phi)E'X'par + sin(phi)E'Y'par
-			 * s3 = sin(phi)E'X'par - cos(phi)E'Y'par
-			 * s4 = cos(phi)E'X'per + sin(phi)E'Y'per
-			 * s1 = sin(phi)E'X'per - cos(phi)E'Y'per
+			 * s2 = vort*(cos(phi)E'X'par + sin(phi)E'Y'par)
+			 * s3 = vort*(sin(phi)E'X'par - cos(phi)E'Y'par)
+			 * s4 = vort*(cos(phi)E'X'per + sin(phi)E'Y'per)
+			 * s1 = vort*(sin(phi)E'X'per - cos(phi)E'Y'per)
+			 * where additional phase factor vort=exp(I*vorticity*(PI_OVER_TWO-ph)) is for vortex beams;
 			 * from these the mueller matrix elements are computed
 			 */
 			// open files for writing
@@ -336,7 +343,7 @@ void MuellerMatrix(void)
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
 					ph=Deg2Rad(phi);
-					vort=cexp(-I*vorticity*ph);
+					vort=imExp(vorticity*(PI_OVER_TWO-ph));
 					// rather complicated (but general) approach to determine rotation angle from XY to scattering plane
 					SetScatPlane(cthet,sthet,ph,tmp3,incPolper);
 					co=-DotProd(incPolper,incPolY);
