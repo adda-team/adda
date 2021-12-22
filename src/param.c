@@ -1076,11 +1076,6 @@ PARSE_FUNC(beam_center)
 	ScanDouble3Error(argv+1,beam_center_0);
 	beam_center_used = true;
 }
-PARSE_FUNC(beam_center)
-{
-	ScanDouble3Error(argv+1,beam_center_0);
-	beam_center_used = true;
-}
 PARSE_FUNC(chp_dir)
 {
 	chp_dir=ScanStrError(argv[1],MAX_DIRNAME);
