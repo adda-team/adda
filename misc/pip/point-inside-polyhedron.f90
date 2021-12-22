@@ -1,5 +1,5 @@
-subroutine polyhedron_contains_point_3d ( node_num, face_num, &
-  face_order_max, v, face_order, face_point, p, inside )
+subroutine polyhedron_contains_point_3d ( node_num, face_num, face_order_max, &
+  v, face_order, face_point, p, face_material, material_num, inside_mat )
 !*********************************************************************
 !
 !! POLYHEDRON_CONTAINS_POINT_3D determines if a point is inside a polyhedron.
@@ -48,8 +48,12 @@ subroutine polyhedron_contains_point_3d ( node_num, face_num, &
 !
 !    Input, real ( kind = 8 ) P(3), the point to be tested.
 !
-!    Output, logical INSIDE, is true if the point 
-!    is inside the polyhedron.
+!    Input, integer FACE_MATERIAL(FACE_NUM), the material of each face.
+!
+!    Input, integer MATERIAL_NUM, the number of materials.
+!
+!    Output, integer INSIDE_MAT is the component (domain) in which the point falls; zero if 
+!    outside all domains
 !
   implicit none
 
@@ -58,18 +62,21 @@ subroutine polyhedron_contains_point_3d ( node_num, face_num, &
   integer face_order_max
   integer node_num
 
-
-  real ( kind = 8 ) area
+  real ( kind = 8 ) area(material_num)
+  real ( kind = 8 ) wind_num
   integer face
   integer face_order(face_num)
   integer face_point(face_order_max,face_num)
-  logical inside
+  integer face_material(face_num)
+  integer material_num
+  integer mat
+  integer inside_mat
   integer k
   integer node
   integer node_num_face
   real ( kind = 8 ) p(dim_num)
-  real ( kind = 8 ), parameter :: pi = 3.141592653589793D+00
-  real ( kind = 8 ) solid_angle
+  real ( kind = 8 ), parameter :: four_pi = 12.566370614359173D+00
+  real ( kind = 8 ) solid_angle(material_num)
   real ( kind = 8 ) v(dim_num,node_num)
   real ( kind = 8 ) v_face(dim_num,face_order_max)
 
@@ -78,6 +85,7 @@ subroutine polyhedron_contains_point_3d ( node_num, face_num, &
   do face = 1, face_num
 
     node_num_face = face_order(face)
+    mat = face_material(face)
 
     do k = 1, node_num_face
 
@@ -87,20 +95,33 @@ subroutine polyhedron_contains_point_3d ( node_num, face_num, &
 
     end do
 
-    call geo_polygon_solid_angle_3d ( node_num_face, v_face, p, solid_angle )
+    call geo_polygon_solid_angle_3d ( node_num_face, v_face, p, solid_angle(mat) )
 
-    area = area + solid_angle
+    area(mat) = area(mat) + solid_angle(mat)
 
   end do
-!
-!  AREA should be -4*PI, 0, or 4*PI.
-!  So this test should be quite safe!
-!
-  if ( area < -2.0D+00 * pi .or. 2.0D+00 * pi < area ) then
-    inside = .true.
-  else
-    inside = .false.
-  end if
 
+  inside_mat = 0
+  do mat = 1, material_num
+!   winding number should be close to 0 (outside) or to 1 (inside)
+    wind_num = dabs(area(mat)/four_pi)
+    if ( wind_num > 0.01 ) then
+      if ( wind_num < 0.99 ) then
+        write(*,*)'WARNING: the surface with material #',mat,' seems to be not closed ', &
+          'or the alignment of normals is inconsistent (when testing point ',p,')'
+      else
+        if (inside_mat /= 0) then
+          write(*,*)'WARNING: interiors of the surfaces with materials #',inside_mat,' and #',mat, &
+          ' intersect. Using the latter material for point',p
+        endif
+        inside_mat = mat
+        if ( wind_num > 1.01 ) then
+        write(*,*)'WARNING: the surface with material #',mat,' seems to consist of ', &
+          'several inclosed parts with inconsistent alignment of normals (when testing point ',p,')'
+        end if
+      end if
+    end if
+  end do
+  
   return
 end

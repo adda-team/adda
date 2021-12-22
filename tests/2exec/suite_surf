@@ -10,6 +10,8 @@
 ;mgn; ;m; ;g; ;n;
 # default for two-domain particles
 ;2mgn; ;2m; ;g; ;n;
+# default for three-domain particles
+;3mgn; ;3m; ;g; ;n;
 # for large computations (e.g. orientation averaging)
 ;mg4n; ;m; -grid 4 ;n;
 # for testing odd grids
@@ -34,12 +36,12 @@
 # compare or 'all' (which compares all produced files. <cmdline> is everything after the first space and it is passed
 # directly to ADDA.
 # Instead of 'all' an exclusion flags can be used - a concanetated list of '!X', where X is either an operational mode
-# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched, 
+# or an optional flag. For example: '!ocl_seq!SPA_STAN'. The line will be skipped if any of the flags is matched,
 # otherwise it is equivalent to 'all'.
 
 !SURF_EXT
 
-# testing of different grids - relevant for FFT methods; 
+# testing of different grids - relevant for FFT methods;
 all -grid 1 ;smn;
 all -grid 2 ;smn;
 all -grid 3 ;smn;
@@ -120,7 +122,7 @@ all -eq_rad 1 ;mgn;
 # properties are compared using rather large tolerances
 all -h granul
 # In principle, this doesn't work only for SURF_EXT, but having exclusion for it and non-default test files is currently
-# impossible for the script's logic 
+# impossible for the script's logic
 #CrossSec-Y,CrossSec-X,mueller -granul 0.2 0.5 2 -size 8 -shape coated 0.5 ;3m; ;n;
 #CrossSec-Y,CrossSec-X,mueller -granul 0.2 2 2 -size 8 -shape coated 0.5 ;3m; ;n;
 
@@ -151,7 +153,6 @@ all -int nloc 1 ;mgn;
 all -int nloc_av 0.1 ;mgn;
 all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
-all -int so ;mgn;
 
 # -int_surf is skipped
 
@@ -199,7 +200,7 @@ all -h orient
 #all -orient avg ap.dat ;se; ;mg4n;
 
 all -h phi_integr
-# nontrivial propagation direction make the results different 
+# nontrivial propagation direction make the results different
 #all -phi_integr 31 ;sep; ;mgn;
 all -phi_integr 31 ;sc; ;2mgn;
 
@@ -217,7 +218,6 @@ all -pol nloc 1 ;mgn;
 all -pol nloc_av 0.1 ;mgn;
 all -pol nloc_av 1 ;mgn;
 all -pol rrc ;mgn;
-all -pol so ;p; ;mgn;
 
 all -h prognosis
 all -prognosis
@@ -293,8 +293,6 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-# the results for so are indeed different, because surf uses formulae for non-plane beams
-#all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;
@@ -332,6 +330,8 @@ all -shape chebyshev 0.3 5 ;mgn;
 all -h shape coated
 all -shape coated 0.5 ;2mgn;
 all -shape coated 0.4 0.1 0.15 0.2 ;2mgn;
+all -h shape coated2
+all -shape coated2 0.7 0.4 ;3mgn;
 all -h shape cylinder
 all -shape cylinder 1 ;mgn;
 all -h shape egg
@@ -356,6 +356,8 @@ all -h shape sphere
 all -shape sphere ;mgn;
 all -h shape spherebox
 all -shape spherebox 0.5 ;2mgn;
+all -h shape superellipsoid
+all -shape superellipsoid 0.5 0.75 0.5 1.5 ;mgn;
 
 all -h size
 all -size 2 ;mgn;
@@ -382,7 +384,7 @@ all -h store_int_field
 all -store_int_field ;se; ;mgn;
 
 all -h store_scat_grid
-# nontrivial propagation direction make the results different 
+# nontrivial propagation direction make the results different
 #all -store_scat_grid ;sep; ;mgn;
 all -store_scat_grid ;sc; ;2mgn;
 

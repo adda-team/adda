@@ -1,4 +1,5 @@
-subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_num,cor3,face) 
+subroutine ivread_wr(filein_name,face_normal,face_area,face_num,cor3_num, &
+  cor3,face,order_max,face_order,face_material,material_num,vertex_range) 
 ! 
 !  ivread.f90  Wriedt 04 July 2000
 !
@@ -103,44 +104,36 @@ subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_
 !
 !    Parameter, integer TEXTURE_MAX, the maximum number of textures.
 !
-
+  implicit none
   integer, parameter :: cor3_max = 100000
   integer, parameter :: edge_max = 100
   integer, parameter :: face_max = 100000
   integer, parameter :: line_max = 100000
   integer, parameter :: material_max = 200
-  integer, parameter :: order_max = 3
+! yurkin - order_max is now an argument
+  integer order_max
   integer, parameter :: texture_max = 10
 !
-  integer arg_num
-  logical byte_swap
   real cor3(3,cor3_max)
   integer cor3_material(cor3_max)
-  real cor3_new(3,cor3_max)
   real cor3_normal(3,cor3_max)
   integer cor3_num
 
   real cor3_tex_uv(2,cor3_max)
   logical debug
-  integer edge(4,edge_max)
   integer face(order_max,face_max)
   real face_area(face_max)
   integer face_material(face_max)
   real face_normal(3,face_max)
-  integer face_object(face_max)
   integer face_order(face_max)
-  integer face_rank(face_max)
   real face_tex_uv(2,face_max)
-  integer face_tier(face_max)
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
 !*thw 29.11.00! 
-  integer iargc
   integer ierror
   integer line_dex(line_max)
   integer line_material(line_max)
   integer line_prune
-  integer list(cor3_max)
   character ( len = 100 ) material_name(material_max)
   real material_rgba(4,material_max)
   real normal_temp(3,order_max*face_max)
@@ -151,74 +144,28 @@ subroutine ivread_wr(filein_name,face_point,face_normal,face_area,face_num,cor3_
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
   real vertex_tex_uv(2,order_max,face_max)
+  real vertex_range(6)
 !*thw 29.11.00! 
-  integer na
   integer face_num
-  real face_point(3,face_max)
   character ( len = 10 ) filein_type
+  integer material_num
 !
 !  Initialize a few program variables.
 !
-  byte_swap = .true.
   debug = .false.
 ! filein_name = ' '
   fileout_name = ' '
   ierror = 0
   line_prune = 1
 !
-!  Get the number of command line arguments.
-!
-!*thw 29.11.00! 
-! arg_num = IARGC ( )
-! if ( arg_num >= 2 ) then
+  call command_line ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
+    debug, face, face_area, face_material, face_normal, face_order, face_tex_uv, &
+    filein_name, ierror, line_dex, line_material, material_name, material_rgba, &
+    cor3_max, face_max, line_max, material_max, order_max, texture_max, &
+    normal_temp, object_name, texture_name, texture_temp, transform_matrix, &
+    vertex_material, vertex_normal, vertex_tex_uv, face_num, filein_type, &
+    cor3_num, material_num, vertex_range)
 
-    call command_line ( cor3, cor3_material, cor3_normal, &
-      cor3_tex_uv, debug, face, face_area, face_material, face_normal, &
-      face_order, face_tex_uv, filein_name, fileout_name, ierror, &
-      line_dex, line_material, line_prune, material_name, material_rgba, &
-      cor3_max, face_max, line_max, material_max, order_max, texture_max, &
-      normal_temp, arg_num, object_name, texture_name, texture_temp, &
-      transform_matrix, vertex_material, vertex_normal, vertex_tex_uv, &
-	  face_num, filein_type, cor3_num)
-
-!  else
-!
-!    call interact ( byte_swap, cor3, cor3_material, cor3_new, &
-!     cor3_normal, cor3_num, cor3_tex_uv, debug, edge, &
-!      face, face_area, face_material, face_normal, face_object, &
-!      face_order, face_rank, face_tex_uv, face_tier, filein_name, &
-!      fileout_name, ierror, line_dex, line_material, line_prune, list, &
-!      material_name, material_rgba, cor3_max, edge_max, face_max, &
-!      line_max, material_max, order_max, texture_max, normal_temp, &
-!      object_name, texture_name, texture_temp, transform_matrix, &
-!      vertex_material, vertex_normal, vertex_tex_uv)
-!
-! end if
-!
-! if ( ierror /= 0 ) then
-!   write ( *, * ) ' '
-!    write ( *, * ) 'IVREAD - Error exit.'
-!  else
-!    write ( *, * ) ' '
-!   write ( *, * ) 'IVREAD - Normal exit.'
-!  end if
-!
-	do 100 na=1, face_num
-!
-!   compute centroid of faces 
-!
-	face_point(1,na)= (cor3(1,face(1,na))+cor3(1,face(2,na))+cor3(1,face(3,na)))/3.0
-	face_point(2,na)= (cor3(2,face(1,na))+cor3(2,face(2,na))+cor3(2,face(3,na)))/3.0
-	face_point(3,na)= (cor3(3,face(1,na))+cor3(3,face(2,na))+cor3(3,face(3,na)))/3.0
-!
-100	continue
-!
-110 format (I8)
-111 format (I8)
-112 format (I8,1x,I8,1x,I8)
-120	format (F9.6,1x,F9.6,1x,F9.6,1x)
-130	format (F9.6)
-!*!thw 30.11.00
   return
 end
 function angle_rad_3d ( x1, y1, z1, x2, y2, z2, x3, y3, z3 )
@@ -256,6 +203,7 @@ function angle_rad_3d ( x1, y1, z1, x2, y2, z2, x3, y3, z3 )
 !    This value will always be between 0 and PI.  If either vector has 
 !    zero length, then the angle is returned as zero.
 !
+  implicit none
   real angle_rad_3d
   real dot
   real dot0_3d
@@ -357,6 +305,7 @@ subroutine ase_read ( cor3, cor3_material, face, face_material, face_normal, fac
 !
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   logical, parameter :: debug = .false.
   integer, parameter :: level_max = 10
   integer, parameter :: OFFSET = 1
@@ -388,13 +337,13 @@ subroutine ase_read ( cor3, cor3_material, face, face_material, face_normal, fac
   integer iunit
   integer ivert
   integer iword
-  integer k
   integer lchar
   integer level
   character ( len = 256 ) level_name(0:level_max)
   character ( len = 256 ) line
   character ( len = 100 ) material_name(material_max)
   integer material_num
+  integer mat_stored
   real material_rgba(4,material_max)
   integer nlbrack
   integer node
@@ -638,11 +587,8 @@ subroutine ase_read ( cor3, cor3_material, face, face_material, face_normal, fac
       rgba(3) = bval
       rgba(4) = 1.0
 
-      if ( material_num <= 1000 ) then
-        call rcol_find ( 4, material_num, material_rgba, rgba, imat )
-      else
-        imat = 0
-      end if
+      mat_stored = min(material_num,material_max)
+      call rcol_find ( 4, mat_stored, material_rgba, rgba, imat )
 
       if ( imat == 0 ) then
 
@@ -1037,6 +983,7 @@ subroutine ase_write ( cor3, face, face_normal, face_order, filein_name, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -1052,7 +999,6 @@ subroutine ase_write ( cor3, face, face_normal, face_order, filein_name, &
   integer face_order(face_max)
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
-  integer i
   integer i1
   integer i2
   integer i3
@@ -1321,6 +1267,7 @@ subroutine byu_read ( cor3, face, face_order, ierror, iunit, cor3_max, &
 !
 !    Input/output, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -1333,7 +1280,6 @@ subroutine byu_read ( cor3, face, face_order, ierror, iunit, cor3_max, &
   integer face_num
   integer face_num_new
   integer face_order(face_max)
-  integer i
   integer ierror
   integer iface
   integer ios
@@ -1483,6 +1429,7 @@ subroutine byu_write ( cor3, face, face_order, iunit, cor3_max, face_max, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -1492,7 +1439,6 @@ subroutine byu_write ( cor3, face, face_order, iunit, cor3_max, face_max, &
   integer face(order_max,face_max)
   integer face_num
   integer face_order(face_max)
-  integer i
   integer iface
   integer ihi
   integer irow
@@ -1577,6 +1523,7 @@ subroutine c_cap ( c )
 !
 !    Input/output, character C, the character to capitalize.
 !
+  implicit none
   character c
   integer itemp
 !
@@ -1613,6 +1560,7 @@ function c_eqi ( c1, c2 )
 !
 !    Output, logical C_EQI, the result of the comparison.
 !
+  implicit none
   logical c_eqi
   character c1
   character c2
@@ -1659,6 +1607,7 @@ function c_is_control ( c )
 !    Output, logical C_IS_CONTROL, TRUE if C is a control character, and
 !    FALSE otherwise.
 !
+  implicit none
   character c
   logical c_is_control
 !
@@ -1704,6 +1653,7 @@ subroutine c_to_digit ( c, digit )
 !    Output, integer DIGIT, the corresponding integer value.  If C was
 !    'illegal', then DIGIT is -1.
 !
+  implicit none
   character c
   integer digit
 !
@@ -1723,14 +1673,13 @@ subroutine c_to_digit ( c, digit )
 
   return
 end
-subroutine command_line ( cor3, cor3_material, cor3_normal, &
-  cor3_tex_uv, debug, face, face_area, face_material, face_normal, &
-  face_order, face_tex_uv, filein_name, fileout_name, ierror, &
-  line_dex, line_material, line_prune, material_name, material_rgba, &
+subroutine command_line ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
+  debug, face, face_area, face_material, face_normal, face_order, face_tex_uv, &
+  filein_name, ierror, line_dex, line_material, material_name, material_rgba, &
   cor3_max, face_max, line_max, material_max, order_max, texture_max, &
-  normal_temp, arg_num, object_name, texture_name, &
-  texture_temp, transform_matrix, vertex_material, vertex_normal, &
-  vertex_tex_uv, face_num, filein_type, cor3_num)
+  normal_temp, object_name, texture_name, texture_temp, transform_matrix, &
+  vertex_material, vertex_normal, vertex_tex_uv, face_num, filein_type, &
+  cor3_num, material_num, vertex_range)
 !
 !*******************************************************************************
 !
@@ -1789,21 +1738,11 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
 !
 !    Workspace, character ( len = 100 ) FILEIN_NAME, the name of the input file.
 !
-!    Workspace, character ( len = 100 ) FILEOUT_NAME, the name of the output file.
-!
 !    Output, integer IERROR, error flag.
 !
 !    Workspace, integer LINE_DEX(LINE_MAX), nodes forming a line, terminated by -1.
 !
 !    Workspace, integer LINE_MAT(LINE_MAX), material index for line.
-!
-!    Input, integer LINE_PRUNE, pruning option.
-!    0, no pruning, draw every line.
-!    nonzero, prune.  Only draw the line from node I to node J if I < J.
-!    This should cut down on repeated drawing of lines in the common
-!    case of a face mesh where each line is drawn twice, once with positive
-!    and once with negative orientation.  In other cases, pruning
-!    may omit some lines that only occur with negative orientation.
 !
 !    Workspace, character ( len = 100 ) MATERIAL_NAME(MATERIAL_MAX), material names.
 !
@@ -1822,9 +1761,7 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
 !    Input, integer TEXTURE_MAX, the maximum number of textures.
 !
 !    Workspace, real NORMAL_TEMP(3,ORDER_MAX*FACE_MAX).
-!
-!    Input, integer ARG_NUM, the number of command-line arguments.
-!
+!!
 !    Workspace, character ( len = 100 ) OBJECT_NAME, object name.
 !
 !    Workspace, character ( len = 100 ) TEXTURE_NAME(TEXTURE_MAX), texture names.
@@ -1837,10 +1774,15 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
 !
 !    Workspace, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+!    ....
+!
+!    Output, real VERTEX_RANGE(6), min & max values for vertex coordinate
+!
 !*thw 29.11.00! 
 ! use DFLIB
 ! use DFPORT 
 
+  implicit none
   integer cor3_max
   integer face_max
   integer line_max
@@ -1848,7 +1790,6 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
   integer order_max
   integer texture_max
 !
-  integer arg_num
   integer color_num
   real cor3(3,cor3_max)
   integer cor3_material(cor3_max)
@@ -1865,21 +1806,12 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
   real face_tex_uv(2,face_max)
   character ( len = 100 ) filein_name
   character ( len = 10 ) filein_type
-  character ( len = 100 ) fileout_name
-  character ( len = 10 ) fileout_type
   integer group_num
-  integer i
-  integer iarg
-  integer icor3
   integer ierror
-  integer iface
-  integer ilen
   integer iseed
-  integer ivert
   integer line_dex(line_max)
   integer line_material(line_max)
   integer line_num
-  integer line_prune
   character ( len = 100 ) material_name(material_max)
   integer material_num
   real material_rgba(4,material_max)
@@ -1888,7 +1820,6 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
   integer object_num
   logical reverse_faces
   logical reverse_normals
-  logical s_eqi
   character ( len = 100 ) texture_name(texture_max)
   integer texture_num
   real texture_temp(2,order_max*face_max)
@@ -1896,6 +1827,7 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
   real vertex_tex_uv(2,order_max,face_max)
+  real vertex_range(6)
 !
   reverse_faces = .false.
   reverse_normals = .false.
@@ -1935,7 +1867,7 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, &
     material_name, material_rgba, cor3_max, face_max, line_max, material_max, &
     order_max, texture_max, normal_temp, color_num, cor3_num, face_num, &
     group_num, line_num, material_num, object_num, texture_num, texture_name, &
-    texture_temp, vertex_material, vertex_normal, vertex_tex_uv )
+    texture_temp, vertex_material, vertex_normal, vertex_tex_uv, vertex_range )
 !
 !  Check the output file name.
 !
@@ -2016,6 +1948,7 @@ subroutine cor3_normal_set ( cor3_normal, face, face_area, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -2092,7 +2025,7 @@ subroutine cor3_normal_set ( cor3_normal, face, face_area, &
 
   return
 end
-subroutine cor3_range ( cor3_max, cor3_num, cor3 )
+subroutine cor3_range ( cor3_max, cor3_num, cor3, vertex_range )
 !
 !*******************************************************************************
 !
@@ -2115,6 +2048,9 @@ subroutine cor3_range ( cor3_max, cor3_num, cor3 )
 !
 !    Input, real COR3(3,COR3_MAX), the coordinates of points.
 !
+!    Output, real VERTEX_RANGE(6), min & max values for vertex coordinate
+!
+  implicit none
   integer cor3_max
 !
   real cor3(3,cor3_max)
@@ -2129,6 +2065,7 @@ subroutine cor3_range ( cor3_max, cor3_num, cor3 )
   real zave
   real zmax
   real zmin
+  real vertex_range(6)
 !
   if ( cor3_num <= 0 ) then
 
@@ -2180,6 +2117,13 @@ subroutine cor3_range ( cor3_max, cor3_num, cor3 )
 
   end if
 
+  vertex_range(1) = xmin
+  vertex_range(2) = xmax
+  vertex_range(3) = ymin
+  vertex_range(4) = ymax
+  vertex_range(5) = zmin
+  vertex_range(6) = zmax
+
   write ( *, * ) ' '
   write ( *, * ) 'COR3_RANGE - Nodal coordinate range:'
   write ( *, * ) ' '
@@ -2219,6 +2163,7 @@ subroutine cross0_3d ( x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3 )
 !    Output, real X3, Y3, Z3, the cross product (P1-P0) x (P2-P0), or
 !    (X1-X0,Y1-Y0,Z1-Z0) x (X2-X0,Y2-Y0,Z2-Z0).
 !
+  implicit none
   real x0
   real x1
   real x2
@@ -2285,6 +2230,7 @@ subroutine data_check ( face_order, material_name, cor3_max, face_max, &
 !
 !    Input/output, character ( len = 100 ) TEXTURE_NAME(TEXTURE_MAX), texture names.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer line_max
@@ -2383,7 +2329,7 @@ subroutine data_check ( face_order, material_name, cor3_max, face_max, &
   do i = 1, material_num
     if ( material_name(i) == ' ' ) then
       call i_to_s_zero ( i, char4 )
-      texture_name(i) = 'Material_' // char4
+      material_name(i) = 'Material_' // char4
     end if
   end do
 
@@ -2467,6 +2413,7 @@ subroutine data_init ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
 !
 !    Output, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -2492,9 +2439,7 @@ subroutine data_init ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
   real face_tex_uv(2,face_max)
   integer group_num
   integer i
-  integer iface
   integer iseed
-  integer ivert
   integer j
   integer line_dex(line_max)
   integer line_material(line_max)
@@ -2530,8 +2475,7 @@ subroutine data_init ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
   line_material(1:line_max) = 0 + OFFSET
 
   do j = 1, material_max
-    call i_to_s_zero ( i, char4 )
-    material_name(j) = 'Material' // char4
+    material_name(j) = ' '
   end do
 
   material_rgba(1:4,1:material_max) = 0.0
@@ -2577,7 +2521,7 @@ subroutine data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
   material_rgba, cor3_max, face_max, line_max, material_max, order_max, texture_max, &
   normal_temp, color_num, cor3_num, face_num, group_num, line_num, material_num, &
   object_num, texture_num, texture_name, texture_temp, vertex_material, vertex_normal, &
-  vertex_tex_uv )
+  vertex_tex_uv, vertex_range )
 !
 !*******************************************************************************
 !
@@ -2646,6 +2590,9 @@ subroutine data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
 !
 !    Output, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+!    Output, real VERTEX_RANGE(6), min & max values for vertex coordinate
+!
+  implicit none
   integer, parameter :: iunit = 1
   integer, parameter :: OFFSET = 1
 !
@@ -2701,6 +2648,7 @@ subroutine data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
   real vertex_tex_uv(2,order_max,face_max)
+  real vertex_range(6)
 !
   ierror = 0
   bad_num = 0
@@ -2808,11 +2756,10 @@ subroutine data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
 
   else if ( s_eqi ( filein_type, 'WRL' ) ) then
 
-    call vrml_read ( cor3, cor3_material, face, face_material, face_order, ierror, &
-      iunit, line_dex, line_material, material_name, material_rgba, cor3_max, &
-      face_max, line_max, material_max, order_max, texture_max, bad_num, cor3_num, &
-      face_num, line_num, material_num, texture_num, text_num, texture_name, &
-      vertex_material, vertex_normal, vertex_tex_uv )
+    call vrml_read ( cor3, cor3_material, face, face_material, face_order, &
+      ierror, iunit, material_name, material_rgba, cor3_max, face_max, &
+      material_max, order_max, bad_num, cor3_num, face_num, line_num, &
+      material_num, text_num, vertex_material )
 
   else 
 
@@ -2941,7 +2888,7 @@ subroutine data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
 !
 !  Report the range of the nodal coordinates.
 !
-  call cor3_range ( cor3_max, cor3_num, cor3 )
+  call cor3_range ( cor3_max, cor3_num, cor3, vertex_range )
 
   return
 end
@@ -2971,6 +2918,7 @@ subroutine data_report ( imax, bad_num, color_num, cor3_num, dup_num, &
 !
 !    Input, integer MATERIAL_NUM, the number of materials.
 !
+  implicit none
   integer imax
   integer bad_num
   integer color_num
@@ -3079,6 +3027,7 @@ subroutine data_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
 !
 !    Input, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   integer, parameter :: iunit = 1
 !
   integer cor3_max
@@ -3330,8 +3279,8 @@ subroutine data_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
   else if ( s_eqi ( fileout_type, 'XGL' ) ) then
  
     call xgl_write ( cor3, cor3_max, cor3_normal, cor3_num, face, &
-      face_material, face_max, face_num, face_order, iunit, material_max, &
-      material_num, material_rgba, order_max )
+      face_material, face_max, face_num, face_order, iunit, material_num, &
+      order_max )
 !
 !  ...or what the hell happened?
 !
@@ -3372,6 +3321,7 @@ function degrees_to_radians ( angle )
 !    Output, real DEGREES_TO_RADIANS, the equivalent angle
 !    in radians.
 !
+  implicit none
   real, parameter :: pi = 3.14159265358979323846264338327950288419716939937510
 
   real angle
@@ -3413,6 +3363,7 @@ subroutine digit_to_c ( digit, c )
 !    Output, character C, the corresponding character, or '*' if DIGIT
 !    was illegal.
 !
+  implicit none
   character c
   integer digit
 !
@@ -3454,6 +3405,7 @@ function dot0_3d ( x0, y0, z0, x1, y1, z1, x2, y2, z2 )
 !
 !    Output, real DOT0_3D, the dot product of (P1-P0) and (P2-P0).
 !
+  implicit none
   real dot0_3d
   real x0
   real x1
@@ -3606,6 +3558,7 @@ subroutine dxf_read ( cor3, face, face_material, face_order, ierror, iunit, &
 !
 !    Output, integer TEXT_NUM, the number of lines of input text.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer cor3_max
@@ -3622,7 +3575,6 @@ subroutine dxf_read ( cor3, face, face_material, face_order, ierror, iunit, &
   integer face_material(face_max)
   integer face_num
   integer face_order(face_max)
-  integer i
   integer icode
   integer icor3
   integer ierror
@@ -3997,6 +3949,7 @@ subroutine dxf_write ( cor3, face, face_order, filein_name, fileout_name, &
 !
 !    Input, integer LINE_NUM, the number of line definition items.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -4183,6 +4136,7 @@ subroutine edge_add_nodes ( edge, edge_max, edge_num, iface, n1, n2, ierror )
 !
 !    Output, integer IERROR, error flag, 0 = no error, nonzero = error.
 !
+  implicit none
   integer edge_max
 !
   integer edge(4,edge_max)
@@ -4235,6 +4189,7 @@ subroutine edge_bound ( edge, edge_max, edge_num )
 !
 !    Input, integer EDGE_NUM, the number of edges.
 !
+  implicit none
   logical, parameter :: DEBUG = .false.
 !
   integer edge_max
@@ -4306,6 +4261,7 @@ subroutine edge_match_face ( edge, edge_max, edge_num, facelist, n, index )
 !    0, there is no edge common to the face and the EDGE array.
 !    nonzero, edge INDEX is common to the face and the EDGE array.
 !
+  implicit none
   integer n
   integer edge_max
 !
@@ -4399,6 +4355,7 @@ subroutine edge_match_nodes ( edge, edge_max, edge_num, n1, n2, iedge )
 !    0, no matching edge was found.
 !    nonzero, edge IEDGE of the EDGE array matches (N1,N2) or (N2,N1).
 !
+  implicit none
   integer edge_max
 !
   integer edge(4,edge_max)
@@ -4453,6 +4410,7 @@ subroutine edge_null_delete ( cor3, face, face_order, cor3_max, face_max, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -4469,7 +4427,6 @@ subroutine edge_null_delete ( cor3, face, face_order, cor3_max, face_max, &
   integer iface
   integer inode
   integer ivert
-  integer j
   integer jnode
   integer jvert
   real vertex_normal(3,order_max,face_max)
@@ -4553,6 +4510,7 @@ function enorm_nd ( n, x )
 !
 !    Output, real ENORM_ND, the Euclidean norm of the vector.
 !
+  implicit none
   integer n
 !
   real enorm_nd
@@ -4591,6 +4549,7 @@ function enorm0_3d ( x0, y0, z0, x1, y1, z1 )
 !
 !    Output, real ENORM0_3D, the Euclidean norm of (P1-P0).
 !
+  implicit none
   real enorm0_3d
   real x0
   real x1
@@ -4648,6 +4607,7 @@ subroutine face_area_set ( cor3, face, face_area, face_order, cor3_max, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -4823,6 +4783,7 @@ subroutine face_check ( edge, face, face_material, face_normal, face_object, &
 !
 !    Input, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer edge_max
   integer order_max
   integer face_max
@@ -4995,6 +4956,7 @@ subroutine face_flip ( edge, face, face_order, edge_max, order_max, nfix, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer edge_max
   integer order_max
   integer face_num
@@ -5115,6 +5077,7 @@ subroutine face_normal_ave ( face_normal, face_order, face_max, order_max, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer face_max
   integer order_max
 !
@@ -5212,6 +5175,7 @@ subroutine face_null_delete ( face, face_area, face_material, face_order, &
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normal vectors
 !    at vertices.  
 !
+  implicit none
   integer face_max
   integer order_max
 !
@@ -5222,8 +5186,6 @@ subroutine face_null_delete ( face, face_area, face_material, face_order, &
   integer face_num2
   integer face_order(face_max)
   integer iface
-  integer ivert
-  integer j
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
 !
@@ -5304,6 +5266,7 @@ subroutine face_print ( cor3, face, face_material, face_normal, face_order, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -5314,7 +5277,6 @@ subroutine face_print ( cor3, face, face_material, face_normal, face_order, &
   real face_normal(3,face_max)
   integer face_num
   integer face_order(order_max)
-  integer i
   integer iface
   integer ivert
   integer j
@@ -5409,6 +5371,7 @@ subroutine face_reverse_order ( cor3_normal, face, face_normal, face_order, &
 !
 !    Input/output, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex textures.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -5419,13 +5382,10 @@ subroutine face_reverse_order ( cor3_normal, face, face_normal, face_order, &
   real face_normal(3,face_max)
   integer face_num
   integer face_order(face_max)
-  integer i
   integer iface
-  integer itemp
   integer ivert
   integer j
   integer m
-  real temp
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
   real vertex_tex_uv(2,order_max,face_max)
@@ -5503,6 +5463,7 @@ subroutine face_sort ( face, face_material, face_normal, face_object, face_order
 !
 !    Input/output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer order_max
   integer face_max
 !
@@ -5517,10 +5478,8 @@ subroutine face_sort ( face, face_material, face_normal, face_object, face_order
   integer iface
   integer indx
   integer isgn
-  integer itemp
   integer ivert
   integer jface
-  real temp
   integer vertex_material(order_max,face_max)
   real vertex_normal(3,order_max,face_max)
 !
@@ -5632,6 +5591,7 @@ subroutine face_subset ( cor3, face, face_material, face_normal, &
 !
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -5813,6 +5773,7 @@ subroutine face_to_edge ( edge, face, face_order, ierror, edge_max, order_max, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer edge_max
   integer order_max
   integer face_num
@@ -5821,7 +5782,6 @@ subroutine face_to_edge ( edge, face, face_order, ierror, edge_max, order_max, &
   integer edge_num
   integer face(order_max,face_num)
   integer face_order(face_num)
-  integer i
   integer iedge
   integer ierror
   integer iface
@@ -5954,6 +5914,7 @@ subroutine face_to_line ( debug, face, face_order, line_dex, line_material, &
 !
 !    Input, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer face_max
@@ -6108,6 +6069,7 @@ subroutine face_touch ( face, face_order, order_max, face_num, iface, jface, &
 !    +1, the faces touch, both using an arc in the same direction;
 !    -1, the faces touch, using an arc in opposite directions.
 !
+  implicit none
   integer order_max
   integer face_num
 !
@@ -6210,6 +6172,7 @@ subroutine file_get_next_word ( iunit, word, text, text_num, ierror )
 !    0, no error, another word was read, and returned in WORD.
 !    1, end of file.  WORD and TEXT were set to ' '.
 !
+  implicit none
   integer ierror
   integer ihi
   integer ilo
@@ -6349,6 +6312,7 @@ subroutine file_name_ext_get ( filnam, i, j )
 !    Otherwise, I and J will be returned as 0, indicating that the file
 !    has no extension.
 !
+  implicit none
   character ( len = * ) filnam
   integer i
   integer j
@@ -6401,6 +6365,7 @@ subroutine get_seed ( iseed )
 !
 !    Output, integer ISEED, a pseudorandom seed value.
 !
+  implicit none
   integer, parameter :: I_MAX = 2147483647
 !
   integer iseed
@@ -6472,6 +6437,7 @@ subroutine hello ( cor3_max, face_max, line_max, material_max, order_max, textur
 !
 !    Input, integer TEXTURE_MAX, the maximum number of textures.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer line_max
@@ -6537,6 +6503,7 @@ subroutine help
 !
 !    John Burkardt
 !
+  implicit none
   write ( *, * ) ' '
   write ( *, * ) 'HELP:'
   write ( *, * ) '  Batch commands to convert IN_FILE to OUT_FILE:'
@@ -6806,6 +6773,7 @@ subroutine hrc_read ( cor3, face, face_material, face_order, ierror, iunit, &
 !
 !    Input/output, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   logical, parameter :: debug = .FALSE.
   integer, parameter :: level_max = 10
   integer, parameter :: OFFSET = 1
@@ -7111,6 +7079,10 @@ subroutine hrc_read ( cor3, face, face_material, face_order, ierror, iunit, &
   else if ( s_eqi ( level_name(level), 'MATERIAL' ) ) then
 
     if ( word == '{' ) then
+
+!     It is possible to introduce here searching for equivalent materials (as done in obj
+!     and wrl formats). But we do not have a test case at hand, so better not to touch
+!     anything
 
       material_num = material_num + 1
       if ( material_num <= material_max ) then
@@ -7875,6 +7847,7 @@ subroutine hrc_write ( cor3, face, face_material, face_order, fileout_name, &
 !
 !    Input, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -8256,6 +8229,7 @@ function i_modp ( i, j )
 !    Output, integer I_MODP, the nonnegative remainder when I is
 !    divided by J.
 !
+  implicit none
   integer i
   integer i_modp
   integer j
@@ -8295,6 +8269,7 @@ subroutine i_swap ( i, j )
 !    Input/output, integer I, J.  On output, the values of I and
 !    J have been interchanged.
 !
+  implicit none
   integer i
   integer j
   integer k
@@ -8341,6 +8316,7 @@ subroutine i_to_s_zero ( intval, s )
 !    The integer will be right justified, and zero padded.
 !    If there is not enough space, the string will be filled with stars.
 !
+  implicit none
   character c
   integer i
   integer idig
@@ -8439,6 +8415,7 @@ subroutine infile ( filein_name, ierror, filein_type )
 !    Output, character ( len = 10 ) FILEIN_TYPE, the type of the file, which is
 !    set to the filename extension. 
 !
+  implicit none
   character ( len = 100 ) filein_name
   character ( len = 10 ) filein_type
   integer i1
@@ -8525,613 +8502,7 @@ subroutine infile ( filein_name, ierror, filein_type )
 
   return
 end
-subroutine interact ( byte_swap, cor3, cor3_material, cor3_new, cor3_normal, &
-  cor3_num, cor3_tex_uv, debug, edge, face, face_area, face_material, &
-  face_normal, face_object, face_order, face_rank, face_tex_uv, face_tier, &
-  filein_name, fileout_name, ierror, line_dex, line_material, line_prune, list, &
-  material_name, material_rgba, cor3_max, edge_max, face_max, line_max, &
-  material_max, order_max, texture_max, normal_temp, object_name, texture_name, &
-  texture_temp, transform_matrix, vertex_material, vertex_normal, vertex_tex_uv )
-!
-!*******************************************************************************
-!
-!! INTERACT interacts with the user to specify input and output files.
-!
-!
-!  Modified:
-!
-!    25 June 1999
-!
-!  Author:
-!
-!    John Burkardt
-!
-!  Parameters:
-!
-!    Workspace, real COR3(3,COR3_MAX), the coordinates of points.
-!
-!    Workspace, integer COR3_MATERIAL(COR3_MAX), the material of each node.
-!
-!    Workspace, real COR3_TEX_UV(2,COR3_MAX), UV texture coordinates for nodes.
-!
-!    Workspace, integer FACE(ORDER_MAX,FACE_MAX), the nodes making faces.
-!
-!    Workspace, integer FACE_MATERIAL(FACE_MAX), the material of each face.
-!
-!    Workspace, real FACE_NORMAL(3,FACE_MAX), the normal vector at each face.
-!
-!    Workspace, integer FACE_ORDER(FACE_MAX), the number of vertices per face.
-!
-!    Output, integer IERROR, error flag.  0 = no error, nonzero = error.
-!
-!    Workspace, integer LINE_DEX(LINE_MAX), nodes forming a line, terminated by -1.
-!
-!    Workspace, integer LINE_MAT(LINE_MAX), material index for line.
-!
-!    Workspace, character ( len = 100 ) MATERIAL_NAME(MATERIAL_MAX), material names.
-!
-!    Input, integer COR3_MAX, the maximum number of points.
-!
-!    Input, integer FACE_MAX, the maximum number of faces.
-!
-!    Input, integer LINE_MAX, the maximum number of line definition items.
-!
-!    Input, integer MATERIAL_MAX, the maximum number of materials.
-!
-!    Input, integer ORDER_MAX, the maximum number of vertices per face.
-!
-!    Workspace, real NORMAL_TEMP(3,ORDER_MAX*FACE_MAX).
-!
-!    Workspace, character ( len = 100 ) TEXTURE_NAME(TEXTURE_MAX), texture names.
-!
-!    Workspace, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
-!
-!    Workspace, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
-!
-!    Workspace, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
-!
-  integer cor3_max
-  integer edge_max
-  integer face_max
-  integer line_max
-  integer material_max
-  integer order_max
-  integer texture_max
-!
-  logical byte_swap
-  character ( len = 100 ) command
-  real cor3(3,cor3_max)
-  integer cor3_material(cor3_max)
-  real cor3_new(3,cor3_max)
-  real cor3_normal(3,cor3_max)
-  integer cor3_num
-  integer cor3_number(cor3_max)
-  real cor3_tex_uv(2,cor3_max)
-  logical debug
-  integer edge(4,edge_max)
-  integer face(order_max,face_max)
-  real face_area(face_max)
-  integer face_material(face_max)
-  real face_normal(3,face_max)
-  integer face_object(face_max)
-  integer face_order(face_max)
-  integer face_rank(face_max)
-  real face_tex_uv(2,face_max)
-  integer face_tier(face_max)
-  character ( len = 100 ) filein_name
-  character ( len = 10 ) filein_type
-  character ( len = 100 ) fileout_name
-  character ( len = 10 ) fileout_type
-  integer i
-  integer icor3
-  integer ierror
-  integer iface
-  integer ios
-  integer iseed
-  integer ivert
-  integer j
-  integer line_dex(line_max)
-  integer line_material(line_max)
-  integer line_prune
-  integer list(cor3_max)
-  character ( len = 100 ) material_name(material_max)
-  real material_rgba(4,material_max)
-  real normal_temp(3,order_max*face_max)
-  integer color_num
-  integer edge_num
-  integer face_num
-  integer group_num
-  integer line_num
-  integer material_num
-  integer object_num
-  integer texture_num
-  character ( len = 100 ) object_name
-  logical s_eqi
-  character ( len = 100 ) texture_name(texture_max)
-  real texture_temp(2,order_max*face_max)
-  real transform_matrix(4,4)
-  integer vertex_material(order_max,face_max)
-  real vertex_normal(3,order_max,face_max)
-  real vertex_tex_uv(2,order_max,face_max)
-  real x
-  real y
-  real z
-!
-!  Print an introductory message.
-!
-  call hello ( cor3_max, face_max, line_max, material_max, order_max, texture_max )
-!
-!  Get the next user command.
-!
-10    continue
- 
-  ierror = 0
 
-  write ( *, * ) ' '
-  write ( *, * )'Enter command ( or "Help" )'
-
-  read ( *, '(a)', iostat = ios ) command
-
-  if ( ios /= 0 ) then
-    ierror = ios
-    write ( *, * ) ' '
-    write ( *, * ) 'INTERACT - Fatal error!'
-    write ( *, * ) '  Unexpected end of input.'
-    return
-  end if
-!
-!  << means read a new file, and add it to the current information.
-!
-  if ( command(1:2) == '<<' ) then
- 
-    filein_name = command(3:)
-    call s_blank_delete ( filein_name )
- 
-    call infile ( filein_name, ierror, filein_type )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  The input file name was unacceptable!'
-      go to 10
-    end if
-
-    call data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
-      debug, face, face_area, face_material, face_normal, face_order, face_tex_uv, &
-      filein_name, filein_type, ierror, iseed, line_dex, line_material, &
-      material_name, material_rgba, cor3_max, face_max, line_max, material_max, &
-      order_max, texture_max, normal_temp, color_num, cor3_num, face_num, &
-      group_num, line_num, material_num, object_num, texture_num, texture_name, &
-      texture_temp, vertex_material, vertex_normal, vertex_tex_uv )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' ' 
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  The input data was not read properly.'
-      ierror = 0
-    end if
-!
-!  Get the next input file to be examined.
-!
-  else if ( command(1:1) == '<' ) then
- 
-    filein_name = command(2:)
-    call s_blank_delete ( filein_name )
- 
-    call infile ( filein_name, ierror, filein_type )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  The input file name was unacceptable!'
-      go to 10
-    end if
-
-    call data_init ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
-      face_area, face_material, face_normal, face_order, face_tex_uv, iseed, &
-      line_dex, line_material, material_name, material_rgba, cor3_max, face_max, &
-      line_max, material_max, order_max, texture_max, normal_temp, color_num, &
-      cor3_num, face_num, group_num, line_num, material_num, object_num, texture_num, &
-      object_name, texture_name, texture_temp, transform_matrix, vertex_material, &
-      vertex_normal, vertex_tex_uv )
-
-    call data_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
-      debug, face, face_area, face_material, face_normal, face_order, face_tex_uv, &
-      filein_name, filein_type, ierror, iseed, line_dex, line_material, &
-      material_name, material_rgba, cor3_max, face_max, line_max, material_max, &
-      order_max, texture_max, normal_temp, color_num, cor3_num, face_num, &
-      group_num, line_num, material_num, object_num, texture_num, texture_name, &
-      texture_temp, vertex_material, vertex_normal, vertex_tex_uv )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' ' 
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  The input data was not read properly.'
-      ierror = 0
-    end if
-!
-!  The ">" command specifies output.
-!
-  else if ( command(1:1) == '>' ) then
-
-    fileout_name = command(2:)
-
-    call s_blank_delete ( fileout_name )
-!
-!  Check the output filename.
-!
-    call outfile ( filein_name, fileout_name, ierror, fileout_type )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  Improper output file name.'
-      ierror = 0
-      go to 10
-    end if
-!
-!  Write the output file.
-!
-    call data_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
-      debug, face, face_material, face_normal, face_order, face_tex_uv, &
-      filein_name, fileout_name, fileout_type, ierror, line_dex, &
-      line_material, line_prune, material_name, material_rgba, cor3_max, &
-      face_max, line_max, material_max, order_max, texture_max, cor3_num, &
-      face_num, line_num, material_num, texture_num, object_name, &
-      texture_name,vertex_material, vertex_normal, vertex_tex_uv )
-
-    if ( ierror /= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Warning!'
-      write ( *, * ) '  An error occurred during output.'
-      ierror = 0
-      go to 10
-    end if
-!
-!  B: Switch byte swapping option:
-!
-  else if ( s_eqi ( command(1:1), 'B' ) ) then
-
-    byte_swap = .not. byte_swap
-
-    if ( byte_swap ) then
-      write ( *, * ) 'Byte swapping set to TRUE.'
-    else
-      write ( *, * ) 'Byte swapping set to FALSE.'
-    end if
-!
-!  D: Switch debug option:
-!
-  else if ( s_eqi ( command(1:1), 'D' ) ) then
-
-    debug = .not. debug
-
-    if ( debug ) then
-      write ( *, * ) 'Debug option set to TRUE.'
-    else
-      write ( *, * ) 'Debug option set to FALSE.'
-    end if
-!
-!  F: Check a face:
-!
-  else if ( s_eqi ( command(1:1), 'F' ) ) then
-
-    if ( face_num <= 0 ) then
-      write ( *, * ) ' '
-      write ( *, * ) 'Input a graphical object with faces first!'
-      go to 10
-    end if
-
-    write ( *, * ) ' '
-    write ( *, * ) 'Enter a face between 1 and ', face_num
-    read ( *, * ) iface
-
-    call face_print ( cor3, face, face_material, face_normal, face_order, iface, &
-      cor3_max, face_max, order_max, face_num, vertex_material, vertex_normal )
-!
-!  HELP:
-!
-  else if ( s_eqi ( command(1:1), 'H' ) ) then
- 
-    call help
-!
-!  INFO:
-!
-  else if ( s_eqi ( command, 'INFO' ) ) then
-
-    call news
-!
-!  INVERT:
-!  Make an inverted copy of the object to give it thickness.
-!
-  else if ( s_eqi ( command(1:3), 'INV' ) ) then
-
-    call object_invert ( cor3, cor3_material, cor3_normal, face, &
-      face_material, face_normal, face_order, material_name, &
-      material_rgba, cor3_max, face_max, material_max, order_max, &
-      cor3_num, face_num, material_num, vertex_material, vertex_normal )
-!
-!  LINE_PRUNE:
-!  Set line pruning option.
-!
-  else if ( s_eqi ( command, 'LINE_PRUNE' ) ) then
-
-    write ( *, * ) ' '
-    write ( *, * ) 'SET THE LINE PRUNING OPTION:'
-    write ( *, * ) ' '
-    write ( *, * ) '  0 means no pruning;'
-    write ( *, * ) '  nonzero means only generate line (I,J)'
-    write ( *, * ) '    if I < J.'
-    write ( *, * ) ' '
-    write ( *, * ) '  The line pruning option is now ', line_prune
-    write ( *, * ) ' '
-    write ( *, * ) '  Enter your line_pruning option:'
-
-    read ( *, * ) line_prune
-!
-!  LINES:
-!  Convert all faces to lines.
-!
-  else if ( s_eqi ( command, 'LINES' ) ) then
- 
-    if ( face_num > 0 ) then
-
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Note:'
-      write ( *, * ) '  Face information will be converted'
-      write ( *, * ) '  to line information.'
-
-      call face_to_line ( debug, face, face_order, line_dex, line_material, &
-        line_prune, face_max, line_max, order_max, face_num, line_num, &
-        vertex_material )
-
-      if ( line_num > line_max ) then
-
-        write ( *, * ) ' '
-        write ( *, * ) 'INTERACT - Note:'
-        write ( *, * ) '  Some face information was lost.'
-        write ( *, * ) '  The maximum number of lines is ', line_max
-        write ( *, * ) '  but we would need at least ', line_num
-
-        line_num = line_max
-
-      end if
-
-      face_num = 0
-
-    else
-
-      write ( *, * ) ' '
-      write ( *, * ) 'INTERACT - Note:'
-      write ( *, * ) '  There were no faces to convert.'
-
-    end if
-!
-!  NORMALS: recompute the normal vectors for vertices on faces,
-!  and average these to get face normal vectors.
-!
-  else if ( s_eqi ( command(1:1), 'N' ) ) then
-
-    do iface = 1, face_num
-      do ivert = 1, face_order(iface)
-        vertex_normal(1:3,ivert,iface) = 0.0
-      end do
-    end do
-
-    call vertex_normal_set ( cor3, face, face_order, cor3_max, &
-      face_max, order_max, face_num, vertex_normal )
-
-    cor3_normal(1:3,1:cor3_num) = 0.0
-
-    call cor3_normal_set ( cor3_normal, face, face_area, &
-      face_order, cor3_max, face_max, order_max, face_num, vertex_normal )
-
-    face_normal(1:3,1:face_num) = 0.0
-
-    call face_normal_ave ( face_normal, face_order, face_max, &
-      order_max, face_num, vertex_normal )
-!
-!  OHELL: 
-!    Use the node normals.
-!    Set the vertex normals equal to the node normals.
-!    Set the face normals by averaging vertex normals.
-!
-  else if ( s_eqi ( command(1:1), 'O' ) ) then
-!
-!  Recompute any zero vertex normals from vertex positions.
-!
-    write ( *, * ) ' '
-    write ( *, * ) 'Making sure all vertex normals are defined.'
-
-    call vertex_normal_set ( cor3, face, face_order, cor3_max, &
-      face_max, order_max, face_num, vertex_normal )
-!
-!  Compute node normals by averaging vertex normals.
-!
-    write ( *, * ) ' '
-    write ( *, * ) 'Averaging vertex normals at each node.'
-
-    cor3_normal(1:3,1:cor3_num) = 0.0
-
-    call cor3_normal_set ( cor3_normal, face, face_area, &
-      face_order, cor3_max, face_max, order_max, face_num, vertex_normal )
-!
-!  Copy node normals into vertex normals.
-!
-    write ( *, * ) ' '
-    write ( *, * ) 'Replacing vertex normals by average.'
-
-    do iface = 1, face_num
-      do ivert = 1, face_order(iface)
-        icor3 = face(ivert,iface)
-        vertex_normal(1:3,ivert,iface) = cor3_normal(1:3,icor3)
-      end do
-    end do
-!
-!  Recompute zero face normals by averaging vertex normals.
-!
-    write ( *, * ) ' '
-    write ( *, * ) 'Averaging vertex normals to get face normals.'
-
-    call face_normal_ave ( face_normal, face_order, face_max, &
-      order_max, face_num, vertex_normal )
-!
-!  QUIT:
-!
-  else if ( s_eqi ( command(1:1), 'Q' ) ) then
- 
-    write ( *, * ) ' '
-    write ( *, * ) 'INTERACT - End of interaction.'
-    ierror = 0
-    return
-!
-!  REVERSE: Reverse normal vectors.
-!
-  else if ( s_eqi ( command(1:3), 'REV' ) ) then
- 
-    cor3_normal(1:3,1:cor3_num) = - cor3_normal(1:3,1:cor3_num)
-
-    face_normal(1:3,1:face_num) = - face_normal(1:3,1:face_num)
-
-    do iface = 1, face_num
-      do ivert = 1, face_order(iface)
-        vertex_normal(1:3,ivert,iface) = - vertex_normal(1:3,ivert,iface)
-      end do
-    end do
-
-    write ( *, * ) ' '
-    write ( *, * ) 'INTERACT - Note:'
-    write ( *, * ) '  Reversed node, face and vertex normals.'
-!
-!  RELAX: Smooth the surface via relaxation.
-!
-  else if ( s_eqi ( command(1:3), 'REL' ) ) then
-
-    call node_relax ( cor3, cor3_new, cor3_number, face, face_order, cor3_max, &
-      face_max, order_max, cor3_num, face_num )
-
-    cor3(1:3,1:cor3_num) = cor3_new(1:3,1:cor3_num)
-!
-!  S: Select a few faces, discard rest:
-!
-  else if ( s_eqi ( command(1:1), 'S' ) ) then
- 
-    call face_subset ( cor3, face, face_material, face_normal, &
-      face_order, ierror, list, cor3_max, face_max, order_max, &
-      cor3_num, face_num, line_num, vertex_material, vertex_normal )
-!
-!  T: Transform data.
-!
-  else if ( s_eqi ( command(1:1), 'T' ) ) then
-
-    write ( *, * ) ' '
-    write ( *, * ) 'For now, we only offer point scaling.'
-    write ( *, * ) 'Enter X, Y, Z scale factors:'
-    read ( *, * ) x, y, z
-    do j = 1, cor3_num
-      cor3(1,j) = cor3(1,j) * x
-      cor3(2,j) = cor3(2,j) * y
-      cor3(3,j) = cor3(3,j) * z
-    end do
-
-    call cor3_range ( cor3_max, cor3_num, cor3 )
-
-    do iface = 1, face_num
-      do ivert = 1, face_order(iface)
-        vertex_normal(1:3,ivert,iface) = 0.0
-      end do
-    end do
-
-    call vertex_normal_set ( cor3, face, face_order, cor3_max, face_max, &
-      order_max, face_num, vertex_normal )
-
-    cor3_normal(1:3,1:cor3_num) = 0.0
-
-    call cor3_normal_set ( cor3_normal, face, face_area, &
-      face_order, cor3_max, face_max, order_max, face_num, vertex_normal )
-
-    face_normal(1:3,1:face_num) = 0.0
-
-    call face_normal_ave ( face_normal, face_order, face_max, order_max, &
-      face_num, vertex_normal )
-!
-!  U: Renumber faces, count objects:
-!
-  else if ( s_eqi ( command(1:1), 'U' ) ) then
- 
-    call face_check ( edge, face, face_material, face_normal, face_object, &
-      face_order, face_rank, face_tier, edge_max, face_max, order_max, &
-      edge_num, face_num, object_num, vertex_material, vertex_normal )
-!
-!  V: Convert polygons to triangles.
-!
-  else if ( s_eqi ( command(1:1), 'V' ) ) then
-
-    write ( *, * ) ' '
-    write ( *, * ) 'Convert polygonal faces to triangles.'
-
-    call poly_2_tri ( face, face_material, face_order, ierror, face_max, &
-      order_max, face_num, vertex_material )
-
-    if ( ierror /= 0 ) then
-
-      write ( *, * ) ' '
-      write ( *, * ) 'Conversion attempt abandoned.'
-
-    else
-
-      write ( *, * ) ' '
-      write ( *, * ) 'Number of faces is now ', face_num
-
-      do iface = 1, face_num
-        do ivert = 1, face_order(iface)
-          vertex_normal(1:3,ivert,iface) = 0.0
-        end do
-      end do
-
-      call vertex_normal_set ( cor3, face, face_order, cor3_max, &
-        face_max, order_max, face_num, vertex_normal )
-
-      cor3_normal(1:3,1:cor3_num) = 0.0
-
-      call cor3_normal_set ( cor3_normal, face, face_area, &
-        face_order, cor3_max, face_max, order_max, face_num, vertex_normal )
-
-      face_normal(1:3,1:face_num) = 0.0
-
-      call face_normal_ave ( face_normal, face_order, face_max, &
-        order_max, face_num, vertex_normal )
-
-    end if
-!
-!  W: Reverse the order of the nodes that define each face.
-!
-  else if ( s_eqi ( command(1:1), 'W' ) ) then
- 
-    call face_reverse_order ( cor3_normal, face, face_normal, &
-      face_order, cor3_max, face_max, order_max, cor3_num, face_num, &
-      vertex_material, vertex_normal, vertex_tex_uv )
-!
-!  Unintelligible!
-!
-  else
- 
-    write ( *, * ) ' '
-    write ( *, * ) 'INTERACT - Warning!'
-    write ( *, * ) '  Your command was not recognized:'
-    write ( *, '(a)' ) trim ( command )
- 
-  end if
- 
-  if ( ierror /= 0 ) then
-    write ( *, * ) ' '
-    write ( *, * ) 'INTERACT - Warning!'
-    write ( *, * ) '  An error occurred during this action.'
-    ierror = 0
-  end if
-
-  go to 10
-end
 subroutine intnex ( line, ival, done )
 !
 !*******************************************************************************
@@ -9162,6 +8533,7 @@ subroutine intnex ( line, ival, done )
 !    On output, the routine sets DONE to FALSE if another integer
 !    was read, or TRUE if no more integers could be read.
 !
+  implicit none
   logical done
   integer ierror
   integer ival
@@ -9427,6 +8799,7 @@ subroutine iv_read ( cor3, debug, face, face_order, ierror, iunit, line_dex, &
 !
 !    Input/output, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   integer, parameter :: level_max = 10
   integer, parameter :: OFFSET = 1
 !
@@ -11171,6 +10544,7 @@ subroutine iv_write ( cor3, cor3_normal, face, face_order, filein_name, &
 !
 !    Input, real VERTEX_TEX_UV(2,ORDER_MAX,FACE_MAX), vertex texture coordinates.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer cor3_max
@@ -11696,6 +11070,7 @@ subroutine ivec_max ( nval, iarray, imax )
 !
 !    Output, integer IMAX, the value of the largest entry in the array.
 !
+  implicit none
   integer nval
 !
   integer i
@@ -11749,6 +11124,7 @@ subroutine ivec_reverse ( n, x )
 !
 !    Input/output, integer X(N), the array to be reversed.
 !
+  implicit none
   integer n
 !
   integer i
@@ -11799,6 +11175,7 @@ subroutine ivec_rotate ( n, m, x )
 !
 !    Input/output, integer X(N), the array to be rotated.
 !
+  implicit none
   integer n
 !
   integer iget
@@ -11885,6 +11262,7 @@ function lcon ( chr )
 !    Output, logical LCON, TRUE if CHR is a control character, and
 !    FALSE otherwise.
 !
+  implicit none
   character chr
   logical lcon
 !
@@ -11911,6 +11289,7 @@ subroutine news
 !
 !    John Burkardt
 !
+  implicit none
   write ( *, * ) ' '
   write ( *, * ) 'NEWS:'
   write ( *, * ) '  This is a list of changes to the program:'
@@ -12157,6 +11536,7 @@ subroutine node_relax ( cor3, cor3_new, cor3_number, face, face_order, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -12168,7 +11548,6 @@ subroutine node_relax ( cor3, cor3_new, cor3_number, face, face_order, &
   integer face(order_max,face_max)
   integer face_num
   integer face_order(face_max)
-  integer i
   integer icor3
   integer iface
   integer inode
@@ -12260,6 +11639,7 @@ subroutine node_to_vertex_material ( cor3_material, face, face_order, cor3_max, 
 !
 !    Output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -12383,6 +11763,7 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
 !
 !    Output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -12417,6 +11798,7 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
   integer line_num
   character ( len = 100 ) material_name(material_max)
   integer material_num
+  integer imat
   real material_rgba(4,material_max)
   real normal_temp(3,order_max*face_max)
   integer object_num
@@ -12441,6 +11823,7 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
 
   vertex_normal_num = 0
   word = ' '
+  imat = material_num
 !
 !  Read a line of text from the file.
 !
@@ -12593,12 +11976,12 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
 
     if ( ivert <= order_max .and. face_num <= face_max ) then
       face(ivert,face_num) = itemp + cor3_num_base
-      vertex_material(ivert,face_num) = material_num
+      vertex_material(ivert,face_num) = imat
     end if
 
     if ( face_num <= face_max ) then
 
-      face_material(face_num) = material_num
+      face_material(face_num) = imat
       face_order(face_num) = ivert
 
     end if
@@ -12663,7 +12046,7 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
 
     if ( line_num <= line_max ) then
       line_dex(line_num) = itemp
-      line_material(line_num) = material_num
+      line_material(line_num) = imat
     end if
 
     go to 25
@@ -12766,14 +12149,25 @@ subroutine obj_read ( cor3, face, face_material, face_order, ierror, iseed, iuni
 
     call word_nexrd ( line, word, done )
 
-    material_num = material_num + 1
+!   search for previous occurence of the same material
+    imat = 0
+    do i=1,min(material_num,material_max)
+      if ( word == material_name(i) ) then
+        imat = i
+        exit
+      end if
+    end do
 
-    if ( material_num <= material_max ) then
-      material_name(material_num) = word
-      material_rgba(1,material_num) = uniform_01_sample ( iseed )
-      material_rgba(2,material_num) = uniform_01_sample ( iseed )
-      material_rgba(3,material_num) = uniform_01_sample ( iseed )
-      material_rgba(4,material_num) = 1.0
+    if ( imat == 0 ) then
+      material_num = material_num + 1
+      imat = material_num
+      if ( material_num <= material_max ) then
+        material_name(material_num) = word
+        material_rgba(1,material_num) = uniform_01_sample ( iseed )
+        material_rgba(2,material_num) = uniform_01_sample ( iseed )
+        material_rgba(3,material_num) = uniform_01_sample ( iseed )
+        material_rgba(4,material_num) = 1.0
+      end if
     end if
 
     go to 10
@@ -12923,6 +12317,7 @@ subroutine obj_write ( cor3, face, face_order, filein_name, fileout_name, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -13104,6 +12499,7 @@ subroutine object_build ( face, face_object, face_order, face_rank, &
 !
 !    Output, integer OBJECT_NUM, the number of objects.
 !
+  implicit none
   logical, parameter :: DEBUG = .false.
 !
   integer order_max
@@ -13274,6 +12670,7 @@ subroutine object_invert ( cor3, cor3_material, cor3_normal, face, face_material
 !
 !    Input/output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   real, parameter :: EPS = 0.01
 !
   integer cor3_max
@@ -13296,7 +12693,6 @@ subroutine object_invert ( cor3, cor3_material, cor3_normal, face, face_material
   integer iface2
   integer ivert
   integer ivert2
-  integer j
   character ( len = 100 ) material_name(material_max)
   integer material_num
   real material_rgba(4,material_max)
@@ -13526,6 +12922,7 @@ subroutine oogl_read ( cor3, cor3_material, cor3_normal, face, &
 !
 !    ?, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), ?
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer material_max
@@ -13552,7 +12949,6 @@ subroutine oogl_read ( cor3, cor3_material, cor3_normal, face, &
   real g
   logical grid
   integer i
-  integer icor3
   logical identify
   integer ierror
   integer iface
@@ -13565,6 +12961,7 @@ subroutine oogl_read ( cor3, cor3_material, cor3_normal, face, &
   integer k
   character ( len = 100 ) material_name(material_max)
   integer material_num
+  integer mat_stored  
   real material_rgba(4,material_max)
   integer nclip
   integer ncol_oogl
@@ -13678,11 +13075,8 @@ subroutine oogl_read ( cor3, cor3_material, cor3_normal, face, &
 !  See if the RGBA values of this material match those of a material
 !  that has already been defined.
 !
-      if ( material_num <= 1000 ) then
-        call rcol_find ( 4, material_num, material_rgba, rgba, imat )
-      else
-        imat = 0
-      end if
+      mat_stored = min(material_num,material_max)
+      call rcol_find ( 4, mat_stored, material_rgba, rgba, imat )
 
       if ( imat == 0 ) then
 
@@ -13998,6 +13392,7 @@ subroutine oogl_grid ( cor3, cor3_material, cor3_normal, face, face_material, &
 !
 !    Output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   real, parameter :: EPS = 0.0025
   integer, parameter :: GRID_NX_NUM = 20
   integer, parameter :: GRID_NY_NUM = 20
@@ -14589,6 +13984,7 @@ subroutine outfile ( filein_name, fileout_name, ierror, fileout_type )
 !    'ase', 'dxf', 'iv', 'obj', 'pov', 'ps', 'smf', 'stl', 'stla', 
 !    'tec', 'tri', 'txt', 'vla', or 'wrl'.
 !
+  implicit none
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
   character ( len = 10 ) fileout_type
@@ -14705,6 +14101,7 @@ function pi ( )
 !
 !    Output, real PI, the value of pi.
 !
+  implicit none
   real pi
 !
   pi = 3.14159265358979323846264338327950288419716939937510
@@ -14749,6 +14146,7 @@ subroutine plane_exp2imp_3d ( x1, y1, z1, x2, y2, z2, x3, y3, z3, a, b, c, d )
 !
 !    Output, real A, B, C, D, coefficients which describe the plane.
 !
+  implicit none
   real a
   real b
   real c
@@ -14801,6 +14199,7 @@ subroutine plane_imp_point_nearest_3d ( a, b, c, d, x, y, z, xn, yn, zn )
 !    Output, real XN, YN, ZN, the coordinates of the nearest point on
 !    the plane.
 ! 
+  implicit none
   real a
   real b
   real c
@@ -14869,6 +14268,7 @@ subroutine points_distance_3d ( dis, x1, y1, z1, x2, y2, z2 )
 !    Input, real X1, Y1, Z1, X2, Y2, Z2, determines the pair of points
 !    (X1,Y1,Z1) and (X2,Y2,Z2) whose distance apart is be determined.
 !
+  implicit none
   real dis
   real x1
   real x2
@@ -14918,6 +14318,7 @@ subroutine poly_2_tri ( face, face_material, face_order, ierror, face_max, &
 !
 !    Input/output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer face_max
   integer order_max
 !
@@ -15095,6 +14496,7 @@ subroutine pov_write ( cor3, face, face_material, face_order, filein_name, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer material_max
@@ -15280,6 +14682,7 @@ subroutine project_2d ( cor2, cor3, ierror, cor2_max, cor3_max, cor2_num, &
 !
 !    Input, integer COR3_NUM, the number of 3D points.
 !
+  implicit none
   integer cor2_max
   integer cor3_max
 !
@@ -15501,6 +14904,7 @@ subroutine project_angle ( cor, cor2, cor3, cor2_max, cor3_max, cor2_num, &
 !
 !    Input, real THETA, the presentation angle in degrees.
 !
+  implicit none
   integer cor2_max
   integer cor3_max
 !
@@ -15594,6 +14998,7 @@ subroutine project_oplane ( x1, y1, z1, x2, y2, z2, x3, y3, z3, cor2, cor3, &
 !
 !    Input, integer COR3_NUM, the number of points to project.
 !
+  implicit none
   integer cor2_max
   integer cor3_max
 !
@@ -15694,6 +15099,7 @@ subroutine project_pplane ( x1, y1, z1, x2, y2, z2, x3, y3, z3, xf, yf, zf, &
 !
 !    Input, integer COR3_NUM, the number of points to project.
 !
+  implicit none
   integer cor2_max
   integer cor3_max
 !
@@ -15883,6 +15289,7 @@ subroutine ps_write ( cor2, face, face_material, face_order, fileout_name, iunit
 !
 !    Input, integer LINE_NUM, the number of line definition items.
 !
+  implicit none
   integer cor2_max
   integer face_max
   integer line_max
@@ -16169,6 +15576,7 @@ subroutine r_swap ( x, y )
 !    Input/output, real X, Y.  On output, the values of X and
 !    Y have been interchanged.
 !
+  implicit none
   real x
   real y
   real z
@@ -16229,6 +15637,7 @@ subroutine rcol_find ( nrow, ncol, a, rvec, icol )
 !    which exactly matches every entry of RVEC, or 0 if no match
 !    could be found.
 !
+  implicit none
   integer ncol
   integer nrow
 !
@@ -16305,6 +15714,7 @@ subroutine rgb_to_hue ( r, g, b, h )
 !    Output, real H, the corresponding hue of the color, or -1.0 if
 !    the color is monochromatic.
 !
+  implicit none
   real b
   real b2
   real g
@@ -16393,6 +15803,7 @@ subroutine relnex ( line, rval, done )
 !    On output, the routine sets DONE to FALSE if another real
 !    value was read, or TRUE if no more reals could be read.
 !
+  implicit none
   logical done
   integer ierror
   integer lchar
@@ -16453,6 +15864,7 @@ subroutine rvec_to_s ( n, x, s )
 !    Output, character ( len = * ) S, a string to which the real vector
 !    has been written.
 !
+  implicit none
   integer n
 !
   integer i
@@ -16507,6 +15919,7 @@ subroutine s_blank_delete ( s )
 !
 !    Input/output, character ( len = * ) S, the string to be transformed.
 !
+  implicit none
   character c
   integer iget
   integer iput
@@ -16556,6 +15969,7 @@ subroutine s_blanks_delete ( s )
 !
 !    Input/output, character ( len = * ) S, the string to be transformed.
 !
+  implicit none
   integer i
   integer j
   integer nchar
@@ -16607,6 +16021,7 @@ subroutine s_cap ( string )
 !
 !    Input/output, character ( len = * ) STRING, the string to be transformed.
 !
+  implicit none
   character c
   integer i
   integer nchar
@@ -16648,6 +16063,7 @@ subroutine s_cat ( s1, s2, s3 )
 !    Output, character ( len = * ) S3, the string made by
 !    concatenating S1 and S2, ignoring any trailing blanks.
 !
+  implicit none
   character ( len = * ) s1
   character ( len = * ) s2
   character ( len = * ) s3
@@ -16679,6 +16095,7 @@ subroutine s_control_blank ( s )
 !
 !    Input/output, character ( len = * ) S, the string to be transformed.
 !
+  implicit none
   logical c_is_control
   integer i
   integer nchar
@@ -16719,6 +16136,7 @@ function s_eqi ( strng1, strng2 )
 !
 !    Output, logical S_EQI, the result of the comparison.
 !
+  implicit none
   integer i
   integer len1
   integer len2
@@ -16809,6 +16227,7 @@ function s_index_last ( s, sub )
 !    where LENS is the length of SUB, and is the last place
 !    this happens.
 !
+  implicit none
   integer i
   integer j
   integer llen1
@@ -16873,6 +16292,7 @@ function s_is_i ( string, ival )
 !
 !    Output, logical S_IS_I, .TRUE. if STRING represents an integer.
 !
+  implicit none
   integer ierror
   integer ival
   integer lchar
@@ -16917,6 +16337,7 @@ subroutine s_is_r ( string, rval, lval )
 !
 !    Output, logical LVAL, .TRUE. if STRING represents a real number.
 !
+  implicit none
   integer ierror
   integer lchar
   logical lval
@@ -16962,6 +16383,7 @@ subroutine s_to_i ( s, ival, ierror, last )
 !
 !    Output, integer LAST, the last character of S used to make IVAL.
 !
+  implicit none
   character c
   integer i
   integer ierror
@@ -17124,6 +16546,7 @@ subroutine s_to_r ( s, r, ierror, lchar )
 !    the string to form the number, including any terminating
 !    characters such as a trailing comma or blanks.
 !
+  implicit none
   logical c_eqi
   character c
   integer ierror
@@ -17338,6 +16761,7 @@ subroutine s_trim_zeros ( s )
 !
 !    Input/output, character ( len = * ) S, the string to be operated on.
 !
+  implicit none
   integer i
   character ( len = * ) s
 !
@@ -17510,6 +16934,7 @@ subroutine smf_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, debug, face
 !
 !    Input/output, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer material_max
@@ -17551,13 +16976,13 @@ subroutine smf_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, debug, face
   integer iunit
   integer ivert
   integer iword
-  integer k
   integer lchar
   integer level
   character ( len = 256 ) line
   character ( len = 30 ) material_binding
   character ( len = 100 ) material_name(material_max)
   integer material_num
+  integer mat_stored
   real material_rgba(4,material_max)
   integer node_count
   character ( len = 30 ) normal_binding
@@ -17719,11 +17144,8 @@ subroutine smf_read ( cor3, cor3_material, cor3_normal, cor3_tex_uv, debug, face
     rgba(3) = b
     rgba(4) = 1.0
 
-    if ( material_num <= 1000 ) then
-      call rcol_find ( 4, material_num, material_rgba, rgba, imat )
-    else
-      imat = 0
-    end if
+    mat_stored = min(material_num,material_max)
+    call rcol_find ( 4, mat_stored, material_rgba, rgba, imat )
 
     if ( imat == 0 ) then
 
@@ -18179,6 +17601,7 @@ subroutine smf_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
 !
 !    Input, character ( len = 100 ) TEXTURE_NAME(TEXTURE_MAX), texture names.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer material_max
@@ -18197,7 +17620,6 @@ subroutine smf_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
   real g
-  integer i
   integer icor3
   integer iface
   integer imat
@@ -18360,6 +17782,7 @@ subroutine sort_heap_external ( n, indx, i, j, isgn )
 !    ISGN <= 0 means I is less than or equal to J;
 !    ISGN => 0 means I is greater than or equal to J.
 !
+  implicit none
   integer i
   integer indx
   integer isgn
@@ -18536,6 +17959,7 @@ subroutine stla_read ( cor3, face, face_material, face_normal, face_order, &
 !
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -18873,6 +18297,7 @@ subroutine stla_write ( cor3, face, face_normal, face_order, filein_name, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -18884,7 +18309,6 @@ subroutine stla_write ( cor3, face, face_normal, face_order, filein_name, &
   integer face_num2
   integer face_order(face_max)
   character ( len = * ) filein_name
-  integer i
   integer iface
   integer iunit
   integer jvert
@@ -19022,6 +18446,7 @@ subroutine tec_write ( cor3, cor3_material, face, face_order, fileout_name, iuni
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer material_max
@@ -19154,6 +18579,7 @@ subroutine tmat_init ( a )
 !
 !    Input, real A(4,4), the geometric transformation matrix.
 !
+  implicit none
   real a(4,4)
   integer i
   integer j
@@ -19205,6 +18631,7 @@ subroutine tmat_mxm ( a, b, c )
 !
 !    Output, real C(4,4), the product A * B.
 !
+  implicit none
   real a(4,4)
   real b(4,4)
   real c(4,4)
@@ -19258,6 +18685,7 @@ subroutine tmat_mxp ( a, x, y )
 !    a temporary vector, and then assigned to the result.  Therefore, it 
 !    is legal for X and Y to share memory.
 !
+  implicit none
   real a(4,4)
   integer i
   integer j
@@ -19307,6 +18735,7 @@ subroutine tmat_mxp2 ( a, x, y, n )
 !    accumulated in a temporary vector, and then assigned to the
 !    result.  Therefore, it is legal for X and Y to share memory.
 !
+  implicit none
   integer n
 !
   real a(4,4)
@@ -19364,6 +18793,7 @@ subroutine tmat_mxv ( a, x, y )
 !    a temporary vector, and then assigned to the result.  Therefore, it 
 !    is legal for X and Y to share memory.
 !
+  implicit none
   real a(4,4)
   integer i
   integer j
@@ -19416,6 +18846,7 @@ subroutine tmat_rot_axis ( a, b, angle, axis )
 !    Input, character AXIS, is 'X', 'Y' or 'Z', specifying the coordinate
 !    axis about which the rotation occurs.
 !
+  implicit none
   real a(4,4)
   real angle
   real angle_rad
@@ -19424,8 +18855,7 @@ subroutine tmat_rot_axis ( a, b, angle, axis )
   real c(4,4)
   real d(4,4)
   real degrees_to_radians
-  integer i
-  integer j
+  
 !
   angle_rad = degrees_to_radians ( angle )
 
@@ -19493,6 +18923,7 @@ subroutine tmat_rot_vector ( a, b, angle, axis )
 !    Input, real AXIS(3), the axis vector about which rotation occurs.
 !    AXIS may not be the zero vector.
 !
+  implicit none
   real a(4,4)
   real angle
   real angle_rad
@@ -19502,8 +18933,6 @@ subroutine tmat_rot_vector ( a, b, angle, axis )
   real ca
   real d(4,4)
   real degrees_to_radians
-  integer i
-  integer j
   real norm
   real sa
   real v1
@@ -19579,12 +19008,11 @@ subroutine tmat_scale ( a, b, sx, sy, sz )
 !    Input, real SX, SY, SZ, the scalings to be applied to the X, Y and
 !    Z coordinates.
 !
+  implicit none
   real a(4,4)
   real b(4,4)
   real c(4,4)
   real d(4,4)
-  integer i
-  integer j
   real sx
   real sy
   real sz
@@ -19641,13 +19069,12 @@ subroutine tmat_shear ( a, b, axis, s )
 !
 !    Input, real S, the shear coefficient.
 !
+  implicit none
   real a(4,4)
   character ( len = 2 ) axis
   real b(4,4)
   real c(4,4)
   real d(4,4)
-  integer i
-  integer j
   real s
 !
   call tmat_init ( c )
@@ -19709,6 +19136,7 @@ subroutine tmat_trans ( a, b, x, y, z )
 !    Input, real X, Y, Z, the translation.  This may be thought of as the
 !    point that the origin moves to under the translation.
 !
+  implicit none
   real a(4,4)
   real b(4,4)
   integer i
@@ -19807,6 +19235,7 @@ subroutine tria_read ( cor3, face, face_material, face_order, ierror, iunit, &
 !
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -19820,7 +19249,6 @@ subroutine tria_read ( cor3, face, face_material, face_order, ierror, iunit, &
   integer face_num
   integer face_num2
   integer face_order(face_max)
-  integer i
   integer icor3
   integer ierror
   integer iface
@@ -19973,6 +19401,7 @@ subroutine tria_write ( cor3, cor3_normal, face, face_order, iunit, cor3_max, &
 !
 !    Input, integer FACE_NUM, the number of faces.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -20131,6 +19560,7 @@ subroutine txt_write ( cor3, cor3_material, cor3_normal, cor3_tex_uv, face, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.  
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -20581,6 +20011,7 @@ subroutine ucd_write ( cor3, cor3_material, face, face_material, face_order, &
 !
 !    Input, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normals at vertices.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -20734,6 +20165,7 @@ function uniform_01_sample ( iseed )
 !  IB16 = 2**16
 !  IP = 2**31-1
 !
+  implicit none
   integer, parameter :: ia = 16807
   integer, parameter :: ib15 = 32768
   integer, parameter :: ib16 = 65536
@@ -20814,10 +20246,10 @@ subroutine vector_unit_nd ( n, v )
 !    V should have unit Euclidean norm.  However, if the input vector
 !    has zero Euclidean norm, it is not altered.
 !
+  implicit none
   integer n
 !
   real enorm_nd
-  integer i
   real temp
   real v(n)
 !
@@ -20864,6 +20296,7 @@ subroutine vertex_normal_set ( cor3, face, face_order, cor3_max, face_max, &
 !    Input/output, real VERTEX_NORMAL(3,ORDER_MAX,FACE_MAX), normal vectors
 !    at vertices.  
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -21026,6 +20459,7 @@ subroutine vertex_to_node_material ( cor3_material, face, face_order, cor3_max, 
 !
 !    Input, integer VERTEX_MAT(ORDER_MAX,FACE_MAX), vertex materials.
 !
+  implicit none
   integer cor3_max
   integer face_max
   integer order_max
@@ -21128,6 +20562,7 @@ subroutine vla_read ( cor3, ierror, iunit, line_dex, line_material, cor3_max, &
 !
 !    Output, integer LINE_NUM, the number of line definition items.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer cor3_max
@@ -21363,6 +20798,7 @@ subroutine vla_write ( cor3, filein_name, fileout_name, iunit, line_dex, &
 !
 !    Output, integer LINE_NUM, the number of line definition items.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 !
   integer cor3_max
@@ -21372,7 +20808,6 @@ subroutine vla_write ( cor3, filein_name, fileout_name, iunit, line_dex, &
   real cor3(3,cor3_max)
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
-  integer i
   real intense
   integer iunit
   integer j
@@ -21446,11 +20881,10 @@ subroutine vla_write ( cor3, filein_name, fileout_name, iunit, line_dex, &
  
   return
 end
-subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ierror, &
-  iunit, line_dex, line_material, material_name, material_rgba, cor3_max, &
-  face_max, line_max, material_max, order_max, texture_max, bad_num, cor3_num, &
-  face_num, line_num, material_num, texture_num, text_num, texture_name, vertex_material, &
-  vertex_normal, vertex_tex_uv )
+subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, &
+  ierror, iunit, material_name, material_rgba, cor3_max, face_max, &
+  material_max, order_max, bad_num, cor3_num, face_num, line_num, &
+  material_num, text_num, vertex_material )
 !
 !*******************************************************************************
 !
@@ -21467,6 +20901,7 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
 !
 !  Parameters:
 !
+  implicit none
   logical, parameter :: debug = .false.
   integer, parameter :: ivec_max = 20
   integer, parameter :: level_max = 10
@@ -21475,17 +20910,17 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
 !
   integer cor3_max
   integer face_max
-  integer line_max
-  integer material_max
   integer order_max
-  integer texture_max
-!
+  integer material_max
+
   real angle
   real axis(3)
   integer bad_num
   character ( len = 4 ) char4
   real cor3(3,cor3_max)
   integer cor3_material(cor3_max)
+  integer color_mat(cor3_max)
+  real rgba(4)
   integer cor3_num
   integer cor3_num_old
   integer face(order_max,face_max)
@@ -21508,13 +20943,12 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
   integer lchar
   integer level
   character ( len = 256 ) level_name(0:level_max)
-  integer line_dex(line_max)
-  integer line_material(line_max)
   integer line_num
   integer line_num_old
   character ( len = 100 ) material_binding
   character ( len = 100 ) material_name(material_max)
   integer material_num
+  integer mat_stored
   real material_rgba(4,material_max)
   integer new_color
   integer new_color_index
@@ -21548,15 +20982,11 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
   real sz
   character ( len = 256 ) text
   integer text_num
-  character ( len = 100 ) texture_name(texture_max)
-  integer texture_num
   real transform_matrix(4,4)
   real tx
   real ty
   real tz
   integer vertex_material(order_max,face_max)
-  real vertex_normal(3,order_max,face_max)
-  real vertex_tex_uv(2,order_max,face_max)
   character ( len = 256 ) word
   character ( len = 256 ) wordm1
 !
@@ -21823,16 +21253,9 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
 
         if ( rvec_num == 3 ) then
 
-          if ( material_num <= material_max ) then
-            new_color = new_color + 1
-            material_rgba(1,material_num) = rvec(1)
-            material_rgba(2,material_num) = rvec(2)
-            material_rgba(3,material_num) = rvec(3)
-            material_rgba(4,material_num) = 1.0
-            call i_to_s_zero ( material_num, char4 )
-            material_name(material_num) = 'Material_' // char4
-          end if
-
+          write (*,*) 'ERROR during reading of WRL format'
+          stop
+      
         end if
 
         rvec_num = 0
@@ -21845,19 +21268,29 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
         rvec(rvec_num) = rval
 
         if ( rvec_num == 3 ) then
-
-          material_num = material_num + 1
-
-          if ( material_num <= material_max ) then
+!         if the following is not satisfied, it will lead to silent erroneous behavior 
+          if ( new_color <= cor3_max ) then
             new_color = new_color + 1
-            material_rgba(1,material_num) = rvec(1)
-            material_rgba(2,material_num) = rvec(2)
-            material_rgba(3,material_num) = rvec(3)
-            material_rgba(4,material_num) = 1.0
-            call i_to_s_zero ( material_num, char4 )
-            material_name(material_num) = 'Material_' // char4
+          
+            rgba(1:3) = rvec(1:3)
+            rgba(4) = 1.0
+!           Search current color among previous ones
+            mat_stored = min(material_num,material_max)
+            call rcol_find ( 4, mat_stored, material_rgba, rgba, imat )
+      
+            if ( imat == 0 ) then
+              material_num = material_num + 1
+              imat = material_num
+              
+              if ( material_num <= material_max ) then
+                material_rgba(1:4,material_num) = rgba(1:4)
+                call i_to_s_zero ( material_num, char4 )
+                material_name(material_num) = 'Material_' // char4
+              end if
+            end if
+            color_mat(new_color) = imat
+            
           end if
-
           rvec_num = 0
 
         end if
@@ -22199,18 +21632,8 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
       new_color = 0
       new_color_index = 0
 
-      if ( material_num == 0 ) then
-
-        material_num = material_num + 1
-
-        material_rgba(1,material_num) = 1.0
-        material_rgba(2,material_num) = 0.0
-        material_rgba(3,material_num) = 0.0
-        material_rgba(4,material_num) = 1.0
-        call i_to_s_zero ( material_num, char4 )
-        material_name(material_num) = 'Material_' // char4
-
-      end if
+!     default material is not used here, rather index 0 is assigned
+!     if needed, default material is assigned after postprocessing
 
       overall_mat = material_num
 
@@ -22239,7 +21662,7 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
             imat = overall_mat + j + 1
           end if
           icor3 = cor3_num_old + i
-          cor3_material(icor3) = imat
+          cor3_material(icor3) = color_mat(imat)
         end do
 
         new_face = min ( face_num, face_max ) - min ( face_num_old, face_max )
@@ -22275,7 +21698,7 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
           end if
 
           iface = face_num_old + i
-          face_material(iface) = imat
+          face_material(iface) = color_mat(imat)
         end do 
 
         do i = 1, new_face
@@ -22390,16 +21813,19 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
 
     else if ( word == '}' ) then
 
-      material_num = material_num + 1
+!     The following is commented out, since parsed materials in this part of the file
+!     are not used in other parts anyway
 
-      if ( material_num <= material_max ) then
-        material_rgba(1,material_num) = r02
-        material_rgba(2,material_num) = r03
-        material_rgba(3,material_num) = r04
-        material_rgba(4,material_num) = 1.0 - r12
-        call i_to_s_zero ( material_num, char4 )
-        material_name(material_num) = 'Material_' // char4
-      end if
+!     material_num = material_num + 1
+!
+!     if ( material_num <= material_max ) then
+!       material_rgba(1,material_num) = r02
+!       material_rgba(2,material_num) = r03
+!       material_rgba(3,material_num) = r04
+!       material_rgba(4,material_num) = 1.0 - r12
+!       call i_to_s_zero ( material_num, char4 )
+!       material_name(material_num) = 'Material_' // char4
+!     end if
 
       level = nlbrack - nrbrack
 
@@ -22915,7 +22341,6 @@ subroutine vrml_read ( cor3, cor3_material, face, face_material, face_order, ier
 !
 !  Bad data
 !
-99    continue
 
   bad_num = bad_num + 1
 
@@ -23049,6 +22474,7 @@ subroutine vrml_write ( cor3, face, face_order, filein_name, fileout_name, &
 !
 !    Input, integer LINE_NUM, the number of line definition items.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer cor3_max
@@ -23064,7 +22490,6 @@ subroutine vrml_write ( cor3, face, face_order, filein_name, fileout_name, &
   integer face_order(face_max)
   character ( len = 100 ) filein_name
   character ( len = 100 ) fileout_name
-  integer i
   integer icor3
   integer iface
   integer itemp
@@ -23394,6 +22819,7 @@ subroutine word_nexrd ( line, word, done )
 !      FALSE if another word was read from LINE,
 !      TRUE if no more words could be read (LINE is exhausted).
 !
+  implicit none
   character, parameter :: TAB = char(9)
 !
   logical done
@@ -23487,8 +22913,8 @@ subroutine word_nexrd ( line, word, done )
   return
 end
 subroutine xgl_write ( cor3, cor3_max, cor3_normal, cor3_num, face, &
-  face_material, face_max, face_num, face_order, iunit, material_max, &
-  material_num, material_rgba, order_max )
+  face_material, face_max, face_num, face_order, iunit, material_num, &
+  order_max )
 !
 !*******************************************************************************
 !
@@ -23605,15 +23031,13 @@ subroutine xgl_write ( cor3, cor3_max, cor3_normal, cor3_num, face, &
 !
 !    Input, integer MATERIAL_NUM, the number of materials.
 !
-!    Input, real MATERIAL_RGBA(4,MATERIAL_MAX), material R, G, B and A values.
-!
 !    Input, integer ORDER_MAX, the maximum number of vertices per face.
 !
+  implicit none
   integer, parameter :: OFFSET = 1
 
   integer cor3_max
   integer face_max
-  integer material_max
   integer order_max
 !
   real background_rgb(3)
@@ -23641,7 +23065,6 @@ subroutine xgl_write ( cor3, cor3_max, cor3_normal, cor3_num, face, &
   real material_spec_rgb(3)
   integer material
   integer material_num
-  real material_rgba(4,material_max)
   integer mesh
   integer, parameter :: mesh_num = 1
   integer, parameter :: object_num = 1

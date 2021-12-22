@@ -86,7 +86,7 @@ static inline size_t IndexXmatrix(const size_t x,const size_t y,const size_t z)
 
 static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
-	if (transposed) { // used only for G_SO
+	if (transposed) { // almost never happens
 		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
 		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
 		 */
@@ -106,7 +106,7 @@ static inline size_t IndexDmatrix_mv(size_t x,size_t y,size_t z,const bool trans
 
 static inline size_t IndexRmatrix_mv(size_t x,size_t y,size_t z,const bool transposed)
 {
-	if (transposed) { // used only for G_SO !!!
+	if (transposed) { // almost never happens
 		/* reflection along the x-axis can't work in parallel mode, since the corresponding values are generally stored
 		 * on a different processor. A rearrangement of memory distribution is required to remove this limitation.
 		 */
@@ -158,12 +158,12 @@ void MatVec (doublecomplex * restrict argvec,    // the argument vector
 	 * A(H).x = x + (S(T).D(T).S(T).x(*))(*)
 	 * C,S - diagonal => symmetric
 	 * (!! will change if tensor (non-diagonal) polarizability is used !!)
-	 * D - symmetric (except for G_SO)
+	 * D - symmetric except for interactions which break the reciprocity of the Green's tensor (none currently)
 	 *
 	 * D.x=F(-1)(F(D).F(X))
 	 * F(D) is just a vector
 	 *
-	 * G_SO: F(D(T)) (k) =  F(D) (-k)
+	 * If D is non-symmetric one can use F(D(T)) (k) =  F(D) (-k)
 	 *       k - vector index
 	 *
 	 * For reflected matrix the situation is similar.

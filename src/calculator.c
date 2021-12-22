@@ -411,7 +411,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 			       temp_rectScaleZ=rectScaleZ;
 			double tmp=MIN(temp_rectScaleX,rectScaleY);
 			tmp=MIN(tmp,rectScaleZ);
-			if(tmp>0) {
+			if (tmp>0) {
 				temp_rectScaleX/=tmp;
 				temp_rectScaleY/=tmp;
 				temp_rectScaleZ/=tmp;
@@ -504,9 +504,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		int i;
 		bool asym; // whether polarizability is asymmetric (for isotropic m)
 		const double *incPol;
-		bool pol_avg=true; // temporary fixed value for SO polarizability
 
-		asym = (PolRelation==POL_CLDR || PolRelation==POL_SO); // whether non-scalar tensor is produced for scalar m
+		asym = (PolRelation==POL_CLDR); // whether non-scalar tensor is produced for scalar m
 		// !!! this should never happen
 		if (asym && anisotropy) LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 
@@ -514,7 +513,6 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		if (asym) for (i=0;i<3;i++) { // loop over components of polarizability (for scalar input m)
 			switch (PolRelation) {
 				case POL_CLDR: res[i]=pol3coef(LDR_B1,LDR_B2,LDR_B3,prop[i]*prop[i],mrel[0]); break;
-				case POL_SO: res[i]=pol3coef(SO_B1,SO_B2,SO_B3,(pol_avg ? ONE_THIRD : prop[i]*prop[i]),mrel[0]); break;
 				default: LogError(ONE_POS,"Incompatibility error in CoupleConstant");
 					// no break
 			}
@@ -637,7 +635,7 @@ static void calculate_one_orientation(double * restrict res)
 		 * Y direction. In case of rotational symmetry this is not needed but requires lots more programming so we leave
 		 * this optimization to a later time.
 		 */
-		if(CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
+		if (CalculateE(INCPOL_Y,CE_NORMAL)==CHP_EXIT) return;
 
 		if (IFROOT) {
 			PRINTFB("\nhere we go, calc X\n\n");
@@ -648,7 +646,7 @@ static void calculate_one_orientation(double * restrict res)
 		 * If new formulation depends on the incident polarization (unlikely) update the test above.
 		 */
 
-		if(CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
+		if (CalculateE(INCPOL_X,CE_NORMAL)==CHP_EXIT) return;
 	}
 	D("CalculateE finished");
 	MuellerMatrix();

@@ -67,9 +67,9 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 # minor digits of many numbers). However, most effort should be put in improving mycmp below, so that only significant 
 # errors remain. 
 # GUIDIFF is a flag enabling use of GUI diff. If it is set to 'strip', stripped files are used for comparison. If used,
-# the existing program must be specified by GUIDIFFPROG. Options include, for example: tortoisemerge, meld, vimdiff
+# the existing program must be specified by GUIDIFFPROG. Options include, for example: tortoisegitmerge, meld, vimdiff
 #GUIDIFF=strip
-GUIDIFFPROG=tortoisemerge
+GUIDIFFPROG=tortoisegitmerge
 
 # Look below for "!!!", which mark the places where adjustments are probably need to be done
 
@@ -90,8 +90,9 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Following two variable determine what is ignored when comparing against older executables. CMDIGNORE skipps the whole
 # runs (matches command line), OLDIGNORE - specifies lines in output files to be skipped
 # Currently formulated to compare 1.5* with 1.4.0
-CMDIGNORE=""
-OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20"
+
+CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so"
+OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat"
 
 # Path to reference binaries, examples: "." or "./../../win64"
 REFPATH=./../../win64
@@ -477,7 +478,7 @@ function mydiff {
 #---------------- Prepare input files ----------------------------------------------------------------------------------
 
 NEEDEDFILES="scat_params.dat avg_params.dat alldir_params.dat"
-NEEDEDDIRS="tables"
+NEEDEDDIRS=""
 
 for file in $NEEDEDFILES; do
   if [ ! -f $file ]; then
