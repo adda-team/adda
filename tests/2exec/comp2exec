@@ -97,8 +97,10 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Currently formulated to compare 1.5* with 1.4.0 (more specific exceptions are added in parsing of command lines)
 # These variables must be updated whenever new features are added to ADDA
 
-CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-bessel"
-OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:|^parameters of predefined shapes"
+CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-beam bessel|1e-16"
+OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat"
+OLDIGNORE="$OLDIGNORE|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:"
+OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"
 
 # Path to reference binaries, examples: "." or "./../../win64". 
 # This may work out of the box on Windows, but requires changes for other systems

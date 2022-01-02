@@ -84,7 +84,7 @@ extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 extern bool surface,msubInf;
 extern enum refl ReflRelation;
 extern doublecomplex msub;
-extern double inc_scale,hsub,prIncRefl[3],prIncTran[3];
+extern double inc_scale,hsub;
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 

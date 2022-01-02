@@ -95,6 +95,7 @@ bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as ex
 extern const char *avg_string;
 // defined and initialized in GenerateB.c
 extern const char *beam_descr;
+extern const double prIncRefl[3],prIncTran[3];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -1641,7 +1642,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2021 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2022 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"

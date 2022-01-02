@@ -63,7 +63,7 @@ all -beam davis3 2 ;mg9n;
 all -h beam barton5
 all -beam barton5 2 -beam_center 1 2 3 ;mgn;
 all -beam barton5 2 ;mg9n;
-all -beam dipole 3 -beam_center 2 1 ;p; ;mgn;
+all -beam dipole -beam_center 3 2 1 ;p; ;mgn;
 all -h beam read
 all -beam read IncBeam-Y IncBeam-X ;se; ;mn;
 
