@@ -1,1 +1,1 @@
-A stub to be filled later.
+The folder 2021_WKBr contains some scripts that we used in the work "Uniform-over-size approximation of the internal fields for scatterers with low refractive-index contrast" (https://doi.org/10.1016/j.jqsrt.2021.107965).

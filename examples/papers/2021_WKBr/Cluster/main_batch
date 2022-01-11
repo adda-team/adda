@@ -1,0 +1,16 @@
+#!/bin/bash
+
+folder=202111151112ws1
+path=/mnt/scratch/ws/kginzhevatkin/$folder
+
+s=500
+m=1.1
+mi=0
+g=800
+eps=6
+chptime=60h
+type=wkbr
+qsub -v size=$s,m=$m,mi=$mi,grid=$g,eps=$eps,callnum=1,time=$chptime,type=$type $path/batch
+qsub -v size=$s,m=$m,mi=$mi,grid=$g,eps=$eps,callnum=2,time=$chptime,type=$type $path/batch
+qsub -v size=$s,m=$m,mi=$mi,grid=$g,eps=$eps,callnum=3,time=$chptime,type=$type $path/batch
+qsub -v size=$s,m=$m,mi=$mi,grid=$g,eps=$eps,callnum=4,time=$chptime,type=$type $path/batch
