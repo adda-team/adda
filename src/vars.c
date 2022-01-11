@@ -133,11 +133,6 @@ doublecomplex msub;     // complex refractive index of the substrate
 double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(msub)
 bool msubInf;           // whether msub is infinite (perfectly reflecting surface)
 double hsub;            // height of particle center above surface
-/* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
- * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
- */
-double prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 

@@ -102,6 +102,39 @@ static inline doublecomplex imExp(const double arg)
 }
 
 //======================================================================================================================
+
+static inline doublecomplex imExpM1(const double arg)
+/* exp(i*arg) - 1 (should be used for small argument to avoid precision loss
+ * We employ special code only for small arguments, ignoring the case when arg is close to 2piN. The latter can,
+ * in principle, be handled by preliminary range reduction as in imExpTable. We do not implement it here, because such
+ * case is a "coincidence" - may happen for a single dipole (or a plane of dipoles), while the case of small arg may
+ * happen for all dipoles. In the latter case loss of precision affects all computed quantities.
+ * The used expression through tan(arg/2) follows from general expression for cexpm1 below.
+ */
+{
+	if (fabs(arg)<1) {
+		double t=tan(0.5*arg);
+		return -2*t/(I+t); // Alternatively, (I-t)*2t/(1+t^2), but we leave the optimization to compiler
+	}
+	else return imExp(arg)-1;
+}
+
+//======================================================================================================================
+
+static inline doublecomplex cExpM1(const doublecomplex a)
+/* Complex analogue of expm1 function ( exp(a) - 1 ), should be used for small arguments to avoid precision loss
+ * The algorithm is a simplified version of the one published in Section 17.7 of Beebe N.H.F., The Mathematical-Function
+ * Computation Handbook: Programming Using the MathCW Portable Software Library. Springer; 2017.
+ *  */
+{
+	if (fabs(creal(a))+fabs(cimag(a))<1) { // uses faster L1-norm instead of L2-norm
+		doublecomplex t=ctanh(0.5*a);
+		return 2*t/(1-t);
+	}
+	else return cexp(a)-1;
+}
+
+//======================================================================================================================
 // operations on complex vectors
 
 static inline void cvInit(doublecomplex a[static 3])
