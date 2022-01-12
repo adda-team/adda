@@ -2,6 +2,7 @@ from WKBr import find_wkb_ef
 from rearrange_ef_file import rearrange_ef
 
 # The program prepares the WKBr field.
+# SET YOUR PARAMETERS:
 size = 10
 grid = 16
 mi = 0
