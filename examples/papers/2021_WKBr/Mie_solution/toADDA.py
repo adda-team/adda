@@ -100,10 +100,12 @@ def scattnlay_bhfield_to_adda(path1, path2, type, R, grid):
     f2.close()
 
 if __name__ == '__main__':
+    # SET YOUR PARAMETERS:
     size = 10
     grid = 16
     m = 1.1
     type = "bhfield" # "scattnlay"
+    # SET YOUR PATHS:
     pathmain="C:/Users/konstantin/Documents/main-script-test/"
     tail = str(size) + "-" + str(m) + "-" + str(grid) + ".dat"
     path_exact = pathmain + type + "-" + tail

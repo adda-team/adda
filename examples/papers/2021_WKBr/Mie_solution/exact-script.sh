@@ -4,12 +4,13 @@
 # The script calculates the exact internal electric field using either Bhfield or Scattnlay. 
 # You need to download the required project (Bhfield or Scattnlay) separately.
 
-# Input parameters:
+# SET YOUR PARAMETERS:
 size=10
 grid=16
 m=1.1
 type=scattnlay # program type: [bhfield, scattnlay]
-# Path to the folder with the exact-script.sh, bhfield-std.exe and fieldnlay.exe, respectively (paths need to be set):
+# SET YOUR PATHS:
+# Path to the folder with the exact-script.sh, bhfield-std.exe and fieldnlay.exe, respectively.
 pathmain=C:/Users/konstantin/Documents/main-script-test/
 pathbhfield=C:/Users/konstantin/Documents/bhfield-121005/windows/
 pathscattnlay=C:/Users/konstantin/Documents/scattnlay-master/scattnlay-master/
