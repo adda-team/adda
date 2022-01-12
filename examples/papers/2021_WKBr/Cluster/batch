@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# SET YOUR CLUSTER PARAMETERS:
 #PBS -q xl230g9q
 #PBS -l select=3:ncpus=24:mpiprocs=24:mem=192g
 #PBS -l walltime=65:00:00
@@ -16,6 +17,7 @@ echo "Number of MPI process: $MPI_NP"
 echo 'File $PBS_NODEFILE:'
 cat  $PBS_NODEFILE
 
+# SET YOUR CLUSTER PATHS:
 MPIEXEC="mpirun -hostfile $PBS_NODEFILE -np $MPI_NP"
 ADDA="/mnt/storage/home/mayurkin/bin/adda_mpi"
 WKBR="./complex_wkbr-$size-$m-$mi-$grid-Y-component.dat"
