@@ -1,3 +1,0 @@
-We used cluster to generate various data, including figures 15 and 16 from the paper. We used the scripts main_batch and batch. These scripts use checkpoints (read the ADDA manual). These scripts can be considered as an example for working with a cluster.
-
-After setting the required parameters and paths to scripts, run main_batch script on the cluster using the command: sh main_batch. This script will run batch script pass the specified parameters to it.

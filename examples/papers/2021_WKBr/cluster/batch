@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# This script has been run at Supercomputing center of the Novosibirsk State University
+# It requires adaptation to other environments
+#
+# The script assumes that the prerequisite files (with approximations for the internal fields) has been uploaded to the
+# execution folder
+
 # SET YOUR CLUSTER PARAMETERS:
 #PBS -q xl230g9q
 #PBS -l select=3:ncpus=24:mpiprocs=24:mem=192g

@@ -1,4 +1,5 @@
-# This script casts grid Bhfield / Scattnlay to type ADDA.
+# This script casts grid Bhfield / Scattnlay to the ADDA type
+# TODO: should accept parameters through the command line (and described close to the beginning)
 
 import linecache
 from math import isnan
@@ -104,12 +105,11 @@ if __name__ == '__main__':
     size = 10
     grid = 16
     m = 1.1
-    type = "bhfield" # "scattnlay"
+    type = "bhfield" # "scattnlay" # or "bhfield"
     # SET YOUR PATHS:
-    pathmain="C:/Users/konstantin/Documents/main-script-test/"
     tail = str(size) + "-" + str(m) + "-" + str(grid) + ".dat"
-    path_exact = pathmain + type + "-" + tail
-    path_exact_adda = pathmain + type + "-adda-" + tail
+    path_exact = type + "-" + tail
+    path_exact_adda = "if-" + tail
     scattnlay_bhfield_to_adda(path_exact, path_exact_adda, type, size / 2, grid)
 
 
