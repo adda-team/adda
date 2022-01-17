@@ -7,9 +7,9 @@ from rearrange_ef_file import rearrange_ef
 
 def main(argv):
     # default options:
-    size = 10
-    m = 1.1
-    grid = 16
+    size = "10"
+    m = "1.1"
+    grid = "16"
     type = "simple_wkbr" # supported options: "simple_wkbr" (WKBrI), "complex_wkbr" (WKBrII), and "analytic" (conventional WKB)
     # read options from command line:
     try:
@@ -22,11 +22,11 @@ def main(argv):
             print ('python main.py -s <size> -m <m> -g <grid> -t <type>')
             sys.exit()
         elif opt == "-s":
-         size = float(arg)
+         size = arg
         elif opt == "-m":
-         m = float(arg)
+         m = arg
         elif opt == "-g":
-         grid = int(arg)
+         grid = arg
         elif opt == "-t":
          type = arg 
          
@@ -34,8 +34,8 @@ def main(argv):
     print("Current grid = ", grid)
     print("Current m = ", m)
     print("Current WKBr type = ", type)
-    tail = str(size) + "-" + str(m) + "-" + str(grid) + ".dat"
-    find_wkb_ef(0, 0, 0, m, 0, size / 2, 1, type + "-" + tail, grid, type=type, find_grid=True)
+    tail = size + "-" + m + "-" + grid + ".dat"
+    find_wkb_ef(0, 0, 0, float(m), 0, float(size) / 2, 1, type + "-" + tail, float(grid), type=type, find_grid=True)
 
     # change columns to get y-polarization:
     tail = str(size) + "-" + str(m) + "-" + str(grid)
