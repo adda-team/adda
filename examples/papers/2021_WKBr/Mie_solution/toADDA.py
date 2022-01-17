@@ -1,7 +1,7 @@
 # This script casts grid Bhfield / Scattnlay to the ADDA type
-# launch example: python toADDA.py 10 1.1 16 scattnlay
+# launch example: python toADDA.py -s 10 -m 1.1 -g 16 -t scattnlay
 
-from sys import argv
+import sys, getopt
 import linecache
 from math import isnan
 
@@ -101,15 +101,41 @@ def scattnlay_bhfield_to_adda(path1, path2, type, R, grid):
     f1.close()
     f2.close()
 
-if __name__ == '__main__':
-    size = float(argv[1])
-    m = float(argv[2])
-    grid = float(argv[3])
-    type = argv[4] # supported options: "scattnlay", "bhfield"
-    # SET YOUR PATHS:
-    tail = str(size) + "-" + str(m) + "-" + str(grid) + ".dat"
+
+def main(argv):
+    # default options:
+    size = "10"
+    m = "1.1"
+    grid = "16"
+    type = "scattnlay" # supported options: "scattnlay", "bhfield"
+    # read options from command line:
+    try:
+        opts, args = getopt.getopt(argv,"hs:m:g:t:")
+    except getopt.GetoptError:
+        print ('python toADDA.py -s <size> -m <m> -g <grid> -t <type>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('python toADDA.py -s <size> -m <m> -g <grid> -t <type>')
+            sys.exit()
+        elif opt == "-s":
+         size = arg
+        elif opt == "-m":
+         m = arg
+        elif opt == "-g":
+         grid = arg
+        elif opt == "-t":
+         type = arg 
+    print("Current size = ", size)
+    print("Current grid = ", grid)
+    print("Current m = ", m)
+    print("Current WKBr type = ", type)
+    tail = size + "-" + m + "-" + grid + ".dat"
     path_exact = type + "-" + tail
     path_exact_adda = "if-" + tail
-    scattnlay_bhfield_to_adda(path_exact, path_exact_adda, type, size / 2, grid)
-
+    scattnlay_bhfield_to_adda(path_exact, path_exact_adda, type, float(size) / 2, int(grid))
+    
+    
+if __name__ == '__main__':
+    main(sys.argv[1:])
 

@@ -40,11 +40,11 @@ if [ "$calcref" == "yes" ]; then
   # compute Mie reference
   cd Mie_solution/
   sh exact-script.sh $size $m $grid scattnlay
-  $PYTHON toADDA.py $size $m $grid scattnlay
+  $PYTHON toADDA.py -s $size -m $m -g $grid -t scattnlay
   # compute WKBr internal fields
   cd ../WKBr/
-  $PYTHON main.py $size $m $grid simple_wkbr
-  $PYTHON main.py $size $m $grid complex_wkbr
+  $PYTHON main.py -s $size -m $m -g $grid -t simple_wkbr
+  $PYTHON main.py -s $size -m $m -g $grid -t complex_wkbr
   cd ..
 fi
 
