@@ -1,6 +1,7 @@
 # This script casts grid Bhfield / Scattnlay to the ADDA type
-# TODO: should accept parameters through the command line (and described close to the beginning)
+# launch example: python toADDA.py 10 1.1 16 scattnlay
 
+from sys import argv
 import linecache
 from math import isnan
 
@@ -101,11 +102,10 @@ def scattnlay_bhfield_to_adda(path1, path2, type, R, grid):
     f2.close()
 
 if __name__ == '__main__':
-    # SET YOUR PARAMETERS:
-    size = 10
-    grid = 16
-    m = 1.1
-    type = "bhfield" # "scattnlay" # or "bhfield"
+    size = float(argv[1])
+    m = float(argv[2])
+    grid = float(argv[3])
+    type = argv[4] # supported options: "scattnlay", "bhfield"
     # SET YOUR PATHS:
     tail = str(size) + "-" + str(m) + "-" + str(grid) + ".dat"
     path_exact = type + "-" + tail
