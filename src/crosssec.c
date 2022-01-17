@@ -652,12 +652,12 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	cvInit(sumN);
 	if (above) cvInit(sumF); //additional storage for directly propagated scattering
 
-	/* There is an inherent discontinuity for msub approaching 1 and scattering angle 90 degrees (nF[2]=0). The problem
+	/* There is an inherent discontinuity for sub.m[sub.N-1] approaching 1 and scattering angle 90 degrees (nF[2]=0). The problem
 	 * is that for m=1+-0, but |m-1|>>(nF[2])^2, ki<<kt<<1 => rs=rp=-1
 	 * while for m=1 (exactly) the limit of nF[2]->0 results in kt=ki => rs=rp=0
 	 * Therefore, below is a certain logic, which behaves in an intuitively expected way, for common special cases.
-	 * However, it is still not expected to be continuous for fine-changing parameters (like msub approaching 1).
-	 * In particular, the jump occurs when msub crosses 1+-ROUND_ERR boundary.
+	 * However, it is still not expected to be continuous for fine-changing parameters (like sub.m[sub.N-1] approaching 1).
+	 * In particular, the jump occurs when sub.m[sub.N-1] crosses 1+-ROUND_ERR boundary.
 	 * Still, the discontinuity should apply only to scattering at exactly 90 degrees, but not to, e.g., integral
 	 * quantities, like Csca (if sufficient large number of integration points is chosen).
 	 */
@@ -668,44 +668,44 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		 * a particle at a planar interface," J. Opt. Soc. Am. A 30, 2519-2525 (2013) for theoretical discussion of
 		 * this fact.
 		 */
-		if (fabs(nF[2])<ROUND_ERR && cabs(msub-1)>ROUND_ERR) {
+		if (fabs(nF[2])<ROUND_ERR && cabs(sub.m[sub.N-1]-1)>ROUND_ERR) {
 			cvInit(ebuff);
 			return;
 		}
 		cvBuildRe(nF,nN);
 		nN[2]*=-1;
 		ki=nF[2]; // real
-		if (msubInf) {
+		if (sub.mInf) {
 			cs=-1;
 			cp=1;
 		}
 		  // since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
-		else if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) cs=cp=0;
+		else if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) cs=cp=0;
 		else { // no special treatment here, since other cases, including 90deg-scattering, are taken care above.
-			kt=cSqrtCut(msub*msub - (nN[0]*nN[0]+nN[1]*nN[1]));
+			kt=cSqrtCut(sub.m[sub.N-1]*sub.m[sub.N-1] - (nN[0]*nN[0]+nN[1]*nN[1]));
 			cs=FresnelRS(ki,kt);
-			cp=FresnelRP(ki,kt,msub);
+			cp=FresnelRP(ki,kt,sub.m[sub.N-1]);
 		}
-		phSh=imExp(2*WaveNum*hsub*creal(ki)); // assumes real ki
+		phSh=imExp(2*WaveNum*sub.hP*creal(ki)); // assumes real ki
 	}
 	else { // transmission; here nF[2] is negative
 		// formulae correspond to plane wave incoming from below, but with change ki<->kt
-		if (msubInf) { // no transmission for perfectly reflecting substrate => zero result
+		if (sub.mInf) { // no transmission for perfectly reflecting substrate => zero result
 			cvInit(ebuff);
 			return;
 		}
-		kt=-msub*nF[2];
-		if (cabs(msub-1)<ROUND_ERR && cabs(kt)<SQRT_RND_ERR) ki=kt;
-		else ki=cSqrtCut(1 - msub*msub*(nF[0]*nF[0]+nF[1]*nF[1]));
+		kt=-sub.m[sub.N-1]*nF[2];
+		if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(kt)<SQRT_RND_ERR) ki=kt;
+		else ki=cSqrtCut(1 - sub.m[sub.N-1]*sub.m[sub.N-1]*(nF[0]*nF[0]+nF[1]*nF[1]));
 		// here nN may be complex, but normalized to n.n=1
-		nN[0]=msub*nF[0];
-		nN[1]=msub*nF[1];
+		nN[0]=sub.m[sub.N-1]*nF[0];
+		nN[1]=sub.m[sub.N-1]*nF[1];
 		nN[2]=-ki;
 		// these formulae works fine for ki=kt (even very small), and ki=kt=0 is impossible here
 		cs=FresnelTS(kt,ki);
-		cp=FresnelTP(kt,ki,1/msub);
+		cp=FresnelTP(kt,ki,1/sub.m[sub.N-1]);
 		// coefficient comes from  k0->k in definition of F(n) (in denominator)
-		phSh=msub*cexp(I*WaveNum*hsub*(ki-kt));
+		phSh=sub.m[sub.N-1]*cexp(I*WaveNum*sub.hP*(ki-kt));
 	}
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
@@ -1050,13 +1050,13 @@ void CalcAlldir(void)
 	Accumulate(E_ad,cmplx_type,2*npoints,&Timing_EFieldADComm);
 	// calculate square of the field
 	for (point=0;point<npoints;point++) E2_alldir[point] = cAbs2(E_ad[2*point]) + cAbs2(E_ad[2*point+1]);
-	/* when below surface we scale E2 by Re(1/msub) in accordance with formula for the Poynting vector (and factor of
+	/* when below surface we scale E2 by Re(1/sub.m[sub.N-1]) in accordance with formula for the Poynting vector (and factor of
 	 * k_sca^2). After that Csca (and g) computed using the standard formula should correctly describe the energy and
-	 * momentum balance for any (even complex) msub (since the scattered wave is homogeneous at far-field), but doesn't
+	 * momentum balance for any (even complex) sub.m[sub.N-1] (since the scattered wave is homogeneous at far-field), but doesn't
 	 * include energy or momentum absorbed (obtained) by the medium.
 	 */
-	if (surface && !msubInf) {
-		double scale=creal(1/msub); // == Re(msub)/|msub|^2
+	if (surface && !sub.mInf) {
+		double scale=creal(1/sub.m[sub.N-1]); // == Re(sub.m[sub.N-1])/|sub.m[sub.N-1]|^2
 		for (i=0;i<theta_int.N;++i) if (TestBelowDeg(theta_int.val[i]))
 			for (j=0,point=phi_int.N*i;j<phi_int.N;j++,point++) E2_alldir[point]*=scale;
 	}

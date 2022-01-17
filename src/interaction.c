@@ -1423,7 +1423,7 @@ void InitInteraction(void)
 			case GR_IMG:  SET_FUNC_POINTERS(ReflTerm,img); break;
 			case GR_SOM:
 				SET_FUNC_POINTERS(ReflTerm,som);
-				if (!prognosis) som_init(msub*msub);
+				if (!prognosis) som_init(sub.m[sub.N-1]*sub.m[sub.N-1]);
 				CalcSomTable();
 				break;
 			/* TO ADD NEW REFLECTION FORMULATION
@@ -1438,7 +1438,7 @@ void InitInteraction(void)
 			default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
 				// no break
 		}
-		surfRCn=msubInf ? -1 : ((1-msub*msub)/(1+msub*msub));
+		surfRCn=sub.mInf ? -1 : ((1-sub.m[sub.N-1]*sub.m[sub.N-1])/(1+sub.m[sub.N-1]*sub.m[sub.N-1]));
 	}
 
 #ifdef USE_SSE3

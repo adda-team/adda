@@ -1558,19 +1558,33 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
-	if (Narg!=2 && Narg!=3) NargError(Narg,"2 or 3");
-	ScanDoubleError(argv[1],&hsub);
-	TestPositive(hsub,"height above surface");
-	if (strcmp(argv[2],"inf")==0) {
-		if (Narg>2) PrintErrorHelp("Additional arguments are not allowed for '-surf ... inf'");
-		msubInf=true;
-	}
-	else {
-		if (Narg!=3) NargError(Narg,"total 3 or second argument 'inf'");
-		ScanDoubleError(argv[2],&mre);
-		ScanDoubleError(argv[3],&mim);
-		msub = mre + I*mim;
-	}
+    if (Narg > 3 * (MAX_N_LAYERS + 1)) PrintErrorHelp("Exceeded the maximum number of layers");
+    if (Narg <= 1) NargError(Narg,">1");
+    ScanDoubleError(argv[1],&sub.hP);
+    TestPositive(sub.hP,"height above surface");
+    int arg_pos = 2;
+    sub.N = 1;
+    if (Narg > 3) {
+        int i;
+        for (i = 0; (arg_pos = 2 + 3 * i) < Narg - 1; ++i) {
+            ScanDoubleError(argv[arg_pos], &sub.h[i]);
+            ScanDoubleError(argv[arg_pos + 1], &mre);
+            ScanDoubleError(argv[arg_pos + 2], &mim);
+            sub.m[i] = mre + I * mim;
+        }
+        sub.N += i;
+    }
+    if (strcmp(argv[arg_pos],"inf")==0) {
+        if (Narg>arg_pos) PrintErrorHelp("Additional arguments are not allowed for '-surf ... inf'");
+        sub.mInf=true;
+    }
+    else {
+        if (Narg != arg_pos + 1) NargError(Narg, "total 3 or second argument 'inf'");
+        ScanDoubleError(argv[arg_pos], &mre);
+        ScanDoubleError(argv[arg_pos + 1], &mim);
+        sub.m[sub.N-1] = mre + I * mim;
+        sub.mInf=false;
+    }
 	surface = true;
 	symZ=false;
 }
@@ -1971,7 +1985,7 @@ void InitVariables(void)
 	InitField=IF_AUTO;
 	recalc_resid=false;
 	surface=false;
-	msubInf=false;
+	sub.mInf=false;
 	ReflRelation=(enum refl)UNDEF;
 	// sometimes the following two are left uninitialized
 	beam_fnameX=NULL;
@@ -2171,8 +2185,8 @@ void VariablesInterconnect(void)
 		if (orient_used) PrintError("Currently '-orient' and '-surf' can not be used together");
 		if (calc_mat_force) PrintError("Currently calculation of radiation forces is incompatible with '-surf'");
 		if (InitField==IF_WKB) PrintError("'-init_field wkb' and '-surf' can not be used together");
-		if (ReflRelation==(enum refl)UNDEF) ReflRelation = msubInf ? GR_IMG : GR_SOM;
-		else if (msubInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
+		if (ReflRelation==(enum refl)UNDEF) ReflRelation = sub.mInf ? GR_IMG : GR_SOM;
+		else if (sub.mInf && ReflRelation!=GR_IMG) PrintError("For perfectly reflecting surface interaction is always "
 			"computed through an image dipole. So this case is incompatible with other options to '-int_surf ...'");
 		/* TO ADD NEW REFLECTION FORMULATION
 		 * Take a look at the above logic, and revise if the new formulation is not fully consistent with it
@@ -2419,9 +2433,9 @@ void PrintInfo(void)
 			}
 		}
 		if (surface) {
-			if (msubInf) fprintf(logfile,"Particle is placed near the perfectly reflecting substrate\n");
-			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM"\n",REIM(msub));
-			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",hsub);
+			if (sub.mInf) fprintf(logfile,"Particle is placed near the perfectly reflecting substrate\n");
+			else fprintf(logfile,"Particle is placed near the substrate with refractive index "CFORM"\n",REIM(sub.m[sub.N-1]));
+			fprintf(logfile,"  height of the particle center: "GFORMDEF"\n",sub.hP);
 		}
 		if (rectDip) fprintf(logfile,"Dipole size: "GFORMDEF"x"GFORMDEF"x"GFORMDEF" (relative ratios "GFORMDEF":"
 			GFORMDEF":"GFORMDEF")\n",dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ);
@@ -2446,7 +2460,7 @@ void PrintInfo(void)
 		if (surface && beamtype!=B_DIPOLE) { // include surface-specific vectors
 			fprintf(logfile,"Reflected propagation vector: "GFORMDEF3V"\n",COMP3V(prIncRefl));
 			fprintf(logfile,"Transmitted propagation vector: ");
-			if (msubInf) fprintf (logfile,"none\n");
+			if (sub.mInf) fprintf (logfile,"none\n");
 			else {
 				fprintf(logfile,GFORMDEF3V,COMP3V(prIncTran));
 				if (prIncTran[2]==0) fprintf(logfile," (evanescent)\n");

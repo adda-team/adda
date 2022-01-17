@@ -106,7 +106,7 @@ static void ComputeMuellerMatrix(double matrix[4][4], const doublecomplex s1,con
 
 	if (surface) {
 		double scale=inc_scale;
-		if (TestBelowDeg(theta)) scale*=creal(msub);
+		if (TestBelowDeg(theta)) scale*=creal(sub.m[sub.N-1]);
 		if (fabs(scale-1)>ROUND_ERR) for (int i=0;i<4;i++) for (int j=0;j<4;j++) matrix[i][j]*=scale;
 	}
 }
