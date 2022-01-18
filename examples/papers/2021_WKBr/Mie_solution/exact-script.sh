@@ -11,7 +11,7 @@ type=${4:-scattnlay} # program type: [bhfield, scattnlay]
 
 # SET YOUR PATHS:
 # Path to the working folder (for temporary files, only for bhfield) and for placing output (both must exist)
-workpath="$(pwd)/work/"
+workpath="$(pwd)/work"
 outpath="$(pwd)"
 # Executables (with full path) to be used for actual computation
 BHFIELD="$workpath/bhfield-std"

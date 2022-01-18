@@ -26,7 +26,9 @@ WKBR_II="WKBr/complex_wkbr-$size-$m-$grid-Y-component.dat"
 
 # calculate references (uses Python)
 if [ "$calcref" == "yes" ]; then
-  # set python environment
+  # Set python environment. This may cause problems on Windows, if python is installed through WindowsApps
+  # For some reason, such Python installation does not work properly from inside the shell script. The following
+  # answer describes, how it can be disabled - https://stackoverflow.com/a/57168165/2633728
   if command -v python3 &> /dev/null; then
     PYTHON=python3
   else
