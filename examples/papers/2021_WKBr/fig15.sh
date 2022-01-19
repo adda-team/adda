@@ -9,5 +9,5 @@
 
 # Cycle over RI corresponds to parts a,b,c of Fig.15
 for m in 1.01 1.05 1.1; do 
-  sh calc.sh 100 $m 180
+  sh calc.sh 100 $m 160
 done
