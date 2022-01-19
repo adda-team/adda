@@ -2111,6 +2111,7 @@ void VariablesInterconnect(void)
 
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI*mhost/lambda;
+	WaveNum0 = TWO_PI/lambda;
 	//relative lambda (normalized to the mhost):
 	if(creal(mhost)!=0) rel_lambda=lambda/creal(mhost); else rel_lambda=lambda; //the second case is weird but the only choice
 	//normalizes the refractive index to the mhost:

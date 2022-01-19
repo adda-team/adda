@@ -780,20 +780,27 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
 			if (beamtype==B_ELECTRON) {
-				double Peels, Pcl, Crad;
+				double Pext, Peels, Pcl, Crad;
 				double hbar = 1.054571817e-27;
+				double hbar_SI = 1.054571817e-34;
 				double hbar_ev = 6.582119569e-16;
 				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
 				printf("\nEELS and Cathodoluminescence:\n");
-				Peels = Cenh/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
-				Peels *= 1e-21; //(nm)^3 -> (cm)^3
+				Peels = creal(mhost)*0.1*Cenh/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming Cenh is in nm^2
+				Peels *= 1e-27; //(nm)^3 -> (cm)^3
 				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
+				Pext = creal(mhost)*0.1*Cext/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming Cenh is in nm^2
+				Pext *= 1e-27; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Pext\t= "EFORM"\n",Pext);
 
 				//Csca = Cext-Cabs;
 				//PrintBoth(CCfile,"Csca=Cext-Cabs\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
-				if (calc_Csca) Pcl = (Cenh - (Cext - Csca))/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
-				else Pcl = (Cenh - Cabs)/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
-				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
+				if (calc_Csca){
+					//Pcl = (Cenh - (Cext - Csca))/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+					Pcl = creal(mhost)*0.1*(Cenh - (Cext - Csca))/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming C is in nm^2
+				}
+				else Pcl = creal(mhost)*0.1*(Cenh - Cabs)/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming C is in nm^2
+				Pcl *= 1e-27; //(nm)^3 -> (cm)^3
 				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
 			}
 

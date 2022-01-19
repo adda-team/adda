@@ -29,6 +29,7 @@ doublecomplex kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
+doublecomplex WaveNum0;   // wavenumber of incident light as in vacuum: k=w/c
 doublecomplex mhost;	  // refractive index of the medium
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes

@@ -815,7 +815,7 @@ double ExtCross(const double * restrict incPol)
 	if (beamtype==B_PLANE && !surface) {
 		CalcField (ebuff,prop);
 		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		sum=FOUR_PI*creal(crDotProd(ebuff,incPol)/WaveNum)/creal(WaveNum); // In case of complex WaveNum
+		sum=creal(epshost*crDotProd(ebuff,incPol)); // In case of complex WaveNum
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		//sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
@@ -826,10 +826,10 @@ double ExtCross(const double * restrict incPol)
 		sum=0;
 		//for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		for (i=0;i<local_nvoid_Ndip;++i)  {
-			sum+=FOUR_PI*cimag(epshost*cDotProd(pvec+3*i,Einc+3*i));// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
+			sum+=cimag(epshost*cDotProd(pvec+3*i,Einc+3*i));// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
 		}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum/=creal(WaveNum);
+		sum=FOUR_PI*WaveNum0*sum/creal(mhost);
 		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is applied in CalcField()
 		 * and is independent of propagation or scattering direction. Thus it can be applied to any linear combination
 		 * of plane waves, i.e. any field.
@@ -895,12 +895,12 @@ double AbsCross(void)
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
-			sum/=FOUR_PI*creal(mhost)*creal(mhost); //4 Pi and one mhost are not really needed - they are reduced in the end of this function
+			//sum/=FOUR_PI*creal(mhost)*creal(mhost); //4 Pi and one mhost are not really needed - they are reduced in the end of this function
 			break;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	if (surface) sum*=inc_scale;
-	return FOUR_PI*creal(WaveNum)*sum;
+	return FOUR_PI*WaveNum0*sum/creal(mhost);
 }
 
 //======================================================================================================================
@@ -926,11 +926,12 @@ double EnhCross(void)
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	}
 	else if(beamtype==B_ELECTRON){
-		for (i=0;i<local_nvoid_Ndip;++i) sum-=cimag(epshost*cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
+		for (i=0;i<local_nvoid_Ndip;++i) sum+=cimag(epshost*cDotProd_conj(E1+3*i,pvec+3*i)); // sum{Im(E_1.P)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 	}
 
-	return FOUR_PI*sum/creal(WaveNum);
+	//return FOUR_PI*sum/creal(WaveNum);
+	return -FOUR_PI*WaveNum0*sum/creal(mhost);
 }
 
 //======================================================================================================================
