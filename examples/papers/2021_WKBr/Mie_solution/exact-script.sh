@@ -15,8 +15,9 @@ workpath="$(pwd)/work"
 outpath="$(pwd)"
 # Executables (with full path) to be used for actual computation
 BHFIELD="$workpath/bhfield-std"
-# The name of the executable can also be fieldnlay-dp or fieldnlay-mp, depending on installation
-FIELDNLAY="$workpath/fieldnlay"
+# The name of the executable can also be fieldnlay or fieldnlay-mp, depending on installation.
+# We tested on the Scattnlay version dated June 7, 2021.
+FIELDNLAY="$workpath/fieldnlay-dp"
 
 # Calculating the required variables:
 # simple workaround for float computations using awk

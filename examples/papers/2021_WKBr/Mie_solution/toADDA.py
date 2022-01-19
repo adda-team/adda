@@ -16,9 +16,7 @@ def scattnlay_bhfield_to_adda(path1, path2, type, R, grid):
     if type == "bhfield":
         f1.readline()
         f1.readline()
-    elif type == "scattnlay":
-        f1.readline()
-    else:
+    elif type != "scattnlay" and type != "bhfield":
         print("Error in scattnlay_bhfield_to_adda()! Unknown type.")
 
     f2 = open(path2, 'w')
@@ -56,7 +54,9 @@ def scattnlay_bhfield_to_adda(path1, path2, type, R, grid):
         for k in range(grid):
             for j in range(grid):
                 for i in range(grid):
-                    numbers1 = linecache.getline(path1, 2 + grid * grid * i + grid * j + k)
+                    # 6 - number of lines to skip. 
+                    # It is this number of lines (without data) that is observed in the Scattnlay version dated June 7, 2021.
+                    numbers1 = linecache.getline(path1, 6 + 1 + grid * grid * i + grid * j + k)
 
                     if len(numbers1) == 0:  # EOF
                         break
