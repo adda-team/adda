@@ -20,7 +20,7 @@ ADDA_MPI="../../../src/mpi/adda_mpi"
 RUN="$MPIEXEC $ADDA_MPI"
 
 # the following define filenames (with full or relative paths) 
-EXACT="Mie_solution/if-$size-$m-$grid.dat"
+EXACT="Mie_solution/if-$size-$m-$grid-X-component.dat" # Scattnlay and Bhfield programs return x-polarized el. field
 WKBR_I="WKBr/simple_wkbr-$size-$m-$grid-Y-component.dat"
 WKBR_II="WKBr/complex_wkbr-$size-$m-$grid-Y-component.dat"
 
@@ -50,8 +50,10 @@ if [ "$calcref" == "yes" ]; then
   cd ..
 fi
 
-# The following lines correspond to six lines in each figure part
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $EXACT
+# The following lines correspond to six lines in each figure part.
+# -orient 90 0 0 option to rotate the coordinate system, because Scattnlay and Bhfield programs return an x-polarized field, 
+# while ADDA works with y-polarization by default.
+$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $EXACT -orient 90 0 0
 $RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field inc
 $RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field zero
 $RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field wkb

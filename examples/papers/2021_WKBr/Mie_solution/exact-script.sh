@@ -25,7 +25,6 @@ calc() { awk "BEGIN{print $*}"; }
 radius=$(calc $size/2)
 rb=$(calc $radius - $radius/$grid)
 lb=-$rb;
-#echo $radius $lb $rb
 if [ "$type" == "bhfield" ]; then
   cd $workpath 
   "$BHFIELD" 6.28318530718 $radius $radius $grid $lb $rb $grid $lb $rb $grid $lb $rb other 0 1 $m 0 $m 0

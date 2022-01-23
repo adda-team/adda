@@ -129,11 +129,10 @@ def main(argv):
     print("Current size = ", size)
     print("Current grid = ", grid)
     print("Current m = ", m)
-    print("Current WKBr type = ", type)
-    tail = size + "-" + m + "-" + grid + ".dat"
-    path_exact = type + "-" + tail
-    path_exact_adda = "if-" + tail
-    scattnlay_bhfield_to_adda(path_exact, path_exact_adda, type, float(size) / 2, int(grid))
+    print("Current type = ", type)
+    path_exact = type + "-" + size + "-" + m + "-" + grid + ".dat"
+    path_exact_adda_x_component = "if-" + size + "-" + m + "-" + grid + "-X-component.dat"
+    scattnlay_bhfield_to_adda(path_exact, path_exact_adda_x_component, type, float(size) / 2, int(grid))
     
     
 if __name__ == '__main__':
