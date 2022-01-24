@@ -47,7 +47,7 @@ extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_int
 extern double propAlongZ;
 
 // 3D vectors
-extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center[3],box_origin_unif[3];
+extern double prop_0[3],prop[3],incPolX[3],incPolY[3],beam_center_0[3],beam_center[3],box_origin_unif[3];
 
 // file info
 extern const char * restrict directory;
@@ -84,7 +84,7 @@ extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 extern struct Substrate sub;
 extern bool surface;
 extern enum refl ReflRelation;
-extern double inc_scale,prIncRefl[3],prIncTran[3];
+extern double inc_scale;
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 

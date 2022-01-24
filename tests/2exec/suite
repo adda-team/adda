@@ -75,14 +75,14 @@ all -h beam
 all -h beam plane
 all -beam plane ;mgn;
 all -h beam lminus
-all -beam lminus 2 1 2 3 ;mgn;
+all -beam lminus 2 -beam_center 1 2 3 ;mgn;
 all -h beam davis3
-all -beam davis3 2 1 2 3 ;mgn;
+all -beam davis3 2 -beam_center 1 2 3 ;mgn;
 all -beam davis3 2 ;mg9n;
 all -h beam barton5
-all -beam barton5 2 1 2 3 ;mgn;
+all -beam barton5 2 -beam_center 1 2 3 ;mgn;
 all -beam barton5 2 ;mg9n;
-all -beam dipole 3 2 1 ;p; ;mgn;
+all -beam dipole -beam_center 3 2 1 ;p; ;mgn;
 all -h beam read
 all -beam read IncBeam-Y IncBeam-X ;se; ;mgn;
 
@@ -146,7 +146,6 @@ all -int nloc 1 ;mgn;
 all -int nloc_av 0.1 ;mgn;
 all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
-all -int so ;mgn;
 
 all -h int_surf
 all -int_surf img -surf 4 2 0 ;mgn;
@@ -210,7 +209,6 @@ all -pol nloc 1 ;mgn;
 all -pol nloc_av 0.1 ;mgn;
 all -pol nloc_av 1 ;mgn;
 all -pol rrc ;mgn;
-all -pol so ;p; ;mgn;
 
 all -h prognosis
 all -prognosis
@@ -284,7 +282,6 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;
@@ -379,8 +376,8 @@ all -surf 4 2 0 ;mgn;
 all -surf 4 3 4 ;p; ;mgn;
 all -surf 4 3 4 -prop 1 2 -3 ;se; ;mgn;
 all -surf 4 inf -prop 1 2 -3 ;se; ;mgn;
-all -surf 4 2 1 -beam dipole 3 2 1 ;p; ;mgn;
-all -surf 4 inf -beam dipole 3 2 1 ;p; ;mgn;
+all -surf 4 2 1 -beam dipole -beam_center 3 2 1 ;p; ;mgn;
+all -surf 4 inf -beam dipole -beam_center 3 2 1 ;p; ;mgn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
 !mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;
 

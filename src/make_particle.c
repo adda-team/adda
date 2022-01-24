@@ -83,20 +83,20 @@ static const char ddscat_format_read2[]="%*s %d %d %d %d";
 #ifndef SPARSE
 static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
 #endif
-// ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
+// ratio of scatterer volume to sizeX^3; used for dpl correction and initialization by a_eq
 static double volume_ratio;
-static double Ndip;              // total number of dipoles (in a circumscribing cube)
+static double Ndip;              // total number of dipoles (in a circumscribing cube); has limited use in sparse mode
 static double dpl_def;           // default value of dpl
 static int minX,minY,minZ;       // minimum values of dipole positions in dipole file
 static FILE * restrict dipfile;  // handle of dipole file
 static enum shform read_format;  // format of dipole file, which is read
 static double cX,cY,cZ;          // center for DipoleCoord in units of dipoles (counted from 0)
 static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (dsX/dsMax...)
+static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 
 #ifndef SPARSE
 
 // shape parameters
-static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 static double coat_x,coat_y,coat_z,coat_r2;
 static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
@@ -702,7 +702,7 @@ static size_t PlaceGranules(void)
 	n=count=count_gr=false_count=0;
 	nd=0;
 	// crude estimate of the probability to place a small granule into domain
-	if (sm_gr) overhead=((double)Ndip)/mat_count[gr_mat];
+	if (sm_gr) overhead=Ndip/mat_count[gr_mat];
 	else overhead=1;
 	// main cycle
 	D("Starting main iteration cycle");
@@ -1480,29 +1480,25 @@ void InitShape(void)
 			break;
 		}
 		case SH_BOX: {
-			double aspectY,aspectZ;
-
 			if (sh_Npars==0) {
 				if (IFROOT) sh_form_str1="cube; size of edge along x-axis:";
-				aspectY=aspectZ=1;
+				yx_ratio=zx_ratio=1;
 			}
 			else { // 2 parameters are given
-				aspectY=sh_pars[0];
-				TestPositive(aspectY,"aspect ratio y/x");
-				aspectZ=sh_pars[1];
-				TestPositive(aspectZ,"aspect ratio z/x");
+				yx_ratio=sh_pars[0];
+				TestPositive(yx_ratio,"aspect ratio y/x");
+				zx_ratio=sh_pars[1];
+				TestPositive(zx_ratio,"aspect ratio z/x");
 				if (IFROOT) {
 					sh_form_str1="rectangular parallelepiped; size along x-axis:";
-					sh_form_str2=dyn_sprintf(", aspect ratio y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+					sh_form_str2=dyn_sprintf(", aspect ratio y/x="GFORM", z/x="GFORM,yx_ratio,zx_ratio);
 				}
 			}
-			if (aspectY!=1) symR=false;
+			if (yx_ratio!=1) symR=false;
 			// set half-aspect ratios
-			haspY=aspectY/2;
-			haspZ=aspectZ/2;
-			volume_ratio=aspectY*aspectZ;
-			yx_ratio=aspectY;
-			zx_ratio=aspectZ;
+			haspY=yx_ratio/2;
+			haspZ=zx_ratio/2;
+			volume_ratio=yx_ratio*zx_ratio;
 			Nmat_need=1;
 			break;
 		}
@@ -1660,23 +1656,19 @@ void InitShape(void)
 			break;
 		}
 		case SH_ELLIPSOID: {
-			double aspectY,aspectZ;
-
-			aspectY=sh_pars[0];
-			TestPositive(aspectY,"aspect ratio y/x");
-			aspectZ=sh_pars[1];
-			TestPositive(aspectZ,"aspect ratio z/x");
+			yx_ratio=sh_pars[0];
+			TestPositive(yx_ratio,"aspect ratio y/x");
+			zx_ratio=sh_pars[1];
+			TestPositive(zx_ratio,"aspect ratio z/x");
 			if (IFROOT) {
 				sh_form_str1="ellipsoid; size along x-axis:";
-				sh_form_str2=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM,aspectY,aspectZ);
+				sh_form_str2=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM,yx_ratio,zx_ratio);
 			}
-			if (aspectY!=1) symR=false;
+			if (yx_ratio!=1) symR=false;
 			// set inverse squares of aspect ratios
-			invsqY=1/(aspectY*aspectY);
-			invsqZ=1/(aspectZ*aspectZ);
-			volume_ratio=PI_OVER_SIX*aspectY*aspectZ;
-			yx_ratio=aspectY;
-			zx_ratio=aspectZ;
+			invsqY=1/(yx_ratio*yx_ratio);
+			invsqZ=1/(zx_ratio*zx_ratio);
+			volume_ratio=PI_OVER_SIX*yx_ratio*zx_ratio;
 			Nmat_need=1;
 			break;
 		}
@@ -1812,26 +1804,22 @@ void InitShape(void)
 			break;
 		}
 		case SH_SUPERELLIPSOID: {
-			double aspectY, aspectZ;
-
 			// Read and test parameters
-			aspectY=sh_pars[0];
-			TestPositive(aspectY,"aspect ratio b/a");
-			aspectZ=sh_pars[1];
-			TestPositive(aspectZ,"aspect ratio c/a");
+			yx_ratio=sh_pars[0];
+			TestPositive(yx_ratio,"aspect ratio b/a");
+			zx_ratio=sh_pars[1];
+			TestPositive(zx_ratio,"aspect ratio c/a");
 			seE=sh_pars[2];
 			TestNonNegative(seE,"superellipsoid exponent e");
 			seN=sh_pars[3];
 			TestNonNegative(seN,"superellipsoid exponent n");
 			// Has reflection symmetry across all 3 axes, but 90 degree rotation symmetry about z - only if a=b
-			if (aspectY!=1) symR=false;
+			if (yx_ratio!=1) symR=false;
 			if (IFROOT) {
 				sh_form_str1="superellipsoid; size along x-axis:";
 				sh_form_str2=dyn_sprintf(", aspect ratios b/a="GFORM", c/a="GFORM", exponents e="GFORM", n="GFORM,
-					aspectY,aspectZ,seE,seN);
+					yx_ratio,zx_ratio,seE,seN);
 				}
-			yx_ratio=aspectY;
-			zx_ratio=aspectZ;
 			Nmat_need=1;
 			/* Volume is given analytically by Eq.(4) in T. Wriedt, "Using the T-matrix method for light scattering
 			 * computations by non-axisymmetric particles: Superellipsoids and realistically shaped particles," Part.
@@ -1846,7 +1834,7 @@ void InitShape(void)
 			// tmp2=e*B(e/2,e/2)
 			if (seE==0) tmp2=4;
 			else tmp2=exp(log(seE) + 2*lgamma(seE/2) - lgamma(seE));
-			volume_ratio=0.25*aspectY*aspectZ*tmp1*tmp2;
+			volume_ratio=0.25*yx_ratio*zx_ratio*tmp1*tmp2;
 			// set additional parameters when possible
 			seInvR=seE/2;
 			if (seE!=0) seR=2/seE;
@@ -1885,13 +1873,14 @@ void InitShape(void)
 	 *     instance, sh_form_str1="name; diameter:", sh_form_str2=", parameter=5" would result in the final line like:
 	 *     "name; diameter:10, parameter=5". So you should NOT include sizeX into these strings, and sh_form_str2 can be
 	 *     omitted if not needed.
-	 * Either yx_ratio (preferably) or n_boxY. The former is a ratio of particle sizes along y and x axes. Initialize
-	 *     n_boxY directly only if it is not proportional to boxX, like in shape LINE above, since boxX is not
-	 *     initialized at this moment. If yx_ratio is not initialized, set it explicitly to UNDEF.
+	 * Either yx_ratio (preferably) or n_boxY. The former is a ratio of particle sizes along y and x axes. It can be set
+	 *     directly by input parameters or calculated afterwards. Initialize n_boxY directly only if it is not
+	 *     proportional to boxX, like in shape LINE above, since boxX is not initialized at this moment. If yx_ratio is
+	 *     not initialized, set it explicitly to UNDEF.
 	 * Analogously either zx_ratio (preferably) or n_boxZ.
 	 * Nmat_need - number of different domains in this shape (void is not included)
-	 * volume_ratio - ratio of particle volume to (boxX)^3. Initialize it if it can be calculated analytically or set to
-	 *                UNDEF otherwise. This parameter is crucial if one wants to initialize computational grid from
+	 * volume_ratio - ratio of particle volume to (sizeX)^3. Initialize it if it can be calculated analytically or set
+	 *                to UNDEF otherwise. This parameter is crucial if one wants to initialize computational grid from
 	 *                '-eq_rad' and '-dpl'.
 	 * n_boxX - grid size for the particle, defined by shape; initialize only when relevant, e.g. for shapes such as
 	 *          'read'.
@@ -2023,14 +2012,15 @@ void InitShape(void)
 		if (IS_ODD((boxY-n_boxY)/jagged)) symY=false;
 		if (IS_ODD((boxZ-n_boxZ)/jagged)) symZ=false;
 	}
-#ifndef SPARSE //this check is not needed in sparse mode
-	// initialize number of dipoles; first check that it fits into size_t type
-	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
-	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
+	Ndip=((double)boxX)*((double)boxY)*((double)boxZ);
+#ifndef SPARSE
+	/* Ndip can be arbitrary huge in sparse mode, but then it's not used for any loop bounds (like nvoid_Ndip)
+	 * Otherwise, it has to fit into size_t bounds
+	 */
+	if (Ndip > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
 		"supported by size_t type on this system (%zu). If possible, recompile ADDA in 64-bit mode.",
-		tmp,SIZE_MAX);
+		Ndip,SIZE_MAX);
 #endif // !SPARSE
-	Ndip=boxX*boxY*boxZ;
 	// initialize maxiter; not very realistic
 	if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
 	// some old, not really logical heuristics for Ntheta, but better than constant value
@@ -2322,7 +2312,7 @@ void MakeParticle(void)
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	SetupLocalD();
 	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
-	nvoid_Ndip=Ndip-mat_count[Nmat];
+	nvoid_Ndip=(size_t)Ndip-mat_count[Nmat];
 #endif // !SPARSE
 	if (nvoid_Ndip==0) LogError(ONE_POS,"All dipoles of the scatterer are void");
 	local_nRows=3*local_nvoid_Ndip;

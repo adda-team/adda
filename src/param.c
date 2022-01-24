@@ -95,6 +95,7 @@ bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as ex
 extern const char *avg_string;
 // defined and initialized in GenerateB.c
 extern const char *beam_descr;
+extern const double prIncRefl[3],prIncTran[3];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -188,6 +189,8 @@ static bool orient_used;        // whether '-orient ...' was used in the command
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
 static bool so_buf_used;        // whether '-so_buf ...' was used in the command line
+static bool beam_center_used;   // whether '-beam_center ...' was used in the command line
+static bool deprecated_bc_used; // whether '-beam ... <x> <y> <z>' was used in the command line (deprecated option)
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -228,17 +231,38 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
 static const struct subopt_struct beam_opt[]={
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
-		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
-		UNDEF,B_BARTON5},
+		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam. "
+		"Specification of coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_BARTON5},
+#ifndef NO_FORTRAN
+	{"besselCS","<order> <angle>","Bessel beam with circularly symmetric energy density. Order is integer (of any "
+		"sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CS},
+	{"besselCSp","<order> <angle>","Alternative Bessel beam with circularly symmetric energy density. Order is "
+		"integer (of any sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CSp},
+	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy>]",
+		"Generalized Bessel beam. Order is integer (of any sign) and the half-cone angle (in degrees) is measured from "
+		"the z-axis. The beam is defined by 2x2 matrix M: (Mex, Mey, Mmx, Mmy). Real parts of these four elements are "
+		"obligatory, while imaginary parts are optional (zero, by default).",UNDEF,B_BES_M},
+	{"besselLE","<order> <angle>","Bessel beam with linearly polarized electric field. Order is integer (of any sign) "
+		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LE},
+	{"besselLM","<order> <angle>","Bessel beam with linearly polarized magnetic field. Order is integer (of any sign) "
+		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LM},
+	{"besselTEL","<order> <angle>","Linear component of the TE Bessel beam. Order is integer (of any sign) and the "
+		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TEL},
+	{"besselTML","<order> <angle>","Linear component of the TM Bessel beam. Order is integer (of any sign) and the "
+		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TML},
+#endif // !NO_FORTRAN
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
-		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
-	{"dipole","<x> <y> <z>","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
+		"(zero, by default). All arguments are in um. Specification of coordinates here is DEPRECATED, use "
+		"-beam_center instead.",UNDEF,B_DAVIS3},
+	{"dipole","[<x> <y> <z>]","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
-		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",3,B_DIPOLE},
+		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface. Specification of "
+		"coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_DIPOLE},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
-		" default). All arguments are in um.",UNDEF,B_LMINUS},
+		" default). All arguments are in um. Specification of coordinates here is DEPRECATED, use -beam_center "
+		"instead.",UNDEF,B_LMINUS},
 	{"plane","","Infinite plane wave",0,B_PLANE},
 	{"read","<filenameY> [<filenameX>]","Defined by separate files, which names are given as arguments. Normally two "
 		"files are required for Y- and X-polarizations respectively, but a single filename is sufficient if only "
@@ -346,6 +370,7 @@ PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
 PARSE_FUNC(beam);
+PARSE_FUNC(beam_center);
 PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
 PARSE_FUNC(chp_type);
@@ -420,12 +445,16 @@ static struct opt_struct options[]={
 		"integral scattering quantities.\n"
 		"Default: "FD_ALLDIR_PARMS,1,NULL},
 	{PAR(anisotr),"","Specifies that refractive index is anisotropic (its tensor is limited to be diagonal in particle "
-		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr', all SO "
-		"formulations, and '-rect_dip'.",0,NULL},
+		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr' and "
+		"'-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
-		"predefined beam types (if present) are floats.\n"
+		"predefined beam types are floats except for <order> or filenames.\n"
 		"Default: plane",UNDEF,beam_opt},
+	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam in the laboratory reference frame (in um). For most "
+		"beams it corresponds to the most symmetric point with zero phase, while for a point source or a fast "
+		"electron, it determines the real position in space.\n"
+		"Default: 0 0 0",3,NULL},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
 	{PAR(chp_load),"","Restart a simulation from a checkpoint",0,NULL},
@@ -486,7 +515,7 @@ static struct opt_struct options[]={
 #endif
 		"'zero' is a zero vector,\n"
 		"Default: auto",UNDEF,NULL},
-	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc_av <Rp>|poi|so}",
+	{PAR(int),"{fcd|fcd_st|igt [<lim> [<prec>]]|igt_so|nloc <Rp>|nloc_av <Rp>|poi}",
 		"Sets prescription to calculate the interaction term.\n"
 		"'fcd' - Filtered Coupled Dipoles - requires dpl to be larger than 2.\n"
 		"'fcd_st' - static (long-wavelength limit) version of FCD.\n"
@@ -497,16 +526,15 @@ static struct opt_struct options[]={
 #ifdef NO_FORTRAN
 		"!!! 'igt' relies on Fortran sources that were disabled at compile time.\n"
 #endif
-		"'igt_so' - approximate evaluation of IGT using second order of kd approximation.\n"
+		"'igt_so' - second-order approximate evaluation of IGT.\n"
 		"'nloc' - non-local interaction of two Gaussian dipole densities (based on point value of Gh), <Rp> is the "
 		"width of the latter in um (must be non-negative).\n"
 		"'nloc_av' - same as 'nloc' but based on averaging over the cube volume.\n"
 		"'poi' - (the simplest) interaction between point dipoles.\n"
-		"'so' - under development and incompatible with '-anisotr'.\n"
 #ifdef SPARSE
 		"!!! All options except 'poi' incur a significant slowing down in sparse mode.\n"
 #endif
-		"Only poi and igt can be used with '-rect_dip'.\n"
+		"Only poi, igt, and igt_so can be used with '-rect_dip'.\n"
 		"Default: poi",UNDEF,NULL},
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * Modify string constants after 'PAR(int)': add new argument (possibly with additional sub-arguments) to list
@@ -574,13 +602,13 @@ static struct opt_struct options[]={
 		"respectively.\n"
 		"Examples: 1 (one integration with no multipliers),\n"
 		"          6 (two integration with cos(2*phi) and sin(2*phi) multipliers).",1,NULL},
-	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc|so}",
+	{PAR(pol),"{cldr|cm|dgf|fcd|igt_so|lak|ldr [avgpol]|nloc <Rp>|nloc_av <Rp>|rrc}",
 		"Sets prescription to calculate the dipole polarizability.\n"
 		"'cldr' - Corrected LDR (see below), incompatible with '-anisotr'.\n"
 		"'cm' - (the simplest) Clausius-Mossotti.\n"
 		"'dgf' - Digitized Green's Function (second order approximation to LAK).\n"
 		"'fcd' - Filtered Coupled Dipoles (requires dpl to be larger than 2).\n"
-		"'igt_so' - Integration of Green's Tensor over a cube (second order approximation).\n"
+		"'igt_so' - Integration of Green's tensor over a cube (second-order approximation).\n"
 		"'lak' - (by Lakhtakia) exact integration of Green's Tensor over a sphere.\n"
 		"'ldr' - Lattice Dispersion Relation, optional flag 'avgpol' can be added to average polarizability over "
 		"incident polarizations.\n"
@@ -588,7 +616,6 @@ static struct opt_struct options[]={
 		"(must be non-negative).\n"
 		"'nloc_av' - same as 'nloc' but based on averaging of Gh over the dipole volume.\n"
 		"'rrc' - Radiative Reaction Correction (added to CM).\n"
-		"'so' - under development and incompatible with '-anisotr'.\n"
 		"Only poi,cldr, and igt_so can be used with '-rect_dip'.\n"
 		"Default: ldr (without averaging) or cldr (for -rect_dip).",UNDEF,NULL},
 		/* TO ADD NEW POLARIZABILITY FORMULATION
@@ -603,8 +630,8 @@ static struct opt_struct options[]={
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
 		"the corresponding axes. Absolute scale is irrelevant, i.e. '1 2 2' is equivalent to '0.5 1 1'. Cannot be used "
-		"with '-anisotr', '-granul', '-scat so'. The compatible polarizability and interaction-term formulations are "
-		"also limited.\n"
+		"with '-anisotr' and '-granul'. The compatible polarizability and interaction-term formulations are also "
+		"limited.\n"
 		"Default: 1 1 1",3,NULL},
 #ifndef SPARSE
 	{PAR(save_geom),"[<filename>]","Save dipole configuration to a file <filename> (a path relative to the output "
@@ -614,11 +641,10 @@ static struct opt_struct options[]={
 		"extension can differ depending on argument of '-sg_format' option).",
 		UNDEF,NULL},
 #endif // !SPARSE
-	{PAR(scat),"{dr|fin|igt_so|so}","Sets prescription to calculate scattering quantities.\n"
+	{PAR(scat),"{dr|fin|igt_so}","Sets prescription to calculate scattering quantities.\n"
 		"'dr' - (by Draine) standard formulation for point dipoles\n"
 		"'fin' - slightly different one, based on a radiative correction for a finite dipole.\n"
-		"'igt_so' - second order in kd approximation to Integration of Green's Tensor.\n"
-		"'so' - under development and incompatible with '-anisotr' and '-rect_dip'.\n"
+		"'igt_so' - second-order approximation to integration of Green's tensor.\n"
 		"Default: dr",1,NULL},
 	{PAR(scat_grid_inp),"<filename>","Specifies a file with parameters of the grid of scattering angles for "
 		"calculating Mueller matrix (possibly integrated over 'phi').\n"
@@ -641,7 +667,7 @@ static struct opt_struct options[]={
 		 * the next string.
 		 */
 	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' from file. All parameters "
-		"of predefined shapes are floats except for filenames.\n"
+		"of predefined shapes are floats except for <n> and filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
 	{PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If default wavelength "
 		"is used, this option specifies the 'size parameter' of the computational grid. Can not be used together with "
@@ -865,6 +891,16 @@ static void ScanDoubleError(const char * restrict str,double *res)
 
 //======================================================================================================================
 
+static void ScanDouble3Error(char **argv,double res[static 3])
+// scans an option argument (3D vector of doubles) and checks for errors
+{
+	ScanDoubleError(argv[0],res);
+	ScanDoubleError(argv[1],res+1);
+	ScanDoubleError(argv[2],res+2);
+}
+
+//======================================================================================================================
+
 static void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
@@ -1003,11 +1039,21 @@ PARSE_FUNC(beam)
 		beam_Npars=Narg;
 		opt_beam=opt;
 		need=beam_opt[i].narg;
-		// check number of arguments
+		// check number of arguments and process deprecated ones
 		switch (beamtype) {
 			case B_LMINUS:
 			case B_DAVIS3:
-			case B_BARTON5: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
+			case B_BARTON5:
+				if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
+				if (Narg==4) deprecated_bc_used=true;
+				break;
+			case B_DIPOLE:
+				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
+				if (Narg==3) deprecated_bc_used=true;
+				break;
+#ifndef NO_FORTRAN
+			case B_BES_M: if (Narg!=6 && Narg!=10) NargError(Narg,"6 or 10"); break;
+#endif
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
@@ -1019,9 +1065,19 @@ PARSE_FUNC(beam)
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
+		if (deprecated_bc_used) {
+			LogWarning(EC_WARN,ONE_POS,
+				"Providing beam-center coordinates as arguments to '-beam' is deprecated. Use '-beam_center' instead.");
+			vCopy(beam_pars+Narg-3,beam_center_0);
+		}
 		break;
 	}
 	if (!found) NotSupported("Beam type",argv[1]);
+}
+PARSE_FUNC(beam_center)
+{
+	ScanDouble3Error(argv+1,beam_center_0);
+	beam_center_used = true;
 }
 PARSE_FUNC(chp_dir)
 {
@@ -1150,6 +1206,10 @@ PARSE_FUNC(h)
 						if (strcmp(options[i].name,"shape")==0)
 							printf("!!! Most of the shape options are disabled in sparse mode\n");
 #endif
+#ifdef NO_FORTRAN
+						if (strcmp(options[i].name,"beam")==0)
+							printf("!!! Bessel beams rely on Fortran sources that were disabled at compile time.\n");
+#endif
 					}
 				}
 				found=true;
@@ -1236,7 +1296,6 @@ PARSE_FUNC(int)
 		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"poi")==0) IntRelation=G_POINT_DIP;
-	else if (strcmp(argv[1],"so")==0) IntRelation=G_SO;
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1250,7 +1309,7 @@ PARSE_FUNC(int_surf)
 {
 	if (strcmp(argv[1],"img")==0) ReflRelation=GR_IMG;
 	else if (strcmp(argv[1],"som")==0) ReflRelation=GR_SOM;
-	else NotSupported("Interaction term prescription",argv[1]);
+	else NotSupported("Reflection term prescription",argv[1]);
 	/* TO ADD NEW REFLECTION FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h.
@@ -1385,7 +1444,6 @@ PARSE_FUNC(pol)
 		noExtraArgs=false;
 	}
 	else if (strcmp(argv[1],"rrc")==0) PolRelation=POL_RRC;
-	else if (strcmp(argv[1],"so")==0) PolRelation=POL_SO;
 	/* TO ADD NEW POLARIZABILITY FORMULATION
 	 * add the line to else-if sequence above in the alphabetical order, analogous to the ones already present. The
 	 * variable parts of the line are its name used in command line and its descriptor, defined in const.h. If
@@ -1404,9 +1462,7 @@ PARSE_FUNC(prop)
 {
 	double tmp;
 
-	ScanDoubleError(argv[1],prop_0);
-	ScanDoubleError(argv[2],prop_0+1);
-	ScanDoubleError(argv[3],prop_0+2);
+	ScanDouble3Error(argv+1,prop_0);
 	tmp=DotProd(prop_0,prop_0);
 	if (tmp==0) PrintErrorHelp("Given propagation vector is null");
 	vMultScal(1/sqrt(tmp),prop_0,prop_0);
@@ -1440,7 +1496,6 @@ PARSE_FUNC(scat)
 	if (strcmp(argv[1],"dr")==0) ScatRelation=SQ_DRAINE;
 	else if (strcmp(argv[1],"fin")==0) ScatRelation=SQ_FINDIP;
 	else if (strcmp(argv[1],"igt_so")==0) ScatRelation=SQ_IGT_SO;
-	else if (strcmp(argv[1],"so")==0) ScatRelation=SQ_SO;
 	else NotSupported("Scattering quantities relation",argv[1]);
 }
 PARSE_FUNC(scat_grid_inp)
@@ -1607,7 +1662,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2021 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2022 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -1921,6 +1976,9 @@ void InitVariables(void)
 	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
+	beam_center_used=false;
+	deprecated_bc_used=false;
+	vInit(beam_center_0);
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
 	ref_index[0]=1.5;
@@ -2094,14 +2152,17 @@ void VariablesInterconnect(void)
 		prop_0[2]=1;
 	}
 	// parameter interconnections
-	if (IntRelation==G_SO) {
+	if (false) { // left for future developments - put here options which rely on symmetry
 		reduced_FFT=false;
 		// this limitation is due to assumption of reciprocity in DecayCross()
-		if (beamtype==B_DIPOLE) PrintError("'-beam dipole' and '-int so' can not be used together");
+		if (beamtype==B_DIPOLE) PrintError("'-beam dipole' is incompatible with non-symmetric Green's tensor");
 	}
 	/* TO ADD NEW INTERACTION FORMULATION
-	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the definition of reduced_FFT
+	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the test above (now redundant)
 	 */
+	
+	if (deprecated_bc_used && beam_center_used) LogError(ONE_POS,"Beam center coordinates can not be specified as "
+		"arguments to both '-beam' and '-beam_center'. Use only the latter.");
 	if (calc_Csca || calc_vec) all_dir = true;
 	// by default, one of the scattering options is activated
 	if (store_scat_grid || phi_integr) scat_grid = true;
@@ -2154,20 +2215,17 @@ void VariablesInterconnect(void)
 		if (PolRelation!=POL_CLDR && PolRelation!=POL_CM && PolRelation!=POL_IGT_SO)
 			PrintError("The specified polarizability formulation is designed only for cubical dipoles. Currently, only "
 			"the following formulations can be used with rectangular dipoles: cm, cldr, and igt_so");
-		else if (PolRelation!=POL_IGT_SO && IntRelation==G_IGT) LogWarning(EC_WARN,ONE_POS,"Using IGT interaction with "
-			"point-dipole polarizability formulations will produce wrong results for rectangular dipoles. In most "
-			"cases you should use '-rect_dip ... -int igt ... -pol igt_so'");
+		else if (PolRelation!=POL_IGT_SO && (IntRelation==G_IGT || IntRelation==G_IGT_SO)) LogWarning(EC_WARN,ONE_POS,
+			"Using IGT interaction with point-dipole polarizability formulations will produce wrong results for "
+			"rectangular dipoles. In most cases you should use '-rect_dip ... -int igt_so ... -pol igt_so'");
 		if (anisotropy) PrintError("Currently '-anisotr' and '-rect_dip' can not be used together");
 		if (sh_granul) PrintError("Currently '-granul' and '-rect_dip' can not be used together");
-		if (ScatRelation==SQ_SO) PrintError("'-rect_dip' is incompatible with '-scat so'");
-		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT) PrintError("The specified interaction formulation is "
-			"designed only for cubical dipoles. Currently, only 'poi' and 'igt' can be used with rectangular dipoles");
+		if (IntRelation!=G_POINT_DIP && IntRelation!=G_IGT && IntRelation!=G_IGT_SO)
+			PrintError("The specified interaction formulation is designed only for cubical dipoles. Currently, only "
+				"'poi', 'igt', and 'igt_so' can be used with rectangular dipoles");
 	}
 	if (anisotropy) {
 		if (PolRelation==POL_CLDR) PrintError("'-anisotr' is incompatible with '-pol cldr'");
-		if (PolRelation==POL_SO) PrintError("'-anisotr' is incompatible with '-pol so'");
-		if (ScatRelation==SQ_SO) PrintError("'-anisotr' is incompatible with '-scat so'");
-		if (IntRelation==G_SO) PrintError("'-anisotr' is incompatible with '-int so'");
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * If the new polarizability formulation is incompatible with anisotropic material, add an exception here
 		 */
@@ -2457,6 +2515,7 @@ void PrintInfo(void)
 		fprintf(logfile,"Volume-equivalent size parameter: "GFORM"\n",ka_eq);
 		// log incident beam and polarization
 		fprintf(logfile,"\n---In laboratory reference frame:---\nIncident beam: %s\n",beam_descr);
+		fprintf(logfile,"Incident beam center position: "GFORMDEF3V"\n",COMP3V(beam_center_0));
 		fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop_0));
 		if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
 		else { // polarizations are not shown for dipole incident field
@@ -2481,8 +2540,7 @@ void PrintInfo(void)
 			if (alph_deg!=0 || bet_deg!=0 || gam_deg!=0) {
 				fprintf(logfile,"Particle orientation (deg): alpha="GFORMDEF", beta="GFORMDEF", gamma="GFORMDEF"\n\n"
 					"---In particle reference frame:---\n",alph_deg,bet_deg,gam_deg);
-				if (beam_asym) fprintf(logfile,"Incident Beam center position: "GFORMDEF3V"\n",
-					beam_center[0],beam_center[1],beam_center[2]);
+				fprintf(logfile,"Incident beam center position: "GFORMDEF3V"\n",COMP3V(beam_center_0));
 				fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop));
 				if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
 				else { // polarizations are not shown for dipole incident field
@@ -2523,7 +2581,6 @@ void PrintInfo(void)
 				fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",polNlocRp);
 				break;
 			case POL_RRC: fprintf(logfile,"'Radiative Reaction Correction'\n"); break;
-			case POL_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		/* TO ADD NEW POLARIZABILITY FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the
@@ -2535,7 +2592,6 @@ void PrintInfo(void)
 			case SQ_DRAINE: fprintf(logfile,"'by Draine'\n"); break;
 			case SQ_FINDIP: fprintf(logfile,"'Finite Dipoles'\n"); break;
 			case SQ_IGT_SO: fprintf(logfile,"'Integration of Green's Tensor [approximation O(kd^2)]'\n"); break;
-			case SQ_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		// log Interaction term prescription
 		fprintf(logfile,"Interaction term prescription: ");
@@ -2551,7 +2607,6 @@ void PrintInfo(void)
 			case G_NLOC: fprintf(logfile,"'Non-local' (point-value, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_NLOC_AV: fprintf(logfile,"'Non-local' (averaged, Gaussian width Rp="GFORMDEF")\n",nloc_Rp); break;
 			case G_POINT_DIP: fprintf(logfile,"'as Point dipoles'\n"); break;
-			case G_SO: fprintf(logfile,"'Second Order'\n"); break;
 		}
 		/* TO ADD NEW INTERACTION FORMULATION
 		 * add a case above in the alphabetical order, analogous to the ones already present. The variable parts of the

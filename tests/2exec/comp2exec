@@ -3,13 +3,17 @@
 # GNU General Public License version 3
 #
 # Performs system (black-box) testing of ADDA by comparing the simulation results between different versions/modes
-# First parameter is seq (default), mpi, mpi_seq, ocl, or ocl_seq.
+# --First parameter-- is seq (default), mpi, mpi_seq, ocl, or ocl_seq.
 # One-word mode compares corresponding current version with previous stable version (e.g. 1.0) - some differences are
-# always expected. Two-word mode compares two current versions corresponding to different modes (e.g. mpi vs. seq) -
-# only minor differences are generally expected.
-# Second (if given) specifies file with a test suite (default - "suite").
-# Third (if given) specifies bash pattern (best if quoted). Tests are started only from the command line that matches
-# it (convenient to restart the test suite from a break point).
+# expected. However, they can be silenced by proper tuning of CMDIGNORE and OLDIGNORE. Moreover, these modes require a 
+# reference executable of ADDA. The latter is available out of the box on Windows, but need to be separately compiled
+# on other systems. 
+# Two-word mode compares two current versions corresponding to different modes (e.g. mpi vs. seq) - only minor
+# differences are expected (and can also be silenced by fine-tuning).
+# --Second-- (if given) specifies file with a test suite (default - "suite").
+# --Third-- (if given) specifies bash pattern (best if quoted). Tests are started only from the command line that
+# matches it (convenient to restart the test suite from a break point).
+#
 # Also extra params (from the list EXTRAS below) can be included at any position, overriding setting inside this file:
 # 'NAME' sets the flag to 1
 # 'NAME=val' sets the parameter to val
@@ -18,11 +22,12 @@
 # ----------------------------------------
 # There are a lot of parameters to be tuned below. Look, at least, at REFPATH, CMDIGNORE, OLDIGNORE, and GPU
 # The rest may, in some cases, work out of box.
-## ----------------------------------------
+# If you are tuning the tests after an update of ADDA, it is recommended to have more interactive execution by
+# uncommenting GUIDIFF below
+# ----------------------------------------
 # All significant differences obtained during tests go to stderr, so one may look mostly at this stream to catch
 # failures (redirect it to file or to colorize it in the terminal)
 # GitBash under Windows has issues with output due to line endings in suite*. Can be solved by dos2unix
-# Under Windows 10, mpich1.4.1p1 hangs on finalize, when called from the shell, such as this script
 
 # first line is exclusive flags (use at most one together with manual definitions below)
 FLAGS="SPA_EXT SPA_STAN SURF_EXT SURF_STAN RD_EXT RD_STAN RD_TRICKY"
@@ -56,8 +61,8 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 #RD_STAN=1
 #RD_TRICKY=1
 
-# In the following we desribe flags and parameters that can be controlled independently of each other and flags above
 # ----- exclusive flags END -----
+# In the following we desribe flags and parameters that can be controlled independently of each other and flags above
 
 # Set the following flag to ignore differences related to different FFT methods, such as FFT grid sizes and memory.
 # Also useful for comparison of sparse version with the standard one (set automatically in that case)
@@ -65,11 +70,11 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 
 # Using a GUI diff program allows quick estimate of the importance of differences (e.g. when there are differences in 
 # minor digits of many numbers). However, most effort should be put in improving mycmp below, so that only significant 
-# errors remain. 
+# errors remain.
 # GUIDIFF is a flag enabling use of GUI diff. If it is set to 'strip', stripped files are used for comparison. If used,
-# the existing program must be specified by GUIDIFFPROG. Options include, for example: tortoisemerge, meld, vimdiff
+# the existing program must be specified by GUIDIFFPROG. Options include, for example: tortoisegitmerge, meld, vimdiff
 #GUIDIFF=strip
-GUIDIFFPROG=tortoisemerge
+GUIDIFFPROG=tortoisegitmerge
 
 # Look below for "!!!", which mark the places where adjustments are probably need to be done
 
@@ -89,11 +94,16 @@ ADDAOCL="./../../src/ocl/adda_ocl"
 ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supported
 # Following two variable determine what is ignored when comparing against older executables. CMDIGNORE skipps the whole
 # runs (matches command line), OLDIGNORE - specifies lines in output files to be skipped
-# Currently formulated to compare 1.5* with 1.4.0
-CMDIGNORE="coated2|superellipsoid"
-OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2"
+# Currently formulated to compare 1.5* with 1.4.0 (more specific exceptions are added in parsing of command lines)
+# These variables must be updated whenever new features are added to ADDA
 
-# Path to reference binaries, examples: "." or "./../../win64"
+CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-beam bessel|1e-16"
+OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat"
+OLDIGNORE="$OLDIGNORE|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:"
+OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"
+
+# Path to reference binaries, examples: "." or "./../../win64". 
+# This may work out of the box on Windows, but requires changes for other systems
 REFPATH=./../../win64
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
@@ -477,7 +487,7 @@ function mydiff {
 #---------------- Prepare input files ----------------------------------------------------------------------------------
 
 NEEDEDFILES="scat_params.dat avg_params.dat alldir_params.dat"
-NEEDEDDIRS="tables"
+NEEDEDDIRS=""
 
 for file in $NEEDEDFILES; do
   if [ ! -f $file ]; then
@@ -563,7 +573,13 @@ while read -r cmpfiles cmdline; do
     # clean up to remove warnings
     rm -f -r $SOREF $SOTEST $DIRREF $DIRTEST
     # reference run
-    runref="$EXECREF $cmdline -dir $DIRREF"
+    if [ -n "$OLDUSED" ]; then
+      # The following is specific for reference version 1.4.0
+      cmdlineREF="${cmdline/-beam_center}"
+    else
+      cmdlineREF="$cmdline"
+    fi
+    runref="$EXECREF $cmdlineREF -dir $DIRREF"   
     if !($runref <&3 > $SOREF); then
       if [ -n "$OLDUSED" ]; then  # ignore ADDA errors in older versions
         refok=0

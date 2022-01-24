@@ -40,9 +40,6 @@ extern const doublecomplex cc[][3];
 #ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 #endif
-// defined and initialized in GenerateB.c
-extern const double beam_center_0[3];
-//extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
 extern const double incPolX_0[3],incPolY_0[3];
 extern const enum scat ScatRelation;
@@ -533,23 +530,10 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 	int i;
 	unsigned short ix,iy1,iy2,iz1,iz2;
 	size_t j,jjj;
-	double temp, na;
-	doublecomplex mult_mat[MAX_NMAT];
-	const bool scat_avg=true; // temporary fixed option for SO formulation
 #ifdef SPARSE
 	doublecomplex expX, expY, expZ;
 #endif
 
-	if (ScatRelation==SQ_SO) {
-		// !!! this should never happen
-		if (anisotropy || rectDip) LogError(ONE_POS,"Incompatibility error in CalcField");
-		// calculate correction coefficient
-		if (scat_avg) na=0;
-		else na=DotProd(n,prop);
-		temp=kd*kd/24;
-		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
-		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
-	}
 	cvInit(sum);
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
@@ -586,12 +570,6 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 		expX=imExp(-kdX*n[0]*ix);
 		a=tmp*expX;
 #endif // SPARSE
-		/* the following line may incur certain overhead (from 0% to 5% depending on tests).
-		 * It is possible to remove this overhead by separating the complete loop for SQ_SO in a separate case (and it
-		 * was like that at r1209). However, the code was much harder to read and maintain. Since there are several
-		 * ideas that may speed up this calculation by a factor of a few times, we should not worry about 5%.
-		 */
-		if (ScatRelation==SQ_SO) a*=mult_mat[material[j]];
 		// sum(P*exp(-ik*r.n))
 		for(i=0;i<3;i++) sum[i]+=pvec[jjj+i]*a;
 	} /* end for j */
@@ -647,8 +625,6 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 #endif
 
 	const bool above=(nF[2]>-ROUND_ERR); // we assume above-the-surface scattering for all boundary cases (like 90 deg)
-	// Using SQ_SO for particles near surface seems even beyond "under development"
-	if (ScatRelation==SQ_SO) LogError(ONE_POS,"Incompatibility error in CalcFieldSurf");
 	cvInit(sumN);
 	if (above) cvInit(sumF); //additional storage for directly propagated scattering
 
@@ -831,15 +807,15 @@ double ExtCross(const double * restrict incPol)
 	double sum;
 	size_t i;
 
-	if (beamtype==B_PLANE && !surface) {
+	// this can be considered a legacy case, which works only for the simplest plane way centered at the particle
+	if (beamtype==B_PLANE && !surface && !beam_asym) {
 		CalcField (ebuff,prop);
 		sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
 	/* more general formula; normalization is done assuming the unity amplitude of the electric field in the focal point
-	 * of the beam; It does not comply with ScatRelation SO. So SO is, effectively, replaced by DRAINE when calculating
-	 * Cext for non-plane beams.
+	 * of the beam
 	 */
 	else {
 		sum=0;
@@ -850,8 +826,8 @@ double ExtCross(const double * restrict incPol)
 		 * independent of propagation or scattering direction. For rectangular dipoles, it is only approximate but
 		 * expected to be accurate for not very elongated dipoles and/or not very spread out incident field.
 		 *
-		 * In principle, the situation is similar for SO of full IGT, but there the correction factor depends on the
-		 * propagation direction.even for cubical dipoles
+		 * In principle, the situation is similar for full IGT, but there the correction factor depends on the
+		 * propagation direction even for cubical dipoles
 		 */
 		if (ScatRelation==SQ_IGT_SO) sum*=eta2(prop);
 	}
@@ -871,10 +847,8 @@ double AbsCross(void)
 	size_t dip,index;
 	int i,j;
 	unsigned char mat;
-	double sum,temp1,temp2;
-	doublecomplex m,m2m1;
+	double sum,temp1;
 	double mult[MAX_NMAT][3]; // multiplier (possibly anisotropic)
-	double mult1[MAX_NMAT];   // multiplier, which is always isotropic
 
 	// Cabs = 4*pi*sum
 	/* In this function IGT_SO is equivalent to DRAINE. It may seem more logical to make IGT_SO same as FINDIP. However,
@@ -910,21 +884,6 @@ double AbsCross(void)
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
-			break;
-		case SQ_SO:
-			// !!! the following should never happen
-			if (anisotropy || rectDip) LogError(ONE_POS,"Incompatibility error in AbsCross");
-			// calculate mult1
-			temp1=kd*kd/6;
-			temp2=FOUR_PI/dipvol;
-			for (i=0;i<Nmat;i++) {
-				m=ref_index[i];
-				m2m1=m*m-1;
-				// mult1=-Im(1/chi)*(1+(kd*Im(m))^2)/d^3;  chi=(m^2-1)/(4*PI)
-				mult1[i]=temp2*cimag(m2m1)*(1+temp1*cimag(m)*cimag(m))/cAbs2(m2m1);
-			}
-			// main cycle
-			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) sum+=mult1[material[dip]]*cvNorm2(pvec+3*dip);
 			break;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);

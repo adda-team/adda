@@ -63,11 +63,15 @@ double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence alon
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
 // 3D vectors (in particle reference frame)
-double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
-double incPolX[3],incPolY[3]; // incident polarizations (in particle RF)
+double prop[3];               // incident direction
+double incPolX[3],incPolY[3]; // incident polarizations
 double beam_center[3];        // coordinates of the beam center
 double box_origin_unif[3];    /* coordinates of the center of the first dipole in the local computational box (after
                                  uniform distribution of non-void dipoles among all processors) */
+
+// 3D vectors (in laboratory reference frame)
+double prop_0[3];             // incident direction
+double beam_center_0[3];      // coordinates of the beam center
 
 // file info
 const char * restrict directory; // directory to save data in
@@ -111,7 +115,7 @@ size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for
  * Anyway, a direct test for Ndip larger than the limit is made and a meaningful error message is produced if needed.
  *
  * The same limitation is implied in a few other places (like number of lines in dipole file, etc.). Definitions of
- * mat_count[] and Ndip are made as size_t due to the same reasoning.
+ * mat_count[] is made as size_t due to the same reasoning.
  */
 size_t local_nRows;                 // number of local rows of decomposition (only real dipoles)
 
@@ -127,11 +131,6 @@ bool surface;           // whether nearby surface is present
 enum refl ReflRelation; // method to calculate reflected Green's tensor
 double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(sub.m[sub.N-1])
 struct Substrate sub;   //structure with surface related parameters
-/* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
- * When sub.m[sub.N-1] is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
- */
-double prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 
