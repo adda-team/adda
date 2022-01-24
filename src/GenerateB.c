@@ -359,7 +359,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				 * the substrate (below) is Exp(i*k*sub.m[sub.N-1]*r.a). We assume that the incoming beam is homogeneous in its
 				 * original medium.
 				 */
-				double hbeam=hsub+beam_center[2]; // height of beam center above the surface
+				double hbeam=sub.hP+beam_center[2]; // height of beam center above the surface
 				if (prop[2]>0) { // beam comes from the substrate (below)
 					doublecomplex tc; // transmission coefficients
                     //  determine amplitude of the reflected and transmitted waves; here sub.m[sub.N-1] is always defined
