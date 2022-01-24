@@ -55,15 +55,13 @@ typedef struct	        // integration parameters
 	angle_set phi;      // values of phi
 } scat_grid_angles;
 
-typedef struct
+struct Substrate
 {
-    bool mInf; // the flag is set to true if the reflactive index of the last layer is inf
-    int N; // total number of layers
-    double hP; // the distance between the substrate and the particle
-    doublecomplex m[MAX_N_LAYERS];
-    double h[MAX_N_LAYERS-1];
-} substrate;
-
-
+    bool mInf;                     // the flag is set to true whether the reflactive index of the last layer is inf
+    int N;                         // total number of layers
+    double hP;                     // the distance between the substrate and the particle
+    doublecomplex m[MAX_N_LAYERS]; // an array with reflactive indices of the layers
+    double h[MAX_N_LAYERS-1];      // an array with thicknesses of the layers
+};
 
 #endif // __types_h

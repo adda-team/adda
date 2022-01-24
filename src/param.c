@@ -660,12 +660,14 @@ static struct opt_struct options[]={
 #endif
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
 	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
-	{PAR(surf),"<h> {<mre> <mim>|inf}","Specifies that scatterer is located above the plane surface, parallel to the "
+	{PAR(surf),"<h> {<mre> <mim>|inf|<h_1> <mre_1> <mim_1> ... <h_n-1> <mre_n-1> <mim_n-1> {<mre_n> <mim_n>|inf}",
+        "Specifies that scatterer is located above the plane surface, parallel to the "
 		"xy-plane. <h> specifies the height of particle center above the surface (along the z-axis, in um). Particle "
-		"must be entirely above the substrate. Following argument(s) specify the refractive index of the substrate "
-		"(below the surface), assuming that the vacuum is above the surface. It is done either by two values (real and "
-		"imaginary parts of the complex value) or as effectively infinite 'inf' which corresponds to perfectly"
-		"reflective surface. The latter implies certain simplifications during calculations.",UNDEF,NULL},
+        "must be entirely above the substrate. Following argument(s) specify each layer thickness (except for the last layer "
+        "which is always treated as half-space with infinite thickness) and refractive indices, "
+		"assuming that the vacuum is above the surface. each reflactive index is to be set with two values (real and "
+		"imaginary parts of the complex value) except for the last one which can also be set with single 'inf' value. "
+		"The latter implies certain simplifications during calculations.",UNDEF,NULL},
 	{PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take them into account "
 		"('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
@@ -1558,8 +1560,9 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
-    if (Narg > 3 * (MAX_N_LAYERS + 1)) PrintErrorHelp("Exceeded the maximum number of layers");
-    if (Narg <= 1) NargError(Narg,">1");
+    int max_arg = 3 * MAX_N_LAYERS;
+    if (Narg > max_arg) PrintErrorHelp("Exceeded the maximum number of layers");
+    if (Narg % 3  && Narg % 3 != 2) NargError(Narg,"3n or 3n-1 with the last argument equal to 'inf'");
     ScanDoubleError(argv[1],&sub.hP);
     TestPositive(sub.hP,"height above surface");
     int arg_pos = 2;
@@ -1567,7 +1570,10 @@ PARSE_FUNC(surf)
     if (Narg > 3) {
         int i;
         for (i = 0; (arg_pos = 2 + 3 * i) < Narg - 1; ++i) {
+            if (!(strcmp(argv[arg_pos], "inf") && strcmp(argv[arg_pos + 1], "inf") && strcmp(argv[arg_pos + 2], "inf")))
+                PrintErrorHelp("inf value is supported only for the last reflactive index");
             ScanDoubleError(argv[arg_pos], &sub.h[i]);
+            TestPositive(sub.h[i], "layer thickness");
             ScanDoubleError(argv[arg_pos + 1], &mre);
             ScanDoubleError(argv[arg_pos + 2], &mim);
             sub.m[i] = mre + I * mim;
@@ -1579,7 +1585,7 @@ PARSE_FUNC(surf)
         sub.mInf=true;
     }
     else {
-        if (Narg != arg_pos + 1) NargError(Narg, "total 3 or second argument 'inf'");
+        if (Narg != arg_pos + 1) NargError(Narg, "total 3n or 3n-1 with the last argument equal to 'inf'");
         ScanDoubleError(argv[arg_pos], &mre);
         ScanDoubleError(argv[arg_pos + 1], &mim);
         sub.m[sub.N-1] = mre + I * mim;

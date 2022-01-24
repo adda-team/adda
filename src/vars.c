@@ -125,18 +125,8 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
 // related to a nearby surface
 bool surface;           // whether nearby surface is present
 enum refl ReflRelation; // method to calculate reflected Green's tensor
-//doublecomplex sub.m[sub.N-1];     // complex refractive index of the substrate
-//doublecomplex mlayers[MAX_N_LAYERS]; // complex refractive index of the substrate for multi-surface mode
 double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(sub.m[sub.N-1])
-//bool sub.mInf;           // whether sub.m[sub.N-1] is infinite (perfectly reflecting surface)
-//double sub.hP;            // height of particle center above surface
-//int Nlayers; // the number of layers
-//double hlayers[MAX_N_LAYERS]; // layer thickness
-substrate sub; //structure with surface related parameters
-/* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
- * When sub.m[sub.N-1] is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
- */
+struct Substrate sub;   //structure with surface related parameters
 double prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode

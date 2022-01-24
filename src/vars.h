@@ -81,7 +81,7 @@ extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 
 // related to a nearby surface
-extern substrate sub;
+extern struct Substrate sub;
 extern bool surface;
 extern enum refl ReflRelation;
 extern double inc_scale,prIncRefl[3],prIncTran[3];

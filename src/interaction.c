@@ -72,7 +72,7 @@ int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1
 
 // tables of integrals
 static double * restrict tab1,* restrict tab2,* restrict tab3,* restrict tab4,* restrict tab5,* restrict tab6,
-	* restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
+        * restrict tab7,* restrict tab8,* restrict tab9,* restrict tab10;
 /* it is preferable to declare the following as "* restrict * restrict", but it is hard to make it
  * generally compatible with Free_iMatrix function syntax.
  */
@@ -95,7 +95,7 @@ static __m128d exptbl[361];
 static double igtLimR2; // IGT distance threshold squared
 // fort/propaesplibreintadda.f
 void propaespacelibreintadda_(const double *Rij,const double *ka,const double *gridspacex,const double *gridspacey,
-	const double *gridspacez,const double *relreq,double *result,int *ifail);
+                              const double *gridspacez,const double *relreq,double *result,int *ifail);
 #endif
 // sinint.c
 void cisi(double x,double *ci,double *si);
@@ -171,30 +171,30 @@ void name##_real(const double qvec_in[static restrict 3] ATT_UNUSED ,doublecompl
 static inline void UnitsGridToCoord(const int i,const int j,const int k,double qvec[static 3])
 // convert integer coordinates (in dipole sizes) to real distance vector
 {
-	qvec[0]=i*dsX;
-	qvec[1]=j*dsY;
-	qvec[2]=k*dsZ;
+    qvec[0]=i*dsX;
+    qvec[1]=j*dsY;
+    qvec[2]=k*dsZ;
 }
 
 //=====================================================================================================================
 
 static inline void InterParams(double qvec[static 3],double qmunu[static 6],double *rr,double *invr3,double *kr,
-	double *kr2)
+                               double *kr2)
 /* some common variables needed by the interaction functions - needed for all except IGT
  * makes |qvec|=1
  * It will probably break down for qvec=0, so if any interaction term is required for zero argument, a new function need
  * to be created, which will avoid this singularity
  */
 {
-	double invr;
+    double invr;
 
-	*rr=vNorm(qvec);
-	invr = 1.0/(*rr);
-	vMultScal(invr,qvec,qvec); // finalize qvec (to have unity amplitude)
-	*invr3=invr*invr*invr;
-	*kr=WaveNum*(*rr);
-	*kr2=(*kr)*(*kr);
-	OuterSym(qvec,qmunu);
+    *rr=vNorm(qvec);
+    invr = 1.0/(*rr);
+    vMultScal(invr,qvec,qvec); // finalize qvec (to have unity amplitude)
+    *invr3=invr*invr*invr;
+    *kr=WaveNum*(*rr);
+    *kr2=(*kr)*(*kr);
+    OuterSym(qvec,qmunu);
 }
 
 #ifdef USE_SSE3
@@ -308,27 +308,27 @@ static inline void InterTerm_core(const double kr,const double kr2,const double 
 static inline doublecomplex accImExp(const double x)
 // Without SSE3, this is just an alias for imExp
 {
-	return imExp(x);
+    return imExp(x);
 }
 
 //=====================================================================================================================
 
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
-	doublecomplex *expval,doublecomplex result[static 6])
+                                  doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
-{	
-	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	*expval=invr3*imExp(kr);
+{
+    const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+    *expval=invr3*imExp(kr);
 
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
 #define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
 
-	INTERACT_DIAG(0);    // xx
-	INTERACT_NONDIAG(1); // xy
-	INTERACT_NONDIAG(2); // xz
-	INTERACT_DIAG(3);    // yy
-	INTERACT_NONDIAG(4); // yz
-	INTERACT_DIAG(5);    // zz
+    INTERACT_DIAG(0);    // xx
+    INTERACT_NONDIAG(1); // xy
+    INTERACT_NONDIAG(2); // xz
+    INTERACT_DIAG(3);    // yy
+    INTERACT_NONDIAG(4); // yz
+    INTERACT_DIAG(5);    // zz
 
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
@@ -343,14 +343,14 @@ static inline void InterTerm_poi(double qvec[static 3],doublecomplex result[stat
  * qvec is the real distance, result is for produced output
  */
 {
-	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and InterTerm_core
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
-	PRINT_GVAL;
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    PRINT_GVAL;
 }
 
 WRAPPERS_INTER(InterTerm_poi)
@@ -371,40 +371,40 @@ static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[stat
  */
 // If needed, it can be updated to work fine for qvec==0
 {
-	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and InterTerm_core
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
-	int comp;
-	doublecomplex eikfr; // exp(i*k_F*R)
-	// next line should never happen
-	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd");
-	
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    double temp,kfr,ci,si,ci1,si1,ci2,si2,brd,g0,g2;
+    int comp;
+    doublecomplex eikfr; // exp(i*k_F*R)
+    // next line should never happen
+    if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd");
 
-	kfr=PI*rr/gridspace; // k_F*r, for FCD
-	eikfr=accImExp(kfr);
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
-	// ci,si_1,2 = ci,si_+,- = Ci,Si((k_F +,- k)r)
-	cisi(kfr+kr,&ci1,&si1);
-	cisi(kfr-kr,&ci2,&si2);
-	// ci=ci1-ci2; si=pi-si1-si2
-	ci=ci1-ci2;
-	si=PI-si1-si2;
-	g0=INV_PI*(cimag(expval)*ci+creal(expval)*si);
-	g2=INV_PI*(kr*(creal(expval)*ci-cimag(expval)*si)+2*ONE_THIRD*invr3*(kfr*creal(eikfr)-4*cimag(eikfr)))-g0;
-	temp=g0*kr2;
-	for (comp=0;comp<NDCOMP;comp++) {
-		// brd=(delta[mu,nu]*(-g0*kr^2-g2)+qmunu*(g0*kr^2+3g2))/r^3
-		brd=qmunu[comp]*(temp+3*g2);
-		if (dmunu[comp]) brd-=temp+g2;
-		// result=Gp+brd; only the real part of the Green's tensor is corrected
-		result[comp]+=brd;
-	}
-	PRINT_GVAL;
+    kfr=PI*rr/gridspace; // k_F*r, for FCD
+    eikfr=accImExp(kfr);
+
+    // ci,si_1,2 = ci,si_+,- = Ci,Si((k_F +,- k)r)
+    cisi(kfr+kr,&ci1,&si1);
+    cisi(kfr-kr,&ci2,&si2);
+    // ci=ci1-ci2; si=pi-si1-si2
+    ci=ci1-ci2;
+    si=PI-si1-si2;
+    g0=INV_PI*(cimag(expval)*ci+creal(expval)*si);
+    g2=INV_PI*(kr*(creal(expval)*ci-cimag(expval)*si)+2*ONE_THIRD*invr3*(kfr*creal(eikfr)-4*cimag(eikfr)))-g0;
+    temp=g0*kr2;
+    for (comp=0;comp<NDCOMP;comp++) {
+        // brd=(delta[mu,nu]*(-g0*kr^2-g2)+qmunu*(g0*kr^2+3g2))/r^3
+        brd=qmunu[comp]*(temp+3*g2);
+        if (dmunu[comp]) brd-=temp+g2;
+        // result=Gp+brd; only the real part of the Green's tensor is corrected
+        result[comp]+=brd;
+    }
+    PRINT_GVAL;
 }
 
 WRAPPERS_INTER(InterTerm_fcd)
@@ -417,27 +417,27 @@ static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[s
  */
 // If needed, it can be updated to work fine for qvec==0
 {
-	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and InterTerm_core
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	double kfr,ci,si,brd;
-	int comp;
-	doublecomplex eikfr;
-	// next line should never happen
-	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd_st");
-	
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    double kfr,ci,si,brd;
+    int comp;
+    doublecomplex eikfr;
+    // next line should never happen
+    if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_fcd_st");
 
-	kfr=PI*rr/gridspace; // k_F*r, for FCD
-	eikfr=accImExp(kfr);
-	// result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi)
-	cisi(kfr,&ci,&si);
-	brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*creal(eikfr)-4*cimag(eikfr));
-	for (comp=0;comp<NDCOMP;comp++) result[comp]*=brd;
-	PRINT_GVAL;
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+
+    kfr=PI*rr/gridspace; // k_F*r, for FCD
+    eikfr=accImExp(kfr);
+    // result = Gp*[3*Si(k_F*r)+k_F*r*cos(k_F*r)-4*sin(k_F*r)]*2/(3*pi)
+    cisi(kfr,&ci,&si);
+    brd=TWO_OVER_PI*ONE_THIRD*(3*si+kfr*creal(eikfr)-4*cimag(eikfr));
+    for (comp=0;comp<NDCOMP;comp++) result[comp]*=brd;
+    PRINT_GVAL;
 }
 
 WRAPPERS_INTER(InterTerm_fcd_st)
@@ -447,17 +447,17 @@ WRAPPERS_INTER(InterTerm_fcd_st)
 static inline bool TestTableSize(const double rn)
 // tests if rn fits into the table; if not, returns false and produces info message
 {
-	static bool warned=false;
+    static bool warned=false;
 
-	if (rn>TAB_RMAX) {
-		if (!warned) {
-			warned=true;
-			LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), so O(kd^2) accuracy of "
-				"Green's function is not guaranteed",TAB_RMAX);
-		}
-		return false;
-	}
-	else return true;
+    if (rn>TAB_RMAX) {
+        if (!warned) {
+            warned=true;
+            LogWarning(EC_INFO,ONE_POS,"Not enough table size (available only up to R/d=%d), so O(kd^2) accuracy of "
+                                       "Green's function is not guaranteed",TAB_RMAX);
+        }
+        return false;
+    }
+    else return true;
 }
 
 //=====================================================================================================================
@@ -471,147 +471,147 @@ void InterTerm_igt_so_int(const int i,const int j,const int k,doublecomplex resu
  * components).
  */
 {
-	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and InterTerm_core
+    double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	double q2[3];
-	double kd2,q4,temp,invrn2,invrn4;
-	doublecomplex br,Gm0;
-	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	double t3q,t4q,t5tr,t6tr;
-	// next line should never happen
-	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_igt_so_int");
-	
-	UnitsGridToCoord(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
-	rn=rr/gridspace;
+    double q2[3];
+    double kd2,q4,temp,invrn2,invrn4;
+    doublecomplex br,Gm0;
+    int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
+    int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+    double t3q,t4q,t5tr,t6tr;
+    // next line should never happen
+    if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_igt_so_int");
 
-	kd2=kd*kd;
-	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
-		//====== G close for IGT =============
-		ivec[0]=i;
-		ivec[1]=j;
-		ivec[2]=k;
-		// transformation of negative coordinates
-		for (ic=0;ic<3;ic++) {
-			if (ivec[ic]<0) {
-				sigV[ic]=-1;
-				qvec[ic]*=-1;
-				ivec[ic]*=-1;
-			}
-			else sigV[ic]=1;
-		}
-		// transformation to case i>=j>=k>=0
-		// building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
-		if (ivec[0]>=ivec[1]) { // i>=j
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[1]=1;
-					ord[2]=2;
-				}
-				else {
-					ord[1]=2;
-					ord[2]=1;
-				}
-			}
-			else {
-				ord[0]=2;
-				ord[1]=0;
-				ord[2]=1;
-			}
-		}
-		else {
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=1;
-				ord[1]=0;
-				ord[2]=2;
-			}
-			else {
-				ord[2]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[0]=1;
-					ord[1]=2;
-				}
-				else {
-					ord[0]=2;
-					ord[1]=1;
-				}
-			}
-		}
-		// change parameters according to coordinate transforms
-		Permutate(qvec,ord);
-		Permutate_i(ivec,ord);
-		// compute inverse permutation
-		memcpy(invord,ord,3*sizeof(int));
-		Permutate_i(invord,ord);
-		if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-		// set some indices
-		ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
-		ind1=3*ind0;
-		ind2m=6*ind0;
-		// cycle over tensor components
-		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-			sig=sigV[mu]*sigV[nu]; // sign of some terms below
-			/* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
-			 * are invariant to permutations because both constituent vectors and indices are permutated. So this
-			 * variables can be used, as precomputed above.
-			 */
-			mu1=invord[mu];
-			nu1=invord[nu];
-			/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
-			 * This is {{0,1,3},{1,2,4},{3,4,5}}
-			 */
-			indmunu=mu1+nu1;
-			if (mu1==2 || nu1==2) indmunu++;
-			ind2=ind2m+indmunu;
-			ind3=3*ind2;
-			ind4=6*ind2;
-			// computing several quantities with table integrals
-			t3q=DotProd(qvec,tab3+ind1);
-			t4q=DotProd(qvec,tab4+ind3);
-			t5tr=TrSym(tab5+ind2m);
-			t6tr=TrSym(tab6+ind4);
-			//====== computing Gc0 =====
-			/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
-			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
-			 */
-			br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) +(kr/24)*qmunu[comp]*(kr+I*3);
-			if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
-			br*=kd2;
-			// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
-			br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
-			if (dmunu[comp]) br += tab1[ind0]*(-1+I*kr+kr2);
-			// Gc0=expval*br
-			result[comp]=expval*br;
-		}
-	}
-	else {
-		//====== Gfar (and part of Gmedian) for IGT =======
-		// Gf0 = Gp*(1-kd^2/24)
-		for (comp=0;comp<NDCOMP;comp++) result[comp]*=1-kd2/24;
-		if (kr < G_BOUND_MEDIAN) {
-			//===== G median for IGT ========
-			vMult(qvec,qvec,q2);
-			q4=DotProd(q2,q2);
-			invrn2=1/(rn*rn);
-			invrn4=invrn2*invrn2;
-			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-				// Gm0=expval*br*temp; temp is defined below
-				temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
-				if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
-				temp*=7*invrn4/64;
-				Gm0=expval*(-1+I*kr)*temp;
-				// result = Gf + Gm0
-				result[comp]+=Gm0;
-			}
-		}
-	}
-	PRINT_GVAL;
+    UnitsGridToCoord(i,j,k,qvec);
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    rn=rr/gridspace;
+
+    kd2=kd*kd;
+    if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
+        //====== G close for IGT =============
+        ivec[0]=i;
+        ivec[1]=j;
+        ivec[2]=k;
+        // transformation of negative coordinates
+        for (ic=0;ic<3;ic++) {
+            if (ivec[ic]<0) {
+                sigV[ic]=-1;
+                qvec[ic]*=-1;
+                ivec[ic]*=-1;
+            }
+            else sigV[ic]=1;
+        }
+        // transformation to case i>=j>=k>=0
+        // building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
+        if (ivec[0]>=ivec[1]) { // i>=j
+            if (ivec[0]>=ivec[2]) { // i>=k
+                ord[0]=0;
+                if (ivec[1]>=ivec[2]) { // j>=k
+                    ord[1]=1;
+                    ord[2]=2;
+                }
+                else {
+                    ord[1]=2;
+                    ord[2]=1;
+                }
+            }
+            else {
+                ord[0]=2;
+                ord[1]=0;
+                ord[2]=1;
+            }
+        }
+        else {
+            if (ivec[0]>=ivec[2]) { // i>=k
+                ord[0]=1;
+                ord[1]=0;
+                ord[2]=2;
+            }
+            else {
+                ord[2]=0;
+                if (ivec[1]>=ivec[2]) { // j>=k
+                    ord[0]=1;
+                    ord[1]=2;
+                }
+                else {
+                    ord[0]=2;
+                    ord[1]=1;
+                }
+            }
+        }
+        // change parameters according to coordinate transforms
+        Permutate(qvec,ord);
+        Permutate_i(ivec,ord);
+        // compute inverse permutation
+        memcpy(invord,ord,3*sizeof(int));
+        Permutate_i(invord,ord);
+        if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
+        // set some indices
+        ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
+        ind1=3*ind0;
+        ind2m=6*ind0;
+        // cycle over tensor components
+        for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+                sig=sigV[mu]*sigV[nu]; // sign of some terms below
+                /* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
+                 * are invariant to permutations because both constituent vectors and indices are permutated. So this
+                 * variables can be used, as precomputed above.
+                 */
+                mu1=invord[mu];
+                nu1=invord[nu];
+                /* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
+                 * This is {{0,1,3},{1,2,4},{3,4,5}}
+                 */
+                indmunu=mu1+nu1;
+                if (mu1==2 || nu1==2) indmunu++;
+                ind2=ind2m+indmunu;
+                ind3=3*ind2;
+                ind4=6*ind2;
+                // computing several quantities with table integrals
+                t3q=DotProd(qvec,tab3+ind1);
+                t4q=DotProd(qvec,tab4+ind3);
+                t5tr=TrSym(tab5+ind2m);
+                t6tr=TrSym(tab6+ind4);
+                //====== computing Gc0 =====
+                /* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
+                 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
+                 */
+                br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) +(kr/24)*qmunu[comp]*(kr+I*3);
+                if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
+                br*=kd2;
+                // br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
+                br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
+                if (dmunu[comp]) br += tab1[ind0]*(-1+I*kr+kr2);
+                // Gc0=expval*br
+                result[comp]=expval*br;
+            }
+    }
+    else {
+        //====== Gfar (and part of Gmedian) for IGT =======
+        // Gf0 = Gp*(1-kd^2/24)
+        for (comp=0;comp<NDCOMP;comp++) result[comp]*=1-kd2/24;
+        if (kr < G_BOUND_MEDIAN) {
+            //===== G median for IGT ========
+            vMult(qvec,qvec,q2);
+            q4=DotProd(q2,q2);
+            invrn2=1/(rn*rn);
+            invrn4=invrn2*invrn2;
+            for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+                    // Gm0=expval*br*temp; temp is defined below
+                    temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
+                    if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
+                    temp*=7*invrn4/64;
+                    Gm0=expval*(-1+I*kr)*temp;
+                    // result = Gf + Gm0
+                    result[comp]+=Gm0;
+                }
+        }
+    }
+    PRINT_GVAL;
 }
 
 NO_REAL_WRAPPER(InterTerm_igt_so)
@@ -625,7 +625,7 @@ static inline double lower_gamma52(const double sx,const double expMx)
  * if extension to complex input is required, cerf can be obtained from http://apps.jcns.fz-juelich.de/doku/sc/libcerf
  */
 {
-	return 0.75*SQRT_PI*erf(sx) - sx*(1.5+sx*sx)*expMx;
+    return 0.75*SQRT_PI*erf(sx) - sx*(1.5+sx*sx)*expMx;
 }
 
 //=====================================================================================================================
@@ -640,15 +640,15 @@ static inline double gamma_scaled(const double s,const double x,const double exp
  * for smaller x)
  */
 {
-	double ap,del,sum;
-	ap=s;
-	del=sum=1.0/s;
-	do {
-		ap++;
-		del*=x/ap;
-		sum+=del;
-	} while (fabs(del) > fabs(sum)*DBL_EPSILON);
-	return sum*expMx;
+    double ap,del,sum;
+    ap=s;
+    del=sum=1.0/s;
+    do {
+        ap++;
+        del*=x/ap;
+        sum+=del;
+    } while (fabs(del) > fabs(sum)*DBL_EPSILON);
+    return sum*expMx;
 }
 
 //=====================================================================================================================
@@ -659,14 +659,14 @@ static inline double AverageGaussCube(double x)
  * !!! works only for cubical dipoles (with single size gridspace)
  */
 {
-	double dif;
-	if (x<0) x=-x; // for convenience work only with non-negative input
-	const double y=x/(SQRT2*nloc_Rp);
-	const double z=gridspace/(2*SQRT2*nloc_Rp);
-	// two branches not to lose precision
-	if (x<1) dif = erf(y+z) - erf(y-z);
-	else dif = erfc(y-z) - erfc(y+z);
-	return dif/gridspace;
+    double dif;
+    if (x<0) x=-x; // for convenience work only with non-negative input
+    const double y=x/(SQRT2*nloc_Rp);
+    const double z=gridspace/(2*SQRT2*nloc_Rp);
+    // two branches not to lose precision
+    if (x<1) dif = erf(y+z) - erf(y-z);
+    else dif = erfc(y-z) - erfc(y+z);
+    return dif/gridspace;
 }
 
 //=====================================================================================================================
@@ -692,53 +692,53 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
  */
 // If needed, it can be updated to work fine for qvec==0
 {
-	// standard variable definitions used for functions InterParams
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+    // standard variable definitions used for functions InterParams
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
 
-	double sx,x,t1,t2,expMx,invRp3;
-	// next line should never happen
-	if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_nloc_both");
-	
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	rn=rr/gridspace;
-	if (nloc_Rp==0) {
-		if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
-		t1=invr3;
-		// when averaging, we check if the point r is inside the cube around r0. Conforms with general formula below
-		if (averageH && rn<=SQRT3*0.5 && fabs(qvec[0])*rn<=0.5 && fabs(qvec[1])*rn<=0.5 && fabs(qvec[2])*rn<=0.5)
-			t2=FOUR_PI_OVER_THREE;
-		else t2=0;
-	}
-	else {
-		invRp3=1/(nloc_Rp*nloc_Rp*nloc_Rp);
-		sx=SQRT1_2*rr/nloc_Rp;
-		x=sx*sx;
-		expMx=exp(-sx*sx);
-		// the threshold for x is somewhat arbitrary
-		if (x>1) t1=(4/(3*SQRT_PI))*lower_gamma52(sx,expMx)*invr3;
-		else t1=SQRT2_9PI*x*gamma_scaled(2.5,x,expMx)*invRp3;
-		if (averageH)
-			t2=PI_OVER_SIX*AverageGaussCube(qvec[0]*rr)*AverageGaussCube(qvec[1]*rr)*AverageGaussCube(qvec[2]*rr);
-		else t2=expMx*invRp3*SQRT2_9PI;
-	}
+    double sx,x,t1,t2,expMx,invRp3;
+    // next line should never happen
+    if (rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_nloc_both");
+
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    rn=rr/gridspace;
+    if (nloc_Rp==0) {
+        if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
+        t1=invr3;
+        // when averaging, we check if the point r is inside the cube around r0. Conforms with general formula below
+        if (averageH && rn<=SQRT3*0.5 && fabs(qvec[0])*rn<=0.5 && fabs(qvec[1])*rn<=0.5 && fabs(qvec[2])*rn<=0.5)
+            t2=FOUR_PI_OVER_THREE;
+        else t2=0;
+    }
+    else {
+        invRp3=1/(nloc_Rp*nloc_Rp*nloc_Rp);
+        sx=SQRT1_2*rr/nloc_Rp;
+        x=sx*sx;
+        expMx=exp(-sx*sx);
+        // the threshold for x is somewhat arbitrary
+        if (x>1) t1=(4/(3*SQRT_PI))*lower_gamma52(sx,expMx)*invr3;
+        else t1=SQRT2_9PI*x*gamma_scaled(2.5,x,expMx)*invRp3;
+        if (averageH)
+            t2=PI_OVER_SIX*AverageGaussCube(qvec[0]*rr)*AverageGaussCube(qvec[1]*rr)*AverageGaussCube(qvec[2]*rr);
+        else t2=expMx*invRp3*SQRT2_9PI;
+    }
 
 //#define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*(*expval); }
 //#define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*(*expval); }
 #define INTERACT_DIAG(ind) { result[ind] = 3*t1*qmunu[ind] - (t1+t2); }
 #define INTERACT_NONDIAG(ind) { result[ind] = 3*t1*qmunu[ind]; }
 
-	INTERACT_DIAG(0);    // xx
-	INTERACT_NONDIAG(1); // xy
-	INTERACT_NONDIAG(2); // xz
-	INTERACT_DIAG(3);    // yy
-	INTERACT_NONDIAG(4); // yz
-	INTERACT_DIAG(5);    // zz
+    INTERACT_DIAG(0);    // xx
+    INTERACT_NONDIAG(1); // xy
+    INTERACT_NONDIAG(2); // xz
+    INTERACT_DIAG(3);    // yy
+    INTERACT_NONDIAG(4); // yz
+    INTERACT_DIAG(5);    // zz
 
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
 
-	PRINT_GVAL;
+    PRINT_GVAL;
 }
 
 // wrappers both for nloc and nloc_av
@@ -757,226 +757,226 @@ void InterTerm_so_int(const int i,const int j,const int k,doublecomplex result[s
  * out of SO.
  */
 {
-	// standard variable definitions used for functions InterParams and InterTerm_core
-	double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and InterTerm_core
+    double qvec[3],qmunu[6]; // unit directional vector {qx,qy,qz} and its outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,rn,invr3,kr,kr2; // |R|, |R/d|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	double q2[3],qavec[3],av[3];
-	double kr3,kd2,q4;
-	double temp,qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
-	doublecomplex br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
-	int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
-	int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
-	double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
-	const bool inter_avg=true; // temporary fixed option for SO formulation
-	// next line should never happen
-	if (anisotropy || rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
+    double q2[3],qavec[3],av[3];
+    double kr3,kd2,q4;
+    double temp,qa,qamunu[6],invrn,invrn2,invrn3,invrn4;
+    doublecomplex br,br1,m,m2,Gf1,Gm0,Gm1,Gc1,Gc2;
+    int ind0,ind1,ind2,ind2m,ind3,ind4,indmunu,comp,mu,nu,mu1,nu1;
+    int sigV[3],ic,sig,ivec[3],ord[3],invord[3];
+    double t3q,t3a,t4q,t4a,t5tr,t5aa,t6tr,t6aa;
+    const bool inter_avg=true; // temporary fixed option for SO formulation
+    // next line should never happen
+    if (anisotropy || rectDip) LogError(ONE_POS,"Incompatibility error in InterTerm_so");
 
-	UnitsGridToCoord(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
-	rn=rr/gridspace;
+    UnitsGridToCoord(i,j,k,qvec);
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    InterTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    rn=rr/gridspace;
 
-	kd2=kd*kd;
-	kr3=kr2*kr;
-	// only one refractive index can be used for FFT-compatible algorithm
-	m=ref_index[0];
-	m2=m*m;
-	if (!inter_avg) {
-		qa=DotProd(qvec,prop);
-		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-			// qamunu=qvec[mu]*prop[nu] + qvec[nu]*prop[mu]
-			qamunu[comp]=qvec[mu]*prop[nu];
-			if (dmunu[comp]) qamunu[comp]*=2;
-			else qamunu[comp]+=qvec[nu]*prop[mu];
-		}
-	}
-	if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
-		//====== G close =============
-		// av is copy of propagation vector
-		if (!inter_avg) vCopy(prop,av);
-		ivec[0]=i;
-		ivec[1]=j;
-		ivec[2]=k;
-		// transformation of negative coordinates
-		for (ic=0;ic<3;ic++) {
-			if (ivec[ic]<0) {
-				sigV[ic]=-1;
-				av[ic]*=-1;
-				qvec[ic]*=-1;
-				ivec[ic]*=-1;
-			}
-			else sigV[ic]=1;
-		}
-		// transformation to case i>=j>=k>=0
-		// building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
-		if (ivec[0]>=ivec[1]) { // i>=j
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[1]=1;
-					ord[2]=2;
-				}
-				else {
-					ord[1]=2;
-					ord[2]=1;
-				}
-			}
-			else {
-				ord[0]=2;
-				ord[1]=0;
-				ord[2]=1;
-			}
-		}
-		else {
-			if (ivec[0]>=ivec[2]) { // i>=k
-				ord[0]=1;
-				ord[1]=0;
-				ord[2]=2;
-			}
-			else {
-				ord[2]=0;
-				if (ivec[1]>=ivec[2]) { // j>=k
-					ord[0]=1;
-					ord[1]=2;
-				}
-				else {
-					ord[0]=2;
-					ord[1]=1;
-				}
-			}
-		}
-		// change parameters according to coordinate transforms
-		Permutate(qvec,ord);
-		if (!inter_avg) Permutate(av,ord);
-		Permutate_i(ivec,ord);
-		// compute inverse permutation
-		memcpy(invord,ord,3*sizeof(int));
-		Permutate_i(invord,ord);
-		if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
-		// set some indices
-		ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
-		ind1=3*ind0;
-		ind2m=6*ind0;			// cycle over tensor components
-		for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-			sig=sigV[mu]*sigV[nu]; // sign of some terms below
-			/* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
-			 * are invariant to permutations because both constituent vectors and indices are permutated. So this
-			 * variables can be used, as precomputed above.
-			 */
-			mu1=invord[mu];
-			nu1=invord[nu];
-			/* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
-			 * This is {{0,1,3},{1,2,4},{3,4,5}}
-			 */
-			indmunu=mu1+nu1;
-			if (mu1==2 || nu1==2) indmunu++;
-			ind2=ind2m+indmunu;
-			ind3=3*ind2;
-			ind4=6*ind2;
-			// computing several quantities with table integrals
-			t3q=DotProd(qvec,tab3+ind1);
-			t4q=DotProd(qvec,tab4+ind3);
-			t5tr=TrSym(tab5+ind2m);
-			t6tr=TrSym(tab6+ind4);
-			if (inter_avg) {
-				// <a[mu]*a[nu]>=1/3*delta[mu,nu]
-				t5aa=ONE_THIRD*t5tr;
-				t6aa=ONE_THIRD*t6tr;
-			}
-			else {
-				t3a=DotProd(av,tab3+ind1);
-				t4a=DotProd(av,tab4+ind3);
-				t5aa=QuadForm(tab5+ind2m,av);
-				t6aa=QuadForm(tab6+ind4,av);
-			}
-			//====== computing Gc0 =====
-			/* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
-			 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
-			 */
-			br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) + (kr/24)*qmunu[comp]*(kr+I*3);
-			if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
-			br*=kd2;
-			// br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
-			br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
-			if (dmunu[comp]) br+=tab1[ind0]*(-1+I*kr+kr2);
-			// Gc0=expval*br
-			result[comp]=expval*br;
-			//==== computing Gc1 ======
-			if (!inter_avg) {
-				// br=(kd*kr/12)*(qa*(delta[mu,nu]*(-2+ikr)-qmunu*(-6+ikr))-qamunu)
-				br=(6-I*kr)*qmunu[comp];
-				if (dmunu[comp]) br += -2 + I*kr;
-				br=(kr*kd/12)*(qa*br-qamunu[comp]);
-				//  br1=(d/r)*(delta[mu,nu]*t3a*(-1+ikr)-sig*t4a*(-3+3ikr))
-				br1=3*sig*t4a*(1-I*kr);
-				if (dmunu[comp]) br1+=t3a*(-1+I*kr);
-				br1/=rn;
-				// Gc1=expval*i*m*kd*(br1+br)
-				Gc1=I*expval*m*kd*(br1+br);
-			}
-			//==== computing Gc2 ======
-			// br=delta[mu,nu]*t5aa-3*sig*t6aa-(kr/12)*(delta[mu,nu]*(i+kr)-qmunu*(3i+kr))
-			br=-(kr+I*3)*qmunu[comp];
-			if (dmunu[comp]) br += kr + I;
-			br = -br*kr/12 - 3*sig*t6aa;
-			if (dmunu[comp]) br+=t5aa;
-			// Gc2=expval*(kd^2/2)*m^2*br
-			Gc2=expval*(kd2/2)*m2*br;
-			// result = Gc0 + [ Gc1 ] + Gc2
-			if (!inter_avg) Gc2+=Gc1;
-			result[comp]+=Gc2;
-		}
-	}
-	else {
-		//====== Gfar (and part of Gmedian) =======
-		// br=1-(1+m^2)*kd^2/24
-		br = 1 - (1+m2)*kd2/24;
-		// Gf0 + Gf2 = Gp*br
-		for (comp=0;comp<NDCOMP;comp++) result[comp]*=br;
-		//==== compute and add Gf1 ===
-		if (!inter_avg) for (comp=0;comp<NDCOMP;comp++) {
-			// br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa + qamunu*(3-3ikr-kr^2)
-			br = (6*kr2-15 + I*(15*kr-kr3))*qmunu[comp];
-			if (dmunu[comp]) br += 3 - 2*kr2 + I*(kr3-3*kr);
-			br = br*qa + (3-I*3*kr-kr2)*qamunu[comp];
-			// Gf1=expval*i*m*br*kd^2/12kr
-			Gf1=I*expval*m*br*kd2/(12*kr);
-			// result = Gf
-			result[comp]+=Gf1;
-		}
-		if (kr < G_BOUND_MEDIAN) {
-			//===== G median ========
-			vMult(qvec,qvec,q2);
-			q4=DotProd(q2,q2);
-			invrn=1/rn;
-			invrn2=invrn*invrn;
-			invrn3=invrn2*invrn;
-			invrn4=invrn2*invrn2;
-			for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
-				// Gm0=expval*br*temp; temp is defined below
-				temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
-				if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
-				temp*=7*invrn4/64;
-				Gm0=expval*(-1+I*kr)*temp;
-				if (!inter_avg) {
-					// Gm1=expval*i*m*temp; temp is defined below
-					vMult(qvec,prop,qavec);
-					temp = 3*qa*(dmunu[comp]-7*qmunu[comp]) + 6*dmunu[comp]*qvec[mu]*prop[mu]
-					     - 7*(dmunu[comp]-9*qmunu[comp])*DotProd(qavec,q2)
-					     + 3*(prop[mu]*qvec[nu]*(1-7*q2[mu])+prop[nu]*qvec[mu]*(1-7*q2[nu]));
-					temp*=kd*invrn3/48;
-					Gm1=I*expval*m*temp;
-					// add Gm1 to Gm0
-					Gm0+=Gm1;
-				}
-				// result = Gf + Gm0 + [ Gm1 ]
-				result[comp]+=Gm0;
-			}
-		}
-	}
-	PRINT_GVAL;
+    kd2=kd*kd;
+    kr3=kr2*kr;
+    // only one refractive index can be used for FFT-compatible algorithm
+    m=ref_index[0];
+    m2=m*m;
+    if (!inter_avg) {
+        qa=DotProd(qvec,prop);
+        for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+                // qamunu=qvec[mu]*prop[nu] + qvec[nu]*prop[mu]
+                qamunu[comp]=qvec[mu]*prop[nu];
+                if (dmunu[comp]) qamunu[comp]*=2;
+                else qamunu[comp]+=qvec[nu]*prop[mu];
+            }
+    }
+    if (kr*rn < G_BOUND_CLOSE && TestTableSize(rn)) {
+        //====== G close =============
+        // av is copy of propagation vector
+        if (!inter_avg) vCopy(prop,av);
+        ivec[0]=i;
+        ivec[1]=j;
+        ivec[2]=k;
+        // transformation of negative coordinates
+        for (ic=0;ic<3;ic++) {
+            if (ivec[ic]<0) {
+                sigV[ic]=-1;
+                av[ic]*=-1;
+                qvec[ic]*=-1;
+                ivec[ic]*=-1;
+            }
+            else sigV[ic]=1;
+        }
+        // transformation to case i>=j>=k>=0
+        // building of ord; ord[x] is x-th largest coordinate (0-th - the largest)
+        if (ivec[0]>=ivec[1]) { // i>=j
+            if (ivec[0]>=ivec[2]) { // i>=k
+                ord[0]=0;
+                if (ivec[1]>=ivec[2]) { // j>=k
+                    ord[1]=1;
+                    ord[2]=2;
+                }
+                else {
+                    ord[1]=2;
+                    ord[2]=1;
+                }
+            }
+            else {
+                ord[0]=2;
+                ord[1]=0;
+                ord[2]=1;
+            }
+        }
+        else {
+            if (ivec[0]>=ivec[2]) { // i>=k
+                ord[0]=1;
+                ord[1]=0;
+                ord[2]=2;
+            }
+            else {
+                ord[2]=0;
+                if (ivec[1]>=ivec[2]) { // j>=k
+                    ord[0]=1;
+                    ord[1]=2;
+                }
+                else {
+                    ord[0]=2;
+                    ord[1]=1;
+                }
+            }
+        }
+        // change parameters according to coordinate transforms
+        Permutate(qvec,ord);
+        if (!inter_avg) Permutate(av,ord);
+        Permutate_i(ivec,ord);
+        // compute inverse permutation
+        memcpy(invord,ord,3*sizeof(int));
+        Permutate_i(invord,ord);
+        if (invord[0]==0 && invord[1]==1 && invord[2]==2) memcpy(invord,ord,3*sizeof(int));
+        // set some indices
+        ind0=tab_index[ivec[0]][ivec[1]]+ivec[2];
+        ind1=3*ind0;
+        ind2m=6*ind0;			// cycle over tensor components
+        for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+                sig=sigV[mu]*sigV[nu]; // sign of some terms below
+                /* indexes for tables of different dimensions based on transformed indices mu and nu '...munu' variables
+                 * are invariant to permutations because both constituent vectors and indices are permutated. So this
+                 * variables can be used, as precomputed above.
+                 */
+                mu1=invord[mu];
+                nu1=invord[nu];
+                /* indmunu is a number of component[mu,nu] in a symmetric matrix, but counted differently than comp.
+                 * This is {{0,1,3},{1,2,4},{3,4,5}}
+                 */
+                indmunu=mu1+nu1;
+                if (mu1==2 || nu1==2) indmunu++;
+                ind2=ind2m+indmunu;
+                ind3=3*ind2;
+                ind4=6*ind2;
+                // computing several quantities with table integrals
+                t3q=DotProd(qvec,tab3+ind1);
+                t4q=DotProd(qvec,tab4+ind3);
+                t5tr=TrSym(tab5+ind2m);
+                t6tr=TrSym(tab6+ind4);
+                if (inter_avg) {
+                    // <a[mu]*a[nu]>=1/3*delta[mu,nu]
+                    t5aa=ONE_THIRD*t5tr;
+                    t6aa=ONE_THIRD*t6tr;
+                }
+                else {
+                    t3a=DotProd(av,tab3+ind1);
+                    t4a=DotProd(av,tab4+ind3);
+                    t5aa=QuadForm(tab5+ind2m,av);
+                    t6aa=QuadForm(tab6+ind4,av);
+                }
+                //====== computing Gc0 =====
+                /* br = delta[mu,nu]*(-I7-I9/2-kr*(i+kr)/24+2*t3q+t5tr)
+                 *    - (-3I8[mu,nu]-3I10[mu,nu]/2-qmunu*kr*(3i+kr)/24+2*t4q+t6tr)
+                 */
+                br = sig*(3*(tab10[ind2]/2+tab8[ind2])-2*t4q-t6tr) + (kr/24)*qmunu[comp]*(kr+I*3);
+                if (dmunu[comp]) br += 2*t3q + t5tr - (kr/24)*(kr+I) - tab9[ind0]/2 - tab7[ind0];
+                br*=kd2;
+                // br+=I1*delta[mu,nu]*(-1+ikr+kr^2)-sig*I2[mu,nu]*(-3+3ikr+kr^2)
+                br+=sig*tab2[ind2]*(3-I*3*kr-kr2);
+                if (dmunu[comp]) br+=tab1[ind0]*(-1+I*kr+kr2);
+                // Gc0=expval*br
+                result[comp]=expval*br;
+                //==== computing Gc1 ======
+                if (!inter_avg) {
+                    // br=(kd*kr/12)*(qa*(delta[mu,nu]*(-2+ikr)-qmunu*(-6+ikr))-qamunu)
+                    br=(6-I*kr)*qmunu[comp];
+                    if (dmunu[comp]) br += -2 + I*kr;
+                    br=(kr*kd/12)*(qa*br-qamunu[comp]);
+                    //  br1=(d/r)*(delta[mu,nu]*t3a*(-1+ikr)-sig*t4a*(-3+3ikr))
+                    br1=3*sig*t4a*(1-I*kr);
+                    if (dmunu[comp]) br1+=t3a*(-1+I*kr);
+                    br1/=rn;
+                    // Gc1=expval*i*m*kd*(br1+br)
+                    Gc1=I*expval*m*kd*(br1+br);
+                }
+                //==== computing Gc2 ======
+                // br=delta[mu,nu]*t5aa-3*sig*t6aa-(kr/12)*(delta[mu,nu]*(i+kr)-qmunu*(3i+kr))
+                br=-(kr+I*3)*qmunu[comp];
+                if (dmunu[comp]) br += kr + I;
+                br = -br*kr/12 - 3*sig*t6aa;
+                if (dmunu[comp]) br+=t5aa;
+                // Gc2=expval*(kd^2/2)*m^2*br
+                Gc2=expval*(kd2/2)*m2*br;
+                // result = Gc0 + [ Gc1 ] + Gc2
+                if (!inter_avg) Gc2+=Gc1;
+                result[comp]+=Gc2;
+            }
+    }
+    else {
+        //====== Gfar (and part of Gmedian) =======
+        // br=1-(1+m^2)*kd^2/24
+        br = 1 - (1+m2)*kd2/24;
+        // Gf0 + Gf2 = Gp*br
+        for (comp=0;comp<NDCOMP;comp++) result[comp]*=br;
+        //==== compute and add Gf1 ===
+        if (!inter_avg) for (comp=0;comp<NDCOMP;comp++) {
+                // br = {delta[mu,nu]*(3-3ikr-2kr^2+ikr^3)-qmunu*(15-15ikr-6kr^2+ikr^3)}*qa + qamunu*(3-3ikr-kr^2)
+                br = (6*kr2-15 + I*(15*kr-kr3))*qmunu[comp];
+                if (dmunu[comp]) br += 3 - 2*kr2 + I*(kr3-3*kr);
+                br = br*qa + (3-I*3*kr-kr2)*qamunu[comp];
+                // Gf1=expval*i*m*br*kd^2/12kr
+                Gf1=I*expval*m*br*kd2/(12*kr);
+                // result = Gf
+                result[comp]+=Gf1;
+            }
+        if (kr < G_BOUND_MEDIAN) {
+            //===== G median ========
+            vMult(qvec,qvec,q2);
+            q4=DotProd(q2,q2);
+            invrn=1/rn;
+            invrn2=invrn*invrn;
+            invrn3=invrn2*invrn;
+            invrn4=invrn2*invrn2;
+            for (mu=0,comp=0;mu<3;mu++) for (nu=mu;nu<3;nu++,comp++) {
+                    // Gm0=expval*br*temp; temp is defined below
+                    temp=qmunu[comp]*(33*q4-7-12*(q2[mu]+q2[nu]));
+                    if (mu == nu) temp+=(1-3*q4+4*q2[mu]);
+                    temp*=7*invrn4/64;
+                    Gm0=expval*(-1+I*kr)*temp;
+                    if (!inter_avg) {
+                        // Gm1=expval*i*m*temp; temp is defined below
+                        vMult(qvec,prop,qavec);
+                        temp = 3*qa*(dmunu[comp]-7*qmunu[comp]) + 6*dmunu[comp]*qvec[mu]*prop[mu]
+                               - 7*(dmunu[comp]-9*qmunu[comp])*DotProd(qavec,q2)
+                               + 3*(prop[mu]*qvec[nu]*(1-7*q2[mu])+prop[nu]*qvec[mu]*(1-7*q2[nu]));
+                        temp*=kd*invrn3/48;
+                        Gm1=I*expval*m*temp;
+                        // add Gm1 to Gm0
+                        Gm0+=Gm1;
+                    }
+                    // result = Gf + Gm0 + [ Gm1 ]
+                    result[comp]+=Gm0;
+                }
+        }
+    }
+    PRINT_GVAL;
 }
 
 NO_REAL_WRAPPER(InterTerm_so)
@@ -987,25 +987,25 @@ NO_REAL_WRAPPER(InterTerm_so)
 static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[static 6])
 // Interaction term between two dipoles with integration of Green's tensor. See InterTerm_poi for more details.
 {
-	double tmp[12];
-	int comp,ifail;
+    double tmp[12];
+    int comp,ifail;
 
-	if (igt_lim==UNDEF || DotProd(qvec,qvec)<=igtLimR2 ) {
-		/* passing complex vectors from Fortran to C is not necessarily portable (at least requires extra effort in
-		 * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
-		 * internally for integration in this Fortran routine.
-		 */
-		propaespacelibreintadda_(qvec,&WaveNum,&dsX,&dsY,&dsZ,&igt_eps,tmp,&ifail);
-		if (ifail!=0) {
-			if (ifail==1) LogWarning(EC_WARN,ALL_POS,"Failed to reach relative accuracy of %g for Green's tensor "
-				"integration for distance "GFORMDEF3V,igt_eps,COMP3V(qvec));
-			else LogWarning(EC_WARN,ALL_POS,"Error in Green's tensor integration (code %d - see dcuhre.f) for distance "
-				GFORMDEF3V,ifail,COMP3V(qvec));
-		}
-		for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
-		PRINT_GVAL;
-	}
-	else InterTerm_poi(qvec,result);
+    if (igt_lim==UNDEF || DotProd(qvec,qvec)<=igtLimR2 ) {
+        /* passing complex vectors from Fortran to C is not necessarily portable (at least requires extra effort in
+         * the Fortran code. So we do it through double. This is not bad for performance, since double is anyway used
+         * internally for integration in this Fortran routine.
+         */
+        propaespacelibreintadda_(qvec,&WaveNum,&dsX,&dsY,&dsZ,&igt_eps,tmp,&ifail);
+        if (ifail!=0) {
+            if (ifail==1) LogWarning(EC_WARN,ALL_POS,"Failed to reach relative accuracy of %g for Green's tensor "
+                                                     "integration for distance "GFORMDEF3V,igt_eps,COMP3V(qvec));
+            else LogWarning(EC_WARN,ALL_POS,"Error in Green's tensor integration (code %d - see dcuhre.f) for distance "
+                                            GFORMDEF3V,ifail,COMP3V(qvec));
+        }
+        for (comp=0;comp<6;comp++) result[comp] = tmp[comp] + I*tmp[comp+6];
+        PRINT_GVAL;
+    }
+    else InterTerm_poi(qvec,result);
 }
 
 WRAPPERS_INTER(InterTerm_igt)
@@ -1034,82 +1034,82 @@ WRAPPERS_INTER(InterTerm_igt)
 
 static double * ATT_MALLOC ReadTableFile(const char * restrict sh_fname,const int size_multiplier)
 {
-	FILE * restrict ftab;
-	double * restrict tab_n;
-	int size;
-	char fname[MAX_FNAME];
-	int i;
+    FILE * restrict ftab;
+    double * restrict tab_n;
+    int size;
+    char fname[MAX_FNAME];
+    int i;
 
-	size=TAB_SIZE*size_multiplier;
-	memory+=size*sizeof(double);
-	if (!prognosis) {
-		// allocate memory for tab_n
-		MALLOC_VECTOR(tab_n,double,size,ALL);
-		// open file
-		SnprintfErr(ALL_POS,fname,MAX_FNAME,TAB_PATH"%s",sh_fname);
-		ftab=FOpenErr(fname,"r",ALL_POS);
-		// scan file
-		for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
-			LogError(ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
-		if (!feof(ftab))
-			LogWarning(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
-		// close file
-		FCloseErr(ftab,fname,ALL_POS);
-		return tab_n;
-	}
-	else return NULL;
+    size=TAB_SIZE*size_multiplier;
+    memory+=size*sizeof(double);
+    if (!prognosis) {
+        // allocate memory for tab_n
+        MALLOC_VECTOR(tab_n,double,size,ALL);
+        // open file
+        SnprintfErr(ALL_POS,fname,MAX_FNAME,TAB_PATH"%s",sh_fname);
+        ftab=FOpenErr(fname,"r",ALL_POS);
+        // scan file
+        for (i=0; i<size; i++) if (fscanf(ftab,"%lf\t",&(tab_n[i]))!=1)
+                LogError(ALL_POS,"Scan error in file '%s'. Probably file is too small",fname);
+        if (!feof(ftab))
+            LogWarning(EC_WARN,ONE_POS,"File '%s' is longer than specified size (%d)",fname,size);
+        // close file
+        FCloseErr(ftab,fname,ALL_POS);
+        return tab_n;
+    }
+    else return NULL;
 }
 
 //=====================================================================================================================
 
 static void ReadTables(void)
 {
-	int i, j, ymax, Rm2, Rm2x;
+    int i, j, ymax, Rm2, Rm2x;
 
-	TIME_TYPE tstart=GET_TIME();
-	tab1=ReadTableFile(TAB_FNAME(1),1);
-	tab2=ReadTableFile(TAB_FNAME(2),6);
-	tab3=ReadTableFile(TAB_FNAME(3),3);
-	tab4=ReadTableFile(TAB_FNAME(4),18);
-	tab5=ReadTableFile(TAB_FNAME(5),6);
-	tab6=ReadTableFile(TAB_FNAME(6),36);
-	tab7=ReadTableFile(TAB_FNAME(7),1);
-	tab8=ReadTableFile(TAB_FNAME(8),6);
-	tab9=ReadTableFile(TAB_FNAME(9),1);
-	tab10=ReadTableFile(TAB_FNAME(10),6);
-	Timing_FileIO += GET_TIME() - tstart;
+    TIME_TYPE tstart=GET_TIME();
+    tab1=ReadTableFile(TAB_FNAME(1),1);
+    tab2=ReadTableFile(TAB_FNAME(2),6);
+    tab3=ReadTableFile(TAB_FNAME(3),3);
+    tab4=ReadTableFile(TAB_FNAME(4),18);
+    tab5=ReadTableFile(TAB_FNAME(5),6);
+    tab6=ReadTableFile(TAB_FNAME(6),36);
+    tab7=ReadTableFile(TAB_FNAME(7),1);
+    tab8=ReadTableFile(TAB_FNAME(8),6);
+    tab9=ReadTableFile(TAB_FNAME(9),1);
+    tab10=ReadTableFile(TAB_FNAME(10),6);
+    Timing_FileIO += GET_TIME() - tstart;
 
-	if (!prognosis) {
-		// allocate memory for tab_index
-		MALLOC_IMATRIX(tab_index,1,TAB_RMAX,0,TAB_RMAX,ALL);
-		// fill tab_index
-		Rm2=TAB_RMAX*TAB_RMAX;
-		tab_index[1][0] = 0;
-		for (i=1; i<=TAB_RMAX; i++) {
-			Rm2x=Rm2-i*i;
-			ymax = MIN(i,(int)floor(sqrt(Rm2x)));
-			for (j=0; j<ymax; j++) tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
-			if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax] + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
-		}
-	}
-	// PRINTZ("P[5,3]=%d (should be 41)\n",tab_index[5][3]);
+    if (!prognosis) {
+        // allocate memory for tab_index
+        MALLOC_IMATRIX(tab_index,1,TAB_RMAX,0,TAB_RMAX,ALL);
+        // fill tab_index
+        Rm2=TAB_RMAX*TAB_RMAX;
+        tab_index[1][0] = 0;
+        for (i=1; i<=TAB_RMAX; i++) {
+            Rm2x=Rm2-i*i;
+            ymax = MIN(i,(int)floor(sqrt(Rm2x)));
+            for (j=0; j<ymax; j++) tab_index[i][j+1] = tab_index[i][j] + MIN(j,(int)floor(sqrt(Rm2x-j*j)))+1;
+            if (i<TAB_RMAX) tab_index[i+1][0] = tab_index[i][ymax] + MIN(ymax,(int)floor(sqrt(Rm2x-ymax*ymax)))+1;
+        }
+    }
+    // PRINTZ("P[5,3]=%d (should be 41)\n",tab_index[5][3]);
 }
 
 //=====================================================================================================================
 
 static void FreeTables(void)
 {
-	Free_iMatrix(tab_index,1,TAB_RMAX,0);
-	Free_general(tab1);
-	Free_general(tab2);
-	Free_general(tab3);
-	Free_general(tab4);
-	Free_general(tab5);
-	Free_general(tab6);
-	Free_general(tab7);
-	Free_general(tab8);
-	Free_general(tab9);
-	Free_general(tab10);
+    Free_iMatrix(tab_index,1,TAB_RMAX,0);
+    Free_general(tab1);
+    Free_general(tab2);
+    Free_general(tab3);
+    Free_general(tab4);
+    Free_general(tab5);
+    Free_general(tab6);
+    Free_general(tab7);
+    Free_general(tab8);
+    Free_general(tab9);
+    Free_general(tab10);
 }
 
 //=====================================================================================================================
@@ -1117,37 +1117,37 @@ static void FreeTables(void)
 static inline void UnitsGridToCoordShift(const int i,const int j,const int k,double qvec[static 3])
 // convert integer coordinates (in dipole sizes) to real distance vector with extra shift along the z-axis
 {
-	qvec[0]=i*dsX;
-	qvec[1]=j*dsY;
-	qvec[2]=k*dsZ+ZsumShift;
+    qvec[0]=i*dsX;
+    qvec[1]=j*dsY;
+    qvec[2]=k*dsZ+ZsumShift;
 }
 
 //=====================================================================================================================
 
 static inline void ReflTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
-	doublecomplex *expval,doublecomplex result[static 6])
+                                 doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the reflection interaction between probe dipole and image of source dipole
 {
-	// this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
-	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
-	*expval=invr3*imExp(kr);
-	doublecomplex scale=surfRCn*(*expval);
+    // this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
+    const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
+    *expval=invr3*imExp(kr);
+    doublecomplex scale=surfRCn*(*expval);
 
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*scale; }
 #define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*scale; }
-	INTERACT_DIAG(0);    // xx
-	INTERACT_NONDIAG(1); // xy
-	INTERACT_NONDIAG(2); // xz
-	INTERACT_DIAG(3);    // yy
-	INTERACT_NONDIAG(4); // yz
-	INTERACT_DIAG(5);    // zz
+    INTERACT_DIAG(0);    // xx
+    INTERACT_NONDIAG(1); // xy
+    INTERACT_NONDIAG(2); // xz
+    INTERACT_DIAG(3);    // yy
+    INTERACT_NONDIAG(4); // yz
+    INTERACT_DIAG(5);    // zz
 #undef INTERACT_DIAG
 #undef INTERACT_NONDIAG
-	// invert sign of *z components
-	result[2]*=-1;
-	result[4]*=-1;
-	result[5]*=-1;
-	PRINT_GVAL;
+    // invert sign of *z components
+    result[2]*=-1;
+    result[4]*=-1;
+    result[5]*=-1;
+    PRINT_GVAL;
 }
 //=====================================================================================================================
 
@@ -1157,13 +1157,13 @@ static inline void ReflTerm_img(double qvec[static 3],doublecomplex result[stati
  * probe points above the surface. result is for produced output
  */
 {
-	// standard variable definitions used for functions InterParams and ReflTerm_core
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
+    // standard variable definitions used for functions InterParams and ReflTerm_core
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
 
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 }
 
 WRAPPERS_REFL(ReflTerm_img)
@@ -1175,16 +1175,16 @@ static inline void SingleSomIntegral(double rho,const double z,doublecomplex val
  * currently it is a wrapper around evlua, but in the future it may be replaced by use of interpolation table
  */
 {
-	// TODO: these scales can be removed by changes in som_init to use proper wavenumber instead of 2*pi
-	const double scale=WaveNum/TWO_PI;
-	const double isc=pow(scale,3); // this is subject to under/overflow
+    // TODO: these scales can be removed by changes in som_init to use proper wavenumber instead of 2*pi
+    const double scale=WaveNum/TWO_PI;
+    const double isc=pow(scale,3); // this is subject to under/overflow
 
-	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
-	evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3);
-	vals[0]*=isc;
-	vals[1]*=isc;
-	vals[2]*=isc;
-	vals[3]*=isc;
+    if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
+    evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3);
+    vals[0]*=isc;
+    vals[1]*=isc;
+    vals[2]*=isc;
+    vals[3]*=isc;
 }
 
 //=====================================================================================================================
@@ -1213,74 +1213,74 @@ static void CalcSomTable(void)
  * and then gathering them on each processor. Better to combine it with the hash table above.
  */
 {
-	int i,j,k;
-	double z;
-	size_t ind;
+    int i,j,k;
+    double z;
+    size_t ind;
 
-	/* The logic below is heavily based on dsX=dsY. In principle, it can be extended to integer ratios, but doesn't seem
-	 * worth the effort. First, it is hard to find interesting practical cases of particles on substrate that would
-	 * benefit from dsX!=dsY. Second, the issue will be solved automatically once optimized routines are implemented
-	 * (as discussed above).
-	 */
-	if (dsX!=dsY) LogError(ONE_POS,"Incompatibility error in CalcSomTable");
-	XlessY=(boxX<=boxY);
-	// create index for plane x,y; if boxX<=boxY the space above the main diagonal is indexed (so x<=y) and vice versa
-	MALLOC_VECTOR(somIndex,sizet,boxY+1,ALL);
-	memory+=(boxY+1)*sizeof(size_t);
-	somIndex[0]=0;
-	for (j=0;j<boxY;j++) somIndex[j+1]=somIndex[j] + (XlessY ? MIN(j+1,boxX) : (boxX-j));
-	// allocate and fill the table
-	const size_t tmp=4*local_Nz_Rm*somIndex[boxY];
-	memory+=tmp*sizeof(doublecomplex);
-	if (!prognosis) {
-		MALLOC_VECTOR(somTable,complex,tmp,ALL);
-		if (IFROOT) PRINTFB("Calculating table of Sommerfeld integrals\n");
-		ind=0;
-		for (k=0;k<local_Nz_Rm;k++) {
-			z=k*dsZ+ZsumShift;
-			for (j=0;j<boxY;j++) {
-				if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i*dsX,j*dsY),z,somTable+4*ind);
-				else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i*dsX,j*dsY),z,somTable+4*ind);
-			}
-		}
-	}
+    /* The logic below is heavily based on dsX=dsY. In principle, it can be extended to integer ratios, but doesn't seem
+     * worth the effort. First, it is hard to find interesting practical cases of particles on substrate that would
+     * benefit from dsX!=dsY. Second, the issue will be solved automatically once optimized routines are implemented
+     * (as discussed above).
+     */
+    if (dsX!=dsY) LogError(ONE_POS,"Incompatibility error in CalcSomTable");
+    XlessY=(boxX<=boxY);
+    // create index for plane x,y; if boxX<=boxY the space above the main diagonal is indexed (so x<=y) and vice versa
+    MALLOC_VECTOR(somIndex,sizet,boxY+1,ALL);
+    memory+=(boxY+1)*sizeof(size_t);
+    somIndex[0]=0;
+    for (j=0;j<boxY;j++) somIndex[j+1]=somIndex[j] + (XlessY ? MIN(j+1,boxX) : (boxX-j));
+    // allocate and fill the table
+    const size_t tmp=4*local_Nz_Rm*somIndex[boxY];
+    memory+=tmp*sizeof(doublecomplex);
+    if (!prognosis) {
+        MALLOC_VECTOR(somTable,complex,tmp,ALL);
+        if (IFROOT) PRINTFB("Calculating table of Sommerfeld integrals\n");
+        ind=0;
+        for (k=0;k<local_Nz_Rm;k++) {
+            z=k*dsZ+ZsumShift;
+            for (j=0;j<boxY;j++) {
+                if (XlessY) for (i=0;i<=j && i<boxX;i++,ind++) SingleSomIntegral(hypot(i*dsX,j*dsY),z,somTable+4*ind);
+                else for (i=j;i<boxX;i++,ind++) SingleSomIntegral(hypot(i*dsX,j*dsY),z,somTable+4*ind);
+            }
+        }
+    }
 }
 
 //=====================================================================================================================
 
 static inline void CombineSomTensor(const double x, const double y,const double rho,const doublecomplex Ivals[static 4],
-	doublecomplex result[static 6])
+                                    doublecomplex result[static 6])
 /* combine Sommerfeld integrals in the Sommerfeld tensor and add it to the result (increment)
  * x,y coordinates can be in any units (only relative values matter), rho should be equal to hypot(x,y)
  */
 {
-	double xr,yr; // relative (scaled by ro) transverse coordinates
-	doublecomplex Irv,Izv,Irh,Iph; // values of Sommerfeld integrals
+    double xr,yr; // relative (scaled by ro) transverse coordinates
+    doublecomplex Irv,Izv,Irh,Iph; // values of Sommerfeld integrals
 
-	// index tables
-	Irv=Ivals[0];
-	Izv=Ivals[1];
-	Irh=Ivals[2];
-	Iph=Ivals[3];
+    // index tables
+    Irv=Ivals[0];
+    Izv=Ivals[1];
+    Irh=Ivals[2];
+    Iph=Ivals[3];
 
-	if (rho==0) {
-		/* particular direction doesn't matter in this case; this special case can be obtained from
-		 * general case by taking, e.g. xr=1, yr=0 (since Iph+Irh=Irv=0 for rho=0).
-		 */
-		result[0] += Irh;
-		result[3] += Irh;
-		result[5] += Izv;
-	}
-	else {
-		xr=x/rho;
-		yr=y/rho;
-		result[0] += xr*xr*Irh - yr*yr*Iph;
-		result[1] += xr*yr*(Irh+Iph);
-		result[2] += xr*Irv;
-		result[3] += yr*yr*Irh - xr*xr*Iph;
-		result[4] += yr*Irv;
-		result[5] += Izv;
-	}
+    if (rho==0) {
+        /* particular direction doesn't matter in this case; this special case can be obtained from
+         * general case by taking, e.g. xr=1, yr=0 (since Iph+Irh=Irv=0 for rho=0).
+         */
+        result[0] += Irh;
+        result[3] += Irh;
+        result[5] += Izv;
+    }
+    else {
+        xr=x/rho;
+        yr=y/rho;
+        result[0] += xr*xr*Irh - yr*yr*Iph;
+        result[1] += xr*yr*(Irh+Iph);
+        result[2] += xr*Irv;
+        result[3] += yr*yr*Irh - xr*xr*Iph;
+        result[4] += yr*Irv;
+        result[5] += Izv;
+    }
 }
 
 
@@ -1290,35 +1290,35 @@ void ReflTerm_som_int(const int i,const int j,const int k,doublecomplex result[s
 // Reflection term using the Sommerfeld integrals for integer input; arguments are described in .h file
 // we do not use wrappers here, since both integer and real values are required
 {
-	// first, image-dipole part
-	// standard variable definitions used for functions InterParams and ReflTerm_core
-	double qvec[3],qmunu[6]; // distance vector (in units of d) and normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
-	UnitsGridToCoordShift(i,j,k,qvec);
-	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    // first, image-dipole part
+    // standard variable definitions used for functions InterParams and ReflTerm_core
+    double qvec[3],qmunu[6]; // distance vector (in units of d) and normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
+    UnitsGridToCoordShift(i,j,k,qvec);
+    InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
+    ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
-	// second, Sommerfeld integral part
-	// compute table index
-	int iT=abs(i);
-	int jT=abs(j);
-	size_t ind;
-	// index for the table
-	if (XlessY) {
-		if (iT<=jT) ind=somIndex[jT]+iT;
-		else ind=somIndex[iT]+jT; // effectively swap iT and jT
-	}
-	else {
-		if (iT>=jT) ind=somIndex[jT]+iT-jT;
-		else ind=somIndex[iT]+jT-iT; // effectively swap iT and jT
-	}
-	ind=4*(ind+k*somIndex[boxY]);
-	double x=qvec[0];
-	double y=qvec[1];
-	double rho=hypot(x,y);
-	CombineSomTensor(x,y,rho,somTable+ind,result);
-	PRINT_GVAL;
+    // second, Sommerfeld integral part
+    // compute table index
+    int iT=abs(i);
+    int jT=abs(j);
+    size_t ind;
+    // index for the table
+    if (XlessY) {
+        if (iT<=jT) ind=somIndex[jT]+iT;
+        else ind=somIndex[iT]+jT; // effectively swap iT and jT
+    }
+    else {
+        if (iT>=jT) ind=somIndex[jT]+iT-jT;
+        else ind=somIndex[iT]+jT-iT; // effectively swap iT and jT
+    }
+    ind=4*(ind+k*somIndex[boxY]);
+    double x=qvec[0];
+    double y=qvec[1];
+    double rho=hypot(x,y);
+    CombineSomTensor(x,y,rho,somTable+ind,result);
+    PRINT_GVAL;
 }
 
 //=====================================================================================================================
@@ -1326,24 +1326,24 @@ void ReflTerm_som_int(const int i,const int j,const int k,doublecomplex result[s
 void ReflTerm_som_real(const double qvec[static restrict 3],doublecomplex result[static restrict 6])
 // Reflection term using the Sommerfeld integrals for real input; arguments are described in .h file
 {
-	// first, image-dipole part
-	// standard variable definitions used for functions InterParams and ReflTerm_core
-	double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
-	double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
-	doublecomplex expval; // exp(ikR)/|R|^3
-	double qv[3]; // copy of qvec
-	vCopy(qvec,qv);
-	InterParams(qv,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+    // first, image-dipole part
+    // standard variable definitions used for functions InterParams and ReflTerm_core
+    double qmunu[6]; // normalized outer-product {qxx,qxy,qxz,qyy,qyz,qzz}
+    double rr,invr3,kr,kr2; // |R|, |R|^-3, kR, (kR)^2
+    doublecomplex expval; // exp(ikR)/|R|^3
+    double qv[3]; // copy of qvec
+    vCopy(qvec,qv);
+    InterParams(qv,qmunu,&rr,&invr3,&kr,&kr2);
+    ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
 
-	// second, Sommerfeld integral part
-	double x=qvec[0];
-	double y=qvec[1];
-	double rho=hypot(x,y);
-	doublecomplex Ivals[4];
-	SingleSomIntegral(rho,qvec[2],Ivals);
-	CombineSomTensor(x,y,rho,Ivals,result);
-	PRINT_GVAL;
+    // second, Sommerfeld integral part
+    double x=qvec[0];
+    double y=qvec[1];
+    double rho=hypot(x,y);
+    doublecomplex Ivals[4];
+    SingleSomIntegral(rho,qvec[2],Ivals);
+    CombineSomTensor(x,y,rho,Ivals,result);
+    PRINT_GVAL;
 }
 
 /* TO ADD NEW REFLECTION FORMULATION
@@ -1371,78 +1371,78 @@ void InitInteraction(void)
 // Initialize the interaction calculations
 {
 #define SET_FUNC_POINTERS(type,name) { type##_int = &type##_##name##_int; type##_real = &type##_##name##_real; }
-	// set InterTerm_int (real) to point at the right functions
-	switch (IntRelation) {
-		case G_POINT_DIP: SET_FUNC_POINTERS(InterTerm,poi); break;
-		case G_FCD: SET_FUNC_POINTERS(InterTerm,fcd); break;
-		case G_FCD_ST: SET_FUNC_POINTERS(InterTerm,fcd_st); break;
-		case G_IGT_SO:
-			if (InteractionRealArgs) PrintError("'-int igt_so' does not support calculation of interaction tensor for "
-				"arbitrary real arguments");
-			SET_FUNC_POINTERS(InterTerm,igt_so);
-			break;
-		case G_NLOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
-		case G_NLOC_AV: SET_FUNC_POINTERS(InterTerm,nloc_av); break;
-		case G_SO:
-			if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
-				"arbitrary real arguments");
-			SET_FUNC_POINTERS(InterTerm,so);
-			break;
+    // set InterTerm_int (real) to point at the right functions
+    switch (IntRelation) {
+        case G_POINT_DIP: SET_FUNC_POINTERS(InterTerm,poi); break;
+        case G_FCD: SET_FUNC_POINTERS(InterTerm,fcd); break;
+        case G_FCD_ST: SET_FUNC_POINTERS(InterTerm,fcd_st); break;
+        case G_IGT_SO:
+            if (InteractionRealArgs) PrintError("'-int igt_so' does not support calculation of interaction tensor for "
+                                                "arbitrary real arguments");
+            SET_FUNC_POINTERS(InterTerm,igt_so);
+            break;
+        case G_NLOC: SET_FUNC_POINTERS(InterTerm,nloc); break;
+        case G_NLOC_AV: SET_FUNC_POINTERS(InterTerm,nloc_av); break;
+        case G_SO:
+            if (InteractionRealArgs) PrintError("'-int so' does not support calculation of interaction tensor for "
+                                                "arbitrary real arguments");
+            SET_FUNC_POINTERS(InterTerm,so);
+            break;
 #ifndef NO_FORTRAN
-		case G_IGT:
-			SET_FUNC_POINTERS(InterTerm,igt);
-			// initialize IGT distance threshold
-			if (igt_lim!=UNDEF) {
-				igtLimR2=igt_lim*MAX(MAX(dsX,dsY),dsZ);
-				igtLimR2*=igtLimR2;
-			}
-			break;
+        case G_IGT:
+        SET_FUNC_POINTERS(InterTerm,igt);
+            // initialize IGT distance threshold
+            if (igt_lim!=UNDEF) {
+                igtLimR2=igt_lim*MAX(MAX(dsX,dsY),dsZ);
+                igtLimR2*=igtLimR2;
+            }
+            break;
 #endif
-		/* TO ADD NEW INTERACTION FORMULATION
-		 * Add here the assignment of function pointers for the new formulation. It is recommended to use special macro,
-		 * assuming that you conformed to naming conventions for functions themselves. If new formulation requires
-		 * initialization, add it here, preferably by a separate function. Initialization should honor the 'prognosis'
-		 * flag. Additional memory should be counted always, but allocated only when not prognosis. See ReadTables()
-		 * for example (called below). If the new formulation does not support arbitrary real input vector (e.g. it is
-		 * based on tables), then test for InteractionRealArgs and add an exception (see G_IGT_SO for example).
-		 */
-		default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
-			// no break
-	}
-	// read tables if needed
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
+            /* TO ADD NEW INTERACTION FORMULATION
+             * Add here the assignment of function pointers for the new formulation. It is recommended to use special macro,
+             * assuming that you conformed to naming conventions for functions themselves. If new formulation requires
+             * initialization, add it here, preferably by a separate function. Initialization should honor the 'prognosis'
+             * flag. Additional memory should be counted always, but allocated only when not prognosis. See ReadTables()
+             * for example (called below). If the new formulation does not support arbitrary real input vector (e.g. it is
+             * based on tables), then test for InteractionRealArgs and add an exception (see G_IGT_SO for example).
+             */
+        default: LogError(ONE_POS, "Invalid interaction term calculation method: %d",(int)IntRelation);
+            // no break
+    }
+    // read tables if needed
+    if (IntRelation == G_SO || IntRelation == G_IGT_SO) ReadTables();
 
-	// Interaction through reflection from surface
-	if (surface) {
+    // Interaction through reflection from surface
+    if (surface) {
 #ifdef SPARSE
-		local_Nz_Rm=2*boxZ-1;
+        local_Nz_Rm=2*boxZ-1;
 #else
-		local_Nz_Rm=MAX(MIN(2*local_z1,2*boxZ-1)-2*local_z0,0);
+        local_Nz_Rm=MAX(MIN(2*local_z1,2*boxZ-1)-2*local_z0,0);
 #endif
-		switch (ReflRelation) {
-			case GR_IMG:  SET_FUNC_POINTERS(ReflTerm,img); break;
-			case GR_SOM:
-				SET_FUNC_POINTERS(ReflTerm,som);
-				if (!prognosis) som_init(sub.m[sub.N-1]*sub.m[sub.N-1]);
-				CalcSomTable();
-				break;
-			/* TO ADD NEW REFLECTION FORMULATION
-			 * Add here the assignment of function pointers for the new formulation. It is recommended to use special
-			 * macro, assuming that you conformed to naming conventions for functions themselves. If new formulation
-			 * requires initialization add it here, preferably by a separate function. Initialization should honor the
-			 * 'prognosis' flag. Additional memory should be counted always, but allocated only when not prognosis. See
-			 * CalcSomTable() for example. If the new formulation does not support arbitrary real input vector (e.g. it
-			 * is based on tables), then test for InteractionRealArgs and add an exception (for example, see G_IGT_SO in
-			 * IntRelation above).
-			 */
-			default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
-				// no break
-		}
-		surfRCn=sub.mInf ? -1 : ((1-sub.m[sub.N-1]*sub.m[sub.N-1])/(1+sub.m[sub.N-1]*sub.m[sub.N-1]));
-	}
+        switch (ReflRelation) {
+            case GR_IMG:  SET_FUNC_POINTERS(ReflTerm,img); break;
+            case GR_SOM:
+            SET_FUNC_POINTERS(ReflTerm,som);
+                if (!prognosis) som_init(sub.m[sub.N - 1] * sub.m[sub.N - 1]);
+                CalcSomTable();
+                break;
+                /* TO ADD NEW REFLECTION FORMULATION
+                 * Add here the assignment of function pointers for the new formulation. It is recommended to use special
+                 * macro, assuming that you conformed to naming conventions for functions themselves. If new formulation
+                 * requires initialization add it here, preferably by a separate function. Initialization should honor the
+                 * 'prognosis' flag. Additional memory should be counted always, but allocated only when not prognosis. See
+                 * CalcSomTable() for example. If the new formulation does not support arbitrary real input vector (e.g. it
+                 * is based on tables), then test for InteractionRealArgs and add an exception (for example, see G_IGT_SO in
+                 * IntRelation above).
+                 */
+            default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
+                // no break
+        }
+        surfRCn= sub.mInf ? -1 : ((1 - sub.m[sub.N - 1] * sub.m[sub.N - 1]) / (1 + sub.m[sub.N - 1] * sub.m[sub.N - 1]));
+    }
 
 #ifdef USE_SSE3
-	c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);
+    c1 = _mm_set_pd(1.34959795251974073996e-11,3.92582397764340914444e-14);
 	c2 = _mm_set_pd(-8.86096155697856783296e-7,-3.86632385155548605680e-9);
 	c3 = _mm_set_pd(1.74532925199432957214e-2,1.52308709893354299569e-4);
 	zo = _mm_set_pd(0.0,1.0);
@@ -1464,13 +1464,13 @@ void InitInteraction(void)
 void FreeInteraction(void)
 // Free buffers used for interaction calculation
 {
-	if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
-	if (surface && ReflRelation==GR_SOM) {
-		Free_general(somIndex);
-		Free_cVector(somTable);
-	}
-	/* TO ADD NEW INTERACTION FORMULATION
-	 * TO ADD NEW REFLECTION FORMULATION
-	 * If you allocate any memory (for tables, etc.), free it here
-	 */
+    if (IntRelation == G_SO || IntRelation == G_IGT_SO) FreeTables();
+    if (surface && ReflRelation==GR_SOM) {
+        Free_general(somIndex);
+        Free_cVector(somTable);
+    }
+    /* TO ADD NEW INTERACTION FORMULATION
+     * TO ADD NEW REFLECTION FORMULATION
+     * If you allocate any memory (for tables, etc.), free it here
+     */
 }
