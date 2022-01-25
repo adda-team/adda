@@ -815,7 +815,8 @@ double ExtCross(const double * restrict incPol)
 	if (beamtype==B_PLANE && !surface) {
 		CalcField (ebuff,prop);
 		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		sum=creal(epshost*crDotProd(ebuff,incPol)); // In case of complex WaveNum
+		//sum=creal(epshost*crDotProd(ebuff,incPol)); // In case of complex WaveNum
+		sum = creal(crDotProd(ebuff,incPol)/WaveNum)
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		//sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
@@ -829,7 +830,6 @@ double ExtCross(const double * restrict incPol)
 			sum+=cimag(epshost*cDotProd(pvec+3*i,Einc+3*i));// sum{Im(P.E_inc*)} - tested: coincides with "S(0)" approach if Im(mhost)=0
 		}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
-		sum=FOUR_PI*WaveNum0*sum/creal(mhost);
 		/* Surprisingly, this little trick is enough to satisfy IGT_SO, because this factor is applied in CalcField()
 		 * and is independent of propagation or scattering direction. Thus it can be applied to any linear combination
 		 * of plane waves, i.e. any field.
@@ -844,7 +844,7 @@ double ExtCross(const double * restrict incPol)
 	 * beam satisfies this condition or add another case here with different formulae.
 	*/
 	if (surface) sum*=inc_scale;
-	return sum;
+	return FOUR_PI*WaveNum0*sum/creal(mhost);;
 }
 
 //======================================================================================================================
