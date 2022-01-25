@@ -1939,12 +1939,14 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+	absorbing_host=false;
 	rectDip=false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
 	mhost=1;
+	epshost=1;
 	use_beam_center=false;
 	use_beam_subopt=false;
 	beam_center_0[0]=0;
@@ -1968,7 +1970,7 @@ void InitVariables(void)
 	store_dip_pol=false;
 	PolRelation=(enum pol)UNDEF;
 	avg_inc_pol=false;
-	ScatRelation=SQ_DRAINE;
+	ScatRelation=(enum scat)UNDEF;
 	IntRelation=G_POINT_DIP;
 	IterMethod=IT_QMR_CS;
 	sym_type=SYM_AUTO;
@@ -2117,8 +2119,10 @@ void VariablesInterconnect(void)
 
 	// initialize WaveNum ASAP
 	WaveNum = TWO_PI*mhost/lambda;
+	epshost = mhost*mhost;
 	//relative lambda (normalized to the mhost):
 	if(creal(mhost)!=0) rel_lambda=lambda/creal(mhost); else rel_lambda=lambda; //the second case is weird but the only choice
+	if(cimag(mhost)!=0) absorbing_host = true;
 	//normalizes the refractive index to the mhost:
 	for (int i=0;i<Nmat;i++) {
 		ref_index[i]=abs_ref_index[i]/mhost;
@@ -2150,6 +2154,8 @@ void VariablesInterconnect(void)
 	if (igt_eps==UNDEF) igt_eps=iter_eps;
 	// default polarizability formulation depends on rect_dip
 	if (PolRelation==(enum pol)UNDEF) PolRelation = rectDip ? POL_CLDR : POL_LDR;
+	// default scattering quantities formulation depends on absorbing/non absorbing host medium
+	if (ScatRelation==(enum scat)UNDEF) ScatRelation = absorbing_host ?  SQ_FINDIP : SQ_DRAINE;
 	// parameter incompatibilities
 	if (scat_plane && yzplane) PrintError("Currently '-scat_plane' and '-yz' cannot be used together.");
 	if (orient_avg) {
@@ -2238,7 +2244,10 @@ void VariablesInterconnect(void)
 			"Sommerfeld integrals (default for the surface mode) requires dipoles to have the same dimensions along "
 			"the x- and y-axes (but not z)");
 	}
-	if (cimag(mhost)!=0) { // currently a lot of limitations for the absorbing medium
+	if (absorbing_host) { // currently a lot of limitations for the absorbing medium
+			if (ScatRelation!=SQ_FINDIP)
+					PrintError("The specified scattering quantites formulation is designed only for non-absorbing medium. Currently, only "
+					"only the 'findip' formulation can be used with absorbing host medium");
 			if (beamtype!=B_PLANE && beamtype!=B_ELECTRON) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
 				" can be used only with plane/electron incident field");
 			if (rectDip) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"

@@ -108,7 +108,7 @@ static inline doublecomplex imExp(const doublecomplex arg)
  * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
  */
 {
-	if(cimag(arg)==0) return imExpTable(arg); //this case is needed to make things faster for real argument
+	if(cimag(arg)==0) return imExpTable(creal(arg)); //this case is needed to make things faster for real argument
 	else return imExpTable(creal(arg))*exp(-cimag(arg));
 }
 
@@ -203,6 +203,16 @@ static inline void cvMultScal_cmplx(const doublecomplex a,const doublecomplex b[
 	c[0] = a*b[0];
 	c[1] = a*b[1];
 	c[2] = a*b[2];
+}
+
+//======================================================================================================================
+
+static inline void cvMult(const doublecomplex a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
+// multiplication of real vector by complex vector (by elements); c[i]=a[i]*b[i];
+{
+	c[0]=a[0]*b[0];
+	c[1]=a[1]*b[1];
+	c[2]=a[2]*b[2];
 }
 
 //======================================================================================================================

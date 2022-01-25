@@ -32,7 +32,7 @@ extern int boxX,boxY,boxZ;
 extern size_t boxXY;
 extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,ka_eq,inv_G;
 extern doublecomplex kdX,kdY,kdZ,kd,WaveNum;
-extern doublecomplex mhost;
+extern doublecomplex mhost, epshost;
 extern double * restrict DipoleCoord;
 
 extern double memory,memPeak;
@@ -45,7 +45,7 @@ extern bool symX,symY,symZ,symR;
 
 // flags
 extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
-	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required,rectDip;
+	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required,absorbing_host,rectDip;
 extern double propAlongZ;
 
 // 3D vectors

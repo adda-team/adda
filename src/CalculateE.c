@@ -796,6 +796,12 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				Pcl *= 1e-21; //(nm)^3 -> (cm)^3
 				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
 			}
+			if(absorbing_host)	{
+				double CscaTotal_CextTotal[2];
+				CrossSec_VolumeIntegral(CscaTotal_CextTotal);
+				PrintBoth(CCfile,"Csca_p (by Volume Integral)\t= "GFORM"\n",CscaTotal_CextTotal[0]);
+				PrintBoth(CCfile,"Cext_p (by Volume Integral)\t= "GFORM"\n",CscaTotal_CextTotal[1]);
+			}
 
 			if (calc_vec) {
 				AsymParm_x(dummy,f_suf);
