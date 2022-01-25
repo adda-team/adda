@@ -92,10 +92,12 @@ void InitBeam(void)
 	static double e_energy;        // kinetic energy of the electron
 	static doublecomplex beta_eps;// v*m_host/c
 	static double e_v;      // speed of the electron
-	const double q_electron = -4.803204673e-10; //electric charge of an electron, esu
-	const double c_light = 29979245800; //speed of light in vacuum, cm/s
+	double q_electron = -4.803204673e-10; //electric charge of an electron, cm^(3/2)*g^(1/2)*s^(-1)
+	double c_light = 29979245800; //speed of light in vacuum, cm/s
 	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	const char *tmp_str; // temporary string
+	//q_electron *= sqrt(10)*1e10; //scale cm->nm
+	//c_light *= 1e7; //scale cm->nm
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -211,9 +213,9 @@ void InitBeam(void)
 			}
 			return;
 		case B_ELECTRON:
+			//Electron field is in CGS. Electron field in SI would look the same, except multiplied by 1/(4*pi*eps0)
 			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
 			// initialize parameters
-			scale_z = 1e-7; //nm/сm
 			e_energy=beam_pars[0];
 			TestPositive(e_energy,"kinetic energy of the electron");
 			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
@@ -225,11 +227,11 @@ void InitBeam(void)
 			//printf("gamma_eps_inv\t=\t"CFORM"\n",REIM(gamma_eps_inv));
 			//printf("omega = "EFORM"\n",WaveNum*c_light/scale_z);
 			//printf("v = "EFORM"\n",e_v);
-			e_w_v = creal(WaveNum/(beta_eps*scale_z));
+			e_w_v = WaveNum0*c_light/e_v;
 			//printf("e_w_v\t=\t"CFORM"\n",REIM(e_w_v));
 			e_w_gv = e_w_v*gamma_eps_inv;
 			//printf("e_w_gv\t=\t"CFORM"\n",REIM(e_w_gv));
-			e_pref = 2*q_electron*e_w_gv/(mhost*mhost*e_v);
+			e_pref = 2*q_electron*(WaveNum0*1e7)*gamma_eps_inv/(beta_eps*beta_eps*c_light); // (q*k0/c) must be in statV/cm => multiplying k0*1e7
 			//printf("e_pref = "CFORM"\n",REIM(e_pref));
 			if (IFROOT) beam_descr=dyn_sprintf("The electron with the %g keV energy moving through "GFORM3V,e_energy,COMP3V(beam_center_0));
 			return;
@@ -501,8 +503,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				temp = DotProd(r1,prop);
 				vMultScal(temp,prop,r1par);
 				vSubtr(r1,r1par,r1per);
-				ro = vNorm(r1per)*scale_z;
-				z = temp*scale_z;
+				ro = vNorm(r1per);
+				z = temp;
 				if(ro != 0) vNormalize(r1per);
 				else LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
 

@@ -29,6 +29,7 @@ doublecomplex kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
 doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
+doublecomplex WaveNum0;   // wavenumber of incident light as in vacuum: k=w/c
 doublecomplex mhost;	  // refractive index of the medium
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes
@@ -113,7 +114,7 @@ size_t local_nvoid_d0,local_nvoid_d1; // starting and ending non-void dipole for
  * Anyway, a direct test for Ndip larger than the limit is made and a meaningful error message is produced if needed.
  *
  * The same limitation is implied in a few other places (like number of lines in dipole file, etc.). Definitions of
- * mat_count[] and Ndip are made as size_t due to the same reasoning.
+ * mat_count[] is made as size_t due to the same reasoning.
  */
 size_t local_nRows;                 // number of local rows of decomposition (only real dipoles)
 

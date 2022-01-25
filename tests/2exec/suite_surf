@@ -153,7 +153,6 @@ all -int nloc 1 ;mgn;
 all -int nloc_av 0.1 ;mgn;
 all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
-all -int so ;mgn;
 
 # -int_surf is skipped
 
@@ -219,7 +218,6 @@ all -pol nloc 1 ;mgn;
 all -pol nloc_av 0.1 ;mgn;
 all -pol nloc_av 1 ;mgn;
 all -pol rrc ;mgn;
-all -pol so ;p; ;mgn;
 
 all -h prognosis
 all -prognosis
@@ -295,8 +293,6 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-# the results for so are indeed different, because surf uses formulae for non-plane beams
-#all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;

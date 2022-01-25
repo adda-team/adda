@@ -126,7 +126,6 @@ all -int nloc 1 ;mgn;
 all -int nloc_av 0.1 ;mgn;
 all -int nloc_av 1 ;mgn;
 all -int poi ;mgn;
-all -int so ;mgn;
 
 !SPA_STAN -h int_surf
 all -int_surf img -surf 4 2 0 ;mgn;
@@ -190,7 +189,6 @@ all -pol nloc 1 ;mgn;
 all -pol nloc_av 0.1 ;mgn;
 all -pol nloc_av 1 ;mgn;
 all -pol rrc ;mgn;
-all -pol so ;p; ;mgn;
 
 all -h prognosis
 all -prognosis ;g;
@@ -264,7 +262,6 @@ all -h scat
 all -scat dr ;mgn;
 all -scat fin ;mgn;
 all -scat igt_so ;mgn;
-all -scat so ;mgn;
 
 all -h scat_grid_inp
 all -scat_grid_inp sp.dat ;mgn;
