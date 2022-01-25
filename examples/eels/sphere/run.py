@@ -1,14 +1,14 @@
 import sys, os, multiprocessing
-if sys.path[1] != os.path.abspath(__file__ + "/../../") : sys.path.insert(1,os.path.abspath(__file__ + "/../../")) #This is to import ADDA Wrapper from parent directory
-import ADDAWrapper as aw
+if sys.path[1] != os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper") : sys.path.insert(1,os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper")) #This is to import ADDA wrapper from parent directory
+import ADDAwrapper as aw
 
 # ADDAWrapper parameters
 aw_parameters = dict(
     #adda_exec = "../../win64/adda.exe", #path to ADDA executable
-    adda_exec = os.path.abspath(__file__ + "/../../../src/seq/adda"), #path to ADDA executable
+    adda_exec = os.path.abspath(__file__ + "/../../../../src/seq/adda"), #path to ADDA executable
     parallel_procs = multiprocessing.cpu_count()-1, #number of parallel processes is equal to the number of processor cores minus 1
 
-    mp_file = os.path.abspath(__file__ + "/../../refractive_index/" + "Ag_JHW.csv"), #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
+    mp_file = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/refractive_index/" + "Ag_JHW.csv"), #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
     ev_range = (2.5,4.5), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
     ev = 3.45, #[eV]. Used in "scan_" and "extrapolation_" functions.
     
@@ -47,9 +47,9 @@ adda_cmdlineargs = dict(
     no_vol_cor = "", #Disable volume correction
     iter = "qmr2", #Iterative solver
     pol = "igt_so", #Polarizability prescription
-    int = "igt 3", #Interaction term
+    int = "igt_so", #Interaction term
     Csca = "", #Calculate Csca with the Romberg integral. Needed to properly calculate Cathodoluminesce
-    alldir_inp = os.path.abspath(__file__ + "/../../Csca_integration.txt")
+    alldir_inp = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/Csca_integration.txt")
 )
 
 ### Executing commands

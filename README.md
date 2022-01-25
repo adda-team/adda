@@ -20,10 +20,11 @@ We encourage users to provide feedback in any possible way. If you have any ques
 * `.github/` - GitHub-related settings
 * `devtools/` - tools used by ADDA developers
 * `doc/` – documentation
+* `examples/` – examples of using ADDA
 * `input/` – default input files
 * `misc/` – additional tools, relatively independent from the main part of ADDA
 * `sample/` – sample output and other files
 * `src/` - source files and makefiles
-* `tests/2exec` - extensive test of two ADDA executables (in terms of output) against each other
-* `win64/` - executables for 64-bit (x86\_64) Windows.
+* `tests/` - various tests to make the development of ADDA more robust
+* `win64/` - executables for 64-bit (x86\_64) Windows
 * `LICENSE` - GNU General Public License v3.0

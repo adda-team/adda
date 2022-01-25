@@ -86,18 +86,18 @@ static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
 #endif
 // ratio of scatterer volume to enclosing cube; used for dpl correction and initialization by a_eq
 static double volume_ratio;
-static double Ndip;              // total number of dipoles (in a circumscribing cube)
+static double Ndip;              // total number of dipoles (in a circumscribing cube); has limited use in sparse mode
 static double dpl_def;           // default value of dpl
 static int minX,minY,minZ;       // minimum values of dipole positions in dipole file
 static FILE * restrict dipfile;  // handle of dipole file
 static enum shform read_format;  // format of dipole file, which is read
 static double cX,cY,cZ;          // center for DipoleCoord in units of dipoles (counted from 0)
 static double drelX,drelY,drelZ; // ratios of dipole sizes to the maximal one (dsX/dsMax...)
+static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 
 #ifndef SPARSE
 
 // shape parameters
-static double yx_ratio,zx_ratio; // ratios of particle dimensions along different axes
 static double coat_x,coat_y,coat_z,coat_r2;
 static double shell_r2,core_r2; // for coated2
 static double ad2,egnu,egeps; // for egg
@@ -703,7 +703,7 @@ static size_t PlaceGranules(void)
 	n=count=count_gr=false_count=0;
 	nd=0;
 	// crude estimate of the probability to place a small granule into domain
-	if (sm_gr) overhead=((double)Ndip)/mat_count[gr_mat];
+	if (sm_gr) overhead=Ndip/mat_count[gr_mat];
 	else overhead=1;
 	// main cycle
 	D("Starting main iteration cycle");
@@ -2024,14 +2024,15 @@ void InitShape(void)
 		if (IS_ODD((boxY-n_boxY)/jagged)) symY=false;
 		if (IS_ODD((boxZ-n_boxZ)/jagged)) symZ=false;
 	}
-#ifndef SPARSE //this check is not needed in sparse mode
-	// initialize number of dipoles; first check that it fits into size_t type
-	double tmp=((double)boxX)*((double)boxY)*((double)boxZ);
-	if (tmp > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
+	Ndip=((double)boxX)*((double)boxY)*((double)boxZ);
+#ifndef SPARSE
+	/* Ndip can be arbitrary huge in sparse mode, but then it's not used for any loop bounds (like nvoid_Ndip)
+	 * Otherwise, it has to fit into size_t bounds
+	 */
+	if (Ndip > SIZE_MAX) LogError(ONE_POS,"Total number of dipoles in the circumscribing box (%.0f) is larger than "
 		"supported by size_t type on this system (%zu). If possible, recompile ADDA in 64-bit mode.",
-		tmp,SIZE_MAX);
+		Ndip,SIZE_MAX);
 #endif // !SPARSE
-	Ndip=boxX*boxY*boxZ;
 	// initialize maxiter; not very realistic
 	if (maxiter==UNDEF) maxiter=MIN(INT_MAX,3*Ndip);
 	// some old, not really logical heuristics for Ntheta, but better than constant value
@@ -2323,7 +2324,7 @@ void MakeParticle(void)
 	local_nvoid_Ndip=local_Ndip-mat_count[Nmat];
 	SetupLocalD();
 	MyInnerProduct(mat_count,sizet_type,Nmat+1,NULL);
-	nvoid_Ndip=Ndip-mat_count[Nmat];
+	nvoid_Ndip=(size_t)Ndip-mat_count[Nmat];
 #endif // !SPARSE
 	if (nvoid_Ndip==0) LogError(ONE_POS,"All dipoles of the scatterer are void");
 	local_nRows=3*local_nvoid_Ndip;
