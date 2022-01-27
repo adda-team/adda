@@ -815,8 +815,7 @@ double ExtCross(const double * restrict incPol)
 	if (beamtype==B_PLANE && !surface) {
 		CalcField (ebuff,prop);
 		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		//sum=creal(epshost*crDotProd(ebuff,incPol)); // In case of complex WaveNum
-		sum = creal(crDotProd(ebuff,incPol)/WaveNum)
+		sum = creal(crDotProd(ebuff,incPol)/WaveNum)/(WaveNum0*WaveNum0);
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		//sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
