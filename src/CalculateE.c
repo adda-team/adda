@@ -44,6 +44,7 @@ extern const Parms_1D phi_sg;
 extern const double ezLab[3],exSP[3];
 // defined and initialized in GenerateB.c
 extern const double C0dipole,C0dipole_refl;
+extern int vorticity;
 // defined and initialized in param.c
 extern const bool store_int_field,store_dip_pol,store_beam,store_scat_grid,calc_Cext,calc_Cabs,
 	calc_Csca,calc_vec,calc_asym,calc_mat_force,store_force,store_ampl;
@@ -172,6 +173,7 @@ void MuellerMatrix(void)
 	double matrix[4][4];
 	double theta,phi,ph,max_err,max_err_c2,max_err_s2,max_err_c4,max_err_s4;
 	doublecomplex s1,s2,s3,s4;
+	doublecomplex vort;
 	char fname[MAX_FNAME];
 	int i;
 	size_t index,index1,k_or,j,n,ind;
@@ -197,6 +199,11 @@ void MuellerMatrix(void)
 				si=sin(alph);
 				for (i=0;i<nTheta;i++) {
 					// transform amplitude matrix, multiplying by rotation matrix (-alpha)
+					/* Note, that amplitude matrix for vortex beams (e.g., Bessel ones) have to be additionally
+					 * multiplied by the phase factor exp(-I*vorticity*alpha) and additional factor I^vorticity for
+					 * scat_plane (see below). However, it does not change the Mueller matrix and we do not save the
+					 * amplitude matrix here. Hence, these phase factors are ignored for orientation averaging.
+					 */
 					if (yzplane) { // here the default (alpha=0) is yz-plane, so par=Y, per=X
 						s2 =  co*ampl_alphaY[index+1] + si*ampl_alphaX[index+1]; // s2 =  co*s20 + si*s30
 						s3 = -si*ampl_alphaY[index+1] + co*ampl_alphaX[index+1]; // s3 = -si*s20 + co*s30
@@ -243,15 +250,19 @@ void MuellerMatrix(void)
 				FCloseErr(mueller,F_MUEL,ONE_POS);
 			}
 		}
-		if (scat_plane) { // par=X, per=-Y
+		if (scat_plane) { // par=X*i^n, per=-Y*i^n (n - vorticity)
 			if (store_ampl) {
 				SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_AMPL,directory);
 				ampl=FOpenErr(fname,"w",ONE_POS);
 				fprintf(ampl,THETA_HEADER" "AMPL_HEADER"\n");
+				vort=cpow(I,vorticity);
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
-					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(-EplaneY[2*i]),REIM(EplaneX[2*i+1]),
-						REIM(-EplaneY[2*i+1]),REIM(EplaneX[2*i]));
+					s1=-EplaneY[2*i]*vort;
+					s2=EplaneX[2*i+1]*vort;
+					s3=-EplaneY[2*i+1]*vort;
+					s4=EplaneX[2*i]*vort;
+					fprintf(ampl,ANGLE_FORMAT" "AMPL_FORMAT"\n",theta,REIM(s1),REIM(s2),REIM(s3),REIM(s4));
 				}
 				FCloseErr(ampl,F_AMPL,ONE_POS);
 			}
@@ -261,6 +272,7 @@ void MuellerMatrix(void)
 				fprintf(mueller,THETA_HEADER" "MUEL_HEADER"\n");
 				for (i=0;i<nTheta;i++) {
 					theta=i*dtheta_deg;
+					// here we ignore common phase factor in the amplitude matrix (vort above)
 					ComputeMuellerMatrix(matrix,-EplaneY[2*i],EplaneX[2*i+1],-EplaneY[2*i+1],EplaneX[2*i],theta);
 					fprintf(mueller,ANGLE_FORMAT" "MUEL_FORMAT"\n",theta,COMP44M(matrix));
 				}
@@ -272,10 +284,11 @@ void MuellerMatrix(void)
 			/* compute Mueller Matrix in full space angle.
 			 * E-fields are stored in arrays EgridX and EgridY for incoming X and Y polarized light.
 			 * It is converted to the scattering matrix elements (see e.g Bohren and Huffman) :
-			 * s2 = cos(phi)E'X'par + sin(phi)E'Y'par
-			 * s3 = sin(phi)E'X'par - cos(phi)E'Y'par
-			 * s4 = cos(phi)E'X'per + sin(phi)E'Y'per
-			 * s1 = sin(phi)E'X'per - cos(phi)E'Y'per
+			 * s2 = vort*(cos(phi)E'X'par + sin(phi)E'Y'par)
+			 * s3 = vort*(sin(phi)E'X'par - cos(phi)E'Y'par)
+			 * s4 = vort*(cos(phi)E'X'per + sin(phi)E'Y'per)
+			 * s1 = vort*(sin(phi)E'X'per - cos(phi)E'Y'per)
+			 * where additional phase factor vort=exp(I*vorticity*(PI_OVER_TWO-ph)) is for vortex beams;
 			 * from these the mueller matrix elements are computed
 			 */
 			// open files for writing
@@ -330,15 +343,16 @@ void MuellerMatrix(void)
 					if (angles.type==SG_GRID) phi=angles.phi.val[j];
 					else phi=angles.phi.val[ind]; // angles.type==SG_PAIRS
 					ph=Deg2Rad(phi);
+					vort=imExp(vorticity*(PI_OVER_TWO-ph));
 					// rather complicated (but general) approach to determine rotation angle from XY to scattering plane
 					SetScatPlane(cthet,sthet,ph,tmp3,incPolper);
 					co=-DotProd(incPolper,incPolY);
 					si=DotProd(incPolper,incPolX);
 					// transform the amplitude matrix, multiplying by rotation matrix from per-par to X-Y
-					s2 = co*EgridX[index+1] + si*EgridY[index+1]; // s2 =  co*s20 + si*s30
-					s3 = si*EgridX[index+1] - co*EgridY[index+1]; // s3 =  si*s20 - co*s30
-					s4 = co*EgridX[index] + si*EgridY[index]; // s4 =  co*s40 + si*s10
-					s1 = si*EgridX[index] - co*EgridY[index]; // s1 =  si*s40 - co*s10
+					s2 = vort*(co*EgridX[index+1] + si*EgridY[index+1]); // s2 =  co*s20 + si*s30
+					s3 = vort*(si*EgridX[index+1] - co*EgridY[index+1]); // s3 =  si*s20 - co*s30
+					s4 = vort*(co*EgridX[index] + si*EgridY[index]); // s4 =  co*s40 + si*s10
+					s1 = vort*(si*EgridX[index] - co*EgridY[index]); // s1 =  si*s40 - co*s10
 					index+=2;
 
 					if (store_mueller) ComputeMuellerMatrix(matrix,s1,s2,s3,s4,theta);
@@ -699,7 +713,6 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cenh, // Cross sections
-	Peels,						// EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section

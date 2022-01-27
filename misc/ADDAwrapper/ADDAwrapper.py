@@ -390,7 +390,7 @@ def extrapolation_plot(match, dirname):
     error = results_fit[:,1]
     points_fitted = a[0] + a[1]*ys_fitted + a[2]*ys_fitted**2
     ax.plot(ys_fitted, points_fitted, label=label_for_plot(match)+" (fit)", color="black", linewidth=3, zorder=3)
-    ax.errorbar(0, a[0], yerr=error[0], color="black", linestyle="", marker="s", capsize=3, barsabove=True, label = "Error bar")
+    ax.errorbar(0, a[0], yerr=error[0], color="black", linestyle="", marker="s", capsize=3, barsabove=True, label = "Confidence interval")
     ax.set_xlabel("y = kd|m|")
     ax.legend()
     plot_setaspect(ax)
@@ -481,7 +481,7 @@ def spectrum_with_extrapolation_plot(match,dirname):
     data = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     fig,ax = plot_create()
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
-    ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="Error bar", color="blue", alpha=0.2)
+    ax.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2], label="Confidence interval", color="blue", alpha=0.2)
     ax.set_xlim([min(data[:,0]),max(data[:,0])])
     ax.legend()
     plot_setaspect(ax)

@@ -67,11 +67,15 @@ double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence alon
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
 // 3D vectors (in particle reference frame)
-double prop_0[3],prop[3];     // incident direction (in laboratory and particle reference frame)
-double incPolX[3],incPolY[3]; // incident polarizations (in particle RF)
+double prop[3];               // incident direction
+double incPolX[3],incPolY[3]; // incident polarizations
 double beam_center[3];        // coordinates of the beam center
 double box_origin_unif[3];    /* coordinates of the center of the first dipole in the local computational box (after
                                  uniform distribution of non-void dipoles among all processors) */
+
+// 3D vectors (in laboratory reference frame)
+double prop_0[3];             // incident direction 
+double beam_center_0[3];      // coordinates of the beam center
 
 // file info
 const char * restrict directory; // directory to save data in
@@ -134,11 +138,6 @@ doublecomplex msub;     // complex refractive index of the substrate
 double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(msub)
 bool msubInf;           // whether msub is infinite (perfectly reflecting surface)
 double hsub;            // height of particle center above surface
-/* Propagation (phase) directions of secondary incident beams above (A) and below (B) the surface (unit vectors)
- * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
- */
-double prIncRefl[3],prIncTran[3];
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 

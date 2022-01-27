@@ -40,9 +40,6 @@ extern const doublecomplex cc[][3];
 #ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 #endif
-// defined and initialized in GenerateB.c
-extern const double beam_center_0[3];
-//extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
 extern doublecomplex abs_ref_index[MAX_NMAT];
 extern const double incPolX_0[3],incPolY_0[3];
@@ -538,17 +535,6 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 	doublecomplex expX, expY, expZ;
 #endif
 
-	if (ScatRelation==SQ_SO) {
-		// !!! this should never happen
-		if (anisotropy || rectDip || absorbing_host) LogError(ONE_POS,"Incompatibility error in CalcField");
-		// calculate correction coefficient
-		if (scat_avg) na=0;
-		else na=DotProd(n,prop);
-		temp=kd*kd/24; //Implicit conversion of doublecomplex to double - in the case of complex kd
-		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
-		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
-	}
-
 	cvInit(sum);
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
@@ -822,11 +808,11 @@ double ExtCross(const double * restrict incPol)
 	double sum;
 	size_t i;
 
-	if (beamtype==B_PLANE && !surface) {
+	// this can be considered a legacy case, which works only for the simplest plane way centered at the particle 
+	if (beamtype==B_PLANE && !surface && !beam_asym) {
 		CalcField (ebuff,prop);
 		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
-		//sum=creal(epshost*crDotProd(ebuff,incPol)); // In case of complex WaveNum
-		sum = creal(crDotProd(ebuff,incPol)/WaveNum)
+		sum = creal(crDotProd(ebuff,incPol)/WaveNum)/(WaveNum0*WaveNum0);
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		//sum*=FOUR_PI/(WaveNum*WaveNum);
 	}
