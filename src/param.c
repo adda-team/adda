@@ -118,8 +118,6 @@ bool calc_asym;       // Calculate the asymmetry-parameter
 bool calc_mat_force;  // Calculate the scattering force by matrix-evaluation
 bool store_force;     // Write radiation pressure per dipole to file
 bool store_ampl;      // Write amplitude matrix to file
-bool use_beam_center; // Whether -beam_center argument is used or not
-bool use_beam_subopt; // Whether beam center coordinates are taken from -beam sub-option
 int phi_int_type;     // type of phi integration (each bit determines whether to calculate with different multipliers)
 // used in calculator.c
 bool avg_inc_pol;            // whether to average CC over incident polarization
@@ -377,7 +375,6 @@ void InitBeam(void);
 PARSE_FUNC(alldir_inp);
 PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
-PARSE_FUNC(beam_center);
 PARSE_FUNC(beam);
 PARSE_FUNC(beam_center);
 PARSE_FUNC(chp_dir);
@@ -465,10 +462,6 @@ static struct opt_struct options[]={
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types are floats except for <order> or filenames.\n"
 		"Default: plane",UNDEF,beam_opt},
-	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam in the laboratory reference frame (in um). For most "
-		"beams it corresponds to the most symmetric point with zero phase, while for a point source or a fast "
-		"electron, it determines the real position in space.\n"
-		"Default: 0 0 0",3,NULL},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
 	{PAR(chp_load),"","Restart a simulation from a checkpoint",0,NULL},
@@ -1038,14 +1031,6 @@ PARSE_FUNC(asym)
 	calc_vec = true;
 	calc_Csca = true;
 }
-PARSE_FUNC(beam_center)
-{
-	if (Narg!=3) NargError(Narg,"-beam_center requires 3 arguments");
-	use_beam_center = true;
-	ScanDoubleError(argv[1],&beam_center_0[0]);
-	ScanDoubleError(argv[2],&beam_center_0[1]);
-	ScanDoubleError(argv[3],&beam_center_0[2]);
-}
 PARSE_FUNC(beam)
 {
 	int i,j,need;
@@ -1381,6 +1366,8 @@ PARSE_FUNC(m)
 		ScanDoubleError(argv[2*i+1],&mre);
 		ScanDoubleError(argv[2*i+2],&mim);
 		abs_ref_index[i] = mre + I*mim;
+		//if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
+		//	"Consider using, for instance, 1.0001 instead.",i+1);
 	}
 }
 PARSE_FUNC(maxiter)

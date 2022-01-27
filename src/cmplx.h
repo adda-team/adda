@@ -110,6 +110,7 @@ static inline doublecomplex imExp(const doublecomplex arg)
 {
 	if(cimag(arg)==0) return imExpTable(creal(arg)); //this case is needed to make things faster for real argument
 	else return imExpTable(creal(arg))*exp(-cimag(arg));
+}
 
 static inline doublecomplex imExpM1(const double arg)
 /* exp(i*arg) - 1 (should be used for small argument to avoid precision loss

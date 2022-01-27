@@ -43,8 +43,6 @@ extern const double beam_pars[];
 extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
-extern const bool use_beam_center;
-extern const bool use_beam_subopt;
 
 extern void cik01_(doublecomplex *z, doublecomplex *cbi0, doublecomplex *cdi0, doublecomplex *cbi1, doublecomplex *cdi1, doublecomplex *cbk0, doublecomplex *cdk0, doublecomplex *cbk1, doublecomplex *cdk1);
 
@@ -390,8 +388,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		vCopy(incPolY,ey);
 	}
 
-	printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
-	printf("beam_center = "EFORM3V"\n",COMP3V(beam_center));
+	//printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
+	//printf("beam_center = "EFORM3V"\n",COMP3V(beam_center));
 
 	switch (beamtype) {
 		case B_PLANE: // plane is separate to be fast (for non-surface)
@@ -530,7 +528,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				Q=1/(2*z-I);
 				psi0=-I*Q*imExp(Q*ro2);
 				// ctemp=exp(ik*z0)*psi0, z0 - non-scaled coordinate (z/scale_z)
-				ctemp=imExpReal(WaveNum*z/scale_z)*psi0;
+				ctemp=imExpReal(WaveNum*z/scale_z)*psi0; //or should be imExp?
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {

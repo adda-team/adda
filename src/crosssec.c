@@ -535,17 +535,6 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 	doublecomplex expX, expY, expZ;
 #endif
 
-	if (ScatRelation==SQ_SO) {
-		// !!! this should never happen
-		if (anisotropy || rectDip || absorbing_host) LogError(ONE_POS,"Incompatibility error in CalcField");
-		// calculate correction coefficient
-		if (scat_avg) na=0;
-		else na=DotProd(n,prop);
-		temp=kd*kd/24; //Implicit conversion of doublecomplex to double - in the case of complex kd
-		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
-		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
-	}
-
 	cvInit(sum);
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates

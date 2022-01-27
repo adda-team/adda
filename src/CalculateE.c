@@ -713,7 +713,6 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cenh, // Cross sections
-	Peels,						// EELS probability
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
