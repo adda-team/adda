@@ -95,7 +95,7 @@ bool emulLinebuf;  // whether to emulate line buffering of stdout, defined as ex
 extern const char *avg_string;
 // defined and initialized in GenerateB.c
 extern const char *beam_descr;
-extern double beam_center_0[3];
+extern const double prIncRefl[3],prIncTran[3];
 // defined and initialized in make_particle.c
 extern const bool volcor_used;
 extern const char *sh_form_str1,*sh_form_str2;
@@ -194,6 +194,8 @@ static bool orient_used;        // whether '-orient ...' was used in the command
 static bool yz_used;            // whether '-yz ...' was used in the command line
 static bool scat_plane_used;    // whether '-scat_plane ...' was used in the command line
 static bool so_buf_used;        // whether '-so_buf ...' was used in the command line
+static bool beam_center_used;   // whether '-beam_center ...' was used in the command line
+static bool deprecated_bc_used; // whether '-beam ... <x> <y> <z>' was used in the command line (deprecated option)
 
 /* TO ADD NEW COMMAND LINE OPTION
  * If you need new variables or flags to implement effect of the new command line option, define them here. If a
@@ -234,20 +236,41 @@ static const char exeusage[]="[-<opt1> [<args1>] [-<opt2> <args2>]...]]";
 static const struct subopt_struct beam_opt[]={
 	{"barton5","<width> [<x> <y> <z>]","5th order approximation of the Gaussian beam (by Barton). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
-		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam.",
-		UNDEF,B_BARTON5},
+		"(zero, by default). All arguments are in um. This is recommended option for simulation of the Gaussian beam. "
+		"Specification of coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_BARTON5},
+#ifndef NO_FORTRAN
+	{"besselCS","<order> <angle>","Bessel beam with circularly symmetric energy density. Order is integer (of any "
+		"sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CS},
+	{"besselCSp","<order> <angle>","Alternative Bessel beam with circularly symmetric energy density. Order is "
+		"integer (of any sign) and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_CSp},
+	{"besselM","<order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy>]",
+		"Generalized Bessel beam. Order is integer (of any sign) and the half-cone angle (in degrees) is measured from "
+		"the z-axis. The beam is defined by 2x2 matrix M: (Mex, Mey, Mmx, Mmy). Real parts of these four elements are "
+		"obligatory, while imaginary parts are optional (zero, by default).",UNDEF,B_BES_M},
+	{"besselLE","<order> <angle>","Bessel beam with linearly polarized electric field. Order is integer (of any sign) "
+		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LE},
+	{"besselLM","<order> <angle>","Bessel beam with linearly polarized magnetic field. Order is integer (of any sign) "
+		"and the half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_LM},
+	{"besselTEL","<order> <angle>","Linear component of the TE Bessel beam. Order is integer (of any sign) and the "
+		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TEL},
+	{"besselTML","<order> <angle>","Linear component of the TM Bessel beam. Order is integer (of any sign) and the "
+		"half-cone angle (in degrees) is measured from the z-axis.",2,B_BES_TML},
+#endif // !NO_FORTRAN
 	{"davis3","<width> [<x> <y> <z>]","3rd order approximation of the Gaussian beam (by Davis). The beam width is "
 		"obligatory and x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional "
-		"(zero, by default). All arguments are in um.",UNDEF,B_DAVIS3},
+		"(zero, by default). All arguments are in um. Specification of coordinates here is DEPRECATED, use "
+		"-beam_center instead.",UNDEF,B_DAVIS3},
 	{"dipole","[<x> <y> <z>]","Field of a unit point dipole placed at x, y, z coordinates (in laboratory reference "
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
-		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface.",UNDEF,B_DIPOLE},
+		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface. Specification of "
+		"coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_DIPOLE},
 	{"electron","<energy>","Field of an electron with <energy> in keV."
-		"Center of the beam coordinates are determined by -beam_center command line option. All coordinate arguments are in nm.\n"
-		"Propagation direction of the beam is determined by -prop command line option.\n",1,B_ELECTRON},
+			"Center of the beam coordinates are determined by -beam_center command line option. All coordinate arguments are in nm.\n"
+			"Propagation direction of the beam is determined by -prop command line option.\n",1,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
-		" default). All arguments are in um.",UNDEF,B_LMINUS},
+		" default). All arguments are in um. Specification of coordinates here is DEPRECATED, use -beam_center "
+		"instead.",UNDEF,B_LMINUS},
 	{"plane","","Infinite plane wave",0,B_PLANE},
 	{"read","<filenameY> [<filenameX>]","Defined by separate files, which names are given as arguments. Normally two "
 		"files are required for Y- and X-polarizations respectively, but a single filename is sufficient if only "
@@ -356,6 +379,7 @@ PARSE_FUNC(anisotr);
 PARSE_FUNC(asym);
 PARSE_FUNC(beam_center);
 PARSE_FUNC(beam);
+PARSE_FUNC(beam_center);
 PARSE_FUNC(chp_dir);
 PARSE_FUNC(chp_load);
 PARSE_FUNC(chp_type);
@@ -439,8 +463,12 @@ static struct opt_struct options[]={
 			"For a dipole and an electron it determines the position in space.\n"
 		"Default: 0 0 0",3,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
-		"predefined beam types (if present) are floats.\n"
+		"predefined beam types are floats except for <order> or filenames.\n"
 		"Default: plane",UNDEF,beam_opt},
+	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam in the laboratory reference frame (in um). For most "
+		"beams it corresponds to the most symmetric point with zero phase, while for a point source or a fast "
+		"electron, it determines the real position in space.\n"
+		"Default: 0 0 0",3,NULL},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
 	{PAR(chp_load),"","Restart a simulation from a checkpoint",0,NULL},
@@ -656,7 +684,7 @@ static struct opt_struct options[]={
 		 * the next string.
 		 */
 	{PAR(shape),"<type> [<args>]","Sets shape of the particle, either predefined or 'read' from file. All parameters "
-		"of predefined shapes are floats except for filenames.\n"
+		"of predefined shapes are floats except for <n> and filenames.\n"
 		"Default: sphere",UNDEF,shape_opt},
 	{PAR(size),"<arg>","Sets the size of the computational grid along the x-axis in um, float. If default wavelength "
 		"is used, this option specifies the 'size parameter' of the computational grid. Can not be used together with "
@@ -878,6 +906,16 @@ static void ScanDoubleError(const char * restrict str,double *res)
 
 //======================================================================================================================
 
+static void ScanDouble3Error(char **argv,double res[static 3])
+// scans an option argument (3D vector of doubles) and checks for errors
+{
+	ScanDoubleError(argv[0],res);
+	ScanDoubleError(argv[1],res+1);
+	ScanDoubleError(argv[2],res+2);
+}
+
+//======================================================================================================================
+
 static void ScanIntError(const char * restrict str,int *res)
 // scanf an option argument and checks for errors
 {
@@ -1024,18 +1062,24 @@ PARSE_FUNC(beam)
 		beam_Npars=Narg;
 		opt_beam=opt;
 		need=beam_opt[i].narg;
-		// check number of arguments
+		// check number of arguments and process deprecated ones
 		switch (beamtype) {
 			case B_LMINUS:
 			case B_DAVIS3:
 			case B_BARTON5:
 				if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4");
-				if (Narg==4) use_beam_subopt=true;
+				if (Narg==4) deprecated_bc_used=true;
 				break;
 			case B_DIPOLE:
 				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
-				if (Narg==3) use_beam_subopt=true;
+				if (Narg==3) deprecated_bc_used=true;
 				break;
+			case B_ELECTRON:
+				if (Narg!=1) NargError(Narg,"1");
+				break;
+#ifndef NO_FORTRAN
+			case B_BES_M: if (Narg!=6 && Narg!=10) NargError(Narg,"6 or 10"); break;
+#endif
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW BEAM
@@ -1047,9 +1091,19 @@ PARSE_FUNC(beam)
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],beam_pars+j);
 		// stop search
 		found=true;
+		if (deprecated_bc_used) {
+			LogWarning(EC_WARN,ONE_POS,
+				"Providing beam-center coordinates as arguments to '-beam' is deprecated. Use '-beam_center' instead.");
+			vCopy(beam_pars+Narg-3,beam_center_0);
+		}
 		break;
 	}
 	if (!found) NotSupported("Beam type",argv[1]);
+}
+PARSE_FUNC(beam_center)
+{
+	ScanDouble3Error(argv+1,beam_center_0);
+	beam_center_used = true;
 }
 PARSE_FUNC(chp_dir)
 {
@@ -1177,6 +1231,10 @@ PARSE_FUNC(h)
 #ifdef SPARSE
 						if (strcmp(options[i].name,"shape")==0)
 							printf("!!! Most of the shape options are disabled in sparse mode\n");
+#endif
+#ifdef NO_FORTRAN
+						if (strcmp(options[i].name,"beam")==0)
+							printf("!!! Bessel beams rely on Fortran sources that were disabled at compile time.\n");
 #endif
 					}
 				}
@@ -1440,9 +1498,7 @@ PARSE_FUNC(prop)
 {
 	double tmp;
 
-	ScanDoubleError(argv[1],prop_0);
-	ScanDoubleError(argv[2],prop_0+1);
-	ScanDoubleError(argv[3],prop_0+2);
+	ScanDouble3Error(argv+1,prop_0);
 	tmp=DotProd(prop_0,prop_0);
 	if (tmp==0) PrintErrorHelp("Given propagation vector is null");
 	vMultScal(1/sqrt(tmp),prop_0,prop_0);
@@ -1624,7 +1680,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2021 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2022 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -1941,11 +1997,9 @@ void InitVariables(void)
 	lambda=TWO_PI;
 	mhost=1;
 	epshost=1;
-	use_beam_center=false;
-	use_beam_subopt=false;
-	beam_center_0[0]=0;
-	beam_center_0[1]=0;
-	beam_center_0[2]=0;
+	beam_center_used=false;
+	deprecated_bc_used=false;
+	vInit(beam_center_0);
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
 	abs_ref_index[0]=1.5;
@@ -2141,6 +2195,9 @@ void VariablesInterconnect(void)
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the test above (now redundant)
 	 */
+	
+	if (deprecated_bc_used && beam_center_used) LogError(ONE_POS,"Beam center coordinates can not be specified as "
+		"arguments to both '-beam' and '-beam_center'. Use only the latter.");
 	if (calc_Csca || calc_vec) all_dir = true;
 	// by default, one of the scattering options is activated
 	if (store_scat_grid || phi_integr) scat_grid = true;
@@ -2535,8 +2592,7 @@ void PrintInfo(void)
 			if (alph_deg!=0 || bet_deg!=0 || gam_deg!=0) {
 				fprintf(logfile,"Particle orientation (deg): alpha="GFORMDEF", beta="GFORMDEF", gamma="GFORMDEF"\n\n"
 					"---In particle reference frame:---\n",alph_deg,bet_deg,gam_deg);
-				if (beam_asym) fprintf(logfile,"Incident Beam center position: "GFORMDEF3V"\n",
-					beam_center[0],beam_center[1],beam_center[2]);
+				fprintf(logfile,"Incident beam center position: "GFORMDEF3V"\n",COMP3V(beam_center_0));
 				fprintf(logfile,"Incident propagation vector: "GFORMDEF3V"\n",COMP3V(prop));
 				if (beamtype==B_DIPOLE) fprintf(logfile,"(dipole orientation)\n");
 				else { // polarizations are not shown for dipole incident field

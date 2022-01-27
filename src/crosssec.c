@@ -40,9 +40,6 @@ extern const doublecomplex cc[][3];
 #ifndef SPARSE
 extern doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ;
 #endif
-// defined and initialized in GenerateB.c
-extern const double beam_center_0[3];
-//extern doublecomplex eIncRefl[3],eIncTran[3];
 // defined and initialized in param.c
 extern doublecomplex abs_ref_index[MAX_NMAT];
 extern const double incPolX_0[3],incPolY_0[3];
@@ -822,7 +819,8 @@ double ExtCross(const double * restrict incPol)
 	double sum;
 	size_t i;
 
-	if (beamtype==B_PLANE && !surface) {
+	// this can be considered a legacy case, which works only for the simplest plane way centered at the particle 
+	if (beamtype==B_PLANE && !surface && !beam_asym) {
 		CalcField (ebuff,prop);
 		//sum=crDotProd_Re(ebuff,incPol); // incPol is real, so no conjugate is needed
 		sum = creal(crDotProd(ebuff,incPol)/WaveNum)/(WaveNum0*WaveNum0);
