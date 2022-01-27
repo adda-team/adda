@@ -502,7 +502,7 @@ void ReadScatGridParms(const char * restrict fname)
 }
 
 //======================================================================================================================
-static inline double eta2(const double n[static restrict 3])
+static inline doublecomplex eta2(const double n[static restrict 3])
 /* calculates IGT_SO correction for scattering at direction n. Exact formula is based on integration of exp(ikn.r) over
  * the dipole volume, resulting in Product(sinc(kd[mu]*n[mu]/2),mu). But here we use a second-order approximation.
  * Does not depend on n for cubical dipoles.
@@ -537,6 +537,17 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 #ifdef SPARSE
 	doublecomplex expX, expY, expZ;
 #endif
+
+	if (ScatRelation==SQ_SO) {
+		// !!! this should never happen
+		if (anisotropy || rectDip || absorbing_host) LogError(ONE_POS,"Incompatibility error in CalcField");
+		// calculate correction coefficient
+		if (scat_avg) na=0;
+		else na=DotProd(n,prop);
+		temp=kd*kd/24; //Implicit conversion of doublecomplex to double - in the case of complex kd
+		// mult_mat=1-(kd^2/24)(m^2-2(n.a)m+1)
+		for(i=0;i<Nmat;i++) mult_mat[i]=1-temp*(ref_index[i]*ref_index[i]-2*na*ref_index[i]+1);
+	}
 
 	cvInit(sum);
 #ifndef SPARSE
@@ -666,7 +677,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			cs=FresnelRS(ki,kt);
 			cp=FresnelRP(ki,kt,msub);
 		}
-		phSh=imExpReal(2*WaveNum*hsub*creal(ki)); // assumes real ki
+		phSh=imExpReal(2*WaveNum*hsub*creal(ki)); // assumes real ki AND real WaveNum - the latter is implicitly converted to "double"
 	}
 	else { // transmission; here nF[2] is negative
 		// formulae correspond to plane wave incoming from below, but with change ki<->kt
@@ -781,7 +792,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	if (above) { // ebuff+= [(I-nxn).sum=sum-nF*(nF.sum)] * exp(-2ik*r0*nz), where r0=box_origin_unif
 		cvMultScal_RVec(crDotProd(sumF,nF),nF,t3);
 		cvSubtr(sumF,t3,t3);
-		cvMultScal_cmplx(imExpReal(-2*WaveNum*creal(ki)*box_origin_unif[2]),t3,t3); // assumes real ki
+		cvMultScal_cmplx(imExpReal(-2*WaveNum*creal(ki)*box_origin_unif[2]),t3,t3); // assumes real ki AND real WaveNum - the latter is implicitly converted to "double"
 		cvAdd(t3,ebuff,ebuff);
 	}
 	// ebuff=(-i*k^3)*exp(-ikr0.n)*tbuff, where r0=box_origin_unif
@@ -807,9 +818,8 @@ void CalcField(doublecomplex ebuff[static restrict 3], // where to write calcula
 double ExtCross(const double * restrict incPol)
 // Calculate the Extinction cross-section
 {
-	doublecomplex epshost = mhost*mhost;
 	doublecomplex ebuff[3],escbuff[3];
-	doublecomplex sum;
+	double sum;
 	size_t i;
 
 	if (beamtype==B_PLANE && !surface) {
@@ -854,7 +864,8 @@ double AbsCross(void)
 	size_t dip,index;
 	int i,j;
 	unsigned char mat;
-	doublecomplex sum,temp1,temp2;
+	double sum;
+	doublecomplex temp1,temp2;
 	doublecomplex m,m2m1;
 	double mult[MAX_NMAT][3]; // multiplier (possibly anisotropic)
 
@@ -887,6 +898,7 @@ double AbsCross(void)
 			 * summand: Im(P.E(*))=-|P|^2*Im(chi_inv), chi_inv=1/(V*chi)
 			 */
 			// Now (for complex mhost) the summand is somewhat different, but gives the same result
+			// For complex mhost this case is default
 			for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=dipvol*cimag(abs_ref_index[i]*abs_ref_index[i])*cAbs2(chi_inv[i][j]);
 			//TO DO: Understand how this (the string above) should be changed for anisotropic ref_index
 			for (dip=0,sum=0;dip<local_nvoid_Ndip;++dip) {
@@ -894,7 +906,6 @@ double AbsCross(void)
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
-			//sum/=FOUR_PI*creal(mhost)*creal(mhost); //4 Pi and one mhost are not really needed - they are reduced in the end of this function
 			break;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
@@ -908,7 +919,6 @@ double EnhCross(void)
 // computes total cross section for the dipole incident field; similar to Cext
 // 4pi*k*Im[p0(*).Escat(r0)]
 {
-	doublecomplex epshost = mhost*mhost;
 	double sum = 0, c = 0, ty, tt;
 	size_t i;
 
@@ -932,6 +942,46 @@ double EnhCross(void)
 	//return FOUR_PI*sum/creal(WaveNum);
 	return -FOUR_PI*WaveNum0*sum/creal(mhost);
 }
+
+//======================================================================================================================
+
+void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
+// computes total scattering power which is outgoing from particle
+// Sum[Im(E_sca*P*) - Im(eps_host)*|E_sca|^2]
+// and the total extinction power whith is outging from particle
+// Sum[Im(E_inc*P*) - 2*Im(eps_host)*Re(E_inc*E_sca*)]
+{
+	double sumSca = 0;
+	double sumExt = 0;
+	double sumSca2 = 0;
+	double sumExt2 = 0;
+	doublecomplex ebuff[3],escbuff[3];
+	unsigned char mat;
+	doublecomplex mult[MAX_NMAT][3];
+	int i,j;
+	size_t dip, dipindex;
+
+	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=chi_inv[i][j];
+	for (dip=0;dip<local_nvoid_Ndip;++dip) {
+		mat=material[dip];
+		dipindex=3*dip;
+		cvMult(mult[mat],pvec+dipindex,ebuff);
+		cvSubtr(ebuff,Einc+dipindex,escbuff);
+		sumSca  += cimag(epshost*cDotProd(escbuff,pvec+dipindex));
+		sumSca2 += cvNorm2(escbuff);
+		sumExt  += cimag(epshost*cDotProd(Einc+dipindex,pvec+dipindex));
+		sumExt2 += creal(cDotProd(escbuff,Einc+dipindex));
+	}
+
+	MyInnerProduct(&sumSca,double_type,1,&Timing_ScatQuanComm);
+	MyInnerProduct(&sumSca2,double_type,1,&Timing_ScatQuanComm);
+	MyInnerProduct(&sumExt,double_type,1,&Timing_ScatQuanComm);
+	MyInnerProduct(&sumExt2,double_type,1,&Timing_ScatQuanComm);
+
+	CscaTotal_CextTotal[0] = (FOUR_PI*sumSca-dipvol*cimag(epshost)*sumSca2)/creal(WaveNum);
+	CscaTotal_CextTotal[1] = -(FOUR_PI*sumExt-2*dipvol*cimag(epshost)*sumExt2)/creal(WaveNum);
+}
+
 
 //======================================================================================================================
 
@@ -1111,7 +1161,7 @@ double ScaCross(const char *f_suf)
 {
 	TIME_TYPE tstart;
 	char fname[MAX_FNAME];
-	doublecomplex res;
+	double res;
 
 	SnprintfErr(ONE_POS,fname,MAX_FNAME,"%s/"F_LOG_INT_CSCA "%s",directory,f_suf);
 
@@ -1157,7 +1207,7 @@ static void AsymParm(double *vec,const char *f_suf)
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gIntegrand,3,vec,log_int);
-	vMultScal(FOUR_PI/(WaveNum*WaveNum),vec,vec);
+	vMultScal(FOUR_PI/cAbs2(WaveNum),vec,vec);
 	if (surface) vMultScal(inc_scale,vec,vec);
 	Timing_Integration += GET_TIME() - tstart;
 }
@@ -1189,7 +1239,7 @@ void AsymParm_x(double *vec,const char *f_suf)
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gxIntegrand,1,vec,log_int);
-	vec[0] *= FOUR_PI/(WaveNum*WaveNum);
+	vec[0] *= FOUR_PI/cAbs2(WaveNum);
 	if (surface) vec[0]*=inc_scale;
 	Timing_Integration += GET_TIME() - tstart;
 }
@@ -1221,7 +1271,7 @@ void AsymParm_y(double *vec,const char *f_suf)
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gyIntegrand,1,vec,log_int);
-	vec[0] *= FOUR_PI/(WaveNum*WaveNum);
+	vec[0] *= FOUR_PI/cAbs2(WaveNum);
 	if (surface) vec[0]*=inc_scale;
 	Timing_Integration += GET_TIME() - tstart;
 }
@@ -1249,7 +1299,7 @@ void AsymParm_z(double *vec,const char *f_suf)
 
 	tstart = GET_TIME();
 	Romberg2D(parms,gzIntegrand,1,vec,log_int);
-	vec[0] *= FOUR_PI/(WaveNum*WaveNum);
+	vec[0] *= FOUR_PI/cAbs2(WaveNum);
 	if (surface) vec[0]*=inc_scale;
 	Timing_Integration += GET_TIME() - tstart;
 }
@@ -1264,6 +1314,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
  *
  * This should be completely rewritten to work through FFT. Moreover, it should comply with '-scat ...' command line
  * option.
+ * TO DO: make compatible with complex refractive index of the host medium
  */
 {
 	size_t j,k,jg,comp;
@@ -1293,7 +1344,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	 */
 	for (j=0;j<local_nRows;j+=3) {
 		if (Frp!=NULL) vec=Frp+j;
-		vMultScal(WaveNum*cDotProd_Im(pvec+j,Einc+j)/2,prop,vec);
+		vMultScal(WaveNum*cDotProd_Im(pvec+j,Einc+j)/2,prop,vec); //This is NOT true in the case of complex WaveNum
 		vAdd(vec,Finc_tot,Finc_tot);
 	}
 	// check if it can work at all; check is redundant for sequential mode
@@ -1338,7 +1389,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 			r = sqrt(r2);
 			vMultScal(1/r,n,n);
 			// Set the scalar products a.b1 and a.b2
-			a = imExpReal(WaveNum*r);
+			a = imExpReal(WaveNum*r); //This is NOT true in the case of complex WaveNum
 			ab1 = (3/(r2*r2) - I*3*WaveNum/(r*r2) - WaveNum*WaveNum/r2)*a;
 			ab2 = (-WaveNum*WaveNum/r2 + I*WaveNum*WaveNum*WaveNum/r)*a;
 			// Prepare c1 and c2

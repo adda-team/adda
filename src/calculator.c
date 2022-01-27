@@ -436,7 +436,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		double c1=-5.9424219;
 		double c2=0.5178819;
 		double c3=4.0069747;
-		double nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD);
+		doublecomplex nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD); //the type was changed to doublecomplex (for the case of complex WaveNum), but this case was not tested
 		doublecomplex correction;
 		doublecomplex L,K;
 		double draineSum;
@@ -523,12 +523,13 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				case POL_CM: res[i]=polCM(mrel[i]); break;
 				case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
 				case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+					if(cimag(WaveNum)!='0') LogError(ONE_POS,"Incompatibility error in CoupleConstant - POL_FCD is not compatible with absorbing surrounding medium");
+					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]); //One day we'll make it compatible with complex mhost, but now it is not
 					break;
 				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
 				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
 					ka=LAK_C*kd;
-					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExpReal(ka)-1),mrel[i]);
+					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
 					break;
 				case POL_LDR:
 					if (avg_inc_pol) S=0.5*(1-DotProdSquare(prop,prop));

@@ -31,6 +31,7 @@ double inv_G;             // inverse of equivalent cross section
 doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
 doublecomplex WaveNum0;   // wavenumber of incident light as in vacuum: k=w/c
 doublecomplex mhost;	  // refractive index of the medium
+doublecomplex epshost;	  // dielectric permittivity of the medium
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes
 double memPeak;           // peak memory usage in bytes
@@ -61,6 +62,7 @@ bool anisotropy;    // whether the scattering medium is anisotropic
 bool save_memory;   // whether to sacrifice some speed for memory
 bool ipr_required;  /* whether inner product in MatVec will be used by iterative solver (causes additional
                        initialization, e.g., for OpenCL) */
+bool absorbing_host; // absorbing host medium
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
