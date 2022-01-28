@@ -819,8 +819,8 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 			if(absorbing_host)	{
 				double CscaTotal_CextTotal[2];
 				CrossSec_VolumeIntegral(CscaTotal_CextTotal);
-				PrintBoth(CCfile,"Csca_p (by Volume Integral)\t= "GFORM"\n",CscaTotal_CextTotal[0]);
-				PrintBoth(CCfile,"Cext_p (by Volume Integral)\t= "GFORM"\n",CscaTotal_CextTotal[1]);
+				PrintBoth(CCfile,"Csca_p\t= "GFORM"\n",CscaTotal_CextTotal[0]);
+				PrintBoth(CCfile,"Cext_p\t= "GFORM"\n",CscaTotal_CextTotal[1]);
 			}
 
 			if (calc_vec) {

@@ -893,6 +893,7 @@ double AbsCross(void)
 				index=3*dip;
 				for(i=0;i<3;i++) sum+=mult[mat][i]*cAbs2(pvec[index+i]);
 			}
+			sum /= FOUR_PI;
 			break;
 	}
 	MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
@@ -965,8 +966,8 @@ void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
 	MyInnerProduct(&sumExt,double_type,1,&Timing_ScatQuanComm);
 	MyInnerProduct(&sumExt2,double_type,1,&Timing_ScatQuanComm);
 
-	CscaTotal_CextTotal[0] = (FOUR_PI*sumSca-dipvol*cimag(epshost)*sumSca2)/creal(WaveNum);
-	CscaTotal_CextTotal[1] = -(FOUR_PI*sumExt-2*dipvol*cimag(epshost)*sumExt2)/creal(WaveNum);
+	CscaTotal_CextTotal[0] = (FOUR_PI*sumSca-dipvol*cimag(epshost)*sumSca2)*WaveNum0/creal(mhost);
+	CscaTotal_CextTotal[1] = -(FOUR_PI*sumExt-2*dipvol*cimag(epshost)*sumExt2)*WaveNum0/creal(mhost);
 }
 
 
