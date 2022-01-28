@@ -793,8 +793,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
 			if (beamtype==B_ELECTRON) {
-				double Pext, Peels, Pcl, Crad;
-				double hbar = 1.054571817e-27;
+				double Pext, Peels, Pcl;
 				double hbar_SI = 1.054571817e-34;
 				double hbar_ev = 6.582119569e-16;
 				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
