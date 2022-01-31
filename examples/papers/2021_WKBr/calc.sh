@@ -5,7 +5,9 @@
 # but they require a lot more resources (see also the scripts in cluster/).
 #
 # For full operation, it is required to provide reference and approximate internal fields, using the scripts in WKBr/
-# and Mie_solution/ folders. They can be called automatically by this script, but then
+# and Mie_solution/ folders. They are called automatically by this script.
+# 
+# This script must be called from its parent folder
 
 # Input parameters. Either change the default values here or specify them in the command line
 size=${1:-10}
@@ -15,8 +17,15 @@ calcref=${4:-yes}
 
 # Change 4 to the actual number of processor cores to employ
 MPIEXEC="mpiexec -n 4"
-# Relative path to adda_mpi after default compilation (make mpi)
-ADDA_MPI="../../../src/mpi/adda_mpi"
+# Alternative option is to use precompiled Windows binaries
+
+# The following script will locate adda_mpi (often out of the box), but you can override it by setting ADDA_MPI
+# explicitly here (uncomment the following line) or somewhere in the environment
+#ADDA_MPI="../../../src/mpi/adda_mpi"
+if ! . ../../find_adda.sh mpi; then
+  exit 1
+fi
+
 RUN="$MPIEXEC $ADDA_MPI"
 
 # the following define filenames (with full or relative paths) 
@@ -31,13 +40,11 @@ if [ "$calcref" == "yes" ]; then
   # answer describes, how it can be disabled - https://stackoverflow.com/a/57168165/2633728
   if command -v python3 &> /dev/null; then
     PYTHON=python3
+  elif command -v python &> /dev/null; then
+    PYTHON=python
   else
-    if command -v python &> /dev/null; then
-      PYTHON=python
-    else
-      echo ERROR: Python environment not found
-      exit 1
-    fi
+    echo ERROR: Python environment not found >&2
+    exit 1
   fi
   # compute Mie reference
   cd Mie_solution/
