@@ -3,6 +3,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 
+def addaexec_name(mode):
+    if mode!="seq" and mode!="mpi" and mode!="ocl":
+        print(f"ERROR: unkwnown mode {mode}")
+        return None
+    if mode == "seq" : return "adda"; return f"adda_{mode}"   
+
+def addaexec_find(mode="seq"):
+    name = addaexec_name(mode)
+    if name == None : return
+    if os.system(name  + " > " + os.devnull + " 2>&1") == 0 : return name
+    #print(name)
+    cmdline = os.path.abspath(__file__ + f"/../../../src/seq/{name}")
+    if os.system(cmdline  + " -V > " + os.devnull + " 2>&1") == 0 : return cmdline
+    #print(cmdline)
+    cmdline = os.path.abspath(__file__ + f"/../../../win64/{name}")
+    if os.name == "nt" and os.system(cmdline  + " -V > " + os.devnull + " 2>&1") == 0 : return cmdline
+    #print(cmdline)
+    print(f"ERROR: No working {name} binary found")
+
 def label_for_plot(match):
     if match[0] == "P":
         return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", eV$^{-1}$"
@@ -110,6 +129,7 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     if "lambda" in adda_cmdlineargs:
         del adda_cmdlineargs["lambda"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
+    print(cmdline)
     mp_file = aw_parameters["mp_file"]
     ev_min, ev_max = aw_parameters["ev_range"]
     mdata = mp_range_read(mp_file,ev_min,ev_max)
@@ -119,11 +139,11 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     cmdlines = []
     for i in mdata:
         cmdline_i = cmdline
-        cmdline_i += f" -dir '{dirname}/ADDA_output/{i[0]}'"
+        output_dir = os.path.abspath(dirname + f"/ADDA_output/{i[0]}")
+        cmdline_i += f' -dir "{output_dir}"'
         cmdline_i += " -lambda %s" % ev_to_nm(i[0])
         cmdline_i += f" -m {i[1]} {i[2]}"
-        #cmdline_i += f" -m 1.33 0 {i[1]} {i[2]}"
-        cmdline_i += " > /dev/null"
+        cmdline_i += " > " + os.devnull
         cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
@@ -134,7 +154,7 @@ def spectrum_collect(match,dirname, silent=False):
     for ev in evs:
         values.append(parse_value(f"{dirname}/ADDA_output/{ev}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
-        writer = csv.writer(file, delimiter=',')
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerow(["ev",match])
         writer.writerows(zip(evs,values))
         print_log(f"Saved {dirname}/{match}.csv", silent=silent)
@@ -244,10 +264,11 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
         for i in mdata:
             cmdline_i = cmdline
             cmdline_i += f" -beam_center {beam_center}"
-            cmdline_i += f" -dir '{point_dir}/ADDA_output/{i[0]}'"
+            dir_fixed = os.path.abspath(point_dir + f"/ADDA_output/{i[0]}")
+            cmdline_i += f' -dir "{dir_fixed}"'
             cmdline_i += " -lambda %s" % ev_to_nm(i[0])
             cmdline_i += f" -m {i[1]} {i[2]}"
-            cmdline_i += " > /dev/null"
+            cmdline_i += " > " + os.devnull
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
@@ -266,7 +287,7 @@ def spectrumline_collect(match, dirname):
     #print(points)
     xs = np.genfromtxt(f"{dirname}/{dirs[0]}/{match}.csv", delimiter=',')[1:,0]
     with open(f"{dirname}/{match}.csv", 'w') as file:
-        writer = csv.writer(file, delimiter=',')
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerows(zip(["Point no.", "x [nm]", "y [nm]"],*points))
         writer.writerow("-"*(len(points)+1))
         valuenames = ["eV"] + ['Peels']*len(points)
@@ -336,19 +357,19 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     print_log(f"{cmdline}",dirname)
     print_log(f"mp_file: {mp_file}",dirname)
     print_log(f"ev = {mdata[0]}",dirname)
-    print_log(f"mp_re = {mdata[1]}",dirname)
-    print_log(f"mp_im = {mdata[2]}",dirname)
+    print_log(f"m_p = {mdata[1]} + {mdata[2]}*I",dirname)
     print_log(f"Varying grids: {grids}",dirname)
     cmdlines = []
     for i in grids:
         cmdline_i = cmdline
-        cmdline_i += f" -dir '{dirname}/ADDA_output/{i}'"
+        dir_fixed = os.path.abspath(dirname + f"/ADDA_output/{i}")
+        cmdline_i += f' -dir "{dir_fixed}"'
         cmdline_i += f" -grid {i}"
-        cmdline_i += " > /dev/null"
+        cmdline_i += " > " + os.devnull
         cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
@@ -370,12 +391,12 @@ def extrapolation_collect(match, dirname):
     a = np.flip(fit)
     error = 2*np.sqrt(np.flip(np.diag(cov)))
     with open(f"{dirname}/{match}.csv", 'w') as file:
-        writer = csv.writer(file, delimiter=',')
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerow(["grids","ys","values"])
         writer.writerows(zip(grids,ys,values))
         print(f"Saved to {dirname}/{match}.csv")
     with open(f"{dirname}/{match}_fit.csv", 'w') as file:
-        writer = csv.writer(file, delimiter=',')
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerow(["a[i]","error[i]"])
         writer.writerows(zip(a,error))
         print(f"Saved to {dirname}/{match}_fit.csv")
@@ -424,7 +445,7 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     adda_cmdlineargs["lambda"] = lam
     adda_cmdlineargs["m"] = f"{mre} {mim}"
     with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
     del adda_cmdlineargs["lambda"]
@@ -440,11 +461,12 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
         os.mkdir(f"{dirname}/ADDA_output/{grid_i}")
         for mdata_j in mdata:
             cmdline_i = cmdline
-            cmdline_i += f" -dir '{dirname}/ADDA_output/{grid_i}/{mdata_j[0]}'"
+            dir_fixed = os.path.abspath(dirname + f"/ADDA_output/{grid_i}/{mdata_j[0]}")
+            cmdline_i += f' -dir "{dir_fixed}"'
             cmdline_i += f" -grid {grid_i}"
             cmdline_i += " -lambda %s" % ev_to_nm(mdata_j[0])
             cmdline_i += f" -m {mdata_j[1]} {mdata_j[2]}"
-            cmdline_i += " > /dev/null"
+            cmdline_i += " > " + os.devnull
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
@@ -472,7 +494,7 @@ def spectrum_with_extrapolation_collect(match, dirname):
         fit_values.append(a[0])
         fit_errors.append(error[0])
     with open(f"{dirname}/{match}_fit.csv", 'w') as file:
-        writer = csv.writer(file, delimiter=',')
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerow(["ev",match,"error"])
         writer.writerows(zip(evs,fit_values,fit_errors))
         print(f"Saved to {dirname}/{match}_fit.csv")
@@ -521,25 +543,25 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     del adda_cmdlineargs["beam_center"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
     print_log(f"{cmdline}",dirname)
     print_log(f"mp_file: {mp_file}",dirname)
     print_log(f"ev = {ev}",dirname)
-    print_log(f"mp_re = {mdata[1]}",dirname)
-    print_log(f"mp_im = {mdata[2]}",dirname)
+    print_log(f"m_p = {mdata[1]} + {mdata[2]}*I",dirname)
     print_log(f"Varying (x_left,x_right) = ({x_left},{x_right}) nm",dirname)
     print_log(f"Varying (y_bottom,y_top) = ({y_bottom},{y_top}) nm",dirname)
     cmdlines = []
     for x0_i in x0s:
         for y0_i in y0s:
             cmdline_i = cmdline
-            cmdline_i += f" -dir '{dirname}/ADDA_output/{x0_i}_{y0_i}'"
+            dir_fixed = os.path.abspath(dirname + f"/ADDA_output/{x0_i}_{y0_i}")
+            cmdline_i += f' -dir "{dir_fixed}"'
             beam_list[0], beam_list[1] = str(x0_i), str(y0_i)
             beam_center = (" ").join(beam_list)
             cmdline_i += f" -beam_center {beam_center}"
-            cmdline_i += " > /dev/null"
+            cmdline_i += " > " + os.devnull
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
@@ -555,7 +577,7 @@ def scan_collect(match, dirname):
         ys.append(float(xy[1]))
         values.append(parse_value(f"{dirname}/ADDA_output/{dir_i}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
-            writer = csv.writer(file, delimiter=',')
+            writer = csv.writer(file, delimiter=',', lineterminator='\n')
             writer.writerow(["x","y",match])
             writer.writerows(zip(xs,ys,values))
             print(f"Saved to {dirname}/{match}.csv")

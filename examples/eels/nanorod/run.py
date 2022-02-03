@@ -4,8 +4,8 @@ import ADDAwrapper as aw
 
 # ADDAWrapper parameters
 aw_parameters = dict(
-    #adda_exec = "../../win64/adda.exe", #path to ADDA executable
-    adda_exec = os.path.abspath(__file__ + "/../../../../src/seq/adda"), #path to ADDA executable
+    #adda_exec = os.path.abspath(__file__ + "/../../../../win64/adda.exe"), #path to ADDA executable
+    adda_exec = aw.addaexec_find(mode="seq"), #path to ADDA executable
     parallel_procs = multiprocessing.cpu_count()-1, #number of parallel processes is equal to the number of processor cores minus 1
 
     mp_file = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/refractive_index/" + "Au_JHW.csv"), #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
