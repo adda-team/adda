@@ -2,3 +2,4 @@ Various examples of using ADDA. Mostly these are tutorial examples, which illust
 * `bessel/` – examples involving excitation by Bessel beams (will be added after #209)
 * `eels/` – examples involving excitation by a fast electron (will be added after #155)
 * `papers/` – examples reproducing published results
+* `find_adda.sh` - common script to locate ADDA binaries and set corresponding environmenal variables

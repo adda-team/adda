@@ -30,20 +30,18 @@ A) COMPILING ===================================================================
 
    "./runexample".
 
-   to check that all programs are working. In some configurations you may first need to specify ADDABIN and MPIEXEC
+   to check that all programs are working. In some configurations you may first need to specify ADDA_SEQ and MPIEXEC
    environment variables (see below).
 
 B) RUNNING TESTS =======================================================================================================
 
    It is REQUIRED that you test the program before using it for your applications.
 
-   First of all select your adda binary (both path and adda name) and command line to invoke MPI:
+   The script will try to locate ADDA binary automatically, and run nearfield with 4 tasks. You may change this behavior
+   by defining the following environmental variables (full path to adda) and command line to invoke MPI:
 
-   export ADDABIN=youraddbinary
+   export ADDA_SEQ=youraddbinary
    export MPIEXEC="MPIinvocation"
-
-   You may skip this step if default values "../../src/seq/adda" (relative to path of nearfield executables) and
-   "mpiexec -n 4" respectively fit your system.
 
    Then cd into the directory RUNTESTS and type
 
