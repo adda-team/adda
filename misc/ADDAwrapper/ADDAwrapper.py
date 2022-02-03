@@ -2,24 +2,20 @@ import os, shutil, re, csv, time, multiprocessing, tqdm, math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-
-def addaexec_name(mode):
+ 
+def addaexec_find(mode="seq"):
     if mode!="seq" and mode!="mpi" and mode!="ocl":
         print(f"ERROR: unkwnown mode {mode}")
-        return None
-    if mode == "seq" : return "adda"; return f"adda_{mode}"   
-
-def addaexec_find(mode="seq"):
-    name = addaexec_name(mode)
-    if name == None : return
+        return
+    if mode == "seq": 
+        name="adda"
+    else: 
+        name=f"adda_{mode}" 
     if os.system(name  + " > " + os.devnull + " 2>&1") == 0 : return name
-    #print(name)
     cmdline = os.path.abspath(__file__ + f"/../../../src/seq/{name}")
     if os.system(cmdline  + " -V > " + os.devnull + " 2>&1") == 0 : return cmdline
-    #print(cmdline)
     cmdline = os.path.abspath(__file__ + f"/../../../win64/{name}")
     if os.name == "nt" and os.system(cmdline  + " -V > " + os.devnull + " 2>&1") == 0 : return cmdline
-    #print(cmdline)
     print(f"ERROR: No working {name} binary found")
 
 def label_for_plot(match):
@@ -129,7 +125,6 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     if "lambda" in adda_cmdlineargs:
         del adda_cmdlineargs["lambda"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
-    print(cmdline)
     mp_file = aw_parameters["mp_file"]
     ev_min, ev_max = aw_parameters["ev_range"]
     mdata = mp_range_read(mp_file,ev_min,ev_max)
