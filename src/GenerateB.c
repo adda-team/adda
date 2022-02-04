@@ -72,10 +72,10 @@ static doublecomplex besM[4];     // Matrix M defining the generalized Bessel be
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
  * Add descriptive comments, use 'static'.
  */
- 
+
 // EXTERNAL FUNCTIONS
 
-#ifndef NO_FORTRAN 
+#ifndef NO_FORTRAN
 void bjndd_(const int *n,const double *x,double *bj,double *dj,double *fj);
 #endif
 
@@ -89,7 +89,7 @@ void InitBeam(void)
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
-	
+
 	// initialization of global option index for error messages
 	opt=opt_beam;
 	// beam initialization
@@ -100,9 +100,9 @@ void InitBeam(void)
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
 			if (surface) {
-				/* here we assume that prop_0 will not change further (e.g., by rotation of particle), 
+				/* here we assume that prop_0 will not change further (e.g., by rotation of particle),
 				 * i.e. prop=prop_0 in GenerateBeam() below
-				 */				
+				 */
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
 					"the incident direction to have (arbitrary) small positive or negative z-component");
 				if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
@@ -255,7 +255,7 @@ void InitBeam(void)
 				case B_BES_TML:
 					TestRangeNN(beam_pars[1],"half-cone angle for TML type",0,90);
 					besM[0]=0;              besM[1]=besKz/besKt;
-					besM[2]=WaveNum/besKt;  besM[2]=0;
+					besM[2]=WaveNum/besKt;  besM[3]=0;
 					if (IFROOT) tmp_str="linear component of the TM";
 					break;
 				default: LogError(ONE_POS,"Incompatibility error in GenerateB");
@@ -359,7 +359,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				 * the substrate (below) is Exp(i*k*msub*r.a). We assume that the incoming beam is homogeneous in its
 				 * original medium.
 				 */
-				double hbeam=hsub+beam_center[2]; // height of beam center above the surface 
+				double hbeam=hsub+beam_center[2]; // height of beam center above the surface
 				if (prop[2]>0) { // beam comes from the substrate (below)
 					doublecomplex tc; // transmission coefficients
 					//  determine amplitude of the transmitted wave; here msub is always defined
@@ -635,7 +635,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
 			return;
-#endif // !NO_FORTRAN		
+#endif // !NO_FORTRAN
 		case B_READ:
 			if (which==INCPOL_Y) fname=beam_fnameY;
 			else fname=beam_fnameX; // which==INCPOL_X
