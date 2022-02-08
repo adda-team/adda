@@ -106,12 +106,103 @@ def parse_value(file,match):
                     break
     return value
 
+def plot_create():
+    fig = plt.figure(constrained_layout=True)
+    ax = fig.add_subplot(1, 1, 1)
+    ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    ax.set_xlabel("Energy, eV")
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.grid(which="both", axis="x", linestyle="dotted", zorder=0)
+    ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+    plot_setrcparams()
+    return fig, ax
+
+def plot_setaspect(ax):
+    xleft, xright = ax.get_xlim()
+    ybottom, ytop = ax.get_ylim()
+    ax.set_aspect(abs((xright-xleft)/(ybottom-ytop))*.5625)
+
+def plot_setrcparams():
+    SMALL_SIZE = 12
+    MEDIUM_SIZE = 14
+    BIGGER_SIZE = 16
+    
+    plt.rc('font', **{'family': 'serif', 'serif': 'Arial'})
+    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 def exec_cmdlines(cmdlines,parallel_procs):
     pool = multiprocessing.Pool(parallel_procs)
     result_list_tqdm = []
     for result in tqdm.tqdm(pool.imap(os.system, cmdlines, 1), total=len(cmdlines)):
         result_list_tqdm.append(result)
     return result_list_tqdm
+
+def varyany_execute(aw_parameters,adda_cmdlineargs,dirname,var,var_range):
+    aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
+    start_time = time.time()
+    shutil.rmtree(dirname, ignore_errors=True)
+    os.makedirs(dirname, exist_ok=True)
+    os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
+    print()
+    print_log("--- Vary any parameter: executing simulations",dirname)
+    print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
+    if var in adda_cmdlineargs:
+        del adda_cmdlineargs[var]
+    mp_file = aw_parameters["mp_file"]
+    ev = aw_parameters["ev"]
+    mdata = mp_single_read(mp_file,ev)
+    lam = ev_to_nm(ev)
+    adda_cmdlineargs["lambda"] = lam
+    mre = mdata[1]
+    mim = mdata[2]
+    adda_cmdlineargs["m"] = f"{mre} {mim}"
+    cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
+    print_log(f"{cmdline}",dirname)
+    print_log(f"mp = {mre} + {mim}*I",dirname)
+    print_log(f"Varying {var} from {var_range[0]} to {var_range[-1]}",dirname)
+    cmdlines = []
+    for i in var_range:
+        cmdline_i = cmdline
+        output_dir = os.path.abspath(dirname + f"/ADDA_output/{i}")
+        cmdline_i += f' -dir "{output_dir}"'
+        cmdline_i += f" -{var} %s" % str(i)
+        cmdline_i += " > /dev/null"
+        cmdlines.append(cmdline_i)
+    #print(cmdlines)
+    exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
+    print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
+    
+def varyany_collect(match,dirname, silent=False):
+    xs = sorted([d.name for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
+    print(xs)
+    values = []
+    for x in xs:
+        values.append(parse_value(f"{dirname}/ADDA_output/{x}/CrossSec-Y",match))
+    with open(f"{dirname}/{match}.csv", 'w') as file:
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
+        writer.writerow(["var",match])
+        writer.writerows(zip(xs,values))
+        print_log(f"Saved {dirname}/{match}.csv", silent=silent)
+        
+def varyany_plot(match,dirname):
+    data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
+    fig,ax = plot_create()
+    ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linestyle="none", marker=".")
+    ax.set_xlim([min(data[:,0]),max(data[:,0])])
+    ax.set_ylabel(label_for_plot(match))
+    #ax.legend()
+    plot_setaspect(ax)
+    ax.set_xlabel("")
+    fig.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
+    print_log(f"Saved {dirname}/{match}.svg")
 
 def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
@@ -153,38 +244,6 @@ def spectrum_collect(match,dirname, silent=False):
         writer.writerow(["ev",match])
         writer.writerows(zip(evs,values))
         print_log(f"Saved {dirname}/{match}.csv", silent=silent)
-
-def plot_create():
-    fig = plt.figure(constrained_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
-    ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-    ax.set_xlabel("eV")
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.grid(which="both", axis="x", linestyle="dotted", zorder=0)
-    ax.tick_params(bottom=True, top=True, left=True, right=True, which = "both")
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
-    plot_setrcparams()
-    return fig, ax
-
-def plot_setaspect(ax):
-    xleft, xright = ax.get_xlim()
-    ybottom, ytop = ax.get_ylim()
-    ax.set_aspect(abs((xright-xleft)/(ybottom-ytop))*.5625)
-
-def plot_setrcparams():
-    SMALL_SIZE = 12
-    MEDIUM_SIZE = 14
-    BIGGER_SIZE = 16
-    
-    plt.rc('font', **{'family': 'serif', 'serif': 'Arial'})
-    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-    plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-    plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 def spectrum_plot(match,dirname):
     data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
@@ -345,8 +404,7 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     y_max = 4*y_min
     ys = np.exp(np.linspace(math.log(y_min), math.log(y_max), 9))
     grids = np.rint((2*math.pi/lam)*(size/ys)*m_abs).astype(np.int32)
-    #grids = np.flip([180,152,128,108,90,76,64,54,46])
-    #grids = np.flip([90,76,64,54,46,38,32,28,22])
+    #grids = np.asarray([128, 112, 96, 80, 64, 56, 48, 40, 32])
     del adda_cmdlineargs["grid"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     print_log(f"{cmdline}",dirname)
@@ -572,10 +630,10 @@ def scan_collect(match, dirname):
         ys.append(float(xy[1]))
         values.append(parse_value(f"{dirname}/ADDA_output/{dir_i}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
-            writer = csv.writer(file, delimiter=',', lineterminator='\n')
-            writer.writerow(["x","y",match])
-            writer.writerows(zip(xs,ys,values))
-            print(f"Saved to {dirname}/{match}.csv")
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
+        writer.writerow(["x","y",match])
+        writer.writerows(zip(xs,ys,values))
+        print(f"Saved to {dirname}/{match}.csv")
 
 def scan_plot(match, dirname, details=True):
     with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
