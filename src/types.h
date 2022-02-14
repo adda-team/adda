@@ -57,11 +57,11 @@ typedef struct	        // integration parameters
 
 struct Substrate
 {
-    bool mInf;                     // the flag is set to true whether the reflactive index of the last layer is inf
-    int N;                         // total number of layers
-    double hP;                     // the distance between the substrate and the particle
-    doublecomplex m[MAX_N_LAYERS]; // an array with reflactive indices of the layers
-    double h[MAX_N_LAYERS-1];      // an array with thicknesses of the layers
+	bool mInf;                     // whether the reflactive index of the last layer is inf
+	int N;                         // total number of layers
+	double hP;                     // distance between the substrate (top intefrace) and the particle center
+	doublecomplex m[MAX_N_LAYERS]; // refractive indices of the layers
+	double h[MAX_N_LAYERS-1];      // thicknesses of the layers (the last one is always semi-infinite)
 };
 
 #endif // __types_h

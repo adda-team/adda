@@ -108,7 +108,7 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 #define MAX_NMAT         15   // maximum number of different refractive indices (<256)
 #define MAX_N_SH_PARMS   25   // maximum number of shape parameters
 #define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
-#define MAX_N_LAYERS 10       // maximum number of layers in multi-surface mode
+#define MAX_N_LAYERS     10   // maximum number of substrate layers in surface mode
 
 // sizes of filenames and other strings
 /* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to override this limit. On

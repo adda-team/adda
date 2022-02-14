@@ -686,14 +686,15 @@ static struct opt_struct options[]={
 #endif
 	{PAR(store_int_field),"","Save internal fields to a file",0,NULL},
 	{PAR(store_scat_grid),"","Calculate Mueller matrix for a grid of scattering angles and save it to a file.",0,NULL},
-	{PAR(surf),"<h> {<mre> <mim>|inf|<h_1> <mre_1> <mim_1> ... <h_n-1> <mre_n-1> <mim_n-1> {<mre_n> <mim_n>|inf}",
-        "Specifies that scatterer is located above the plane surface, parallel to the "
-		"xy-plane. <h> specifies the height of particle center above the surface (along the z-axis, in um). Particle "
-        "must be entirely above the substrate. Following argument(s) specify each layer thickness (except for the last layer "
-        "which is always treated as half-space with infinite thickness) and refractive indices, "
-		"assuming that the vacuum is above the surface. each reflactive index is to be set with two values (real and "
-		"imaginary parts of the complex value) except for the last one which can also be set with single 'inf' value. "
-		"The latter implies certain simplifications during calculations.",UNDEF,NULL},
+	{PAR(surf),"<h> {<m1Re> <m1Im> [<h1> <m2Re> <m2Im> ... <h_n-1> {<mnRe> <mnIm>|inf}]|inf}",
+		"Specifies that scatterer is located (entirely) above the n-layered plane substrate (n>=1), parallel to the "
+		"xy-plane. <h> is the height of particle center above the substrate (its top interface) along the z-axis "
+		"(in um), must be larger than corresponding distance from the center to the lowermost dipole. Additional "
+		"arguments <h1> ... <h_n-1> specify each layer thickness (from top to bottom, also in um) - the last (n-th) "
+		"layer is always semi-infinite (but can be a vacuum one). Refractive indices (real and imaginary parts: "
+		"<m1Re>, <m1Im>, ... <mnRe>, <mnIm>) are specified for each layer, assuming the vacuum is above the substrate. "
+		"The last refractive index can also be set with single 'inf' value, corresponding to a perfect electric "
+		"conductor as a bottom layer. The latter implies certain simplifications during calculations.",UNDEF,NULL},
 	{PAR(sym),"{auto|no|enf}","Automatically determine particle symmetries ('auto'), do not take them into account "
 		"('no'), or enforce them ('enf').\n"
 		"Default: auto",1,NULL},
@@ -1615,37 +1616,43 @@ PARSE_FUNC(store_scat_grid)
 PARSE_FUNC(surf)
 {
 	double mre,mim;
-    int max_arg = 3 * MAX_N_LAYERS;
-    if (Narg > max_arg) PrintErrorHelp("Exceeded the maximum number of layers");
-    if (Narg % 3  && Narg % 3 != 2) NargError(Narg,"3n or 3n-1 with the last argument equal to 'inf'");
-    ScanDoubleError(argv[1],&sub.hP);
-    TestPositive(sub.hP,"height above surface");
-    int arg_pos = 2;
-    sub.N = 1;
-    if (Narg > 3) {
-        int i;
-        for (i = 0; (arg_pos = 2 + 3 * i) < Narg - 1; ++i) {
-            if (!(strcmp(argv[arg_pos], "inf") && strcmp(argv[arg_pos + 1], "inf") && strcmp(argv[arg_pos + 2], "inf")))
-                PrintErrorHelp("inf value is supported only for the last reflactive index");
-            ScanDoubleError(argv[arg_pos], &sub.h[i]);
-            TestPositive(sub.h[i], "layer thickness");
-            ScanDoubleError(argv[arg_pos + 1], &mre);
-            ScanDoubleError(argv[arg_pos + 2], &mim);
-            sub.m[i] = mre + I * mim;
-        }
-        sub.N += i;
-    }
-    if (strcmp(argv[arg_pos],"inf")==0) {
-        if (Narg>arg_pos) PrintErrorHelp("Additional arguments are not allowed for '-surf ... inf'");
-        sub.mInf=true;
-    }
-    else {
-        if (Narg != arg_pos + 1) NargError(Narg, "total 3n or 3n-1 with the last argument equal to 'inf'");
-        ScanDoubleError(argv[arg_pos], &mre);
-        ScanDoubleError(argv[arg_pos + 1], &mim);
-        sub.m[sub.N-1] = mre + I * mim;
-        sub.mInf=false;
-    }
+	int i,arg_pos;
+
+	if (Narg%3 == 1) NargError(Narg,"3n or 3n-1, if the last argument is 'inf',");
+	sub.N=(Narg+1)/3;
+	if (sub.N>MAX_N_LAYERS) PrintErrorHelp("Too many layers in the substrate (%d), maximum %d are supported. You may "
+		"increase parameter MAX_N_LAYERS in const.h and recompile.",sub.N,MAX_N_LAYERS);
+	/* In principle, everywhere in the command line ADDA accepts inf instead of float arguments (that's how sscanf
+	 * works). ADDA may even work fine in some cases, but that is definitely not supported and is left for user's
+	 * responsibility. Still, we do not explicitly test for or forbid it.
+	 * By contrast, here we test all arguments against inf, since it has legitimate usage here, but accidentally
+	 * removing or adding one variable before it may lead to nonsense simulation (and wasted computational resources).
+	 * So we do our best to produce error message as early as possible. Still, something like 'inf1' will still cause
+	 * strange bevavior.
+	 */
+	sub.mInf=false;
+	for (i=1;i<=Narg;i++) if (strcmp(argv[i],"inf")==0) {
+		if (i<Narg) PrintErrorHelp("Specification of 'inf' as the layer refractive index must be the last argument to "
+			"'-surf ...'");
+		if (Narg%3 != 2) NargError(Narg,"if the last argument is 'inf', 3n-1");
+		sub.mInf=true;
+	}
+	for (i=0;i<sub.N;i++) {
+		arg_pos=3*i+1;
+		if (i==0) { // first h is named differently
+			ScanDoubleError(argv[arg_pos],&sub.hP);
+			TestPositive(sub.hP,"height above substrate");
+		}
+		else {
+			ScanDoubleError(argv[arg_pos],sub.h+i-1);
+			TestPositive(sub.h[i-1],"layer thickness");
+		}
+		if (!(i==sub.N-1 && sub.mInf)) { // exception for infinite last refractive index (processed above)
+			ScanDoubleError(argv[arg_pos+1],&mre);
+			ScanDoubleError(argv[arg_pos+2],&mim);
+			sub.m[i] = mre + I*mim;
+		}
+	}
 	surface = true;
 	symZ=false;
 }
