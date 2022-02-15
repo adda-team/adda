@@ -1,5 +1,5 @@
 '''
-# This code represents the comparison of equivalent cases (command lines)
+# This code compares equivalent cases (command lines)
 # for the scattering of Bessel beams calculated in ADDA.
 '''
 
@@ -85,22 +85,22 @@ fr.close()
 fr = open("results.txt", "a")
 
 
-print('\n\nPlane wave case of LE Bessel beam')
-fr.write('\n\nPlane wave case of LE Bessel beam')
+print('\n\nPlane-wave limit of LE Bessel beam')
+fr.write('\n\nPlane-wave limit of LE Bessel beam')
 common = ' -sym no'
 opt1 = common
 opt2 = common + ' -beam besselLE 0 0'
 compare(opt1,opt2)
 
-print('\n\nPlane wave case of LM Bessel beam')
-fr.write('\n\nPlane wave case of LM Bessel beam')
+print('\n\nPlane-wave limit of LM Bessel beam')
+fr.write('\n\nPlane-wave limit of LM Bessel beam')
 common = ' -sym no'
 opt1 = common
 opt2 = common + ' -beam besselLM 0 0'
 compare(opt1,opt2)
 
-print('\n\nPlane wave case of CS Bessel beam')
-fr.write('\n\nPlane wave case of CS Bessel beam')
+print('\n\nPlane-wave limit of CS Bessel beam')
+fr.write('\n\nPlane-wave limit of CS Bessel beam')
 common = ' -sym no'
 opt1 = common
 opt2 = common + ' -beam besselCS 0 0'

@@ -12,7 +12,7 @@ from PIL import Image
 
 # path to adda executable
 #adda_exec = "../../win64/adda.exe"
-adda_exec = os.path.abspath(__file__ + "/../../../src/seq/adda")
+adda_exec = os.path.abspath(__file__ + "/../../../../src/seq/adda")
 
 
 option = 1 # 0 - scattering by a sphere; 1 - scattering by a coated sphere
