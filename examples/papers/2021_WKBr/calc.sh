@@ -17,12 +17,12 @@ calcref=${4:-yes}
 
 # Change 4 to the actual number of processor cores to employ
 MPIEXEC="mpiexec -n 4"
-# Alternative option is to use precompiled Windows binaries
 
 # The following script will locate adda_mpi (often out of the box), but you can override it by setting ADDA_MPI
-# explicitly here (uncomment the following line) or somewhere in the environment
-#ADDA_MPI="../../../src/mpi/adda_mpi"
-if ! . ../../find_adda.sh mpi; then
+# explicitly here (uncomment the following line) or somewhere in the environment (the script will return this variable)
+# export ADDA_MPI="../../../src/mpi/adda_mpi"
+ADDA_MPI=$(../../find_adda mpi)
+if [ $? -ne 0 ]; then
   exit 1
 fi
 

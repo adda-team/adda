@@ -2,14 +2,20 @@
 # Copyright (C) ADDA contributors
 # GNU General Public License version 3
 
-# Finds adda binaries and set corresponding environmental variable (ADDA_SEQ, ADDA_MPI, or ADDA_OCL). If the variable
-# is already defined, only tests that the file exist. Otherwise, first checks that it is directly available (on the
-# PATH), then looks at the compilation folders, and finally (on Windows only) looks for precompiled binaries in win64/
+# Finds adda binary and returns its path to stdout. If the variable ADDA_SEQ, ADDA_MPI, or ADDA_OCL is already defined,
+# returns its value, but first tests that the file exist. Otherwise, first checks if the binary is directly available
+# (on the PATH), then looks at the corresponding compilation folder, and finally (on Windows only) looks for precompiled
+# binary in win64/
 
 # A single optional argument is the mode (seq, mpi, or ocl), which binary to search. 'seq' is the default one.
 # The script must not be moved from this folder (searches for a few places relative to its position),
-# but can be sourced from anywhere. It is important to source it (e.g. ". .../find_adda.sh seq") to define the
-# variables for further usage.
+# but can be executed from anywhere.
+
+# The minimal test example is the following (note the test for exit value)
+#ADDA_SEQ=$(./find_adda)
+#if [ $? -ne 0 ]; then
+#  exit 1
+#fi
 
 mode=${1:-seq}
 
@@ -41,8 +47,10 @@ if [ -z "${!var}" ]; then
     echo "ERROR: No $bin binary found (and variable $var is not defined)" >&2
     exit 1        
   fi
-  export $var="$path"
 elif [ ! -f "${!var}" ]; then
-  echo "ERROR: No $bin binary found (path given by $var='${!var}' does not exist" >&2
+  echo "ERROR: No $bin binary found (path given by $var='${!var}' does not exist)" >&2
   exit 1
+else
+  path="${!var}"
 fi
+echo "$path"
