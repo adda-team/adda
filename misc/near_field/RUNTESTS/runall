@@ -1,12 +1,15 @@
 #!/bin/bash
 
-if [ -z "${ADDABIN}" ]; then
-  export ADDABIN=$(readlink -f ../../../src/seq/adda)
-fi
-if [ ! -f "${ADDABIN}" ]; then
-  echo "ERROR: No adda binary was found, as specified by environmental variable ADDABIN='${ADDABIN}'"
+# The following script will locate adda (often out of the box), but you can override it by setting ADDA_SEQ
+# explicitly here (uncomment the following line) or somewhere in the environment (the script will return this variable)
+#export ADDA_SEQ="../../../src/seq/adda"
+ADDA_SEQ=$(../../../examples/find_adda)
+if [ $? -ne 0 ]; then
   exit 1
 fi
+# cannot be combined with variable setting above, since it will lose the exit code of find_adda
+export ADDA_SEQ
+
 if [ -z "${MPIEXEC}" ]; then
   which mpiexec > /dev/null 2>&1 # test availability of mpiexec
   if [ $? -eq 0 ]; then

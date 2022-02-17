@@ -1,12 +1,13 @@
 #!/bin/bash
 
-if [ -z "${ADDABIN}" ]; then
-  export ADDABIN=$(readlink -f ../../src/seq/adda)
-fi
-if [ ! -f "${ADDABIN}" ]; then
-  echo "ERROR: No adda binary was found, as specified by environmental variable ADDABIN='${ADDABIN}'"
+# The following script will locate adda (often out of the box), but you can override it by setting ADDA_SEQ
+# explicitly here (uncomment the following line) or somewhere in the environment (the script will return this variable)
+#export ADDA_SEQ="../../src/seq/adda"
+ADDA_SEQ=$(../../examples/find_adda)
+if [ $? -ne 0 ]; then
   exit 1
 fi
+
 if [ -z "${MPIEXEC}" ]; then
   which mpiexec > /dev/null 2>&1 # test availability of mpiexec
   if [ $? -eq 0 ]; then
@@ -17,7 +18,7 @@ if [ -z "${MPIEXEC}" ]; then
 fi
 
 echo '------------adda----------------'
-$ADDABIN -store_dip_pol -save_geom -shape sphere -dir example -lambda 0.400 -grid 20 
+$ADDA_SEQ -store_dip_pol -save_geom -shape sphere -dir example -lambda 0.400 -grid 20 
 ERR=$?
 if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
@@ -55,5 +56,3 @@ totfield
 %EOF%
 ../nearfield < input_xy 
 cd ..
-
-

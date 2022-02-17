@@ -361,7 +361,7 @@ DBGFLAG := -g
 # Compiler-specific options
 ifeq ($(COMPILER),gnu)
   # produces version string in format like 80203
-  GCC_VERSION := $(shell gcc -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \
+  GCC_VERSION := $(shell gcc -dumpfullversion -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' \
     -e 's/^[0-9]\{3,4\}$$/&00/')
    
   CC      := gcc

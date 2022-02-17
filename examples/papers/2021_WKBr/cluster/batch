@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# This script has been run at Supercomputing center of the Novosibirsk State University
+# It requires adaptation to other environments
+#
+# The script assumes that the prerequisite files (with approximations for the internal fields) has been uploaded to the
+# execution folder
+
+# SET YOUR CLUSTER PARAMETERS:
+#PBS -q xl230g9q
+#PBS -l select=3:ncpus=24:mpiprocs=24:mem=192g
+#PBS -l walltime=65:00:00
+
+#PBS -m n
+# export all my environment variables to the job
+#PBS -V
+
+echo "Start of job at `date`"
+cd $PBS_O_WORKDIR
+MPI_NP=$(wc -l $PBS_NODEFILE | awk '{ print $1 }')
+
+echo "Number of MPI process: $MPI_NP"
+echo 'File $PBS_NODEFILE:'
+cat  $PBS_NODEFILE
+
+# SET YOUR CLUSTER PATHS:
+MPIEXEC="mpirun -hostfile $PBS_NODEFILE -np $MPI_NP"
+ADDA="/mnt/storage/home/mayurkin/bin/adda_mpi"
+WKBR="./complex_wkbr-$size-$m-$mi-$grid-Y-component.dat"
+EXACT="./if-$size-$m-$grid-X-component.dat" # the exact internal electric field calculated using Scattnlay or Bhfield
+
+if [ $callnum -eq 1 ]; then
+  if [[ "$type" == "inc" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-inc-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field inc
+  elif [[ "$type" == "wkbr" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-wkbr-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field read $WKBR
+  elif [[ "$type" == "wkb" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-wkb-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field wkb
+  elif [[ "$type" == "exact" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-exact-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field read $EXACT -orient 90 0 0
+  fi
+elif [ $callnum -gt 1 ]; then
+  if [[ "$type" == "inc" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-inc-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -chp_load
+  elif [[ "$type" == "wkbr" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-wkbr-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field read $WKBR -chp_load
+  elif [[ "$type" == "wkb" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-wkb-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field wkb -chp_load
+  elif [[ "$type" == "exact" ]]; then
+    $MPIEXEC $ADDA -shape sphere -grid $grid -size $size -m $m $mi -no_vol_cor -dir $size-$m-$mi-$grid-eps$eps-init-exact-$callnum -eps $eps -chp_type always -chp_dir chpoint-size$size-m$m-mi$mi-grid$grid -chpoint $time -init_field read $EXACT -orient 90 0 0 -chp_load
+  fi
+fi
+echo "Finished job at `date`"

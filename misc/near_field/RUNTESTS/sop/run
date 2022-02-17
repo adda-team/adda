@@ -1,6 +1,6 @@
 #!/bin/bash
 echo '------------adda----------------'
-$ADDABIN  -store_beam -store_dip_pol -store_int_field  -save_geom -dir . -prop -1 0 0 -pol cm  -lambda 0.300 -m 0.5 5.0 -shape read target.in -eps 9 -size 0.030 -grid 20 &> adda.out
+$ADDA_SEQ  -store_beam -store_dip_pol -store_int_field  -save_geom -dir . -prop -1 0 0 -pol cm  -lambda 0.300 -m 0.5 5.0 -shape read target.in -eps 9 -size 0.030 -grid 20 &> adda.out
 ERR=$?
 if [ $ERR -ne 0 ]; then
   echo "ADDA returned error $ERR"
