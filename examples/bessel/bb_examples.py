@@ -1,6 +1,6 @@
 '''
-# This code represents the comparison of scattering intensities calculated with DDA (ADDA code)
-# for the scattering of Bessel beam of 2 options by choice (option_1 and option_2).
+# This code compares the scattering intensities calculated with the DDA (ADDA code)
+# for the scattering of two different Bessel beams (option_1 and option_2) by a sphere.
 '''
 
 import os, re, math
@@ -113,7 +113,7 @@ def plotData(xv1,yv1,xv2,yv2,flag):
 
 
 # Visualisation of the amplitude of the incident electric field almost in the middle
-# of the particle (z = distance to the closest dipole along z axis)
+# of the particle (the nearest to the center xy-plane of dipoles is used, its z-coordinate is shown on the plot)
 def plotField(xd,yd,ed,z0,mode):
     ax.set_title('OPTION '+str(mode)+'\nAmplitude of the incident field \n(z = '+str(round(z0,2))+')');
     ax.scatter(xd, yd, ed, c=ed, cmap='viridis', linewidth=0.5);
