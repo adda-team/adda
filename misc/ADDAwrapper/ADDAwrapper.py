@@ -1,7 +1,7 @@
 import os, shutil, re, csv, time, multiprocessing, tqdm, math
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import AutoMinorLocator, ScalarFormatter
  
 def addaexec_find(mode="seq"):
     if mode!="seq" and mode!="mpi" and mode!="ocl":
@@ -20,6 +20,7 @@ def addaexec_find(mode="seq"):
 
 def label_for_plot(match):
     if match[0] == "P":
+        if match[1:] == "ext": return "P" + r"$_{\rm ext}$" + ", eV$^{-1}$"
         return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", eV$^{-1}$"
     elif match[0] == "C":
         return match + ", nm$^2$"
@@ -109,7 +110,11 @@ def parse_value(file,match):
 def plot_create():
     fig = plt.figure(constrained_layout=True)
     ax = fig.add_subplot(1, 1, 1)
-    ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    #ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_scientific(True)
+    formatter.set_powerlimits((0,0))
+    ax.yaxis.set_major_formatter(formatter)
     ax.set_xlabel("Energy, eV")
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
@@ -129,6 +134,10 @@ def plot_setrcparams():
     MEDIUM_SIZE = 14
     BIGGER_SIZE = 16
     
+    # SMALL_SIZE = 16
+    # MEDIUM_SIZE = 18
+    # BIGGER_SIZE = 16
+    
     plt.rc('font', **{'family': 'serif', 'serif': 'Arial'})
     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
     plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
@@ -137,6 +146,8 @@ def plot_setrcparams():
     plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
     plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+    
+    #plt.rc('legend', fontsize=32)    # legend fontsize
 
 def exec_cmdlines(cmdlines,parallel_procs):
     pool = multiprocessing.Pool(parallel_procs)
@@ -182,7 +193,7 @@ def varyany_execute(aw_parameters,adda_cmdlineargs,dirname,var,var_range):
     
 def varyany_collect(match,dirname, silent=False):
     xs = sorted([d.name for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
-    print(xs)
+    #print(xs)
     values = []
     for x in xs:
         values.append(parse_value(f"{dirname}/ADDA_output/{x}/CrossSec-Y",match))
