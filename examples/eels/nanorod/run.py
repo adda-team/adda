@@ -53,26 +53,26 @@ adda_cmdlineargs = dict(
 ### Executing commands
 if __name__ == '__main__': 
 
-    # # Execute spectra simulations for different positions of the beam to find plasmon peaks
-    # dirname = os.path.abspath(__file__ + "/../" + "spectrumline")
-    # aw_parameters["spectrumline_startpoint"] = (10,0) # (x,y) [nm]
-    # aw_parameters["spectrumline_endpoint"] = (10,50) # (x,y) [nm]
-    # aw_parameters["spectrumline_points"] = 15 # how many points, including startpoint and endpoint
-    # aw.spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname) # Execute simulation
-    # aw.spectrumline_collect("Peels",dirname) # Collect EELS spectrum
-    # aw.spectrumline_plot("Peels",dirname) # Plot EELS spectrum
-    # aw.spectrumline_collect("Pcl",dirname) # Collect CL spectrum
-    # aw.spectrumline_plot("Pcl",dirname) # Plot CL spectrum
+    # Execute spectra simulations for different positions of the beam to find plasmon peaks
+    dirname = os.path.abspath(__file__ + "/../" + "spectrumline")
+    aw_parameters["spectrumline_startpoint"] = (10,0) # (x,y) [nm]
+    aw_parameters["spectrumline_endpoint"] = (10,50) # (x,y) [nm]
+    aw_parameters["spectrumline_points"] = 15 # how many points, including startpoint and endpoint
+    aw.spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname) # Execute simulation
+    aw.spectrumline_collect("Peels",dirname) # Collect EELS spectrum
+    aw.spectrumline_plot("Peels",dirname) # Plot EELS spectrum
+    aw.spectrumline_collect("Pcl",dirname) # Collect CL spectrum
+    aw.spectrumline_plot("Pcl",dirname) # Plot CL spectrum
     
-    # # Execute scan of particle's cross-section for single energy ev
-    # dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
-    # aw_parameters["ev"] = 2.4
-    # aw.scan_execute(aw_parameters,adda_cmdlineargs,dirname)
-    # # Collect and map scanned EELS/CL probabilities on particle's cross-section
-    # aw.scan_collect("Peels",dirname)
-    # aw.scan_plot("Peels",dirname)
-    # aw.scan_collect("Pcl",dirname)
-    # aw.scan_plot("Pcl",dirname)
+    # Execute scan of particle's cross-section for single energy ev
+    dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
+    aw_parameters["ev"] = 2.4
+    aw.scan_execute(aw_parameters,adda_cmdlineargs,dirname)
+    # Collect and map scanned EELS/CL probabilities on particle's cross-section
+    aw.scan_collect("Peels",dirname)
+    aw.scan_plot("Peels",dirname)
+    aw.scan_collect("Pcl",dirname)
+    aw.scan_plot("Pcl",dirname)
     
     # Visual representation of the dipole set
     cmdline = aw.cmdline_construct(aw_parameters,adda_cmdlineargs)

@@ -115,8 +115,6 @@ def midpoints(x):
     return x
 
 def geometry(geom_path,colorlist=None): 
-    if colorlist == None:
-        colorlist = ["deepskyblue", "silver", "gold", "yellowgreen", "tomato", "darkviolet", "peru", "darkorange"]
     data = np.genfromtxt(geom_path, delimiter=' ', dtype="int")
     xs, ys, zs = data[:,0], data[:,1], data[:,2]
     xs, ys, zs = xs-min(xs), ys-min(ys), zs-min(zs)
@@ -131,7 +129,8 @@ def geometry(geom_path,colorlist=None):
             ms = np.ones(xs.shape, dtype="int")
         else:
             ms = np.zeros(xs.shape, dtype="int")
-    
+    if colorlist == None:
+        colorlist = ["deepskyblue", "silver", "gold", "yellowgreen", "tomato", "darkviolet", "peru", "darkorange"]
     for i in range(len(xs)):
         voxels[xs[i],ys[i],zs[i]] = True
         colors[xs[i],ys[i],zs[i]] = colorlist[ms[i]]
