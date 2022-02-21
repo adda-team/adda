@@ -74,30 +74,32 @@ the compilation may fail or produce wrong results. If you still want to try, ena
  */
 #define ADDA_ROOT 0
 
-// math constants rounded for 32 decimals; C99 standard specifies that they are encoded as double
-#define PI                  3.1415926535897932384626433832795
-#define TWO_PI              6.283185307179586476925286766559
-#define FOUR_PI             12.566370614359172953850573533118
-#define EIGHT_PI            25.132741228718345907701147066236
-#define FOUR_PI_OVER_THREE  4.1887902047863909846168578443727
-#define PI_OVER_TWO         1.5707963267948966192313216916398
-#define PI_OVER_FOUR        0.78539816339744830961566084581988
-#define PI_OVER_SIX         0.52359877559829887307710723054658
-#define INV_PI              0.31830988618379067153776752674503
-#define TWO_OVER_PI         0.63661977236758134307553505349006
-#define THREE_OVER_FOUR_PI  0.23873241463784300365332564505877
-#define SIX_OVER_PI         1.9098593171027440292266051604702
-#define ONE_THIRD           0.33333333333333333333333333333333
-#define PI_OVER_180         0.017453292519943295769236907684886
-#define INV_PI_180          57.295779513082320876798154814105
-#define SQRT_PI             1.7724538509055160272981674833411
-#define TWO_OVER_SQRT_PI    1.1283791670955125738961589031215
-#define SQRT2               1.4142135623730950488016887242097
-#define SQRT3               1.7320508075688772935274463415059
-#define SQRT1_2             0.70710678118654752440084436210485
-#define SQRT1_2PI           0.39894228040143267793994605993438
-#define SQRT2_9PI           0.26596152026762178529329737328959
-#define EULER               0.57721566490153286060651209008241
+/* math constants with 35 significant digits (sufficient for quad precision, if ever needed). This applies to all
+ * constants in the code. C99 standard specifies that they are encoded as double as written now
+ */
+#define PI                  3.1415926535897932384626433832795029
+#define TWO_PI              6.2831853071795864769252867665590058
+#define FOUR_PI             12.566370614359172953850573533118012
+#define EIGHT_PI            25.132741228718345907701147066236023
+#define FOUR_PI_OVER_THREE  4.1887902047863909846168578443726705
+#define PI_OVER_TWO         1.5707963267948966192313216916397514
+#define PI_OVER_FOUR        0.78539816339744830961566084581987572
+#define PI_OVER_SIX         0.52359877559829887307710723054658381
+#define INV_PI              0.31830988618379067153776752674502872
+#define TWO_OVER_PI         0.63661977236758134307553505349005745
+#define THREE_OVER_FOUR_PI  0.23873241463784300365332564505877154
+#define SIX_OVER_PI         1.9098593171027440292266051604701723
+#define ONE_THIRD           0.33333333333333333333333333333333333
+#define PI_OVER_180         0.017453292519943295769236907684886127
+#define INV_PI_180          57.295779513082320876798154814105170
+#define SQRT_PI             1.7724538509055160272981674833411452
+#define TWO_OVER_SQRT_PI    1.1283791670955125738961589031215452
+#define SQRT2               1.4142135623730950488016887242096981
+#define SQRT3               1.7320508075688772935274463415058724
+#define SQRT1_2             0.70710678118654752440084436210484904
+#define SQRT1_2PI           0.39894228040143267793994605993438187
+#define SQRT2_9PI           0.26596152026762178529329737328958791
+#define EULER               0.57721566490153286060651209008240243
 #define FULL_ANGLE          360.0
 #define MICRO               1E-6
 
@@ -236,17 +238,19 @@ enum refl { // how to calculate interaction of dipoles through the nearby surfac
 // ldr constants
 /* Based on comparison of the original paper - Draine & Goodman, Astrophys. J. 405, 685-697 (1993) - with Mackowski,
  * J. Opt. Soc. Am. A 19, 881-893 (2002), one can deduce that b1=10*b2+2*b3 - it can also be derived explicitly.
+ * We have transformed the defining integrals (in DG1993) to a rapidly converging sum, containing exp and erfc
+ * functions. This is not yet published, but allows simple calculation of constants to arbitrary precision.
  */
-#define LDR_B1  1.8915316
-#define LDR_B2 -0.1648469
-#define LDR_B3  1.7700004
+#define LDR_B1  1.8915316529870796511106114030718259
+#define LDR_B2 -0.16484691508771947306079362778185226
+#define LDR_B3  1.7700004019321371908592738404451742
 
-// 2nd_order constant; derived from c1=ln(5+3^(3/2))-ln(2)/2-pi/4
-#define SO_B1 1.5867182426530356710958782335228 // 4c1/3
+// 2nd_order constant; derived from c1=1.5*ln[2+sqrt(3)]-pi/4
+#define SO_B1 1.5867182426530356710958782335227693 // 4c1/3
 
 // other constants for polarizability
-#define DGF_B1 1.6119919540164696407169668466385  // (4pi/3)^(1/3)
-#define LAK_C  0.62035049089940001666800681204778 // (4pi/3)^(-1/3)
+#define DGF_B1 1.6119919540164696407169668466392849  // (4pi/3)^(1/3)
+#define LAK_C  0.62035049089940001666800681204777817 // (4pi/3)^(-1/3)
 
 enum iter { // iterative methods
 	IT_BCGS2,    // Enhanced Bi-Conjugate Gradient Stabilized (2)
