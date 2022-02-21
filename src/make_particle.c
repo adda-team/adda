@@ -73,12 +73,12 @@ size_t mat_count[MAX_NMAT+1];    // number of dipoles in each domain
 
 // LOCAL VARIABLES
 
-static const char geom_format[]="%d %d %d\n";              // format of the geom file
-static const char geom_format_ext[]="%d %d %d %d\n";       // extended format of the geom file
+#define GEOM_FORMAT "%d %d %d"        // format of the geom file
+#define GEOM_FORMAT_EXT "%d %d %d %d" // extended format of the geom file
 /* DDSCAT shape formats; several format are used, since first variable is unpredictable and last two are not actually
  * used (only to produce warnings)
  */
-static const char ddscat_format_read1[]="%*s %d %d %d %d %d %d\n";
+static const char ddscat_format_read1[]="%*s %d %d %d %d %d %d";
 static const char ddscat_format_read2[]="%*s %d %d %d %d";
 #ifndef SPARSE
 static const char ddscat_format_write[]="%zu %d %d %d %d %d %d\n";
@@ -222,10 +222,10 @@ static void SaveGeometry(void)
 		j=3*i;
 		switch (sg_format) {
 			case SF_TEXT:
-				fprintf(geom,geom_format,position[j],position[j+1],position[j+2]);
+				fprintf(geom,GEOM_FORMAT"\n",position[j],position[j+1],position[j+2]);
 				break;
 			case SF_TEXT_EXT:
-				fprintf(geom,geom_format_ext,position[j],position[j+1],position[j+2],material[i]+1);
+				fprintf(geom,GEOM_FORMAT_EXT"\n",position[j],position[j+1],position[j+2],material[i]+1);
 				break;
 			case SF_DDSCAT6:
 			case SF_DDSCAT7:
@@ -1148,8 +1148,14 @@ static void InitDipFile(const char * restrict fname,int *bX,int *bY,int *bZ,int 
 	while (FGetsError(dipfile,fname,&line,linebuf,BUF_LINE,ONE_POS)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
-			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x,&y,&z); break;
-			case SF_TEXT_EXT: scanned=sscanf(linebuf,geom_format_ext,&x,&y,&z,&mat); break;
+			/* We scan extra field for ADDA formats to catch the cases when extra numbers are present and produce an
+			 * error. For instance, this can happen if an user uses multi-domain format but misses "Nmat=..." in the
+			 * beginning. However, this test is based on scanning a float number, so should ignore general text.
+			 * Also, we do not test extra fields for DDSCAT formats, since the Fortran philosophy generally allows
+			 * anything to be present after the obligatory fields.
+			 */
+			case SF_TEXT: scanned=sscanf(linebuf,GEOM_FORMAT" %f",&x,&y,&z,&td1); break;
+			case SF_TEXT_EXT: scanned=sscanf(linebuf,GEOM_FORMAT_EXT" %f",&x,&y,&z,&mat,&td1); break;
 			case SF_DDSCAT6:
 			case SF_DDSCAT7: // for ddscat formats, only first material is used, other two are ignored
 				scanned=sscanf(linebuf,ddscat_format_read1,&x,&y,&z,&mat,&t2,&t3);
@@ -1248,8 +1254,8 @@ static void ReadDipFile(const char * restrict fname)
 	while (fgets(linebuf,BUF_LINE,dipfile)!=NULL) {
 		// scan numbers in a line
 		switch (read_format) {
-			case SF_TEXT: scanned=sscanf(linebuf,geom_format,&x0,&y0,&z0); break;
-			case SF_TEXT_EXT: scanned=sscanf(linebuf,geom_format_ext,&x0,&y0,&z0,&mat); break;
+			case SF_TEXT: scanned=sscanf(linebuf,GEOM_FORMAT,&x0,&y0,&z0); break;
+			case SF_TEXT_EXT: scanned=sscanf(linebuf,GEOM_FORMAT_EXT,&x0,&y0,&z0,&mat); break;
 			case SF_DDSCAT6:
 			case SF_DDSCAT7: scanned=sscanf(linebuf,ddscat_format_read2,&x0,&y0,&z0,&mat); break;
 		}
