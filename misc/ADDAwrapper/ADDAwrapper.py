@@ -107,6 +107,48 @@ def parse_value(file,match):
                     break
     return value
 
+def midpoints(x):
+    sl = ()
+    for i in range(x.ndim):
+        x = (x[sl + np.index_exp[:-1]] + x[sl + np.index_exp[1:]]) / 2.0
+        sl += np.index_exp[:]
+    return x
+
+def geometry(geom_path,colorlist=None): 
+    if colorlist == None:
+        colorlist = ["deepskyblue", "silver", "gold", "yellowgreen", "tomato", "darkviolet", "peru", "darkorange"]
+    data = np.genfromtxt(geom_path, delimiter=' ', dtype="int")
+    xs, ys, zs = data[:,0], data[:,1], data[:,2]
+    xs, ys, zs = xs-min(xs), ys-min(ys), zs-min(zs)
+    x, y, z = np.indices((max(xs)-min(xs)+2,max(ys)-min(ys)+2,max(zs)-min(zs)+2))
+    xc = midpoints(x)
+    voxels = np.zeros(xc.shape, dtype=bool)
+    colors = np.empty(xc.shape, dtype=object)
+    if data.shape[1] == 4:
+        ms = data[:,3] - 1
+    else:
+        if colorlist == None:
+            ms = np.ones(xs.shape, dtype="int")
+        else:
+            ms = np.zeros(xs.shape, dtype="int")
+    
+    for i in range(len(xs)):
+        voxels[xs[i],ys[i],zs[i]] = True
+        colors[xs[i],ys[i],zs[i]] = colorlist[ms[i]]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    #print(voxels)
+    ax.voxels(x, y, z, voxels, facecolors=colors, edgecolors="black", linewidth=0.05, alpha=0.7)
+    
+    ax.set_xlim([0, xc.shape[0]])
+    ax.set_ylim([0, xc.shape[1]])
+    ax.set_zlim([0, xc.shape[2]])
+    ax.set(xlabel='x', ylabel='y', zlabel='z')
+    ax.set_box_aspect([max(xs)-min(xs)+1,max(ys)-min(ys)+1,max(zs)-min(zs)+1])
+    ax.view_init(30, -120)
+    return fig,ax
+
 def plot_create():
     fig = plt.figure(constrained_layout=True)
     ax = fig.add_subplot(1, 1, 1)
@@ -185,7 +227,7 @@ def varyany_execute(aw_parameters,adda_cmdlineargs,dirname,var,var_range):
         output_dir = os.path.abspath(dirname + f"/ADDA_output/{i}")
         cmdline_i += f' -dir "{output_dir}"'
         cmdline_i += f" -{var} %s" % str(i)
-        cmdline_i += " > /dev/null"
+        cmdline_i += " > " + os.devnull
         cmdlines.append(cmdline_i)
     #print(cmdlines)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
@@ -239,7 +281,7 @@ def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
         output_dir = os.path.abspath(dirname + f"/ADDA_output/{i[0]}")
         cmdline_i += f' -dir "{output_dir}"'
         cmdline_i += " -lambda %s" % ev_to_nm(i[0])
-        cmdline_i += f" -m {i[1]} {i[2]}"
+        cmdline_i += f" -m {i[1]} {i[2]}"# + "1.5 0"
         cmdline_i += " > " + os.devnull
         cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
