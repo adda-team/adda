@@ -24,8 +24,8 @@ function mydiff {
 
 $ADDAREF -surf 5 1.3 0.1 -dir dirref >outref
 $ADDA -surf 5 1.3 0.1 -dir dir1 >out1
-$ADDA -surf 4 1 1 0 1.3 0.1 -dir dir2 >out2
-$ADDA -surf 5 1 1.3 0.1 1.3 0.1 -dir dir3 >out3
+$ADDA -surf 4 1 0 1 1.3 0.1 -dir dir2 >out2
+$ADDA -surf 5 1.3 0.1 1 1.3 0.1 -dir dir3 >out3
 mydiff dirref/CrossSec-Y dir1/CrossSec-Y 1
 mydiff dir1/CrossSec-Y dir2/CrossSec-Y 2
 mydiff dir1/CrossSec-Y dir3/CrossSec-Y 3

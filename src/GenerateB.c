@@ -50,8 +50,8 @@ int vorticity;                 // Vorticity of vortex beams (besN for Bessel bea
 // used in param.c
 const char *beam_descr; // string for log file with beam parameters
 /* Propagation (phase) directions of secondary incident beams above (refl) and below (tran) the surface (unit vectors)
- * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
+ * When the reflactive index of the surface is complex, one of this doesn't tell the complete story,
+ * since the corresponding wave is inhomogeneous, given by the complex wavenumber ktVec
  */
 double prIncRefl[3],prIncTran[3];
 
@@ -115,8 +115,12 @@ void InitBeam(void)
 					/* Special case for sub.m[sub.N-1] near 1 to remove discontinuities for near-grazing incidence. The details
 					 * are discussed in CalcFieldSurf() in crosssec.c.
 					 */
-					if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
-					else kt=cSqrtCut(1 - sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+                    kt = CalculateKt(
+                            ki,
+                            sub.m[sub.N-1],
+                            1,
+                            sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1])
+                            );
 					// determine propagation direction and full wavevector of wave transmitted into substrate
 					ktVec[0]=sub.m[sub.N-1]*prop_0[0];
 					ktVec[1]=sub.m[sub.N-1]*prop_0[1];
@@ -127,8 +131,7 @@ void InitBeam(void)
 					ki=-prop_0[2]; // always real
 					if (!sub.mInf) {
 						// same special case as above
-						if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
-						else kt=cSqrtCut(sub.m[sub.N-1]*sub.m[sub.N-1] - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+                        kt = CalculateKt(ki, 1, sub.m[sub.N-1], prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]);
 						// determine propagation direction of wave transmitted into substrate
 						ktVec[0]=prop_0[0];
 						ktVec[1]=prop_0[1];
@@ -365,11 +368,31 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
                     //  determine amplitude of the reflected and transmitted waves; here sub.m[sub.N-1] is always defined
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncTran);
-						tc=FresnelTS(ki,kt);
+						SubstrateFresnel(
+								sub,
+								WaveNum,
+								true,
+								sub.m[sub.N-1] * sub.m[sub.N-1] * (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),
+								ki,
+								&tc,
+								NULL,
+								NULL,
+								NULL
+								);
 					}
 					else { // p-polarized
 						crCrossProd(ey,ktVec,eIncTran);
-						tc=FresnelTP(ki,kt,1/sub.m[sub.N-1]);
+						SubstrateFresnel(
+								sub,
+								WaveNum,
+								true,
+								sub.m[sub.N-1] * sub.m[sub.N-1] * (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),
+								ki,
+								NULL,
+								NULL,
+								&tc,
+								NULL
+						);
 					}
 					// phase shift due to the beam center relative to the origin and surface
 					cvMultScal_cmplx(tc*cexp(I*WaveNum*((kt-ki)*hbeam-crDotProd(ktVec,beam_center))),eIncTran,eIncTran);
@@ -390,13 +413,32 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine reflection coefficient + 1
 					doublecomplex rcp1;
 					if (which==INCPOL_Y) { // s-polarized
-						if (sub.mInf) rcp1=0;
-						else rcp1=FresnelTS(ki,kt);
+						SubstrateFresnel(
+								sub,
+								WaveNum,
+								false,
+								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],
+								ki,
+								NULL,
+								&rcp1,
+								NULL,
+								NULL
+						);
 					}
 					else { // p-polarized
-						if (sub.mInf) rcp1=2;
-						else rcp1=sub.m[sub.N-1]*FresnelTP(ki,kt,sub.m[sub.N-1]);
+						SubstrateFresnel(
+								sub,
+								WaveNum,
+								false,
+								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],
+								ki,
+								NULL,
+								NULL,
+								NULL,
+								&rcp1
+						);
 					}
+					rcp1 = rcp1 + 1;
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;

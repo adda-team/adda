@@ -239,3 +239,207 @@ void imExp_arr(const doublecomplex arg,const int size,doublecomplex *c)
 		}
 	}
 }
+
+static inline void set_mutual_S_coef(
+		const doublecomplex ki,
+		const doublecomplex km,
+		doublecomplex* t_im,
+		doublecomplex* r_mi
+		)
+{
+	*t_im = FresnelTS(ki, km);
+	*r_mi = FresnelRS(km, ki);
+}
+
+static inline void set_mutual_P_coef(
+		const doublecomplex ki,
+		const doublecomplex km,
+		const doublecomplex m_i,
+		const doublecomplex m_m,
+		doublecomplex* t_im,
+		doublecomplex* r_mi
+		)
+{
+	*t_im = FresnelTP(ki, km, m_m/m_i);
+	*r_mi = FresnelRP(km, ki, m_i/m_m);
+}
+
+static inline void set_refraction_S_coef(
+		const doublecomplex ki,
+		const doublecomplex km,
+		doublecomplex* t_mi,
+		doublecomplex* r_im
+		)
+{
+	*t_mi = FresnelTS(km, ki);
+	*r_im = FresnelRS(ki, km);
+}
+
+static inline void set_refraction_P_coef(
+		const doublecomplex ki,
+		const doublecomplex km,
+		const doublecomplex m_i,
+		const doublecomplex m_m,
+		doublecomplex* t_mi,
+		doublecomplex* r_im
+		)
+{
+	*t_mi = FresnelTP(km, ki, m_i / m_m);
+	*r_im = FresnelRP(ki, km, m_m / m_i);
+}
+
+static inline doublecomplex get_two_layer_t(
+		const doublecomplex t_im,
+		const doublecomplex t_mt,
+		const doublecomplex r_mi,
+		const doublecomplex r_mt,
+		const doublecomplex eL
+		)
+{
+	return t_mt * t_im * eL / (1 - r_mi * r_mt * eL * eL);
+}
+
+static inline doublecomplex get_two_layer_r(
+		const doublecomplex t_im,
+		const doublecomplex t_mi,
+		const doublecomplex r_im,
+		const doublecomplex r_mi,
+		const doublecomplex r_mt,
+		const doublecomplex eL
+		)
+{
+	return r_im + t_mi * r_mt * t_im * eL * eL / (1 - r_mi * r_mt * eL * eL);
+}
+void SubstrateFresnel(
+		const struct Substrate sub,
+		const double wave_num,
+		const bool is_positive_z_direction,
+		const doublecomplex sqr_long_k,
+		const doublecomplex ki,
+		doublecomplex* ts,
+		doublecomplex* rs,
+		doublecomplex* tp,
+		doublecomplex* rp
+		)
+{
+	if (sub.N > 2)
+		PrintError("substrates with more then 2 layers are not supported yet");
+
+	if (sub.N == 1) {
+		if (sub.mInf) {
+			if (ts != NULL) *ts = 0;
+			if (tp != NULL) *tp = 0;
+			if (rs != NULL) *rs = -1;
+			if (rp != NULL) *rp = 1;
+			return;
+		}
+		doublecomplex mi = is_positive_z_direction ? sub.m[0] : 1;
+		doublecomplex mt = is_positive_z_direction ? 1 : sub.m[0];
+		doublecomplex kt = CalculateKt(ki, mi, mt, sqr_long_k);
+		if (ts != NULL) *ts = FresnelTS(ki, kt);
+		if (tp != NULL) *tp = FresnelTP(ki, kt, mt / mi);
+		if (rs != NULL) *rs = FresnelRS(ki, kt);
+		if (rp != NULL) *rp = FresnelRP(ki, kt, mt / mi);
+		return;
+	}
+
+	// Two layer case:
+
+	doublecomplex m_i, m_m, m_t;
+	doublecomplex km, kt;
+	doublecomplex eL;
+	doublecomplex t_im, t_mi, t_mt, r_mt, r_mi, r_im;
+
+	m_m = sub.m[0];
+	if (is_positive_z_direction) {
+		m_i = sub.m[1];
+		m_t = 1;
+	}
+	else {
+		m_i = 1;
+		if (!sub.mInf) m_t = sub.m[1];
+	}
+	km = CalculateKt(ki, m_i, m_m, sqr_long_k);
+	if (!sub.mInf) kt = CalculateKt(km, m_m, m_t, sqr_long_k);
+	eL = cexp(I * wave_num * sub.h[0] * km);
+
+	switch (((ts != NULL) << 2) | ((rs != NULL) << 1) | sub.mInf) { // encoding configuration for output coefficients
+		case 7: // equals 0b111: set ts and rs (sub.mInf is true)
+			set_mutual_S_coef(ki, km, &t_im, &r_mi);
+			r_mt = -1;
+			set_refraction_S_coef(ki, km, &t_mi, &r_im);
+			*ts = 0;
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 6: // equals 0b110: set ts and rs (sub.mInf is false)
+			set_mutual_S_coef(ki, km, &t_im, &r_mi);
+			r_mt = FresnelRS(km, kt);
+			set_refraction_S_coef(ki, km, &t_mi, &r_im);
+			t_mt = FresnelTS(km, kt);
+			*ts = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 5: // equals 0b101: set ts (sub.mInf is true)
+			*ts = 0;
+		case 4: // equals 0b100: set ts (sub.mInf is false)
+			set_mutual_S_coef(ki, km, &t_im, &r_mi);
+			r_mt = FresnelRS(km, kt);
+			t_mt = FresnelTS(km, kt);
+			*ts = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			break;
+		case 3: // equals 0b011 set rs (sub.mInf is true)
+			set_mutual_S_coef(ki, km, &t_im, &r_mi);
+			r_mt = -1;
+			set_refraction_S_coef(ki, km, &t_mi, &r_im);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 2: // equals 0b010: set rs (sub.mInf is false)
+			set_mutual_S_coef(ki, km, &t_im, &r_mi);
+			r_mt = FresnelRS(km, kt);
+			set_refraction_S_coef(ki, km, &t_mi, &r_im);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		default:
+			break;
+	}
+
+	switch (((tp != NULL) << 2) | ((rp != NULL) << 1) | sub.mInf) {
+		case 7:
+			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
+			r_mt = 1;
+			set_refraction_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
+			*ts = 0;
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 6:
+			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
+			r_mt = FresnelRP(km, kt, m_t/m_i);
+			set_refraction_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
+			t_mt = FresnelTP(km, kt, m_t/m_i);
+			*ts = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 5:
+			*ts = 0;
+		case 4:
+			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
+			r_mt = FresnelRP(km, kt, m_t/m_m);
+			t_mt = FresnelTP(km, kt, m_t/m_m);
+			*ts = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			break;
+		case 3:
+			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
+			r_mt = 1;
+			set_refraction_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		case 2:
+			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
+			r_mt = FresnelRP(km, kt, m_t/m_m);
+			set_refraction_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
+			*rs = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			break;
+		default:
+			break;
+	}
+}
