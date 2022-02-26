@@ -6,7 +6,6 @@
 import os, re, math
 import matplotlib.pyplot as plt
 from matplotlib import rc
-from PIL import Image
 
 
 # path to adda executable
@@ -17,6 +16,30 @@ adda_exec = os.path.abspath(__file__ + "/../../../src/seq/adda")
 # define here different parameters for 2 options (see ADDA manual)
 run_options = [' -beam besselLE  2 15',  # option 1
                ' -beam besselLM  2 15']  # option 2
+
+# =============================================================================
+# Bessel beams in ADDA:
+#     
+#   besselCS <order> <angle>
+#       -Bessel beam with circularly symmetric energy density.
+#   besselCSp <order> <angle>
+#       -Alternative Bessel beam with circularly symmetric energy density.
+#   besselM <order> <angle> <ReMex> <ReMey> <ReMmx> <ReMmy> [<ImMex> <ImMey> <ImMmx> <ImMmy>]
+#       -Generalized Bessel beam. The beam is defined by 2x2 matrix M:
+#       (Mex, Mey, Mmx, Mmy). Real parts of these four elements are obligatory, 
+#       while imaginary parts are optional (zero, by default).
+#   besselLE <order> <angle>
+#       -Bessel beam with linearly polarized electric field.
+#   besselLM <order> <angle>
+#       -Bessel beam with linearly polarized magnetic field.
+#   besselTEL <order> <angle>
+#       -Linear component of the TE Bessel beam.
+#   besselTML <order> <angle>
+#       -Linear component of the TM Bessel beam.
+#   
+#   Order is integer (of any sign) and the half-cone angle (in degrees) 
+#   is measured from the z-axis.
+# =============================================================================
                                                                               
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -115,7 +138,7 @@ def plotData(xv1,yv1,xv2,yv2,flag):
 # Visualisation of the amplitude of the incident electric field almost in the middle
 # of the particle (the nearest to the center xy-plane of dipoles is used, its z-coordinate is shown on the plot)
 def plotField(xd,yd,ed,z0,mode):
-    ax.set_title('OPTION '+str(mode)+'\nAmplitude of the incident field \n(z = '+str(round(z0,2))+')');
+    ax.set_title(r'OPTION '+str(mode)+':\n '+run_options[mode-1]+'\nIntensity profile of $|E_{inc}|^2$\n(z = '+str(round(z0,2))+')');
     ax.scatter(xd, yd, ed, c=ed, cmap='viridis', linewidth=0.5);
     #ax.plot_trisurf(xd, yd, ed,cmap='viridis', edgecolor='none');
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
