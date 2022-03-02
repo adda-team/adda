@@ -700,11 +700,11 @@ void SubstrateFresnel(
 		doublecomplex sqr_long_k, // a square of longitudinal component of the k vector
 		doublecomplex ki,
 		// pointers to output values. All unnecessary pointers should be passed as NULL
-		doublecomplex * restrict ts_out,
-		doublecomplex * restrict rs_out,
-		doublecomplex * restrict tp_out,
-		doublecomplex * restrict rp_out,
-		doublecomplex * restrict kt_out
+		doublecomplex * ts_out,
+		doublecomplex * rs_out,
+		doublecomplex * tp_out,
+		doublecomplex * rp_out,
+		doublecomplex * kt_out
 );
 /* A function to calculate the substrate transmission and/or reflection coefficients. kt may be stored in kt_out for
  * optimization purposes

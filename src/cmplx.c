@@ -338,11 +338,11 @@ void SubstrateFresnel(
 		const bool is_positive_z_direction,
 		const doublecomplex sqr_long_k,
 		const doublecomplex ki,
-		doublecomplex * restrict ts_out,
-		doublecomplex * restrict rs_out,
-		doublecomplex * restrict tp_out,
-		doublecomplex * restrict rp_out,
-		doublecomplex * restrict kt_out
+		doublecomplex * const ts_out,
+		doublecomplex * const rs_out,
+		doublecomplex * const tp_out,
+		doublecomplex * const rp_out,
+		doublecomplex * const kt_out
 		)
 {
 	if (sub.N > 2)
