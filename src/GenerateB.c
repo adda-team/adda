@@ -368,31 +368,15 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
                     //  determine amplitude of the reflected and transmitted waves; here sub.m[sub.N-1] is always defined
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncTran);
-						SubstrateFresnel(
-								sub,
-								WaveNum,
-								true,
-								sub.m[sub.N-1] * sub.m[sub.N-1] * (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),
-								ki,
-								&tc,
-								NULL,
-								NULL,
-								NULL
-								);
+						SubstrateFresnel(sub,WaveNum,true,
+										 sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),ki,&tc,
+										 NULL,NULL,NULL, NULL);
 					}
 					else { // p-polarized
 						crCrossProd(ey,ktVec,eIncTran);
-						SubstrateFresnel(
-								sub,
-								WaveNum,
-								true,
-								sub.m[sub.N-1] * sub.m[sub.N-1] * (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),
-								ki,
-								NULL,
-								NULL,
-								&tc,
-								NULL
-						);
+						SubstrateFresnel(sub,WaveNum,true,
+										 sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),ki,
+										 NULL,NULL,&tc,NULL,NULL);
 					}
 					// phase shift due to the beam center relative to the origin and surface
 					cvMultScal_cmplx(tc*cexp(I*WaveNum*((kt-ki)*hbeam-crDotProd(ktVec,beam_center))),eIncTran,eIncTran);
@@ -413,30 +397,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine reflection coefficient + 1
 					doublecomplex rcp1;
 					if (which==INCPOL_Y) { // s-polarized
-						SubstrateFresnel(
-								sub,
-								WaveNum,
-								false,
-								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],
-								ki,
-								NULL,
-								&rcp1,
-								NULL,
-								NULL
-						);
+						SubstrateFresnel(sub,WaveNum,false,
+										 prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],ki,NULL,&rcp1,NULL,NULL, NULL);
 					}
 					else { // p-polarized
-						SubstrateFresnel(
-								sub,
-								WaveNum,
-								false,
-								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],
-								ki,
-								NULL,
-								NULL,
-								NULL,
-								&rcp1
-						);
+						SubstrateFresnel(sub,WaveNum,false,
+								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],ki,NULL,NULL,NULL,&rcp1, NULL);
 					}
 					rcp1 = rcp1 + 1;
 					// main part

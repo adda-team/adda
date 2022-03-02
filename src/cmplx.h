@@ -696,14 +696,19 @@ static inline doublecomplex CalculateKt(
 void SubstrateFresnel(
 		struct Substrate sub,
 		double wave_num,
-		bool is_positive_z_direction,
-		doublecomplex sqr_long_k,
+		bool is_positive_z_direction, // indicates the direction of incidence field
+		doublecomplex sqr_long_k, // a square of longitudinal component of the k vector
 		doublecomplex ki,
-		doublecomplex* ts,
-		doublecomplex* rs,
-		doublecomplex* tp,
-		doublecomplex* rp
+		// pointers to output values. All unnecessary pointers should be passed as NULL
+		doublecomplex * restrict ts_out,
+		doublecomplex * restrict rs_out,
+		doublecomplex * restrict tp_out,
+		doublecomplex * restrict rp_out,
+		doublecomplex * restrict kt_out
 );
+/* A function to calculate the substrate transmission and/or reflection coefficients. kt may be stored in kt_out for
+ * optimization purposes
+ */
 
 #ifdef USE_SSE3
 

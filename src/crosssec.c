@@ -651,17 +651,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		cvBuildRe(nF,nN);
 		nN[2]*=-1;
 		ki=nF[2]; // real
-		if (sub.mInf) {
-			cs=-1;
-			cp=1;
-		}
-		  // since kt is not further needed, we directly calculate cs and cp (equivalent to kt=ki)
-		else if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) cs=cp=0;
-		else { // no special treatment here, since other cases, including 90deg-scattering, are taken care above.
-			kt=cSqrtCut(sub.m[sub.N-1]*sub.m[sub.N-1] - (nN[0]*nN[0]+nN[1]*nN[1]));
-			cs=FresnelRS(ki,kt);
-			cp=FresnelRP(ki,kt,sub.m[sub.N-1]);
-		}
+		SubstrateFresnel(sub,WaveNum,false,nN[0]*nN[0]+nN[1]*nN[1],ki,NULL,&cs,NULL,&cp,NULL);
 		phSh=imExp(2*WaveNum*sub.hP*creal(ki)); // assumes real ki
 	}
 	else { // transmission; here nF[2] is negative
@@ -671,15 +661,12 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 			return;
 		}
 		kt=-sub.m[sub.N-1]*nF[2];
-		if (cabs(sub.m[sub.N-1]-1)<ROUND_ERR && cabs(kt)<SQRT_RND_ERR) ki=kt;
-		else ki=cSqrtCut(1 - sub.m[sub.N-1]*sub.m[sub.N-1]*(nF[0]*nF[0]+nF[1]*nF[1]));
+		SubstrateFresnel(sub,WaveNum,true,sub.m[sub.N-1]*sub.m[sub.N-1]*(nF[0]*nF[0]+nF[1]*nF[1]),kt,&cs,NULL,&cp,NULL,
+						 &ki);
 		// here nN may be complex, but normalized to n.n=1
 		nN[0]=sub.m[sub.N-1]*nF[0];
 		nN[1]=sub.m[sub.N-1]*nF[1];
 		nN[2]=-ki;
-		// these formulae works fine for ki=kt (even very small), and ki=kt=0 is impossible here
-		cs=FresnelTS(kt,ki);
-		cp=FresnelTP(kt,ki,1/sub.m[sub.N-1]);
 		// coefficient comes from  k0->k in definition of F(n) (in denominator)
 		phSh=sub.m[sub.N-1]*cexp(I*WaveNum*sub.hP*(ki-kt));
 	}
