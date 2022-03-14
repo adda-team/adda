@@ -1,16 +1,12 @@
-This python module "bb_module.py" includes functions for the representation of figures 12-15 from the article with the following python scripts:
+This python module `bb_module.py` includes common functions for building the figures 12-15 from the paper with the following python scripts (each runs ADDA and produces a single figure):
+* `fig12_sphere.py`
+* `fig13_coated_sphere.py`
+* `fig14_extrapolation.py`
+* `fig15_cube.py`
 
-   * fig12_sphere.py
-   * fig13_coated_sphere.py
-   * fig14_extrapolation.py
-   * fig15_cube.py
-    
-* `dda/` - contains raw ADDA results (log file, mueller matrix, and cross sections by default) in `dda/option_...` folders (0 - fig12; 1 - fig13; 2-4 - fig15).
-  * `dda/extrapolation/` - contains several "run_..." folders with raw ADDA results for the extrapolation presented in fig14.
-
-* `ref/glmt/` - contains raw data for the scattering intensities of Bessel beams obtained with the generalized Lorenz-Mie theory (glmt) for fig 12 and fig 13 (/option_0 and /option_1 respectively).
-
-* `particles/` - contains images of scattering particles presented in fig 12,13,and 15.
-
-* The results of the following scripts are saved in `saved/` as PDF files.
+Other folders (some are produced by scripts):    
+* `dda/` - contains raw ADDA output in subfolders `/option_#/` (0 - Fig.12; 1 - Fig.13; 2-4 - Fig.15). `/extrapolation/` - contains several `run_...` folders with raw ADDA output for Fig.14.
+* `ref/glmt/` - contains raw data for the scattering intensities of Bessel beams obtained with the generalized Lorenz-Mie theory (GLMT) for Figs. 12 and 13 (`/option_0/` and `/option_1/` subfolders, respectively).
+* `particles/` - contains images of scattering particles presented in Figs. 12,13, and 15.
+* `saved/` - final figures in PDF format.
 

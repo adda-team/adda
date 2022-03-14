@@ -1,5 +1,5 @@
 '''
-# This code represents the extrapolation for the comparison of scattering 
+# This code represents the extrapolation for the comparison of backscattering 
 # intensities calculated with GLMT (reference data) and DDA (with ADDA) for 
 # the scattering of Bessel beam (CS type) by a sphere.
 # Reference data were kindly provided by Zhuyang Chen 
@@ -10,12 +10,12 @@ import os
 import matplotlib.pyplot as plt
 import bb_module as bb
 
-run = 0 # 0- do not run adda; 1- run adda
+run = 1 # 0- do not run adda; 1- run adda
 theta = 180
 # Attention! Large grids require high computational power!!! 
-grids = [16,32,40,48,56,64,80,96,112,128,144,160,256] 
-# less accurate extrapolation
-#grids = [16,20,24,28,32,36,40,44,48,52,56,60,64] 
+grids = [64,80,96,112,128,160,192,224,256] 
+# less accurate extrapolation 
+#grids = [32,40,48,56,64,80,96,112,128] 
    
 if run == 1:
     bb.adda_run_grids(grids)
