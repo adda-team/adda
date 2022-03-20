@@ -1,12 +1,9 @@
 '''
-# This code represents the comparison of scattering intensities calculated 
-# with GLMT (reference data) and DDA (with ADDA) for the scattering of 
-# Bessel beam (CS type) by a sphere (option 0) and coated sphere (option 1).
-# Reference data were kindly provided by Zhuyang Chen 
-# (DOI:10.1088/2040-8978/16/5/055701).
+# The module contains functions for the demonstration of figures 12-15 in the 
+# corresponding python scripts (fig... .py). 
 '''
 
-import os, re, math
+import os, shutil, re, math
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
@@ -17,22 +14,8 @@ import numpy as np
 adda_exec = os.path.abspath(__file__ + "/../../../../src/seq/adda")
 
 
-option = 0 # 0 - scattering by a sphere; 1 - scattering by a coated sphere
-
-
-
-# Bessel beam parameters
-angle = 15 # half-cone angle
-lmbd = 0.6328 # beam wavelenght
-
-# particle parameters
-eq_rad = lmbd # sphere diameter
-grid = 32 # number of dipoles per particle length (see ADDA manual)
-# Constants 
-mre = 1.33
-mim = 0
-
-run = 1 # 1 - run ADDA code; other - do not run ADDA code
+fig1214comm = ' -beam besselCS 0 15 -eq_rad 0.6328 -lambda 0.6328'
+fig15comm = ' -m 1.52 0 -shape box -size 1. -store_beam -lambda 0.6328 -grid 16'
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,40 +23,41 @@ run = 1 # 1 - run ADDA code; other - do not run ADDA code
 # Data generation (run of ADDA code)
 def adda_run(mode):
     
+    if os.path.exists('dda/option_' + str(mode)):
+        shutil.rmtree('dda/option_' + str(mode))
+    
     # Beam and particle definition
-
-    run_options = [' -beam besselCS 0 ' + str(angle) + ' -m 1.33 0 -eq_rad ' + str(eq_rad), # option 0 - sphere
-                   ' -beam besselCS 0 ' + str(angle) + ' -shape coated 0.5 -m 1.33 0 1.55 0  -eq_rad ' + str(eq_rad),  # option 1 - coated sphere
-                   ' -beam besselCS 2 15 -beam_center 0 0 0 -m 1.33 0  -shape box -size ' + str(2*lmbd),
-                   ' -beam besselCS 2 15 -beam_center 0 '+str(lmbd)+'   0 -m 1.33 0 -shape box -size ' + str(2*lmbd),
-                   ' -beam besselCS 2 15 -beam_center 0 '+str(2*lmbd)+' 0 -m 1.33 0 -shape box -size ' + str(2*lmbd),
+    run_options = [fig1214comm + ' -m 1.33 0 -grid 64', # option 0 - sphere
+                   fig1214comm + ' -shape coated 0.5 -m 1.33 0 1.55 0 -grid 64',  # option 1 - coated sphere
+                   fig15comm + ' -beam besselCS  4 45',
+                   fig15comm + ' -beam besselCSp 4 45',
+                   fig15comm + ' -beam besselTEL 4 45',
+                   fig15comm + ' -beam besselTML 4 45'
                    ]                                                               
     
     # cmd line generation (see ADDA manual)
     cmdline = adda_exec
-    #cmdline += ' -sym enf' #Do not simulate second polarization
-    cmdline += ' -ntheta 360'
+    cmdline += ' -sym enf' #Do not simulate second polarization
+    cmdline += ' -ntheta 180'
     cmdline += run_options[mode]
-    cmdline += ' -lambda ' + str(lmbd)
-    #cmdline += ' -eq_rad ' + str(eq_rad)
-    cmdline += ' -grid ' + str(grid)
     cmdline += ' -dir dda/option_' + str(mode)
     print(cmdline)
     
     os.system(cmdline + ' > ' + os.devnull)
     
     
-def adda_run_grids(grids): # mode from 0 up to 5
+def adda_run_grids(grids): # mode from 0 up to 5      
     # Beam and particle definition
-    run_option = ' -beam besselCS 0 ' + str(angle) + ' -m 1.33 0 -eq_rad ' + str(eq_rad)
+    run_option = fig1214comm + ' -m 1.33 0'
     # cmd line generation
     cmdline = adda_exec
     cmdline += ' -sym enf' #Do not simulate second polarization
     cmdline += ' -ntheta 90'
     cmdline += run_option
-    cmdline += ' -lambda ' + str(lmbd)
     
     for g in grids:
+        if os.path.exists('dda/extrapolation/run_' + str(g)):
+            shutil.rmtree('dda/extrapolation/run_' + str(g))
         os.system(cmdline + ' -grid ' + str(g) + ' -dir dda/extrapolation/run_' + str(g))
     return 0
 
@@ -125,6 +109,31 @@ def extractData(mode,option):
     
     return theta,i_per,i_par
 
+# fig 15 intensity profiles
+def extractField(mode):
+    path = 'dda/option_' + str(mode)
+    files = os.listdir(path)
+    with open(path + '/' + str(files[files.index('IncBeam-Y')])) as f:
+        fileF = f.read()
+    f.close()
+    dat = re.split('[\n \t]',fileF)
+    xd = dat[10:-1:10]
+    yd = dat[11:-1:10]
+    zd = dat[12:-1:10]
+    ed = dat[13:-1:10]
+    xd = [float(i) for i in xd]
+    yd = [float(i) for i in yd]
+    zd = [float(i) for i in zd]
+    ed = [float(i) for i in ed]
+    minz = min([abs(i) for i in zd])
+    zslice = [i for i in range(len(zd)) if zd[i]==minz]
+    xd = [xd[i] for i in zslice]
+    yd = [yd[i] for i in zslice]
+    ed = [ed[i] for i in zslice]
+    
+    return xd,yd,ed,minz
+
+# fig 14 extrapolation
 def extractData_grids(grids,tht):
     iperg = []
     for g in grids:
@@ -150,70 +159,84 @@ def extractData_grids(grids,tht):
 
 # data visualisation
 
-# plots of scattering intensities
+SMALL_SIZE = 10
+MEDIUM_SIZE = 12
+
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('font', size=MEDIUM_SIZE) # controls default text sizes
+
+# fig 12-13 scattering intensities
 def plotData(xv1,yv1,xv2,yv2,flag,ax):
     rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
-    plt.plot(xv1, yv1, label = 'DDA', color = (107/256,18/256,245/256))
-    plt.plot(xv2, yv2, label = 'GLMT', color = (234/256,56/256,38/256),linestyle='none', marker = '.', markersize = 3)
+    plt.plot(xv1, yv1, label = 'DDA', color = (107/256,18/256,245/256),linewidth = 1)
+    plt.plot(xv2, yv2, label = 'GLMT', color = (234/256,56/256,38/256),linestyle='none',marker = '.',markersize = 3)
     plt.minorticks_on()
     plt.tick_params(which='major',right=True, top=True)
     plt.tick_params(which='minor',right=True, top=True)
-    plt.xlabel(r'Scattering angle $\theta$, deg')
+    plt.xlabel(r'Scattering angle $\theta$, deg',labelpad=5.)
     if flag == 1:
-        plt.ylabel(r'$I_{\perp}$ (H plane)')
+        plt.ylabel(r'Parallel intensity $I_{\parallel}$',labelpad=2.)
+        plt.title('a)',loc='left', x=0.035,y=0.55,fontweight="bold")
     if flag == 2:
-        plt.ylabel(r'$I_{\parallel}$ (E plane)')
+        plt.ylabel(r'Perpendicular intensity $I_{\perp}$',labelpad=2.)
+        plt.title('b)',loc='left', x=0.035,y=0.55,fontweight="bold")
     plt.legend()
-    plt.xlim(0, 180)
     plt.yscale('log')
+    plt.xlim(0, 180)
+    plt.xticks(np.arange(0, 181, 30))
     x_left1, x_right1 = ax.get_xlim()
     y_low1, y_high1 = ax.get_ylim()
-    ax.set_aspect(abs((x_right1-x_left1)/(math.log(y_low1)-math.log(y_high1)))*2,adjustable="box")
-    '''
-    maxint = max(yv2)
-    dev = list(map(lambda x, y: math.fabs((x-y)/maxint*100), yv1,yv2))
-    dev2 = list(map(lambda x, y: (math.fabs((x-y)/maxint))**2, yv1,yv2))
+    ax.set_aspect(abs((x_right1-x_left1)/(math.log(y_low1)-math.log(y_high1)))*1.85,adjustable="box")
 
-    print('\nDeviations ' + str(flag))
-    print('Max relative error, %:')
-    print(max(dev))
-    print('Average relative error,%:')
-    print(sum(dev)/len(dev))
-    print('RMS, %:')
-    print(math.sqrt(sum(dev2)/len(xv2)*100))
-    '''
-
-def plotData3(xv1,yv1,xv2,yv2,xv3,yv3,flag,ax):
+# fig 15 scattering intensities
+def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
     rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
-    plt.plot(xv1, yv1, label = r'$\Delta$y = 0', color = (107/256,18/256,245/256), linewidth = 1)
-    plt.plot(xv2, yv2, label = r'$\Delta$y = a', color = (121/256,251/256,186/256),linewidth=1)
-    plt.plot(xv3, yv3, label = r'$\Delta$y = 2a', color = (234/256,56/256,38/256), linewidth = 1)
+    plt.plot(xv1, yv1, label = r'CS', color = (107/256,18/256,245/256), linewidth = 1)
+    plt.plot(xv2, yv2, label = "CS'", color = (121/256,251/256,186/256),linewidth=1)
+    plt.plot(xv3, yv3, label = 'TEL', color = (230/256,139/256,79/256), linewidth = 1)
+    plt.plot(xv4, yv4, label = 'TML', color = (234/256,56/256,38/256), linewidth = 1)
     plt.minorticks_on()
     plt.tick_params(which='major',right=True, top=True)
     plt.tick_params(which='minor',right=True, top=True)
-    plt.xlabel(r'Scattering angle $\theta$, deg')
+    plt.xlabel(r'Scattering angle $\theta$, deg',labelpad=5.)
     if flag == 1:
-        plt.ylabel(r'$I_{\perp}$ (H plane)')
+        plt.ylabel(r'Parallel intensity $I_{\parallel}$',labelpad=3.)
+        plt.title('e)',loc='left', x=0.035,y=1.45,fontweight="bold")
     if flag == 2:
-        plt.ylabel(r'$I_{\parallel}$ (E plane)')
-        plt.legend(loc='upper center')
-    plt.xlim(0, 360)
+        plt.ylabel(r'Perpendicular intensity $I_{\perp}$',labelpad=3.)
+        plt.legend(loc='lower left',ncol=2,fontsize=SMALL_SIZE)
+        plt.title('f)',loc='left', x=0.035,y=1.45,fontweight="bold")
     plt.yscale('log')
+    plt.xlim(0,180)
+    plt.xticks(np.arange(0, 181, 30))
     x_left1, x_right1 = ax.get_xlim()
     y_low1, y_high1 = ax.get_ylim()
-    ax.set_aspect(abs((x_right1-x_left1)/(math.log(y_low1)-math.log(y_high1)))*2,adjustable="box")
+    ax.set_aspect(abs((x_right1-x_left1)/(math.log(y_low1)-math.log(y_high1)))*1.65,adjustable="box")
     
-    
-    
+# fig 15
+# Visualisation of the intensity of the incident electric field almost in the 
+# middle of the particle (the nearest to the center xy-plane of dipoles is 
+# used, its z-coordinate is shown on the plot)
+def plotField(xd,yd,ed,z0,mode,ax):
+    axtitles = ['a)',"b)",'c)','d)']
+    axtypes = ['CS',"CS'",'TEL','TML']
+    ax.set_title(axtitles[mode-2],loc='left',fontweight="bold",y=1.55,x=0.08)
+    ax.scatter(xd, yd, ed, c=ed, cmap="rainbow",label=axtypes[mode-2])
+    plt.legend(loc=[0.1,0.1],frameon=False,markerfirst=False,markerscale=0)
+    ax.axis('off')
+
+# fig 14 extrapolation
 def axesGen(grd):
     #grids_ut = grd[N0:N1:]
     grids_ut = grd
-    m_abs = math.sqrt(mre**2 + mim**2)
-    size = eq_rad*2
+    lmbd = 0.6328
+    m_abs = 1.33
+    size = lmbd*2
     ys = list(map(lambda x: (2*math.pi/lmbd)*(size/x)*m_abs, grids_ut))
     #ys = list(map(lambda x: (1/x), grids_ut))
     return ys
 
+# fig 14 extrapolation
 def fitData(grids,data):
     #values = data[N0:N1:]
     values = data
@@ -224,6 +247,7 @@ def fitData(grids,data):
     error = 2*np.sqrt(np.flip(np.diag(cov)))
     return a,error
 
+# fig 14 extrapolation
 def fitDotPlot(grids,data,ref):
     a,error = fitData(grids,data)
     ys = axesGen(grids)

@@ -7,7 +7,7 @@ import os,shutil,re,math
 
 
 
-fdiff = 1e-10 # fixed difference
+fdiff = 1e-8 # fixed relative difference
 
 
 # path to adda executable
@@ -42,7 +42,7 @@ def adda_run(mode,option):
 
 # print difference
 def printdiff(val,x,y):
-    cdiff = math.fabs(x-y) # calculated difference
+    cdiff = math.fabs((x-y)/y) # calculated relative difference
     if (cdiff > fdiff):
         fr.write('\n\t\t'+val + ':\n\t\tcase 1:\t'+str(x)+'\n\t\tcase 2:\t'+str(y)+'\n\t\tdiff:\t'+str(cdiff)+'\n')
         return 1
@@ -109,7 +109,7 @@ opt1 = ' -sym no'
 opt2 = ' -beam besselCS 0 0'
 compare(opt1,opt2)
 
-al1 = 5
+al1 = 2
 al2 = 85
 
 print('\n\nGeneralized and LE Bessel beams')

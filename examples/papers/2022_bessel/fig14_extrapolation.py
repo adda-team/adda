@@ -10,6 +10,11 @@ import os
 import matplotlib.pyplot as plt
 import bb_module as bb
 
+if not os.path.exists('dda'):
+    os.makedirs('dda')
+if not os.path.exists('dda/extrapolation'):
+    os.makedirs('dda/extrapolation')
+
 run = 0 # 0- do not run adda; 1- run adda
 theta = 180
 # Attention! Large grids require high computational power!!! 
