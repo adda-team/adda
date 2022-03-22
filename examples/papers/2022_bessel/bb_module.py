@@ -15,7 +15,7 @@ adda_exec = os.path.abspath(__file__ + "/../../../../src/seq/adda")
 
 
 fig1214comm = ' -beam besselCS 0 15 -eq_rad 0.6328 -lambda 0.6328'
-fig15comm = ' -m 1.52 0 -shape box -size 1. -store_beam -lambda 0.6328 -grid 16'
+fig15comm = ' -m 1.52 0 -shape box -size 1. -store_beam -lambda 0.6328 -grid 15'
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -201,11 +201,11 @@ def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
     plt.xlabel(r'Scattering angle $\theta$, deg',labelpad=5.)
     if flag == 1:
         plt.ylabel(r'Parallel intensity $I_{\parallel}$',labelpad=3.)
-        plt.title('e)',loc='left', x=0.035,y=1.45,fontweight="bold")
+        plt.title('e)',loc='left', x=0.035,y=0.85,fontweight="bold")
     if flag == 2:
         plt.ylabel(r'Perpendicular intensity $I_{\perp}$',labelpad=3.)
         plt.legend(loc='lower left',ncol=2,fontsize=SMALL_SIZE)
-        plt.title('f)',loc='left', x=0.035,y=1.45,fontweight="bold")
+        plt.title('f)',loc='left', x=0.035,y=0.85,fontweight="bold")
     plt.yscale('log')
     plt.xlim(0,180)
     plt.xticks(np.arange(0, 181, 30))
@@ -220,7 +220,7 @@ def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
 def plotField(xd,yd,ed,z0,mode,ax):
     axtitles = ['a)',"b)",'c)','d)']
     axtypes = ['CS',"CS'",'TEL','TML']
-    ax.set_title(axtitles[mode-2],loc='left',fontweight="bold",y=1.55,x=0.08)
+    ax.set_title(axtitles[mode-2],loc='left',fontweight="bold",y=0.8,x=0.08)
     ax.scatter(xd, yd, ed, c=ed, cmap="rainbow",label=axtypes[mode-2])
     plt.legend(loc=[0.1,0.1],frameon=False,markerfirst=False,markerscale=0)
     ax.axis('off')
