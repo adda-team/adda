@@ -315,7 +315,7 @@ static inline doublecomplex get_two_layer_t(
  * Calculates transmission coefficient in a two-layer substrate case
  */
 {
-	return t_mt * t_im * eL / (1 - r_mi * r_mt * eL * eL);
+	return t_mt * t_im / (1 - r_mi * r_mt * eL * eL);
 }
 
 static inline doublecomplex get_two_layer_r(
@@ -435,36 +435,36 @@ void SubstrateFresnel(
 			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
 			r_mt = 1;
 			set_reflection_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
-			*ts_out = 0;
-			*rs_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			*tp_out = 0;
+			*rp_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
 			break;
 		case 6:
 			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
-			r_mt = FresnelRP(km, kt, m_t/m_i);
+			r_mt = FresnelRP(km, kt, m_t/m_m);
 			set_reflection_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
-			t_mt = FresnelTP(km, kt, m_t/m_i);
-			*ts_out = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
-			*rs_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			t_mt = FresnelTP(km, kt, m_t/m_m);
+			*tp_out = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			*rp_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
 			break;
 		case 5:
-			*ts_out = 0;
+			*tp_out = 0;
 		case 4:
 			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
 			r_mt = FresnelRP(km, kt, m_t/m_m);
 			t_mt = FresnelTP(km, kt, m_t/m_m);
-			*ts_out = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
+			*tp_out = get_two_layer_t(t_im, t_mt, r_mi, r_mt, eL);
 			break;
 		case 3:
 			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
 			r_mt = 1;
 			set_reflection_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
-			*rs_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			*rp_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
 			break;
 		case 2:
 			set_mutual_P_coef(ki, km, m_i, m_m, &t_im, &r_mi);
 			r_mt = FresnelRP(km, kt, m_t/m_m);
 			set_reflection_P_coef(ki, km, m_i, m_m, &t_mi, &r_im);
-			*rs_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
+			*rp_out = get_two_layer_r(t_im, t_mi, r_im, r_mi, r_mt, eL);
 			break;
 		default:
 			break;
