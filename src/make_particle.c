@@ -2433,14 +2433,14 @@ void MakeParticle(void)
 		if (minZco>DipoleCoord[i3+2]) minZco=DipoleCoord[i3+2]; // crude way to find the minimum on the way
 	}
 	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
-	 * substrate - hsub+minZco>0, while the geometric boundary of the particle may still intersect with the substrate.
+	 * substrate - sub.hP+minZco>0, while the geometric boundary of the particle may still intersect with the substrate.
 	 * However, the current test is sufficient to ensure that corresponding routines to calculate reflected Green's
 	 * tensor do not fail. And accuracy of the DDA itself is anyway questionable when some of the dipoles are very close
 	 * to the substrate (whether they cross it or not).
 	 */
-	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "
+	if (surface && sub.hP<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "
 		"dipole with z="GFORMDEF" (relative to the center), making specified height of the center ("GFORMDEF") too "
-		"small",minZco,hsub);
+		"small",minZco,sub.hP);
 	// save geometry
 	if (save_geom)
 #ifndef SPARSE
@@ -2465,10 +2465,10 @@ void MakeParticle(void)
 	box_origin_unif[1]=-dsY*cY;
 #ifndef SPARSE
 	box_origin_unif[2]=dsZ*(local_z0_unif-cZ);
-	if (surface) ZsumShift=2*(hsub+(local_z0-cZ)*dsZ);
+	if (surface) ZsumShift=2*(sub.hP+(local_z0-cZ)*dsZ);
 #else
 	box_origin_unif[2]=-dsZ*cZ;
-	if (surface) ZsumShift=2*(hsub-cZ*dsZ);
+	if (surface) ZsumShift=2*(sub.hP-cZ*dsZ);
 #	ifdef PARALLEL
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif

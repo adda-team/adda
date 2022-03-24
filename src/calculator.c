@@ -60,7 +60,8 @@ double * restrict muel_alpha; // mueller matrix for different values of alpha
 
 // used in crosssec.c
 doublecomplex * restrict E_ad; // complex field E, calculated for alldir
-double * restrict E2_alldir; // square of E (scaled with msub, so ~ Poynting vector or dC/dOmega), calculated for alldir
+double * restrict E2_alldir; /* square of E (scaled with the refractive index of the last layer, so ~ Poynting vector or
+                                dC/dOmega), calculated for alldir */
 doublecomplex cc[MAX_NMAT][3]; // couple constants
 #ifndef SPARSE
 doublecomplex * restrict expsX,* restrict expsY,* restrict expsZ; // arrays of exponents along 3 axes (for calc_field)

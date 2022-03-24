@@ -70,7 +70,7 @@ double box_origin_unif[3];    /* coordinates of the center of the first dipole i
                                  uniform distribution of non-void dipoles among all processors) */
 
 // 3D vectors (in laboratory reference frame)
-double prop_0[3];             // incident direction 
+double prop_0[3];             // incident direction
 double beam_center_0[3];      // coordinates of the beam center
 
 // file info
@@ -129,10 +129,8 @@ TIME_TYPE Timing_EField,      // time for calculating scattered fields
 // related to a nearby surface
 bool surface;           // whether nearby surface is present
 enum refl ReflRelation; // method to calculate reflected Green's tensor
-doublecomplex msub;     // complex refractive index of the substrate
-double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(msub)
-bool msubInf;           // whether msub is infinite (perfectly reflecting surface)
-double hsub;            // height of particle center above surface
+double inc_scale;       // scale to account for irradiance of the incident beam - 1/Re(sub.m[sub.N-1])
+struct Substrate sub;   //structure with surface related parameters
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 

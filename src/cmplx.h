@@ -252,8 +252,8 @@ static inline double cDotProd_Im(const doublecomplex a[static 3],const doublecom
  */
 {
 	return ( cimag(a[0])*creal(b[0]) - creal(a[0])*cimag(b[0])
-	       + cimag(a[1])*creal(b[1]) - creal(a[1])*cimag(b[1])
-	       + cimag(a[2])*creal(b[2]) - creal(a[2])*cimag(b[2]) );
+		   + cimag(a[1])*creal(b[1]) - creal(a[1])*cimag(b[1])
+		   + cimag(a[2])*creal(b[2]) - creal(a[2])*cimag(b[2]) );
 }
 
 //======================================================================================================================
@@ -556,7 +556,7 @@ static inline double QuadForm(const double matr[static 6],const double vec[stati
 // value of a quadratic form matr (symmetric matrix stored as a vector of size 6) over a vector vec;
 {
 	return ( vec[0]*vec[0]*matr[0] + vec[1]*vec[1]*matr[2] + vec[2]*vec[2]*matr[5]
-	       + 2*(vec[0]*vec[1]*matr[1] + vec[0]*vec[2]*matr[3] + vec[1]*vec[2]*matr[4]) );
+		   + 2*(vec[0]*vec[1]*matr[1] + vec[0]*vec[2]*matr[3] + vec[1]*vec[2]*matr[4]) );
 }
 
 //======================================================================================================================
@@ -676,6 +676,39 @@ static inline doublecomplex FresnelTP(const doublecomplex ki,const doublecomplex
 {
 	return 2*mr*ki/(mr*mr*ki+kt);
 }
+
+static inline doublecomplex CalculateKt(
+		const doublecomplex ki,
+		const doublecomplex mi,
+		const doublecomplex mt,
+		const doublecomplex sqr_long_k /* square of the longitudinal component of kVec. The value is the same for all
+										* transitions due to the law of refraction:
+										* mi*sin(ai)==mt*sin(at)==sqrt(sqr_long_k)
+										*/
+		)
+{
+	if (cabs(mt-mi)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR)
+		return ki;
+	else
+		return cSqrtCut(mt*mt - sqr_long_k);
+}
+
+void SubstrateFresnel(
+		struct Substrate sub,
+		double wave_num,
+		bool is_positive_z_direction, // indicates the direction of incidence field
+		doublecomplex sqr_long_k, // a square of longitudinal component of the k vector
+		doublecomplex ki,
+		// pointers to output values. All unnecessary pointers should be passed as NULL
+		doublecomplex * ts_out,
+		doublecomplex * rs_out,
+		doublecomplex * tp_out,
+		doublecomplex * rp_out,
+		doublecomplex * kt_out
+);
+/* A function to calculate the substrate transmission and/or reflection coefficients. kt may be stored in kt_out for
+ * optimization purposes
+ */
 
 #ifdef USE_SSE3
 

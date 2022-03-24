@@ -50,8 +50,8 @@ int vorticity;                 // Vorticity of vortex beams (besN for Bessel bea
 // used in param.c
 const char *beam_descr; // string for log file with beam parameters
 /* Propagation (phase) directions of secondary incident beams above (refl) and below (tran) the surface (unit vectors)
- * When msub is complex, one of this doesn't tell the complete story, since the corresponding wave is inhomogeneous,
- * given by the complex wavenumber ktVec
+ * When the reflactive index of the surface is complex, one of this doesn't tell the complete story,
+ * since the corresponding wave is inhomogeneous, given by the complex wavenumber ktVec
  */
 double prIncRefl[3],prIncTran[3];
 
@@ -72,10 +72,10 @@ static doublecomplex besM[4];     // Matrix M defining the generalized Bessel be
  * afterwards. If you need local, intermediate variables, put them into the beginning of the corresponding function.
  * Add descriptive comments, use 'static'.
  */
- 
+
 // EXTERNAL FUNCTIONS
 
-#ifndef NO_FORTRAN 
+#ifndef NO_FORTRAN
 void bjndd_(const int *n,const double *x,double *bj,double *dj,double *fj);
 #endif
 
@@ -89,7 +89,7 @@ void InitBeam(void)
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
-	
+
 	// initialization of global option index for error messages
 	opt=opt_beam;
 	// beam initialization
@@ -100,35 +100,38 @@ void InitBeam(void)
 		case B_PLANE:
 			if (IFROOT) beam_descr="plane wave";
 			if (surface) {
-				/* here we assume that prop_0 will not change further (e.g., by rotation of particle), 
+				/* here we assume that prop_0 will not change further (e.g., by rotation of particle),
 				 * i.e. prop=prop_0 in GenerateBeam() below
-				 */				
+				 */
 				if (prop_0[2]==0) PrintError("Ambiguous setting of beam propagating along the surface. Please specify "
 					"the incident direction to have (arbitrary) small positive or negative z-component");
-				if (msubInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
+				if (sub.mInf && prop_0[2]>0) PrintError("Perfectly reflecting surface ('-surf ... inf') is incompatible "
 					"with incident direction from below (including the default one)");
 				// Here we set ki,kt,ktVec and propagation directions prIncRefl,prIncTran
 				if (prop_0[2]>0) { // beam comes from the substrate (below)
-					// here msub should always be defined
-					inc_scale=1/creal(msub);
-					ki=msub*prop_0[2];
-					/* Special case for msub near 1 to remove discontinuities for near-grazing incidence. The details
+					// here sub.m[sub.N-1] should always be defined
+					inc_scale=1/creal(sub.m[sub.N-1]);
+					ki=sub.m[sub.N-1]*prop_0[2];
+					/* Special case for sub.m[sub.N-1] near 1 to remove discontinuities for near-grazing incidence. The details
 					 * are discussed in CalcFieldSurf() in crosssec.c.
 					 */
-					if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
-					else kt=cSqrtCut(1 - msub*msub*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+                    kt = CalculateKt(
+                            ki,
+                            sub.m[sub.N-1],
+                            1,
+                            sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1])
+                            );
 					// determine propagation direction and full wavevector of wave transmitted into substrate
-					ktVec[0]=msub*prop_0[0];
-					ktVec[1]=msub*prop_0[1];
+					ktVec[0]=sub.m[sub.N-1]*prop_0[0];
+					ktVec[1]=sub.m[sub.N-1]*prop_0[1];
 					ktVec[2]=kt;
 				}
 				else if (prop_0[2]<0) { // beam comes from above the substrate
 					inc_scale=1;
 					ki=-prop_0[2]; // always real
-					if (!msubInf) {
+					if (!sub.mInf) {
 						// same special case as above
-						if (cabs(msub-1)<ROUND_ERR && cabs(ki)<SQRT_RND_ERR) kt=ki;
-						else kt=cSqrtCut(msub*msub - (prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]));
+                        kt = CalculateKt(ki, 1, sub.m[sub.N-1], prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]);
 						// determine propagation direction of wave transmitted into substrate
 						ktVec[0]=prop_0[0];
 						ktVec[1]=prop_0[1];
@@ -138,7 +141,7 @@ void InitBeam(void)
 				else LogError(ONE_POS,"Ambiguous setting of beam propagating along the surface. Please specify the"
 					"incident direction to have (arbitrary) small positive or negative z-component");
 				vRefl(prop_0,prIncRefl);
-				if (!msubInf) {
+				if (!sub.mInf) {
 					vReal(ktVec,prIncTran);
 					vNormalize(prIncTran);
 				}
@@ -146,7 +149,7 @@ void InitBeam(void)
 			return;
 		case B_DIPOLE:
 			if (surface) {
-				if (beam_center_0[2]<=-hsub)
+				if (beam_center_0[2]<=-sub.hP)
 					PrintErrorHelp("External dipole should be placed strictly above the surface");
 				inc_scale=1; // but scaling of Mueller matrix is weird anyway
 			}
@@ -354,22 +357,26 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			if (surface) {
 				/* With respect to normalization we use here the same assumption as in the free space - the origin is in
 				 * the particle center, and amplitude of incoming plane wave is equal to 1. Then irradiance of the beam
-				 * coming from below is c*Re(msub)/(8pi), different from that coming from above.
+				 * coming from below is c*Re(sub.m[sub.N-1])/(8pi), different from that coming from above.
 				 * Original incident (incoming) beam propagating from the vacuum (above) is Exp(i*k*r.a), while - from
-				 * the substrate (below) is Exp(i*k*msub*r.a). We assume that the incoming beam is homogeneous in its
+				 * the substrate (below) is Exp(i*k*sub.m[sub.N-1]*r.a). We assume that the incoming beam is homogeneous in its
 				 * original medium.
 				 */
-				double hbeam=hsub+beam_center[2]; // height of beam center above the surface 
+				double hbeam=sub.hP+beam_center[2]; // height of beam center above the surface
 				if (prop[2]>0) { // beam comes from the substrate (below)
 					doublecomplex tc; // transmission coefficients
-					//  determine amplitude of the transmitted wave; here msub is always defined
+                    //  determine amplitude of the reflected and transmitted waves; here sub.m[sub.N-1] is always defined
 					if (which==INCPOL_Y) { // s-polarized
 						cvBuildRe(ex,eIncTran);
-						tc=FresnelTS(ki,kt);
+						SubstrateFresnel(sub,WaveNum,true,
+										 sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),ki,&tc,
+										 NULL,NULL,NULL, NULL);
 					}
 					else { // p-polarized
 						crCrossProd(ey,ktVec,eIncTran);
-						tc=FresnelTP(ki,kt,1/msub);
+						SubstrateFresnel(sub,WaveNum,true,
+										 sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),ki,
+										 NULL,NULL,&tc,NULL,NULL);
 					}
 					// phase shift due to the beam center relative to the origin and surface
 					cvMultScal_cmplx(tc*cexp(I*WaveNum*((kt-ki)*hbeam-crDotProd(ktVec,beam_center))),eIncTran,eIncTran);
@@ -390,13 +397,14 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					// determine reflection coefficient + 1
 					doublecomplex rcp1;
 					if (which==INCPOL_Y) { // s-polarized
-						if (msubInf) rcp1=0;
-						else rcp1=FresnelTS(ki,kt);
+						SubstrateFresnel(sub,WaveNum,false,
+										 prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],ki,NULL,&rcp1,NULL,NULL, NULL);
 					}
 					else { // p-polarized
-						if (msubInf) rcp1=2;
-						else rcp1=msub*FresnelTP(ki,kt,msub);
+						SubstrateFresnel(sub,WaveNum,false,
+								prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1],ki,NULL,NULL,NULL,&rcp1, NULL);
 					}
+					rcp1 = rcp1 + 1;
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;
@@ -440,7 +448,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				(*InterTerm_real)(r1,gt);
 				cSymMatrVecReal(gt,dip_p,b+j);
 				if (surface) { // add reflected field
-					r1[2]=DipoleCoord[j+2]+beam_center[2]+2*hsub;
+					r1[2]=DipoleCoord[j+2]+beam_center[2]+2*sub.hP;
 					(*ReflTerm_real)(r1,gt);
 					cReflMatrVecReal(gt,dip_p,v1);
 					cvAdd(v1,b+j,b+j);
@@ -457,7 +465,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			C0dipole=2*FOUR_PI_OVER_THREE*temp*temp;
 			if (surface) {
 				r1[0]=r1[1]=0;
-				r1[2]=2*(beam_center[2]+hsub);
+				r1[2]=2*(beam_center[2]+sub.hP);
 				(*ReflTerm_real)(r1,gt);
 				double tmp;
 				/* the following expression uses that dip_p is real and a specific (anti-)symmetry of the gt
@@ -635,7 +643,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
 			return;
-#endif // !NO_FORTRAN		
+#endif // !NO_FORTRAN
 		case B_READ:
 			if (which==INCPOL_Y) fname=beam_fnameY;
 			else fname=beam_fnameX; // which==INCPOL_X

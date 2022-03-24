@@ -81,10 +81,10 @@ extern size_t local_Ndip,local_nvoid_Ndip,local_nRows,local_nvoid_d0,local_nvoid
 extern TIME_TYPE Timing_EField,Timing_FileIO,Timing_Integration,tstart_main;
 
 // related to a nearby surface
-extern bool surface,msubInf;
+extern struct Substrate sub;
+extern bool surface;
 extern enum refl ReflRelation;
-extern doublecomplex msub;
-extern double inc_scale,hsub;
+extern double inc_scale;
 
 #ifndef SPARSE // These variables are exclusive to the FFT mode
 
