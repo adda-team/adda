@@ -2,6 +2,5 @@ Utils for automatic testing of ADDA by running equivalent command line combinati
 
 ### Directory structure
 
-* `superellipsoid.sh` - script to test superellipsoid shape
-
-* `bb_equiv.py` - the comparison of equivalent cases (command lines) for the scattering of Bessel beams calculated in ADDA. Relative differences are shown when |diff| > 1e-08. See results in bb_results.txt
+* `bb_equiv.py` - tests for Bessel beams. Relative differences are shown when > 1e-08. See results in bb_results.txt
+* `superellipsoid.sh` - test for superellipsoid shape
