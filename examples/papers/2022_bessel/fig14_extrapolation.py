@@ -15,7 +15,7 @@ if not os.path.exists('dda'):
 if not os.path.exists('dda/extrapolation'):
     os.makedirs('dda/extrapolation')
 
-run = 0 # 0- do not run adda; 1- run adda
+run = 1 # 0- do not run adda; 1- run adda
 theta = 180
 # Attention! Large grids require high computational power!!!
 grids = [64,80,96,112,128,160,192,224,256]

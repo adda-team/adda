@@ -176,10 +176,10 @@ def plotData(xv1,yv1,xv2,yv2,flag,ax):
     plt.xlabel(r'Scattering angle $\theta$, deg',labelpad=5.)
     if flag == 1:
         plt.ylabel(r'Parallel intensity $I_{\parallel}$',labelpad=2.)
-        plt.title('a)',loc='left', x=0.035,y=0.55,fontweight="bold")
+        plt.title('(a)',loc='left', x=0.035,y=0.03)
     if flag == 2:
         plt.ylabel(r'Perpendicular intensity $I_{\perp}$',labelpad=2.)
-        plt.title('b)',loc='left', x=0.035,y=0.55,fontweight="bold")
+        plt.title('(b)',loc='left', x=0.035,y=0.03)
     plt.legend()
     plt.yscale('log')
     plt.xlim(0, 180)
@@ -201,11 +201,11 @@ def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
     plt.xlabel(r'Scattering angle $\theta$, deg',labelpad=5.)
     if flag == 1:
         plt.ylabel(r'Parallel intensity $I_{\parallel}$',labelpad=3.)
-        plt.title('e)',loc='left', x=0.035,y=0.85,fontweight="bold")
+        plt.title('(e)',loc='left', x=0.035,y=0.85)
     if flag == 2:
         plt.ylabel(r'Perpendicular intensity $I_{\perp}$',labelpad=3.)
         plt.legend(loc='lower left',ncol=2,fontsize=SMALL_SIZE)
-        plt.title('f)',loc='left', x=0.035,y=0.85,fontweight="bold")
+        plt.title('(f)',loc='left', x=0.035,y=0.85)
     plt.yscale('log')
     plt.xlim(0,180)
     plt.xticks(np.arange(0, 181, 30))
@@ -218,9 +218,9 @@ def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
 # middle of the particle (the nearest to the center xy-plane of dipoles is 
 # used, its z-coordinate is shown on the plot)
 def plotField(xd,yd,ed,z0,mode,ax):
-    axtitles = ['a)',"b)",'c)','d)']
+    axtitles = ['(a)',"(b)",'(c)','(d)']
     axtypes = ['CS',"CS'",'TEL','TML']
-    ax.set_title(axtitles[mode-2],loc='left',fontweight="bold",y=0.8,x=0.08)
+    ax.set_title(axtitles[mode-2],loc='left',y=0.8,x=0.08)
     ax.scatter(xd, yd, ed, c=ed, cmap="rainbow",label=axtypes[mode-2])
     plt.legend(loc=[0.1,0.1],frameon=False,markerfirst=False,markerscale=0)
     ax.axis('off')
