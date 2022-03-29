@@ -23,7 +23,7 @@ ref_thetaper,ref_iper,ref_thetapar,ref_ipar = bb.extractData('glmt',option)
 
 # data visualisation
 fig = plt.figure(figsize=(9,4),constrained_layout=True)
-fig.set_constrained_layout_pads(wspace=0.1)
+fig.set_constrained_layout_pads(wspace=0.05)
 
 # Parallel scattering intensity (1)
 ax = fig.add_subplot(121)
