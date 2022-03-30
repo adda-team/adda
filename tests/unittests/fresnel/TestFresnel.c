@@ -91,13 +91,15 @@ START_TEST(test_SubstrateFresnel_1) {
 	sub.m[1] = 1.3;
 	sub.h[0] = 2;
 	sub.N = 2;
+	double wave_num = 1;
 	doublecomplex ki = 1;
 	doublecomplex kt_ref = CalculateKt(ki, 1, sub.m[1], 0);
-	doublecomplex ts_ref = FresnelTS(ki, kt_ref);
-	doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1.3);
+	doublecomplex eL = cexp(I * wave_num * sub.h[0] * kt_ref);
+	doublecomplex ts_ref = FresnelTS(ki, kt_ref) * eL;
+	doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1.3) * eL;
 	doublecomplex rs_ref = FresnelRS(ki, kt_ref);
 	doublecomplex rp_ref = FresnelRP(ki, kt_ref, 1.3);
-	check_all_cases_SubstrateFresnel(sub, 1, false, 0, ki,
+	check_all_cases_SubstrateFresnel(sub, wave_num, false, 0, ki,
                                      ts_ref, rs_ref, tp_ref, rp_ref, kt_ref, 1e-14);
 
 }
@@ -110,14 +112,14 @@ START_TEST(test_SubstrateFresnel_2) {
     sub.m[1] = 1.3;
     sub.h[0] = 2;
     sub.N = 2;
-    doublecomplex ki = 1;
     double wave_num = 1;
-    doublecomplex eL_sqr = cexp(I * wave_num * sub.h[0] * ki * 2);
+    doublecomplex ki = 1;
+    doublecomplex eL = cexp(I * wave_num * sub.h[0] * ki);
     doublecomplex kt_ref = CalculateKt(ki, 1, sub.m[1], 0);
-    doublecomplex ts_ref = FresnelTS(ki, kt_ref);
-    doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1.3);
-    doublecomplex rs_ref = FresnelRS(ki, kt_ref) * eL_sqr;
-    doublecomplex rp_ref = FresnelRP(ki, kt_ref, 1.3) * eL_sqr;
+    doublecomplex ts_ref = FresnelTS(ki, kt_ref) * eL;
+    doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1.3) * eL;
+    doublecomplex rs_ref = FresnelRS(ki, kt_ref) * eL * eL;
+    doublecomplex rp_ref = FresnelRP(ki, kt_ref, 1.3) * eL * eL;
     check_all_cases_SubstrateFresnel(sub, wave_num, false, 0, ki,
                                      ts_ref, rs_ref, tp_ref, rp_ref, kt_ref, 1e-14);
 
@@ -131,14 +133,14 @@ START_TEST(test_SubstrateFresnel_3) {
     sub.m[1] = 1.3;
     sub.h[0] = 2;
     sub.N = 2;
-    doublecomplex ki = 1.3;
     double wave_num = 1;
-    doublecomplex eL_sqr = cexp(I * wave_num * sub.h[0] * ki * 2);
+    doublecomplex ki = 1.3;
+    doublecomplex eL = cexp(I * wave_num * sub.h[0] * ki);
     doublecomplex kt_ref = CalculateKt(ki, 1.3, 1, 0);
-    doublecomplex ts_ref = FresnelTS(ki, kt_ref);
-    doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1/1.3);
-    doublecomplex rs_ref = FresnelRS(ki, kt_ref) * eL_sqr;
-    doublecomplex rp_ref = FresnelRP(ki, kt_ref, 1/1.3) * eL_sqr;
+    doublecomplex ts_ref = FresnelTS(ki, kt_ref) * eL;
+    doublecomplex tp_ref = FresnelTP(ki, kt_ref, 1/1.3) * eL;
+    doublecomplex rs_ref = FresnelRS(ki, kt_ref) * eL * eL;
+    doublecomplex rp_ref = FresnelRP(ki, kt_ref, 1/1.3) * eL * eL;
     check_all_cases_SubstrateFresnel(sub, 1, true, 0, ki,
                                      ts_ref, rs_ref, tp_ref, rp_ref, kt_ref, 1e-14);
 

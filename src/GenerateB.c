@@ -378,8 +378,11 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 										 sub.m[sub.N-1]*sub.m[sub.N-1]*(prop_0[0]*prop_0[0]+prop_0[1]*prop_0[1]),ki,
 										 NULL,NULL,&tc,NULL,NULL);
 					}
+					double hbeam_eff = hbeam;
+					for (int k = 0; k < sub.N - 1; ++k)
+						hbeam_eff += sub.h[k];
 					// phase shift due to the beam center relative to the origin and surface
-					cvMultScal_cmplx(tc*cexp(I*WaveNum*((kt-ki)*hbeam-crDotProd(ktVec,beam_center))),eIncTran,eIncTran);
+					cvMultScal_cmplx(tc*cexp(I*WaveNum*((kt*hbeam -ki*hbeam_eff)-crDotProd(ktVec,beam_center))),eIncTran,eIncTran);
 					// main part
 					for (i=0;i<local_nvoid_Ndip;i++) {
 						j=3*i;

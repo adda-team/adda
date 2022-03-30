@@ -315,7 +315,7 @@ static inline doublecomplex get_two_layer_t(
  * Calculates transmission coefficient in a two-layer substrate case
  */
 {
-	return t_mt * t_im / (1 - r_mi * r_mt * eL * eL);
+	return t_mt * t_im / (1 - r_mi * r_mt * eL * eL) * eL;
 }
 
 static inline doublecomplex get_two_layer_r(

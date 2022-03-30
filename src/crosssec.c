@@ -668,7 +668,10 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 		nN[1]=sub.m[sub.N-1]*nF[1];
 		nN[2]=-ki;
 		// coefficient comes from  k0->k in definition of F(n) (in denominator)
-		phSh=sub.m[sub.N-1]*cexp(I*WaveNum*sub.hP*(ki-kt));
+		double hP_eff = sub.hP;
+		for (int k = 0; k < sub.N - 1; ++k)
+			hP_eff += sub.h[k];
+		phSh=sub.m[sub.N-1]*cexp(I*WaveNum * (sub.hP*ki - hP_eff*kt));
 	}
 #ifndef SPARSE
 	// prepare values of exponents, along each of the coordinates
