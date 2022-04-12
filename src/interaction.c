@@ -73,7 +73,7 @@ int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1
 
 // KroneckerDelta[mu,nu] - can serve both as multiplier, and as bool
 static const double dmunu[6] = {1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
-static doublecomplex surfRCn; // reflection coefficient for normal incidence
+static doublecomplex surfRCn, surfBcn, surfAcn; // reflection coefficient for normal incidence
 static bool XlessY; // whether boxX is not larger than boxY (used for SomTable)
 static doublecomplex * restrict somTable; // table of Sommerfeld integrals
 static size_t * restrict somIndex; // array for indexing somTable (in the xy-plane)
@@ -650,13 +650,13 @@ static inline void UnitsGridToCoordShift(const int i,const int j,const int k,dou
 //=====================================================================================================================
 
 static inline void ReflTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
-	doublecomplex *expval,doublecomplex result[static 6])
+	doublecomplex *expval,doublecomplex scale_coef,doublecomplex result[static 6])
 // Core routine that calculates the reflection interaction between probe dipole and image of source dipole
 {
 	// this is a modification of InterTerm_core, multiplying by refl. coef. and inverting z-components
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
 	*expval=invr3*imExp(kr);
-	doublecomplex scale=surfRCn*(*expval);
+	doublecomplex scale=scale_coef*(*expval);
 
 #define INTERACT_DIAG(ind) { result[ind] = ((t1*qmunu[ind]+t3) + I*(kr+t2*qmunu[ind]))*scale; }
 #define INTERACT_NONDIAG(ind) { result[ind] = (t1+I*t2)*qmunu[ind]*scale; }
@@ -676,7 +676,7 @@ static inline void ReflTerm_core(const double kr,const double kr2,const double i
 }
 //=====================================================================================================================
 
-static inline void ReflTerm_img(double qvec[static 3],doublecomplex result[static 6])
+static inline void ReflTerm_img(double qvec[static 3],const doublecomplex scale_coef,doublecomplex result[static 6])
 /* Reflection term using the image-dipole approximation;
  * qvec is the real distance between probe and image of source, so its z-component is the sum of heights of source and
  * probe points above the surface. result is for produced output
@@ -688,10 +688,54 @@ static inline void ReflTerm_img(double qvec[static 3],doublecomplex result[stati
 	doublecomplex expval; // exp(ikR)/|R|^3
 
 	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,scale_coef,result);
 }
 
-WRAPPERS_REFL(ReflTerm_img)
+void ReflTerm_img_add_series(const double qvec_in[static 3], doublecomplex result[static restrict 6]) {
+	double qvec[3];
+	doublecomplex term_buffer[6];
+	doublecomplex term_scale_coef = surfBcn;
+	doublecomplex series_buffer[6] = {0,0,0,0,0,0};
+	double z_layer_shift;
+	vCopy(qvec_in, qvec);
+
+	z_layer_shift = sub.h[0] * 2;
+	qvec[2] += z_layer_shift;
+	ReflTerm_img(qvec, term_scale_coef, term_buffer);
+	cdAdd(term_buffer, series_buffer, series_buffer);
+	double error = cdNorm2(series_buffer) + cdNorm2(result);
+	const double error_stop = error * ROUND_ERR * ROUND_ERR;
+	term_scale_coef *= surfAcn;
+
+	while (error > error_stop) {
+		vCopy(qvec_in, qvec);
+		z_layer_shift += sub.h[0] * 2;
+		qvec[2] += z_layer_shift;
+		ReflTerm_img(qvec, term_scale_coef, term_buffer);
+		cdAdd(term_buffer, series_buffer, series_buffer);
+		error = cdNorm2(term_buffer);
+		term_scale_coef *= surfAcn;
+	}
+	cdAdd(series_buffer,result,result);
+}
+
+void ReflTerm_img_int(const int i,const int j,const int k,doublecomplex result[static restrict 6]) {
+	double qvec[3];
+	UnitsGridToCoordShift(i,j,k,qvec);
+	ReflTerm_img(qvec, surfRCn, result);
+	if (sub.N == 2){
+		UnitsGridToCoordShift(i,j,k,qvec);
+		ReflTerm_img_add_series(qvec, result);
+	}
+}
+
+void ReflTerm_img_real(const double qvec_in[static restrict 3],doublecomplex result[static restrict 6]) {
+	double qvec[3];
+	vCopy(qvec_in, qvec);
+	ReflTerm_img(qvec, surfRCn, result);
+	if (sub.N == 2)
+		ReflTerm_img_add_series(qvec_in, result);
+}
 
 //=====================================================================================================================
 
@@ -822,7 +866,7 @@ void ReflTerm_som_int(const int i,const int j,const int k,doublecomplex result[s
 	doublecomplex expval; // exp(ikR)/|R|^3
 	UnitsGridToCoordShift(i,j,k,qvec);
 	InterParams(qvec,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,surfRCn,result);
 
 	// second, Sommerfeld integral part
 	// compute table index
@@ -859,7 +903,7 @@ void ReflTerm_som_real(const double qvec[static restrict 3],doublecomplex result
 	double qv[3]; // copy of qvec
 	vCopy(qvec,qv);
 	InterParams(qv,qmunu,&rr,&invr3,&kr,&kr2);
-	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,result);
+	ReflTerm_core(kr,kr2,invr3,qmunu,&expval,surfRCn,result);
 
 	// second, Sommerfeld integral part
 	double x=qvec[0];
@@ -951,7 +995,15 @@ void InitInteraction(void)
 			default: LogError(ONE_POS, "Invalid reflection term calculation method: %d",(int)ReflRelation);
 				// no break
 		}
-		surfRCn=sub.mInf ? -1 : ((1-sub.m[sub.N - 1] * sub.m[sub.N - 1])/(1+sub.m[sub.N - 1] * sub.m[sub.N - 1]));
+		if (sub.N == 1)
+			surfRCn=sub.mInf ? -1 : ((1-sub.m[0] * sub.m[0])/(1+sub.m[0] * sub.m[0]));
+		else if (sub.N == 2) {
+			doublecomplex e2 = sub.m[0]*sub.m[0];
+			surfRCn=(1-e2)/(1+e2);
+			doublecomplex surfRCn_mt = sub.mInf ? -1 : (e2 - sub.m[1]*sub.m[1])/(e2 + sub.m[1]*sub.m[1]);
+			surfBcn=4*e2/(1+e2)/(1+e2)*surfRCn_mt;
+			surfAcn=-surfRCn*surfRCn_mt;
+		}
 	}
 
 #ifdef USE_SSE3

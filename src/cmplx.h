@@ -235,6 +235,14 @@ static inline double cvNorm2(const doublecomplex a[static 3])
 	return cAbs2(a[0]) + cAbs2(a[1]) + cAbs2(a[2]);
 }
 
+//======================================================================================================================
+
+static inline double cdNorm2(const doublecomplex a[static 6])
+// square of the norm of a complex dyad[6]
+{
+	return cAbs2(a[0]) + cAbs2(a[1]) + cAbs2(a[2]) + cAbs2(a[3]) + cAbs2(a[4]) + cAbs2(a[5]);
+}
+
 
 //======================================================================================================================
 
@@ -272,6 +280,19 @@ static inline void cvAdd(const doublecomplex a[static 3],const doublecomplex b[s
 	c[0] = a[0] + b[0];
 	c[1] = a[1] + b[1];
 	c[2] = a[2] + b[2];
+}
+
+//======================================================================================================================
+
+static inline void cdAdd(const doublecomplex a[static 6],const doublecomplex b[static 6],doublecomplex c[static 6])
+// add two complex dyad[6]; c=a+b;
+{
+    c[0] = a[0] + b[0];
+    c[1] = a[1] + b[1];
+    c[2] = a[2] + b[2];
+    c[3] = a[3] + b[3];
+    c[4] = a[4] + b[4];
+    c[5] = a[5] + b[5];
 }
 
 //======================================================================================================================
