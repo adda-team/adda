@@ -771,7 +771,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				Cenh=EnhCross(); // this is here to be run by all processors
 				PrintBoth(CCfile,"Cenh\t= "GFORM"\nQenh\t= "GFORM"\n",Cenh,Cenh*inv_G);
 			}
-			if (beamtype==B_DIPOLE) {
+			if (beamtype==B_DIPOLE && !absorbing_host) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
 				double tot=self+Cenh/C0dipole;
@@ -817,10 +817,13 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
 			}
 			if(absorbing_host)	{
-				double CscaTotal_CextTotal[2];
-				CrossSec_VolumeIntegral(CscaTotal_CextTotal);
-				PrintBoth(CCfile,"Csca_p\t= "GFORM"\n",CscaTotal_CextTotal[0]);
-				PrintBoth(CCfile,"Cext_p\t= "GFORM"\n",CscaTotal_CextTotal[1]);
+				double PV_integrals_particle[5];
+				CrossSec_VolumeIntegral(PV_integrals_particle);
+				PrintBoth(CCfile,"Csca_p\t= "GFORM"\n",PV_integrals_particle[0]);
+				PrintBoth(CCfile,"Csca_p2\t= "GFORM"\n",PV_integrals_particle[1]);
+				PrintBoth(CCfile,"Cext_p\t= "GFORM"\n",PV_integrals_particle[2]);
+				PrintBoth(CCfile,"Cext_p2\t= "GFORM"\n",PV_integrals_particle[3]);
+				PrintBoth(CCfile,"Cinc_p2\t= "GFORM"\n",PV_integrals_particle[4]);
 			}
 
 			if (calc_vec) {
