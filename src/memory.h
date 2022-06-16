@@ -23,8 +23,8 @@
 // system headers
 #include <stddef.h>   // for size_t
 
-#define MBYTE 1048576.0
-#define FFORMM "%.1f" // format for memory footprint (estimates) in MB
+#define MBYTE 1048576.0 // mebibyte (2^20 bytes), not to be confused with megabyte (10^6 bytes)
+#define FFORMM "%.1f" // format for memory footprint (estimates) in MiB
 // for conciseness
 #define OTHER_ARGUMENTS ERR_LOC_DECL,const char *name
 
