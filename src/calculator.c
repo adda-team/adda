@@ -350,15 +350,15 @@ static inline double ellTheta(const double a)
 		q=exp(-PI*a2);
 		q2=q*q;
 		q3=q*q2;
-		t=2*q*(1+q3*(1+q2*q3)); // t = 1 - theta_3(0,exp(-pi*a^2)) = 2*(q + q^4 + q^9)
-		res=a3*t*(3+t*(3+t)); // a^3*(t^3-1)
+		t=2*q*(1+q3*(1+q2*q3)); // t = theta_3(0,exp(-pi*a^2)) - 1 = 2*(q + q^4 + q^9)
+		res=a3*t*(3+t*(3+t)); // a^3*[(t+1)^3-1]
 	}
 	else { // a<1, employ transformation a->1/a
 		q=exp(-PI/a2);
 		q2=q*q;
 		q3=q*q2;
 		t=1+2*q*(1+q3*(1+q2*q3)); // t = theta_3(0,exp(-pi/a^2)) = 1+ 2*(q + q^4 + q^9)
-		res=t*t*t - a3; // a^3*(t^3-1)
+		res=t*t*t - a3; // a^3*[(t/a)^3-1]
 	}
 	return res;
 }

@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # The following script will locate adda (often out of the box), but you can override it by setting ADDA_SEQ
-# explicitly here (uncomment the following line) or somewhere in the environment
-#ADDA_SEQ="../../src/seq/adda"
-if ! . ../../examples/find_adda.sh; then
+# explicitly here (uncomment the following line) or somewhere in the environment (the script will return this variable)
+#export ADDA_SEQ="../../src/seq/adda"
+ADDA_SEQ=$(../../examples/find_adda)
+if [ $? -ne 0 ]; then
   exit 1
 fi
 
@@ -55,5 +56,3 @@ totfield
 %EOF%
 ../nearfield < input_xy 
 cd ..
-
-

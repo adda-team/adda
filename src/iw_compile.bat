@@ -1,7 +1,7 @@
 @echo off
 :: Compiles ADDA in seq mode using Intel compiler for Windows (which uses some of the tools from Visual Studio).
 :: Note that Intel compilers behave very differently (in terms of options and predefined macros) on Windows than
-:: on Linux/MacOS. Thus, this file is designed only for testing Intel compiler, but not for production compilation
+:: on Linux/macOS. Thus, this file is designed only for testing Intel compiler, but not for production compilation
 :: in various modes. For the latter use the main Makefile with MinGW64 toolchain.
 ::
 :: Copyright (C) ADDA contributors
