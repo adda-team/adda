@@ -1,4 +1,4 @@
-import sys, os, multiprocessing
+import sys, os, multiprocessing, numpy as np
 if sys.path[1] != os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper") : sys.path.insert(1,os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper")) #This is to import ADDA Wrapper from parent directory
 import ADDAwrapper as aw
 
@@ -8,8 +8,8 @@ aw_parameters = dict(
     adda_exec = aw.addaexec_find(mode="seq"), #path to ADDA executable
     parallel_procs = multiprocessing.cpu_count()-1, #number of parallel processes is equal to the number of processor cores minus 1
 
-    mp_file = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/refractive_index/" + "Au_JHW.csv"), #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
-    ev_range = (0.5,3), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
+    mp_files = [os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/refractive_index/" + "Au_JHW.csv")], #file with refractive index of the particle, each string contains: ev,mp_re,mp_im
+    ev_range = np.arange(0.5,3+.01,0.05), #[eV]. Used in "spectrum_" functions. (ev_min,ev_max): range from ev_min[eV] to ev_max[eV]
     
     #Used in "scan_" functions. Beam propagation must be orthogonal to the grid.
     #So "prop" must be "0 0 whatever" and rotations with "orient" must be made by 90 degrees.
@@ -47,37 +47,38 @@ adda_cmdlineargs = dict(
     pol = "igt_so", #Polarizability prescription
     int = "igt_so", #Interaction term
     Csca = "", #Calculate Csca with the Romberg integral. Needed to properly calculate Cathodoluminesce
-    alldir_inp = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/Csca_integration.txt")
+    alldir_inp = os.path.abspath(__file__ + "/../../../../misc/ADDAwrapper/Csca_default.txt")
 )
 
 ### Executing commands
 if __name__ == '__main__': 
 
     # Execute spectra simulations for different positions of the beam to find plasmon peaks
-    dirname = os.path.abspath(__file__ + "/../" + "spectrumline")
+    aw_parameters['dirname'] = os.path.abspath(__file__ + "/../" + "spectrumline")
     aw_parameters["spectrumline_startpoint"] = (10,0) # (x,y) [nm]
     aw_parameters["spectrumline_endpoint"] = (10,50) # (x,y) [nm]
     aw_parameters["spectrumline_points"] = 15 # how many points, including startpoint and endpoint
-    aw.spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname) # Execute simulation
-    aw.spectrumline_collect("Peels",dirname) # Collect EELS spectrum
-    aw.spectrumline_plot("Peels",dirname) # Plot EELS spectrum
-    aw.spectrumline_collect("Pcl",dirname) # Collect CL spectrum
-    aw.spectrumline_plot("Pcl",dirname) # Plot CL spectrum
+    aw.spectrumline_execute(aw_parameters,adda_cmdlineargs) # Execute simulation
+    aw.spectrumline_collect("Peels",aw_parameters) # Collect EELS spectrum
+    aw.spectrumline_plot("Peels",aw_parameters) # Plot EELS spectrum
+    aw.spectrumline_collect("Pcl",aw_parameters) # Collect CL spectrum
+    aw.spectrumline_plot("Pcl",aw_parameters) # Plot CL spectrum
     
     # Execute scan of particle's cross-section for single energy ev
-    dirname = os.path.abspath(__file__ + "/../" + "scan2.4")
+    aw_parameters['dirname'] = os.path.abspath(__file__ + "/../" + "scan2.4")
     aw_parameters["ev"] = 2.4
-    aw.scan_execute(aw_parameters,adda_cmdlineargs,dirname)
+    aw.scan_execute(aw_parameters,adda_cmdlineargs)
     # Collect and map scanned EELS/CL probabilities on particle's cross-section
-    aw.scan_collect("Peels",dirname)
-    aw.scan_plot("Peels",dirname)
-    aw.scan_collect("Pcl",dirname)
-    aw.scan_plot("Pcl",dirname)
+    aw.scan_collect("Peels",aw_parameters)
+    aw.scan_plot("Peels",aw_parameters)
+    aw.scan_collect("Pcl",aw_parameters)
+    aw.scan_plot("Pcl",aw_parameters)
     
     # Visual representation of the dipole set
     cmdline = aw.cmdline_construct(aw_parameters,adda_cmdlineargs)
     cmdline += f" -dir {os.path.abspath(__file__ + '/../geom/')}"
     cmdline += " -save_geom"
+    cmdline += " -prognosis"
     cmdline += " > /dev/null"
     os.system(cmdline)
     fig1,ax1 = aw.geometry("geom/capsule.geom", ["gold"])

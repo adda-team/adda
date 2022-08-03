@@ -20,12 +20,12 @@ def addaexec_find(mode="seq"):
 
 def label_for_plot(match):
     if match[0] == "P":
-        if match[1:] == "ext": return "P" + r"$_{\rm ext}$" + ", eV$^{-1}$"
-        return match[0] + r"$_{\rm " + match[1:].upper() + "}$" + ", eV$^{-1}$"
+        if match[1:] == "ext": return r"$\it{PCQ}$" + r"$_{\rm ext}$" + ", eV$^{-1}$"
+        return r"$\it{" + match[0] + r"}$" + r"$_{\rm " + match[1:].upper() + "}$" + ", eV$^{-1}$"
     elif match[0] == "C":
-        return match + ", nm$^2$"
+        return r"$\it{" + match[0] + r"}$" + r"$_{\rm " + match[1:] + "}$" + ", nm$^2$"
     elif match[0] == "Q":
-        return match
+        return r"$\it{" + match[0] + r"}$" + r"$_{\rm " + match[1:] + "}$"
     else:
         return match
 
@@ -114,11 +114,32 @@ def midpoints(x):
         sl += np.index_exp[:]
     return x
 
-def geometry(geom_path,colorlist=None): 
-    data = np.genfromtxt(geom_path, delimiter=' ', dtype="int")
+def geom_gen(aw_parameters,adda_cmdlineargs):
+        cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
+        #cmdline = aw_parameters["adda_exec"] 
+        cmdline += f" -dir {aw_parameters['dirname']}/geom"
+        cmdline += " -prognosis"
+        #cmdline += " -no_vol_cor"
+        #cmdline += f" -shape {adda_cmdlineargs['shape']}"
+        #cmdline += f" -grid {adda_cmdlineargs['grid']}"
+        cmdline += " -save_geom"
+        cmdline += " > " + os.devnull
+        os.system(cmdline)
+        #print(cmdline)
+
+def geometry(geom_path,colorlist=None,half=False): 
+    skip_header = 0
+    with open(geom_path, "r") as file:
+            for line in file:
+                if "Nmat" in line:
+                    skip_header=1
+    data = np.genfromtxt(geom_path, delimiter=' ', dtype="int", skip_header=skip_header)
+    if half == True:
+        #data = data[(data[:,0]<.5*(max(data[:,0]) + min(data[:,0]))) | (data[:,2]<.5*(max(data[:,2]) + min(data[:,2])))] #quarter
+        data = data[data[:,0]<.5*(max(data[:,0]) + min(data[:,0]))] #half
     xs, ys, zs = data[:,0], data[:,1], data[:,2]
     xs, ys, zs = xs-min(xs), ys-min(ys), zs-min(zs)
-    x, y, z = np.indices((max(xs)-min(xs)+2,max(ys)-min(ys)+2,max(zs)-min(zs)+2))
+    x, y, z = np.indices((max(xs)-min(xs)+2,max(ys)-min(ys)+2,max(zs)-min(zs)+2)).astype(float)
     xc = midpoints(x)
     voxels = np.zeros(xc.shape, dtype=bool)
     colors = np.empty(xc.shape, dtype=object)
@@ -130,15 +151,16 @@ def geometry(geom_path,colorlist=None):
         else:
             ms = np.zeros(xs.shape, dtype="int")
     if colorlist == None:
-        colorlist = ["deepskyblue", "silver", "gold", "yellowgreen", "tomato", "darkviolet", "peru", "darkorange"]
+        colorlist = ["deepskyblue", "silver", "gold", "yellowgreen", "tomato", "darkviolet", "peru", "lime"]
     for i in range(len(xs)):
         voxels[xs[i],ys[i],zs[i]] = True
         colors[xs[i],ys[i],zs[i]] = colorlist[ms[i]]
+            
     
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     #print(voxels)
-    ax.voxels(x, y, z, voxels, facecolors=colors, edgecolors="black", linewidth=0.05, alpha=0.7)
+    ax.voxels(x, y, z, voxels, facecolors=colors, edgecolors="grey", linewidth=0.05, alpha=0.9, zorder=1)
     
     ax.set_xlim([0, xc.shape[0]])
     ax.set_ylim([0, xc.shape[1]])
@@ -168,7 +190,7 @@ def plot_create():
 def plot_setaspect(ax):
     xleft, xright = ax.get_xlim()
     ybottom, ytop = ax.get_ylim()
-    ax.set_aspect(abs((xright-xleft)/(ybottom-ytop))*.5625)
+    ax.set_aspect(abs((xright-xleft)/(ytop-ybottom))*.5625)
 
 def plot_setrcparams():
     SMALL_SIZE = 12
@@ -178,6 +200,10 @@ def plot_setrcparams():
     # SMALL_SIZE = 16
     # MEDIUM_SIZE = 18
     # BIGGER_SIZE = 16
+    
+    # SMALL_SIZE = 24
+    # MEDIUM_SIZE = 32
+    # BIGGER_SIZE = 32
     
     plt.rc('font', **{'family': 'serif', 'serif': 'Arial'})
     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
@@ -256,59 +282,102 @@ def varyany_plot(match,dirname):
     fig.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.svg")
 
-def spectrum_execute(aw_parameters,adda_cmdlineargs,dirname):
+def spectrum_execute(aw_parameters,adda_cmdlineargs):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
     start_time = time.time()
+    dirname = aw_parameters["dirname"]
     shutil.rmtree(dirname, ignore_errors=True)
     os.makedirs(dirname, exist_ok=True)
     os.makedirs(f"{dirname}/ADDA_output", exist_ok=True)
     print()
     print_log("--- Spectrum: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
-    if "lambda" in adda_cmdlineargs:
-        del adda_cmdlineargs["lambda"]
+    delkeys_silent(adda_cmdlineargs, ["lambda"])
+    if 'ms_files' in aw_parameters.keys():
+        surfheight = adda_cmdlineargs["surf"].split(" ")[0]
+        delkeys_silent(adda_cmdlineargs, ["surf"])
+        msdata = np.genfromtxt(aw_parameters["ms_files"][0],delimiter=',')
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
-    mp_file = aw_parameters["mp_file"]
-    ev_min, ev_max = aw_parameters["ev_range"]
-    mdata = mp_range_read(mp_file,ev_min,ev_max)
+    mp_files = aw_parameters["mp_files"]
+    if 'ev_range' in aw_parameters.keys():
+        evs = [round(x,2) for x in aw_parameters["ev_range"]]
+    else:
+        evs = [round(x,2) for x in aw_parameters["nm_range"]]
+    mdata = dict()
+    for i in range(len(mp_files)):
+        mdata[i] = np.genfromtxt(mp_files[i],delimiter=',')
+    mps = dict()
+    for ev in evs:
+        mps[ev] = ""
+        for i in mdata:
+            nk = min(mdata[i], key=lambda x: abs(x[0] - ev))
+            nk = str(nk[1]) + " " + str(nk[2]) + " "
+            mps[ev] += str(nk)
+    with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
+        for key, value in adda_cmdlineargs.items():
+           writer.writerow([key, value])
     print_log(f"{cmdline}",dirname)
-    print_log(f"mp_file: {mp_file}",dirname)
-    print_log(f"Varying energy from {mdata[0][0]} to {mdata[-1][0]} eV",dirname)
+    print_log(f"mp_files: {mp_files}",dirname)
+    if 'ev_range' in aw_parameters.keys():
+        print_log(f"Varying energy from {evs[0]} to {evs[-1]} eV",dirname)
+    else:
+        print_log(f"Varying wavelength from {evs[0]} to {evs[-1]} nm",dirname)
     cmdlines = []
-    for i in mdata:
+    for ev in evs:
         cmdline_i = cmdline
-        output_dir = os.path.abspath(dirname + f"/ADDA_output/{i[0]}")
+        output_dir = os.path.abspath(dirname + f"/ADDA_output/{float(ev)}")
         cmdline_i += f' -dir "{output_dir}"'
-        cmdline_i += " -lambda %s" % ev_to_nm(i[0])
-        cmdline_i += f" -m {i[1]} {i[2]}"# + "1.5 0"
+        if 'ev_range' in aw_parameters.keys():
+            cmdline_i += " -lambda %s" % ev_to_nm(ev)
+        else:
+            cmdline_i += " -lambda %s" % ev
+        cmdline_i += " -m " + f" {mps[ev]} "
+        if 'ms_files' in aw_parameters.keys():
+            nk = min(msdata, key=lambda x: abs(x[0] - ev))
+            nk = str(nk[1]) + " " + str(nk[2])
+            cmdline_i += " -surf " + f" {surfheight} {nk}"
         cmdline_i += " > " + os.devnull
         cmdlines.append(cmdline_i)
+    #print(cmdlines)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
     
-def spectrum_collect(match,dirname, silent=False):
+def spectrum_collect(match,aw_parameters,silent=False):
+    dirname = aw_parameters["dirname"]
     evs = sorted([float(d.name) for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
     values = []
     for ev in evs:
         values.append(parse_value(f"{dirname}/ADDA_output/{ev}/CrossSec-Y",match))
     with open(f"{dirname}/{match}.csv", 'w') as file:
         writer = csv.writer(file, delimiter=',', lineterminator='\n')
-        writer.writerow(["ev",match])
+        if 'ev_range' in aw_parameters.keys():
+            writer.writerow(["eV",match])
+        else:
+            writer.writerow(["nm",match])
         writer.writerows(zip(evs,values))
         print_log(f"Saved {dirname}/{match}.csv", silent=silent)
 
-def spectrum_plot(match,dirname):
+def spectrum_plot(match,aw_parameters):
+    dirname = aw_parameters["dirname"]
     data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')[1:]
     fig,ax = plot_create()
+    if 'ev_range' in aw_parameters.keys():
+        ax.set_xlabel("Energy, eV")
+    else:
+        ax.set_xlabel("Wavelength, nm")
+    #print(data)
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
     ax.set_xlim([min(data[:,0]),max(data[:,0])])
     ax.set_ylabel(label_for_plot(match))
     #ax.legend()
-    plot_setaspect(ax)
-    fig.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.svg")
+    #plot_setaspect(ax)
+    fig.savefig(f"{dirname}/{match}.png", bbox_inches='tight', dpi=600)
+    print_log(f"Saved {dirname}/{match}.png")
+    return fig,ax
     
-def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
+def spectrumline_execute(aw_parameters,adda_cmdlineargs):
+    dirname = aw_parameters["dirname"]
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
@@ -316,10 +385,26 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     print()
     print_log("--- Spectrum for a set of points on a line: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
-    mp_file = aw_parameters["mp_file"]
-    ev_min, ev_max = aw_parameters["ev_range"]
-    mdata = mp_range_read(mp_file,ev_min,ev_max)
-
+    mp_files = aw_parameters["mp_files"]
+    if 'ev_range' in aw_parameters.keys():
+        evs = [round(x,2) for x in aw_parameters["ev_range"]]
+    else:
+        evs = [round(x,2) for x in aw_parameters["nm_range"]]
+    mdata = dict()
+    for i in range(len(mp_files)):
+        mdata[i] = np.genfromtxt(mp_files[i],delimiter=',')
+    
+    mps = dict()
+    for ev in evs:
+        mps[ev] = ""
+        for i in mdata:
+            nk = min(mdata[i], key=lambda x: abs(x[0] - ev))
+            nk = str(nk[1]) + " " + str(nk[2]) + " "
+            mps[ev] += str(nk)
+    with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
+        writer = csv.writer(file, delimiter=',', lineterminator='\n')
+        for key, value in adda_cmdlineargs.items():
+           writer.writerow([key, value])
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
     point1 = aw_parameters["spectrumline_startpoint"]
@@ -352,10 +437,14 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
     delkeys_silent(adda_cmdlineargs, ["lambda","m","beam_center"])
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     print_log(f"{cmdline}",dirname)
-    print_log(f"mp_file: {mp_file}",dirname)
+    print_log(f"mp_files: {mp_files}",dirname)
     print_log(f"dipole size = {d} nm",dirname)
     print_log(f"Varying position from {tuple(points[0,:])} nm to {tuple(points[-1,:])} nm ({howmanypoints} points)",dirname)
-    print_log(f"Varying energy from {mdata[0][0]} to {mdata[-1][0]} eV",dirname)
+    if 'ev_range' in aw_parameters.keys():
+        print_log(f"Varying energy from {evs[0]} to {evs[-1]} eV",dirname)
+    else:
+        print_log(f"Varying wavelength from {evs[0]} to {evs[-1]} nm",dirname)
+    
     cmdlines = []
     counter = 0
     for p in points:
@@ -367,28 +456,34 @@ def spectrumline_execute(aw_parameters,adda_cmdlineargs,dirname):
         beam_list[0], beam_list[1] = str(p[0]), str(p[1])
         beam_center = (" ").join(beam_list)
         #print(beam)
-        for i in mdata:
+        for ev in evs:
             cmdline_i = cmdline
             cmdline_i += f" -beam_center {beam_center}"
-            dir_fixed = os.path.abspath(point_dir + f"/ADDA_output/{i[0]}")
+            dir_fixed = os.path.abspath(point_dir + f"/ADDA_output/{float(ev)}")
             cmdline_i += f' -dir "{dir_fixed}"'
-            cmdline_i += " -lambda %s" % ev_to_nm(i[0])
-            cmdline_i += f" -m {i[1]} {i[2]}"
+            if 'ev_range' in aw_parameters.keys():
+                cmdline_i += " -lambda %s" % ev_to_nm(ev)
+            else:
+                cmdline_i += " -lambda %s" % ev
+            cmdline_i += " -m" + f" {mps[ev]} "
             cmdline_i += " > " + os.devnull
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
     
-def spectrumline_collect(match, dirname):
+def spectrumline_collect(match, aw_parameters):
+    dirname = aw_parameters["dirname"]
     dirs = sorted([d.name for d in os.scandir(dirname) if d.is_dir()])
     #print(dirs)
     points = []
     ys = []
     for dir_i in dirs:
-        spectrum_collect(match,f"{dirname}/{dir_i}", silent=True)
+        aw_parameters["dirname"] = f"{dirname}/{dir_i}"
+        spectrum_collect(match,aw_parameters, silent=True)
         ys_i = np.genfromtxt(f"{dirname}/{dir_i}/{match}.csv", delimiter=',')[1:,1]
         ys.append(ys_i)
         points.append(dir_i.split("_"))
+    aw_parameters["dirname"] = dirname
     #points = np.array(points)
     #print(points)
     xs = np.genfromtxt(f"{dirname}/{dirs[0]}/{match}.csv", delimiter=',')[1:,0]
@@ -396,17 +491,36 @@ def spectrumline_collect(match, dirname):
         writer = csv.writer(file, delimiter=',', lineterminator='\n')
         writer.writerows(zip(["Point no.", "x [nm]", "y [nm]"],*points))
         writer.writerow("-"*(len(points)+1))
-        valuenames = ["eV"] + ['Peels']*len(points)
+        if 'ev_range' in aw_parameters.keys():
+            valuenames = ["eV"] + [f'{match}']*len(points)
+        else:
+            valuenames = ["nm"] + [f'{match}']*len(points)
+        
         writer.writerow(valuenames)
         writer.writerows(zip(xs,*ys))
         print(f"Saved to {dirname}/{match}.csv")
 
-def spectrumline_plot(match, dirname, average=False):
+def spectrumline_plot(match, aw_parameters):
+    dirname = aw_parameters["dirname"]
     #alldata = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',',dtype=None, encoding=None)
     data = np.genfromtxt(f"{dirname}/{match}.csv", delimiter=',')
     fig1,ax1 = plot_create()
     ax1.set_ylabel(label_for_plot_arbunits(match))
     fig2,ax2 = plot_create()
+    if 'ev_range' in aw_parameters.keys():
+        ax1.set_xlabel("Energy, eV")
+        ax2.set_xlabel("Energy, eV")
+        ax1.set_xlabel("Энергия, эВ")
+        ax2.set_xlabel("Энергия, эВ")
+        ax1.set_ylabel(r"P$_{\rm EELS}$" + ", п. е.")
+        ax2.set_ylabel(r"P$_{\rm CL}$" + ", п. е.")
+    else:
+        ax1.set_xlabel("Wavelength, nm")
+        ax2.set_xlabel("Wavelength, nm")
+        ax1.set_xlabel("Длина волны, нм")
+        ax2.set_xlabel("Длина волны, нм")
+        ax1.set_ylabel(r"P$_{\rm CL}$" + ", п. е.")
+        ax2.set_ylabel(r"P$_{\rm CL}$" + ", п. е.")
     ax2.set_ylabel(label_for_plot(match))
     
     xs = data[5:,0]
@@ -427,12 +541,14 @@ def spectrumline_plot(match, dirname, average=False):
     #ax1.set_yscale('log')
     plot_setaspect(ax1)
     plot_setaspect(ax2)
-    fig1.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.svg")
-    fig2.savefig(f"{dirname}/{match}_averaged.svg", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}_averaged.svg")
+    fig1.savefig(f"{dirname}/{match}.png", bbox_inches='tight', dpi=600)
+    print_log(f"Saved {dirname}/{match}.png")
+    fig2.savefig(f"{dirname}/{match}_averaged.png", bbox_inches='tight', dpi=600)
+    print_log(f"Saved {dirname}/{match}_averaged.png")
+    return fig1,ax1
 
-def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
+def extrapolation_execute(aw_parameters,adda_cmdlineargs):
+    dirname = aw_parameters["dirname"]
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
@@ -441,15 +557,24 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     print()
     print_log("--- Extrapolation: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
-    mp_file = aw_parameters["mp_file"]
+    mp_files = aw_parameters["mp_files"]
     ev = aw_parameters["ev"]
-    mdata = mp_single_read(mp_file,ev)
+    mdata = dict()
+    for i in range(len(mp_files)):
+        mdata[i] = np.genfromtxt(mp_files[i],delimiter=',')
+    mps = dict()
+    mps[ev] = ""
+    m_abs = 0
+    for i in mdata:
+        nk = min(mdata[i], key=lambda x: abs(x[0] - ev))
+        if m_abs < math.sqrt(float(nk[1])**2 + float(nk[2])**2):
+            m_abs = math.sqrt(float(nk[1])**2 + float(nk[2])**2)
+        nk = str(nk[1]) + " " + str(nk[2]) + " "
+        mps[ev] += str(nk) + " "
+        
     lam = ev_to_nm(ev)
     adda_cmdlineargs["lambda"] = lam
-    mre = mdata[1]
-    mim = mdata[2]
-    adda_cmdlineargs["m"] = f"{mre} {mim}"
-    m_abs = math.sqrt(mre**2 + mim**2)
+    adda_cmdlineargs["m"] = f"{mps[ev]}"
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
     y_min = (2*math.pi/lam)*(size/grid)*m_abs #y = k*d*|m|
@@ -460,9 +585,9 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     del adda_cmdlineargs["grid"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     print_log(f"{cmdline}",dirname)
-    print_log(f"mp_file: {mp_file}",dirname)
-    print_log(f"ev = {mdata[0]}",dirname)
-    print_log(f"m_p = {mdata[1]} + {mdata[2]}*I",dirname)
+    print_log(f"mp_files: {mp_files}",dirname)
+    print_log(f"ev = {ev}",dirname)
+    print_log(f"m_p = {mps[ev]}",dirname)
     print_log(f"Varying grids: {grids}",dirname)
     cmdlines = []
     for i in grids:
@@ -479,13 +604,17 @@ def extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
            writer.writerow([key, value])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
-def extrapolation_collect(match, dirname):
+def extrapolation_collect(match, aw_parameters):
+    dirname = aw_parameters["dirname"]
     with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
-    mre = float(adda_cmdlineargs["m"].split(" ")[0])
-    mim = float(adda_cmdlineargs["m"].split(" ")[1])
-    m_abs = math.sqrt(mre**2 + mim**2)
+    m_abs = 0
+    mdata = re.split(" +",adda_cmdlineargs["m"])
+    print(mdata)
+    for i in range(int(len(mdata)/2)):
+        if m_abs < math.sqrt(float(mdata[2*i])**2 + float(mdata[2*i+1])**2):
+            m_abs = math.sqrt(float(mdata[2*i])**2 + float(mdata[2*i+1])**2)
     grids = np.array(sorted([int(d.name) for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()]))
     values = []
     for grid_i in grids:
@@ -506,7 +635,8 @@ def extrapolation_collect(match, dirname):
         writer.writerows(zip(a,error))
         print(f"Saved to {dirname}/{match}_fit.csv")
     
-def extrapolation_plot(match, dirname):
+def extrapolation_plot(match, aw_parameters):
+    dirname = aw_parameters["dirname"]
     data = np.genfromtxt(f"{dirname}/{match}.csv",delimiter=',')[1:]
     fig,ax = plot_create()
     ax.plot(data[:,1], data[:,2], label=label_for_plot(match)+" (simulated)", color=color_for_plot(match), marker="o", markersize=12, linestyle="none", zorder=2)
@@ -523,7 +653,8 @@ def extrapolation_plot(match, dirname):
     plt.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}.svg")
 
-def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
+def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs):
+    dirname = aw_parameters["dirname"]
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
@@ -532,23 +663,36 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     print()
     print_log("--- Spectrum with extrapolation: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
-    mp_file = aw_parameters["mp_file"]
-    ev_min, ev_max = aw_parameters["ev_range"]
-    mdata = mp_range_read(mp_file,ev_min,ev_max)
+    mp_files = aw_parameters["mp_files"]
+    evs = [x for x in aw_parameters["ev_range"]]
+    mdata = dict()
+    for i in range(len(mp_files)):
+        mdata[i] = np.genfromtxt(mp_files[i],delimiter=',')
+    mps = dict()
+    m_abs = 0
+    for ev in evs:
+        mps[ev] = ""
+        for i in mdata:
+            nk = min(mdata[i], key=lambda x: abs(x[0] - ev))
+            mre = float(nk[1])
+            mim = float(nk[2])
+            if m_abs < math.sqrt(mre**2 + mim**2):
+                m_abs = math.sqrt(mre**2 + mim**2)
+                maxmre = mre
+                maxmim = mim
+            nk = str(nk[1]) + " " + str(nk[2]) + " "
+            mps[ev] += str(nk)
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
-    ev = float(mdata[0][0])
+    ev = evs[0]
     lam = ev_to_nm(ev)
-    mre = float(mdata[0][1])
-    mim = float(mdata[0][2])
-    m_abs = math.sqrt(mre**2 + mim**2)
     y_min = (2*math.pi/lam)*(size/grid)*m_abs #y = k*d*|m|
     y_max = 4*y_min
     ys = np.exp(np.linspace(math.log(y_min), math.log(y_max), 9))
     grids = np.rint((2*math.pi/lam)*(size/ys)*m_abs).astype(np.int32) #using same grids for all ev - they would not change
     #grids = np.flip([220,186,156,132,110,92,78,66,56])
     adda_cmdlineargs["lambda"] = lam
-    adda_cmdlineargs["m"] = f"{mre} {mim}"
+    adda_cmdlineargs["m"] = f"{maxmre} {maxmim}"
     with open(f"{dirname}/ADDA_cmdlineargs.csv", 'w') as file:
         writer = csv.writer(file, delimiter=',', lineterminator='\n')
         for key, value in adda_cmdlineargs.items():
@@ -558,25 +702,26 @@ def spectrum_with_extrapolation_execute(aw_parameters,adda_cmdlineargs,dirname):
     del adda_cmdlineargs["grid"]
     cmdline = cmdline_construct(aw_parameters,adda_cmdlineargs)
     print_log(f"{cmdline}",dirname)
-    print_log(f"mp_file: {mp_file}",dirname)
-    print_log(f"Varying energy from {mdata[0][0]} to {mdata[-1][0]} eV",dirname)
+    print_log(f"mp_files: {mp_files}",dirname)
+    print_log(f"Varying energy from {evs[0]} to {evs[-1]} eV",dirname)
     print_log(f"Varying grids: {grids}",dirname)
     cmdlines = []
     for grid_i in grids:
         os.mkdir(f"{dirname}/ADDA_output/{grid_i}")
-        for mdata_j in mdata:
+        for ev in evs:
             cmdline_i = cmdline
-            dir_fixed = os.path.abspath(dirname + f"/ADDA_output/{grid_i}/{mdata_j[0]}")
+            dir_fixed = os.path.abspath(dirname + f"/ADDA_output/{grid_i}/{ev}")
             cmdline_i += f' -dir "{dir_fixed}"'
             cmdline_i += f" -grid {grid_i}"
-            cmdline_i += " -lambda %s" % ev_to_nm(mdata_j[0])
-            cmdline_i += f" -m {mdata_j[1]} {mdata_j[2]}"
+            cmdline_i += " -lambda %s" % ev_to_nm(ev)
+            cmdline_i += " -m " + f" {mps[ev]} "
             cmdline_i += " > " + os.devnull
             cmdlines.append(cmdline_i)
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
-def spectrum_with_extrapolation_collect(match, dirname):
+def spectrum_with_extrapolation_collect(match, aw_parameters):
+    dirname = aw_parameters["dirname"]
     with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
@@ -604,7 +749,8 @@ def spectrum_with_extrapolation_collect(match, dirname):
         writer.writerows(zip(evs,fit_values,fit_errors))
         print(f"Saved to {dirname}/{match}_fit.csv")
 
-def spectrum_with_extrapolation_plot(match,dirname):
+def spectrum_with_extrapolation_plot(match,aw_parameters):
+    dirname = aw_parameters["dirname"]
     data = np.genfromtxt(f"{dirname}/{match}_fit.csv",delimiter=',')[1:]
     fig,ax = plot_create()
     ax.plot(data[:,0], data[:,1], label=label_for_plot(match), color=color_for_plot(match), linewidth=3)
@@ -615,8 +761,9 @@ def spectrum_with_extrapolation_plot(match,dirname):
     plt.savefig(f"{dirname}/{match}_fit.svg", bbox_inches='tight')
     print_log(f"Saved {dirname}/{match}_fit.svg")
 
-def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
+def scan_execute(aw_parameters,adda_cmdlineargs):
     aw_parameters, adda_cmdlineargs = dict(aw_parameters), dict(adda_cmdlineargs)
+    dirname = aw_parameters["dirname"]
     start_time = time.time()
     shutil.rmtree(dirname, ignore_errors=True)
     os.makedirs(dirname, exist_ok=True)
@@ -624,13 +771,30 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     print()
     print_log("--- Scan: executing simulations",dirname)
     print_log(f"Number of parallel threads: {aw_parameters['parallel_procs']}",dirname)
-    mp_file = aw_parameters["mp_file"]
-    ev = aw_parameters["ev"]
-    mdata = mp_single_read(mp_file,ev)
-    mre = mdata[1]
-    mim = mdata[2]
-    adda_cmdlineargs["lambda"] = ev_to_nm(ev)
-    adda_cmdlineargs["m"] = f"{mre} {mim}"
+    mp_files = aw_parameters["mp_files"]
+    if "ev" in aw_parameters.keys():
+        ev = aw_parameters["ev"]
+        adda_cmdlineargs["lambda"] = ev_to_nm(ev)
+    else:
+        ev = aw_parameters["nm"]
+        adda_cmdlineargs["lambda"] = ev
+    mdata = dict()
+    for i in range(len(mp_files)):
+        mdata[i] = np.genfromtxt(mp_files[i],delimiter=',')
+    mps = dict()
+    mps[ev] = ""
+    for i in mdata:
+        nk = min(mdata[i], key=lambda x: abs(x[0] - ev))
+        nk = str(nk[1]) + " " + str(nk[2]) + " "
+        mps[ev] += str(nk) + " "
+    adda_cmdlineargs["m"] = f"{mps[ev]}"
+    if 'ms_files' in aw_parameters.keys():
+        surfheight = adda_cmdlineargs["surf"].split(" ")[0]
+        delkeys_silent(adda_cmdlineargs, ["surf"])
+        msdata = np.genfromtxt(aw_parameters["ms_files"][0],delimiter=',')
+        nk = min(msdata, key=lambda x: abs(x[0] - ev))
+        nk = str(nk[1]) + " " + str(nk[2])
+        adda_cmdlineargs["surf"] = f"{surfheight} {nk}"
     size = adda_cmdlineargs["size"]
     grid = adda_cmdlineargs["grid"]
     x_left,x_right = aw_parameters["scan_x_range"]
@@ -652,9 +816,13 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
         for key, value in adda_cmdlineargs.items():
            writer.writerow([key, value])
     print_log(f"{cmdline}",dirname)
-    print_log(f"mp_file: {mp_file}",dirname)
-    print_log(f"ev = {ev}",dirname)
-    print_log(f"m_p = {mdata[1]} + {mdata[2]}*I",dirname)
+    print_log(f"mp_files: {mp_files}",dirname)
+    if "ev" in aw_parameters.keys():
+        print_log(f"ev = {ev}",dirname)
+    else:
+        print_log(f"nm = {ev}",dirname)
+    
+    print_log(f"m_p = {mps[ev]}",dirname)
     print_log(f"Varying (x_left,x_right) = ({x_left},{x_right}) nm",dirname)
     print_log(f"Varying (y_bottom,y_top) = ({y_bottom},{y_top}) nm",dirname)
     cmdlines = []
@@ -671,7 +839,9 @@ def scan_execute(aw_parameters,adda_cmdlineargs,dirname):
     exec_cmdlines(cmdlines,aw_parameters["parallel_procs"])
     print_log("--- %s seconds" % round((time.time() - start_time),2),dirname)
 
-def scan_collect(match, dirname):
+def scan_collect(match, aw_parameters):
+    aw_parameters = dict(aw_parameters)
+    dirname = aw_parameters["dirname"]
     dirs = sorted([d.name for d in os.scandir(f"{dirname}/ADDA_output") if d.is_dir()])
     xs = []
     ys = []
@@ -687,13 +857,18 @@ def scan_collect(match, dirname):
         writer.writerows(zip(xs,ys,values))
         print(f"Saved to {dirname}/{match}.csv")
 
-def scan_plot(match, dirname, details=True):
+def scan_plot(match, aw_parameters, details=True):
+    aw_parameters = dict(aw_parameters)
+    dirname = aw_parameters["dirname"]
     with open(f"{dirname}/ADDA_cmdlineargs.csv") as file:
         reader = csv.reader(file)
         adda_cmdlineargs = dict(reader)
     size = float(adda_cmdlineargs["size"])
     grid = float(adda_cmdlineargs["grid"])
-    data = np.genfromtxt(f"{dirname}/{match}.csv",delimiter=',')[1:]
+    data = np.genfromtxt(f"{dirname}/{match}.csv",delimiter=',',dtype=None, encoding=None)
+    axNames = data[0].astype("str")
+    data = data[1:].astype("float")
+    #print(axNames)
     xs = data[:,0]
     ys = data[:,1]
     zs = data[:,2]
@@ -709,18 +884,19 @@ def scan_plot(match, dirname, details=True):
     plot_setrcparams()
     ax.set_aspect('equal')
     d = size/grid
-    im = ax.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower", cmap="rainbow")
-    # plt.scatter(x, y, c=z, marker="s") # scatter is the most stable function for visualization, so use this for debugging
-    ax.set_xlabel("x$_0$, nm")
-    ax.set_ylabel("y$_0$, nm")
+    from matplotlib.colors import LogNorm
+    im = ax.imshow(z, extent=(min(xs)-d/2, max(xs)+d/2, min(ys)-d/2, max(ys)+d/2), origin="lower", cmap="rainbow")#, norm=LogNorm(vmin=0.01, vmax=1))
+    #plt.scatter(x, y, c=z, marker="s") # scatter is the most stable function for visualization, so use this for debugging
+    ax.set_xlabel(f"{axNames[0]}, nm")
+    ax.set_ylabel(f"{axNames[1]}, nm")
     
     if details == True:
         cbar = fig.colorbar(im)
-        cbar.set_label(label_for_plot(match))
-        cbar.formatter.set_powerlimits((0, 0))
+        cbar.set_label(label_for_plot(axNames[2]))
+        #cbar.formatter.set_powerlimits((0, 0))
     else:
         plt.axis('off')
-    
-    plt.savefig(f"{dirname}/{match}.svg", bbox_inches='tight')
-    print_log(f"Saved {dirname}/{match}.svg")
+
+    plt.savefig(f"{dirname}/{match}.png", bbox_inches='tight',dpi=600)
+    print_log(f"Saved {dirname}/{match}.png")
 

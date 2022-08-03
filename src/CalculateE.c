@@ -404,7 +404,7 @@ void MuellerMatrix(void)
 //======================================================================================================================
 
 static bool TestSymVec(const double a[static 3])
-/* tests whether a and -a are equivalent under existing symmetries of the scattering problem, i.e. if there exist a
+/* tests whether a and -a are equivalent under existing symmetries of the scattering problem, i.e. if there exists a
  * combination of symmetries that transforms a into -a. In particular, symR is sufficient for any vector in xy-plane,
  * since double such rotation is equivalent to the in-plane inversion.
  */

@@ -2438,7 +2438,7 @@ ka_eq = creal(WaveNum*a_eq);
 	 * tensor do not fail. And accuracy of the DDA itself is anyway questionable when some of the dipoles are very close
 	 * to the substrate (whether they cross it or not).
 	 */
-	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "
+	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exists a "
 		"dipole with z="GFORMDEF" (relative to the center), making specified height of the center ("GFORMDEF") too "
 		"small",minZco,hsub);
 	// save geometry

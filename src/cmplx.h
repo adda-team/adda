@@ -67,7 +67,7 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
  * surface. So the field above the surface actually comes from distant points on the surface, which has much larger
  * amplitude of the incident wave from below (compared to that under the observation point). Since the distance along
  * the surface (or the corresponding slope) is inversely proportional to the imaginary part of the substrate refractive
- * index, the effect remains finite even in the limit of absorption going to zero. Therefore, in this case there exist
+ * index, the effect remains finite even in the limit of absorption going to zero. Therefore, in this case there exists
  * a discontinuity when switching from non-absorbing to absorbing substrate. Physically, this fact is a consequence of
  * the infinite lateral extent of the plane wave.
  *

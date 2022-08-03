@@ -7,9 +7,9 @@
 theta:
 # default: min=0;max=180;Jmin=2;Jmax=6;eps=0;equiv=false;periodic=false
 min=0
-max=180
+max=90
 Jmin=2
-Jmax=3
+Jmax=5
 eps=0
 equiv=false
 periodic=false
