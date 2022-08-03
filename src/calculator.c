@@ -436,7 +436,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		double c1=-5.9424219;
 		double c2=0.5178819;
 		double c3=4.0069747;
-		double nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD);
+		doublecomplex nu=WaveNum/TWO_PI*pow(dipvol,ONE_THIRD); //the type was changed to doublecomplex (for the case of complex WaveNum), but this case was not tested
 		doublecomplex correction;
 		doublecomplex L,K;
 		double draineSum;
@@ -500,7 +500,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 		if (!orient_avg && IFROOT) PrintBoth(logfile, "CoupleConstant: "CFORM3V"\n", REIM3V(res));
 	} 
 	else {
-		double ka,kd2,S;
+		double S;
+		doublecomplex ka,kd2;
 		int i;
 		bool asym; // whether polarizability is asymmetric (for isotropic m)
 		const double *incPol;
@@ -522,7 +523,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				case POL_CM: res[i]=polCM(mrel[i]); break;
 				case POL_DGF: res[i]=polMplusRR(DGF_B1*kd2,mrel[i]); break;
 				case POL_FCD: // M0={(4/3)kd^2+(2/3pi)log[(pi-kd)/(pi+kd)]kd^3}
-					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
+					if(cimag(WaveNum)!='0') LogError(ONE_POS,"Incompatibility error in CoupleConstant - POL_FCD is not compatible with absorbing surrounding medium");
+					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]); //One day we'll make it compatible with complex mhost, but now it is not
 					break;
 				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
 				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
@@ -699,6 +701,7 @@ static void AllocateEverything(void)
 		MALLOC_VECTOR(rvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(pvec,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Einc,complex,local_nRows,ALL);
+		if(beamtype == B_ELECTRON) MALLOC_VECTOR(E1,complex,local_nRows,ALL);
 		MALLOC_VECTOR(Avecbuffer,complex,local_nRows,ALL);
 	}
 	memory+=5*tmp;
@@ -884,6 +887,7 @@ void FreeEverything(void)
 	Free_cVector(rvec);
 	Free_cVector(pvec);
 	Free_cVector(Einc);
+	if(beamtype == B_ELECTRON) Free_cVector(E1);
 	Free_cVector(Avecbuffer);
 	
 	/* The following can be automated to some extent, either using the information from structure array 'params' in

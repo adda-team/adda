@@ -30,7 +30,11 @@
 // basic variables
 extern int boxX,boxY,boxZ;
 extern size_t boxXY;
-extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,kd,kdX,kdY,kdZ,ka_eq,inv_G,WaveNum;
+extern double gridspace,dsX,dsY,dsZ,rectScaleX,rectScaleY,rectScaleZ,dipvol,ka_eq,inv_G;
+
+extern doublecomplex kdX,kdY,kdZ,kd,WaveNum,WaveNum0;
+extern doublecomplex mhost, epshost;
+
 extern double * restrict DipoleCoord;
 
 extern double memory,memPeak;
@@ -43,7 +47,7 @@ extern bool symX,symY,symZ,symR;
 
 // flags
 extern bool prognosis,yzplane,scat_plane,store_mueller,all_dir,scat_grid,phi_integr,sh_granul,reduced_FFT,orient_avg,
-	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required,rectDip;
+	load_chpoint,beam_asym,anisotropy,save_memory,ipr_required,absorbing_host,rectDip;
 extern double propAlongZ;
 
 // 3D vectors
@@ -64,7 +68,7 @@ extern unsigned char * restrict material;
 // iterative solver
 extern enum iter IterMethod;
 extern int maxiter;
-extern doublecomplex *xvec,*pvec,* restrict Einc;
+extern doublecomplex *xvec,*pvec,* restrict Einc,* restrict E1;
 
 // scattering at different angles
 extern int nTheta;

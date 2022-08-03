@@ -125,6 +125,7 @@ double polNlocRp;            // Gaussian width for non-local polarizability
 const char *alldir_parms;    // name of file with alldir parameters
 const char *scat_grid_parms; // name of file with parameters of scattering grid
 // used in crosssec.c
+doublecomplex abs_ref_index[MAX_NMAT];  // a set of absolute refractive indexes
 double incPolX_0[3],incPolY_0[3]; // initial incident polarizations (in lab RF)
 enum scat ScatRelation;           // type of formulae for scattering quantities
 // used in GenerateB.c
@@ -180,6 +181,8 @@ static const char *exename;     // name of executable (adda, adda.exe, adda_mpi,
 static int Nmat_given;          // number of refractive indices given in the command line
 static enum sym sym_type;       // how to treat particle symmetries
 static int sobuf;               // mode for stdout buffering
+double rel_lambda;				// wavelength in the surrounding medium
+
 /* The following '..._used' flags are, in principle, redundant, since the structure 'options' contains the same flags.
  * However, the latter can't be easily addressed by the option name (a search over the whole options is required).
  * When thinking about adding a new one, first consider using UNDEF machinery instead
@@ -259,6 +262,9 @@ static const struct subopt_struct beam_opt[]={
 		"frame). All arguments are in um. Orientation of the dipole is determined by -prop command line option."
 		"Implies '-scat_matr none'. If '-surf' is used, dipole position should be above the surface. Specification of "
 		"coordinates here is DEPRECATED, use -beam_center instead.",UNDEF,B_DIPOLE},
+	{"electron","<energy>","Field of an electron with <energy> in keV."
+			"Center of the beam coordinates are determined by -beam_center command line option. All coordinate arguments are in nm.\n"
+			"Propagation direction of the beam is determined by -prop command line option.\n",1,B_ELECTRON},
 	{"lminus","<width> [<x> <y> <z>]","Simplest approximation of the Gaussian beam. The beam width is obligatory and "
 		"x, y, z coordinates of the center of the beam (in laboratory reference frame) are optional (zero, by"
 		" default). All arguments are in um. Specification of coordinates here is DEPRECATED, use -beam_center "
@@ -397,6 +403,7 @@ PARSE_FUNC(jagged);
 PARSE_FUNC(lambda);
 PARSE_FUNC(m);
 PARSE_FUNC(maxiter);
+PARSE_FUNC(mhost);
 PARSE_FUNC(no_reduced_fft);
 PARSE_FUNC(no_vol_cor);
 PARSE_FUNC(ntheta);
@@ -448,13 +455,13 @@ static struct opt_struct options[]={
 		"reference frame). '-m' then accepts 6 arguments per each domain. Can not be used with '-pol cldr' and "
 		"'-rect_dip'.",0,NULL},
 	{PAR(asym),"","Calculate the asymmetry vector. Implies '-Csca' and '-vec'",0,NULL},
+	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam with respect to the initial point in time. "
+			"For plane, Gaussian, and Bessel field it determines the phase in space. "
+			"For a dipole and an electron it determines the position in space.\n"
+		"Default: 0 0 0",3,NULL},
 	{PAR(beam),"<type> [<args>]","Sets the incident beam, either predefined or 'read' from file. All parameters of "
 		"predefined beam types are floats except for <order> or filenames.\n"
 		"Default: plane",UNDEF,beam_opt},
-	{PAR(beam_center),"<x> <y> <z>","Sets the center of the beam in the laboratory reference frame (in um). For most "
-		"beams it corresponds to the most symmetric point with zero phase, while for a point source or a fast "
-		"electron, it determines the real position in space.\n"
-		"Default: 0 0 0",3,NULL},
 	{PAR(chp_dir),"<dirname>","Sets directory for the checkpoint (both for saving and loading).\n"
 		"Default: "FD_CHP_DIR,1,NULL},
 	{PAR(chp_load),"","Restart a simulation from a checkpoint",0,NULL},
@@ -576,6 +583,8 @@ static struct opt_struct options[]={
 		"Default: 1.5 0",UNDEF,NULL},
 	{PAR(maxiter),"<arg>","Sets the maximum number of iterations of the iterative solver, integer.\n"
 		"Default: very large, not realistic value",1,NULL},
+	{PAR(mhost),"<mhost_Re> <mhost_Im>","Complex refractive index of the host medium.\n"
+			"Default: 1+0i",2,NULL},
 	{PAR(no_reduced_fft),"","Do not use symmetry of the interaction matrix to reduce the storage space for the "
 		"Fourier-transformed matrix.",0,NULL},
 	{PAR(no_vol_cor),"","Do not use 'dpl (volume) correction'. If this option is given, ADDA will try to match size of "
@@ -625,7 +634,8 @@ static struct opt_struct options[]={
 	{PAR(prognosis),"","Do not actually perform simulation (not even memory allocation) but only estimate the required "
 		"RAM. Implies '-test'.",0,NULL},
 	{PAR(prop),"<x> <y> <z>","Sets propagation direction of incident radiation, float. Normalization (to the unity "
-		"vector) is performed automatically. For point-dipole incident beam this determines its direction.\n"
+		"vector) is performed automatically. For point-dipole incident beam this determines its direction."
+		"For electron incident beam this determines electron propagation direction.\n"
 		"Default: 0 0 1",3,NULL},
 	{PAR(recalc_resid),"","Recalculate residual at the end of iterative solver.",0,NULL},
 	{PAR(rect_dip),"<x> <y> <z>","Use rectangular-cuboid dipoles. Three arguments are the relative dipole sizes along "
@@ -1049,6 +1059,9 @@ PARSE_FUNC(beam)
 				if (Narg!=0 && Narg!=3) NargError(Narg,"0 or 3");
 				if (Narg==3) deprecated_bc_used=true;
 				break;
+			case B_ELECTRON:
+				if (Narg!=1) NargError(Narg,"1");
+				break;
 #ifndef NO_FORTRAN
 			case B_BES_M: if (Narg!=6 && Narg!=10) NargError(Narg,"6 or 10"); break;
 #endif
@@ -1352,15 +1365,27 @@ PARSE_FUNC(m)
 	for (i=0;i<Nmat;i++) {
 		ScanDoubleError(argv[2*i+1],&mre);
 		ScanDoubleError(argv[2*i+2],&mim);
-		ref_index[i] = mre + I*mim;
-		if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
-			"Consider using, for instance, 1.0001 instead.",i+1);
+		abs_ref_index[i] = mre + I*mim;
+		//if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of vacuum, which is not supported. "
+		//	"Consider using, for instance, 1.0001 instead.",i+1);
 	}
 }
 PARSE_FUNC(maxiter)
 {
 	ScanIntError(argv[1],&maxiter);
 	TestPositive_i(maxiter,"maximum number of iterations");
+}
+PARSE_FUNC(mhost)
+{
+	double mre,mim;
+
+	if (Narg!=2) NargError(Narg,"two");
+	ScanDoubleError(argv[1],&mre);
+	ScanDoubleError(argv[2],&mim);
+	mhost = mre + I*mim;
+	TestNonNegative(mre,"real part of the medium refractive index");
+	TestNonNegative(mim,"imaginary part of the medium refractive index");
+	TestPositive(cabs(mhost),"absolute value of the medium refractive index");
 }
 PARSE_FUNC(no_reduced_fft)
 {
@@ -1951,17 +1976,20 @@ static void UpdateSymVec(const double a[static 3])
 void InitVariables(void)
 // some defaults are specified also in const.h
 {
+	absorbing_host=false;
 	rectDip=false;
 	prop_used=false;
 	orient_used=false;
 	directory="";
 	lambda=TWO_PI;
+	mhost=1;
+	epshost=1;
 	beam_center_used=false;
 	deprecated_bc_used=false;
 	vInit(beam_center_0);
 	// initialize ref_index of scatterer
 	Nmat=Nmat_given=1;
-	ref_index[0]=1.5;
+	abs_ref_index[0]=1.5;
 	// initialize to null to determine further whether it is initialized
 	logfile=NULL;
 	boxX=boxY=boxZ=UNDEF;
@@ -1977,7 +2005,7 @@ void InitVariables(void)
 	store_dip_pol=false;
 	PolRelation=(enum pol)UNDEF;
 	avg_inc_pol=false;
-	ScatRelation=SQ_DRAINE;
+	ScatRelation=(enum scat)UNDEF;
 	IntRelation=G_POINT_DIP;
 	IterMethod=IT_QMR_CS;
 	sym_type=SYM_AUTO;
@@ -2125,7 +2153,21 @@ void VariablesInterconnect(void)
 #endif
 
 	// initialize WaveNum ASAP
-	WaveNum = TWO_PI/lambda;
+	WaveNum = TWO_PI*mhost/lambda;
+
+	epshost = mhost*mhost;
+
+	WaveNum0 = TWO_PI/lambda;
+
+	//relative lambda (normalized to the mhost):
+	if(creal(mhost)!=0) rel_lambda=lambda/creal(mhost); else rel_lambda=lambda; //the second case is weird but the only choice
+	if(cimag(mhost)!=0) absorbing_host = true;
+	//normalizes the refractive index to the mhost:
+	for (int i=0;i<Nmat;i++) {
+		ref_index[i]=abs_ref_index[i]/mhost;
+		if (ref_index[i]==1) PrintErrorHelp("Given refractive index #%d is that of surrounding medium, which is not supported. "
+			"Consider using, for instance, 1.0001*mhost instead.",i+1);
+	}
 	// set default incident direction, which is +z for all configurations
 	if (!prop_used) {
 		prop_0[0]=prop_0[1]=0;
@@ -2154,6 +2196,8 @@ void VariablesInterconnect(void)
 	if (igt_eps==UNDEF) igt_eps=iter_eps;
 	// default polarizability formulation depends on rect_dip
 	if (PolRelation==(enum pol)UNDEF) PolRelation = rectDip ? POL_CLDR : POL_LDR;
+	// default scattering quantities formulation depends on absorbing/non absorbing host medium
+	if (ScatRelation==(enum scat)UNDEF) ScatRelation = absorbing_host ?  SQ_FINDIP : SQ_DRAINE;
 	// parameter incompatibilities
 	if (scat_plane && yzplane) PrintError("Currently '-scat_plane' and '-yz' cannot be used together.");
 	if (orient_avg) {
@@ -2239,6 +2283,19 @@ void VariablesInterconnect(void)
 			"Sommerfeld integrals (default for the surface mode) requires dipoles to have the same dimensions along "
 			"the x- and y-axes (but not z)");
 	}
+	if (absorbing_host) { // currently a lot of limitations for the absorbing medium
+			if (ScatRelation!=SQ_FINDIP)
+					PrintError("The specified scattering quantites formulation is designed only for non-absorbing medium. Currently, only "
+					"only the 'findip' formulation can be used with absorbing host medium");
+			if (beamtype!=B_PLANE && beamtype!=B_ELECTRON) PrintError("Non-zero imaginary part of medium refractive index (mhost)"
+				" can be used only with plane/electron incident field");
+			if (rectDip) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+				" is incompatible with rect_dip option");
+			if (surface) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+				" is incompatible with surface");
+			if (IntRelation!=G_POINT_DIP) PrintError("Currently non-zero imaginary part of medium refractive index (mhost)"
+					" is only compatible with the default interaction formulation");
+		}
 	InteractionRealArgs=(beamtype==B_DIPOLE); // other cases may be added here in the future (e.g. nearfields)
 #ifdef SPARSE
 	if (shape==SH_SPHERE) PrintError("Sparse mode requires shape to be read from file (-shape read ...)");
@@ -2444,10 +2501,12 @@ void PrintInfo(void)
 		// print basic parameters
 		PRINTFB("box dimensions: %ix%ix%i\n",boxX,boxY,boxZ);
 		PRINTFB("lambda: "GFORM"   Dipoles/lambda: "GFORMDEF"\n",lambda,dpl);
+		PRINTFB("medium refractive index: "CFORM"\n",REIM(mhost));
 		PRINTFB("Required relative residual norm: "GFORMDEF"\n",iter_eps);
 		PRINTFB("Total number of occupied dipoles: %zu\n",nvoid_Ndip);
 		// log basic parameters
-		fprintf(logfile,"lambda: "GFORM"\n",lambda);
+		fprintf(logfile,"lambda: "GFORM" (relative: "GFORM")\n",lambda,rel_lambda);
+		fprintf(logfile,"medium refractive index: "CFORM"\n",REIM(mhost));
 		fprintf(logfile,"shape: ");
 		fprintf(logfile,"%s "GFORM"%s\n",sh_form_str1,sizeX,sh_form_str2);
 #ifndef SPARSE
@@ -2467,11 +2526,11 @@ void PrintInfo(void)
 		}
 		else {
 			fprintf(logfile,"refractive index: ");
-			if (Nmat==1) fprintf(logfile,CFORM"\n",REIM(ref_index[0]));
+			if (Nmat==1) fprintf(logfile,CFORM" (relative: "CFORM")\n",REIM(abs_ref_index[0]),REIM(ref_index[0]));
 			else {
-				fprintf(logfile,"1. "CFORM"\n",REIM(ref_index[0]));
+				fprintf(logfile,"1. "CFORM" (relative: "CFORM")\n",REIM(abs_ref_index[0]), REIM(ref_index[0]));
 				for (i=1;i<Nmat;i++) {
-					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM"\n",i+1,REIM(ref_index[i]));
+					if (i<Nmat_given) fprintf(logfile,"                  %d. "CFORM" (relative: "CFORM")\n",i+1,REIM(abs_ref_index[i]),REIM(ref_index[i]));
 					else fprintf(logfile,"                  %d. not specified\n",i+1);
 				}
 			}

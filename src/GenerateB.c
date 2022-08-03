@@ -44,6 +44,8 @@ extern const char *beam_fnameY;
 extern const char *beam_fnameX;
 extern const opt_index opt_beam;
 
+extern void cik01_(doublecomplex *z, doublecomplex *cbi0, doublecomplex *cdi0, doublecomplex *cbi1, doublecomplex *cdi1, doublecomplex *cbk0, doublecomplex *cdk0, doublecomplex *cbk1, doublecomplex *cdk1);
+
 // used in CalculateE.c
 double C0dipole,C0dipole_refl; // inherent cross sections of exciting dipole (in free space and addition due to surface)
 int vorticity;                 // Vorticity of vortex beams (besN for Bessel beams)
@@ -61,6 +63,10 @@ static double scale_x,scale_z; // multipliers for scaling coordinates
 static doublecomplex ki,kt;    // abs of normal components of k_inc/k0, and ktran/k0
 static doublecomplex ktVec[3]; // k_tran/k0
 static double p0;              // amplitude of the incident dipole moment
+static doublecomplex gamma_eps_inv;// 1/gamma_eps
+static doublecomplex e_pref; // prefactor of the field of the electron
+static double e_w_v;   // prefactor in an argument of a phase exponent in the incident field of the electron
+static doublecomplex e_w_gv;  // prefactor in an argument of the Bessel_K in the incident field of the electron
 #ifndef NO_FORTRAN
 static int besN;                  // Bessel beam order
 static double besAlpha;           // half-cone angle (in radians)
@@ -85,7 +91,16 @@ void InitBeam(void)
 // initialize beam; produce description string
 {
 	double w0; // beam width
+	//CASE: B_ELECTRON
+	static double e_energy;        // kinetic energy of the electron
+	static doublecomplex beta_eps;// v*m_host/c
+	static double e_v;      // speed of the electron
+	double q_electron = -4.803204673e-10; //electric charge of an electron, cm^(3/2)*g^(1/2)*s^(-1)
+	double c_light = 29979245800; //speed of light in vacuum, cm/s
+	const double e_energy_rest = 510.99895; //Electron rest mass, keV
 	const char *tmp_str; // temporary string
+	//q_electron *= sqrt(10)*1e10; //scale cm->nm
+	//c_light *= 1e7; //scale cm->nm
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function.
 	 */
@@ -154,7 +169,7 @@ void InitBeam(void)
 			 * irradiance). Alternative definition is p0=1, but then the results will scale with unit of length
 			 * (breaking scale invariance)
 			 */
-			p0=1/(WaveNum*WaveNum*WaveNum);
+			p0=1/(WaveNum*WaveNum*WaveNum); //Is it valid if WaveNum is complex?
 			if (IFROOT) beam_descr="point dipole";
 			return;
 		case B_LMINUS:
@@ -164,7 +179,7 @@ void InitBeam(void)
 			// initialize parameters
 			w0=beam_pars[0];
 			TestPositive(w0,"beam width");
-			s=1/(WaveNum*w0);
+			s=1/(WaveNum*w0); //Is it valid if WaveNum is complex?
 			s2=s*s;
 			scale_x=1/w0;
 			scale_z=s*scale_x; // 1/(k*w0^2)
@@ -185,6 +200,29 @@ void InitBeam(void)
 				beam_descr=dyn_sprintf("Gaussian beam (%s)\n"
 				                       "\tWidth="GFORMDEF" (confinement factor s="GFORMDEF")",tmp_str,w0,s);
 			}
+			return;
+		case B_ELECTRON:
+			//Electron field is in CGS. Electron field in SI would look the same, except multiplied by 1/(4*pi*eps0)
+			if (surface) PrintError("Currently, electron incident beam is not supported for '-surf'");
+			// initialize parameters
+			e_energy=beam_pars[0];
+			TestPositive(e_energy,"kinetic energy of the electron");
+			beam_asym=(beam_center_0[0]!=0 || beam_center_0[1]!=0 || beam_center_0[2]!=0);
+			//symX=symY=symZ=symR=false;
+			if (!beam_asym) vInit(beam_center);
+			e_v = c_light*sqrt(1-pow((e_energy_rest/(e_energy+e_energy_rest)),2));
+			beta_eps = e_v*mhost/c_light;
+			gamma_eps_inv = cSqrtCut(1-beta_eps*beta_eps);
+			//printf("gamma_eps_inv\t=\t"CFORM"\n",REIM(gamma_eps_inv));
+			//printf("omega = "EFORM"\n",WaveNum*c_light/scale_z);
+			//printf("v = "EFORM"\n",e_v);
+			e_w_v = WaveNum0*c_light/e_v;
+			//printf("e_w_v\t=\t"CFORM"\n",REIM(e_w_v));
+			e_w_gv = e_w_v*gamma_eps_inv;
+			//printf("e_w_gv\t=\t"CFORM"\n",REIM(e_w_gv));
+			e_pref = 2*q_electron*(WaveNum0*1e7)*gamma_eps_inv/(beta_eps*beta_eps*c_light); // (q*k0/c) must be in statV/cm => multiplying k0*1e7
+			//printf("e_pref = "CFORM"\n",REIM(e_pref));
+			if (IFROOT) beam_descr=dyn_sprintf("The electron with the %g keV energy moving through "GFORM3V,e_energy,COMP3V(beam_center_0));
 			return;
 #ifndef NO_FORTRAN
 		case B_BES_CS:
@@ -312,12 +350,12 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
 	doublecomplex v1[3],v2[3],v3[3],gt[6];
-	double ro2,ro4;
-	double x,y,z,x2_s,xy_s;
-	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp;
+	double ro,ro2,ro4;
+	double x,y,z,x2_s,xy_s,temp;
+	doublecomplex t1,t2,t3,t4,t5,t6,t7,t8,ctemp,e_wb_gv;
 	const double *ex; // coordinate axis of the beam reference frame
 	double ey[3];
-	double r1[3];
+	double r1[3],r1par[3],r1per[3];
 	/* complex wave amplitudes of transmitted wave (with phase relative to beam center);
 	 * The transmitted wave can be inhomogeneous wave (when msub is complex), then eIncTran (e) is normalized
 	 * counter-intuitively. Before multiplying by tc, it satisfies (e,e)=1!=||e||^2. This normalization is consistent
@@ -334,6 +372,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	double phi,arg,td1[abs(besN)+3],td2[abs(besN)+3],jn1[abs(besN)+3]; // for Bessel beams
 #endif
 	const char *fname;
+
 	/* TO ADD NEW BEAM
 	 * Add here all intermediate variables, which are used only inside this function. You may as well use 't1'-'t8'
 	 * variables defined above.
@@ -348,6 +387,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 		ex=incPolX;
 		vCopy(incPolY,ey);
 	}
+
+	//printf("beam_center_0 = "EFORM3V"\n",COMP3V(beam_center_0));
+	//printf("beam_center = "EFORM3V"\n",COMP3V(beam_center));
 
 	switch (beamtype) {
 		case B_PLANE: // plane is separate to be fast (for non-surface)
@@ -484,9 +526,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				z=DotProd(r1,prop)*scale_z;
 				ro2=x*x+y*y;
 				Q=1/(2*z-I);
-				psi0=-I*Q*cexp(I*Q*ro2);
+				psi0=-I*Q*imExp(Q*ro2);
 				// ctemp=exp(ik*z0)*psi0, z0 - non-scaled coordinate (z/scale_z)
-				ctemp=imExp(WaveNum*z/scale_z)*psi0;
+				ctemp=imExpReal(WaveNum*z/scale_z)*psi0; //or should be imExp?
 				// the following logic (if-else-if...) is hard to replace by a simple switch
 				if (beamtype==B_LMINUS) cvMultScal_RVec(ctemp,ex,b+j); // b[i]=ctemp*ex
 				else {
@@ -537,6 +579,50 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				}
 			}
 			return;
+
+		case B_ELECTRON:
+			for (i=0;i<local_nvoid_Ndip;i++) {
+				j=3*i;
+				// set relative coordinates (in beam's coordinate system)
+				LinComb(DipoleCoord+j,beam_center,1,-1,r1);
+
+				temp = DotProd(r1,prop);
+				vMultScal(temp,prop,r1par);
+				vSubtr(r1,r1par,r1per);
+				ro = vNorm(r1per);
+				z = temp;
+				if(ro != 0) vNormalize(r1per);
+				else LogError(ONE_POS,"electron hit a dipole, this is currently not supported, ro = "EFORM, ro);
+
+				//printf("z = "EFORM"\n",z);
+				//printf("b = "EFORM"\n",ro);
+				//printf("g = "EFORM"\n",creal(1./gamma_eps_inv));
+
+				e_wb_gv = e_w_gv*ro;
+				cik01_(&e_wb_gv, &t1, &t2, &t3, &t4, &t7, &t5, &t8, &t6);
+				//printf("e_wb_gv\t=\t"CFORM"\n",REIM(e_wb_gv));
+				//printf("besselK0re\t=\t"EFORM"\n",creal(t7));
+				//printf("besselK0im\t=\t"EFORM"\n",cimag(t7));
+				//printf("besselK1re\t=\t"EFORM"\n",creal(t8));
+				//printf("besselK1im\t=\t"EFORM"\n",cimag(t8));
+
+				t4 = imExp(e_w_v*z);
+				//printf("imExp = "CFORM"\n",t4);
+				cvMultScal_RVec(t4*t8,r1per,v1);
+				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
+				cvAdd(v1,v2,v3);
+				cvMultScal_cmplx(e_pref,v3,b+j); //E_inc
+				//printf("Einc\t=\t"CFORM3V"\n",REIM3V(b+j));
+
+				t4 = conj(t4);
+				cvMultScal_RVec(-t4*t8,r1per,v1);
+				cvMultScal_RVec((-I)*gamma_eps_inv*t4*t7,prop,v2);
+				cvAdd(v1,v2,v3);
+				cvMultScal_cmplx(e_pref,v3,E1+j); //E_1
+				//printf("E1\t=\t"CFORM3V"\n",REIM3V(E1+j));
+			}
+			return;
+
 #ifndef NO_FORTRAN
 		case B_BES_CS:
 		case B_BES_CSp:
@@ -635,7 +721,9 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 				cvMultScal_cmplx(ctemp,v1,b+j);
 			}
 			return;
-#endif // !NO_FORTRAN
+
+#endif // !NO_FORTRAN		
+
 		case B_READ:
 			if (which==INCPOL_Y) fname=beam_fnameY;
 			else fname=beam_fnameX; // which==INCPOL_X

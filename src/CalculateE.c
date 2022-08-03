@@ -404,7 +404,7 @@ void MuellerMatrix(void)
 //======================================================================================================================
 
 static bool TestSymVec(const double a[static 3])
-/* tests whether a and -a are equivalent under existing symmetries of the scattering problem, i.e. if there exist a
+/* tests whether a and -a are equivalent under existing symmetries of the scattering problem, i.e. if there exists a
  * combination of symmetries that transforms a into -a. In particular, symR is sufficient for any vector in xy-plane,
  * since double such rotation is equivalent to the in-plane inversion.
  */
@@ -712,7 +712,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 {
 	// Scattering force, extinction force and radiation pressure per dipole
 	double * restrict Frp;
-	double Cext,Cabs,Csca,Cdec, // Cross sections
+	double Cext,Cabs,Csca,Cenh, // Cross sections
 	dummy[3],                // asymmetry parameter*Csca
 	Finc_tot[3],Fsca_tot[3],Frp_tot[3], // total extinction and scattering forces, and their sum (radiation pressure)
 	Cnorm,            // normalizing factor from force to cross section
@@ -724,7 +724,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 	const char *f_suf;
 
 	// redundant initialization to remove warnings
-	Cext=Cabs=Csca=Cdec=0;
+	Cext=Cabs=Csca=Cenh=0;
 	CCfile=NULL;
 
 	D("Calculation of cross sections started");
@@ -761,16 +761,20 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 		}
 	}
 	else { // not orient_avg
-		if (beamtype==B_DIPOLE) Cdec=DecayCross(); // this is here to be run by all processors
+
 		if (IFROOT) {
 			SnprintfErr(ONE_POS,fname_cs,MAX_FNAME,"%s/"F_CS"%s",directory,f_suf);
 			CCfile=FOpenErr(fname_cs,"w",ONE_POS);
 			if (calc_Cext) PrintBoth(CCfile,"Cext\t= "GFORM"\nQext\t= "GFORM"\n",Cext,Cext*inv_G);
 			if (calc_Cabs) PrintBoth(CCfile,"Cabs\t= "GFORM"\nQabs\t= "GFORM"\n",Cabs,Cabs*inv_G);
-			if (beamtype==B_DIPOLE) {
+			if (beamtype==B_DIPOLE || beamtype==B_ELECTRON) {
+				Cenh=EnhCross(); // this is here to be run by all processors
+				PrintBoth(CCfile,"Cenh\t= "GFORM"\nQenh\t= "GFORM"\n",Cenh,Cenh*inv_G);
+			}
+			if (beamtype==B_DIPOLE && !absorbing_host) {
 				double self=1;
 				if (surface) self+=C0dipole_refl/C0dipole;
-				double tot=self+Cdec/C0dipole;
+				double tot=self+Cenh/C0dipole;
 				fprintf(CCfile,"\nDecay-rate enhancement\n\n");
 				PRINTFB("\nDecay-rate enhancement:\n");
 				PrintBoth(CCfile,"Total\t= "GFORM"\n",tot);
@@ -788,6 +792,39 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 				Csca=ScaCross(f_suf);
 				PrintBoth(CCfile,"Csca\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
 			}
+			if (beamtype==B_ELECTRON) {
+				double Pext, Peels, Pcl;
+				double hbar_SI = 1.054571817e-34;
+				double hbar_ev = 6.582119569e-16;
+				fprintf(CCfile,"\nEELS and Cathodoluminescence\n\n");
+				printf("\nEELS and Cathodoluminescence:\n");
+				Peels = creal(mhost)*0.1*Cenh/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming Cenh is in nm^2
+				Peels *= 1e-27; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Peels\t= "EFORM"\n",Peels);
+				Pext = creal(mhost)*0.1*Cext/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming Cenh is in nm^2
+				Pext *= 1e-27; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Pext\t= "EFORM"\n",Pext);
+
+				//Csca = Cext-Cabs;
+				//PrintBoth(CCfile,"Csca=Cext-Cabs\t= "GFORM"\nQsca\t= "GFORM"\n",Csca,Csca*inv_G);
+				if (calc_Csca){
+					//Pcl = (Cenh - (Cext - Csca))/((FOUR_PI*WaveNum)*PI*hbar*hbar_ev);
+					Pcl = creal(mhost)*0.1*(Cenh - (Cext - Csca))/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming C is in nm^2
+				}
+				else Pcl = creal(mhost)*0.1*(Cenh - Cabs)/(FOUR_PI*PI*hbar_SI*hbar_ev*WaveNum0); //SI units are used, assuming C is in nm^2
+				Pcl *= 1e-27; //(nm)^3 -> (cm)^3
+				PrintBoth(CCfile,"Pcl\t= "EFORM"\n",Pcl);
+			}
+			if(absorbing_host)	{
+				double PV_integrals_particle[5];
+				CrossSec_VolumeIntegral(PV_integrals_particle);
+				PrintBoth(CCfile,"Csca_p\t= "GFORM"\n",PV_integrals_particle[0]);
+				PrintBoth(CCfile,"Csca_p2\t= "GFORM"\n",PV_integrals_particle[1]);
+				PrintBoth(CCfile,"Cext_p\t= "GFORM"\n",PV_integrals_particle[2]);
+				PrintBoth(CCfile,"Cext_p2\t= "GFORM"\n",PV_integrals_particle[3]);
+				PrintBoth(CCfile,"Cinc_p2\t= "GFORM"\n",PV_integrals_particle[4]);
+			}
+
 			if (calc_vec) {
 				AsymParm_x(dummy,f_suf);
 				AsymParm_y(dummy+1,f_suf);

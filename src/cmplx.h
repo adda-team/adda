@@ -67,7 +67,7 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
  * surface. So the field above the surface actually comes from distant points on the surface, which has much larger
  * amplitude of the incident wave from below (compared to that under the observation point). Since the distance along
  * the surface (or the corresponding slope) is inversely proportional to the imaginary part of the substrate refractive
- * index, the effect remains finite even in the limit of absorption going to zero. Therefore, in this case there exist
+ * index, the effect remains finite even in the limit of absorption going to zero. Therefore, in this case there exists
  * a discontinuity when switching from non-absorbing to absorbing substrate. Physically, this fact is a consequence of
  * the infinite lateral extent of the plane wave.
  *
@@ -84,7 +84,7 @@ static inline doublecomplex cSqrtCut(const doublecomplex a)
 
 //======================================================================================================================
 
-static inline doublecomplex imExp(const double arg)
+static inline doublecomplex imExpReal(const double arg)
 /* exponent of imaginary argument Exp(i*arg)
  * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
  */
@@ -102,6 +102,15 @@ static inline doublecomplex imExp(const double arg)
 }
 
 //======================================================================================================================
+
+static inline doublecomplex imExp(const doublecomplex arg)
+/* exponent of complex argument Exp(i*arg), arg = a + i*b
+ * !!! should not be used in parameter parsing (table is initialized in VariablesInterconnect())
+ */
+{
+	if(cimag(arg)==0) return imExpTable(creal(arg)); //this case is needed to make things faster for real argument
+	else return imExpTable(creal(arg))*exp(-cimag(arg));
+}
 
 static inline doublecomplex imExpM1(const double arg)
 /* exp(i*arg) - 1 (should be used for small argument to avoid precision loss
@@ -229,6 +238,16 @@ static inline void cvMultScal_cmplx(const doublecomplex a,const doublecomplex b[
 
 //======================================================================================================================
 
+static inline void cvMult(const doublecomplex a[static 3],const doublecomplex b[static 3],doublecomplex c[static 3])
+// multiplication of real vector by complex vector (by elements); c[i]=a[i]*b[i];
+{
+	c[0]=a[0]*b[0];
+	c[1]=a[1]*b[1];
+	c[2]=a[2]*b[2];
+}
+
+//======================================================================================================================
+
 static inline double cvNorm2(const doublecomplex a[static 3])
 // square of the norm of a complex vector[3]
 {
@@ -282,6 +301,16 @@ static inline void cvSubtr(const doublecomplex a[static 3],const doublecomplex b
 	c[0] = a[0] - b[0];
 	c[1] = a[1] - b[1];
 	c[2] = a[2] - b[2];
+}
+
+//======================================================================================================================
+
+static inline void cvInvSign(doublecomplex a[static 3])
+// inverts the sign in the complex double vector[3]
+{
+	a[0]=-a[0];
+	a[1]=-a[1];
+	a[2]=-a[2];
 }
 
 //======================================================================================================================
@@ -512,7 +541,7 @@ static inline void vNormalize(double a[static 3])
 // normalize real vector to have unit norm
 {
 	double c;
-	c=1/sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+	c=1./sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
 	a[0]*=c;
 	a[1]*=c;
 	a[2]*=c;

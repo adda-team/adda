@@ -151,6 +151,7 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 #define CFORM "%.10g%+.10gi"      // for complex numbers; may be defined in terms of GFORM
 #define CFORM_FULL "%.16g%+.16gi" // full-precision complex
 	// derived formats; starting "" is to avoid redundant syntax errors in Eclipse
+#define EFORM3V "("EFORM","EFORM","EFORM")"
 #define GFORM3V "("GFORM","GFORM","GFORM")"
 #define GFORM3L ""GFORM" "GFORM" "GFORM
 #define GFORM6L ""GFORM" "GFORM" "GFORM" "GFORM" "GFORM" "GFORM
@@ -293,6 +294,7 @@ enum beam { // beam types
 #endif
 	B_DAVIS3,  // 3rd order description of the Gaussian beam
 	B_DIPOLE,  // field of a point dipole
+	B_ELECTRON,// field of a moving electron
 	B_LMINUS,  // 1st order description of the Gaussian beam
 	B_PLANE,   // infinite plane wave
 	B_READ     // read from file

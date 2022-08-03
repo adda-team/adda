@@ -24,11 +24,14 @@ double gridspace;         // =dsX - DEPRECATED, may only be used in parts incomp
 double dsX,dsY,dsZ;       // dipole sizes along each axis
 double rectScaleX,rectScaleY,rectScaleZ; // relative dipole sizes (scales), in many cases are round numbers
 double dipvol;            // dipole volume
-double kd;                // =kdX - DEPRECATED, may only be used in parts incompatible with rectDip
-double kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
+doublecomplex kd;         // =kdX - DEPRECATED, may only be used in parts incompatible with rectDip
+doublecomplex kdX,kdY,kdZ;       // kdX=WaveNum*dsX, ...
 double ka_eq;             // volume-equivalent size parameter
 double inv_G;             // inverse of equivalent cross section
-double WaveNum;           // wavenumber of incident light
+doublecomplex WaveNum;    // wavenumber of incident light - NOW MAY BE COMPLEX!
+doublecomplex WaveNum0;   // wavenumber of incident light as in vacuum: k=w/c
+doublecomplex mhost;	  // refractive index of the medium
+doublecomplex epshost;	  // dielectric permittivity of the medium
 double * restrict DipoleCoord;      // vector to hold the coordinates of the dipoles
 double memory;            // total memory usage in bytes
 double memPeak;           // peak memory usage in bytes
@@ -59,6 +62,7 @@ bool anisotropy;    // whether the scattering medium is anisotropic
 bool save_memory;   // whether to sacrifice some speed for memory
 bool ipr_required;  /* whether inner product in MatVec will be used by iterative solver (causes additional
                        initialization, e.g., for OpenCL) */
+bool absorbing_host; // absorbing host medium
 double propAlongZ;  // equal 0 for general incidence, and +-1 for incidence along the z-axis (can be used as flag)
 bool rectDip;       // whether using rectangular-cuboid (non-cubical) dipoles
 
@@ -93,6 +97,7 @@ int maxiter;          // maximum number of iterations
 doublecomplex *xvec;  // total electric field on the dipoles
 doublecomplex *pvec;  // polarization of dipoles, also an auxiliary vector in iterative solvers
 doublecomplex * restrict Einc;    // incident field on dipoles
+doublecomplex * restrict E1;    // modified incident field for use in EELS
 
 // scattering at different angles
 int nTheta;                        // number of angles in scattering profile
