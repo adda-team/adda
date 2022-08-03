@@ -933,7 +933,7 @@ double EnhCross(void)
 
 //======================================================================================================================
 
-void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
+void CrossSec_VolumeIntegral(double PV_integrals_particle[static restrict 5])
 // computes total scattering power which is outgoing from particle
 // Sum[Im(E_sca*P*) - Im(eps_host)*|E_sca|^2]
 // and the total extinction power whith is outging from particle
@@ -943,6 +943,7 @@ void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
 	double sumExt = 0;
 	double sumSca2 = 0;
 	double sumExt2 = 0;
+	double sumInc2 = 0;
 	doublecomplex ebuff[3],escbuff[3];
 	unsigned char mat;
 	doublecomplex mult[MAX_NMAT][3];
@@ -950,15 +951,16 @@ void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
 	size_t dip, dipindex;
 
 	for (i=0;i<Nmat;i++) for (j=0;j<3;j++) mult[i][j]=chi_inv[i][j];
-	for (dip=0;dip<local_nvoid_Ndip;++dip) {
+	for (dip=0;dip<local_nvoid_Ndip;dip++) {
 		mat=material[dip];
 		dipindex=3*dip;
 		cvMult(mult[mat],pvec+dipindex,ebuff);
 		cvSubtr(ebuff,Einc+dipindex,escbuff);
-		sumSca  += cimag(epshost*cDotProd(escbuff,pvec+dipindex));
+		sumSca  -= cimag(epshost*cDotProd(pvec+dipindex,escbuff));
 		sumSca2 += cvNorm2(escbuff);
-		sumExt  += cimag(epshost*cDotProd(Einc+dipindex,pvec+dipindex));
+		sumExt  += cimag(epshost*cDotProd(pvec+dipindex,Einc+dipindex));
 		sumExt2 += creal(cDotProd(escbuff,Einc+dipindex));
+		sumInc2 += cvNorm2(Einc+dipindex);
 	}
 
 	MyInnerProduct(&sumSca,double_type,1,&Timing_ScatQuanComm);
@@ -966,8 +968,11 @@ void CrossSec_VolumeIntegral(double CscaTotal_CextTotal[static restrict 2])
 	MyInnerProduct(&sumExt,double_type,1,&Timing_ScatQuanComm);
 	MyInnerProduct(&sumExt2,double_type,1,&Timing_ScatQuanComm);
 
-	CscaTotal_CextTotal[0] = (FOUR_PI*sumSca-dipvol*cimag(epshost)*sumSca2)*WaveNum0/creal(mhost);
-	CscaTotal_CextTotal[1] = -(FOUR_PI*sumExt-2*dipvol*cimag(epshost)*sumExt2)*WaveNum0/creal(mhost);
+	PV_integrals_particle[0] = FOUR_PI*sumSca*WaveNum0/creal(mhost);
+	PV_integrals_particle[1] = -dipvol*cimag(epshost)*sumSca2*WaveNum0/creal(mhost);
+	PV_integrals_particle[2] = FOUR_PI*sumExt*WaveNum0/creal(mhost);
+	PV_integrals_particle[3] = 2*dipvol*cimag(epshost)*sumExt2*WaveNum0/creal(mhost);
+	PV_integrals_particle[4] = -dipvol*cimag(epshost)*sumInc2*WaveNum0/creal(mhost);
 }
 
 
