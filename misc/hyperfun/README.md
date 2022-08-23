@@ -15,7 +15,7 @@ Under Windows this can be done using the [HyperFun Polygonizer](http://hyperfun.
   ```
   This creates a file in the WRL format, containing a surface description of the particle; the option `-g` sets the grid density of this file.
 
-The HyperFun Polygonizer is open-source, so it should be able to compile it for other OS as well. But it seems at least not trivial. 
+The HyperFun Polygonizer is [open-source](https://sourceforge.net/projects/hyperfun/), so it should be possible to compile it for other OS as well. But it is not trivial, since no general makefile is provided (only the project file for Visual Studio). 
 
 !!! There is important issue with the current version of Polygonizer (2.03). It seems that it chooses arbitrary order of vertices when defining the faces. I.e. it is not consistent with vertex normals that are also written to WRL file. The problem is that software that reads these files (see below) discards explicit normals and deducts face alignment from the vertex order. The same (arbitrary) alignment is then saved to OBJ file, which breaks down the 'pip' program.
   
