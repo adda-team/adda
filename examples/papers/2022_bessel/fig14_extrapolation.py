@@ -44,6 +44,7 @@ bb.fitDotPlot(grids[N1:Nf:],ig[N1:Nf:],ref_iper[ind])
 
 # data save
 os.makedirs('saved', exist_ok=True)
+#if needed change .pdf on other types (for example .svg)
 plt.savefig('saved/fig14_extrapolation.pdf', bbox_inches='tight')
 
 plt.show()

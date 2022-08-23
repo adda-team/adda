@@ -55,6 +55,7 @@ bb.plotData4(theta1,iper1,theta2,iper2,theta3,iper3,theta4,iper4,2,ax)
 
 # data save
 os.makedirs('saved', exist_ok=True)
+#if needed change .pdf on other types (for example .svg)
 plt.savefig('saved/fig15_cube.pdf', bbox_inches='tight')
 
 plt.show()

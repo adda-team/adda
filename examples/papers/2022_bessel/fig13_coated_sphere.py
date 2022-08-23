@@ -41,6 +41,7 @@ bb.plotData(dda_theta,dda_iper,ref_thetaper,ref_iper,2,ax)
 
 # data save
 os.makedirs('saved', exist_ok=True)
+#if needed change .pdf on other types (for example .svg)
 plt.savefig('saved/fig13_coatedsphere.pdf', bbox_inches='tight')
 
 plt.show()
