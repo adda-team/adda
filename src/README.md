@@ -13,5 +13,6 @@ Main source of ADDA, including Makefiles and other scripts. C++ and Fortran sour
 * `iw_compile.bat` - batch script to compile ADDA with Intel compilers on Windows
 * `mt19937ar.c/h` – source and header files for Mersenne twister random generator
 * `oclkernels.cl` - OpenCL kernels
-* `somnec.c` - routines to compute Sommerfeld integrals from NEC2C package
+* `somnec.c/h` - source and header files for computation of Sommerfeld integrals (based on the NEC2C package)
+* `somnec_test.c` - a standalone routine to test the calculation of Sommerfeld integrals
 * `updgithash.sh` - script to obtain git hash of the source and store it into generated `githash.h`

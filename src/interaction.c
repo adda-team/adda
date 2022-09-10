@@ -20,6 +20,7 @@
 #include "igt_so.h"
 #include "io.h"
 #include "memory.h"
+#include "somnec.h"
 #include "vars.h"
 // system headers
 #include <float.h> // for DBL_EPSILON
@@ -93,9 +94,6 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *g
 #endif
 // sinint.c
 void cisi(double x,double *ci,double *si);
-// somnec.c
-void som_init(complex double epscf);
-void evlua(double zphIn,double rhoIn,complex double *erv, complex double *ezv,complex double *erh, complex double *eph);
 
 // this is used for debugging, should be empty define, when not required
 #define PRINT_GVAL /*printf("%s: %d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",__func__,i,j,k,\
@@ -705,7 +703,7 @@ static inline void SingleSomIntegral(double rho,const double z,doublecomplex val
 	const double isc=pow(scale,3); // this is subject to under/overflow
 
 	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
-	evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3);
+	evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3,0);
 	vals[0]*=isc;
 	vals[1]*=isc;
 	vals[2]*=isc;
