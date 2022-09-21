@@ -1,9 +1,9 @@
-The following Python scripts reproduce the data plotted in four figures of the paper: Glukhova S.A. and Yurkin M.A. Vector Bessel beams: general classification and scattering simulations, [_arXiv_ 2203.16510](https://arxiv.org/abs/2203.16510) (2022). The data was originally produced with ADDA v.1.5.0-alpha (443f00a).
+The following Python scripts reproduce the data plotted in four figures of the paper: Glukhova S.A. and Yurkin M.A. Vector Bessel beams: General classification and scattering simulations, [_Phys. Rev. A_ **106**, 033508](https://doi.org/10.1103/PhysRevA.106.033508). (2022). The data was originally produced with ADDA v.1.5.0-alpha (443f00a).
 
 The module `bb_module.py` includes common functions, while the following python scripts run ADDA and produce corresponding figures:
 * `fig12_sphere.py`
 * `fig13_coated_sphere.py`
-* `fig14_extrapolation.py` (requires 8.2 GB of RAM) 
+* `fig14_extrapolation.py` (requires 8.2 GB of RAM)
 * `fig15_cube.py`
 
 Other folders (some are produced by scripts):
