@@ -702,7 +702,6 @@ static inline void SingleSomIntegral(double rho,const double z,doublecomplex val
 	const double scale=WaveNum/TWO_PI;
 	const double isc=pow(scale,3); // this is subject to under/overflow
 
-	if (rho==0) rho=z*0.00000001; // a hack to overcome the poor precision of somnec for rho=0;
 	evlua(z*scale,rho*scale,vals,vals+1,vals+2,vals+3,0);
 	vals[0]*=isc;
 	vals[1]*=isc;

@@ -28,7 +28,9 @@
 ;g; -grid 8
 ;n; -ntheta 5
 ;p; -prop 1 2 3
+;pd; -prop 0 0 -1
 ;se; -shape ellipsoid 0.5 1.5
+;sob; -shape box 1 0.125
 
 #----------------------------- List of tests ---------------------------------------------------------------------------
 # The format is the following: '<list,of,files,to,compare> <cmdline>' the first one is coma-separated list of files to
@@ -380,6 +382,11 @@ all -surf 4 2 1 -beam dipole -beam_center 3 2 1 ;p; ;mgn;
 all -surf 4 inf -beam dipole -beam_center 3 2 1 ;p; ;mgn;
 all -surf 4 2 0 -no_reduced_fft ;mgn;
 !mpi,!mpi_seq -surf 4 2 0 -iter cgnr -no_reduced_fft ;mgn;
+CrossSec-Y,log,stdout -surf 4 5 2 ;pd; ;mgn;
+all -surf 0.5 0.9 4 ;sob; ;pd; ;mgn;
+all -surf 0.5 0.1 1.1 ;sob; ;pd; ;mgn;
+all -surf 0.5 0.1 0 ;sob; ;pd; ;mgn;
+all -surf 4 2 1 -shape box 1 20 -size 0.04 -grid 1 ;pd; ;m; ;n; 
 
 all -h sym
 all -sym auto ;mgn;

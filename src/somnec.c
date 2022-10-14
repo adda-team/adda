@@ -34,8 +34,9 @@
 #include "somnec.h" // corresponding header
 
 // ADDA: The following definitions are extracted from the file nec2c.h (only those that are used here)
-#include <stdio.h>
 #include <math.h>
+#include <stdbool.h> // for bool
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef	TRUE
@@ -78,6 +79,8 @@
 #define NM   131072
 #define NTS  4
 
+#define EPS_TAN 0.1 // tangent of minimum angle between straight segment and direction to the pole
+
 #define cmplx(r, i) ((r)+(i)*I)
 
 static void bessel(complex double z, complex double *j0, complex double *j0p);
@@ -96,6 +99,9 @@ static void abort_on_error(int why);
 static int jh;
 static double ck2, ck2sq, tkmag, tsmag, ck1r, zph, rho;
 static complex double ct1, ct2, ct3, ck1, ck1sq, cksm;
+static complex xl0; // location of surface-plasmon pole
+static bool pole;   // whether the surface-plasmon pole is real (lies on the principal Riemann sheet)
+static bool denser; // whether the substrate material is denser than the upper medium (vacuum)
 
 /* common /cntour/ */
 static complex double a, b;
@@ -135,6 +141,33 @@ void som_init(complex double epscf)
 	erv *= ck1sq;
 	ezv *= ck2sq;
 	ct3=.0625*(erv-ezv);
+	// determine pole (of D2) position and whether it is real
+	xl0=ck1*ck2/csqrt(ck1sq+ck2sq);
+	pole=(creal(xl0)>ck2);
+	denser=(creal(ck1)>ck2);
+
+	return;
+}
+
+//======================================================================================================================
+
+static void residual(complex double *ans)
+// increments answer by residual of integrals, involving Hankel functions, over the pole xl0
+{
+	complex double cgam2,h0,h0p,com,den2;
+
+	hankel(xl0*rho,&h0,&h0p); // assumes that rho!=0
+	cgam2=I*xl0*ck2/ck1; // here we employ known value of xl0, and that Re(xl0)>Re(k2)
+
+	den2=-TP*ck1*ck2/(ck1sq*ck1sq-ck2sq*ck2sq); // residual of D2/2
+	com=den2*xl0*cexp(-cgam2*zph);
+	// ans[5] is not affected
+
+	ans[0]-=com*xl0*((h0p/rho)+h0*xl0); // h0pp = -(h0 + h0p/(rho*xl))
+	ans[1]+=com*cgam2*cgam2*h0;
+	ans[2]-=com*cgam2*xl0*h0p;
+	ans[3]+=com*xl0*h0p/rho;
+	ans[4]+=com*h0;
 
 	return;
 }
@@ -247,9 +280,9 @@ static void bessel( complex double z, complex double *j0, complex double *j0p )
 /* lambda plane for evaluation of the sommerfeld integrals */
 /* the logic for choosing integration contours follows Section 4.2 "Numerical Evaluation of the Sommerfeld Integrals" of
  * http://users.tpg.com.au/micksw012/files/gnec-theory.pdf (gNEC Theory v. 0.9.15, 02.02.2018) with the only change of
- * conjugating all complex variables due to different time-harmonic convention. In the following "on the figure" refers to
- * contour descriptions in this section.
- * Improvements upon this logic (if any) will be noted explicitly.
+ * conjugating all complex variables due to a different time-harmonic convention. In the following "on the figure"
+ * refers to contour descriptions in this section.
+ * Improvements upon this logic are noted explicitly.
  */
 void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 	complex double *erh, complex double *eph, int mode)
@@ -270,7 +303,11 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 
 	if (mode==1 || (mode==0 && zph >= 2.*rho))
 	{
-		/* Bessel-function form of Sommerfeld integrals */
+		/* Bessel-function form of Sommerfeld integrals.
+		 * Sufficiently large Z guarantees rapid exponential decay through the contour
+		 * TODO: for large rho, it makes sense to move the inflection point closer to the real axis (due to exponential
+		 *       increase of Bessel function with |Im(argument)|
+		 */
 		jh=0;
 		a=0;
 		del=1./del;
@@ -312,9 +349,15 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 
 	/* Hankel-function form of Sommerfeld integrals, based on H0^(1)(rho*xl) */
 	jh=1;
-	cp1=cmplx(0.0,.4*ck2);
-	cp2=cmplx(.6*ck2,-.2*ck2);
-	cp3=cmplx(1.02*ck2,-.2*ck2);
+	// the following ensures that the contour never crosses the branch cut from ck1
+	cp1=(creal(ck1)+cimag(ck1)>0.41*ck2) ? I*0.4*ck2 : 0.99*ck1;
+	// bottom position of the contour (imaginary part); should be small for large rho to avoid loss of precision
+	double imB=(ck2*rho < 20) ? -.2*ck2 : -4/rho;
+	cp2=cmplx(.4*ck2-imB,imB);
+	/* for poles close to ck1 (when denser is true), we shift the point c slightly to the right of the pole - this works
+	 * fine for all other contours. Otherwise (if denser is false), we need to consider the pole more carefully below
+	 */
+	cp3=((pole && denser) ? creal(xl0) + 0.02*ck2 : 1.02*ck2)  + I*imB;
 	a=cp1;
 	b=cp2;
 	rom1(6,sum,2); // from a to b on the figure
@@ -345,11 +388,18 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 	//TODO: replace bk with 0 in last two arguments to gshank, whenever they are not used (i.e., when ibk=0)
 	gshank(cp1,delta,ans,6,sum,0,bk,bk); // from infinity to a on the figure
 	// by this point ans hold minus integral from infinity to c through a and b
-	rmis=rho*(creal(ck1)-ck2);
+	/* TODO: make the use of point e explicit here, and also test whether a straight line will be sufficient (as is done
+	 * below for simpler contour). However, this test may be already implicit in the following slope comparisons.
+	 */
+	rmis=rho*creal(ck1-0.1-cp3);
 
-	jump = FALSE;
+	// comparing with ck2 have different units on two sides, TODO: replace with ck2->2pi
 	if (mode==3 || (mode==0 && rmis >= 2.*ck2 && rho >= 1.e-10))
 	{
+		/* this case will lead to nonsense results for rmis<0, in particular when Re(k1)<k2
+		 * (can only happen when overridden by mode)
+		 */
+		jump = TRUE;
 		if(zph >= 1.e-10)
 		{
 			/* Here we choose between two alternatives: (1) integrate directly between two branch points (c to d on
@@ -369,14 +419,14 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 			bk=cmplx(-zph,rho)*(ck1-cp3);
 			rmis=-creal(bk)/fabs(cimag(bk));
 			// TODO: better to use inverse comparison, since Z can be 0
-			// TODO: the following should be corrected not to skip the case below (from c to d)
-			if(rmis > 4.*rho/zph)
-				jump = TRUE;
+			if(rmis > 4.*rho/zph && mode!=3)
+				jump = FALSE;
 		}
 
-		if( ! jump )
+		if( jump )
 		{
 			/* integrate up to infinity and back between branch cuts, then to + infinity on the right side */
+			// TODO: the shifts from the poke should be proportional to either ck1 or ck2
 			cp1=ck1-cmplx(.1,.2);
 			cp2=cp1+.2;
 			bk=cmplx(0.,del);
@@ -392,8 +442,6 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 			gshank(cp2,delta2,ans,6,sum,0,bk,bk); // from f to infinity on the figure
 		}
 
-		jump = TRUE;
-
 	} /* if( (rmis >= 2.*ck2) && (rho >= 1.e-10) ) */
 	else
 		jump = FALSE;
@@ -405,20 +453,49 @@ void evlua(double zphIn,double rhoIn, complex double *erv, complex double *ezv,
 		for( i = 0; i < 6; i++ )
 			sum[i]=-ans[i];
 
-		rmis=creal(ck1)*1.01;
-		if( (ck2+1.) > rmis )
-			rmis=ck2+1.;
-
-		bk=cmplx(rmis,.99*cimag(ck1));
-		delta=bk-cp3;
-		delta *= del/cabs(delta);
-		gshank(cp3,delta,ans,6,sum,1,bk,delta2); // from c to d and then to infinity on the figure
-
+		if (denser) { // here the SP pole is already accounted for by shift of point c
+			complex double cp4,d34;
+			/* TODO: the shift from the zero may be inadequate for very different real and imaginary parts
+			 * but any other empirics must ensure that the slope of the path is always positive
+			 */
+			cp4=1.01*creal(ck1)+0.99*cimag(ck1)*I;
+			d34=cp4-cp3;
+			/* test if a direct line from cp3 will hit the branch cut from k1; if yes, integrate from from c to d and
+			 * then to infinity, otherwise - directly from ñ to infinity
+			 */
+			if (cimag(d34)<slope*creal(d34)) gshank(cp3,del*d34/cabs(d34),ans,6,sum,1,cp4,delta2);
+			else gshank(cp3,delta2,ans,6,sum,0,0,0);
+		}
+		else { // here we do not need to worry about the branch cut from k1, but need to account for the SP pole
+			if (pole) { // this can be optimized by singularity extraction
+				complex double rot=(1+I*EPS_TAN)/(1+EPS_TAN*EPS_TAN); // rotation multiplier for EPS_TAN
+				complex double dP3=xl0-cp3;
+				// tangent of angle from direction to the pole to the slope (rho/Z)
+				double tanA=(creal(dP3)*slope-cimag(dP3))/(creal(dP3)+cimag(dP3)*slope);
+				if (tanA>EPS_TAN) { // leaves pole to the right at sufficient distance
+					gshank(cp3,delta2,ans,6,sum,0,0,0);
+					residual(ans);
+				}
+				// leaves pole to the left at sufficient distance
+				else if (tanA<-EPS_TAN) gshank(cp3,delta2,ans,6,sum,0,0,0);
+				/* The following chooses one of the paths around the pole, shifted by angle EPS from the exact direction
+				 * to the pole. Generally, we choose the closest one, but ensure that the slope of the first segment is
+				 * strictly between 0 and infinity
+				 */
+				else if ( ( tanA>0 && cimag(dP3)*EPS_TAN<creal(dP3) ) || creal(dP3)*EPS_TAN>=cimag(dP3) ) {
+					gshank(cp3,del*rot*dP3/cabs(dP3),ans,6,sum,1,cp3+dP3*rot,delta2);
+					residual(ans);
+				}
+				else gshank(cp3,del*conj(rot)*dP3/cabs(dP3),ans,6,sum,1,cp3+dP3*conj(rot),delta2);
+			}
+			else gshank(cp3,delta2,ans,6,sum,0,0,0); // from ñ directly to infinity on the figure
+		}
 	} /* if( ! jump ) */
 
 	ans[5] *= ck1;
 
 	/* ADDA: conjugate was removed */
+	// not clear what is the benefit of using 6 integrands instead of 4
 	*erv=ck1sq*ans[2];
 	*ezv=ck1sq*(ans[1]+ck2sq*ans[4]);
 	*erh=ck2sq*(ans[0]+ans[5]);
@@ -983,7 +1060,7 @@ static void saoa( double t, complex double *ans)
 	}
 	else
 	{
-		ans[0]=-com*xl*xl*.5;
+		ans[0]=-com*xl*xl*.5*b0; // here b0=2 due to the logic for Bessel contour above
 		ans[3]=ans[0];
 	}
 
