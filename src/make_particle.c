@@ -63,7 +63,7 @@ extern TIME_TYPE Timing_Granul,Timing_GranulComm;
 #endif
 
 // used in interaction.c
-double ZsumShift; // real distance between the lowest (in Z) dipoles and its image
+double ZsumShift; // real distance between the lowest (in Z) dipoles and its image, must be positive
 // used in param.c
 bool volcor_used;                // volume correction was actually employed
 const char *sh_form_str1,*sh_form_str2; // strings for log file with shape parameters (first one should end with :)
@@ -2435,8 +2435,8 @@ void MakeParticle(void)
 	/* test that particle is wholly above the substrate; strictly speaking, we test dipole centers to be above the
 	 * substrate - hsub+minZco>0, while the geometric boundary of the particle may still intersect with the substrate.
 	 * However, the current test is sufficient to ensure that corresponding routines to calculate reflected Green's
-	 * tensor do not fail. And accuracy of the DDA itself is anyway questionable when some of the dipoles are very close
-	 * to the substrate (whether they cross it or not).
+	 * tensor do not fail (but see also below). And accuracy of the DDA itself is anyway questionable when some of the
+	 * dipoles are very close to the substrate (whether they cross it or not).
 	 */
 	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "
 		"dipole with z="GFORMDEF" (relative to the center), making specified height of the center ("GFORMDEF") too "
@@ -2473,6 +2473,13 @@ void MakeParticle(void)
 	AllGather(NULL,position_full,int3_type,NULL);
 #	endif
 #endif // SPARSE
+	/* The following will become redundant (never occur, unless grid is overridden) when issue 129 is fixed. Currently,
+	 * it is relevant even for sparse mode, since the Sommerfeld integrals are calculated on a grid even for that case.
+	 */
+	if (ZsumShift<=0) LogError(ALL_POS,"The particle must be entirely above the substrate. While all real dipoles are "
+		"above, there are layers in the grid, which centers are below the substrate. This can be either due to "
+		"narrow features in the particle shapes, missed by discretization, or due to manually extended grid dimension "
+		"along the z-axis.");
 
 	Timing_Particle += GET_TIME() - tstart;
 }
