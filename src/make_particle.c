@@ -2476,10 +2476,10 @@ void MakeParticle(void)
 	/* The following will become redundant (never occur, unless grid is overridden) when issue 129 is fixed. Currently,
 	 * it is relevant even for sparse mode, since the Sommerfeld integrals are calculated on a grid even for that case.
 	 */
-	if (ZsumShift<=0) LogError(ALL_POS,"The particle must be entirely above the substrate. While all real dipoles are "
-		"above, there are layers in the grid, which centers are below the substrate. This can be either due to "
-		"narrow features in the particle shapes, missed by discretization, or due to manually extended grid dimension "
-		"along the z-axis.");
+	if (surface && ZsumShift<=0) LogError(ALL_POS,"The particle must be entirely above the substrate. While all real "
+		"dipoles are above, there are layers in the grid, which centers are below the substrate. This can be either "
+		"due to narrow features in the particle shapes, missed by discretization, or due to manually extended grid "
+		"dimension along the z-axis.");
 
 	Timing_Particle += GET_TIME() - tstart;
 }
