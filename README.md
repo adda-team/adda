@@ -4,6 +4,7 @@ ADDA (pronounced /ˈɑddɑ/) is a C software package (console application) to ca
 
 ADDA [originated](https://github.com/adda-team/adda/wiki/EarlyHistory) at the University of Amsterdam but has then evolved into an open-source international project. It is used in [about 30 countries](https://github.com/adda-team/adda/wiki/Publications), corresponding papers have been published in [Science](https://doi.org/10.1126/science.abm7915), [Nature Photonics](https://doi.org/10.1038/s41566-022-00983-3), and [Nature Nanotechnology](https://doi.org/10.1038/nnano.2012.51), among many other journals. We recommend to start with one of the following:
 * [Getting started (wikis)](https://github.com/adda-team/adda/wiki)
+* [Java-based GUI](https://github.com/adda-team/adda-gui)
 * [Manual](doc/manual.pdf)
 * [FAQ](https://github.com/adda-team/adda/wiki/FAQ)
 * [Features](https://github.com/adda-team/adda/wiki/Features)
