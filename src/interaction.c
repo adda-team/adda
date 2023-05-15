@@ -95,9 +95,12 @@ void propaespacelibreintadda_(const double *Rij,const double *ka,const double *g
 // sinint.c
 void cisi(double x,double *ci,double *si);
 
-// this is used for debugging, should be empty define, when not required
-#define PRINT_GVAL /*printf("%s: %d,%d,%d: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",__func__,i,j,k,\
-	REIM(result[0]),REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5]));*/
+/* The following is used for debugging, should be empty define, when not required.
+ * Moreover, the current implementation is a crude one. In many cases, the coordinates are printed as normalized (there
+ * are no simple general way to fix it for all interaction terms).
+ */
+#define PRINT_GVAL /* printf("%s: %g,%g,%g: %g%+gi, %g%+gi, %g%+gi,\n%g%+gi, %g%+gi, %g%+gi\n",__func__,COMP3V(qvec),\
+	REIM(result[0]),REIM(result[1]),REIM(result[2]),REIM(result[3]),REIM(result[4]),REIM(result[5])); */
 
 /* the following wrappers incur a lot of redundant compilation (since each of them inlines the same functional part),
  * however this way all the code is visible to compiler in one place, avoiding extra function calls and allowing full
@@ -305,6 +308,28 @@ static inline doublecomplex accImExp(const double x)
 
 //=====================================================================================================================
 
+static inline double InsideCube(const double qvec[static 3],const double rn)
+/* Tests if the point is inside the unit cube ([-0.5,0.5] over each axis).
+ * qvec is normalized vector (point location), rn is its norm before normalization
+ * returns weight: 1 for points inside, 0 outside, and 1/2, 1/4, or 1/8 on the facet, edge, and vertex, respectively
+ * The latter is designed for continuous transition of total weight, when the same point is tested versus a grid of
+ * cubes. However, float equality tests are not expected to be robust.
+ */
+{
+	double t,w=1;
+	int i;
+
+	if (rn>SQRT3*0.5) return 0;
+	else for (i=0;i<3;i++) {
+		t=rn*fabs(qvec[i]);
+		if (t>0.5) return 0;
+		else if (t==0.5) w*=0.5;
+	}
+	return w;
+}
+
+//=====================================================================================================================
+
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
 // Core routine that calculates the point interaction term between two dipoles
@@ -396,6 +421,9 @@ static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[stat
 		// result=Gp+brd; only the real part of the Green's tensor is corrected
 		result[comp]+=brd;
 	}
+	// the following won't be needed if the singular (L) term is also filtered (so-called, improved FCD)
+	double w=InsideCube(qvec,rr/gridspace);
+	if (w!=0) for (comp=0;comp<NDCOMP;comp++) if (dmunu[comp]) result[comp]-=w*FOUR_PI_OVER_THREE/dipvol;
 	PRINT_GVAL;
 }
 
@@ -533,8 +561,7 @@ static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex resul
 		if (rr==0) LogError(ALL_POS,"Non-local interaction is not defined for both R and Rp equal to 0");
 		t1=invr3;
 		// when averaging, we check if the point r is inside the cube around r0. Conforms with general formula below
-		if (averageH && rn<=SQRT3*0.5 && fabs(qvec[0])*rn<=0.5 && fabs(qvec[1])*rn<=0.5 && fabs(qvec[2])*rn<=0.5)
-			t2=FOUR_PI_OVER_THREE;
+		if (averageH) t2=FOUR_PI_OVER_THREE*InsideCube(qvec,rn);
 		else t2=0;
 	}
 	else {
@@ -670,7 +697,6 @@ static inline void ReflTerm_core(const double kr,const double kr2,const double i
 	result[2]*=-1;
 	result[4]*=-1;
 	result[5]*=-1;
-	PRINT_GVAL;
 }
 //=====================================================================================================================
 
