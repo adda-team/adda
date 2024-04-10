@@ -602,9 +602,11 @@ ITER_FUNC(BiCG_CS)
 			scalars[0].ptr=&ro_old;
 			scalars[0].size=sizeof(doublecomplex);
 			return;
-		case PHASE_INIT:
+		case PHASE_INIT: {
 #ifdef OCL_BLAS
-			; // This initialization part need to be moved somewhere during further adoption of clBLAS
+			/* This initialization part need to be moved somewhere during further adoption of clBLAS
+			 * For now, we use braces around this case to allow internal variable declaration
+			 */
 			cl_uint major,minor,patch;
 			CLBLAS_CH_ERR(clblasGetVersion(&major,&minor,&patch));
 			if (!GREATER_EQ2(major,minor,CLBLAS_VER_REQ,CLBLAS_SUBVER_REQ)) LogError(ONE_POS,
@@ -620,7 +622,8 @@ ITER_FUNC(BiCG_CS)
 			CL_CH_ERR(clEnqueueWriteBuffer(command_queue,bufxvec,CL_FALSE,0,sizeof(doublecomplex)*local_nRows,xvec,0,
 				NULL,NULL));
 #endif
-			return; // no specific initialization required
+			return; // no specific initialization required (if not OCL_BLAS)
+		}
 		case PHASE_ITER:
 #ifdef OCL_BLAS
 			/* TODO: Initialization of this two and one other scalar buffers (and then their release) happens at each
