@@ -33,6 +33,7 @@
 #include "vars.h"
 // system headers
 #include <stdio.h>
+#include <stdlib.h> // for abs()
 #include <string.h>
 
 // SEMI-GLOBAL VARIABLES
@@ -565,7 +566,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 					fn[0]=fn[1]=fn[3]=fn[4]=0;
 				}
 				else {
-					// TODO: the following looks very complicated, try to simplify
+					// TODO: the following looks very complicated, try to simplify (exp factors can be precalculated)
 					n1=abs(besN)+2;
 					if (besN<=-3) {
 						bjndd_(&n1,&arg,jn1,td1,td2);
