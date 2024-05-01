@@ -1,6 +1,7 @@
 # This code uses amplitude matrix at forward direction to obtain extinction cross sections for various incident
 # polarizations and compares them with direct calculations. Also produces circular polarizations from the linear ones
-# (relevant for circular dichroism).
+# (relevant for circular dichroism). Finally, tests different options to emulate circular polarizations using
+# plane wave limit of Bessel beams.
 
 import os, shutil, re, numpy as np
 
@@ -61,10 +62,15 @@ adda_run(1,' '.join((shape,'-ntheta 1','-scat_matr ampl','-store_beam')))
 CextX = extract_CrossSec(1,'X')
 CextY = extract_CrossSec(1,'Y')
 S1,S2,S3,S4 = extract_ampl(1)
-# in the following k=1 is assumed (as in ADDA runs)
+# in the following k=1 is assumed (as in ADDA runs) - see Section 11.4 "Integral scattering quantities" of the manual
+CextX_ampl = 4*np.pi*np.real(S1)
+CextY_ampl = 4*np.pi*np.real(S2)
+CextR_ampl = 2*np.pi*(np.real(S1+S2)+np.imag(S4-S3))
+CextL_ampl = 2*np.pi*(np.real(S1+S2)-np.imag(S4-S3))
+# compare Cext for linear polarizations
 d = 0
-d += print_diff('CextX',CextX,4*np.pi*np.real(S1))
-d += print_diff('CextY',CextY,4*np.pi*np.real(S2))
+d += print_diff('CextX',CextX,CextX_ampl)
+d += print_diff('CextY',CextY,CextY_ampl)
 
 # produce left and right circular polarizations from two linear ones, saved during the previous simulation
 beamR = beam_name + '-R'
@@ -86,8 +92,9 @@ with open(dname(1) + '/IncBeam-X', 'r') as fileX, open(dname(1) + '/IncBeam-Y', 
             fieldY = str_to_cmplx_list(datY[4:10])
             # test that the coordinates agree
             assert datX[0:3] == datY[0:3], "Dipole coordinates for two polarizations must be the same."
-            # the following definitions are according to Bohren & Huffman, considering that Y and X are parallel and perpendicular polarizations
-            # the handiness of the circular polarization is then considered as observed from the detector
+            # The following definitions are according to Bohren & Huffman, considering that Y and X are parallel and
+            # perpendicular polarizations. The handiness of the circular polarization is then considered as observed
+            # from the detector
             fieldR = (fieldY + 1j*fieldX)/np.sqrt(2)
             fieldL = (fieldY - 1j*fieldX)/np.sqrt(2)
             # The norm of the fields is not exactly 1 due to the limited precision of the original data
@@ -103,17 +110,94 @@ fileL.close()
 adda_run(2,' '.join((shape,'-scat_matr none','-beam read',beamL,beamR,'-iter bicgstab')))
 CextR = extract_CrossSec(2,'X')
 CextL = extract_CrossSec(2,'Y')
-d += print_diff('CextR',CextR,2*np.pi*(np.real(S1+S2)+np.imag(S4-S3)))
-d += print_diff('CextL',CextL,2*np.pi*(np.real(S1+S2)-np.imag(S4-S3)))
+d += print_diff('CextR',CextR,CextR_ampl)
+d += print_diff('CextL',CextL,CextL_ampl)
 
-# final test resutl
+# We can also produce circular polarizations through Bessel beams, first LE^(1,{+,-}i) 
+# We use the following from (Glukhova & Yurkin, 2022):
+#   x -> y (perpendicular to parallel transformation): Eq.(53)
+#   R.e_{+,-} = {-,+}i*e_{+,-}: p.10, second column, first line
+#   e_{+,-} = {+,-}i*sqrt(2)*e_{L,R}: p.3, first column, last line
+#   limit of LE^(x) is ex: Table I.
+# Thus, LE^(1,{+,-}i) goes to e_{+,-}, the corresponding Y-polarization (parallel) is then sqrt(2)*e_{L,R}
+# Scaling the M matrix (Tabe II) by 1/sqrt(2), we get exactly e_{L,R} as incident field.
+# Here and furher, note that switch from R to L is equivalent to conjugating M. 
+line_except_beam = ' '.join((shape,'-scat_matr none','-sym enf','-iter bicgstab'))
+tmp = 2**(-1/2)
+adda_run(3,' '.join((line_except_beam,'-beam besselM 0 0 0 0 0',str(tmp),'0 0',str(tmp),'0')))
+CextR_LE = extract_CrossSec(3,'Y')
+adda_run(4,' '.join((line_except_beam,'-beam besselM 0 0 0 0 0',str(tmp),'0 0',str(-tmp),'0')))
+CextL_LE = extract_CrossSec(4,'Y')
+d += print_diff('CextR_LE',CextR_LE,CextR_ampl)
+d += print_diff('CextL_LE',CextL_LE,CextL_ampl)
+
+# Exactly analogous is for LM^(a,b) beams, but the limit of LM^(x) is ey, then LM^(1,{+,-}i) goes to {-,+}i*e_{+,-}.
+# So we scale the corresponding M matrix by {+,-}i/sqrt(2) to get e_{L,R}
+tmp = 2**(-1/2)
+adda_run(5,' '.join((line_except_beam,'-beam besselM 0 0',str(tmp),'0 0 0 0',str(-tmp),'0 0')))
+CextR_LM = extract_CrossSec(5,'Y')
+adda_run(6,' '.join((line_except_beam,'-beam besselM 0 0',str(tmp),'0 0 0 0',str(tmp),'0 0')))
+CextL_LM = extract_CrossSec(6,'Y')
+d += print_diff('CextR_LM',CextR_LM,CextR_ampl)
+d += print_diff('CextL_LM',CextL_LM,CextL_ampl)
+
+# More intricate approach is through bessel CS' beams with orders 2 and -2. It has shorter command line,
+# but needs to be scaled afterwards, since the half-cone angle alpha can not be exactly zero
+# We use additionally from (Glukhova & Yurkin, 2022):
+#   lim{a->0}E(x)_CS' = a^2*e+/8: p.9, second-to-last line
+#   inverting the sign of beam order is equivalent to conjugating everything
+tmp = 1e-6 # for scaling half-cone angle, relative errors are expected to be square of that
+alpha = (2**(5/4))*(180/np.pi)*tmp
+# based on the above, the Y-polarizations of incident beams for the following runs are -tmp^2
+# times R and L polarizations, respectively
+adda_run(7,' '.join((line_except_beam,'-beam besselCSp -2',str(alpha))))
+CextR_CSp = extract_CrossSec(7,'Y')/(tmp**4)
+adda_run(8,' '.join((line_except_beam,'-beam besselCSp 2',str(alpha))))
+CextL_CSp = extract_CrossSec(8,'Y')/(tmp**4)
+d += print_diff('CextR_CSp',CextR_CSp,CextR_ampl)
+d += print_diff('CextL_CSp',CextL_CSp,CextL_ampl)
+
+# It can also be done through CS beams (see, again, Table I and II), but the resulting M matrix will be
+# average of that for LE and LM beams, so this test is redundant.
+
+# Finally, we do it through TE beams of orders 1 or -1, which are equivalent to TEL^(1,{+,-}i), see Eq.(63).
+# We then use the limit in Table I, or Eq.(59), and scale the matrix M from Table II (the benefit is that we do not
+# need to scale cross sections afterwards). Half-cone angle should be non-zero, as for CS' above, but the calculation
+# inside ADDA is currently not robust to the cancellations, on which we rely here. Thus, the value of tmp below is
+# quasi-optimal, since smaller values lead to increasing errors. This value leads to errors around 1e-7, so we need
+# to update the tolerance.
+# TODO: the following need to be removed, when the code in ADDA is made more robust
+fdiff = 1e-6
+tmp = 1e-4 # for scaling half-cone angle, relative errors are expected to be square of that
+al_rad = np.sqrt(2)*tmp
+alpha = al_rad*180/np.pi        # value in degrees for the command line
+sc_k = -1/(tmp*np.sin(al_rad))  # scaled k/kt
+sc_kz = -1/(tmp*np.tan(al_rad)) # scaled kz/kt
+adda_run(9,' '.join((line_except_beam,'-beam besselM 0',str(alpha),str(-sc_k),'0 0',str(sc_kz),'0',str(sc_k),str(sc_kz),'0')))
+CextR_TEL = extract_CrossSec(9,'Y')
+adda_run(10,' '.join((line_except_beam,'-beam besselM 0',str(alpha),str(-sc_k),'0 0',str(sc_kz),'0',str(-sc_k),str(-sc_kz),'0')))
+CextL_TEL = extract_CrossSec(10,'Y')
+d += print_diff('CextR_TEL',CextR_TEL,CextR_ampl)
+d += print_diff('CextL_TEL',CextL_TEL,CextL_ampl)
+
+# analogously, for TM or TML^(1,{+,-}i). Similarly, as for TE,TM pair above, here we additionally multiply M by {+,-}i for {L,R}
+# this also follows from limits in Eq.(59). The result is an interchange of k and kz and change of sign (which is logical, since
+# the difference between k and kz determines the limit).
+adda_run(11,' '.join((line_except_beam,'-beam besselM 0',str(alpha),str(sc_kz),'0 0',str(-sc_k),'0',str(-sc_kz),str(-sc_k),'0')))
+CextR_TML = extract_CrossSec(11,'Y')
+adda_run(12,' '.join((line_except_beam,'-beam besselM 0',str(alpha),str(sc_kz),'0 0',str(-sc_k),'0',str(sc_kz),str(sc_k),'0')))
+CextL_TML = extract_CrossSec(12,'Y')
+d += print_diff('CextR_TML',CextR_TML,CextR_ampl)
+d += print_diff('CextL_TML',CextL_TML,CextL_ampl)
+
+# final test of accumulated error statuses
 if (d == 0):
     print('\033[32m', '\nPassed', '\033[0m', sep='') #green stdout
 else:
     print('\033[31m', '\nNot passed', '\033[0m', sep='') #red
 
 # cleaning
-shutil.rmtree(dname(1))
-shutil.rmtree(dname(2))
+for i in range(1,13): 
+    shutil.rmtree(dname(i))
 os.remove(beamL)
 os.remove(beamR)
