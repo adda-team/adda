@@ -28,6 +28,7 @@
 #include "memory.h"
 #include "vars.h"
 // system headers
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -400,6 +401,7 @@ void oclinit(void)
 	fseek(file,0,SEEK_SET);
 	MALLOC_VECTOR(cSourceString,char,sourceStrSize+1,ALL);
 	fread(cSourceString,sourceStrSize,1,file);
+	cSourceString[sourceStrSize]='\0'; // ensure that the string is zero-terminated
 	fclose(file);
 	cssPtr[0]=(const char *)cSourceString;
 #else

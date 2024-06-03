@@ -691,11 +691,20 @@ ITER_FUNC(BiCG_CS)
 			temp=-alpha;
 #ifdef OCL_BLAS
 			cl_double2 cltemp = {.s={creal(temp),cimag(temp)}};
-			CREATE_CL_BUFFER(bufinprodRp1,CL_MEM_READ_WRITE,sizeof(double),NULL);
+			CREATE_CL_BUFFER(bufinprodRp1,CL_MEM_READ_WRITE,2*sizeof(double),NULL); // 2 due to workaround below
 			CLBLAS_CH_ERR(clblasZaxpy(local_nRows,cltemp,bufAvecbuffer,0,1,bufrvec,0,1,1,&command_queue,0,NULL,NULL));
-			CLBLAS_CH_ERR(clblasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			/* kernel for function clblasDznrm2 fails to compile (during ADDA execution) with modern OpenCL
+			 * implementations, since the latter strictly impose conformance to the standard. Since, the compilation
+			 * options for these kernels are not accessible, here we use a workaround through the complex dot-product
+			 * function. This workaround requires twice larger memory for result, but twice smaller for buftmp, and
+			 * returns the square of the norm.
+			 * TODO: Since the clBlas is no more developed, this will stay here until we switch to some other library.
+			 * The commented out parts will then facilitate reverting to calling a norm function.
+			 */
+			//CLBLAS_CH_ERR(clblasDznrm2(local_nRows,bufinprodRp1,0,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
+			CLBLAS_CH_ERR(clblasZdotc(local_nRows,bufinprodRp1,0,bufrvec,0,1,bufrvec,0,1,buftmp,1,&command_queue,0,NULL,NULL));
 			CL_CH_ERR(clEnqueueReadBuffer(command_queue,bufinprodRp1,CL_TRUE,0,sizeof(double),&inprodRp1,0,NULL,NULL));
-			inprodRp1=inprodRp1*inprodRp1;
+			//inprodRp1=inprodRp1*inprodRp1; // dot product returns already squared norm
 #else
 			nIncrem01_cmplx(rvec,Avecbuffer,temp,&inprodRp1,&Timing_OneIterComm);
 #endif

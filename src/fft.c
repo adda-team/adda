@@ -1064,8 +1064,8 @@ void InitDmatrix(void)
 	CREATE_CL_BUFFER(bufXmatrix,CL_MEM_READ_WRITE,local_Nsmall*3*sizeof(doublecomplex),NULL);
 #	ifdef OCL_BLAS
 	if (IterMethod==IT_BICG_CS) { // currently, used only in one iterative solver
-		// Most clBLAS functions require scratch buffer of size N, but Dznrm2 - 2N
-		CREATE_CL_BUFFER(buftmp,CL_MEM_READ_WRITE,local_nRows*2*sizeof(doublecomplex),NULL);
+		// Most clBLAS functions require scratch buffer of size N (Dznrm2 requires 2N, but it is not currently used)
+		CREATE_CL_BUFFER(buftmp,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 		CREATE_CL_BUFFER(bufxvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 		CREATE_CL_BUFFER(bufrvec,CL_MEM_READ_WRITE,local_nRows*sizeof(doublecomplex),NULL);
 	}
