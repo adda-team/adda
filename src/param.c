@@ -312,6 +312,12 @@ static const struct subopt_struct shape_opt[]={
 		"Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
+	{"onion","<d2/d> [<d3/d> ... <dn/d>]", "Multilayed concentric sphere (core with arbitrary number of shells). "
+	  "n is the total number of particle domains, corresponding to a core with n-1 shells. "
+		"Outer sphere has diameter d (first domain), next sphere has diameter d2 (second domain), etc, up through "
+		"the core with diameter dn (nth domain). Maximum number of domains is limited by parameters MAX_NMAT and "
+		"MAX_N_SH_PARMS in const.h.",
+		UNDEF,SH_ONION},
 	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and full diameter d (i.e. "
 		"diameter of the constituent cylinder is d-h). Its axis of symmetry coincides with the z-axis.",1,SH_PLATE},
 	{"prism","<n> <h/Dx>","Homogeneous right prism with height (length along the z-axis) h based on a regular polygon "
@@ -1553,6 +1559,13 @@ PARSE_FUNC(shape)
 		switch (shape) {
 			case SH_COATED: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
 			case SH_BOX: if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2"); break;
+			// For onion: can't check specific # of arguments here (number of layers needs
+			// to be the same as Nmat)
+			case SH_ONION:
+			 if (Narg<1) NargError(Narg, "At least 1");
+			 if (Narg>(MAX_NMAT-1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
+				 "You may increase parameter MAX_NMAT in const.h and recompile.",Narg+1,MAX_NMAT);
+			 break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW SHAPE
@@ -1642,7 +1655,7 @@ PARSE_FUNC(test)
 }
 PARSE_FUNC(V)
 {
-	char copyright[]="\n\nCopyright (C) 2006-2022 ADDA contributors\n"
+	char copyright[]="\n\nCopyright (C) 2006-2024 ADDA contributors\n"
 		"This program is free software; you can redistribute it and/or modify it under the terms of the GNU General "
 		"Public License as published by the Free Software Foundation; either version 3 of the License, or (at your "
 		"option) any later version.\n\n"
@@ -2140,7 +2153,7 @@ void VariablesInterconnect(void)
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the test above (now redundant)
 	 */
-	
+
 	if (deprecated_bc_used && beam_center_used) LogError(ONE_POS,"Beam center coordinates can not be specified as "
 		"arguments to both '-beam' and '-beam_center'. Use only the latter.");
 	if (calc_Csca || calc_vec) all_dir = true;

@@ -106,6 +106,8 @@ static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
 static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
+static double onion_r2[MAX_NMAT]; //for onion
+static int nlayers; // for onion
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 static double seE,seN,seT,seR,seToverR,seInvR; // for superellipsoid
@@ -1687,6 +1689,49 @@ void InitShape(void)
 			volume_ratio=UNDEF;
 			Nmat_need=1;
 			break;
+		case SH_ONION: {
+			char *layer_str=NULL;
+			// determine number of layers
+      // strategy: search for nonzero values passed in to sh_pars
+			for (i=0;i<MAX_N_SH_PARMS;i++) {
+				if (sh_pars[i]==0) {
+					nlayers=i;
+					break;
+					}
+				else {
+					if (i==0){
+						TestPositive(sh_pars[i], "second layer diameter ratio");
+					}
+					else {
+						TestRangeNI(sh_pars[i], "inner layer diameter ratio", 0, sh_pars[i-1]);
+					}
+					onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
+					}
+				}
+			if (IFROOT) {
+				sh_form_str1="onion; diameter(d)";
+				layer_str=dyn_sprintf(", shell diameters dn/d=");
+				//printf(layer_str);
+				for (i=0;i<nlayers;i++) {
+					//printf("inside loop\n");
+					//printf(layer_str);
+					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
+					//printf(layer_str);
+					//sh_form_str2=strcat(sh_form_str2, sprintf(layer_str, GFORM", ", sh_pars[i]));
+				}
+				sh_form_str2=layer_str;
+			}
+			printf("%d\n", nlayers);
+			printf(sh_form_str1);
+			printf("\n");
+			printf(sh_form_str2);
+			printf("\n");
+
+			yx_ratio=zx_ratio=1;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX;
+			break;
+		}
 		case SH_PLATE: {
 			double diskratio; // ratio of height to diameter
 
