@@ -83,7 +83,7 @@ rem The following is required, since ifort on Windows makes function names in ob
 rem Starting from Fortran 2003 it is recommended to use ISO_C_BINDING, but it is not a perfect solution for legacy code
 rem For now ADDA requires a single cross-language function call, so we replace the naming in C sources
 rem P.S. comments starting with :: do not work inside ()
-  call set defs=%%defs%% -Dpropaespacelibreintadda_=PROPAESPACELIBREINTADDA
+  call set defs=%%defs%% -Dpropaespacelibreintadda_=PROPAESPACELIBREINTADDA -Dbjndd_=BJNDD
 ) else (
   call set defs=%%defs%% -DNO_FORTRAN
 )

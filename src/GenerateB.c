@@ -203,6 +203,10 @@ void InitBeam(void)
 			besAlpha=Deg2Rad(beam_pars[1]);
 			besKt=WaveNum*sin(besAlpha);
 			besKz=WaveNum*cos(besAlpha);
+			/* redundant initialization to remove warnings. Compiler is not sure about constancy of IFROOT due to
+			 * ringid being a global variable
+			 */
+			tmp_str="";
 			switch (beamtype) { // definition of elements of matrix M ((Mex,Mey),(Mmx,Mmy))
 				case B_BES_CS:
 					TestRangeII(beam_pars[1],"half-cone angle",0,90);
