@@ -1716,11 +1716,6 @@ void InitShape(void)
 				}
 				sh_form_str2=layer_str;
 			}
-			printf("%d\n", nlayers);
-			printf(sh_form_str1);
-			printf("\n");
-			printf(sh_form_str2);
-			printf("\n");
 
 			yx_ratio=zx_ratio=1;
 			Nmat_need=nlayers;

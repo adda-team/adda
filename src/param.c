@@ -312,12 +312,16 @@ static const struct subopt_struct shape_opt[]={
 		"Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
-	{"onion","<d2/d> [<d3/d> ... <dn/d>]", "Multilayed concentric sphere (core with arbitrary number of shells). "
-	  "n is the total number of particle domains, corresponding to a core with n-1 shells. "
+	{"onion","<d2/d> [<d3/d> ... <dn/d>]","Multilayed concentric sphere (core with arbitrary number of shells). "
+		"n is the total number of particle domains, corresponding to a core with n-1 shells. "
 		"Outer sphere has diameter d (first domain), next sphere has diameter d2 (second domain), etc, up through "
 		"the core with diameter dn (nth domain). Maximum number of domains is limited by parameters MAX_NMAT and "
 		"MAX_N_SH_PARMS in const.h.",
 		UNDEF,SH_ONION},
+	{"onion_ell","<y/x> <z/x> <d2/d> [<d3/d> ... <dn/d>]","Multilayered concentric ellipsoid (core with arbitrary"
+		"number of shells) with semi-axes x,y,z. Outer layer has x semi-axis d (first domain), next layer has"
+		"x semi-axis d2 (second domain), etc, up through the core with x semi-axis dn (nth domain). Maximum"
+		"number of domains is limited by parameters MAX_NMAT and MAX_N_SH_PARMS in const.h.",UNDEF,SH_ONION_ELL},
 	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and full diameter d (i.e. "
 		"diameter of the constituent cylinder is d-h). Its axis of symmetry coincides with the z-axis.",1,SH_PLATE},
 	{"prism","<n> <h/Dx>","Homogeneous right prism with height (length along the z-axis) h based on a regular polygon "
@@ -1562,10 +1566,15 @@ PARSE_FUNC(shape)
 			// For onion: can't check specific # of arguments here (number of layers needs
 			// to be the same as Nmat)
 			case SH_ONION:
-			 if (Narg<1) NargError(Narg, "At least 1");
-			 if (Narg>(MAX_NMAT-1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
-				 "You may increase parameter MAX_NMAT in const.h and recompile.",Narg+1,MAX_NMAT);
-			 break;
+				if (Narg<1) NargError(Narg, "At least 1");
+				if (Narg>(MAX_NMAT-1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
+					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg+1,MAX_NMAT);
+				break;
+			case SH_ONION_ELL:
+				if (Narg<3) NargError(Narg, "At least 3");
+				if (Narg>(MAX_NMAT+1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
+					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg-1,MAX_NMAT);
+				break;
 			default: TestNarg(Narg,need); break;
 		}
 		/* TO ADD NEW SHAPE

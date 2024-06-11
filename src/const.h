@@ -178,6 +178,7 @@ enum sh { // shape types
 	SH_ELLIPSOID,     // general ellipsoid
 	SH_LINE,          // line with width of one dipole
 	SH_ONION,         // multilayered concentric sphere
+	SH_ONION_ELL,     // multilayered concentric ellipsoid
 	SH_PLATE,         // plate
 	SH_PRISM,         // right rectangular prism
 	SH_RBC,           // Red Blood Cell
