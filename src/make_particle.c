@@ -1695,7 +1695,7 @@ void InitShape(void)
       // strategy: search for nonzero values passed in to sh_pars
 			for (i=0;i<MAX_N_SH_PARMS;i++) {
 				if (sh_pars[i]==0) {
-					nlayers=i;
+					nlayers=i+1;
 					break;
 					}
 				else {
@@ -1710,14 +1710,9 @@ void InitShape(void)
 				}
 			if (IFROOT) {
 				sh_form_str1="onion; diameter(d)";
-				layer_str=dyn_sprintf(", shell diameters dn/d=");
-				//printf(layer_str);
-				for (i=0;i<nlayers;i++) {
-					//printf("inside loop\n");
-					//printf(layer_str);
+				layer_str=dyn_sprintf(", layer diameters dn/d=");
+				for (i=0;i<(nlayers-1);i++) {
 					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
-					//printf(layer_str);
-					//sh_form_str2=strcat(sh_form_str2, sprintf(layer_str, GFORM", ", sh_pars[i]));
 				}
 				sh_form_str2=layer_str;
 			}
@@ -2095,7 +2090,7 @@ void MakeParticle(void)
 	int i;
 #ifndef SPARSE
 	size_t local_nRows_tmp;
-	int j,k,ns;
+	int j,k,ns,layer_ctr;
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
 	/* Normalized dipole coordinates for superellipsoid: |x/a|, |y/b|, |z/c|. They should be from 0 to 1 if no void grid
@@ -2255,6 +2250,26 @@ void MakeParticle(void)
 				 * those || are for weird cases like '-shape line -grid 8 2 2'
 				 */
 				if ((yj==0 || yj==-jagged) && (zj==0 || zj==-jagged)) mat=0;
+				break;
+			case SH_ONION:
+				r2=xr*xr+yr*yr+zr*zr;
+				if (r2<=0.25) {
+					//mat = 0;
+					// only consider inside the sphere
+					// first test if inside the core, then
+					// test if in layers from the outside in
+					if (r2<=onion_r2[nlayers-2]) { // inside core
+						mat=nlayers-1;
+					}
+					else {
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++){
+							if (r2>onion_r2[layer_ctr]) {
+								mat=layer_ctr;
+								break;
+							}
+						}
+					}
+				}
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
