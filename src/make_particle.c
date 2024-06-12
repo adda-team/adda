@@ -1710,7 +1710,7 @@ void InitShape(void)
 				}
 			if (IFROOT) {
 				sh_form_str1="onion; diameter(d)";
-				layer_str=dyn_sprintf(", layer diameters dn/d=");
+				layer_str=dyn_sprintf(", layer diameter ratios dn/d=");
 				for (i=0;i<(nlayers-1);i++) {
 					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
 				}
@@ -1720,6 +1720,45 @@ void InitShape(void)
 			yx_ratio=zx_ratio=1;
 			Nmat_need=nlayers;
 			volume_ratio=PI_OVER_SIX;
+			break;
+		}
+		case SH_ONION_ELL: {
+			char *layer_str=NULL;
+			yx_ratio=sh_pars[0];
+			TestPositive(yx_ratio,"aspect ratio y/x");
+			zx_ratio=sh_pars[1];
+			TestPositive(zx_ratio,"aspect ratio z/x");
+			// same strategy for parsing shells as onion
+			for (i=2;i<MAX_N_SH_PARMS;i++) {
+				if (sh_pars[i]==0) {
+					nlayers=i-1;
+					break;
+					}
+				else {
+					if (i==2) {
+						TestPositive(sh_pars[i], "second layer x-semi axis ratio");
+					}
+					else {
+						TestRangeNI(sh_pars[i], "inner layer x-semi axis ratio", 0, sh_pars[i-1]);
+					}
+					onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
+				}
+			}
+			if (IFROOT) {
+				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
+				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",yx_ratio, zx_ratio);
+				for (i=0;i<(nlayers-1);i++) {
+					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
+				}
+				sh_form_str2=layer_str;
+			}
+
+			if (yx_ratio!=1) symR=false;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX*yx_ratio*zx_ratio;
+			// set inverse squares of aspect ratios
+			invsqY=1/(yx_ratio*yx_ratio);
+			invsqZ=1/(zx_ratio*zx_ratio);
 			break;
 		}
 		case SH_PLATE: {
@@ -2249,7 +2288,6 @@ void MakeParticle(void)
 			case SH_ONION:
 				r2=xr*xr+yr*yr+zr*zr;
 				if (r2<=0.25) {
-					//mat = 0;
 					// only consider inside the sphere
 					// first test if inside the core, then
 					// test if in layers from the outside in
@@ -2263,6 +2301,24 @@ void MakeParticle(void)
 								break;
 							}
 						}
+					}
+				}
+				break;
+			case SH_ONION_ELL:
+				r2=xr*xr+yr*yr*invsqY+zr*zr*invsqZ;
+				// only consider dipoles inside particle
+				if (r2<=0.25) {
+					// test if inside core
+					if (r2<=onion_r2[nlayers-2]) {
+						mat=nlayers-1;
+					}
+					else { // test if in each layer from outside in
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++){
+							if (r2>onion_r2[layer_ctr]) {
+								mat=layer_ctr;
+								break;
+							}
+						}	
 					}
 				}
 				break;
