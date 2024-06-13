@@ -1691,32 +1691,24 @@ void InitShape(void)
 			break;
 		case SH_ONION: {
 			char *layer_str=NULL;
-			// determine number of layers
-      // strategy: search for nonzero values passed in to sh_pars
+			// determine number of layers by searching for nonzero values passed in to sh_pars
 			for (i=0;i<MAX_N_SH_PARMS;i++) {
 				if (sh_pars[i]==0) {
 					nlayers=i+1;
 					break;
 					}
 				else {
-					if (i==0){
-						TestPositive(sh_pars[i], "second layer diameter ratio");
-					}
-					else {
-						TestRangeNI(sh_pars[i], "inner layer diameter ratio", 0, sh_pars[i-1]);
-					}
+					if (i==0) TestPositive(sh_pars[i], "second layer diameter ratio");
+					else TestRangeNI(sh_pars[i], "inner layer diameter ratio", 0, sh_pars[i-1]);
 					onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
 					}
 				}
 			if (IFROOT) {
 				sh_form_str1="onion; diameter(d)";
 				layer_str=dyn_sprintf(", layer diameter ratios dn/d=");
-				for (i=0;i<(nlayers-1);i++) {
-					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
-				}
+				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
 				sh_form_str2=layer_str;
 			}
-
 			yx_ratio=zx_ratio=1;
 			Nmat_need=nlayers;
 			volume_ratio=PI_OVER_SIX;
@@ -1735,24 +1727,18 @@ void InitShape(void)
 					break;
 					}
 				else {
-					if (i==2) {
-						TestPositive(sh_pars[i], "second layer x-semi axis ratio");
-					}
-					else {
-						TestRangeNI(sh_pars[i], "inner layer x-semi axis ratio", 0, sh_pars[i-1]);
-					}
+					if (i==2) TestPositive(sh_pars[i], "second layer x-semi axis ratio");
+					else TestRangeNI(sh_pars[i], "inner layer x-semi axis ratio", 0, sh_pars[i-1]);
 					onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
 				}
 			}
 			if (IFROOT) {
 				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
-				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",yx_ratio, zx_ratio);
-				for (i=0;i<(nlayers-1);i++) {
-					layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
-				}
+				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",
+					yx_ratio, zx_ratio);
+				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
 				sh_form_str2=layer_str;
 			}
-
 			if (yx_ratio!=1) symR=false;
 			Nmat_need=nlayers;
 			volume_ratio=PI_OVER_SIX*yx_ratio*zx_ratio;
@@ -2287,15 +2273,12 @@ void MakeParticle(void)
 				break;
 			case SH_ONION:
 				r2=xr*xr+yr*yr+zr*zr;
+				// only consider dipoles inside the sphere				
 				if (r2<=0.25) {
-					// only consider inside the sphere
-					// first test if inside the core, then
-					// test if in layers from the outside in
-					if (r2<=onion_r2[nlayers-2]) { // inside core
-						mat=nlayers-1;
-					}
+					// first test if inside the core, then test if in layers from the outside in
+					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1; // inside core 
 					else {
-						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++){
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
 							if (r2>onion_r2[layer_ctr]) {
 								mat=layer_ctr;
 								break;
@@ -2309,11 +2292,9 @@ void MakeParticle(void)
 				// only consider dipoles inside particle
 				if (r2<=0.25) {
 					// test if inside core
-					if (r2<=onion_r2[nlayers-2]) {
-						mat=nlayers-1;
-					}
+					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1;
 					else { // test if in each layer from outside in
-						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++){
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
 							if (r2>onion_r2[layer_ctr]) {
 								mat=layer_ctr;
 								break;

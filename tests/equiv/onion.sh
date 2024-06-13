@@ -50,6 +50,7 @@ $CLEAN
 COMMON="-size 10"
 run1 -shape ellipsoid 1.5 0.6 -m 1.2 0.01
 run2 -shape onion_ell 1.5 0.6 0.5 -m 1.2 0.01 1.2 0.01
-# Use diff on resulting CrossSec-Y only (geometry files differ)
+# Use diff on resulting CrossSec-X and CrossSec-Y only (geometry files differ)
+diff $DIR1/CrossSec-X $DIR2/CrossSec-X
 diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
 $CLEAN

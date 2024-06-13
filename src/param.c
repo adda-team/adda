@@ -2162,7 +2162,7 @@ void VariablesInterconnect(void)
 	/* TO ADD NEW INTERACTION FORMULATION
 	 * If the new Green's tensor is non-symmetric (which is very unlikely) add it to the test above (now redundant)
 	 */
-
+	
 	if (deprecated_bc_used && beam_center_used) LogError(ONE_POS,"Beam center coordinates can not be specified as "
 		"arguments to both '-beam' and '-beam_center'. Use only the latter.");
 	if (calc_Csca || calc_vec) all_dir = true;
