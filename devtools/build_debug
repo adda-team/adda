@@ -19,6 +19,7 @@ function compile_debug {
 # main code; we do not do any special cleaning, since believe that make tracks all dependences
 cd ./../src
 compile_debug all ""
+# the following causes a minor warning from Makefile, due to combination with DEBUG
 compile_debug all "DEBUGFULL"
 compile_debug all "FFT_TEMPERTON"
 compile_debug all "NO_FORTRAN"

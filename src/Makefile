@@ -34,6 +34,14 @@ ifeq ($(filter else-if,$(.FEATURES)),)
   $(error make does not support else-if)
 endif
 
+# Parallelization options. The number can be adjusted according to the number of cores. Alternatively, it can be turned
+# of (overridden) by adding -j1 to the make invocation
+MAKEFLAGS += -j8
+ifneq ($(filter output-sync,$(.FEATURES)),)
+# this compromises clearness of the output with interactivity. --output-sync=recurse is the most robust, but the
+# ouput will appear only at the end (for such scenarios, one can use -s instead)
+  MAKEFLAGS += --output-sync=target --no-print-directory
+endif
 #=======================================================================================================================
 # Fixed definitions for non-compilation targets
 #=======================================================================================================================

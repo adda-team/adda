@@ -1,6 +1,6 @@
-Use some normal shell, under Windows - this can be MSYS. Then 'sh' can be omitted in the following commands.
+Use some normal shell, under Windows - this can be the one from w64devkit. Then 'sh' can be omitted in the following commands.
 
-1) Test for compiler warnings (about 10 min)
+1) Test for compiler warnings (a few minutes)
 > sh build_debug 2> log_debug
 
 2) Build and test the current source (a few hours)
