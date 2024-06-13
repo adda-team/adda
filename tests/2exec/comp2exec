@@ -107,7 +107,7 @@ OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"
 
 # Path to reference binaries, examples: "." or "./../../win64".
 # This may work out of the box on Windows, but requires changes for other systems
-REFPATH=../../../adda/src/seq
+REFPATH=./../../win64
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
 # Choice of gpu (OpenCL device), if more than one
