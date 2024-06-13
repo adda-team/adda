@@ -16,6 +16,9 @@
 #define __somnec_h
 
 // system headers
+#ifdef __STDC_NO_COMPLEX__
+#	error "Support of C99-type complex numbers is strictly required."
+#endif
 /* ADDA uses doublecomplex macro instead of standard 'complex double', but we use the latter in somnec.c/h to
  * keep them standalone
  */

@@ -391,4 +391,5 @@ void CalcIGTso(const double rvec[static restrict 3],const double wave_num,const 
 	if (wave_num*wave_num*r2 > 25) CalcIGTso_far(rvec,wave_num,ds_x,ds_y,ds_z,result);
 	else if (25*r2 > d*d) CalcIGTso_medium(rvec,wave_num,ds_x,ds_y,ds_z,result);
 	else CalcIGTso_near(rvec,wave_num,ds_x,ds_y,ds_z,result);
+	// TODO: Currently fails whenever any part of rvec is zero (which is strange)
 }

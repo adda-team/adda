@@ -13,14 +13,19 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+
 // system headers
+#ifdef __STDC_NO_COMPLEX__
+#	error "Support of C99-type complex numbers is strictly required."
+#endif
 #include <complex.h>
 
+// TODO: consider removing this typedef (for standalone subroutine)
 typedef double complex doublecomplex_t;
 
 /* the main function, which implements averaging (integral divided by volume) of the scaled Green's tensor (dyadic):
  * 4pi*k^2*G(r,r') = (k^2*I + nablaXnabla)[exp(ikR)/R]=exp(ikR)*R^-3*[(kR)^2*(I-Rproj)+(ikR-1)(I-3Rproj)]
- * with r' varied over the rectangular paralelipiped (voxel or dipole) with sizes ds_x, ds_y, ds_z.
+ * with r' varied over the rectangular parallelepiped (voxel or dipole) with sizes ds_x, ds_y, ds_z.
  * Here I is unit tensor, R=r-r' (vector), and Rproj is tensor with components R_mu*R_nu/R^2 (projector on R),
  * r is given as rvec in input, and k - as wave_num. Result is a symmetric matrix - its 6 nontrivial components are
  * returned (Gxx,Gxy,Gxz,Gyy,Gyz,Gzz).
@@ -30,7 +35,7 @@ typedef double complex doublecomplex_t;
  * where Vd = ds_x*ds_y*ds_z (voxel volume). Thus the result is discontinuous when r crosses the voxel boundary, and 
  * loss of precision is expected near the boundary. Otherwise, the function should be robust for any r (TODO!!!).
  *
- * Analytic (relatively fast) formulaes are used with relative accuracy of O[(kd)^4] for any r,
+ * Analytic (relatively fast) formulae are used with relative accuracy of O[(kd)^4] for any r,
  * where d is the largest voxel dimension
  */
 void CalcIGTso(const double rvec[static restrict 3],const double wave_num,const double ds_x,const double ds_y,
@@ -43,7 +48,16 @@ void CalcIGTso(const double rvec[static restrict 3],const double wave_num,const 
 /* TODO: make another argument - mode (AUTO, NEAR, MEDIUM, FAR) defined by macros here (like in const.h)
  * then only one function will be needed (with AUTO recommended for general use) and in the main .c code we can
  * avoid repetition of common parts (like InitIGTvars) and wasting of computation of r2
+ * Example of a type for such argument is the following:
  */
+/*
+enum igt { // mode of calculation
+	IGT_AUTO,   // automatic choice (recommended)
+	IGT_NEAR,   // nearby (fully analytic)
+	IGT_MID,    // medium distance
+	IGT_FAR     // far regime
+};
+*/
 void CalcIGTso_near(const double rvec[static restrict 3],const double wave_num,const double ds_x,const double ds_y,
 	const double ds_z,doublecomplex_t result[static restrict 6]);
 void CalcIGTso_medium(const double rvec[static restrict 3],const double wave_num,const double ds_x,const double ds_y,
