@@ -18,6 +18,9 @@
 // project headers
 #include "const.h"   // for enum types
 // system headers
+#ifdef __STDC_NO_COMPLEX__
+#	error "Support of C99-type complex numbers is strictly required."
+#endif
 #include <complex.h>
 #include <stdbool.h> // for bool
 #include <stddef.h> // for size_t
