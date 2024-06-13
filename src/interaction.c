@@ -192,6 +192,28 @@ static inline void InterParams(double qvec[static 3],double qmunu[static 6],doub
 	OuterSym(qvec,qmunu);
 }
 
+//=====================================================================================================================
+
+static inline double InsideCube(const double qvec[static 3],const double rn)
+/* Tests if the point is inside the unit cube ([-0.5,0.5] over each axis).
+ * qvec is normalized vector (point location), rn is its norm before normalization
+ * returns weight: 1 for points inside, 0 outside, and 1/2, 1/4, or 1/8 on the facet, edge, and vertex, respectively
+ * The latter is designed for continuous transition of total weight, when the same point is tested versus a grid of
+ * cubes. However, float equality tests are not expected to be robust.
+ */
+{
+	double t,w=1;
+	int i;
+
+	if (rn>SQRT3*0.5) return 0;
+	else for (i=0;i<3;i++) {
+		t=rn*fabs(qvec[i]);
+		if (t>0.5) return 0;
+		else if (t==0.5) w*=0.5;
+	}
+	return w;
+}
+
 #ifdef USE_SSE3
 
 //=====================================================================================================================
@@ -306,27 +328,6 @@ static inline doublecomplex accImExp(const double x)
 	return imExp(x);
 }
 
-//=====================================================================================================================
-
-static inline double InsideCube(const double qvec[static 3],const double rn)
-/* Tests if the point is inside the unit cube ([-0.5,0.5] over each axis).
- * qvec is normalized vector (point location), rn is its norm before normalization
- * returns weight: 1 for points inside, 0 outside, and 1/2, 1/4, or 1/8 on the facet, edge, and vertex, respectively
- * The latter is designed for continuous transition of total weight, when the same point is tested versus a grid of
- * cubes. However, float equality tests are not expected to be robust.
- */
-{
-	double t,w=1;
-	int i;
-
-	if (rn>SQRT3*0.5) return 0;
-	else for (i=0;i<3;i++) {
-		t=rn*fabs(qvec[i]);
-		if (t>0.5) return 0;
-		else if (t==0.5) w*=0.5;
-	}
-	return w;
-}
 
 //=====================================================================================================================
 
