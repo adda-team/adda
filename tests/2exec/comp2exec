@@ -5,9 +5,9 @@
 # Performs system (black-box) testing of ADDA by comparing the simulation results between different versions/modes
 # --First parameter-- is seq (default), mpi, mpi_seq, ocl, or ocl_seq.
 # One-word mode compares corresponding current version with previous stable version (e.g. 1.0) - some differences are
-# expected. However, they can be silenced by proper tuning of CMDIGNORE and OLDIGNORE. Moreover, these modes require a 
+# expected. However, they can be silenced by proper tuning of CMDIGNORE and OLDIGNORE. Moreover, these modes require a
 # reference executable of ADDA. The latter is available out of the box on Windows, but need to be separately compiled
-# on other systems. 
+# on other systems.
 # Two-word mode compares two current versions corresponding to different modes (e.g. mpi vs. seq) - only minor
 # differences are expected (and can also be silenced by fine-tuning).
 # --Second-- (if given) specifies file with a test suite (default - "suite").
@@ -35,9 +35,9 @@ FLAGS="SPA_EXT SPA_STAN SURF_EXT SURF_STAN RD_EXT RD_STAN RD_TRICKY"
 EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASPAMPI ADDASPAOCL OLDIGNORE"
 
 # ----- exclusive flags START -----
-# In the following the exclusive flags are described. You can uncomment them or define from the command line (see 
+# In the following the exclusive flags are described. You can uncomment them or define from the command line (see
 # above), but at most one can be defined in total during any run (otherwise the behavior is not defined).
- 
+
 # SPA_EXT indicates that sparse mode is extensively compared with sparse. SPA_STAN - that sparse is compared with
 # standard (both for test version, automatically implies FFTCOMP below).
 #SPA_EXT=1
@@ -48,11 +48,11 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 #SURF_EXT=1
 #SURF_STAN=1
 
-# Three testing options for rectangular dipoles. First, tests it in combination with all other options, second - tests 
+# Three testing options for rectangular dipoles. First, tests it in combination with all other options, second - tests
 # the trivial case, third - tests that the result is not very different using a slightly different rectangular grid.
 # For the second and third cases only test version is tested
 # RD_EXT    -- test and ref command lines will be prefixed with '-rect_dip 1 1 2'
-# RD_STAN   -- test + '-rect_dip 1 1 1' 
+# RD_STAN   -- test + '-rect_dip 1 1 1'
 #                      ref(=test)  + '-pol cldr'
 # RD_TRICKY -- test + '-rect_dip 1 1 1.142857 -pol igt_so -int igt 3'
 #                      ref(=test)  + '-pol igt_so -int igt 3'
@@ -68,8 +68,8 @@ EXTRAS="$FLAGS FFTCOMP GUIDIFF REFPATH ADDASEQ ADDAMPI ADDAOCL ADDASPASEQ ADDASP
 # Also useful for comparison of sparse version with the standard one (set automatically in that case)
 #FFTCOMP=1
 
-# Using a GUI diff program allows quick estimate of the importance of differences (e.g. when there are differences in 
-# minor digits of many numbers). However, most effort should be put in improving mycmp below, so that only significant 
+# Using a GUI diff program allows quick estimate of the importance of differences (e.g. when there are differences in
+# minor digits of many numbers). However, most effort should be put in improving mycmp below, so that only significant
 # errors remain.
 # GUIDIFF is a flag enabling use of GUI diff. If it is set to 'strip', stripped files are used for comparison. If used,
 # the existing program must be specified by GUIDIFFPROG. Options include, for example: tortoisegitmerge, meld, vimdiff
@@ -97,15 +97,17 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Currently formulated to compare 1.5* with 1.4.0 (more specific exceptions are added in parsing of command lines)
 # These variables must be updated whenever new features are added to ADDA
 
-CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-beam bessel|1e-16"
+CMDIGNORE="coated2|onion|onion_ell|superellipsoid"
+CMDIGNORE="$CMDIGNORE|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-beam bessel|1e-16"
 CMDIGNORE="$CMDIGNORE|-surf 0.5|-surf 4 5 2"
-OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat"
+OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  onion|^  onion_ell|^  superellipsoid"
+OLDIGNORE="$OLDIGNORE|^  -int|^  -pol|^  -scat"
 OLDIGNORE="$OLDIGNORE|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:"
 OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"
 
-# Path to reference binaries, examples: "." or "./../../win64". 
+# Path to reference binaries, examples: "." or "./../../win64".
 # This may work out of the box on Windows, but requires changes for other systems
-REFPATH=./../../win64
+REFPATH=../../../adda/src/seq
 # MPI command prefix
 MPIRUN="mpiexec -n 4"
 # Choice of gpu (OpenCL device), if more than one
@@ -192,7 +194,7 @@ if [ -n "$REF_EQ_TEST" ]; then
 fi
 
 function is_extra {
-  # returns 0 (true) if the argument matches one of EXTRAS or is blank 
+  # returns 0 (true) if the argument matches one of EXTRAS or is blank
   local word
   if [ -n "$1" ]; then
     for word in $EXTRAS; do
@@ -279,7 +281,7 @@ function append {
       eval $1="\"$2\""
     fi
   fi
-  eval 
+  eval
 }
 function cleanfile {
   # Processes file $1 and stores the result in $2. Basic step is removing lines matching regexp $3. Additional optional
@@ -361,7 +363,7 @@ function mycmp {
       append IGNORE "^Dipole size:|^lambda:|^CoupleConstant:"
       if [ -n "$RD_TRICKY" ]; then
         append IGNORE "^box dimensions:|^Total number of occupied dipoles:|^(M|Total m|OpenCL m|Maximum m)emory usage"
-      fi      
+      fi
     fi
     if [ -n "$FFTCOMP" ]; then
       append IGNORE "^(M|Total m|OpenCL m|Maximum m)emory usage|^Initializing (clFFT|FFTW3)"
@@ -407,7 +409,7 @@ function mycmp {
       if [ -n "$RD_TRICKY" ]; then
         append IGNORE "^box dimensions:|^Total number of occupied dipoles:"
         append IGNORE "^The FFT grid is:|^(M|Total m|OpenCL m|Maximum m)emory usage"
-      fi      
+      fi
     fi
     if [ $MODE == "mpi_seq" ]; then
       append IGNORE "^The program was run on:|^(M|Total m|Maximum m|Additional m)emory usage|^The FFT grid is:"
@@ -580,7 +582,7 @@ while read -r cmpfiles cmdline; do
     else
       cmdlineREF="$cmdline"
     fi
-    runref="$EXECREF $cmdlineREF -dir $DIRREF"   
+    runref="$EXECREF $cmdlineREF -dir $DIRREF"
     if !($runref <&3 > $SOREF); then
       if [ -n "$OLDUSED" ]; then  # ignore ADDA errors in older versions
         refok=0

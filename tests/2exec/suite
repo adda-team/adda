@@ -329,6 +329,10 @@ all -shape ellipsoid 0.25 2 ;mgn;
 all -h shape line
 all -shape line -grid 16 ;m; ;n;
 all -shape line -grid 8 2 3 ;m; ;n;
+all -h shape onion
+all -shape onion 0.7 0.4 ;3mgn;
+all -h shape onion_ell
+all -shape onion_ell 0.25 2 0.7 0.4 ;3mgn;
 all -h shape plate
 all -shape plate 0.5 ;mgn;
 all -h shape prism
@@ -386,7 +390,7 @@ CrossSec-Y,log,stdout -surf 4 5 2 ;pd; ;mgn;
 all -surf 0.5 0.9 4 ;sob; ;pd; ;mgn;
 all -surf 0.5 0.1 1.1 ;sob; ;pd; ;mgn;
 all -surf 0.5 0.1 0 ;sob; ;pd; ;mgn;
-all -surf 4 2 1 -shape box 1 20 -size 0.04 -grid 1 ;pd; ;m; ;n; 
+all -surf 4 2 1 -shape box 1 20 -size 0.04 -grid 1 ;pd; ;m; ;n;
 
 all -h sym
 all -sym auto ;mgn;

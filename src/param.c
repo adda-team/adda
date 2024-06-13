@@ -318,7 +318,7 @@ static const struct subopt_struct shape_opt[]={
 		"the core with diameter dn (nth domain). Maximum number of domains is limited by parameters MAX_NMAT and "
 		"MAX_N_SH_PARMS in const.h.",
 		UNDEF,SH_ONION},
-	{"onion_ell","<y/x> <z/x> <d2/d> [<d3/d> ... <dn/d>]","Multilayered concentric ellipsoid (core with arbitrary"
+	{"onion_ell","<y/x> <z/x> <d2/d> [<d3/d> ... <dn/d>]","Multilayered concentric ellipsoid (core with arbitrary "
 		"number of shells) with semi-axes x,y,z. Outer layer has x semi-axis d (first domain), next layer has"
 		"x semi-axis d2 (second domain), etc, up through the core with x semi-axis dn (nth domain). Maximum"
 		"number of domains is limited by parameters MAX_NMAT and MAX_N_SH_PARMS in const.h.",UNDEF,SH_ONION_ELL},
