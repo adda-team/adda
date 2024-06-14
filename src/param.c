@@ -1566,12 +1566,12 @@ PARSE_FUNC(shape)
 			// For onion: can't check specific # of arguments here (number of layers needs
 			// to be the same as Nmat)
 			case SH_ONION:
-				if (Narg<1) NargError(Narg, "At least 1");
+				if (Narg<1) NargError(Narg,"At least 1");
 				if (Narg>(MAX_NMAT-1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
 					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg+1,MAX_NMAT);
 				break;
 			case SH_ONION_ELL:
-				if (Narg<3) NargError(Narg, "At least 3");
+				if (Narg<3) NargError(Narg,"At least 3");
 				if (Narg>(MAX_NMAT+1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
 					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg-1,MAX_NMAT);
 				break;

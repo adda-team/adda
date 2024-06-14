@@ -1698,8 +1698,8 @@ void InitShape(void)
 					break;
 					}
 				else {
-					if (i==0) TestPositive(sh_pars[i], "second layer diameter ratio");
-					else TestRangeNI(sh_pars[i], "inner layer diameter ratio", 0, sh_pars[i-1]);
+					if (i==0) TestPositive(sh_pars[i],"second layer diameter ratio");
+					else TestRangeNI(sh_pars[i],"inner layer diameter ratio",0,sh_pars[i-1]);
 					onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
 					}
 				}
@@ -1727,15 +1727,15 @@ void InitShape(void)
 					break;
 					}
 				else {
-					if (i==2) TestPositive(sh_pars[i], "second layer x-semi axis ratio");
-					else TestRangeNI(sh_pars[i], "inner layer x-semi axis ratio", 0, sh_pars[i-1]);
+					if (i==2) TestPositive(sh_pars[i],"second layer x-semi axis ratio");
+					else TestRangeNI(sh_pars[i],"inner layer x-semi axis ratio",0,sh_pars[i-1]);
 					onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
 				}
 			}
 			if (IFROOT) {
 				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
 				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",
-					yx_ratio, zx_ratio);
+					yx_ratio,zx_ratio);
 				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
 				sh_form_str2=layer_str;
 			}
