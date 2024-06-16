@@ -12,11 +12,11 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
-
-/* This file should be compiled only in OpenCL mode, hence the following declaration is redundant. However, it helps
- * proper syntax checking in IDE, such as Eclipse.
+/* The following tests for compilation inconsistencies, but also helps proper syntax checking in IDE, such as Eclipse.
+ * Otherwise, a lot of unresolved-symbol errors are produced, when another build configuration is selected.
  */
 #ifndef OPENCL
+#  error "This file requires OPENCL to be defined"
 #  define OPENCL
 #endif
 

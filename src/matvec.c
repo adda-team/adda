@@ -1,5 +1,6 @@
 /* Calculate local matrix vector product of decomposed interaction matrix with r_k or p_k, using a FFT-based convolution
  * algorithm. Also contains code for SPARSE (non-FFT) mode.
+ * Should not be used with OPENCL mode, but IDE syntax checking works fine even in this mode.
  *
  * Copyright (C) ADDA contributors
  * This file is part of ADDA.
@@ -36,9 +37,8 @@ extern doublecomplex * restrict arg_full;
 // defined and initialized in fft.c
 extern const doublecomplex * restrict Dmatrix,* restrict Rmatrix;
 extern doublecomplex * restrict Xmatrix,* restrict slices,* restrict slices_tr,* restrict slicesR,* restrict slicesR_tr;
-extern const size_t DsizeY,DsizeZ;
+extern const size_t DsizeY,DsizeZ,RsizeY;
 #endif // !SPARSE
-extern const size_t RsizeY;
 // defined and initialized in timing.c
 extern size_t TotalMatVec;
 

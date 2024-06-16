@@ -13,6 +13,14 @@
  * You should have received a copy of the GNU General Public License along with ADDA. If not, see
  * <http://www.gnu.org/licenses/>.
  */
+/* The following tests for compilation inconsistencies, but also helps proper syntax checking in IDE, such as Eclipse.
+ * Otherwise, a lot of unresolved-symbol errors are produced, when another build configuration is selected.
+ */
+#ifdef SPARSE
+#  error "This file is incompatible with SPARSE"
+#  undef SPARSE
+#endif
+
 #include "const.h" // keep this first
 #include "fft.h" // corresponding header
 // project headers
