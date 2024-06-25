@@ -2,55 +2,80 @@
 # Copyright (C) ADDA contributors
 # GNU General Public License version 3
 #
-# Tests onion (multilayered sphere) and onion_ell (multilayered ellipsoid) shapes in ADDA.
+# Tests onion (multilayered sphere) and onion_ell (multilayered ellipsoid) against other shapes
 
-# Variables
-ADDA='../../src/seq/adda'
-DIR1=out1
-DIR2=out2
-SO1=stdout1
-SO2=stdout2
-CLEAN="rm -f -r $SO1 $SO2 $DIR1 $DIR2"
-CLEAN2="rm -f -r $SO2 $DIR2"
+# look inside this script for function and variable definitions
+source ./common.sh
 
-# Execution function, which adds common options and redirections
-function run1 {
-  $ADDA $@ $COMMON -dir $DIR1 > $SO1
+# uncomment the following for debugging (where exactly the difference appears)
+#STOP_ON_EXIT=1
+
+# runs the second case, compares CrossSec-Y with already existing output of run1, and cleans the output2
+function run2_comp_csY {
+  run2 $@
+  diff_verbatim CrossSec-Y
+  $CLEAN2
 }
-function run2 {
-  $ADDA $@ $COMMON -dir $DIR2 > $SO2
+# runs the second case, compares both CrossSec with already existing output of run1, and cleans the output2
+function run2_comp_csXY {
+  run2 $@
+  diff_verbatim CrossSec-X CrossSec-Y
+  $CLEAN2
 }
 
-# sphere and onion (all layers same index)
-COMMON="-size 10"
-run1 -shape sphere -m 1.2 0.01
-run2 -shape onion 0.5 -m 1.2 0.01 1.2 0.01
-# Use diff on resulting CrossSec-Y only (geometry files differ)
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+# in the following we consider standard size, grid, and refractive index, but shorten simulations with -eps
+# COMMON_CORE is used for most simulations in this file, COMMON is used for individual blocks
+COMMON_CORE="-size 10 -grid 16 -eps 1"
+
+# sphere and onion (all layers same index), geometry files differ
+COMMON="$COMMON_CORE"
+run1 -shape sphere -m 1.4 0.01
+run2 -shape onion 0.5 -m 1.4 0.01 1.4 0.01
+diff_verbatim CrossSec-Y
 $CLEAN
 
 # coated and onion
-COMMON="-m 1.2 0.01 1.5 0.1 -size 10 -save_geom"
+COMMON="$COMMON_CORE -m 1.4 0.01 1.2 0.1 -save_geom"
 run1 -shape coated 0.5
 run2 -shape onion 0.5
-# Use diff on resulting geometry files and CrossSec-Y
-diff $DIR1/coated.geom $DIR2/onion.geom
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+diff_geom coated onion
+diff_verbatim CrossSec-Y
 $CLEAN
 
-# coated2 and onion
-COMMON="-m 1.2 0.01 1.5 0.1 1.3 0.001 -size 10 -save_geom"
-run1 -shape coated2 0.6 0.2
-run2 -shape onion 0.6 0.2
-diff $DIR1/coated2.geom $DIR2/onion.geom
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+# onion, coated 2 and onion_ell - TODO: remove coated when it is removed from ADDA
+COMMON="$COMMON_CORE -m 1.4 0.01 1.3 0.1 1.2 0.01 -save_geom"
+run1 -shape onion 0.6 0.2
+run2 -shape coated2 0.6 0.2
+diff_geom onion coated2 
+diff_verbatim CrossSec-Y
+$CLEAN2
+run2 -shape onion_ell 1 1 0.6 0.2
+diff_geom onion onion_ell
+diff_verbatim CrossSec-Y
+$CLEAN2
+# the following tests zero-with shells
+#COMMON is updated to allow different refractive indices, but we still compare with run1 above
+COMMON="$COMMON_CORE -save_geom"
+run2_comp_csY -shape onion 1.0 0.6 0.2 -m 2 0 1.4 0.01 1.3 0.1 1.2 0.01
+run2_comp_csY -shape onion 0.6 0.6 0.2 -m 1.4 0.01 2 0 1.3 0.1 1.2 0.01 
+run2_comp_csY -shape onion 0.6 0.2 0.2 -m 1.4 0.01 1.3 0.1 2 0 1.2 0.01
+run2_comp_csY -shape onion 0.6 0.2 0.0 -m 1.4 0.01 1.3 0.1 1.2 0.01 2 0
 $CLEAN
 
-# ellipsoid and onion_ell (all layers same index)
-COMMON="-size 10"
-run1 -shape ellipsoid 1.5 0.6 -m 1.2 0.01
-run2 -shape onion_ell 1.5 0.6 0.5 -m 1.2 0.01 1.2 0.01
-# Use diff on resulting CrossSec-X and CrossSec-Y only (geometry files differ)
-diff $DIR1/CrossSec-X $DIR2/CrossSec-X
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+# ellipsoid and onion_ell (all layers same index), geometry file differ
+COMMON="$COMMON_CORE"
+run1 -shape ellipsoid 1.5 0.6 -m 1.4 0.01
+run2 -shape onion_ell 1.5 0.6 0.5 -m 1.4 0.01 1.4 0.01
+diff_verbatim CrossSec-X CrossSec-Y
 $CLEAN
+
+# zero-with shells for onion_ell
+COMMON="$COMMON_CORE -save_geom"
+run1 -shape onion_ell 1.5 0.6 0.6 0.2 -m 1.4 0.01 1.3 0.1 1.2 0.01 
+run2_comp_csXY -shape onion_ell 1.5 0.6 1.0 0.6 0.2 -m 2 0 1.4 0.01 1.3 0.1 1.2 0.01
+run2_comp_csXY -shape onion_ell 1.5 0.6 0.6 0.6 0.2 -m 1.4 0.01 2 0 1.3 0.1 1.2 0.01 
+run2_comp_csXY -shape onion_ell 1.5 0.6 0.6 0.2 0.2 -m 1.4 0.01 1.3 0.1 2 0 1.2 0.01
+run2_comp_csXY -shape onion_ell 1.5 0.6 0.6 0.2 0.0 -m 1.4 0.01 1.3 0.1 1.2 0.01 2 0
+$CLEAN
+
+exit $status
