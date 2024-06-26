@@ -291,6 +291,10 @@ all -shape ellipsoid 0.25 2 ;mgn;
 all -h shape line
 !RD_TRICKY -shape line -grid 16 ;m; ;n;
 !RD_TRICKY -shape line -grid 8 2 3 ;m; ;n;
+all -h shape onion
+!RD_TRICKY all -shape onion 0.7 0.4 ;3mgn;
+all -h shape onion_ell
+!RD_TRICKY all -shape onion_ell 0.25 2 0.7 0.4 ;3mgn;
 all -h shape plate
 all -shape plate 0.5 ;mgn;
 all -h shape prism
