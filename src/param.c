@@ -304,24 +304,25 @@ static const struct subopt_struct shape_opt[]={
 	{"coated","<d_in/d> [<x/d> <y/d> <z/d>]","Sphere with a spherical inclusion; outer sphere has a diameter d (first "
 		"domain). The included sphere has a diameter d_in (optional position of the center: x,y,z).",UNDEF,SH_COATED},
 	{"coated2","<ds/d> <dc/d>","Three concentric spheres (core with 2 shells). Outer sphere has a diameter d (first "
-		"domain), intermediate sphere (shell) - ds (second domain), and the internal core - dc (third domain).",2,
-		SH_COATED2},
+		"domain), intermediate sphere (shell) - ds (second domain), and the internal core - dc (third domain). This "
+		"shape is DEPRECATED, use 'onion' instead.",2,SH_COATED2},
 	{"cylinder","<h/d>","Homogeneous cylinder with height (length) h and diameter d (its axis of symmetry coincides "
 		"with the z-axis).",1,SH_CYLINDER},
 	{"egg","<eps> <nu>","Axisymmetric egg shape given by a^2=r^2+nu*r*z-(1-eps)z^2, where 'a' is scaling factor. "
 		"Parameters must satisfy 0<eps<=1, 0<=nu<eps.",2,SH_EGG},
 	{"ellipsoid","<y/x> <z/x>","Homogeneous general ellipsoid with semi-axes x,y,z",2,SH_ELLIPSOID},
 	{"line","","Line along the x-axis with the width of one dipole",0,SH_LINE},
-	{"onion","<d2/d> [<d3/d> ... <dn/d>]","Multilayed concentric sphere (core with arbitrary number of shells). "
-		"n is the total number of particle domains, corresponding to a core with n-1 shells. "
-		"Outer sphere has diameter d (first domain), next sphere has diameter d2 (second domain), etc, up through "
-		"the core with diameter dn (nth domain). Maximum number of domains is limited by parameters MAX_NMAT and "
-		"MAX_N_SH_PARMS in const.h.",
+	{"onion","<d2/d> [<d3/d> ... <dn/d>]","Multilayered concentric sphere (core with arbitrary number of shells). "
+		"n is the total number of particle domains, corresponding to a core with n-1 shells. Outer shell is between "
+		"the spheres of diameters d and d2 (first domain), next one - between d2 and d3 (second domain), etc., down to "
+		"the core with diameter dn (n-th domain). Maximum number of domains is " TO_STRING(MAX_NMAT) " (controlled by "
+		"the parameter MAX_NMAT in const.h).",
 		UNDEF,SH_ONION},
-	{"onion_ell","<y/x> <z/x> <d2/d> [<d3/d> ... <dn/d>]","Multilayered concentric ellipsoid (core with arbitrary "
-		"number of shells) with semi-axes x,y,z. Outer layer has x semi-axis d (first domain), next layer has"
-		"x semi-axis d2 (second domain), etc, up through the core with x semi-axis dn (nth domain). Maximum"
-		"number of domains is limited by parameters MAX_NMAT and MAX_N_SH_PARMS in const.h.",UNDEF,SH_ONION_ELL},
+	{"onion_ell","<y/x> <z/x> <x2/x> [<x3/x> ... <xn/x>]","Multilayered concentric ellipsoid (core with arbitrary "
+		"number of shells) with semi-axes x,y,z. Outer shell is between the ellipsoids with semi-axes (along the "
+		"x-axis) x and x2 (first domain), next one - between x2 and x3 (second domain), etc., down to the core with "
+		"semi-axis xn (n-th domain). Maximum number of domains is " TO_STRING(MAX_NMAT) " (controlled by the parameter "
+		"MAX_NMAT in const.h).",UNDEF,SH_ONION_ELL},
 	{"plate", "<h/d>","Homogeneous plate (cylinder with rounded side) with cylinder height h and full diameter d (i.e. "
 		"diameter of the constituent cylinder is d-h). Its axis of symmetry coincides with the z-axis.",1,SH_PLATE},
 	{"prism","<n> <h/Dx>","Homogeneous right prism with height (length along the z-axis) h based on a regular polygon "
@@ -581,8 +582,8 @@ static struct opt_struct options[]={
 		"indices, float. Each pair of arguments specifies real and imaginary part of the refractive index of one of "
 		"the domains. If '-anisotr' is specified, three refractive indices correspond to one domain (diagonal elements "
 		"of refractive index tensor in particle reference frame). Maximum number of different refractive indices is "
-		"defined at compilation time by the parameter MAX_NMAT in file const.h (by default, 15). None of the "
-		"refractive indices can be equal to 1+0i.\n"
+    TO_STRING(MAX_NMAT) " (controlled by the parameter MAX_NMAT in const.h). None of the refractive indices can be "
+    "equal to 1+0i.\n"
 		"Default: 1.5 0",UNDEF,NULL},
 	{PAR(maxiter),"<arg>","Sets the maximum number of iterations of the iterative solver, integer.\n"
 		"Default: very large, not realistic value",1,NULL},
@@ -1563,15 +1564,14 @@ PARSE_FUNC(shape)
 		switch (shape) {
 			case SH_COATED: if (Narg!=1 && Narg!=4) NargError(Narg,"1 or 4"); break;
 			case SH_BOX: if (Narg!=0 && Narg!=2) NargError(Narg,"0 or 2"); break;
-			// For onion: can't check specific # of arguments here (number of layers needs
-			// to be the same as Nmat)
+			// For onions only general bounds are checked
 			case SH_ONION:
-				if (Narg<1) NargError(Narg,"At least 1");
+				if (Narg<1) NargError(Narg,"at least 1");
 				if (Narg>(MAX_NMAT-1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
 					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg+1,MAX_NMAT);
 				break;
 			case SH_ONION_ELL:
-				if (Narg<3) NargError(Narg,"At least 3");
+				if (Narg<3) NargError(Narg,"at least 3");
 				if (Narg>(MAX_NMAT+1)) PrintErrorHelp("Too many layers (%d), maximum %d are supported. "
 					"You may increase parameter MAX_NMAT in const.h and recompile.",Narg-1,MAX_NMAT);
 				break;
@@ -1582,8 +1582,14 @@ PARSE_FUNC(shape)
 		 * number of received arguments as a new case above. Use NargError function similarly as done in existing tests.
 		 */
 		// either parse filename or parse all parameters as float; consistency is checked later
-		if (!ScanFnamesError(Narg,need,argv+2,&shape_fname,NULL))
+		if (!ScanFnamesError(Narg,need,argv+2,&shape_fname,NULL)) {
+			// This should never happen if proper correspondence is kept between MAX_N_SH_PARMS and MAX_NMAT
+			if (Narg>MAX_N_SH_PARMS) 
+				PrintError("Insufficient MAX_N_SH_PARMS=%d for parsing %d shape arguments",MAX_N_SH_PARMS,Narg);
 			for (j=0;j<Narg;j++) ScanDoubleError(argv[j+2],sh_pars+j);
+		}
+		if (shape==SH_COATED2) 
+			LogWarning(EC_WARN,ONE_POS,"'-shape coated2 ...' is deprecated, use '-shape onion ...' instead");
 		// stop search
 		found=true;
 		break;

@@ -16,7 +16,7 @@
 #define __const_h
 
 // version number (string)
-#define ADDA_VERSION "1.5.0-alpha"
+#define ADDA_VERSION "1.5.0-alpha2"
 
 /* ADDA uses certain C99 extensions, which are widely supported by GNU and Intel compilers. However, they may be not
  * completely supported by e.g. Microsoft Visual Studio compiler. Therefore, we check the version of the standard here
@@ -62,6 +62,7 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 #define DIV_CEILING(A,B) (((A)%(B)==0) ? (A)/(B) : ((A)/(B))+1 ) // valid only for nonnegative A and B
 #define LENGTH(A) ((int)(sizeof(A)/sizeof(A[0]))) // length of any array (converted to int)
 #define STRINGIFY(A) #A
+#define TO_STRING(A) STRINGIFY(A)
 #define GREATER_EQ2(a1,a2,b1,b2) ( (a1)>(b1) || ( (a1)==(b1) && (a2)>=(b2) )) // a1.a2>=b1.b2
 
 // parallel definitions
@@ -107,9 +108,9 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 #define BOX_MAX USHRT_MAX
 
 // sizes of some arrays
-#define MAX_NMAT         15   // maximum number of different refractive indices (<256)
-#define MAX_N_SH_PARMS   25   // maximum number of shape parameters
-#define MAX_N_BEAM_PARMS 10   // maximum number of beam parameters
+#define MAX_NMAT         60  // maximum number of different refractive indices (<256)
+#define MAX_N_SH_PARMS   MAX(25,MAX_NMAT+1) // maximum number of shape parameters (upper limit due to ONION_ELL)
+#define MAX_N_BEAM_PARMS 10 // maximum number of beam parameters
 
 // sizes of filenames and other strings
 /* There is MAX_PATH constant that equals 260 on Windows. However, even this OS allows ways to override this limit. On
@@ -172,7 +173,7 @@ enum sh { // shape types
 	SH_CAPSULE,       // capsule
 	SH_CHEBYSHEV,     // Chebyshev particle (axisymmetric)
 	SH_COATED,        // coated sphere
-	SH_COATED2,       // three concentric spheres (core with 2 shells)
+	SH_COATED2,       // three concentric spheres (core with 2 shells) - Deprecated, use ONION instead
 	SH_CYLINDER,      // cylinder
 	SH_EGG,           // egg
 	SH_ELLIPSOID,     // general ellipsoid
