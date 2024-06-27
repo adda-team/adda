@@ -2,68 +2,57 @@
 # Copyright (C) ADDA contributors
 # GNU General Public License version 3
 #
-# Tests superellipsoid shape in ADDA. Currently relatively simple.
-# Should be further developed into a general framework for running equivalent command line combinations in ADDA
+# Tests superellipsoid against other shapes. May show differences in last digits
 
-# Variables
-ADDA='../../src/seq/adda'
-DIR1=out1
-DIR2=out2
-SO1=stdout1
-SO2=stdout2
-COMMON="-m 1.2 0.01 -size 10 -save_geom"
-CLEAN="rm -f -r $SO1 $SO2 $DIR1 $DIR2"
-CLEAN2="rm -f -r $SO2 $DIR2"
+# look inside this script for function and variable definitions
+source ./common.sh
 
-# Execution function, which adds common options and redirections
-function run1 {
-  $ADDA $@ $COMMON -dir $DIR1 > $SO1
-}
-function run2 {
-  $ADDA $@ $COMMON -dir $DIR2 > $SO2
-}
+# uncomment the following for debugging (where exactly the difference appears)
+#STOP_ON_EXIT=1
+
+# runs the second case, compares with already existing output of run1, and cleans the output2
 function run2_compare {
   run2 $@
-  diff $DIR1/superellipsoid.geom $DIR2/superellipsoid.geom
-  diff $DIR1/CrossSec-X $DIR2/CrossSec-X
-  diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+  diff_verbatim superellipsoid.geom CrossSec-X CrossSec-Y
   $CLEAN2
 }
 
+# in the following we consider moderate size, grid, and refractive index, but shorten simulations with -eps
+# COMMON_CORE is used for most simulations in this file, COMMON is used for individual blocks
+COMMON_CORE="-m 1.4 0.01 -size 10 -grid 16 -eps 1 -save_geom"
+COMMON="$COMMON_CORE"
+
 # Sphere
 run1 -shape sphere
-# Corresponding superellipsoid
 run2 -shape superellipsoid 1 1 1 1
-# Use diff on resulting geometry files and CrossSec-Y
-diff $DIR1/sphere.geom $DIR2/superellipsoid.geom
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+diff_geom sphere superellipsoid
+diff_verbatim CrossSec-Y
 $CLEAN
 
 # Ellipsoid
+# this test incurs round-off errors in r_eff, which may cause noticeable differences for sufficiently large m
 run1 -shape ellipsoid 0.5 2
 run2 -shape superellipsoid 0.5 2 1 1
-diff $DIR1/ellipsoid.geom $DIR2/superellipsoid.geom
-diff $DIR1/CrossSec-X $DIR2/CrossSec-X
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+diff_geom ellipsoid superellipsoid
+diff_verbatim CrossSec-X CrossSec-Y
 $CLEAN
 
 # Box
 run1 -shape box 2 0.5
 run2 -shape superellipsoid 2 0.5 0 0
-diff $DIR1/box.geom $DIR2/superellipsoid.geom
-diff $DIR1/CrossSec-X $DIR2/CrossSec-X
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+diff_geom box superellipsoid
+diff_verbatim CrossSec-X CrossSec-Y
 $CLEAN
 
 # Cylinder
 run1 -shape cylinder 1
 run2 -shape superellipsoid 1 1 1 0
-diff $DIR1/cylinder.geom $DIR2/superellipsoid.geom
-diff $DIR1/CrossSec-Y $DIR2/CrossSec-Y
+diff_geom cylinder superellipsoid
+diff_verbatim CrossSec-Y
 $CLEAN
 
 # Test continuity for small and large arguments
-COMMON="-m 1.2 0.01 -size 10 -save_geom -no_vol_cor"
+COMMON="$COMMON_CORE -no_vol_cor"
 run1 -shape superellipsoid 0.5 2 0 0
 run2_compare -shape superellipsoid 0.5 2 1e-10 0
 run2_compare -shape superellipsoid 0.5 2 0 1e-10
@@ -83,7 +72,7 @@ run2_compare -shape superellipsoid 2 0.5 1e-5 1
 $CLEAN
 
 #The grid in the following should be 17x35x9 or 17x9x35 (all odd numbers!)
-COMMON="-m 1.2 0.01 -size 8 -grid 17 -save_geom -no_vol_cor"
+COMMON="-m 1.4 0.01 -size 10 -grid 17 -eps 1 -save_geom -no_vol_cor"
 run1 -shape superellipsoid 2.05 0.5 1 10
 run2_compare -shape superellipsoid 2.05 0.5 1 1e5 
 run2_compare -shape superellipsoid 2.05 0.5 1 1e10
@@ -99,3 +88,5 @@ run2_compare -shape superellipsoid 0.5 2.05 1e10 10
 run2_compare -shape superellipsoid 0.5 2.05 10 1e10
 run2_compare -shape superellipsoid 0.5 2.05 1e10 1e10
 $CLEAN
+
+exit $status

@@ -106,6 +106,8 @@ static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
 static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
+static double onion_r2[MAX_NMAT]; //for onion
+static int nlayers; // for onion
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 static double seE,seN,seT,seR,seToverR,seInvR; // for superellipsoid
@@ -1687,6 +1689,54 @@ void InitShape(void)
 			volume_ratio=UNDEF;
 			Nmat_need=1;
 			break;
+		case SH_ONION: {
+			char *layer_str=NULL;
+			// determine number of layers from number of values passed to sh_pars 
+			nlayers=sh_Npars+1;
+			for (i=0;i<sh_Npars;i++) {
+				if (i==0) TestPositive(sh_pars[i],"second layer diameter ratio");
+				else TestRangeNI(sh_pars[i],"inner layer diameter ratio",0,sh_pars[i-1]);
+				onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
+				}
+			if (IFROOT) {
+				sh_form_str1="onion; diameter(d)";
+				layer_str=dyn_sprintf(", layer diameter ratios dn/d=");
+				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
+				sh_form_str2=layer_str;
+			}
+			yx_ratio=zx_ratio=1;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX;
+			break;
+		}
+		case SH_ONION_ELL: {
+			char *layer_str=NULL;
+			yx_ratio=sh_pars[0];
+			TestPositive(yx_ratio,"aspect ratio y/x");
+			zx_ratio=sh_pars[1];
+			TestPositive(zx_ratio,"aspect ratio z/x");
+			// determine number of layers from number of values passed to sh_pars 
+			nlayers=sh_Npars-1;
+			for (i=2;i<(nlayers+1);i++) {
+				if (i==2) TestPositive(sh_pars[i],"second layer x-semi axis ratio");
+				else TestRangeNI(sh_pars[i],"inner layer x-semi axis ratio",0,sh_pars[i-1]);
+				onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
+			}
+			if (IFROOT) {
+				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
+				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",
+					yx_ratio,zx_ratio);
+				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
+				sh_form_str2=layer_str;
+			}
+			if (yx_ratio!=1) symR=false;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX*yx_ratio*zx_ratio;
+			// set inverse squares of aspect ratios
+			invsqY=1/(yx_ratio*yx_ratio);
+			invsqZ=1/(zx_ratio*zx_ratio);
+			break;
+		}
 		case SH_PLATE: {
 			double diskratio; // ratio of height to diameter
 
@@ -2050,7 +2100,7 @@ void MakeParticle(void)
 	int i;
 #ifndef SPARSE
 	size_t local_nRows_tmp;
-	int j,k,ns;
+	int j,k,ns,layer_ctr;
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
 	/* Normalized dipole coordinates for superellipsoid: |x/a|, |y/b|, |z/c|. They should be from 0 to 1 if no void grid
@@ -2210,6 +2260,38 @@ void MakeParticle(void)
 				 * those || are for weird cases like '-shape line -grid 8 2 2'
 				 */
 				if ((yj==0 || yj==-jagged) && (zj==0 || zj==-jagged)) mat=0;
+				break;
+			case SH_ONION:
+				r2=xr*xr+yr*yr+zr*zr;
+				// only consider dipoles inside the sphere				
+				if (r2<=0.25) {
+					// first test if inside the core, then test if in layers from the outside in
+					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1; // inside core 
+					else {
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
+							if (r2>onion_r2[layer_ctr]) {
+								mat=layer_ctr;
+								break;
+							}
+						}
+					}
+				}
+				break;
+			case SH_ONION_ELL:
+				r2=xr*xr+yr*yr*invsqY+zr*zr*invsqZ;
+				// only consider dipoles inside particle
+				if (r2<=0.25) {
+					// test if inside core
+					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1;
+					else { // test if in each layer from outside in
+						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
+							if (r2>onion_r2[layer_ctr]) {
+								mat=layer_ctr;
+								break;
+							}
+						}	
+					}
+				}
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;

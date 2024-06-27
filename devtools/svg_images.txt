@@ -17,3 +17,13 @@ then set the width to 400 (field to the left of the icon).
 
 6) Close Inkscape. You will get a warning "The file was saved with a format that may cause data loss" (due to the
 chosen format above). Ignore it and press "Close without saving".
+
+
+Related issue is use of SVG files in MS Word. While some support of direct import of SVG files have been present since
+version 2016, it is not perfect (especially if PDF is further produced from this file) and the imported images take much
+more space inside DOCX file.
+ 
+The solution is to use (once) version 2021 or later, where it is possible to convert SVG into EMF during import (for 
+instance, using Paste Special for object copied from inside Inkscape). The quality of the conversion seems to be very 
+good (including after saving as PDF), and the objects take even less space than the original SVG. Moreover, this object
+can further be used (copied) in earlier versions of Word.

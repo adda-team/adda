@@ -5,4 +5,5 @@ Utils for automatic testing of ADDA by running equivalent command line combinati
 * `bb_equiv.py` - tests for Bessel beams. Relative differences are shown when > 1e-08. See results in bb_results.txt
 * `ext_CD.py` - tests for calculation of Cext for various polarizations (including circular dichroism) through the amplitude matrix at forward direction. Compares this with direct simulations for circular polarizations, either by combining linear ones or through plane-wave limit of Bessel beams.
 * `helix.dat` - helix shape for test `ext_CD.py`
+* `onion.sh` - tests for onion and onion_ell (multilayered sphere and ellipsoid) shapes
 * `superellipsoid.sh` - test for superellipsoid shape
