@@ -1691,17 +1691,12 @@ void InitShape(void)
 			break;
 		case SH_ONION: {
 			char *layer_str=NULL;
-			// determine number of layers by searching for nonzero values passed in to sh_pars
-			for (i=0;i<MAX_N_SH_PARMS;i++) {
-				if (sh_pars[i]==0) {
-					nlayers=i+1;
-					break;
-					}
-				else {
-					if (i==0) TestPositive(sh_pars[i],"second layer diameter ratio");
-					else TestRangeNI(sh_pars[i],"inner layer diameter ratio",0,sh_pars[i-1]);
-					onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
-					}
+			// determine number of layers from number of values passed to sh_pars 
+			nlayers=sh_Npars+1;
+			for (i=0;i<sh_Npars;i++) {
+				if (i==0) TestPositive(sh_pars[i],"second layer diameter ratio");
+				else TestRangeNI(sh_pars[i],"inner layer diameter ratio",0,sh_pars[i-1]);
+				onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
 				}
 			if (IFROOT) {
 				sh_form_str1="onion; diameter(d)";
@@ -1720,17 +1715,12 @@ void InitShape(void)
 			TestPositive(yx_ratio,"aspect ratio y/x");
 			zx_ratio=sh_pars[1];
 			TestPositive(zx_ratio,"aspect ratio z/x");
-			// same strategy for parsing shells as onion
-			for (i=2;i<MAX_N_SH_PARMS;i++) {
-				if (sh_pars[i]==0) {
-					nlayers=i-1;
-					break;
-					}
-				else {
-					if (i==2) TestPositive(sh_pars[i],"second layer x-semi axis ratio");
-					else TestRangeNI(sh_pars[i],"inner layer x-semi axis ratio",0,sh_pars[i-1]);
-					onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
-				}
+			// determine number of layers from number of values passed to sh_pars 
+			nlayers=sh_Npars-1;
+			for (i=2;i<(nlayers+1);i++) {
+				if (i==2) TestPositive(sh_pars[i],"second layer x-semi axis ratio");
+				else TestRangeNI(sh_pars[i],"inner layer x-semi axis ratio",0,sh_pars[i-1]);
+				onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
 			}
 			if (IFROOT) {
 				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
