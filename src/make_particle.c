@@ -106,7 +106,7 @@ static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
 static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
-static double onion_r2[MAX_NMAT]; //for onion
+static double * restrict onion_r2; //for onion
 static int nlayers; // for onion
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
@@ -1690,19 +1690,19 @@ void InitShape(void)
 			Nmat_need=1;
 			break;
 		case SH_ONION: {
-			char *layer_str=NULL;
-			// determine number of layers from number of values passed to sh_pars 
 			nlayers=sh_Npars+1;
+			MALLOC_VECTOR(onion_r2,double,nlayers-1,ALL);
 			for (i=0;i<sh_Npars;i++) {
-				if (i==0) TestPositive(sh_pars[i],"second layer diameter ratio");
-				else TestRangeNI(sh_pars[i],"inner layer diameter ratio",0,sh_pars[i-1]);
+				if (i==0) TestRangeII(sh_pars[i],"diameter ratio d2/d",0,1);
+				else TestRangeII(sh_pars[i],"one of internal diameter ratios",0,sh_pars[i-1]);
 				onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
 				}
 			if (IFROOT) {
-				sh_form_str1="onion; diameter(d)";
-				layer_str=dyn_sprintf(", layer diameter ratios dn/d=");
-				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i]);
-				sh_form_str2=layer_str;
+				char *layer_str;
+				sh_form_str1=dyn_sprintf("onion (%d layers); diameter(d):",nlayers);
+				layer_str=dyn_sprintf(", internal diameter ratios d_i/d: ("GFORM,sh_pars[0]);
+				for (i=1;i<sh_Npars;i++) layer_str=rea_sprintf(layer_str,", "GFORM,sh_pars[i]);
+				sh_form_str2=rea_sprintf(layer_str,")");
 			}
 			yx_ratio=zx_ratio=1;
 			Nmat_need=nlayers;
@@ -1710,24 +1710,24 @@ void InitShape(void)
 			break;
 		}
 		case SH_ONION_ELL: {
-			char *layer_str=NULL;
 			yx_ratio=sh_pars[0];
 			TestPositive(yx_ratio,"aspect ratio y/x");
 			zx_ratio=sh_pars[1];
 			TestPositive(zx_ratio,"aspect ratio z/x");
-			// determine number of layers from number of values passed to sh_pars 
 			nlayers=sh_Npars-1;
-			for (i=2;i<(nlayers+1);i++) {
-				if (i==2) TestPositive(sh_pars[i],"second layer x-semi axis ratio");
-				else TestRangeNI(sh_pars[i],"inner layer x-semi axis ratio",0,sh_pars[i-1]);
+			MALLOC_VECTOR(onion_r2,double,nlayers-1,ALL);
+			for (i=2;i<sh_Npars;i++) {
+				if (i==2) TestRangeII(sh_pars[i],"semi-axis ratio x2/x",0,1);
+				else TestRangeII(sh_pars[i],"one of internal semi-axis ratios",0,sh_pars[i-1]);
 				onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
 			}
 			if (IFROOT) {
-				sh_form_str1="multilayered ellipsoid; outer size along x-axis:";
-				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", layer x-semi axis ratios dn/d=",
-					yx_ratio,zx_ratio);
-				for (i=0;i<(nlayers-1);i++) layer_str=rea_sprintf(layer_str,GFORM", ",sh_pars[i+2]);
-				sh_form_str2=layer_str;
+				char *layer_str;
+				sh_form_str1=dyn_sprintf("%d-layered ellipsoid; size along x-axis:",nlayers);
+				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", internal semi-axis ratios x_i/x: ("
+					GFORM,yx_ratio,zx_ratio,sh_pars[2]);
+				for (i=3;i<sh_Npars;i++) layer_str=rea_sprintf(layer_str,", "GFORM,sh_pars[i]);
+				sh_form_str2=rea_sprintf(layer_str,")");
 			}
 			if (yx_ratio!=1) symR=false;
 			Nmat_need=nlayers;
@@ -2091,6 +2091,21 @@ void InitShape(void)
 
 //======================================================================================================================
 
+static inline int DescendingSearch(const double key,const double *arr,const int n) 
+/* given array sorted in descending order (of size n), returns i such that arr[i-1] <= key < arr[i]
+ * specifically, returns 0 for key < arr[0] and n for arr[n-1] <= key .
+ * If arr[i-1]=key=arr[i] the returned value can be either i or i-1 (depending on implementation).
+ * Currently, the simplest linear search is used. Writing a well-optimized version for n ~ 100 is not-trivial.
+ */
+{
+	int i;
+	
+	for (i=0;i<n;i++) if (key>arr[i]) return i;
+	return n;
+}	
+
+//======================================================================================================================
+
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, dipole sizes
 {
@@ -2100,7 +2115,7 @@ void MakeParticle(void)
 	int i;
 #ifndef SPARSE
 	size_t local_nRows_tmp;
-	int j,k,ns,layer_ctr;
+	int j,k,ns;
 	double tmp1,tmp2,tmp3;
 	double xr,yr,zr;  // dipole coordinates relative to sizeX. xr is inside (-1/2,1/2), others - based on aspect ratios
 	/* Normalized dipole coordinates for superellipsoid: |x/a|, |y/b|, |z/c|. They should be from 0 to 1 if no void grid
@@ -2263,35 +2278,12 @@ void MakeParticle(void)
 				break;
 			case SH_ONION:
 				r2=xr*xr+yr*yr+zr*zr;
-				// only consider dipoles inside the sphere				
-				if (r2<=0.25) {
-					// first test if inside the core, then test if in layers from the outside in
-					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1; // inside core 
-					else {
-						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
-							if (r2>onion_r2[layer_ctr]) {
-								mat=layer_ctr;
-								break;
-							}
-						}
-					}
-				}
+				if (r2<=0.25) mat=DescendingSearch(r2,onion_r2,nlayers-1);
 				break;
 			case SH_ONION_ELL:
 				r2=xr*xr+yr*yr*invsqY+zr*zr*invsqZ;
 				// only consider dipoles inside particle
-				if (r2<=0.25) {
-					// test if inside core
-					if (r2<=onion_r2[nlayers-2]) mat=nlayers-1;
-					else { // test if in each layer from outside in
-						for (layer_ctr=0;layer_ctr<(nlayers-1);layer_ctr++) {
-							if (r2>onion_r2[layer_ctr]) {
-								mat=layer_ctr;
-								break;
-							}
-						}	
-					}
-				}
+				if (r2<=0.25) mat=DescendingSearch(r2,onion_r2,nlayers-1);
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
@@ -2500,6 +2492,7 @@ void MakeParticle(void)
 		Free_general(contSegRoMin);
 		Free_general(contSegRoMax);
 	}
+	else if (shape==SH_ONION || shape==SH_ONION_ELL) Free_general(onion_r2);
 #else
 	position=position_full + 3*local_nvoid_d0;
 #endif // SPARSE
