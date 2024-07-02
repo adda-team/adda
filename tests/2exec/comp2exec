@@ -97,9 +97,9 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # Currently formulated to compare 1.5* with 1.4.0 (more specific exceptions are added in parsing of command lines)
 # These variables must be updated whenever new features are added to ADDA
 
-CMDIGNORE="coated2|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-beam bessel|1e-16"
-CMDIGNORE="$CMDIGNORE|-surf 0.5|-surf 4 5 2"
-OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  superellipsoid|^  -int|^  -pol|^  -scat"
+CMDIGNORE="coated2|onion|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-h m|-V"
+CMDIGNORE="$CMDIGNORE|-beam bessel|-surf 0.5|-surf 4 5 2|1e-16"
+OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  onion|^  superellipsoid|^  -int|^  -pol|^  -scat"
 OLDIGNORE="$OLDIGNORE|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:"
 OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"
 
@@ -354,6 +354,10 @@ function mycmp {
   IGNORE=""
   if [ -n "$OLDUSED" ]; then
     append IGNORE "$OLDIGNORE"
+    # The following is specific for reference version 1.4.0
+    if [[ "$cmdline" == *"-int igt 3"* ]]; then
+       asmin rtol 6
+    fi    
   fi
   if [ "$base" == $SONAME ]; then
     append IGNORE "^all data is saved in '.*'|No real dipoles are assigned"

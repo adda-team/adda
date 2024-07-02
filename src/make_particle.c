@@ -106,6 +106,8 @@ static double hdratio,invsqY,invsqY2,invsqZ,invsqZ2,haspY,haspZ;
 static double xcenter,zcenter; // coordinates of natural particle center (in units of Dx)
 static double rc_2,ri_2; // squares of circumscribed and inscribed spheres (circles) in units of Dx
 static double boundZ,zcenter1,zcenter2,ell_rsq1,ell_rsq2,ell_x1,ell_x2;
+static double * restrict onion_r2; //for onion
+static int nlayers; // for onion
 static double rbcP,rbcQ,rbcR,rbcS; // for RBC
 static double prang; // for prism
 static double seE,seN,seT,seR,seToverR,seInvR; // for superellipsoid
@@ -1687,6 +1689,54 @@ void InitShape(void)
 			volume_ratio=UNDEF;
 			Nmat_need=1;
 			break;
+		case SH_ONION: {
+			nlayers=sh_Npars+1;
+			MALLOC_VECTOR(onion_r2,double,nlayers-1,ALL);
+			for (i=0;i<sh_Npars;i++) {
+				if (i==0) TestRangeII(sh_pars[i],"diameter ratio d2/d",0,1);
+				else TestRangeII(sh_pars[i],"one of internal diameter ratios",0,sh_pars[i-1]);
+				onion_r2[i]=0.25*sh_pars[i]*sh_pars[i];
+				}
+			if (IFROOT) {
+				char *layer_str;
+				sh_form_str1=dyn_sprintf("onion (%d layers); diameter(d):",nlayers);
+				layer_str=dyn_sprintf(", internal diameter ratios d_i/d: ("GFORM,sh_pars[0]);
+				for (i=1;i<sh_Npars;i++) layer_str=rea_sprintf(layer_str,", "GFORM,sh_pars[i]);
+				sh_form_str2=rea_sprintf(layer_str,")");
+			}
+			yx_ratio=zx_ratio=1;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX;
+			break;
+		}
+		case SH_ONION_ELL: {
+			yx_ratio=sh_pars[0];
+			TestPositive(yx_ratio,"aspect ratio y/x");
+			zx_ratio=sh_pars[1];
+			TestPositive(zx_ratio,"aspect ratio z/x");
+			nlayers=sh_Npars-1;
+			MALLOC_VECTOR(onion_r2,double,nlayers-1,ALL);
+			for (i=2;i<sh_Npars;i++) {
+				if (i==2) TestRangeII(sh_pars[i],"semi-axis ratio x2/x",0,1);
+				else TestRangeII(sh_pars[i],"one of internal semi-axis ratios",0,sh_pars[i-1]);
+				onion_r2[i-2]=0.25*sh_pars[i]*sh_pars[i];
+			}
+			if (IFROOT) {
+				char *layer_str;
+				sh_form_str1=dyn_sprintf("%d-layered ellipsoid; size along x-axis:",nlayers);
+				layer_str=dyn_sprintf(", aspect ratios y/x="GFORM", z/x="GFORM", internal semi-axis ratios x_i/x: ("
+					GFORM,yx_ratio,zx_ratio,sh_pars[2]);
+				for (i=3;i<sh_Npars;i++) layer_str=rea_sprintf(layer_str,", "GFORM,sh_pars[i]);
+				sh_form_str2=rea_sprintf(layer_str,")");
+			}
+			if (yx_ratio!=1) symR=false;
+			Nmat_need=nlayers;
+			volume_ratio=PI_OVER_SIX*yx_ratio*zx_ratio;
+			// set inverse squares of aspect ratios
+			invsqY=1/(yx_ratio*yx_ratio);
+			invsqZ=1/(zx_ratio*zx_ratio);
+			break;
+		}
 		case SH_PLATE: {
 			double diskratio; // ratio of height to diameter
 
@@ -2041,6 +2091,21 @@ void InitShape(void)
 
 //======================================================================================================================
 
+static inline int DescendingSearch(const double key,const double *arr,const int n) 
+/* given array sorted in descending order (of size n), returns i such that arr[i-1] <= key < arr[i]
+ * specifically, returns 0 for key < arr[0] and n for arr[n-1] <= key .
+ * If arr[i-1]=key=arr[i] the returned value can be either i or i-1 (depending on implementation).
+ * Currently, the simplest linear search is used. Writing a well-optimized version for n ~ 100 is not-trivial.
+ */
+{
+	int i;
+	
+	for (i=0;i<n;i++) if (key>arr[i]) return i;
+	return n;
+}	
+
+//======================================================================================================================
+
 void MakeParticle(void)
 // creates a particle; initializes all dipoles counts, dpl, dipole sizes
 {
@@ -2210,6 +2275,15 @@ void MakeParticle(void)
 				 * those || are for weird cases like '-shape line -grid 8 2 2'
 				 */
 				if ((yj==0 || yj==-jagged) && (zj==0 || zj==-jagged)) mat=0;
+				break;
+			case SH_ONION:
+				r2=xr*xr+yr*yr+zr*zr;
+				if (r2<=0.25) mat=DescendingSearch(r2,onion_r2,nlayers-1);
+				break;
+			case SH_ONION_ELL:
+				r2=xr*xr+yr*yr*invsqY+zr*zr*invsqZ;
+				// only consider dipoles inside particle
+				if (r2<=0.25) mat=DescendingSearch(r2,onion_r2,nlayers-1);
 				break;
 			case SH_PLATE:
 				ro2=xr*xr+yr*yr;
@@ -2418,6 +2492,7 @@ void MakeParticle(void)
 		Free_general(contSegRoMin);
 		Free_general(contSegRoMax);
 	}
+	else if (shape==SH_ONION || shape==SH_ONION_ELL) Free_general(onion_r2);
 #else
 	position=position_full + 3*local_nvoid_d0;
 #endif // SPARSE
