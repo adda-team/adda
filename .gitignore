@@ -8,3 +8,6 @@
 # for Eclipse
 .сproject
 .project 
+
+# for VS Code
+.vscode
