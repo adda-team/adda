@@ -334,7 +334,7 @@ void TransposeYZ(const int direction)
 	size_t enqtglobalzy[3]={gridZ,gridY,3*local_gridX};
 	size_t enqtglobalyz[3]={gridY,gridZ,3*local_gridX};
 
-	//if the grid is not dividable by blocksize, extend it. Kernel takes care of borders
+	// if the grid is not divisible by blocksize, extend it. Kernel takes care of borders
 	size_t tgridZ = (gridZ%blocksize==0) ? gridZ : (gridZ/blocksize+1)*blocksize;
 	size_t tgridY = (gridY%blocksize==0) ? gridY : (gridY/blocksize+1)*blocksize;
 	enqtglobalzy[0]=tgridZ;

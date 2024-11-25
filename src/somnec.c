@@ -7,6 +7,7 @@
  * Two functions are copied from calculation.c and misc.c of the same package
  * Further bug fixes and improvements were made by ADDA contributors (see git logs).
  *
+ * Copyright (C) ADDA contributors (for changes over the original code)
  * This file is part of ADDA, but can also be used separately.
  *
  * ADDA is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
@@ -82,7 +83,6 @@ static void lambda(double t,complex double *xlam,complex double *dxlam);
 static void rom1(int n,complex double *sum,int nx);
 static void saoa(double t,complex double *ans);
 static void test(double f1r,double f2r,double *tr,double f1i,double f2i,double *ti,double dmin);
-static void abort_on_error(int why);
 
 // TODO: specify which function arguments are const, and try to make the whole routine thread-safe
 // common /evlcom/
@@ -113,7 +113,7 @@ void som_init(complex double epscf)
 
 	ck2=TP;
 	ck2sq=ck2*ck2;
-	// sommerfeld integral evaluation uses exp(-iwt)
+	// Sommerfeld integral evaluation uses exp(-iwt)
 	ck1sq=ck2sq*epscf;
 	ck1=csqrt(ck1sq);
 	ck1r=creal(ck1);
@@ -363,7 +363,7 @@ void evlua(double zphIn,double rhoIn,complex double *erv,complex double *ezv,com
 			 * figure) or (2) from c to infinity and then back to d along two vertical lines near the corresponding
 			 * branch cuts. The choice of one over another depends on the |arg(a)| in asymptotic expression exp(-a*|xl|)
 			 * for the integrand. We want to minimize this argument.
-			 * In these cases, |tg[arg(a)]| is approximately tg[arg((Z-i*rho)*(d-c))] and Z/rho, respectively. Inverse
+			 * In these cases, |tan[arg(a)]| is approximately tan[arg((Z-i*rho)*(d-c))] and Z/rho, respectively. Inverse
 			 * of these quantities are compared in the following.
 			 * Factor 4 seems to be an empirical one to balance the two options (either one finite integral or two
 			 * infinite ones). However, this specific values is not discussed in any docs, moreover, based on the
@@ -407,7 +407,7 @@ void evlua(double zphIn,double rhoIn,complex double *erv,complex double *ezv,com
 			cp4=1.01*creal(ck1)+0.99*cimag(ck1)*I;
 			d34=cp4-cp3;
 			/* test if a direct line from cp3 will hit the branch cut from k1; if yes, integrate from from c to d and
-			 * then to infinity, otherwise - directly from ñ to infinity
+			 * then to infinity, otherwise - directly from c to infinity
 			 */
 			if (cimag(d34)<slope*creal(d34)) gshank(cp3,del*d34/cabs(d34),ans,6,sum,1,cp4,delta2);
 			else gshank(cp3,delta2,ans,6,sum,0,0,0);
@@ -434,7 +434,7 @@ void evlua(double zphIn,double rhoIn,complex double *erv,complex double *ezv,com
 				}
 				else gshank(cp3,del*conj(rot)*dP3/cabs(dP3),ans,6,sum,1,cp3+dP3*conj(rot),delta2);
 			}
-			else gshank(cp3,delta2,ans,6,sum,0,0,0); // from ñ directly to infinity on the figure
+			else gshank(cp3,delta2,ans,6,sum,0,0,0); // from c directly to infinity on the figure
 		}
 	}
 	ans[5]*=ck1;
@@ -559,7 +559,8 @@ static void gshank(complex double start,complex double dela,complex double *sum,
 	}
 	// No convergence
 	printf("z=%g, rho=%g\n",zph,rho);
-	abort_on_error(-6);
+	fprintf(stderr,"No convergence in gshank() - aborting. Try to increase MAXH in somnec.c and recompile\n");
+	exit(-6);
 }
 
 //======================================================================================================================
@@ -598,7 +599,10 @@ static void hankel(complex double z,complex double *h0,complex double *h0p)
 	}
 
 	zms=cAbs2(z);
-	if (zms==0) abort_on_error(-7);
+	if (zms==0) {
+		fprintf(stderr,"somnec.c: hankel not valid for z=0 - aborting\n");
+		exit(-7);
+	}
 	ib=0;
 	if (zms<=16.81) {
 		if (zms>16) ib=1;
@@ -901,21 +905,4 @@ static void test(double f1r,double f2r,double *tr,double f1i,double f2i,double *
 	*ti=fabs((f1i-f2i)/den);
 
 	return;
-}
-
-//======================================================================================================================
-
-static void abort_on_error(int why)
-// print error and abort
-// TODO: remove this function and move the code to the callers
-{
-	switch (why) {
-		case -6:
-			fprintf(stderr,"No convergence in gshank() - aborting. Try to increase MAXH in somnec.c and recompile\n");
-			break;
-		case -7:
-			fprintf(stderr,"somnec.c: hankel not valid for z=0 - aborting\n");
-			break;
-	}
-	exit(why);
 }

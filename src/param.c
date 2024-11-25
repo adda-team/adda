@@ -973,8 +973,8 @@ static int TimeField(const char c)
 		case 'M': return 60;
 		case 's':
 		case 'S': return 1;
+		default: PrintErrorHelp("Illegal time format specifier (%c)",c);
 	}
-	PrintErrorHelp("Illegal time format specifier (%c)",c);
 }
 
 //======================================================================================================================

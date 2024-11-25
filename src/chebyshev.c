@@ -110,7 +110,7 @@ static double Zmax(double e)
 	tmp=e*(n2+1);
 	if (tmp>=-1) res=1+e;
 	/* two special cases for small n are based on direct solution of f'(x)=0; the formulae are self-derived but agree
-	 * (for n=2) with A. Mugnai and W.J. Wiscombe, “Scattering of radiation by moderately nonspherical particles,”
+	 * (for n=2) with A. Mugnai and W.J. Wiscombe, "Scattering of radiation by moderately nonspherical particles,"
 	 * J. Atmos. Sci. 37, 1291-1307 (1980).
 	 */
 	else if (n==1) res=-1/(4*e);
@@ -169,8 +169,8 @@ void ChebyshevParams(double eps_in,int n_in,double *dx,double *dz,double *sz,dou
 	*dz=zmax-zmin;
 	*sz=(zmax+zmin)/2;
 	*dx=2*xmax;
-	/* determine volume fraction; the formula is self-derived but agrees with A. Mugnai and W.J. Wiscombe, “Scattering
-	 * of radiation by moderately nonspherical particles,” J. Atmos. Sci. 37, 1291-1307 (1980).
+	/* determine volume fraction; the formula is self-derived but agrees with A. Mugnai and W.J. Wiscombe, "Scattering
+	 * of radiation by moderately nonspherical particles," J. Atmos. Sci. 37, 1291-1307 (1980).
 	 */
 	tmp1=eps*eps/4;
 	tmp2=1+6*tmp1*(4*n2-2)/(4*n2-1);

@@ -160,7 +160,7 @@ static inline void InitIGTvars(const double rvec[static restrict 3],double qmunu
 	doublecomplex_t result[static restrict 6],const double wave_num,const double ds_x,const double ds_y,
 	const double ds_z,double *rr,double *invr3,double *kr,double *kr2,double *D,double *u,double *invvol,double *ds_x2,
 	double *ds_y2,double *ds_z2,double *halfk2,double *invr,doublecomplex_t *expval,doublecomplex_t *ksi)
-// initialize common variables, inluding point value of G
+// initialize common variables, including point value of G
 {
 	double qvec[3]; // scaled unit directional vector {rx,ry,rz}/r
 	*invvol=1.0/ds_x/ds_y/ds_z;

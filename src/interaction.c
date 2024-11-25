@@ -59,7 +59,7 @@ void (*ReflTerm_real)(const double qvec[static restrict 3],doublecomplex result[
 extern const double ZsumShift;
 // defined and initialized in param.c
 extern const double igt_lim,igt_eps,nloc_Rp;
-extern const bool InteractionRealArgs;
+// extern const bool InteractionRealArgs;
 
 // used in fft.c
 int local_Nz_Rm; // number of local layers in Rmatrix, not greater than 2*boxZ-1 (also used in SPARSE)

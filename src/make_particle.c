@@ -1622,8 +1622,8 @@ void InitShape(void)
 			/* determined by equation: (a/r)^2=1+nu*cos(theta)-(1-eps)cos^2(theta) or equivalently:
 			 * a^2=r^2+nu*r*z-(1-eps)z^2. Parameters must be 0<eps<=1, 0<=nu<eps. This shape is proposed in:
 			 * Hahn D.V., Limsui D., Joseph R.I., Baldwin K.C., Boggs N.T., Carr A.K., Carter C.C., Han T.S., and
-			 * Thomas M.E. "Shape characteristics of biological spores", paper 6954-31 to be presented at
-			 * "SPIE Defence + Security", March 2008
+			 * Thomas M.E. "Shape characteristics of biological spores", paper 6954-31, presented at
+			 * "SPIE Defense + Security", March 2008
 			 */
 			double ad;
 			double ct,ct2; // cos(theta0) and its square
@@ -1879,7 +1879,7 @@ void InitShape(void)
 			Nmat_need=1;
 			/* Volume is given analytically by Eq.(4) in T. Wriedt, "Using the T-matrix method for light scattering
 			 * computations by non-axisymmetric particles: Superellipsoids and realistically shaped particles," Part.
-			 * Part. Sys. Charact. 19, 256-268 (2002).
+			 * Part. Syst. Charact. 19, 256-268 (2002).
 			 * Since the relevant box volume is 8a^3, the volume ratio (1/4)(b/a)(c/a)*n*B(n/2 +1,n)*e*B(e/2,e/2).
 			 * Both n*B(n/2 +1,n) and e*B(e/2,e/2) are continuous to zero, and can be reliably computed using lgamma.
 			 * Still we need to explicitly handle edge cases when n or e are 0.

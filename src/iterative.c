@@ -183,7 +183,7 @@ static const char *Print_clBLAS_Errstring(clblasStatus err)
 
 static void Check_clBLAS_Err(const clblasStatus err,ERR_LOC_DECL)
 /* Checks error code for clBLAS calls and prints error if necessary. First searches among clBLAS specific errors. If not
- * found, uses general error processing for CL calls (since clBLAS error codes can take standard cl values as well).
+ * found, uses general error processing for CL calls (since clBLAS error codes can take standard CL values as well).
  */
 {
 	if (err != clblasSuccess) {

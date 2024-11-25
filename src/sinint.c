@@ -1,7 +1,7 @@
 /* Function for calculating sine and cosine integrals
  *
- * It was originaly based on routine given in "Numerical Recipes in C" 2nd ed. and then was slightly corrected according
- * to the 3rd ed. of the same book.
+ * It was originally based on routine given in "Numerical Recipes in C" 2nd ed. and then was slightly corrected
+ * according to the 3rd ed. of the same book.
  *
  * Copyright (C) ADDA contributors
  * This file is part of ADDA.

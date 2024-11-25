@@ -480,13 +480,13 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					for (l=0; l < 3; l++)
 						draineSum+=prop[l]*prop[l]*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,l)];
 
-					// L is obtaned in Eq.(62)
+					// L is obtained in Eq.(62)
 					L=c1+mrel[0]*mrel[0]*c2*(1-3*prop[i]*prop[i])-mrel[0]*mrel[0]*c3*prop[i]*prop[i]-FOUR_PI*PI*I*nu/3-
 					  draine_precalc_data_array[draine_precalc_data_index].R1-
 					  (mrel[0]*mrel[0]-1)*draine_precalc_data_array[draine_precalc_data_index].R2[i]-
 					  8*mrel[0]*mrel[0]*prop[i]*prop[i]*
 					  draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)]+4*mrel[0]*mrel[0]*draineSum;
-					// K is obtaned in Eq.(63)
+					// K is obtained in Eq.(63)
 					K=c3+draine_precalc_data_array[draine_precalc_data_index].R1-
 					  4*draine_precalc_data_array[draine_precalc_data_index].R2[i]+
 					  8*draine_precalc_data_array[draine_precalc_data_index].R3[R3_INDEX(i,i)];
@@ -541,8 +541,8 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				case POL_NLOC: // !!! additionally dynamic part should be added (if needed)
 					/* Here the polarizability is derived from the condition that V_d*sum(G_h(ri))=-4pi/3, where sum is
 					 * taken over the whole lattice. Then M=4pi/3+V_d*Gh(0)=V_d*sum(G_h(ri),i!=0)
-					 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only the
-					 * irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
+					 * Moreover, the regular part (in limit Rp->0) of Green's tensor automatically sums to zero, so only
+					 * the irregular part need to be considered -h(r)*4pi/3, where h(r) is a normalized Gaussian
 					 */
 					if (polNlocRp==0) res[i]=polCM(mrel[i]);
 					else res[i]=polM(FOUR_PI_OVER_THREE*ellTheta(SQRT1_2PI*gridspace/polNlocRp),mrel[i]);

@@ -216,7 +216,7 @@ static inline void ScanString(FILE * restrict file,const char * restrict fname,c
  */
 {
 	ReadLineStart(file,fname,buf,buf_size,start);
-	if (sscanf(buf+strlen(start),"%s",res)!=1)
+	if (sscanf(buf+strlen(start),"%s",res)!=1) // @suppress("Format String Vulnerability")
 		LogError(ONE_POS,"Error reading value after '%s' in file '%s'",start,fname);
 	/* More secure would be to put field width in format string above (like "%.Ns"), however this field width is
 	 * defined by the variable buf_size. The latter can only be implemented by a preliminary printf to get a format
