@@ -6,6 +6,6 @@ Most scripts allow manual configuration of the parameters inside them, but can a
 
 * `cluster/` - realistic scripts for working at the compute cluster, require very large simulation time
 * `Mie_solution/` - interface for calculation of the exact electric field in a sphere
-* `WKBr/` – scripts for calculation of the WKBr approximation (of internal field) for a sphere
-* `fig15.sh`, `fig16.sh` – simplified calculation scripts (wrappers) for the corresponding figures of the paper
+* `WKBr/` - scripts for calculation of the WKBr approximation (of internal field) for a sphere
+* `fig15.sh`, `fig16.sh` - simplified calculation scripts (wrappers) for the corresponding figures of the paper
 * `calc.sh` - main calculation script, contains a lot of descriptive comments
