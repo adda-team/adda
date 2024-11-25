@@ -11,21 +11,21 @@ ADDA [originated](https://github.com/adda-team/adda/wiki/EarlyHistory) at the Un
 * [Releases/Downloads](https://github.com/adda-team/adda/releases) (source code and 64-bit Windows executables)
 * [Compiling ADDA](https://github.com/adda-team/adda/wiki/CompilingADDA)
 
-If you choose to use ADDA, please [subscribe](mailto:adda-announce+subscribe@googlegroups.com) to [announcement mailing list](http://groups.google.com/group/adda-announce); "registered" users of ADDA will be notified when updates to the code are made. If you publish results obtained using ADDA, you should acknowledge the source of the code. The general reference is - Yurkin M.A. and Hoekstra A.G. The discrete-dipole-approximation code ADDA: capabilities and known limitations, [_J. Quant. Spectrosc. Radiat. Transfer_ **112**, 2234–2247](http://doi.org/10.1016/j.jqsrt.2011.01.031) (2011).
+If you choose to use ADDA, please [subscribe](mailto:adda-announce+subscribe@googlegroups.com) to [announcement mailing list](http://groups.google.com/group/adda-announce); "registered" users of ADDA will be notified when updates to the code are made. If you publish results obtained using ADDA, you should acknowledge the source of the code. The general reference is – Yurkin M.A. and Hoekstra A.G. The discrete-dipole-approximation code ADDA: capabilities and known limitations, [_J. Quant. Spectrosc. Radiat. Transfer_ **112**, 2234–2247](http://doi.org/10.1016/j.jqsrt.2011.01.031) (2011).
 Please also look at [a list of more specific references](https://github.com/adda-team/adda/wiki/References).
 
-We encourage users to provide feedback in any possible way. If you have any questions, please [write](mailto:adda-discuss@googlegroups.com) to the [discussion group](http://groups.google.com/group/adda-discuss). If you have any suggestions or a bug report, submit it directly to the [issue tracker](https://github.com/adda-team/adda/issues), taking advantage of the open development process. Please also provide feedback on the existing issues - you may upvote issues that you find important (GitHub account is required) and/or provide some meaningful comments.
+We encourage users to provide feedback in any possible way. If you have any questions, please [write](mailto:adda-discuss@googlegroups.com) to the [discussion group](http://groups.google.com/group/adda-discuss). If you have any suggestions or a bug report, submit it directly to the [issue tracker](https://github.com/adda-team/adda/issues), taking advantage of the open development process. Please also provide feedback on the existing issues – you may upvote issues that you find important (GitHub account is required) and/or provide some meaningful comments.
 
 ### Directory structure
 
-* `.github/` - GitHub-related settings
-* `devtools/` - tools used by ADDA developers
+* `.github/` – GitHub-related settings
+* `devtools/` – tools used by ADDA developers
 * `doc/` – documentation
 * `examples/` – examples of using ADDA
 * `input/` – default input files
 * `misc/` – additional tools, relatively independent from the main part of ADDA
 * `sample/` – sample output and other files
-* `src/` - source files and makefiles
-* `tests/` - various tests to make the development of ADDA more robust
-* `win64/` - executables for 64-bit (x86\_64) Windows
-* `LICENSE` - GNU General Public License v3.0
+* `src/` – source files and makefiles
+* `tests/` – various tests to make the development of ADDA more robust
+* `win64/` – executables for 64-bit (x86\_64) Windows
+* `LICENSE` – GNU General Public License v3.0
