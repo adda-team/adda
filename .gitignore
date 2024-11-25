@@ -6,8 +6,9 @@
 .DS_Store
 
 # for Eclipse
-.сproject
-.project 
+/.сproject
+/.project
+/.settings/
 
 # for VS Code
-.vscode
+/.vscode
