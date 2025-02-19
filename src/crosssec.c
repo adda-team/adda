@@ -500,8 +500,8 @@ void ReadScatGridParms(const char * restrict fname)
 //======================================================================================================================
 static inline double eta2(const double n[static restrict 3])
 /* calculates IGT_SO correction for scattering at direction n. Exact formula is based on integration of exp(ikn.r) over
- * the dipole volume, resulting in Product(sinc(kd[mu]*n[mu]/2),mu). But here we use a second-order approximation.
- * Does not depend on n for cubical dipoles.
+ * the voxel volume, resulting in Product(sinc(kd[mu]*n[mu]/2),mu). But here we use a second-order approximation.
+ * Does not depend on n for cubical voxels.
  */
 {
 	return 1-(kdX*kdX*n[0]*n[0]+kdY*kdY*n[1]*n[1]+kdZ*kdZ*n[2]*n[2])/24;
@@ -509,7 +509,7 @@ static inline double eta2(const double n[static restrict 3])
 
 //======================================================================================================================
 static inline doublecomplex eta2cmplx(const doublecomplex n[static restrict 3])
-// same as eta2, but for complex input vector. Does not depend on n (and is real) for cubical dipoles if n.n=1
+// same as eta2, but for complex input vector. Does not depend on n (and is real) for cubical voxels if n.n=1
 {
 	return 1-(kdX*kdX*n[0]*n[0]+kdY*kdY*n[1]*n[1]+kdZ*kdZ*n[2]*n[2])/24;
 }
@@ -541,16 +541,16 @@ static void CalcFieldFree(doublecomplex ebuff[static restrict 3], // where to wr
 	imExp_arr(-kdY*n[1],boxY,expsY);
 	imExp_arr(-kdZ*n[2],local_Nz_unif,expsZ);
 #endif // !SPARSE
-	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
+	/* this piece of code tries to use that usually only x position changes from voxel to voxel, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
 	 * porous particles though, but for them this part of code is anyway fast relative to the FFT on a large grid;
 	 * Further optimization is possible using some kind of plans, i.e. by preliminary analyzing the position of the
-	 * real dipoles on the grid.
+	 * real voxels on the grid.
 	 */
 	iy1=iz1=UNDEF;
 	for (j=0;j<local_nvoid_Ndip;++j) {
 		jjj=3*j;
-		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		// a=exp(-ikr.n), but r is taken relative to the first voxel of the local box
 		ix=position[jjj];
 		iy2=position[jjj+1];
 		iz2=position[jjj+2];
@@ -594,7 +594,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
                           const double nF[static restrict 3])     // scattering direction (at infinity)
 /* Same as CalcFieldFree but for particle near surface.
  * For scattering into the substrate we employ the reciprocity principle. The scattered field is obtained from field of
- * the plane wave incoming from the scattered direction at the dipole position. In particular,
+ * the plane wave incoming from the scattered direction at the voxel center. In particular,
  * E_sca(s,p) = eF(s,p)*(k_0^2/r)*exp(ikr)*t'(s,p) * Sum[P_j.eN_(s,P)*exp(-i*k_0*nN.r_j)],
  * where eF,eN are unit [e.e=1] vectors at far and near-field, nN is the normalized transmitted k-vector (also nN.nN=1).
  * t' is transmittance coefficient from substrate into the vacuum, k is wavevector in the substrate.
@@ -689,16 +689,16 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	imExp_arr(-kdY*nN[1],boxY,expsY);
 	imExp_arr(-kdZ*nN[2],local_Nz_unif,expsZ);
 #endif // !SPARSE
-	/* this piece of code tries to use that usually only x position changes from dipole to dipole, saving a complex
+	/* this piece of code tries to use that usually only x position changes from voxel to voxel, saving a complex
 	 * multiplication seems to be beneficial, even considering bookkeeping overhead; it may not be as good for very
 	 * porous particles though, but for them this part of code is anyway fast relative to the FFT on a large grid;
 	 * Further optimization is possible using some kind of plans, i.e. by preliminary analyzing the position of the
-	 * real dipoles on the grid.
+	 * real voxels on the grid.
 	 */
 	iy1=iz1=UNDEF;
 	if (above) for (j=0;j<local_nvoid_Ndip;++j) { // two sums need to be calculated
 		jjj=3*j;
-		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		// a=exp(-ikr.n), but r is taken relative to the first voxel of the local box
 		ix=position[jjj];
 		iy2=position[jjj+1];
 		iz2=position[jjj+2];
@@ -730,7 +730,7 @@ static void CalcFieldSurf(doublecomplex ebuff[static restrict 3], // where to wr
 	} /* end for j above surface */
 	else for (j=0;j<local_nvoid_Ndip;++j) { // below surface, single sum - similar to free-space scattering
 		jjj=3*j;
-		// a=exp(-ikr.n), but r is taken relative to the first dipole of the local box
+		// a=exp(-ikr.n), but r is taken relative to the first voxel of the local box
 		ix=position[jjj];
 		iy2=position[jjj+1];
 		iz2=position[jjj+2];
@@ -822,12 +822,12 @@ double ExtCross(const double * restrict incPol)
 		for (i=0;i<local_nvoid_Ndip;++i) sum+=cDotProd_Im(pvec+3*i,Einc+3*i); // sum{Im(P.E_inc*)}
 		MyInnerProduct(&sum,double_type,1,&Timing_ScatQuanComm);
 		sum*=FOUR_PI*WaveNum;
-		/* For cubical dipoles the following satisfies IGT_SO, because this factor is applied in CalcField() and is
-		 * independent of propagation or scattering direction. For rectangular dipoles, it is only approximate but
-		 * expected to be accurate for not very elongated dipoles and/or not very spread out incident field.
+		/* For cubical voxels the following satisfies IGT_SO, because this factor is applied in CalcField() and is
+		 * independent of propagation or scattering direction. For rectangular voxels, it is only approximate but
+		 * expected to be accurate for not very elongated voxels and/or not very spread out incident field.
 		 *
 		 * In principle, the situation is similar for full IGT, but there the correction factor depends on the
-		 * propagation direction even for cubical dipoles
+		 * propagation direction even for cubical voxels
 		 */
 		if (ScatRelation==SQ_IGT_SO) sum*=eta2(prop);
 	}
@@ -1240,7 +1240,7 @@ void AsymParm_z(double *vec,const char *f_suf)
 void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 3],
 	double * restrict Frp)
 /* Calculate the Radiation Pressure (separately incident and scattering part by direct calculation of the scattering
- * force. The total force per dipole is calculated as intermediate results. It is saved to Frp, if the latter is not
+ * force. The total force per voxel is calculated as intermediate results. It is saved to Frp, if the latter is not
  * NULL. mem denotes the specific memory allocated before function call
  *
  * This should be completely rewritten to work through FFT. Moreover, it should comply with '-scat ...' command line
@@ -1266,7 +1266,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	// initialize
 	vInit(Fsca_tot);
 	vInit(Finc_tot);
-	// Calculate incoming force per dipole
+	// Calculate incoming force per voxel
 	if (Frp==NULL) vec=Finc;
 	else mem+=sizeof(double)*local_nRows; // memory allocated before for Frp
 	/* The following expression F_inc=k(v)*0.5*Sum(P.Einc(*)) is valid only for the plane wave
@@ -1285,7 +1285,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	 * and rdipT does not change between the calls. So one AllGather of rdipT can be removed. Number of memory
 	 * allocations can also be reduced. But this should be replaced by Fourier anyway.
 	 */
-	/* The following is somewhat redundant in sparse mode, since "full" (containing information about all dipoles)
+	/* The following is somewhat redundant in sparse mode, since "full" (containing information about all voxels)
 	 * vectors are already present in that mode. However, we do not optimize it now, since in standard mode radiation
 	 * forces should be computed by FFT anyway. Moreover, there are certain ideas to optimize sparse mode, so it will
 	 * not use full vectors - if done, this improvement can be also adjusted to the code below.
@@ -1305,7 +1305,7 @@ void Frp_mat(double Finc_tot[static restrict 3],double Fsca_tot[static restrict 
 	rdipT=DipoleCoord;
 	if (mem!=0) PrintBoth(logfile,"Additional memory usage for radiation forces: "FFORMM" MB\n",mem/MBYTE);
 #endif
-	// Calculate scattering force per dipole
+	// Calculate scattering force per voxel
 	/* Currently, testing the correctness of the following is very hard because the original code lacks comments. So the
 	 * best we can do before rewriting it completely is to test that it produces reasonable results for a number of test
 	 * cases.

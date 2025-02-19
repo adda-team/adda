@@ -1352,7 +1352,7 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 #ifdef PARALLEL
 	doublecomplex *bottom; // value of arg at bottom of current processor
 #endif
-	doublecomplex *top; // propagating value of arg at planes between the dipoles
+	doublecomplex *top; // propagating value of arg at planes between the voxels
 
 #ifdef OPENCL // Xmatrix is not used in OpenCL, hence a complicated logic to save memory if possible
 	bool a_arg=false;
@@ -1390,12 +1390,12 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 	// calculate function of refractive index
 	for (i=0;i<Nmat;i++) vals[i]=I*(ref_index[i]-1)*kdZ/2;
 	vals[Nmat]=0;
-	// calculate values of mat (the same algorithm as in matvec), for void dipoles mat=Nmat
+	// calculate values of mat (the same algorithm as in matvec), for void voxels mat=Nmat
 	for (dip=0;dip<local_Ndip;dip++) mat[dip]=(unsigned char)Nmat;
 	for (dip=0,ind=0;dip<local_nvoid_Ndip;dip++,ind+=3) mat[INDEX_GRID(ind)]=material[dip];
 	/* main part responsible for calculation of arg; arg[i,j,k+1]=arg[i,j,k]+vals[i,j,k]+vals[i,j,k+1]
 	 * but that is done with temporary variables (not to index both k and k+1 simultaneously
-	 * 'ind' traverses one slice, and 'dip' - all dipoles
+	 * 'ind' traverses one slice, and 'dip' - all dipoles (voxels)
 	 */
 	// First, calculate shifts relative to the bottom of current processor
 	for(ind=0;ind<boxXY;ind++) top[ind]=0;
@@ -1410,7 +1410,7 @@ static void CalcFieldWKB(doublecomplex * restrict Efield)
 		for(k=local_z0,dip_sl=0;k<local_z1_coer;k++,dip_sl+=boxXY) for(ind=0,dip=dip_sl;ind<boxXY;ind++,dip++)
 			arg[dip]+=bottom[ind];
 #endif
-	// E=Einc*Exp(arg), but arg is defined on a set of all (including void) dipoles
+	// E=Einc*Exp(arg), but arg is defined on a set of all (including void) voxels
 	for (ind=0;ind<local_nRows;ind+=3) {
 		tmpc=cexp(arg[INDEX_GRID(ind)]);
 		cvMultScal_cmplx(tmpc,Einc+ind,Efield+ind);

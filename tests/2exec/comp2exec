@@ -98,7 +98,8 @@ ADDASPAOCL="./../../src/ocl/adda_spa_ocl" # this combination is not yet supporte
 # These variables must be updated whenever new features are added to ADDA
 
 CMDIGNORE="coated2|onion|superellipsoid|-h anisotr|-h int|-h pol|-h rect_dip|-h scat|-int igt_so|-h beam|-h m|-V"
-CMDIGNORE="$CMDIGNORE|-beam bessel|-surf 0.5|-surf 4 5 2|1e-16"
+CMDIGNORE="$CMDIGNORE|-beam bessel|-surf 0.5|-surf 4 5 2|1e-16|-h shape line|-h jagged|-h save_geom|-h store_force"
+CMDIGNORE="$CMDIGNORE|-h no_vol_cor"
 OLDIGNORE="^ADDA v\.|^Copyright \(C\) 2006-20|^  coated2|^  onion|^  superellipsoid|^  -int|^  -pol|^  -scat"
 OLDIGNORE="$OLDIGNORE|^Incident beam center position:|^Incident beam: point dipole|^  -beam_center|Center position:"
 OLDIGNORE="$OLDIGNORE|^parameters of predefined shapes"

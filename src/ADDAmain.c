@@ -78,7 +78,7 @@ int main(int argc,char **argv)
 	ParseParameters(argc,argv);
 	D("Reading command line finished");
 	VariablesInterconnect(); // also initializes beam
-	// Initialize box's; get number of dipoles; set some variables
+	// Initialize box's; get number of voxels; set some variables
 	InitShape();
 	D("Initialization of shape finished");
 	FinalizeSymmetry(); // finalize symmetries and check for possible conflicts of symmetries with other options

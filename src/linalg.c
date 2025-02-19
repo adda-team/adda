@@ -545,7 +545,7 @@ void nMultSelf_cmplx(doublecomplex * restrict a,const doublecomplex c)
 //======================================================================================================================
 
 void nMult_mat(doublecomplex * restrict a,const doublecomplex * restrict b,/*const*/ doublecomplex (* restrict c)[3])
-/* multiply by a function of material of a dipole and component; a[3*i+j]=c[mat[i]][j]*b[3*i+j]
+/* multiply by a function of voxel material and component; a[3*i+j]=c[mat[i]][j]*b[3*i+j]
  * !!! a,b,c must not alias !!!
  * It seems impossible to declare c as constant (due to two pointers)
  */
@@ -569,7 +569,7 @@ void nMult_mat(doublecomplex * restrict a,const doublecomplex * restrict b,/*con
 //======================================================================================================================
 
 void nMultSelf_mat(doublecomplex * restrict a,/*const*/ doublecomplex (* restrict c)[3])
-/* multiply by a function of material of a dipole and component; a[3*i+j]*=c[mat[i]][j]
+/* multiply by a function of voxel material and component; a[3*i+j]*=c[mat[i]][j]
  * !!! a and c must not alias !!!
  * It seems impossible to declare c as constant (due to two pointers)
  */

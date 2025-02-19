@@ -29,21 +29,21 @@
 // GLOBAL VARIABLES
 
 // function pointers, defined as extern in interaction.h
-/* Calculates interaction term between two dipoles; given integer distance vector {i,j,k} (in units of d). The acting
- * dipole is placed in the origin, while the field is calculated at position given as argument. All six components of
+/* Calculates interaction term between two voxels; given integer distance vector {i,j,k} (in units of d). The acting
+ * voxel is placed in the origin, while the field is calculated at position given as argument. All six components of
  * the symmetric matrix are computed at once. The elements in result are: [G11, G12, G13, G22, G23, G33]
  */
 void (*InterTerm_int)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
 // same as above, but distance is passed as a double vector (in um)
 void (*InterTerm_real)(const double qvec[static restrict 3],doublecomplex result[static restrict 6]);
-/* Calculates reflection term between two dipoles; given integer distance vector {i,j,k} (in units of d). k is the _sum_
- * of dipole indices along z with respect to the center of bottom dipoles of the particle. Bottom is considered for the
+/* Calculates reflection term between two voxels; given integer distance vector {i,j,k} (in units of d). k is the _sum_
+ * of voxel indices along z with respect to the center of bottom voxels of the particle. Bottom is considered for the
  * current processor (position) and the whole particle (position_full) in FFT and SPARSE modes respectively. The latter
  * behavior is determined by ZsumShift.
- * The acting dipole is placed in the origin, while the field is calculated at position given as argument.
+ * The acting voxel is placed in the origin, while the field is calculated at position given as argument.
  * Six components of the matrix are computed at once: [GR11, GR12, GR13, GR22, GR23, GR33].
  * The matrix is not symmetric, but satisfies: GR21=GR12, GR31=-GR13, GR32=-GR23. However the large matrix GR, which
- * acts on the total vector of dipole polarizations is still complex-symmetric, since GR[i,j]=GR^T[j,i] (interchange of
+ * acts on the total vector of voxel polarizations is still complex-symmetric, since GR[i,j]=GR^T[j,i] (interchange of
  * i and j changes only the sign of x and y components, but not z, which leads to sign change of 13,31,23,32 components)
  */
 void (*ReflTerm_int)(const int i,const int j,const int k,doublecomplex result[static restrict 6]);
@@ -153,7 +153,7 @@ void name##_real(const double qvec_in[static restrict 3],doublecomplex result[st
  */
 # define NO_REAL_WRAPPER(name) \
 void name##_real(const double qvec_in[static restrict 3] ATT_UNUSED ,doublecomplex result[static restrict 6] ATT_UNUSED ) { \
-	LogError(ALL_POS,"Function "#name" to compute dipole interaction does not support real input"); }
+	LogError(ALL_POS,"Function "#name" to compute voxel interaction does not support real input"); }
 
 //=====================================================================================================================
 /* The following two functions are used to do common calculation parts. For simplicity it is best to call them with the
@@ -164,7 +164,7 @@ void name##_real(const double qvec_in[static restrict 3] ATT_UNUSED ,doublecompl
 //=====================================================================================================================
 
 static inline void UnitsGridToCoord(const int i,const int j,const int k,double qvec[static 3])
-// convert integer coordinates (in dipole sizes) to real distance vector
+// convert integer coordinates (in voxel sizes) to real distance vector
 {
 	qvec[0]=i*dsX;
 	qvec[1]=j*dsY;
@@ -281,7 +281,7 @@ static inline doublecomplex accImExp(const double x)
 
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
-// Core routine that calculates the point interaction term between two dipoles
+// Core routine that calculates the point interaction term between two voxels
 {
 	const __m128d ie = accImExp_pd(kr);
 	const __m128d sc = _mm_mul_pd(_mm_set1_pd(invr3),ie);
@@ -333,7 +333,7 @@ static inline doublecomplex accImExp(const double x)
 
 static inline void InterTerm_core(const double kr,const double kr2,const double invr3,const double qmunu[static 6],
 	doublecomplex *expval,doublecomplex result[static 6])
-// Core routine that calculates the point interaction term between two dipoles
+// Core routine that calculates the point interaction term between two voxels
 {
 	const double t1=(3-kr2), t2=-3*kr, t3=(kr2-1);
 	*expval=invr3*imExp(kr);
@@ -357,7 +357,7 @@ static inline void InterTerm_core(const double kr,const double kr2,const double 
 //=====================================================================================================================
 
 static inline void InterTerm_poi(double qvec[static 3],doublecomplex result[static 6])
-/* Interaction term between two dipoles using the point-dipoles formulation;
+/* Interaction term between two voxels using the point-dipoles formulation;
  * qvec is the real distance, result is for produced output
  */
 {
@@ -376,8 +376,8 @@ WRAPPERS_INTER(InterTerm_poi)
 //=====================================================================================================================
 
 static inline void InterTerm_fcd(double qvec[static 3],doublecomplex result[static 6])
-/* Interaction term between two dipoles for FCD. See InterTerm_poi for more details.
- * !!! Works only for cubical dipoles, otherwise careful reconsideration of all formulae is required
+/* Interaction term between two voxels for FCD. See InterTerm_poi for more details.
+ * !!! Works only for cubical voxels, otherwise careful reconsideration of all formulae is required
  *
  * FCD is based on Gay-Balmaz P., Martin O.J.F. "A library for computing the filtered and non-filtered 3D Green's tensor
  * associated with infinite homogeneous space and surfaces", Comp. Phys. Comm. 144:111-120 (2002), and
@@ -433,8 +433,8 @@ WRAPPERS_INTER(InterTerm_fcd)
 //=====================================================================================================================
 
 static inline void InterTerm_fcd_st(double qvec[static 3],doublecomplex result[static 6])
-/* Interaction term between two dipoles for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
- * !!! Works only for cubical dipoles, otherwise careful reconsideration of all formulae is required
+/* Interaction term between two voxels for static FCD (in the limit of k->inf). See InterTerm_fcd for more details.
+ * !!! Works only for cubical voxels, otherwise careful reconsideration of all formulae is required
  */
 // If needed, it can be updated to work fine for qvec==0
 {
@@ -512,7 +512,7 @@ static inline double gamma_scaled(const double s,const double x,const double exp
 static inline double AverageGaussCube(double x)
 /* computes one component of Gaussian averaging over a cube: (multiplied by 2)
  * [2/(sqrt(2pi)*d*Rp)]*Integral[exp(-(x+t)^2/(2Rp^2)),{t,-d/2,d/2}]
- * !!! works only for cubical dipoles (with single size gridspace)
+ * !!! works only for cubical voxels (with single size gridspace)
  */
 {
 	double dif;
@@ -528,11 +528,11 @@ static inline double AverageGaussCube(double x)
 //=====================================================================================================================
 
 static inline void InterTerm_nloc_both(double qvec[static 3],doublecomplex result[static 6],const bool averageH)
-/* Interaction term between two dipoles using the non-local interaction;
+/* Interaction term between two voxels using the non-local interaction;
  * qvec is the real distance, result is for produced output
- * averageH specifies if the h function should be averaged over the dipole (cube) volume
+ * averageH specifies if the h function should be averaged over the voxel volume
  *
- * !!! Currently only static version is implemented; and only for cubical dipoles
+ * !!! Currently only static version is implemented; and only for cubical voxels
  * !!! Mind the difference in sign with term in quantum-mechanical simulations, which defines the interaction energy
  * G = 4/[3sqrt(PI)R^3]g(5/2,x)[3(RR/R^2)-I] - (4pi/3)h(R), where x=R^2/(2Rp^2), g is lower incomplete  gamma-function.
  * For moderate x, those gamma functions can be easily expressed through erf by upward recursion, since
@@ -604,7 +604,7 @@ WRAPPERS_INTER_3(InterTerm_nloc_av,InterTerm_nloc_both,true)
 #ifndef NO_FORTRAN
 
 static inline void InterTerm_igt(double qvec[static 3],doublecomplex result[static 6])
-// Interaction term between two dipoles with integration of Green's tensor. See InterTerm_poi for more details.
+// Interaction term between two voxels with integration of Green's tensor. See InterTerm_poi for more details.
 {
 	double tmp[12];
 	int comp,ifail;
@@ -666,7 +666,7 @@ WRAPPERS_INTER(InterTerm_igt)
 //=====================================================================================================================
 
 static inline void UnitsGridToCoordShift(const int i,const int j,const int k,double qvec[static 3])
-// convert integer coordinates (in dipole sizes) to real distance vector with extra shift along the z-axis
+// convert integer coordinates (in voxel sizes) to real distance vector with extra shift along the z-axis
 {
 	qvec[0]=i*dsX;
 	qvec[1]=j*dsY;

@@ -229,7 +229,7 @@ static inline void CalcTripleDiffFB(const double rvec[static restrict 3],const d
 		B_term[ind0]=0;
 	}
 
-	// iterate over 8 corners of the dipole (voxel)
+	// iterate over 8 corners of the voxel
 	for (indX=-1;indX<2;indX+=2) for (indY=-1;indY<2;indY+=2) for (indZ=-1;indZ<2;indZ+=2) {
 		Rvec[0]=rvec[0] + 0.5*indX*ds_x;
 		Rvec[1]=rvec[1] + 0.5*indY*ds_y;

@@ -72,7 +72,7 @@ doublecomplex * restrict Avecbuffer; // used to hold the result of matrix-vector
 doublecomplex * restrict vec1,* restrict vec2,* restrict vec3,* restrict vec4;
 // used in matvec.c
 #ifdef SPARSE
-doublecomplex * restrict arg_full; // vector to hold argvec for all dipoles
+doublecomplex * restrict arg_full; // vector to hold argvec for all voxels
 #endif
 
 // LOCAL VARIABLES
@@ -472,7 +472,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 				//see B.T. Draine 'Propagation of Electromagnetic Waves on a Rectangular Lattice of Polarizable Points'
 				// Eq number noted for some lines of code
 				res[i]=3*(mrel[0]*mrel[0]-1)/(mrel[0]*mrel[0]+2); // CM
-				// Eq.(55), corrected value CM for rectangular dipole
+				// Eq.(55), corrected value CM for rectangular voxel
 				res[i]=res[i]/(1+res[i]*draine_precalc_data_array[draine_precalc_data_index].R0[i]);
 				res[i]*=dipvol/FOUR_PI;
 				if (PolRelation==POL_CLDR) {
@@ -525,7 +525,7 @@ static void CoupleConstant(doublecomplex *mrel,const enum incpol which,doublecom
 					res[i]=polMplusRR(2*ONE_THIRD*kd2*(2+kd*INV_PI*log((PI-kd)/(PI+kd))),mrel[i]);
 					break;
 				case POL_IGT_SO: res[i]=polMplusRR(SO_B1*kd2,mrel[i]); break;
-				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to cubical dipole) sphere
+				case POL_LAK: // M=(8pi/3)[(1-ika)exp(ika)-1], a - radius of volume-equivalent (to a cube) sphere
 					ka=LAK_C*kd;
 					res[i]=polM(2*FOUR_PI_OVER_THREE*((1-I*ka)*imExp(ka)-1),mrel[i]);
 					break;

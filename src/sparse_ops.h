@@ -56,7 +56,7 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 	const __m128d argZ = _mm_load_pd((double *)(argvec+j3+2));
 	STOP_IGNORE;
 
-	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding dipoles
+	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding voxels
 		(*InterTerm_int)(position[i3]-position_full[j3], position[i3+1]-position_full[j3+1],
 			position[i3+2]-position_full[j3+2], iterm);
 		res = cmul(argX, *(__m128d *)&(iterm[0]));
@@ -150,7 +150,7 @@ static inline void AijProd(doublecomplex * restrict argvec,doublecomplex * restr
 	doublecomplex iterm[6];
 	const size_t i3=3*i,j3=3*j;
 
-	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding dipoles
+	if (j!=local_nvoid_d0+i) { // main interaction is not computed for coinciding voxels
 		(*InterTerm_int)(position[i3]-position_full[j3],position[i3+1]-position_full[j3+1],
 			position[i3+2]-position_full[j3+2],iterm);
 		cSymMatrVec(iterm,argvec+j3,res);

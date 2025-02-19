@@ -177,7 +177,7 @@ enum sh { // shape types
 	SH_CYLINDER,      // cylinder
 	SH_EGG,           // egg
 	SH_ELLIPSOID,     // general ellipsoid
-	SH_LINE,          // line with width of one dipole
+	SH_LINE,          // line with width of one voxel
 	SH_ONION,         // multilayered concentric sphere
 	SH_ONION_ELL,     // multilayered concentric ellipsoid
 	SH_PLATE,         // plate
@@ -212,7 +212,7 @@ enum pol { // which way to calculate coupleconstant
 
 enum scat { // how to calculate scattering quantities
 	SQ_DRAINE, // classical, as Draine
-	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole when calculating
+	SQ_FINDIP, /* Same as Draine, but with correction of radiation energy of a _finite_ dipole (voxel) when calculating
 	              absorption cross section */
 	SQ_IGT_SO  // Integration of Green's tensor (approximation of second order in kd)
 };
@@ -230,7 +230,7 @@ enum inter { // how to calculate interaction term
 	 * add an identifier starting with 'G_' and a descriptive comment to this list in the alphabetical order.
 	 */
 };
-enum refl { // how to calculate interaction of dipoles through the nearby surface (reflected G)
+enum refl { // how to calculate interaction of voxels through the nearby surface (reflected G)
 	GR_IMG,       // approximate expression based on a single image dipole
 	GR_SOM        // direct evaluation of Sommerfeld integrals
 	/* TO ADD NEW REFLECTION FORMULATION

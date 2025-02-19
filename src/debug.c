@@ -53,7 +53,7 @@ void DebugPrintf(ERR_LOC_DECL,const char * restrict fmt, ... )
 //======================================================================================================================
 
 void FieldPrint (doublecomplex * restrict x)
-/* print current field at certain dipole -- not used; left for deep debug; NOT ROBUST, since DipoleCoord is not always
+/* print current field at certain voxel -- not used; left for deep debug; NOT ROBUST, since DipoleCoord is not always
  * available
  */
 {

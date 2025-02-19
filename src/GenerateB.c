@@ -312,7 +312,7 @@ void InitBeam(void)
 
 void GenerateB (const enum incpol which,   // x - or y polarized incident light
                 doublecomplex *restrict b) // the b vector for the incident field
-// generates incident beam at every dipole
+// generates incident beam at every voxel center
 {
 	size_t i,j;
 	doublecomplex psi0,Q,Q2;
@@ -456,7 +456,7 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 			 * interaction it is expected to be singular, so we use an explicit formula for point dipole:
 			 * C0=(8pi/3)*k^4*|p0|^2. Thus we discard the choice of "-int ...", but still the used value should be
 			 * correct for most formulations, e.g. poi, fcd, fcd_st, igt_so. Moreover, it is also logical, since the
-			 * exciting dipole is really point one, in contrast to the dipoles composing the particle.
+			 * exciting dipole is really point one, in contrast to the voxels composing the particle.
 			 */
 			double temp=p0*WaveNum*WaveNum; // in principle, t1=1/k, but we keep a general formula
 			C0dipole=2*FOUR_PI_OVER_THREE*temp*temp;
@@ -651,8 +651,8 @@ void GenerateB (const enum incpol which,   // x - or y polarized incident light
 	/* TO ADD NEW BEAM
 	 * add a case above. Identifier ('B_...') should be defined inside 'enum beam' in const.h. This case should set
 	 * complex vector 'b', describing the incident field in the particle reference frame. It is set inside the cycle for
-	 * each dipole of the particle and is calculated using
-	 * 1) 'DipoleCoord' - array of dipole coordinates;
+	 * each voxel of the particle and is calculated using
+	 * 1) 'DipoleCoord' - array of dipole (voxel) coordinates;
 	 * 2) 'prop' - propagation direction of the incident field;
 	 * 3) 'ex' - direction of incident polarization;
 	 * 4) 'ey' - complementary unity vector of polarization (orthogonal to both 'prop' and 'ex');

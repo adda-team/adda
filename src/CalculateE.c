@@ -627,7 +627,7 @@ static void CalcScatPlane(const enum incpol which,const enum Eftype type)
 static void StoreFields(const enum incpol which,doublecomplex * restrict cmplxF,
 	double * restrict realF,const char * restrict fname_preffix,const char * restrict tmpl UOIP,
 	const char * restrict field_name,const char * restrict fullname)
-/* Write any fields on each dipole to file (internal fields, incident beam, polarization, etc.). Accepts both complex
+/* Write any fields at each voxel to file (internal fields, incident beam, polarization, etc.). Accepts both complex
  * and real fields. Processes the one, which is not null.
  *
  * All processors should write the 'field' to temporary file. These files are named by template 'tmpl' and afterwards
@@ -706,11 +706,11 @@ static void ParticleToBeamRF(double vec[static restrict 3])
 //======================================================================================================================
 
 static void CalcIntegralScatQuantities(const enum incpol which)
-/* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter, and force on the'
- * particle and each dipole. Cext and Cabs are averaged over orientation, if needed.
+/* calculates all the scattering cross sections, normalized and unnormalized asymmetry parameter, and force on the
+ * particle and each voxel. Cext and Cabs are averaged over orientation, if needed.
  */
 {
-	// Scattering force, extinction force and radiation pressure per dipole
+	// Scattering force, extinction force and radiation pressure per voxel
 	double * restrict Frp;
 	double Cext,Cabs,Csca,Cdec, // Cross sections
 	dummy[3],                // asymmetry parameter*Csca
@@ -841,7 +841,7 @@ static void CalcIntegralScatQuantities(const enum incpol which)
 //======================================================================================================================
 
 static void StoreIntFields(const enum incpol which)
-// Write actual internal fields (not exciting) on each dipole to file
+// Write actual internal fields (not exciting) at each voxel to file
 {
 	// calculate fields; e_field=P/(V*chi)=chi_inv*P; for anisotropic - by components
 	nMult_mat(xvec,pvec,chi_inv);
@@ -882,7 +882,7 @@ int CalculateE(const enum incpol which,const enum Eftype type)
 	if (scat_grid) CalcScatGrid(which);
 	// Calculate integral scattering quantities (cross sections, asymmetry parameter, electric forces)
 	if (calc_Cext || calc_Cabs || calc_Csca || calc_asym || calc_mat_force) CalcIntegralScatQuantities(which);
-	// saves internal fields and/or dipole polarizations to text file
+	// saves internal fields and/or dipole (voxel) polarizations to text file
 	if (store_int_field) StoreIntFields(which);
 	if (store_dip_pol) StoreFields(which,pvec,NULL,F_DIPPOL,F_DIPPOL_TMP,"P","Dipole polarizations");
 	return 0;

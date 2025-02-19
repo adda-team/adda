@@ -107,8 +107,8 @@ static inline doublecomplex imExpM1(const double arg)
 /* exp(i*arg) - 1 (should be used for small argument to avoid precision loss
  * We employ special code only for small arguments, ignoring the case when arg is close to 2piN. The latter can,
  * in principle, be handled by preliminary range reduction as in imExpTable. We do not implement it here, because such
- * case is a "coincidence" - may happen for a single dipole (or a plane of dipoles), while the case of small arg may
- * happen for all dipoles. In the latter case loss of precision affects all computed quantities.
+ * case is a "coincidence" - may happen for a single voxel (or a plane of voxels), while the case of small arg may
+ * happen for all voxels. In the latter case loss of precision affects all computed quantities.
  * The used expression through tan(arg/2) follows from general expression for cexpm1 below.
  */
 {
