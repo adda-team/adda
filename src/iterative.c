@@ -1519,6 +1519,9 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 	 *                                         D - symmetric interaction matrix of Green's tensor
 	 * we solve system (I+S.D.S).(S.x)=(S.b), S=sqrt(C), then total interaction matrix is symmetric and
 	 * Jacobi-preconditioned for any distribution of refractive index.
+	 *
+	 * Relative residual is defined by dividing by the norm of the righ-hand-side, i.e. |S.Einc|. This is more robust,
+	 * when various non-zero initial guesses are used.
 	 */
 	/* p=b=(S.Einc) is right part of the linear system; used only here. In iteration methods themselves p is completely
 	 * different vector. To avoid confusion this is done before any other initializations, specific to iterative solvers
@@ -1528,7 +1531,7 @@ int IterativeSolver(const enum iter method_in,const enum incpol which)
 	matvec_ready=false; // can be set to true only in CalcInitField (if !load_chpoint)
 	if (!load_chpoint) {
 		nMult_mat(pvec,Einc,cc_sqrt);
-		temp=nNorm2(pvec,&Timing_InitIterComm); // |r_0|^2 when x_0=0
+		temp=nNorm2(pvec,&Timing_InitIterComm); // |S.Einc|^2, but also equal to |r_0|^2 when x_0=0
 		resid_scale=1/temp;
 		epsB=iter_eps*iter_eps*temp;
 		// Calculate initial field
