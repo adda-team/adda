@@ -1,6 +1,9 @@
 ---
 name: Bug report
 about: When the result is different from that described in docs
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
