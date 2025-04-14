@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Executes ADDA for a sphere with different approximations for internal fields. Default input parameters lead to 
-# lightweight sample simulation. Realistic cases from the paper (Figs.15,16) are given by correponding wrapper scripts,
+# lightweight sample simulation. Realistic cases from the paper (Figs.15,16) are given by corresponding wrapper scripts,
 # but they require a lot more resources (see also the scripts in cluster/).
 #
 # For full operation, it is required to provide reference and approximate internal fields, using the scripts in WKBr/
@@ -26,7 +26,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-RUN="$MPIEXEC $ADDA_MPI"
+RUN=($MPIEXEC "$ADDA_MPI")
 
 # the following define filenames (with full or relative paths) 
 EXACT="Mie_solution/if-$size-$m-$grid-X-component.dat" # Scattnlay and Bhfield programs return x-polarized el. field
@@ -60,9 +60,9 @@ fi
 # The following lines correspond to six lines in each figure part.
 # -orient 90 0 0 option to rotate the coordinate system, because Scattnlay and Bhfield programs return an x-polarized field, 
 # while ADDA works with y-polarization by default.
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $EXACT -orient 90 0 0
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field inc
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field zero
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field wkb
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $WKBR_I
-$RUN -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $WKBR_II
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $EXACT -orient 90 0 0
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field inc
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field zero
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field wkb
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $WKBR_I
+"${RUN[@]}" -shape sphere -size $size -grid $grid -m $m 0 -no_vol_cor -eps 6 -init_field read $WKBR_II

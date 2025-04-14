@@ -12,10 +12,17 @@
 # but can be executed from anywhere.
 
 # The minimal test example is the following (note the test for exit value)
-#ADDA_SEQ=$(./find_adda)
+#ADDA=$(./find_adda)
 #if [ $? -ne 0 ]; then
 #  exit 1
 #fi
+#"$ADDA" ...
+
+# For the OpenCL mode, add the argument ocl. For the MPI mode add the argument mpi and change the run to something like:
+#mpiexec -n 4 "$ADDA" ...
+# or, for multiple uses, to:
+#MPIEXEC_ADDA=(mpiexec -n 4 "$ADDA")
+#"${MPIEXEC_ADDA[@]}" ...
 
 mode=${1:-seq}
 
