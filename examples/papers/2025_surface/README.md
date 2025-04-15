@@ -1,8 +1,8 @@
 The included Python3 scripts reproduce Figure 8 and parts of Figure 11 of the paper: 
-Virkki, A. and Yurkin, M. (2025), Microwave scattering by rough polyhedral particles on a surface, [JQSRT, In revision](https://arxiv.org/abs/arXiv:2501.10019). 
-The computations were originally conducted using ADDA v.1.4.0.
+Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on a surface, [JQSRT, In revision](https://arxiv.org/abs/arXiv:2501.10019). 
+The computations were originally conducted using ADDA v.1.4.0, but also tested with v.1.5.0-alpha3.
 
-To run ADDA, you can use the Python script `makerunfiles_surf.py` to generate a run file. By default, it generates the file `run_sphere` for 10 commands: 8 for a surface case (4 incidence angles for 2 size parameters) and 2 for spheres of corresponding sizes in free space. The file has to be in the same location as ADDA and has to have the permission to run. 
+To run ADDA, you can use the Python script `makerunfiles_surf.py` to generate a run file. By default, it generates the file `run_sphere` for 10 commands: 8 for a surface case (4 incidence angles for 2 size parameters) and 2 for spheres of corresponding sizes in free space. The file can be executed immediately if ADDA binaries are available in one of the standard locations. 
 
 Folders produced by the script `makerunfiles_surf.py`:
 * `SurfSphere/` - For raw ADDA output for spheres on (and in touch with) a surface
@@ -14,10 +14,12 @@ The following python scripts produce corresponding figures `fig8.pdf` and `fig11
 
 The scripts compute and plot by default the incidence angles 0°, 20°, 40°, and 60°.
 
-The steps to run the (unchanged) scripts on the command line to generate `fig8.pdf` and `fig11A.pdf`:
-* `python3 makerunfiles_surf.py`
-* `chmod u+x run_sphere`
-* `./run_sphere`
-* `python3 fig8.py`
-* `python3 fig11.py` 
+The steps to run the (unchanged) scripts on the command line to generate `fig8.pdf` and `fig11A.pdf` (you may need to replace `python3` by `python` depending on the installed environment):
+```bash
+python3 makerunfiles_surf.py
+sh run_sphere
+python3 fig8.py
+python3 fig11.py 
+```
 
+The data for polyhedrons from the same paper takes a lot of time to recompute. Ensemble-averaged scattering matrices for polyhedrons are stored at https://doi.org/10.5281/zenodo.15040283, and separate scripts are available at https://github.com/a-virkki/ADDA-grid-plot-codes to plot some of the paper's figures based on these data.

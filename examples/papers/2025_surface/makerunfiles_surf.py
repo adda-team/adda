@@ -25,15 +25,20 @@ mode = 2
 # run file name
 run_file_name = 'run_sphere'
 
+def frontmatter(f):
+    f.write('#!/bin/bash\n# Uses common script to find ADDA executable, look inside it for details\n')
+    f.write('ADDA=$(../../find_adda)\nif [ $? -ne 0 ]; then\n  exit 1\nfi\n\n')
+
 def main_surface():
     # write run commands into a file
     f = open(run_file_name, "w")
+    frontmatter(f)
     for sp in xs:
         if not os.path.exists('SurfSphere/Sphere_m217i0004_x%d' % (int(sp*10))):
             os.makedirs('SurfSphere/Sphere_m217i0004_x%d' % (int(sp*10)))    
         for orient in incidenceprop: 
             inc = orient * pi / 180.0    # incidence angle in radians 
-            f.write('./adda -shape sphere -dpl 32.0 -eq_rad %.1f ' % (sp))
+            f.write('"$ADDA" -shape sphere -dpl 32.0 -eq_rad %.1f ' % (sp))
             f.write('-dir SurfSphere/Sphere_m217i0004_x%d/Prop-or%d ' % (int(sp*10),orient))
             f.write('-prop 0.0 %.4f %.4f ' % (sin(inc), -cos(inc)))   # propagation
             f.write('-scat_grid_inp scat_grid_directions.dat -store_scat_grid ')
@@ -43,14 +48,16 @@ def main_surface():
 
 def main_freespace():
     if not os.path.exists('NoSurfSphere'):
-        os.makedir('NoSurfSphere')
+        os.makedirs('NoSurfSphere')
         
     if mode == 1:
         f = open(run_file_name, "w")
+        frontmatter(f)
     elif mode == 2:
         f = open(run_file_name, "a")
+    
     for sp in xs:
-        f.write('./adda -shape sphere -dpl 32.0 -eq_rad %.1f ' % (sp))
+        f.write('"$ADDA" -shape sphere -dpl 32.0 -eq_rad %.1f ' % (sp))
         f.write('-dir NoSurfSphere/Sphere_m217i0004_x%d ' % (int(sp*10)))
         f.write('-prop 0.0 0.0 -1.0 ')  # propagation
         f.write('-scat_grid_inp scat_grid_directions.dat -store_scat_grid ')
