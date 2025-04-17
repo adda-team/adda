@@ -14,12 +14,13 @@ The following python scripts produce corresponding figures `fig8.pdf` and `fig11
 
 The scripts compute and plot by default the incidence angles 0°, 20°, 40°, and 60°.
 
-The steps to run the (unchanged) scripts on the command line to generate `fig8.pdf` and `fig11A.pdf` (you may need to replace `python3` by `python` depending on the installed environment):
+The steps to run the (unchanged) scripts on the command line to generate `fig8.pdf` and `fig11A.pdf`:
 ```bash
-python3 makerunfiles_surf.py
+./makerunfiles_surf.py
 sh run_sphere
-python3 fig8.py
-python3 fig11.py 
+./fig8.py
+./fig11.py 
 ```
+(On Windows you may need to run Python3 scripts by prepending them with `python` instead of `./`, depending on the Python installation).
 
 The data for polyhedrons from the same paper takes a lot of time to recompute. Ensemble-averaged scattering matrices for polyhedrons are stored at https://doi.org/10.5281/zenodo.15040283, and separate scripts are available at https://github.com/a-virkki/ADDA-grid-plot-codes to plot some of the paper's figures based on these data.

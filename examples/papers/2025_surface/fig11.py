@@ -1,8 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Generates Figure 11A (sp = 1.0) or Figure 11C (sp = 6.0) for the publication
-# Virkki, A. and Yurkin, M. (2025), Microwave scattering by rough polyhedral particles on a surface.
+# Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on a surface.
 # Reads scattering matrix grid arrays computed using ADDA and plots the log10-scale
 # intensity (1,1-element) in polar plots for the zenith and nadir views and one for both hemispheres
 # in the scattering plane (along the horizontal axis of the polar plots) for incidence angles 

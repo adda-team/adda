@@ -1,8 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Generates Figure 8 for the publication
-# Virkki, A. and Yurkin, M. (2025), Microwave scattering by rough polyhedral particles on 
+# Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on 
 # a surface. Reads scattering matrix grid arrays from ADDA and plots a mosaic of the
 # scattering-matrix elements (1,1), (1,2), (2,2), (3,3), and (4,4) in the scattering plane  
 # for incidence angles 0°, 20°, 40°, and 60°.
