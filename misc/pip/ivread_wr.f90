@@ -1,5 +1,5 @@
-subroutine ivread_wr(filein_name,face_normal,face_area,face_num,cor3_num, &
-  cor3,face,order_max,face_order,face_material,material_num,vertex_range) 
+subroutine ivread_wr ( cor3, face, face_material, face_order, filein_name, &
+  cor3_max, face_max, order_max, face_num, cor3_num, material_num, vertex_range) 
 ! 
 !  ivread.f90  Wriedt 04 July 2000
 !
@@ -29,56 +29,6 @@ subroutine ivread_wr(filein_name,face_normal,face_area,face_num,cor3_num, &
 !    The sizes of COR3_MAX, FACE_MAX and LINE_MAX control how much 
 !    information this program can handle. 
 !
-!    The "head.25.iv" file has 240146 faces and 119,736 points.
-!    The "fish.iv" file has about 76000 faces.
-!    The "brain.iv" file has between 40000 and 75000 faces.
-!
-!  Development:
-!
-!    26 May 1999: Added LINE_PRUNE switch, which will try to cut down
-!    (by about half) the number of superfluous lines created when
-!    faces are turned into lines by FACE_TO_LINE for VLA_WRITE output.
-!
-!    22 May 1999: For VLA output files, the program now will automatically 
-!    try to temporarily convert all face information to line information.  No
-!    sophisticated attempt is made to delete superfluous lines (the
-!    way FACE_TO_EDGE tries.)
-!
-!    The "<<" merge command:
-!
-!      On 20 April 1999, the "<<" command was added, to allow data
-!      from two or more files to be merged.  It works, on a simple example,
-!      for OBJ files.  However, some tuning of OBJ_READ was necessary.
-!      Similar testing and tuning must be done to the other READ routines
-!      before they will work with this option.
-!      On 21 April 1999, the "<<" command worked on a simple example
-!      using two IV files as input.  SMF_READ was also updated for the "<<"
-!      command, but not tested.  ASE_READ, DXF_READ, HRC_READ,
-!      STLA_READ and VLA_READ may already be OK.
-!      On 22 April 1999, "<<" command works with ASE_READ, HRC_READ,
-!      SMF_READ and STLA_READ.
-!
-!    The "MatrixTransform" field in IV_READ/IV_WRITE.
-!      I'm having problems because I am reading in an IV file that has
-!      a matrix transform that is not the identity.  I just ignore it,
-!      and so my data is not rotated and scaled, when it should be.
-!      As a start toward addressing this issue, I have IV_WRITE 
-!      writing out the current transform matrix.  One problem with
-!      Inventor is that the transform matrix can be specified on
-!      every level, and the actual transform matrix that applies
-!      has to be deduced from where you are in the tree.
-!      Right now, all I've done is have IV_READ read the matrix,
-!      and IV_WRITE write it out.  No concatenation is possible right now,
-!      but my kludgy code will at least apply ONE transformation matrix
-!      to the data, in IV_READ, anyway...
-!
-!    Adding material/normal/texture binding stubs, because 
-!    A) new SMF format allows it;
-!    B) Inventor uses it;
-!    C) SCI wants to do textures eventually.
-!
-!    SMF_READ and SMF_WRITE can now read and write face and vertex colors 
-!    of SMF2.0 files.
 !
 !  Modified:
 !
@@ -90,28 +40,31 @@ subroutine ivread_wr(filein_name,face_normal,face_area,face_num,cor3_num, &
 !
 !  Parameters:
 !
-!    Parameter, integer COR3_MAX, the maximum number of points.
+!    Other arguments are described in function command_line below
+!
+!    Input, integer COR3_MAX, the maximum number of points.
 !
 !    Parameter, integer EDGE_MAX, the maximum number of edges.
 !
-!    Parameter, integer FACE_MAX, the maximum number of faces.
+!    Input, integer FACE_MAX, the maximum number of faces.
 !
 !    Parameter, integer LINE_MAX, the maximum number of line definition items.
 !
 !    Parameter, integer MATERIAL_MAX, the maximum number of materials.
 !
-!    Parameter, integer ORDER_MAX, the maximum number of vertices per face.
+!    Input, integer ORDER_MAX, the maximum number of vertices per face.
 !
 !    Parameter, integer TEXTURE_MAX, the maximum number of textures.
 !
+! yurkin - three of the following are now arguments
+!
   implicit none
-  integer, parameter :: cor3_max = 100000
+  integer, intent(in) :: cor3_max
   integer, parameter :: edge_max = 100
-  integer, parameter :: face_max = 100000
+  integer, intent(in) :: face_max
   integer, parameter :: line_max = 100000
   integer, parameter :: material_max = 200
-! yurkin - order_max is now an argument
-  integer order_max
+  integer, intent(in) :: order_max
   integer, parameter :: texture_max = 10
 !
   real cor3(3,cor3_max)
@@ -352,19 +305,8 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
 !
 !  Discussion:
 !
-!    This routine is invoked when the user command is something like
-!
-!      ivread filein_name fileout_name
-!
-!    or
-!
-!      ivread -rn filein_name fileout_name
-!
-!    where "-rn" signals the "reverse normals" option, or
-!
-!      ivread -rf filein_name fileout_name
-!
-!    where "-rf" signals the "reverse faces" option.
+!  Does not work with command line anymore, but contains compile-time options to
+!  reverse the order of normals and/or nodes on faces 
 !
 !  Modified:
 !
@@ -505,10 +447,6 @@ subroutine command_line ( cor3, cor3_material, cor3_normal, cor3_tex_uv, &
     line_num, material_num, object_num, texture_num, object_name, texture_name, &
     texture_temp, transform_matrix, vertex_material, vertex_normal, vertex_tex_uv )
 !
-!
-! yurkin - here the code for reading the command line was removed, since it was skipped
-! anyway. It is OK since this routine is not used as an entry point.
-
 !  Check the input file name.
 !
   call infile ( filein_name, ierror, filein_type )

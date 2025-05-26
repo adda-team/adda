@@ -9,15 +9,21 @@ Usage:
 pip [<grid> [<filename>]]
 ```
 
-Executable is named `pip`, it accepts up tp two command line parameters: 
+Executable is named `pip`, it accepts up to two command line parameters: 
 - `<grid>` - maximum shape size (number of voxels) along the largest dimension that is determined automatically. If omitted, the default value of 80 is used (and further arguments cannot be used).
 - `<filename>`. Input shape is read from `<filename>.obj` and DDSCAT7 shape is saved into `<filename>.dat`. If omitted, PIP will use the default filename `shape` (read `shape.obj` and save `shape.dat`). If `<filename>` includes extension, then it will be used for input file (instead of `.obj`).
 
-It should be possible to read other 3D formats, which are supported by routines in `ivread_wr.f90` - see comments in the source files. However, only `.obj` format is sufficiently tested. Also limited testing has been performed for `.dxf`, `.stl`, and `.wrl` formats. Multiple materials in input files (at least, for `.obj` and `.wrl` formats) are transformed into multiple domains in the output file. Should work for very large number of voxels (limited only by memory and computational time).
+It should be possible to read other 3D formats, which are supported by routines in `ivread_wr.f90` - see comments in the source files. However, only `.obj` format is sufficiently tested. Also limited testing has been performed for other three formats: `.dxf`, `.stl`, and `.wrl`. Multiple materials in input files (at least, for `.obj` and `.wrl` formats) are transformed into multiple domains in the output file. Should work for very large number of voxels (limited only by memory and computational time).
 
 Existing limitations:
 * For poorly tested input formats, it is potentially possible that the materials will not be properly recognized, leading to too much materials and errors in voxelization. Then there is a backup option to produce single-domain output file. For that change the value of `logical, parameter :: ignore_mat` in `FEM-Geo-Wr.f90` to `.true.`. 
 * By default, the code supports only triangular and quadrilateral faces. However, support for polygons of higher order can be added by changing the line `integer, parameter :: face_order_max = 4` in `FEM-Geo-Wr.f90` and recompiling.
+* Similarly, the maximum number of vertices (nodes) and faces are given by the following lines in `FEM-Geo-Wr.f90`. Increase these numbers to handle larger models, but mind the next limitation for computational time.
+  ```fortran
+  integer, parameter :: face_max = 100000
+  integer, parameter :: node_max = 100000
+  ```
+* Computational time is proportional both to number voxels and number of faces, which can become unbearable for large models. Then consider using `MeshConvert` from [ADDA geometry tools](https://bitbucket.org/planetarysystemresearch/adda-geometry-tools) or other options from [this list](https://github.com/adda-team/adda/wiki/Links#tools-that-operate-with-adda-inputoutput).
 * The algorithm requires consistent alignment of face normals (more specifically, order of vertices in each face) - they should all point outward. This is usually automatically satisfied by modern 3D editors.
 
 To test executable run `pip 20` in the current folder. It will use provided `shape.obj` that defines a star-shaped object and produce `shape.dat` which should be identical to provided `shape_test.dat`.
