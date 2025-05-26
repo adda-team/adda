@@ -1,0 +1,23 @@
+# Description of a set of angles for which to calculate Mueller matrix
+#
+# this file should be manually modified by user
+# comments are not allowed inside the lists (pairs,values)
+
+# grid or pairs
+global_type=grid
+
+theta:
+#range or values
+type=range
+#number of points (number of intervals + 1)
+N=181
+min=0
+max=180
+
+phi:
+#range or values
+type=range
+#number of points (number of intervals + 1)
+N=73
+min=0
+max=360
