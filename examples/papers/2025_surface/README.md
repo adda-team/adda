@@ -1,5 +1,5 @@
 The included Python3 scripts reproduce Figure 8 and parts of Figure 11 of the paper: 
-Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on a surface, [JQSRT, In revision](https://arxiv.org/abs/arXiv:2501.10019). 
+Virkki, A. K. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on a surface, [_J. Quant. Spectrosc. Radiat. Transfer_ **345**, 109547](https://doi.org/10.1016/j.jqsrt.2025.109547). 
 The computations were originally conducted using ADDA v.1.4.0, but also tested with v.1.5.0-alpha3.
 
 To run ADDA, you can use the Python script `makerunfiles_surf.py` to generate a run file. By default, it generates the file `run_sphere` for 10 commands: 8 for a surface case (4 incidence angles for 2 size parameters) and 2 for spheres of corresponding sizes in free space. The file can be executed immediately if ADDA binaries are available in one of the standard locations. 
