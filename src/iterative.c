@@ -582,6 +582,11 @@ ITER_FUNC(BiCG_CS)
  * it is also identical to COCG, described in:
  * van der Vorst H.A., Melissen J.B.M. "A Petrov-Galerkin type method for solving Ax=b, where A is symmetric complex",
  * IEEE Transactions on Magnetics, 26(2):706-708, 1990.
+ * 
+ * Notation that is used here actually corresponds to Figure 2.7 of Barrett et al. "Templates for the Solution of Linear
+ * Systems: Building Blocks for Iterative Methods", 2nd ed., SIAM, 1994. http://www.netlib.org/templates/templates.pdf
+ * after removing the second path with transposed matrix (the description in the book is for general matrix).
+ * TODO: change the notation to that of Freund (similar to QMR).
  */
 {
 #define EPS1 1E-10 // for (rT.r)/(r.r)
@@ -735,8 +740,8 @@ ITER_FUNC(BiCG_CS)
 
 ITER_FUNC(BiCGStab)
 /* Bi-Conjugate Gradient Stabilized, based on
- * "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
- * http://www.netlib.org/templates/Templates.html .
+ * Barrett et al. "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods", 2nd ed.,
+ * SIAM, 1994. http://www.netlib.org/templates/templates.pdf
  */
 {
 #define EPS1 1E-10 // for 1/|beta|
@@ -825,8 +830,8 @@ ITER_FUNC(BiCGStab)
 
 ITER_FUNC(CGNR)
 /* Conjugate Gradient applied to Normalized Equations with minimization of Residual Norm, based on
- * "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods",
- * http://www.netlib.org/templates/Templates.html .
+ * Barrett et al. "Templates for the Solution of Linear Systems: Building Blocks for Iterative Methods", 2nd ed.,
+ * SIAM, 1994. http://www.netlib.org/templates/templates.pdf
  */
 {
 	static double alpha, denumeratorAlpha;
