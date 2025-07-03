@@ -54,7 +54,7 @@ Ver. 0.75 - 24.05.06
 * Sample file 'batch' renamed to 'test.pbs' in 'sample/'.
 + Added sample script for SGE 'sample/test.sge'.
 + Different descriptions of Gaussian beam are now fully operational. Help, references added. Evaluation of extinction
-  crosssection is modified to be compliant with Gaussian beams.
+  cross section is modified to be compliant with Gaussian beams.
 - Origin is now always in the center of the computational box (before it was not so when jagged>1).
 - When x_0=E_inc was used, more iterations than necessary to reach epsilon were performed. Fixed.
 * Progress reported in the first iteration after checkpoint loading was incorrect in certain cases. To fix it required
@@ -62,7 +62,7 @@ Ver. 0.75 - 24.05.06
   loading.
 - Sometimes in parallel mode program could die of some error before producing an error message. Fixed.
 * Copyright statement changed in code description and output. Now it is with University of Amsterdam.
-+ Precision increased to 10 in ouput of several variables into log.
++ Precision increased to 10 in output of several variables into log.
 - Calculation of Csca or g caused both polarizations to be calculated even for particles that are symmetric for 90
   degree rotation over the z-axis. That is not necessary - fixed.
 + Integration module significantly improved. It automatically uses trapezoid rule for periodic function. Error estimates
@@ -104,9 +104,9 @@ Ver. 0.76 - 14.10.06
 + Added check if file system does not support file locking; error output of file locking and file removal is now more
   informative (errno string is shown).
 - Orientation averaging did not work in parallel (reported by Antti Penttila). Fixed.
-- Symmetries were not switched off by non-symmetric Gaussian beams. Fixed. Improved hadling of symmetries.
+- Symmetries were not switched off by non-symmetric Gaussian beams. Fixed. Improved handling of symmetries.
 + Computation of scattering of a tightly focused Gaussian beam was compared to multiple multipole method (data by Roman
-  Schuh and Thomas Wriedt). Perfect aggreement. Results of the comparison are added to the manual.
+  Schuh and Thomas Wriedt). Perfect agreement. Results of the comparison are added to the manual.
 + Added chapter to the manual to facilitate adding a new predefined shape.
 + New file 'doc/faq' added for frequently asked questions.
 + New option '-store_beam' to save incident electric fields to a file.
@@ -177,7 +177,7 @@ Ver. 0.78 - 19.03.08
 + Automatic line wrapping was added for most output to stdout and sderr. ADDA tries to get terminal width from COLUMNS
   environmental variables and, if fails, uses the default value.
 * '-pedantic' option for gcc was removed from Makefile, since it gave warnings about long predefined strings.
-- Shape 'line' was not working correcty in combination with '-jagged' or xplicitely specified grid sizes along y- and
+- Shape 'line' was not working correctly in combination with '-jagged' or explicitly specified grid sizes along y- and
   z-axes. Fixed.
 + Two new shapes were added: capsule and egg. They were implemented by Daniel Hahn and Richard I. Joseph.
 + Description of predefined shapes in the manual was improved.
@@ -308,7 +308,7 @@ Changes to the manual:
 * Section "Finale": Removed a paragraph, duplicating the info from Introduction.
 * Section "Command Line Options": Description of the '-shape' command line option was simplified removing full list of
   options.
-* Sections "What's New", "Obtaining the Source Code", "Compiling and Linking", "Acknowledgements", "Comparison with
+* Sections "What's New", "Obtaining the Source Code", "Compiling and Linking", "Acknowledgments", "Comparison with
   Other Codes", "Tutorial", "How to Modify the Source Code",  and "A Brief History of Long ADDA Development" were moved
   to the wiki pages.
 + A new section "How to Use the Manual" were added, in particular to point to existing wiki pages. Some text was also
@@ -363,7 +363,7 @@ Changes to the manual:
 + Added section "OpenCL (GPU) mode" describing executing of adda_ocl.
 + Section "Applicability of the DDA" was divided into two subsections: "General applicability" and "Extensions of the
   DDA"; some text was added.
-+ Section "System Requirements": Updated descripton to include new iterative solvers and OpenCL mode. Two figures were
++ Section "System Requirements": Updated description to include new iterative solvers and OpenCL mode. Two figures were
   combined into one.
 + Section "Construction of a dipole set": Three figures were combined into one.
 + Section "Predefined shapes": Added description of 3 new shapes
@@ -396,7 +396,7 @@ Ver. 1.2 - 08.06.2013
  (similar to the behavior of '-init_field read').
 + Subversion revision number was added to the output of -V command line option (issue 125). New files svnrev.h and
   updsvnrev.sh. 
-+ Several improvements of tests/2exec to accomodate OpenCL and sparse modes, as well as comparison of different FFT
++ Several improvements of tests/2exec to accommodate OpenCL and sparse modes, as well as comparison of different FFT
   implementations (r1192, r1200, r1203).
 + Added tests/2exec/README with basic description of using this test suite.
 * Window width is now 120 throughout the code.
@@ -441,7 +441,7 @@ Changes to the manual:
 + Section "Integral scattering quantities": added note that the result for unpolarized incident light is equal to that
   for full-range averaging over alpha.
 + Section "Iterative solver": added description of new iterative solver bcgs2 and new option '-init_field read'. Also
-  the intercomparison of iterative solvers was rewritten in terms of matrix-vector products, and a summary table was
+  the inter-comparison of iterative solvers was rewritten in terms of matrix-vector products, and a summary table was
   added. Section "System Requirements" was updated to refer to this table.
 + Section "Fast Fourier transform": added description of a clAmdFft library.
 + Added section "Sparse mode", a few other sections were also updated.
@@ -471,7 +471,7 @@ Ver. 1.3b4 - 20.02.2014
 * Calling of IGT Fortran routines was slightly changed, conversion from double to complex has been moved inside the C
   file from Fortran routine.
 + Added defines to simplify adding pragmas to ignore warnings in gcc and loop_count in icc.
-+ Several improvements of tests/2exec to accomodate new features and test modes (r1254, r1255, r1263, r1265, r1285).
++ Several improvements of tests/2exec to accommodate new features and test modes (r1254, r1255, r1263, r1265, r1285).
 + Several functions have been added to cmplx.h.
 * Handling of scattering directions based on angles theta and phi (alldir and scat_grid) was localized to a separate
   function SetScatPlane in crosssec.c.
@@ -546,10 +546,10 @@ Ver. 1.4.0 - 15.12.2020
   * Switched from discontinued library clAmdFft to clFFT (#204). It supports the same sizes of transforms as FFTW3. 
   * Test implementation of the whole iterative solver (currently only BiCG) on the GPU using clBLAS (#199).
   + Added rigorous accounting (in OpenCL memory) for clFFT internal buffers.
-  * OpenCL part of `matvec.c` moved into seperate file `oclmatvec.c`
+  * OpenCL part of `matvec.c` moved into separate file `oclmatvec.c`
   * Function wrappers for clBLAS (#213).
   * Added error checks (`CL_CH_ERR`) to many ocl function calls. Special error checks for clFFT and clBLAS calls.
-  * Improved compilation flags for MacOS - now works out of the box (#279).
+  * Improved compilation flags for macOS - now works out of the box (#279).
   * Fixed a few bugs on the way (#157, #207). 
 
 + Non-cubical (rectangular cuboid) dipoles - a major new feature (#196). Lattice spacings are now hardcoded into the
@@ -586,7 +586,7 @@ Ver. 1.4.0 - 15.12.2020
 
 Changes to `misc/`:
 * `near_field` made robust with respect to comments in shape files. Now also works with inhomogeneous particles (#259).
-* `parse_log` updated (bb2efa6)
+* `parse_log` updated (bb2efa6).
 * `pip` updated for massive simulation (many files, billions of dipoles) (#262).
 
 Changes to Makefiles:
@@ -595,7 +595,7 @@ Changes to Makefiles:
 * Changed optimization level during debug build from -O2 to -O1 (or -Og) (c9ad8bf)
 
 Changes to the manual:
-+ Section "Introduction": specified pronounciation of ADDA.
++ Section "Introduction": specified pronunciation of ADDA.
 + Section "Sequential mode": mentioned that ADDA is a console application.
 * Section "How to use the manual" renamed into "Using the manual".
 + Section "General applicability": added statement that the DDA is a "numerically exact" method and more clear 
@@ -605,12 +605,15 @@ Changes to the manual:
   less ambiguous with respect to the part "only if parallel" (#206), also the range before Nreal now uses less confusing
   notation. 
 + Section "Reference frames": added advice when unsure about dipole coordinates.
-+ Section "The computational grid": mentioned that the default unit of length is 1/k, removed mentions that grid sizes are required to be even. Added description of rectangular dipoles (also affects many other parts of the manual).
++ Section "The computational grid": mentioned that the default unit of length is 1/k, removed mentions that grid sizes
+  are required to be even. Added description of rectangular dipoles (also affects many other parts of the manual).
 + Section "Construction of a dipole set": recommended disabling volume correction in a number of computational scenarios.
-+ Section "Predefined shapes": added clarification and reference to description of RBC shape, added explicit mention of argument bounds for many shapes. 
++ Section "Predefined shapes": added clarification and reference to description of RBC shape, added explicit mention of
+  argument bounds for many shapes. 
 + Section "Beam type": added explicit statements that beam arguments are in laboratory reference frame. Recommended use 
   of -no_vol_cor for point-dipole excitation.
-+ Section "DDA formulation": the sum in the main equations was changed to include Rii (assuming Gii=0). Added a note about notation (G and H instead of G0 and G).
++ Section "DDA formulation": the sum in the main equations was changed to include Rii (assuming Gii=0). Added a note
+  about notation (G and H instead of G0 and G).
 + Section "Polarizability prescription": added a lot of formulae for rectangular dipoles, reworked usage recommendations.
 + Section "Interaction term": explained differences for rectangular dipoles, reworked usage recommendations.
 + Section "How to calculate scattering quantities": added rationale for using a specific definition of the scattering 
@@ -620,11 +623,12 @@ Changes to the manual:
 + Section "Integral scattering quantities": added a note that Cext is directly related to a molar extinction coefficient
   of a suspension of particles. Added note that definition of efficiencies is different from those based on
   geometric-shadow cross section.
-+ Section "Decay-rate enhancement": added specific formulae in the case when intrinsic losses are present (corresponding intrinsic quantum yield q0<1), based on a recent publication.  
++ Section "Decay-rate enhancement": added specific formulae in the case when intrinsic losses are present (corresponding
+  intrinsic quantum yield q0<1), based on a recent publication.  
 + Section "Internal fields and dipole polarizations": recommended the use of -no_vol_cor.
 + Section "Near-field": recommended the use of -no_vol_cor, mentioned that outer-box workaround can be used to compute
   near field in the surface mode.
-+ Section "Iterative Solver": changed the desciption of `-maxiter` option. Added formula to estimate Niter for
++ Section "Iterative Solver": changed the description of `-maxiter` option. Added formula to estimate Niter for
   nanoparticles. Threshold for convergence 𝜀 renamed into 𝜀_iter to avoid confusion with dielectric permittivity.
 + Section "Basic timing": added reference to #197 (problem with clock in OpenCL mode), updated the description of wall
   timers (precise ones are used when available).
