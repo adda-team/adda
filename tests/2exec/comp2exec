@@ -393,6 +393,7 @@ function mycmp {
       append CUT "^here we go"
     fi
     if [[ $MODE == "mpi" || $MODE == "mpi_seq" ]]; then
+      append IGNORE "No real voxels are assigned"  # these can appear at arbitrary positions in the output
       append CUT "^Error posting writev, " # due to typical random errors of MPICH under Windows
     fi
     asmin rtol 4
