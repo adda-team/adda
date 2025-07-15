@@ -6,6 +6,7 @@
 .DS_Store
 
 # for Eclipse
+/eclipse/
 /.сproject
 /.project
 /.settings/
