@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # The code sets up a file structure and creates a file with the run commands for ADDA. 
 # The file can then be run in the same location or moved to another location for 

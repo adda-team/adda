@@ -1,7 +1,10 @@
-'''
+#!/usr/bin/env python3
+
 # This code compares equivalent cases (command lines)
 # for the scattering of Bessel beams calculated in ADDA.
-'''
+#
+# TODO: Some of the functions can be reused as module, 
+# but probably it is better to take them from ADDAwrapper
 
 import os,shutil,re,math
 

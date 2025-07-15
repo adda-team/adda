@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, getopt
 from WKBr import find_wkb_ef
 from rearrange_ef_file import rearrange_ef

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # Generates Figure 8 for the publication
 # Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on 

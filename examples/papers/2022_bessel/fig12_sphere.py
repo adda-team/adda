@@ -1,10 +1,10 @@
-'''
+#!/usr/bin/env python3
+
 # This code represents the comparison of scattering intensities calculated 
 # with GLMT (reference data) and DDA (with ADDA) for the scattering of 
 # Bessel beam (CS type) by a sphere.
 # Reference data were kindly provided by Zhuyang Chen 
 # (DOI:10.1088/2040-8978/16/5/055701).
-'''
 
 import os
 import matplotlib.pyplot as plt

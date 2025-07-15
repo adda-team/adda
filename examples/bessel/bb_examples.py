@@ -1,17 +1,15 @@
-'''
+#!/usr/bin/env python3
+
 # This code compares the scattering intensities calculated with the DDA (ADDA code)
 # for the scattering of two different Bessel beams (option_1 and option_2) by a sphere.
-'''
 
 import os, re, math
 import matplotlib.pyplot as plt
 from matplotlib import rc
 
-
 # path to adda executable
 #adda_exec = "../../win64/adda.exe"
 adda_exec = os.path.abspath(__file__ + "/../../../src/seq/adda")
-
 
 # define here different parameters for 2 options (see ADDA manual)
 run_options = [' -beam besselLE  2 15',  # option 1
@@ -103,7 +101,7 @@ def extractData(mode):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# data visualisation
+# data visualization
 
 # plots of scattering intensities
 def plotData(xv1,yv1,xv2,yv2,flag):
@@ -135,7 +133,7 @@ def plotData(xv1,yv1,xv2,yv2,flag):
     print(math.sqrt(sum(dev2)/len(xv2)*100))
 
 
-# Visualisation of the amplitude of the incident electric field almost in the middle
+# Visualization of the amplitude of the incident electric field almost in the middle
 # of the particle (the nearest to the center xy-plane of dipoles is used, its z-coordinate is shown on the plot)
 def plotField(xd,yd,ed,z0,mode):
     ax.set_title(r'OPTION '+str(mode)+':\n '+run_options[mode-1]+'\nIntensity profile of $|E_{inc}|^2$\n(z = '+str(round(z0,2))+')');
@@ -155,13 +153,13 @@ theta_1,iper_1,ipar_1,xd_1,yd_1,ed_1,z0_1 = extractData(1) # extraction of ADDA 
 theta_2,iper_2,ipar_2,xd_2,yd_2,ed_2,z0_2 = extractData(2) # extraction of ADDA results for option 2
 
 
-# data visualisation
+# data visualization
 
 fig = plt.figure()
-# Visualisation of the amplitude of the incident electric field for option 1
+# Visualization of the amplitude of the incident electric field for option 1
 ax = fig.add_subplot(221,projection='3d')
 plotField(xd_1,yd_1,ed_1,z0_1,1)
-# Visualisation of the amplitude of the incident electric field for option 2
+# Visualization of the amplitude of the incident electric field for option 2
 ax = fig.add_subplot(222,projection='3d')
 plotField(xd_2,yd_2,ed_2,z0_2,2)
 # Perpendicular scattering intensity (1)

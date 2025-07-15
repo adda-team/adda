@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # The script calculates the exact internal electric field using either Bhfield or Scattnlay. 
 # You need to obtain the required executables (Bhfield or Scattnlay) separately and specify the path to the corresponding
 # executables below (or copy them in work/ subfolder)

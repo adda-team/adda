@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 # Generates Figure 11A (sp = 1.0) or Figure 11C (sp = 6.0) for the publication
 # Virkki, A. and Yurkin, M. A. (2025), Microwave scattering by rough polyhedral particles on a surface.

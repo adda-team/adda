@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+
 # This code uses amplitude matrix at forward direction to obtain extinction cross sections for various incident
 # polarizations and compares them with direct calculations. Also produces circular polarizations from the linear ones
 # (relevant for circular dichroism). Finally, tests different options to emulate circular polarizations using
 # plane wave limit of Bessel beams.
+#
+# TODO: Some of the functions are taken from bb_equiv.py and can be reused as module, 
+# but probably it is better to take them from ADDAwrapper
+
 
 import os, shutil, re, numpy as np
 

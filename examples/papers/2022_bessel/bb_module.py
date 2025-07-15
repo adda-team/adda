@@ -1,6 +1,6 @@
 '''
-# The module contains functions for the demonstration of figures 12-15 in the 
-# corresponding python scripts (fig... .py). 
+The module contains functions for the demonstration of figures 12-15 in the 
+corresponding python scripts (fig... .py). 
 '''
 
 import os, shutil, re, math

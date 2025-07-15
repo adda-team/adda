@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # This script casts grid Bhfield / Scattnlay to the ADDA type
 # launch example: python toADDA.py -s 10 -m 1.1 -g 16 -t scattnlay
 
