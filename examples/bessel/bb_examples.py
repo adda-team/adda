@@ -105,7 +105,7 @@ def extractData(mode):
 
 # plots of scattering intensities
 def plotData(xv1,yv1,xv2,yv2,flag):
-    rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+    rc('font',**{'family':'sans-serif','sans-serif':['Arial', 'DejaVu Sans']})
     plt.plot(xv1, yv1, label = 'option 1', color = (0.5, 0.7, 0.9))
     plt.plot(xv2, yv2, label = 'option 2', color = 'm',linestyle='dashed')
     plt.minorticks_on()
@@ -139,10 +139,9 @@ def plotField(xd,yd,ed,z0,mode):
     ax.set_title(r'OPTION '+str(mode)+':\n '+run_options[mode-1]+'\nIntensity profile of $|E_{inc}|^2$\n(z = '+str(round(z0,2))+')');
     ax.scatter(xd, yd, ed, c=ed, cmap='viridis', linewidth=0.5);
     #ax.plot_trisurf(xd, yd, ed,cmap='viridis', edgecolor='none');
-    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
+    ax.xaxis.pane.set_facecolor((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.pane.set_facecolor((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.pane.set_facecolor((1.0, 1.0, 1.0, 0.0))
     
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

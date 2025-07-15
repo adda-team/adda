@@ -162,12 +162,12 @@ def extractData_grids(grids,tht):
 SMALL_SIZE = 10
 MEDIUM_SIZE = 12
 
-rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('font',**{'family':'sans-serif','sans-serif':['Arial', 'DejaVu Sans']})
 rc('font', size=MEDIUM_SIZE) # controls default text sizes
 
 # fig 12-13 scattering intensities
 def plotData(xv1,yv1,xv2,yv2,flag,ax):
-    rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+    rc('font',**{'family':'sans-serif','sans-serif':['Arial', 'DejaVu Sans']})
     plt.plot(xv1, yv1, label = 'DDA', color = (107/256,18/256,245/256),linewidth = 1)
     plt.plot(xv2, yv2, label = 'GLMT', color = (234/256,56/256,38/256),linestyle='none',marker = '.',markersize = 3)
     plt.minorticks_on()
@@ -190,7 +190,7 @@ def plotData(xv1,yv1,xv2,yv2,flag,ax):
 
 # fig 15 scattering intensities
 def plotData4(xv1,yv1,xv2,yv2,xv3,yv3,xv4,yv4,flag,ax):
-    rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+    rc('font',**{'family':'sans-serif','sans-serif':['Arial', 'DejaVu Sans']})
     plt.plot(xv1, yv1, label = r'CS', color = (107/256,18/256,245/256), linewidth=1.5,linestyle='dashed')
     plt.plot(xv2, yv2, label = "CS'", color = (121/256,251/256,186/256),linewidth=1.5,linestyle='solid')
     plt.plot(xv3, yv3, label = 'TEL', color = (230/256,139/256,79/256), linewidth=1.5,linestyle='dotted')
