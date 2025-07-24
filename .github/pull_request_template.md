@@ -1,6 +1,6 @@
 <!--Thank you for contributing to ADDA. The following contains the instructions in the comments. You may remove or leave them.-->
 
-<!--The following is a general template for changes to the main source code of ADDA. There are a few simpler ones for other cases, listed below. Click them in the preview mode. If proceeding with a general template, please remove this list.-->
+<!--The following is a general template for changes to the main source code of ADDA. There are a few simpler ones for other cases, listed below. Click them in the Preview mode. If proceeding with a general template, please remove this list.-->
 
 ### _Simpler specialized templates (click or remove)_
 - [Miscellaneous tools](?quick_pull=1&template=misc.md&title=[MISC]+_Replace+With+Suitable+Title_&labels=comp-Misc)
@@ -27,6 +27,7 @@
 <!--Provide any relevant details about how the changes are implemented, how correctness was verified, how other features - if any - are affected. If this is a relatively large or complex change, explain why you chose the solution you did and what alternatives you considered. If that was discussed in issue or somewhere else, refer to it here.-->
 
 ### Checklist
+
 <!--Put an `x` in the boxes that apply (replacing the space between square brackets). Typically, all boxes need to be checked before the final merge, but you can also fill these out after creating the PR. If you're unsure about any of them, don't hesitate to ask. If you think that some of them are not relevant, discuss this above.-->
 
 - [ ] I have read the [contributing guidelines](https://github.com/adda-team/adda/wiki/InstructionCommitters).
