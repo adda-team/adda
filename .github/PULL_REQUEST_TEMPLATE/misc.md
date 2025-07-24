@@ -1,12 +1,3 @@
----
-name: Miscellaneous tool
-about: Submit a pull request related to tool in misc/ folder
-title: "[MISC] _Replace With Suitable Title_"
-labels: comp-Misc
-assignees: ''
-
----
-
 <!--Thank you for contributing to ADDA. The following contains the instructions in the comments. You may remove or leave them.--> 
 
 ### Summary
@@ -19,7 +10,7 @@ assignees: ''
 
 ### Types of changes
 
-<!--What types of changes does your code introduce to the tool from misc/? Put an `x` in the boxes that apply.-->
+<!--What types of changes does your code introduce to the tool from misc/? Put an `x` in the boxes that apply (replacing the space between square brackets).-->
 
 - [ ] New tool
 - Existing tool:
@@ -32,7 +23,7 @@ assignees: ''
 <!--Provide any relevant details about how the changes are implemented, how correctness was verified, how other features - if any - are affected. If this is a relatively large or complex change, explain why you chose the solution you did and what alternatives you considered. If that was discussed in issue or somewhere else, refer to it here.-->
 
 ### Checklist
-<!--Put an `x` in the boxes that apply. Typically, all boxes need to be checked before the final merge, but you can also fill these out after creating the PR. If you're unsure about any of them, don't hesitate to ask. If you think that some of them are not relevant, discuss this above.-->
+<!--Put an `x` in the boxes that apply (replacing the space between square brackets). Typically, all boxes need to be checked before the final merge, but you can also fill these out after creating the PR. If you're unsure about any of them, don't hesitate to ask. If you think that some of them are not relevant, discuss this above.-->
 
 - [ ] I have read the [contributing guidelines](https://github.com/adda-team/adda/wiki/InstructionCommitters), including the [dedicated section](https://github.com/adda-team/adda/wiki/InstructionCommitters#miscellaneous-tools).
 - [ ] If the tool is based on compiled language, it compiles correctly in all relevant regimes.
