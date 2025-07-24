@@ -7,16 +7,22 @@ assignees: ''
 
 ---
 
-_First, please search the issue tracker for similar enhancements, [link](https://github.com/adda-team/adda/issues). A well-placed comment to an existing issue is more convenient both for you and for developers. Otherwise, delete this paragraph and continue. Italic text (`_..._`) in the following should be replaced by appropriate comments._
+<!--The following contains the instructions in the comments. You may remove or leave them.--> 
+
+<!--First, please search the issue tracker for similar enhancements, [link](https://github.com/adda-team/adda/issues). A well-placed comment to an existing issue is more convenient both for you and for developers.--> 
 
 ### Is your feature request related to a problem? Please describe.
-_A clear and concise description of what the problem is. E.g., I'm always frustrated when [...]_
+
+<!--A clear and concise description of what the problem is. E.g., I'm always frustrated when [...]--> 
 
 ### Describe the solution you'd like
-_A clear and concise description of what you want to happen_
+
+<!--A clear and concise description of what you want to happen--> 
 
 ### Describe alternatives you've considered
-_A clear and concise description of any alternative solutions or features you've considered_
+
+<!--A clear and concise description of any alternative solutions or features you've considered--> 
 
 ### Additional context
-_Add any other context or screenshots about the feature request here_
+
+<!--Add any other context or screenshots about the feature request here--> 

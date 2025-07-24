@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+<!--Switch to the Preview mode and follow the instructions-->
+
 ### First, search in other sources of information:
 * Home wiki page (getting started) - https://github.com/adda-team/adda/wiki
 * FAQ - https://github.com/adda-team/adda/wiki/FAQ
@@ -21,4 +23,4 @@ Many ADDA users are subscribed, so you may get more specific and faster answer. 
 * by e-mail: mailto:adda-discuss@googlegroups.com
 * through the web interface: https://groups.google.com/forum/#!newtopic/adda-discuss
 
-### If none of the above solves your problem, delete all the text and write down your question here
+### If none of the above solves your problem, switch back to Write mode, delete all the existing text, and write down your question here
