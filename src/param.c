@@ -1770,7 +1770,7 @@ PARSE_FUNC(V)
 		printf("Linked to Open MPI version %d.%d.%d\n",OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION);
 #	elif defined(MSMPI_VER)
 		// Microsoft MPI uses hex version number (weird)
-		printf("Linked to Microsoft MPI version 0x%x\n",MSMPI_VER);
+		printf("Linked to Microsoft MPI version %d.%d\n",MSMPI_VER/256,MSMPI_VER%256);
 #	endif
 		// Additional debug information about MPI implementation
 #	ifndef SUPPORT_MPI_BOOL

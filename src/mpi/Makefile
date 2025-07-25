@@ -42,6 +42,22 @@ ifeq ($(MPICC),$(CC))
   # implementation, delete the last symbol on the following line (then this case will not be satisfied)
   ifdef MSMPI_INC
     $(info Using Microsoft MPI)
+    # Microsoft MPI does not properly define MSMPI_VER in mpi.h, so we have to get it from registry and then
+    # transform it to hex format assumed in mpi.h (only two numbers are used, the rest have to be discarded.
+    # If reg fails, we discard its stderr, but identify empty output.
+    REG_KEY := $(shell reg.exe query "HKLM\\SOFTWARE\\Microsoft\\MPI" /v Version 2>/dev/null \
+                       | awk '/Version/ {print $$NF}')
+    ifneq ($(REG_KEY),)
+      REG_KEY_SP := $(subst ., ,$(REG_KEY))
+      MSMPI_MAJOR := $(firstword $(REG_KEY_SP))
+      MSMPI_MINOR := $(word 2,$(REG_KEY_SP))
+      MSMPI_VER := $(shell printf "0x%X" $$((256*$(MSMPI_MAJOR) + $(MSMPI_MINOR))))
+      CFLAGS += -DMSMPI_VER='$(MSMPI_VER)'
+    else
+      $(warning Microsoft MPI version was not found in the registry. Hence the corresponding value \
+                indicated by ADDA will probably be incorrect)
+    endif
+    
     CFLAGS += -I'$(MSMPI_INC)'
     LDFLAGS += -L'$(MSMPI_LIB64)'
     LDLIBS += -lmsmpi
