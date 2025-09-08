@@ -308,25 +308,29 @@ static void LoadIterChpoint(void)
 	TIME_TYPE tstart;
 
 	tstart=GET_TIME();
-	// open input file; reading errors are checked only for vectors
+	// open input file
 	SnprintfErr(ALL_POS,fname,MAX_FNAME,"%s/"F_CHP,chp_dir,ringid);
 	chp_file=FOpenErr(fname,"rb",ALL_POS);
 	/* check for consistency. This implies that the same index corresponds to the same iterative solver in list params.
 	 * So if the ADDA executable was changed, e.g. by adding a new iterative solver, between writing and reading
 	 * checkpoint, this test may fail.
 	 */
-	fread(&ind_m_new,sizeof(int),1,chp_file);
+	if (fread(&ind_m_new,sizeof(int),1,chp_file)!=1)
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (ind_m_new!=ind_m) LogError(ALL_POS,"File '%s' is for different iterative method",fname);
-	fread(&local_nRows_new,sizeof(size_t),1,chp_file);
+	if (fread(&local_nRows_new,sizeof(size_t),1,chp_file)!=1)
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	if (local_nRows_new!=local_nRows) LogError(ALL_POS,"File '%s' is for different vector size",fname);
 	// read common scalars
-	fread(&niter,sizeof(int),1,chp_file);
-	fread(&counter,sizeof(int),1,chp_file);
-	fread(&inprodR,sizeof(double),1,chp_file);
-	fread(&prev_err,sizeof(double),1,chp_file); // read on ALL processors but used only on root
-	fread(&resid_scale,sizeof(double),1,chp_file);
+	if (fread(&niter,sizeof(int),1,chp_file)!=1) LogError(ALL_POS,"Failed reading from file '%s'",fname);
+	if (fread(&counter,sizeof(int),1,chp_file)!=1) LogError(ALL_POS,"Failed reading from file '%s'",fname);
+	if (fread(&inprodR,sizeof(double),1,chp_file)!=1) LogError(ALL_POS,"Failed reading from file '%s'",fname);
+	// read on ALL processors but used only on root
+	if (fread(&prev_err,sizeof(double),1,chp_file)!=1) LogError(ALL_POS,"Failed reading from file '%s'",fname);
+	if (fread(&resid_scale,sizeof(double),1,chp_file)!=1) LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read specific scalars
-	for (i=0;i<params[ind_m].sc_N;i++) fread(scalars[i].ptr,scalars[i].size,1,chp_file);
+	for (i=0;i<params[ind_m].sc_N;i++) if (fread(scalars[i].ptr,scalars[i].size,1,chp_file)!=1)
+		LogError(ALL_POS,"Failed reading from file '%s'",fname);
 	// read common vectors
 	if (fread(xvec,sizeof(doublecomplex),local_nRows,chp_file)!=local_nRows)
 		LogError(ALL_POS,"Failed reading from file '%s'",fname);

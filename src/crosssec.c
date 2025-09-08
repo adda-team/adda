@@ -140,14 +140,13 @@ static void ReadLineStart(FILE *  restrict file,                  // opened file
                           const char * restrict start)            // beginning of the line to search
 // reads the first line that starts with 'start'
 {
-	while (!feof(file)) {
-		fgets(buf,buf_size,file);
+	while (fgets(buf,buf_size,file)!=NULL) {
 		if (strstr(buf,start)==buf) { // if correct beginning
 			if (strstr(buf,"\n")==NULL && !feof(file))
 				LogError(ONE_POS,"Buffer overflow while reading '%s' (size of essential line > %d)",fname,buf_size-1);
 			else return; // line found and fits into buffer
 		} // finish reading unmatched line
-		else while (strstr(buf,"\n")==NULL && !feof(file)) fgets(buf,buf_size,file);
+		else while (strstr(buf,"\n")==NULL && fgets(buf,buf_size,file)!=NULL) continue;
 	}
 	LogError(ONE_POS,"String '%s' is not found (in correct place) in file '%s'",start,fname);
 }
@@ -336,7 +335,8 @@ static enum angleset ScanAngleSet(
 	else if (strcmp(temp,"values")==0) {
 		ReadLineStart(file,fname,buf,buf_size,"values=");
 		for (i=0;i<a->N;i++) {
-			fgets(buf,buf_size,file);
+			if (fgets(buf,buf_size,file)==NULL)
+				LogError(ONE_POS,"Failed to find sufficient number of angle values in file '%s'",fname);
 			if (strstr(buf,"\n")==NULL  && !feof(file))
 				LogError(ONE_POS,"Buffer overflow while scanning lines in file '%s' (line size > %d)",fname,buf_size-1);
 			if (sscanf(buf,"%lf\n",a->val+i)!=1)
@@ -458,7 +458,8 @@ void ReadScatGridParms(const char * restrict fname)
 
 		ReadLineStart(input,fname,buf,BUF_LINE,"pairs=");
 		for (i=0;i<angles.N;i++) {
-			fgets(buf,BUF_LINE,input);
+			if (fgets(buf,BUF_LINE,input)==NULL)
+				LogError(ONE_POS,"Failed to find sufficient number of angle pairs in file '%s'",fname);
 			if (strstr(buf,"\n")==NULL && !feof(input))
 				LogError(ONE_POS,"Buffer overflow while scanning lines in file '%s' (line size > %d)",fname,BUF_LINE-1);
 			if (sscanf(buf,"%lf %lf\n",angles.theta.val+i,angles.phi.val+i)!=2)

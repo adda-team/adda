@@ -494,9 +494,9 @@ void MkDirErr(const char * restrict dir,ERR_LOC_DECL)
 //======================================================================================================================
 
 static inline void SkipFullLine(FILE * restrict file,char * restrict buf,const int buf_size)
-// skips full line in the file, starting from current position; uses buffer 'buf' with size 'buf_size'
+// skips full line in the file (or till error, including EOF); uses buffer 'buf' with size 'buf_size'
 {
-	do fgets(buf,buf_size,file); while (strchr(buf,'\n')==NULL && !feof(file));
+	while (fgets(buf,buf_size,file)!=NULL && strchr(buf,'\n')==NULL) continue;
 }
 
 //======================================================================================================================

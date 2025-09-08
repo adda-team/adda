@@ -122,7 +122,7 @@ the compilation may fail or produce wrong results. If you still want to try, ena
 #define MAX_FNAME_SH     100 // maximum length of filename (used for known names)
 #define MAX_TMP_FNAME_SH  15 // maximum length of names of temporary files (short)
 #define MAX_SYSTEM_CALL   10 // maximum string length of system call (itself)
-#define MAX_WORD          10 // maximum length of a short word
+#define MAX_WORD          12 // maximum length of a short word
 #define MAX_LINE         100 // maximum length of a line
 #define BUF_LINE         300 // size of buffer for reading lines (longer lines are handled robustly)
 #define MAX_PARAGRAPH    600 // maximum length of a paragraph (few lines)
