@@ -21,11 +21,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import shutil
 
-'This code allows to run controlled simualtion with the software ADDA given a wavelength spectrum input, and integrate on hemispherical angle domains.'
+'This code allows to run controlled simulation with the software ADDA given a wavelength spectrum input, and integrate on hemispherical angle domains.'
 
 'First, set the Mainfolder and SimResfolder, and put this script, the input_filename and all_dir_params.dat in the Mainfolder.' 
 'Then, run this script. A GUI window should appear.'
-'Clik on Run to start a simulation, on Upload to perform the integration and save the results, on Plot to visualize the results.'
+'Click on Run to start a simulation, on Upload to perform the integration and save the results, on Plot to visualize the results.'
 'Read the guide for more details.'
 
 Mainfolder="your path to\\adda-1.4.0\\win64\\" #set name of the working folder
@@ -69,7 +69,7 @@ def go(a):                  #main function to perform a simulation for a given s
     print(f"R={a}nm simulation took: {time.time() - start_time:.2f} seconds")
     print('Simulation performed!')
     return
-def generate_bat_file(wavelength,PS_n,PS_k,sub_n,k,a):     #first variable is the wavelength which is converted to micrometers (ADDA takes µm). The output folder will display wavelenth, particle shape, substrate presence, grid, particle n, dimension and an user-dependant flag to assure unicity.
+def generate_bat_file(wavelength,PS_n,PS_k,sub_n,k,a):     #first variable is the wavelength which is converted to micrometers (ADDA takes µm). The output folder will display wavelength, particle shape, substrate presence, grid, particle n, dimension and an user-dependent flag to assure unicity.
     bat_filename = f"run_{k}.bat"    
     with open(bat_filename, 'w') as f:
         # --- Header --- set working folder and avoid printing the log.
@@ -125,7 +125,7 @@ def run_batch_file(bat_file, k):      #just runs the .bat file and prints the si
         print(f"Error running batch file: {e}")
 
 
-def upload(a):  #upload values from a simulation, calculates scattering quantities and saves them in a .txt file when the phi scatering option is disabled. 
+def upload(a):  #upload values from a simulation, calculates scattering quantities and saves them in a .txt file when the phi scattering option is disabled. 
     
 # Handle the run parameters
     if wavelength.shape[0] > 1:
@@ -137,7 +137,7 @@ def upload(a):  #upload values from a simulation, calculates scattering quantiti
         step_lambda = 1   # no step if only one point
         final_run = initial_run+step_lambda     #function discontinued
     
-    S11_muel = np.zeros((len(theta_grid), wavelength.shape[0]))   #just inizialize the arrays
+    S11_muel = np.zeros((len(theta_grid), wavelength.shape[0]))   #just initialize the arrays
     
     if Csca_option=="yes":
         Pol_Y = np.zeros((6, wavelength.shape[0]))
@@ -286,17 +286,17 @@ def upload(a):  #upload values from a simulation, calculates scattering quantiti
             S11_muel_for = S11_muel[theta_91_lab_lab:, k]
             S11_muel_back = S11_muel[:theta_90_lab:, k]            
         
-        if substrate_presence=="no":  #in substrate mode, the scattering effeciency of the light propagating in the substrate must be divided by the refr index of the subatrate squared.
+        if substrate_presence=="no":  #in substrate mode, the scattering efficiency of the light propagating in the substrate must be divided by the refr index of the substrate squared.
             sub_n[k]=1
         
         dtheta=theta_grid[1]-theta_grid[0] #takes the theta step from the mueller file.
         
         if size_type=="Size Along X axis":
-            Q_sca_for_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*4*2*x[k]**(-2)*np.sum(S11_muel_for*np.sin(theta_angle_for*np.pi/180)*dtheta*2*np.pi/360)/sub_n[k]**2    #integrates forward scattering efficencies assuming SPHERES!
+            Q_sca_for_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*4*2*x[k]**(-2)*np.sum(S11_muel_for*np.sin(theta_angle_for*np.pi/180)*dtheta*2*np.pi/360)/sub_n[k]**2    #integrates forward scattering efficiencies assuming SPHERES!
             Q_sca_back_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*4*2*x[k]**(-2)*np.sum(S11_muel_back*np.sin(theta_angle_back*np.pi/180)*dtheta*2*np.pi/360)
             Q_ext_ADDA[k]=(np.pi*(a/1000)**2/particle_cross_section)*4*(4/x[k]**2)*(S11_muel_for[0]) #compute Qext
         else:
-            Q_sca_for_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*2*x[k]**(-2)*np.sum(S11_muel_for*np.sin(theta_angle_for*np.pi/180)*dtheta*2*np.pi/360)/sub_n[k]**2    #integrates forward scattering efficencies assuming SPHERES!
+            Q_sca_for_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*2*x[k]**(-2)*np.sum(S11_muel_for*np.sin(theta_angle_for*np.pi/180)*dtheta*2*np.pi/360)/sub_n[k]**2    #integrates forward scattering efficiencies assuming SPHERES!
             Q_sca_back_ADDA[k] = (np.pi*(a/1000)**2/particle_cross_section)*2*x[k]**(-2)*np.sum(S11_muel_back*np.sin(theta_angle_back*np.pi/180)*dtheta*2*np.pi/360)
             Q_ext_ADDA[k]=(np.pi*(a/1000)**2/particle_cross_section)*(4/x[k]**2)*(S11_muel_for[0]) #compute Qext
         
@@ -316,7 +316,7 @@ def upload(a):  #upload values from a simulation, calculates scattering quantiti
             Q_ext_Mie[k]=Qext_Mie(PS_n[k]-1j*PS_k[k],wavelength[k],a)
             Q_sca_Mie_for[k]=QSca_Mie_for(PS_n[k]-1j*PS_k[k],wavelength[k],a)
             Q_sca_Mie_back[k]=QSca_Mie_back(PS_n[k]-1j*PS_k[k],wavelength[k],a)            
-    print('Upload from ADDA successfull')
+    print('Upload from ADDA successful')
     
     #stacks results and save them inside SimResfolder
     
@@ -346,7 +346,7 @@ def upload_grid(a):      #upload values from a simulation, calculates scattering
         step_lambda = 1   # no step if only one point
         final_run = initial_run+step_lambda
 
-    S11_muel_grid = np.zeros((len(theta_grid)*len(phi_grid), wavelength.shape[0]))  #inizialize arrays
+    S11_muel_grid = np.zeros((len(theta_grid)*len(phi_grid), wavelength.shape[0]))  #initialize arrays
     S11_theta = np.zeros((len(theta_grid)*len(phi_grid), wavelength.shape[0]))
     S11_phi = np.zeros((len(theta_grid)*len(phi_grid), wavelength.shape[0]))
     
@@ -505,7 +505,7 @@ def upload_grid(a):      #upload values from a simulation, calculates scattering
     Q_sca_for_ADDA=C_sca_ADDA_int_tot_for/particle_cross_section
     Q_sca_back_ADDA=C_sca_ADDA_int_tot_back/particle_cross_section
         
-    print('Upload from ADDA successfull')
+    print('Upload from ADDA successful')
     
     #stacks results and save them inside SimResfolder
     
@@ -543,7 +543,7 @@ def plot(a):
     Q_sca_Mie_for=np.loadtxt(full_pathQ,skiprows=1, usecols=8)
     Q_sca_Mie_back=np.loadtxt(full_pathQ,skiprows=1, usecols=9)    
     
-    Q_ext_ADDA=Q_ext_ADDA_auto  #skip the definition from muel matrx (#TODO: FIX) and use directly the CrossSec output
+    Q_ext_ADDA=Q_ext_ADDA_auto  #skip the definition from mueller matrix (#TODO: FIX) and use directly the CrossSec output
        
     #load scattering cross sections
     C_ext_ADDA_auto=np.loadtxt(full_pathC,skiprows=1, usecols=1)
@@ -597,7 +597,7 @@ def plot_grid(a):
      Q_sca_Mie_for=np.loadtxt(full_pathQ,skiprows=1, usecols=8)
      Q_sca_Mie_back=np.loadtxt(full_pathQ,skiprows=1, usecols=9)    
      
-     Q_ext_ADDA=Q_ext_ADDA_auto  #skip the definition from muel matrx (#TODO: FIX) and use directly the CrossSec output
+     Q_ext_ADDA=Q_ext_ADDA_auto  #skip the definition from mueller matrix (#TODO: FIX) and use directly the CrossSec output
         
      #load scattering cross sections
      C_ext_ADDA_auto=np.loadtxt(full_pathC,skiprows=1, usecols=1)
@@ -617,7 +617,7 @@ def plot_grid(a):
      ax1.plot(wavelength,Q_sca_for_ADDA,color=(0.5,0,0),label='sca for ADDA')
      ax1.plot(wavelength,Q_sca_back_ADDA,color=(0,0,0.5),label='sca back ADDA')
      ax1.set_xlabel("Wavelength (nm)",fontsize=12, fontweight="bold")
-     ax1.set_ylabel("Efficency factor",fontsize=12, fontweight="bold")
+     ax1.set_ylabel("Efficiency factor",fontsize=12, fontweight="bold")
      ax1.legend(loc="upper right", fontsize="small", frameon=True,framealpha=0)
      ax1.set_title(f"Efficency factors ADDA vs Mie, R={a_value}nm")
 
@@ -675,7 +675,7 @@ def kill_folder(a):  #function to kill the simulation folders and clean the work
 
 ################################## MIE CALCULATIONS ##############################################
 
-def QSca_Mie_for(m,lambda0,a):  #(refractive index, wavelength, radius) computes the forward scattering efficency. to compare ADDA and Mie results for spheres. needs Miepython module in the win64 directory.
+def QSca_Mie_for(m,lambda0,a):  #(refractive index, wavelength, radius) computes the forward scattering efficiency. to compare ADDA and Mie results for spheres. needs Miepython module in the win64 directory.
     theta_angle_forM = np.arange(start=0, stop=0.5*np.pi+0.00000001,step=np.pi/100000) #defines set of angle for forward scattering (0-90°) 
     x=2*np.pi*a/lambda0    #compute size parameter
     mu_for=np.cos(theta_angle_forM)  #compute cosine of the selected angle range, serves as input of _mie_S1_S2 function
@@ -701,7 +701,7 @@ def QSca_Mie_for(m,lambda0,a):  #(refractive index, wavelength, radius) computes
     #pylab.plot(theta_angle_forM,S1_for,color='red')
     return Q_sca_for
 
-def QSca_Mie_back(m,lambda0,a):  #(refractive index, wavelength, radius) computes the backward scattering efficency. need Miepython module
+def QSca_Mie_back(m,lambda0,a):  #(refractive index, wavelength, radius) computes the backward scattering efficiency. need Miepython module
     theta_angle_forM = np.arange(start=0.5*np.pi, stop=1*np.pi+0.00000001,step=np.pi/100000) #defines set of angle for forward scattering (0-90°) 
     x=2*np.pi*a/lambda0    #compute size parameter
     mu_for=np.cos(theta_angle_forM)  #compute cosine of the selected angle range, serves as input of _mie_S1_S2 function
@@ -725,7 +725,7 @@ def QSca_Mie_back(m,lambda0,a):  #(refractive index, wavelength, radius) compute
     #pylab.plot(theta_angle_forM,S1_for,color='red')
     return Q_sca_back
 
-def Qext_Mie(m,lambda0,a): #computes the exctintion scattering efficency. need Miepython module
+def Qext_Mie(m,lambda0,a): #computes the extinction scattering efficiency. need Miepython module
     x=2*np.pi*a/lambda0
     norm_int=6
     mu_0= np.arange(start=1.0, stop=1.01,step=0.1) #Qext depend only on the value of S for theta=0. mu_0 is an array with one element (costheta=1), because to adjust the normalization the input angle for _mie_s1_s2 must be an array 
