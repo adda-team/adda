@@ -2510,7 +2510,7 @@ void MakeParticle(void)
 	/* test that particle is wholly above the substrate; strictly speaking, we test voxel centers to be above the
 	 * substrate - hsub+minZco>0, while the geometric boundary of the particle may still intersect with the substrate.
 	 * However, the current test is sufficient to ensure that corresponding routines to calculate reflected Green's
-	 * tensor do not fail (but see also below). And accuracy of the DDA itself is anyway questionable when some of the
+	 * tensor do not fail (but see also below). And accuracy of DDA itself is anyway questionable when some of the
 	 * voxels are very close to the substrate (whether they cross it or not).
 	 */
 	if (surface && hsub<=-minZco) LogError(ALL_POS,"The particle must be entirely above the substrate. There exist a "

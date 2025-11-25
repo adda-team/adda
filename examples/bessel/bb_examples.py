@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This code compares the scattering intensities calculated with the DDA (ADDA code)
+# This code compares the scattering intensities calculated with DDA (ADDA code)
 # for the scattering of two different Bessel beams (option_1 and option_2) by a sphere.
 
 import os, re, math
