@@ -20,8 +20,8 @@
 // project headers
 #include "function.h"
 #include "io.h"
-#include <stdbool.h> // for bool
 // system headers
+#include <stdbool.h> // for bool
 // we have been mostly testing against this version (and it corresponds to clFFT 2.12.2), but require only 1.0 below
 #define CL_TARGET_OPENCL_VERSION 120
 #ifdef __APPLE__

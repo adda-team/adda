@@ -31,14 +31,12 @@
 #include "Romberg.h" // corresponding header
 // project headers
 #include "io.h"
+#include "memory.h"
 #include "vars.h"
 // system headers
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "memory.h"
-#include "io.h"
 
 // SEMI-GLOBAL VARIABLES
 
