@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-V5.0
+V5.1
 
 @author: Mattia Andrini, mattia.andrini@unicatt.it
 
@@ -713,27 +713,43 @@ def plot(a):
     C_sca_ADDA_int_tot_for = np.loadtxt(full_pathC, skiprows=1, usecols=5)
     C_sca_ADDA_int_tot_back = np.loadtxt(full_pathC, skiprows=1, usecols=6)
 
-    fig, (ax1) = pylab.subplots(1, 1, figsize=(4, 8), dpi=600)
+    # --- SINGLE FIGURE, TWO SUBPLOTS ---
+    # figsize=(width, height).
+    fig, (ax1, ax2) = pylab.subplots(1, 2, figsize=(10, 5), dpi=150)
+    
+    # --- Plot 1: Efficiency Factors ---
+    ax1.plot(wavelength, Q_ext_Mie, '--', color='#00FF00', label='Qext Mie', linewidth=1.5)
+    ax1.plot(wavelength, Q_sca_Mie_for, '--', color='#FF0000', label='Qsca Fwd Mie', linewidth=1.5)
+    ax1.plot(wavelength, Q_sca_Mie_back, '--', color='#004CFF', label='Qsca Bwd Mie', linewidth=1.5)
+    
+    ax1.plot(wavelength, Q_ext_ADDA, color='green', label='Qext ADDA', linewidth=1.5, alpha=0.7)
+    ax1.plot(wavelength, Q_sca_for_ADDA, color='darkred', label='Qsca Fwd ADDA', linewidth=1.5, alpha=0.7)
+    ax1.plot(wavelength, Q_sca_back_ADDA, color='navy', label='Qsca Bwd ADDA', linewidth=1.5, alpha=0.7)
 
-    ax1.plot(wavelength, Q_ext_Mie, '--', color=(0, 1, 0), label='ext Mie')
-    ax1.plot(wavelength, Q_sca_Mie_for, '--', color=(1, 0, 0), label='sca for Mie')
-    ax1.plot(wavelength, Q_sca_Mie_back, '--', color=(0, 0.3, 1), label='sca back Mie')
-    ax1.plot(wavelength, Q_ext_ADDA, color='green', label='ext ADDA auto')
-    ax1.plot(wavelength, Q_sca_for_ADDA, color=(0.5, 0, 0), label='sca for ADDA')
-    ax1.plot(wavelength, Q_sca_back_ADDA, color=(0, 0, 0.5), label='sca back ADDA')
-    ax1.legend(loc="upper right", fontsize="small", frameon=True, framealpha=0)
-    ax1.set_title(f"Efficiency factors ADDA vs Mie, R={a_value}nm")
+    ax1.set_xlabel("Wavelength (nm)", fontsize=11, fontweight="bold")
+    ax1.set_ylabel("Efficiency Factor (Q)", fontsize=11, fontweight="bold")
+    ax1.set_title(f"Efficiency Factors (R={a_value}nm)", fontsize=12)
+    ax1.legend(loc="best", fontsize=9, frameon=True, framealpha=0.8)
+    ax1.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    ax1.tick_params(axis='both', labelsize=10)
 
-    fig2, (ax4) = pylab.subplots(1, 1, figsize=(4, 8), dpi=600)
-    ax4.plot(wavelength, C_sca_ADDA_int_tot_for, color=(0, 0, 0), label='Csca for')
-    ax4.plot(wavelength, C_sca_ADDA_int_tot_back, color=(1, 0, 0), label='Csca back')
-    ax4.plot(wavelength, C_sca_ADDA_int_tot, color=(0, 0.8, 0), label='Csca for+Csca back ')
-    ax4.plot(wavelength, C_sca_ADDA_int, '--', color=(0, 0, 1), label='Csca out ADDA')
-    ax4.plot(wavelength, C_abs_ADDA_auto, color=(1, 0, 1), label='Cabs auto')
-    ax4.plot(wavelength, C_ext_ADDA_auto, color=(0, 0.8, 1), label='Cext auto')
-    ax4.legend(loc="upper right", fontsize="small", frameon=True, framealpha=0)
-    ax4.set_title(f"ADDA Scattering cross sections, R={a_value}nm")
+    # --- Plot 2: Cross Sections ---
+    ax2.plot(wavelength, C_sca_ADDA_int_tot_for, color='black', label='Csca Fwd', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int_tot_back, color='red', label='Csca Bwd', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int_tot, color='limegreen', label='Csca Total (F+B)', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int, '--', color='blue', label='Csca ADDA Internal', linewidth=1.5)
+    ax2.plot(wavelength, C_abs_ADDA_auto, color='magenta', label='Cabs', linewidth=1.5)
+    ax2.plot(wavelength, C_ext_ADDA_auto, color='cyan', label='Cext', linewidth=1.5)
 
+    ax2.set_xlabel("Wavelength (nm)", fontsize=11, fontweight="bold")
+    ax2.set_ylabel("Cross Section (µm²)", fontsize=11, fontweight="bold")
+    ax2.set_title(f"Scattering Cross Sections (R={a_value}nm)", fontsize=12)
+    ax2.legend(loc="best", fontsize=9, frameon=True, framealpha=0.8)
+    ax2.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    ax2.tick_params(axis='both', labelsize=10)
+
+    # Automatically adjust spacing between plots
+    pylab.tight_layout()
     pylab.show()
 
 def plot_grid(a):
@@ -764,31 +780,42 @@ def plot_grid(a):
     C_sca_ADDA_int_tot_for = np.loadtxt(full_pathC, skiprows=1, usecols=5)
     C_sca_ADDA_int_tot_back = np.loadtxt(full_pathC, skiprows=1, usecols=6)
 
-    fig, (ax1) = pylab.subplots(1, 1, figsize=(4, 6), dpi=600)
+   # --- SINGLE FIGURE, TWO SUBPLOTS ---
+    fig, (ax1, ax2) = pylab.subplots(1, 2, figsize=(10, 5), dpi=150)
 
-    ax1.plot(wavelength, Q_ext_Mie, '--', color=(0, 1, 0), label='ext Mie')
-    ax1.plot(wavelength, Q_sca_Mie_for, '--', color=(1, 0, 0), label='sca for Mie')
-    ax1.plot(wavelength, Q_sca_Mie_back, '--', color=(0, 0.3, 1), label='sca back Mie')
-    ax1.plot(wavelength, Q_ext_ADDA, color='green', label='ext ADDA auto')
-    ax1.plot(wavelength, Q_sca_for_ADDA, color=(0.5, 0, 0), label='sca for ADDA')
-    ax1.plot(wavelength, Q_sca_back_ADDA, color=(0, 0, 0.5), label='sca back ADDA')
-    ax1.set_xlabel("Wavelength (nm)", fontsize=12, fontweight="bold")
-    ax1.set_ylabel("Efficiency factor", fontsize=12, fontweight="bold")
-    ax1.legend(loc="upper right", fontsize="small", frameon=True, framealpha=0)
-    ax1.set_title(f"Efficiency factors ADDA vs Mie, R={a_value}nm")
+    # --- Plot 1: Efficiency Factors ---
+    ax1.plot(wavelength, Q_ext_Mie, '--', color='#00FF00', label='Qext Mie', linewidth=1.5)
+    ax1.plot(wavelength, Q_sca_Mie_for, '--', color='#FF0000', label='Qsca Fwd Mie', linewidth=1.5)
+    ax1.plot(wavelength, Q_sca_Mie_back, '--', color='#004CFF', label='Qsca Bwd Mie', linewidth=1.5)
+    
+    ax1.plot(wavelength, Q_ext_ADDA, color='green', label='Qext ADDA', linewidth=1.5, alpha=0.7)
+    ax1.plot(wavelength, Q_sca_for_ADDA, color='darkred', label='Qsca Fwd ADDA', linewidth=1.5, alpha=0.7)
+    ax1.plot(wavelength, Q_sca_back_ADDA, color='navy', label='Qsca Bwd ADDA', linewidth=1.5, alpha=0.7)
 
-    fig2, (ax4) = pylab.subplots(1, 1, figsize=(4, 6), dpi=600)
-    ax4.plot(wavelength, C_sca_ADDA_int_tot_for, color=(0, 0, 0), label='Csca for')
-    ax4.plot(wavelength, C_sca_ADDA_int_tot_back, color=(1, 0, 0), label='Csca back')
-    ax4.plot(wavelength, C_sca_ADDA_int_tot, color=(0, 0.8, 0), label='Csca for+Csca back ')
-    ax4.plot(wavelength, C_sca_ADDA_int, '--', color=(0, 0, 1), label='Csca out ADDA')
-    ax4.plot(wavelength, C_abs_ADDA_auto, color=(1, 0, 1), label='Cabs auto')
-    ax4.plot(wavelength, C_ext_ADDA_auto, color=(0, 0.8, 1), label='Cext auto')
-    ax4.legend(loc="upper right", fontsize="small", frameon=True, framealpha=0)
-    ax4.set_xlabel("Wavelength (nm)", fontsize=12, fontweight="bold")
-    ax4.set_ylabel("Cross section (µm²)", fontsize=12, fontweight="bold")
-    ax4.set_title(f"ADDA Scattering cross sections, R={a_value}nm")
+    ax1.set_xlabel("Wavelength (nm)", fontsize=11, fontweight="bold")
+    ax1.set_ylabel("Efficiency Factor (Q)", fontsize=11, fontweight="bold")
+    ax1.set_title(f"Efficiency Factors (R={a_value}nm)", fontsize=12)
+    ax1.legend(loc="best", fontsize=9, frameon=True, framealpha=0.8)
+    ax1.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    ax1.tick_params(axis='both', labelsize=10)
 
+    # --- Plot 2: Cross Sections ---
+    ax2.plot(wavelength, C_sca_ADDA_int_tot_for, color='black', label='Csca Fwd', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int_tot_back, color='red', label='Csca Bwd', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int_tot, color='limegreen', label='Csca Total (F+B)', linewidth=1.5)
+    ax2.plot(wavelength, C_sca_ADDA_int, '--', color='blue', label='Csca ADDA Internal', linewidth=1.5)
+    ax2.plot(wavelength, C_abs_ADDA_auto, color='magenta', label='Cabs', linewidth=1.5)
+    ax2.plot(wavelength, C_ext_ADDA_auto, color='cyan', label='Cext', linewidth=1.5)
+
+    ax2.set_xlabel("Wavelength (nm)", fontsize=11, fontweight="bold")
+    ax2.set_ylabel("Cross Section (µm²)", fontsize=11, fontweight="bold")
+    ax2.set_title(f"Scattering Cross Sections (R={a_value}nm)", fontsize=12)
+    ax2.legend(loc="best", fontsize=9, frameon=True, framealpha=0.8)
+    ax2.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    ax2.tick_params(axis='both', labelsize=10)
+
+    # Automatically adjust spacing between plots
+    pylab.tight_layout()
     pylab.show()
 
 # --- 6. GUI FUNCTIONS ---
