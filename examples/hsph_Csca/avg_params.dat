@@ -1,0 +1,59 @@
+# Description of the parameters for orientation averaging
+#
+# this file should be manually modified by user
+# Program does not assume any symmetries of the particle. Therefore, possible symmetries should be considered by user
+# and this can lead to decrease of integration limits. 
+# Here zyz-notation (or y-convention) is used for the Euler angles.
+
+alpha:
+# calculation for alpha is cheap but only precalculated, therefore Jmax should be rather large.
+# Jmin and eps are really not used.
+# Completely irrelevant, when only cross sections are calculated ('-scat_matr none').
+# Do not change the range from default unless you have a good reason; using only one value of gamma for beta=0,pi is
+#   done only when full range is specified here to avoid possible inaccuracies.
+# default: min=0;max=360;Jmax=5;equiv=true;periodic=true
+min=0
+max=360
+Jmin=2
+Jmax=5
+eps=0
+equiv=true
+periodic=true
+
+beta:
+# default: min=0;max=180;Jmin=2;Jmax=4;eps=1e-3;equiv=false;periodic=false
+# xy - symmetry plane: max=90;Jmax=3
+# Do not use periodic=true since the function is multiplied by sin(beta) before integration.
+min=0
+max=180
+Jmin=2
+Jmax=4
+eps=1e-3
+equiv=false
+periodic=false
+
+gamma:
+# default: min=0;max=360;Jmin=2;Jmax=4;eps=1e-3;equiv=true;periodic=true
+# axysymmetrical: max=0
+#   more precisely: max=45;Jmax=2;equiv=false
+min=0
+max=360
+Jmin=2
+Jmax=4
+eps=1e-3
+equiv=true
+periodic=true
+
+# all angles are specified in degrees
+# Jmin,Jmax are minimum and maximum numbers of refinement stages
+# Nmax = 2^Jmax + 1
+# for those with equiv=true Nmax is effectively less by 1 
+# total calls of function <= Nmax_theta * Nmax_phi
+
+# equiv means whether it is assumed that max and min values are completely equivalent. If true only one of them is
+# calculated.
+
+# periodic means whether function is periodic in the integrated interval. If true trapezoid rule is used; it is possible
+# that interval is half of the function period.
+
+# axysymmetrical <=> particle with z - axis of symmetry
