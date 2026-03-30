@@ -18,7 +18,7 @@
 // project headers
 #include "const.h"    // for enum types
 #include "function.h" // for function attributes
-#include "io.h"
+#include "io.h"       // for ERR_LOC_DECL
 #include "types.h"    // for doublecomplex
 // system headers
 #include <stddef.h>   // for size_t

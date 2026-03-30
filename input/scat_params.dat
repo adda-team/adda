@@ -5,21 +5,21 @@
 
 # grid or pairs
 global_type=grid
-#number of points
+# number of points
 N=2
-#lines of theta,phi
+# lines of theta,phi
 pairs=
 0 0
 30 90
 
 theta:
-#range or values
+# range or values
 type=range
-#number of points (number of intervals + 1)
+# number of points (number of intervals + 1)
 N=91
 min=0
 max=180
-#lines of theta
+# lines of theta
 values=
 0
 10
@@ -27,13 +27,13 @@ values=
 30
 
 phi:
-#range or values
+# range or values
 type=range
-#number of points (number of intervals + 1)
+# number of points (number of intervals + 1)
 N=61
 min=0
 max=360
-#lines of phi
+# lines of phi
 values=
 0
 90

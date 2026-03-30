@@ -6,7 +6,7 @@ Or use example `example.hf`, which describes a deformed prolate spheroid, as use
 
 ### 2) Convert Hyperfun into WRL file
 
-Under Windows this can be done using the [HyperFun Polygonizer](http://hyperfun.org):
+Under Windows this can be done using the [HyperFun Polygonizer](https://f-rep.org/hyperfun/tools):
 * Start command prompt under Windows
 * Change to directory where the Hyperfun input file are
 * Execute Hyperfun using 
